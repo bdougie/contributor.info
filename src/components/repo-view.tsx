@@ -1,19 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { HelpCircle, SearchIcon, Users, MonitorPlay } from 'lucide-react';
+} from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HelpCircle, SearchIcon, Users, MonitorPlay } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -21,9 +21,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LoginDialog } from './login-dialog';
-import { ContributorHoverCard } from './contributor-hover-card';
-import { supabase } from '@/lib/supabase';
+import { LoginDialog } from "./login-dialog";
+import { ContributorHoverCard } from "./contributor-hover-card";
+import { supabase } from "@/lib/supabase";
 import {
   ScatterChart,
   Scatter,
@@ -32,10 +32,10 @@ import {
   CartesianGrid,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
-} from 'recharts';
-import { fetchPullRequests } from '@/lib/github';
-import { humanizeNumber, calculateLotteryFactor } from '@/lib/utils';
-import type { PullRequest, RepoStats, LotteryFactor, ContributorStats } from '@/lib/types';
+} from "recharts";
+import { fetchPullRequests } from "@/lib/github";
+import { humanizeNumber, calculateLotteryFactor } from "@/lib/utils";
+import type { RepoStats, LotteryFactor, ContributorStats } from "@/lib/types";
 
 function LotteryFactorSkeleton() {
   return (
@@ -79,13 +79,20 @@ function LotteryFactorEmpty() {
       <MonitorPlay className="h-12 w-12 text-muted-foreground mb-4" />
       <h3 className="text-lg font-medium">No data available</h3>
       <p className="text-sm text-muted-foreground mt-2">
-        This repository doesn't have enough commit data to calculate the Lottery Factor.
+        This repository doesn't have enough commit data to calculate the Lottery
+        Factor.
       </p>
     </div>
   );
 }
 
-function LotteryFactorContent({ stats, lotteryFactor }: { stats: RepoStats; lotteryFactor: LotteryFactor | null }) {
+function LotteryFactorContent({
+  stats,
+  lotteryFactor,
+}: {
+  stats: RepoStats;
+  lotteryFactor: LotteryFactor | null;
+}) {
   if (stats.loading) {
     return <LotteryFactorSkeleton />;
   }
@@ -94,27 +101,28 @@ function LotteryFactorContent({ stats, lotteryFactor }: { stats: RepoStats; lott
     return <LotteryFactorEmpty />;
   }
 
-  const getRiskLevelColor = (level: 'Low' | 'Medium' | 'High') => {
+  const getRiskLevelColor = (level: "Low" | "Medium" | "High") => {
     switch (level) {
-      case 'Low':
-        return 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400';
-      case 'Medium':
-        return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400';
-      case 'High':
-        return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400';
+      case "Low":
+        return "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400";
+      case "Medium":
+        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400";
+      case "High":
+        return "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400";
     }
   };
 
   const getProgressBarSegments = (contributors: ContributorStats[]) => {
     const colors = [
-      'bg-orange-500 hover:bg-orange-600',
-      'bg-orange-400 hover:bg-orange-500',
-      'bg-yellow-500 hover:bg-yellow-600',
-      'bg-green-500 hover:bg-green-600',
-      'bg-blue-500 hover:bg-blue-600',
+      "bg-orange-500 hover:bg-orange-600",
+      "bg-orange-400 hover:bg-orange-500",
+      "bg-yellow-500 hover:bg-yellow-600",
+      "bg-green-500 hover:bg-green-600",
+      "bg-blue-500 hover:bg-blue-600",
     ];
 
-    const otherContributorsPercentage = 100 - contributors.reduce((sum, c) => sum + c.percentage, 0);
+    const otherContributorsPercentage =
+      100 - contributors.reduce((sum, c) => sum + c.percentage, 0);
 
     return [
       ...contributors.map((contributor, index) => ({
@@ -123,7 +131,7 @@ function LotteryFactorContent({ stats, lotteryFactor }: { stats: RepoStats; lott
         contributor,
       })),
       {
-        color: 'bg-gray-400 hover:bg-gray-500',
+        color: "bg-gray-400 hover:bg-gray-500",
         width: `${otherContributorsPercentage}%`,
         contributor: null,
       },
@@ -143,16 +151,16 @@ function LotteryFactorContent({ stats, lotteryFactor }: { stats: RepoStats; lott
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs">
-                  The Lottery Factor measures the distribution of contributions 
-                  across maintainers. A high percentage indicates increased risk 
+                  The Lottery Factor measures the distribution of contributions
+                  across maintainers. A high percentage indicates increased risk
                   due to concentrated knowledge.
                 </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
-        <Badge 
-          variant="secondary" 
+        <Badge
+          variant="secondary"
           className={`ml-auto ${getRiskLevelColor(lotteryFactor.riskLevel)}`}
         >
           {lotteryFactor.riskLevel}
@@ -162,51 +170,54 @@ function LotteryFactorContent({ stats, lotteryFactor }: { stats: RepoStats; lott
       <div className="space-y-4">
         <div className="space-y-2">
           <div className="text-sm text-muted-foreground">
-            The top {lotteryFactor.topContributorsCount} contributors of this repository have made{' '}
+            The top {lotteryFactor.topContributorsCount} contributors of this
+            repository have made{" "}
             <span className="font-medium text-foreground">
               {lotteryFactor.topContributorsPercentage}%
-            </span>{' '}
+            </span>{" "}
             of all pull requests in the past 30 days.
           </div>
-          
+
           <div className="h-2 w-full rounded-full overflow-hidden flex">
-            {getProgressBarSegments(lotteryFactor.contributors).map((segment, i) => (
-              <TooltipProvider key={i}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div
-                      className={`h-full transition-colors ${segment.color}`}
-                      style={{ width: segment.width }}
-                    />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div className="flex items-center gap-2">
-                      {segment.contributor ? (
-                        <>
-                          <img
-                            src={segment.contributor.avatar_url}
-                            alt={segment.contributor.login}
-                            className="w-4 h-4 rounded-full"
-                          />
-                          <span>{segment.contributor.login}</span>
-                          <span className="text-muted-foreground">
-                            ({Math.round(segment.contributor.percentage)}%)
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <Users className="w-4 h-4" />
-                          <span>Other contributors</span>
-                          <span className="text-muted-foreground">
-                            ({Math.round(parseFloat(segment.width))}%)
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ))}
+            {getProgressBarSegments(lotteryFactor.contributors).map(
+              (segment, i) => (
+                <TooltipProvider key={i}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className={`h-full transition-colors ${segment.color}`}
+                        style={{ width: segment.width }}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="flex items-center gap-2">
+                        {segment.contributor ? (
+                          <>
+                            <img
+                              src={segment.contributor.avatar_url}
+                              alt={segment.contributor.login}
+                              className="w-4 h-4 rounded-full"
+                            />
+                            <span>{segment.contributor.login}</span>
+                            <span className="text-muted-foreground">
+                              ({Math.round(segment.contributor.percentage)}%)
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Users className="w-4 h-4" />
+                            <span>Other contributors</span>
+                            <span className="text-muted-foreground">
+                              ({Math.round(parseFloat(segment.width))}%)
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )
+            )}
           </div>
         </div>
 
@@ -216,13 +227,22 @@ function LotteryFactorContent({ stats, lotteryFactor }: { stats: RepoStats; lott
             <div className="text-right">Pull Requests</div>
             <div className="text-right">% of total</div>
           </div>
-          
+
           {lotteryFactor.contributors.map((contributor, index) => (
-            <div key={contributor.login} className="grid grid-cols-[1fr_100px_80px] gap-4 items-center">
+            <div
+              key={contributor.login}
+              className="grid grid-cols-[1fr_100px_80px] gap-4 items-center"
+            >
               <div className="flex items-center gap-2">
-                <ContributorHoverCard 
+                <ContributorHoverCard
                   contributor={contributor}
-                  role={index === 0 ? 'maintainer' : index === 1 ? 'member' : 'contributor'}
+                  role={
+                    index === 0
+                      ? "maintainer"
+                      : index === 1
+                      ? "member"
+                      : "contributor"
+                  }
                 >
                   <img
                     src={contributor.avatar_url}
@@ -233,7 +253,11 @@ function LotteryFactorContent({ stats, lotteryFactor }: { stats: RepoStats; lott
                 <div>
                   <div className="font-medium">{contributor.login}</div>
                   <div className="text-sm text-muted-foreground">
-                    {index === 0 ? 'maintainer' : index === 1 ? 'member' : 'contributor'}
+                    {index === 0
+                      ? "maintainer"
+                      : index === 1
+                      ? "member"
+                      : "contributor"}
                   </div>
                 </div>
               </div>
@@ -245,7 +269,7 @@ function LotteryFactorContent({ stats, lotteryFactor }: { stats: RepoStats; lott
               </div>
             </div>
           ))}
-          
+
           <div className="border-t pt-4">
             <div className="grid grid-cols-[1fr_100px_80px] gap-4 items-center">
               <div className="flex items-center gap-2">
@@ -255,15 +279,28 @@ function LotteryFactorContent({ stats, lotteryFactor }: { stats: RepoStats; lott
                 <div>
                   <div className="font-medium">Other contributors</div>
                   <div className="text-sm text-muted-foreground">
-                    {lotteryFactor.totalContributors - lotteryFactor.contributors.length} contributors
+                    {lotteryFactor.totalContributors -
+                      lotteryFactor.contributors.length}{" "}
+                    contributors
                   </div>
                 </div>
               </div>
               <div className="text-right font-medium">
-                {stats.pullRequests.length - lotteryFactor.contributors.reduce((sum, c) => sum + c.pullRequests, 0)}
+                {stats.pullRequests.length -
+                  lotteryFactor.contributors.reduce(
+                    (sum, c) => sum + c.pullRequests,
+                    0
+                  )}
               </div>
               <div className="text-right font-medium">
-                {Math.round(100 - lotteryFactor.contributors.reduce((sum, c) => sum + c.percentage, 0))}%
+                {Math.round(
+                  100 -
+                    lotteryFactor.contributors.reduce(
+                      (sum, c) => sum + c.percentage,
+                      0
+                    )
+                )}
+                %
               </div>
             </div>
           </div>
@@ -273,15 +310,22 @@ function LotteryFactorContent({ stats, lotteryFactor }: { stats: RepoStats; lott
   );
 }
 
-function ContributionsChart({ stats, enhanceView, setEnhanceView }: { 
-  stats: RepoStats; 
+function ContributionsChart({
+  stats,
+  enhanceView,
+  setEnhanceView,
+}: {
+  stats: RepoStats;
   enhanceView: boolean;
   setEnhanceView: (value: boolean) => void;
 }) {
   const getChartData = () => {
     // Sort by updated_at and take only the last 50 PRs
     const recentPRs = [...stats.pullRequests]
-      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      )
       .slice(0, 50);
 
     return recentPRs.map((pr, index) => {
@@ -291,7 +335,7 @@ function ContributionsChart({ stats, enhanceView, setEnhanceView }: {
       );
 
       const linesChanged = pr.additions + pr.deletions;
-      
+
       // Only show avatars for the first 25 PRs
       const showAvatar = index < 25;
 
@@ -312,7 +356,7 @@ function ContributionsChart({ stats, enhanceView, setEnhanceView }: {
         author: pr.user.login,
         repository_owner: pr.repository_owner,
         repository_name: pr.repository_name,
-        url: `https://github.com/${pr.repository_owner}/${pr.repository_name}/pull/${pr.number}`
+        url: `https://github.com/${pr.repository_owner}/${pr.repository_name}/pull/${pr.number}`,
       };
     });
   };
@@ -329,30 +373,32 @@ function ContributionsChart({ stats, enhanceView, setEnhanceView }: {
       </div>
       <div className="h-[600px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart
-            margin={{ top: 20, right: 20, bottom: 40, left: 60 }}
-          >
+          <ScatterChart margin={{ top: 20, right: 20, bottom: 40, left: 60 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               type="number"
               dataKey="daysAgo"
               name="Days Ago"
-              domain={[0, 'auto']}
+              domain={[0, "auto"]}
               reversed
-              label={{ value: 'Days Ago (Last Commit)', position: 'bottom', offset: 20 }}
+              label={{
+                value: "Days Ago (Last Commit)",
+                position: "bottom",
+                offset: 20,
+              }}
             />
             <YAxis
               type="number"
               dataKey="linesChanged"
               name="Lines Changed"
               scale="log"
-              domain={['auto', 'auto']}
+              domain={["auto", "auto"]}
               tickFormatter={(value) => humanizeNumber(value)}
-              label={{ 
-                value: 'Lines Touched (in thousands)', 
-                angle: -90, 
-                position: 'insideLeft',
-                offset: -10
+              label={{
+                value: "Lines Touched",
+                angle: -90,
+                position: "insideLeft",
+                offset: -10,
               }}
             />
             <RechartsTooltip
@@ -405,7 +451,7 @@ function ContributionsChart({ stats, enhanceView, setEnhanceView }: {
               shape={(props: any) => {
                 const { cx, cy, payload } = props;
                 return (
-                  <a 
+                  <a
                     href={payload.url}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -419,7 +465,7 @@ function ContributionsChart({ stats, enhanceView, setEnhanceView }: {
                         height={20}
                         href={payload.avatar}
                         clipPath="circle(50%)"
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: "pointer" }}
                       />
                     ) : (
                       <circle
@@ -428,7 +474,7 @@ function ContributionsChart({ stats, enhanceView, setEnhanceView }: {
                         r={4}
                         fill="hsl(var(--muted-foreground))"
                         opacity={0.5}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: "pointer" }}
                       />
                     )}
                   </a>
@@ -451,21 +497,29 @@ export default function RepoView() {
     error: null,
   });
   const [enhanceView, setEnhanceView] = useState(false);
-  const [searchInput, setSearchInput] = useState('');
+  const [searchInput, setSearchInput] = useState("");
   const [showLoginDialog, setShowLoginDialog] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [lotteryFactor, setLotteryFactor] = useState<LotteryFactor | null>(null);
+  const [lotteryFactor, setLotteryFactor] = useState<LotteryFactor | null>(
+    null
+  );
 
   useEffect(() => {
     // Check login status
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsLoggedIn(!!session);
+      // We're just checking if user is logged in to control dialog state
+      const loggedIn = !!session;
+      if (loggedIn && showLoginDialog) {
+        setShowLoginDialog(false);
+      }
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session);
-      if (session && showLoginDialog) {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      // We're just checking if user is logged in to control dialog state
+      const loggedIn = !!session;
+      if (loggedIn && showLoginDialog) {
         setShowLoginDialog(false);
       }
     });
@@ -486,7 +540,8 @@ export default function RepoView() {
         setStats((prev) => ({
           ...prev,
           loading: false,
-          error: error instanceof Error ? error.message : 'Failed to fetch data',
+          error:
+            error instanceof Error ? error.message : "Failed to fetch data",
         }));
       }
     }
@@ -496,10 +551,10 @@ export default function RepoView() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Extract owner and repo from input
     const match = searchInput.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
-    
+
     if (match) {
       const [, newOwner, newRepo] = match;
       navigate(`/${newOwner}/${newRepo}`);
@@ -526,7 +581,9 @@ export default function RepoView() {
         <Card>
           <CardContent className="p-8">
             <div className="text-center">
-              <h2 className="text-2xl font-semibold text-destructive mb-2">Error</h2>
+              <h2 className="text-2xl font-semibold text-destructive mb-2">
+                Error
+              </h2>
               <p className="text-muted-foreground">{stats.error}</p>
             </div>
           </CardContent>
@@ -538,7 +595,7 @@ export default function RepoView() {
   return (
     <div className="container mx-auto py-8">
       <LoginDialog open={showLoginDialog} onOpenChange={setShowLoginDialog} />
-      
+
       <Card className="mb-8">
         <CardContent className="pt-6">
           <form onSubmit={handleSearch} className="flex gap-4">
@@ -578,13 +635,20 @@ export default function RepoView() {
                   <TabsTrigger value="lottery">Lottery Factor</TabsTrigger>
                   <TabsTrigger value="contributions">Contributions</TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="lottery">
-                  <LotteryFactorContent stats={stats} lotteryFactor={lotteryFactor} />
+                  <LotteryFactorContent
+                    stats={stats}
+                    lotteryFactor={lotteryFactor}
+                  />
                 </TabsContent>
 
                 <TabsContent value="contributions">
-                  <ContributionsChart stats={stats} enhanceView={enhanceView} setEnhanceView={setEnhanceView} />
+                  <ContributionsChart
+                    stats={stats}
+                    enhanceView={enhanceView}
+                    setEnhanceView={setEnhanceView}
+                  />
                 </TabsContent>
               </Tabs>
             </div>
@@ -592,10 +656,17 @@ export default function RepoView() {
             {/* Desktop view with side-by-side charts */}
             <div className="hidden lg:grid lg:grid-cols-[minmax(650px,1fr)_1fr] lg:gap-8">
               <div>
-                <LotteryFactorContent stats={stats} lotteryFactor={lotteryFactor} />
+                <LotteryFactorContent
+                  stats={stats}
+                  lotteryFactor={lotteryFactor}
+                />
               </div>
               <div>
-                <ContributionsChart stats={stats} enhanceView={enhanceView} setEnhanceView={setEnhanceView} />
+                <ContributionsChart
+                  stats={stats}
+                  enhanceView={enhanceView}
+                  setEnhanceView={setEnhanceView}
+                />
               </div>
             </div>
           </CardContent>
