@@ -1,4 +1,4 @@
-import { GitPullRequest, Users } from "lucide-react";
+import { GitPullRequest } from "lucide-react";
 import {
   HoverCard,
   HoverCardContent,
@@ -15,24 +15,28 @@ interface ContributorHoverCardProps {
   children: React.ReactNode;
 }
 
-export function ContributorHoverCard({ contributor, role, children }: ContributorHoverCardProps) {
+export function ContributorHoverCard({
+  contributor,
+  role,
+  children,
+}: ContributorHoverCardProps) {
   return (
     <HoverCard>
-      <HoverCardTrigger asChild>
-        {children}
-      </HoverCardTrigger>
+      <HoverCardTrigger asChild>{children}</HoverCardTrigger>
       <HoverCardContent className="w-80">
         <div className="flex justify-between space-x-4">
           <Avatar>
             <AvatarImage src={contributor.avatar_url} />
-            <AvatarFallback>{contributor.login[0].toUpperCase()}</AvatarFallback>
+            <AvatarFallback>
+              {contributor.login[0].toUpperCase()}
+            </AvatarFallback>
           </Avatar>
           <div className="space-y-1">
             <h4 className="text-sm font-semibold">{contributor.login}</h4>
             {role && <p className="text-sm text-muted-foreground">{role}</p>}
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
           <GitPullRequest className="h-4 w-4" />
           <span>{contributor.pullRequests} pull requests</span>
@@ -49,7 +53,9 @@ export function ContributorHoverCard({ contributor, role, children }: Contributo
                 {contributor.organizations.map((org) => (
                   <Avatar key={org.login} className="h-6 w-6">
                     <AvatarImage src={org.avatar_url} alt={org.login} />
-                    <AvatarFallback>{org.login[0].toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>
+                      {org.login[0].toUpperCase()}
+                    </AvatarFallback>
                   </Avatar>
                 ))}
               </div>
