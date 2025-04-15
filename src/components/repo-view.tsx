@@ -35,7 +35,7 @@ import {
 } from 'recharts';
 import { fetchPullRequests } from '@/lib/github';
 import { humanizeNumber, calculateLotteryFactor } from '@/lib/utils';
-import type { PullRequest, RepoStats, LotteryFactor, ContributorStats } from '@/lib/types';
+import type { RepoStats, LotteryFactor, ContributorStats } from '@/lib/types';
 
 function LotteryFactorSkeleton() {
   return (
@@ -453,19 +453,23 @@ export default function RepoView() {
   const [enhanceView, setEnhanceView] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const [showLoginDialog, setShowLoginDialog] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [lotteryFactor, setLotteryFactor] = useState<LotteryFactor | null>(null);
 
   useEffect(() => {
     // Check login status
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsLoggedIn(!!session);
+      // We're just checking if user is logged in to control dialog state
+      const loggedIn = !!session;
+      if (loggedIn && showLoginDialog) {
+        setShowLoginDialog(false);
+      }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session);
-      if (session && showLoginDialog) {
+      // We're just checking if user is logged in to control dialog state
+      const loggedIn = !!session;
+      if (loggedIn && showLoginDialog) {
         setShowLoginDialog(false);
       }
     });
