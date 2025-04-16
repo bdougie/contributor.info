@@ -15,11 +15,12 @@ import { LoginDialog } from "./login-dialog";
 import { supabase } from "@/lib/supabase";
 import { fetchPullRequests } from "@/lib/github";
 import { calculateLotteryFactor } from "@/lib/utils";
-import { useTimeRange } from "@/lib/time-range-context";
+import { useTimeRangeStore } from "@/lib/time-range-store";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import LotteryFactor from "./lottery-factor";
 import Contributions from "./contributions";
 import Distribution from "./distribution";
+import { ExampleRepos } from "./example-repos";
 import type {
   RepoStats,
   LotteryFactor as LotteryFactorType,
@@ -28,7 +29,7 @@ import type {
 export default function RepoView() {
   const { owner, repo } = useParams();
   const navigate = useNavigate();
-  const { timeRange } = useTimeRange();
+  const timeRange = useTimeRangeStore((state) => state.timeRange);
   const [stats, setStats] = useState<RepoStats>({
     pullRequests: [],
     loading: true,
@@ -70,7 +71,7 @@ export default function RepoView() {
         setStats((prev) => ({ ...prev, loading: true, error: null }));
         const prs = await fetchPullRequests(owner, repo, timeRange);
         setStats({ pullRequests: prs, loading: false, error: null });
-        setLotteryFactor(calculateLotteryFactor(prs));
+        setLotteryFactor(calculateLotteryFactor(prs, timeRange));
       } catch (error) {
         setStats((prev) => ({
           ...prev,
@@ -144,6 +145,7 @@ export default function RepoView() {
               Search
             </Button>
           </form>
+          <ExampleRepos onSelect={setSearchInput} />
         </CardContent>
       </Card>
 

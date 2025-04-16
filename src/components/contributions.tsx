@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import { humanizeNumber } from "@/lib/utils";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
+import { useTimeRange } from "@/lib/time-range-store";
 import type { RepoStats } from "@/lib/types";
 
 // Create a wrapper for YAxis that uses default parameters instead of defaultProps
@@ -265,6 +266,8 @@ function ContributionsChart({
 // Contributions Tab Component
 export default function Contributions() {
   const { stats } = useContext(RepoStatsContext);
+  const { timeRange } = useTimeRange();
+  const timeRangeNumber = parseInt(timeRange, 10); // Parse string to number
   const [enhanceView, setEnhanceView] = useState(false);
 
   return (
@@ -272,7 +275,8 @@ export default function Contributions() {
       <CardHeader>
         <CardTitle>Pull Request Contributions</CardTitle>
         <CardDescription>
-          Visualize the size and frequency of contributions
+          Visualize the size and frequency of contributions over the past{" "}
+          {timeRangeNumber} days
         </CardDescription>
       </CardHeader>
       <CardContent>
