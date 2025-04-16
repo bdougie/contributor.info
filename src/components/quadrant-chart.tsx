@@ -128,9 +128,9 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
                 }}
               >
                 <div className="flex -space-x-2">
-                  {authors.slice(0, 3).map((author) => (
+                  {authors.slice(0, 3).map((author, index) => (
                     <Avatar
-                      key={author.id}
+                      key={`${label}-${author.id}-${index}`}
                       className="w-6 h-6 border-2 border-background"
                     >
                       <AvatarImage
@@ -171,7 +171,7 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
 
         {/* Data points */}
         {chartData.map((point, i) => (
-          <Tooltip key={i}>
+          <Tooltip key={`point-${point.pr.id || point.pr.number}-${i}`}>
             <TooltipTrigger asChild>
               <a
                 href={point.pr.url}
