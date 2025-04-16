@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import { useContext } from "react";
 import {
   Card,
   CardContent,
@@ -9,12 +9,7 @@ import {
 import { LanguageLegend } from "./language-legend";
 import { QuadrantChart } from "./quadrant-chart";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
-import type {
-  RepoStats,
-  PullRequest,
-  QuadrantData,
-  LanguageStats,
-} from "@/lib/types";
+import type { PullRequest, QuadrantData, LanguageStats } from "@/lib/types";
 
 export default function Distribution() {
   const { stats } = useContext(RepoStatsContext);
