@@ -25,7 +25,7 @@ async function fetchUserOrganizations(username: string, headers: HeadersInit): P
   }
 }
 
-export async function fetchPullRequests(owner: string, repo: string): Promise<PullRequest[]> {
+export async function fetchPullRequests(owner: string, repo: string, timeRange: string = '30'): Promise<PullRequest[]> {
   const headers: HeadersInit = {
     'Accept': 'application/vnd.github.v3+json',
   };
@@ -41,8 +41,13 @@ export async function fetchPullRequests(owner: string, repo: string): Promise<Pu
   }
 
   try {
+    // Calculate date range based on timeRange parameter
+    const since = new Date();
+    since.setDate(since.getDate() - parseInt(timeRange));
+    const sinceISOString = since.toISOString();
+    
     const response = await fetch(
-      `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=100`,
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=100&since=${sinceISOString}`,
       { headers }
     );
 
@@ -64,9 +69,15 @@ export async function fetchPullRequests(owner: string, repo: string): Promise<Pu
 
     const prs = await response.json();
     
+    // Filter PRs by the time range
+    const filteredPRs = prs.filter((pr: any) => {
+      const prDate = new Date(pr.updated_at);
+      return prDate >= since;
+    });
+    
     // Fetch additional details for each PR to get additions/deletions
     const detailedPRs = await Promise.all(
-      prs.map(async (pr: any) => {
+      filteredPRs.map(async (pr: any) => {
         const detailsResponse = await fetch(
           `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}`,
           { headers }
