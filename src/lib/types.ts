@@ -20,6 +20,16 @@ export interface PullRequest {
     login: string;
     avatar_url: string;
   }[];
+  commits?: Array<{
+    language: string;
+    additions: number;
+    deletions: number;
+  }>;
+  author?: {
+    login: string;
+  };
+  url?: string;
+  createdAt?: string;
 }
 
 export interface RepoStats {
@@ -46,4 +56,20 @@ export interface LotteryFactor {
   topContributorsPercentage: number;
   contributors: ContributorStats[];
   riskLevel: 'Low' | 'Medium' | 'High';
+}
+
+export interface QuadrantData {
+  name: string;
+  authors: {
+    id: number;
+    login: string;
+  }[];
+  percentage: number;
+  count: number;
+}
+
+export interface LanguageStats {
+  name: string;
+  count: number;
+  color: string;
 }
