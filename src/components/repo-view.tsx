@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Outlet } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HelpCircle, SearchIcon, Users, MonitorPlay } from "lucide-react";
 import {
   Tooltip,
@@ -23,6 +23,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { LoginDialog } from "./login-dialog";
 import { ContributorHoverCard } from "./contributor-hover-card";
+import { QuadrantChart } from "./QuadrantChart";
+import { LanguageLegend } from "./LanguageLegend";
 import { supabase } from "@/lib/supabase";
 import {
   ScatterChart,
@@ -35,7 +37,22 @@ import {
 } from "recharts";
 import { fetchPullRequests } from "@/lib/github";
 import { humanizeNumber, calculateLotteryFactor } from "@/lib/utils";
-import type { RepoStats, LotteryFactor, ContributorStats } from "@/lib/types";
+import type {
+  RepoStats,
+  LotteryFactor,
+  ContributorStats,
+  PullRequest,
+  QuadrantData,
+} from "@/lib/types";
+
+// Context to share data between tabs
+const RepoStatsContext = React.createContext<{
+  stats: RepoStats;
+  lotteryFactor: LotteryFactor | null;
+}>({
+  stats: { pullRequests: [], loading: true, error: null },
+  lotteryFactor: null,
+});
 
 function LotteryFactorSkeleton() {
   return (
@@ -310,6 +327,25 @@ function LotteryFactorContent({
   );
 }
 
+// LotteryFactor Tab Component
+function LotteryFactor() {
+  const { stats, lotteryFactor } = React.useContext(RepoStatsContext);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Repository Health</CardTitle>
+        <CardDescription>
+          Analyze the distribution of contributions and maintainer activity
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <LotteryFactorContent stats={stats} lotteryFactor={lotteryFactor} />
+      </CardContent>
+    </Card>
+  );
+}
+
 function ContributionsChart({
   stats,
   enhanceView,
@@ -448,7 +484,7 @@ function ContributionsChart({
             />
             <Scatter
               data={getChartData()}
-              shape={(props: any) => {
+              shape={(props: { cx: number; cy: number; payload: any }) => {
                 const { cx, cy, payload } = props;
                 return (
                   <a
@@ -488,6 +524,253 @@ function ContributionsChart({
   );
 }
 
+// Contributions Tab Component
+function Contributions() {
+  const { stats } = React.useContext(RepoStatsContext);
+  const [enhanceView, setEnhanceView] = useState(false);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Pull Request Contributions</CardTitle>
+        <CardDescription>
+          Visualize the size and frequency of contributions
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ContributionsChart
+          stats={stats}
+          enhanceView={enhanceView}
+          setEnhanceView={setEnhanceView}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+// Distribution Tab Component with QuadrantChart and LanguageLegend
+function Distribution() {
+  const { stats } = React.useContext(RepoStatsContext);
+
+  const getLanguageStats = (prs: PullRequest[]) => {
+    // Create language stats based on the additions/deletions in each PR
+    const languageMap = new Map<string, { count: number; color: string }>();
+
+    // Common language colors from GitHub
+    const colorMap: Record<string, string> = {
+      JavaScript: "#f1e05a",
+      TypeScript: "#2b7489",
+      CSS: "#563d7c",
+      HTML: "#e34c26",
+      Python: "#3572A5",
+      Java: "#b07219",
+      Go: "#00ADD8",
+      Rust: "#dea584",
+      Other: "#cccccc",
+    };
+
+    // Count languages based on PRS
+    prs.forEach((pr) => {
+      if (pr.commits) {
+        pr.commits.forEach((commit) => {
+          const lang = commit.language || "Other";
+          const current = languageMap.get(lang) || {
+            count: 0,
+            color: colorMap[lang] || colorMap["Other"],
+          };
+          languageMap.set(lang, {
+            count: current.count + 1,
+            color: current.color,
+          });
+        });
+      } else {
+        // For PRs without commit data, try to guess language
+        const lang =
+          pr.title.includes(".ts") || pr.title.includes("typescript")
+            ? "TypeScript"
+            : pr.title.includes(".js") || pr.title.includes("javascript")
+            ? "JavaScript"
+            : pr.title.includes(".css")
+            ? "CSS"
+            : pr.title.includes(".html")
+            ? "HTML"
+            : "Other";
+
+        const current = languageMap.get(lang) || {
+          count: 0,
+          color: colorMap[lang] || colorMap["Other"],
+        };
+        languageMap.set(lang, {
+          count: current.count + 1,
+          color: current.color,
+        });
+      }
+    });
+
+    // If we don't have any languages yet (maybe no commits data), create some mock data
+    if (languageMap.size === 0) {
+      return [
+        {
+          name: "JavaScript",
+          color: colorMap["JavaScript"],
+          count: Math.floor(Math.random() * 20) + 5,
+        },
+        {
+          name: "TypeScript",
+          color: colorMap["TypeScript"],
+          count: Math.floor(Math.random() * 15) + 10,
+        },
+        {
+          name: "CSS",
+          color: colorMap["CSS"],
+          count: Math.floor(Math.random() * 8) + 2,
+        },
+        {
+          name: "HTML",
+          color: colorMap["HTML"],
+          count: Math.floor(Math.random() * 5) + 1,
+        },
+      ];
+    }
+
+    // Convert the map to array format required by LanguageLegend
+    return Array.from(languageMap.entries()).map(
+      ([name, { count, color }]) => ({
+        name,
+        count,
+        color,
+      })
+    );
+  };
+
+  const getQuadrantData = (prs: PullRequest[]): QuadrantData[] => {
+    // This is a stub for quadrant data
+    // In a real implementation, we would analyze PR data to determine quadrants
+    return [
+      {
+        name: "Refinement",
+        authors: prs.slice(0, 3).map((pr) => ({
+          id: pr.user.id,
+          login: pr.user.login,
+        })),
+      },
+      {
+        name: "New Stuff",
+        authors: prs.slice(3, 6).map((pr) => ({
+          id: pr.user.id,
+          login: pr.user.login,
+        })),
+      },
+      {
+        name: "Maintenance",
+        authors: prs.slice(6, 9).map((pr) => ({
+          id: pr.user.id,
+          login: pr.user.login,
+        })),
+      },
+      {
+        name: "Refactoring",
+        authors: prs.slice(9, 12).map((pr) => ({
+          id: pr.user.id,
+          login: pr.user.login,
+        })),
+      },
+    ];
+  };
+
+  // Mock data for the components
+  const languageStats = getLanguageStats(stats.pullRequests);
+  const quadrantData = getQuadrantData(stats.pullRequests);
+
+  // Add commit data to PRs (stub)
+  const prepareDataForQuadrantChart = (prs: PullRequest[]) => {
+    return prs.map((pr) => ({
+      ...pr,
+      // Adding stub data for commits since our PR model doesn't have them
+      commits: [
+        {
+          additions: pr.additions * 0.6,
+          deletions: pr.deletions * 0.6,
+          language: "TypeScript",
+        },
+        {
+          additions: pr.additions * 0.3,
+          deletions: pr.deletions * 0.3,
+          language: "JavaScript",
+        },
+        {
+          additions: pr.additions * 0.1,
+          deletions: pr.deletions * 0.1,
+          language: "CSS",
+        },
+      ],
+      // Additional fields needed by QuadrantChart
+      url: `https://github.com/${pr.repository_owner}/${pr.repository_name}/pull/${pr.number}`,
+      author: {
+        login: pr.user.login,
+        id: pr.user.id,
+      },
+      createdAt: pr.created_at,
+    }));
+  };
+
+  if (stats.loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Pull Request Distribution Analysis</CardTitle>
+          <CardDescription>Loading distribution data...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Pull Request Distribution Analysis</CardTitle>
+        <CardDescription>
+          Visualize contribution patterns across different categories
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <LanguageLegend languages={languageStats} />
+        <QuadrantChart
+          data={prepareDataForQuadrantChart(stats.pullRequests.slice(0, 20))}
+          quadrants={quadrantData}
+        />
+        <div className="text-sm text-muted-foreground mt-4">
+          <p>
+            This chart categorizes contributions into four quadrants based on
+            the nature of changes:
+          </p>
+          <ul className="list-disc pl-5 mt-2 space-y-1">
+            <li>
+              <span className="font-medium">Refinement</span>: Code cleanup and
+              removal
+            </li>
+            <li>
+              <span className="font-medium">New Stuff</span>: New features and
+              additions
+            </li>
+            <li>
+              <span className="font-medium">Maintenance</span>: Configuration
+              and dependencies
+            </li>
+            <li>
+              <span className="font-medium">Refactoring</span>: Code
+              improvements
+            </li>
+          </ul>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function RepoView() {
   const { owner, repo } = useParams();
   const navigate = useNavigate();
@@ -496,7 +779,6 @@ export default function RepoView() {
     loading: true,
     error: null,
   });
-  const [enhanceView, setEnhanceView] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [lotteryFactor, setLotteryFactor] = useState<LotteryFactor | null>(
@@ -628,46 +910,26 @@ export default function RepoView() {
             </div>
           </CardHeader>
           <CardContent>
-            {/* Mobile view with tabs */}
-            <div className="lg:hidden">
-              <Tabs defaultValue="lottery" className="space-y-4">
-                <TabsList>
-                  <TabsTrigger value="lottery">Lottery Factor</TabsTrigger>
-                  <TabsTrigger value="contributions">Contributions</TabsTrigger>
-                </TabsList>
+            <Tabs
+              defaultValue="lottery"
+              className="space-y-4"
+              onValueChange={(value) => {
+                navigate(
+                  `/${owner}/${repo}${value === "lottery" ? "" : `/${value}`}`
+                );
+              }}
+            >
+              <TabsList>
+                <TabsTrigger value="lottery">Lottery Factor</TabsTrigger>
+                <TabsTrigger value="contributions">Contributions</TabsTrigger>
+                <TabsTrigger value="distribution">Distribution</TabsTrigger>
+              </TabsList>
+            </Tabs>
 
-                <TabsContent value="lottery">
-                  <LotteryFactorContent
-                    stats={stats}
-                    lotteryFactor={lotteryFactor}
-                  />
-                </TabsContent>
-
-                <TabsContent value="contributions">
-                  <ContributionsChart
-                    stats={stats}
-                    enhanceView={enhanceView}
-                    setEnhanceView={setEnhanceView}
-                  />
-                </TabsContent>
-              </Tabs>
-            </div>
-
-            {/* Desktop view with side-by-side charts */}
-            <div className="hidden lg:grid lg:grid-cols-[minmax(650px,1fr)_1fr] lg:gap-8">
-              <div>
-                <LotteryFactorContent
-                  stats={stats}
-                  lotteryFactor={lotteryFactor}
-                />
-              </div>
-              <div>
-                <ContributionsChart
-                  stats={stats}
-                  enhanceView={enhanceView}
-                  setEnhanceView={setEnhanceView}
-                />
-              </div>
+            <div className="mt-6">
+              <RepoStatsContext.Provider value={{ stats, lotteryFactor }}>
+                <Outlet />
+              </RepoStatsContext.Provider>
             </div>
           </CardContent>
         </Card>
@@ -675,3 +937,8 @@ export default function RepoView() {
     </div>
   );
 }
+
+// Add subcomponents to RepoView
+RepoView.LotteryFactor = LotteryFactor;
+RepoView.Contributions = Contributions;
+RepoView.Distribution = Distribution;

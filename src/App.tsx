@@ -18,7 +18,7 @@ function App() {
                 path="contributions"
                 element={<RepoView.Contributions />}
               />
-              <Route path="activity" element={<RepoView.Activity />} />
+              <Route path="distribution" element={<RepoView.Distribution />} />
             </Route>
           </Route>
         </Routes>
