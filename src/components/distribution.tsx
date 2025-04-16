@@ -9,10 +9,13 @@ import {
 import { LanguageLegend } from "./language-legend";
 import { QuadrantChart } from "./quadrant-chart";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
+import { useTimeRange } from "@/lib/time-range-store";
 import type { PullRequest, QuadrantData, LanguageStats } from "@/lib/types";
 
 export default function Distribution() {
   const { stats } = useContext(RepoStatsContext);
+  const { timeRange } = useTimeRange();
+  const timeRangeNumber = parseInt(timeRange, 10); // Parse string to number
 
   // Create a function to calculate quadrant percentages
   const getQuadrantStats = (
@@ -313,7 +316,8 @@ export default function Distribution() {
       <CardHeader>
         <CardTitle>Pull Request Distribution Analysis</CardTitle>
         <CardDescription>
-          Visualize contribution patterns across different categories
+          Visualize contribution patterns across different categories over the
+          past {timeRangeNumber} days
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
