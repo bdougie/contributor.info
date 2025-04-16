@@ -10,10 +10,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
-import { TimeRangeContext } from "@/lib/time-range";
+import { useTimeRangeStore } from "@/lib/time-range-store";
 
 export default function Layout() {
-  const [timeRange, setTimeRange] = useState("30"); // Default to 30 days
+  const { timeRange, setTimeRange } = useTimeRangeStore();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
 
@@ -34,53 +34,51 @@ export default function Layout() {
   }, []);
 
   return (
-    <TimeRangeContext.Provider value={{ timeRange, setTimeRange }}>
-      <div className="min-h-screen bg-background flex flex-col">
-        <header className="border-b">
-          <div className="container flex h-16 items-center px-4">
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => navigate("/")}
-                className="text-xl font-bold hover:text-primary transition-colors"
-              >
-                contributor.info
-              </button>
-            </div>
-            <div className="ml-auto flex items-center space-x-4">
-              {isLoggedIn && (
-                <Select value={timeRange} onValueChange={setTimeRange}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select time range" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="7">Last 7 days</SelectItem>
-                    <SelectItem value="30">Last 30 days</SelectItem>
-                    <SelectItem value="90">Last 90 days</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-              <AuthButton />
-              <ModeToggle />
-            </div>
-          </div>
-        </header>
-        <main className="container px-4 py-6 flex-1">
-          <Outlet />
-        </main>
-        <footer className="border-t py-4">
-          <div className="container px-4 text-center text-sm text-muted-foreground">
-            Made with ❤️ by{" "}
-            <a
-              href="https://github.com/bdougie"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-primary transition-colors"
+    <div className="min-h-screen bg-background flex flex-col">
+      <header className="border-b">
+        <div className="container flex h-16 items-center px-4">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => navigate("/")}
+              className="text-xl font-bold hover:text-primary transition-colors"
             >
-              bdougie
-            </a>
+              contributor.info
+            </button>
           </div>
-        </footer>
-      </div>
-    </TimeRangeContext.Provider>
+          <div className="ml-auto flex items-center space-x-4">
+            {isLoggedIn && (
+              <Select value={timeRange} onValueChange={setTimeRange}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select time range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">Last 7 days</SelectItem>
+                  <SelectItem value="30">Last 30 days</SelectItem>
+                  <SelectItem value="90">Last 90 days</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            <AuthButton />
+            <ModeToggle />
+          </div>
+        </div>
+      </header>
+      <main className="container px-4 py-6 flex-1">
+        <Outlet />
+      </main>
+      <footer className="border-t py-4">
+        <div className="container px-4 text-center text-sm text-muted-foreground">
+          Made with ❤️ by{" "}
+          <a
+            href="https://github.com/bdougie"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary transition-colors"
+          >
+            bdougie
+          </a>
+        </div>
+      </footer>
+    </div>
   );
 }

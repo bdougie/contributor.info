@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ContributorHoverCard } from "./contributor-hover-card";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
+import { useTimeRange } from "@/lib/time-range-context";
 import type {
   RepoStats,
   LotteryFactor as LotteryFactorType,
@@ -79,6 +80,7 @@ export function LotteryFactorContent({
   stats?: RepoStats;
   lotteryFactor?: LotteryFactorType | null;
 }) {
+  const { timeRange } = useTimeRange();
   const safeStats = stats || { pullRequests: [], loading: false, error: null };
   const safeLotteryFactor = lotteryFactor || null;
 
@@ -166,7 +168,7 @@ export function LotteryFactorContent({
             <span className="font-medium text-foreground">
               {safeLotteryFactor.topContributorsPercentage}%
             </span>{" "}
-            of all pull requests in the past 30 days.
+            of all pull requests in the past {timeRange} days.
           </div>
 
           <div className="h-2 w-full rounded-full overflow-hidden flex">
