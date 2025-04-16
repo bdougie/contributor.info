@@ -179,7 +179,7 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
                 href={point.pr.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="absolute w-2 h-2 rounded-full bg-primary hover:w-3 hover:h-3 transition-all"
+                className="absolute w-2 h-2 rounded-full bg-primary hover:w-3 hover:h-3 transition-all hover:bg-primary hover:opacity-80"
                 style={{
                   left: `${point.x}%`,
                   top: `${point.y}%`,
