@@ -1,7 +1,4 @@
-// filepath: /Users/briandouglas/code/contributor.info/src/components/quadrant-chart.tsx
 import { useMemo } from "react";
-import { Card } from "@/components/ui/card";
-import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -10,7 +7,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { format } from "date-fns";
-import type { PullRequest, QuadrantData } from "@/types";
+import type { PullRequest, QuadrantData } from "@/lib/types";
 import { ContributionAnalyzer } from "@/lib/contribution-analyzer";
 
 interface QuadrantChartProps {
@@ -46,13 +43,14 @@ const QUADRANTS = {
 };
 
 export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-
   const chartData = useMemo(() => {
     return data.map((pr) => {
       const metrics = ContributionAnalyzer.analyze(pr);
-      const mainLanguage = pr.commits.reduce(
+
+      // Handle potentially undefined commits
+      const commits = pr.commits || [];
+
+      const mainLanguage = commits.reduce(
         (acc, commit) => {
           if (!acc || commit.additions + commit.deletions > acc.changes) {
             return {
@@ -65,11 +63,11 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
         { name: "", changes: 0 }
       ).name;
 
-      const totalAdditions = pr.commits.reduce(
+      const totalAdditions = commits.reduce(
         (sum, commit) => sum + commit.additions,
         0
       );
-      const totalDeletions = pr.commits.reduce(
+      const totalDeletions = commits.reduce(
         (sum, commit) => sum + commit.deletions,
         0
       );
@@ -192,8 +190,10 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
               <div className="space-y-2">
                 <div className="font-medium">{point.pr.title}</div>
                 <div className="text-xs text-muted-foreground">
-                  #{point.pr.number} by {point.pr.author.login} ·{" "}
-                  {format(new Date(point.pr.createdAt), "MMM d, yyyy")}
+                  #{point.pr.number} by {point.pr.author?.login || "Unknown"} ·{" "}
+                  {point.pr.createdAt
+                    ? format(new Date(point.pr.createdAt), "MMM d, yyyy")
+                    : "Unknown date"}
                 </div>
                 <div className="flex gap-4 text-xs">
                   <span className="text-green-500">
@@ -202,7 +202,7 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
                   <span className="text-red-500">-{point.stats.deletions}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Main language: {point.language}
+                  Main language: {point.language || "Unknown"}
                 </div>
               </div>
             </TooltipContent>

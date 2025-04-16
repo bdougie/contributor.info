@@ -1,6 +1,6 @@
 // filepath: /Users/briandouglas/code/contributor.info/src/components/quadrant-stats.tsx
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import type { QuadrantData } from "@/types";
+import type { QuadrantData } from "@/lib/types";
 
 interface QuadrantStatsProps {
   data: QuadrantData[];
