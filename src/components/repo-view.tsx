@@ -69,7 +69,6 @@ export default function RepoView() {
 
       try {
         setStats((prev) => ({ ...prev, loading: true, error: null }));
-        console.log("Fetching PRs for:", { owner, repo, timeRange }); // Debugging log
         const prs = await fetchPullRequests(owner, repo, timeRange);
         setStats({ pullRequests: prs, loading: false, error: null });
         setLotteryFactor(calculateLotteryFactor(prs, timeRange));
