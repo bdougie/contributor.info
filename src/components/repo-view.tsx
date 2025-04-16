@@ -144,6 +144,23 @@ export default function RepoView() {
               Search
             </Button>
           </form>
+          <div className="flex gap-2 mt-4">
+            {[
+              "kubernetes/kubernetes",
+              "facebook/react",
+              "etcd-io/etcd",
+              "argoproj/argo-cd",
+            ].map((example) => (
+              <Button
+                key={example}
+                variant="outline"
+                size="sm"
+                onClick={() => setSearchInput(example)}
+              >
+                {example}
+              </Button>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
