@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Outlet, Link } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HelpCircle, SearchIcon, Users, MonitorPlay } from "lucide-react";
 import {
   Tooltip,
@@ -23,6 +22,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { LoginDialog } from "./login-dialog";
 import { ContributorHoverCard } from "./contributor-hover-card";
+import { QuadrantChart } from "./QuadrantChart";
+import { QuadrantStats } from "./QuadrantStats";
+import { LanguageLegend } from "./LanguageLegend";
 import { supabase } from "@/lib/supabase";
 import {
   ScatterChart,
@@ -35,9 +37,124 @@ import {
 } from "recharts";
 import { fetchPullRequests } from "@/lib/github";
 import { humanizeNumber, calculateLotteryFactor } from "@/lib/utils";
-import type { RepoStats, LotteryFactor, ContributorStats } from "@/lib/types";
+import type {
+  RepoStats,
+  LotteryFactor,
+  ContributorStats,
+  QuadrantData,
+  LanguageStats,
+  PullRequest,
+} from "@/lib/types";
+
+// Stub for mapping languages to colors
+const LANGUAGE_COLORS: Record<string, string> = {
+  JavaScript: "#f1e05a",
+  TypeScript: "#3178c6",
+  Python: "#3572A5",
+  Java: "#b07219",
+  Go: "#00ADD8",
+  Rust: "#dea584",
+  C: "#555555",
+  "C++": "#f34b7d",
+  "C#": "#178600",
+  PHP: "#4F5D95",
+  Ruby: "#701516",
+  HTML: "#e34c26",
+  CSS: "#563d7c",
+  Shell: "#89e051",
+  // Add more languages as needed
+};
+
+function generateMockQuadrantData(prs: PullRequest[]): QuadrantData[] {
+  // This is a stub function that would normally analyze PRs and generate quadrant data
+  // In a real implementation, this would use the ContributionAnalyzer
+  return [
+    {
+      name: "Refinement",
+      authors: prs.slice(0, 3).map((pr) => ({
+        id: pr.user.id,
+        login: pr.user.login,
+      })),
+    },
+    {
+      name: "New Stuff",
+      authors: prs.slice(2, 5).map((pr) => ({
+        id: pr.user.id,
+        login: pr.user.login,
+      })),
+    },
+    {
+      name: "Maintenance",
+      authors: prs.slice(4, 7).map((pr) => ({
+        id: pr.user.id,
+        login: pr.user.login,
+      })),
+    },
+    {
+      name: "Refactoring",
+      authors: prs.slice(6, 9).map((pr) => ({
+        id: pr.user.id,
+        login: pr.user.login,
+      })),
+    },
+  ];
+}
+
+function generateMockLanguageStats(prs: PullRequest[]): LanguageStats[] {
+  // This is a stub function that would normally analyze PRs to determine language statistics
+  const languageCount: Record<string, number> = {};
+
+  // Simulate language counts - in a real implementation this would analyze file extensions from PR changes
+  prs.forEach((pr, index) => {
+    const languages = [
+      "JavaScript",
+      "TypeScript",
+      "CSS",
+      "HTML",
+      "Python",
+      "Ruby",
+      "Go",
+    ];
+    const randomLang = languages[index % languages.length];
+    languageCount[randomLang] = (languageCount[randomLang] || 0) + 1;
+  });
+
+  return Object.entries(languageCount)
+    .map(([name, count]) => ({
+      name,
+      count,
+      color: LANGUAGE_COLORS[name] || "#cccccc",
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function preparePullRequestsForQuadrant(prs: PullRequest[]): PullRequest[] {
+  // Add mock data needed for the QuadrantChart component
+  return prs.map((pr) => {
+    // Create fake commits data for each PR
+    const mockCommits = [
+      {
+        language:
+          Object.keys(LANGUAGE_COLORS)[
+            Math.floor(Math.random() * Object.keys(LANGUAGE_COLORS).length)
+          ],
+        additions: pr.additions,
+        deletions: pr.deletions,
+      },
+    ];
+
+    return {
+      ...pr,
+      commits: mockCommits,
+      author: { login: pr.user.login },
+      url: `https://github.com/${pr.repository_owner}/${pr.repository_name}/pull/${pr.number}`,
+      createdAt: pr.created_at,
+    };
+  });
+}
 
 function LotteryFactorSkeleton() {
+  // ...existing code...
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-2">
@@ -74,6 +191,7 @@ function LotteryFactorSkeleton() {
 }
 
 function LotteryFactorEmpty() {
+  // ...existing code...
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
       <MonitorPlay className="h-12 w-12 text-muted-foreground mb-4" />
@@ -488,7 +606,53 @@ function ContributionsChart({
   );
 }
 
-export default function RepoView() {
+// New component for Activity tab
+function ActivityView({ stats }: { stats: RepoStats }) {
+  // Generate mock data for the quadrant chart and language legend
+  const quadrantData = generateMockQuadrantData(stats.pullRequests);
+  const languageStats = generateMockLanguageStats(stats.pullRequests);
+  const enrichedPRs = preparePullRequestsForQuadrant(stats.pullRequests);
+
+  // Add percentage property that QuadrantStats expects
+  const enhancedQuadrantData = quadrantData.map((quadrant) => ({
+    ...quadrant,
+    percentage: Math.floor(Math.random() * 30) + 10, // Random percentage between 10-40
+    count: Math.floor(Math.random() * 50) + 5, // Random PR count between 5-55
+  }));
+
+  return (
+    <div className="space-y-8">
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold mb-2">Repository Activity</h2>
+        <p className="text-muted-foreground">
+          Visualizing contribution patterns and language distribution
+        </p>
+      </div>
+
+      <div className="mb-6">
+        <h3 className="text-lg font-medium mb-4">Language Distribution</h3>
+        <LanguageLegend languages={languageStats} />
+      </div>
+
+      <div className="mb-6">
+        <h3 className="text-lg font-medium mb-4">Contribution Quadrants</h3>
+        <Card>
+          <CardContent className="pt-6">
+            <QuadrantChart data={enrichedPRs} quadrants={quadrantData} />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-medium mb-4">Quadrant Distribution</h3>
+        <QuadrantStats data={enhancedQuadrantData as any} />
+      </div>
+    </div>
+  );
+}
+
+// Main RepoView component
+function RepoView() {
   const { owner, repo } = useParams();
   const navigate = useNavigate();
   const [stats, setStats] = useState<RepoStats>({
@@ -625,53 +789,82 @@ export default function RepoView() {
                   Contribution analysis of recent pull requests
                 </CardDescription>
               </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant={
+                    window.location.pathname === `/${owner}/${repo}`
+                      ? "default"
+                      : "outline"
+                  }
+                  onClick={() => navigate(`/${owner}/${repo}`)}
+                >
+                  Lottery Factor
+                </Button>
+                <Button
+                  variant={
+                    window.location.pathname ===
+                    `/${owner}/${repo}/contributions`
+                      ? "default"
+                      : "outline"
+                  }
+                  onClick={() => navigate(`/${owner}/${repo}/contributions`)}
+                >
+                  Contributions
+                </Button>
+                <Button
+                  variant={
+                    window.location.pathname === `/${owner}/${repo}/activity`
+                      ? "default"
+                      : "outline"
+                  }
+                  onClick={() => navigate(`/${owner}/${repo}/activity`)}
+                >
+                  Activity
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
-            {/* Mobile view with tabs */}
-            <div className="lg:hidden">
-              <Tabs defaultValue="lottery" className="space-y-4">
-                <TabsList>
-                  <TabsTrigger value="lottery">Lottery Factor</TabsTrigger>
-                  <TabsTrigger value="contributions">Contributions</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="lottery">
-                  <LotteryFactorContent
-                    stats={stats}
-                    lotteryFactor={lotteryFactor}
-                  />
-                </TabsContent>
-
-                <TabsContent value="contributions">
-                  <ContributionsChart
-                    stats={stats}
-                    enhanceView={enhanceView}
-                    setEnhanceView={setEnhanceView}
-                  />
-                </TabsContent>
-              </Tabs>
-            </div>
-
-            {/* Desktop view with side-by-side charts */}
-            <div className="hidden lg:grid lg:grid-cols-[minmax(650px,1fr)_1fr] lg:gap-8">
-              <div>
-                <LotteryFactorContent
-                  stats={stats}
-                  lotteryFactor={lotteryFactor}
-                />
-              </div>
-              <div>
-                <ContributionsChart
-                  stats={stats}
-                  enhanceView={enhanceView}
-                  setEnhanceView={setEnhanceView}
-                />
-              </div>
-            </div>
+            <Outlet
+              context={{ stats, lotteryFactor, enhanceView, setEnhanceView }}
+            />
           </CardContent>
         </Card>
       </div>
     </div>
   );
 }
+
+// Define nested route components
+RepoView.LotteryFactor = function LotteryFactorRoute() {
+  const { stats, lotteryFactor } = useOutletContext<{
+    stats: RepoStats;
+    lotteryFactor: LotteryFactor | null;
+  }>();
+
+  return <LotteryFactorContent stats={stats} lotteryFactor={lotteryFactor} />;
+};
+
+RepoView.Contributions = function ContributionsRoute() {
+  const { stats, enhanceView, setEnhanceView } = useOutletContext<{
+    stats: RepoStats;
+    enhanceView: boolean;
+    setEnhanceView: (value: boolean) => void;
+  }>();
+
+  return (
+    <ContributionsChart
+      stats={stats}
+      enhanceView={enhanceView}
+      setEnhanceView={setEnhanceView}
+    />
+  );
+};
+
+RepoView.Activity = function ActivityRoute() {
+  const { stats } = useOutletContext<{ stats: RepoStats }>();
+
+  return <ActivityView stats={stats} />;
+};
+
+export default RepoView;
