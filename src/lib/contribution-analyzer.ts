@@ -1,4 +1,4 @@
-import { PullRequest } from '@/types';
+import { PullRequest } from './types';
 
 export interface ContributionMetrics {
   x: number;
@@ -41,12 +41,19 @@ export class ContributionAnalyzer {
     let additions = 0;
     let deletions = 0;
 
-    for (const commit of pr.commits) {
-      if (!NON_CODE_EXTENSIONS.has(commit.language)) {
-        isConfig = false;
+    if (pr.commits) {
+      for (const commit of pr.commits) {
+        if (!NON_CODE_EXTENSIONS.has(commit.language)) {
+          isConfig = false;
+        }
+        additions += commit.additions;
+        deletions += commit.deletions;
       }
-      additions += commit.additions;
-      deletions += commit.deletions;
+    } else {
+      // If no commits data, fall back to PR level metrics
+      additions = pr.additions;
+      deletions = pr.deletions;
+      isConfig = false; // Assume it's not just configuration changes
     }
 
     return { isConfig, additions, deletions };

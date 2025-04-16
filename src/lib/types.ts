@@ -64,6 +64,8 @@ export interface QuadrantData {
     id: number;
     login: string;
   }[];
+  percentage: number;
+  count: number;
 }
 
 export interface LanguageStats {
