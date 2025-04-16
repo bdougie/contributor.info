@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { ModeToggle } from "./mode-toggle";
 import { AuthButton } from "./auth-button";
 import {
@@ -15,6 +15,7 @@ import { TimeRangeContext } from "@/lib/time-range";
 export default function Layout() {
   const [timeRange, setTimeRange] = useState("30"); // Default to 30 days
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Check login status
@@ -38,7 +39,12 @@ export default function Layout() {
         <header className="border-b">
           <div className="container flex h-16 items-center px-4">
             <div className="flex items-center space-x-2">
-              <span className="text-xl font-bold">contributor.info</span>
+              <button
+                onClick={() => navigate("/")}
+                className="text-xl font-bold hover:text-primary transition-colors"
+              >
+                contributor.info
+              </button>
             </div>
             <div className="ml-auto flex items-center space-x-4">
               {isLoggedIn && (
