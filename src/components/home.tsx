@@ -1,21 +1,28 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SearchIcon } from 'lucide-react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { SearchIcon } from "lucide-react";
+import { ExampleRepos } from "./example-repos";
 
 export default function Home() {
   const navigate = useNavigate();
-  const [repoUrl, setRepoUrl] = useState('');
+  const [repoUrl, setRepoUrl] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Extract owner and repo from input
     // Supports both full URLs and owner/repo format
     const match = repoUrl.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
-    
+
     if (match) {
       const [, owner, repo] = match;
       navigate(`/${owner}/${repo}`);
@@ -30,7 +37,8 @@ export default function Home() {
             Analyze GitHub Repository Contributors
           </CardTitle>
           <CardDescription className="text-center text-lg mt-2">
-            Enter a GitHub repository URL or owner/repo to visualize contribution patterns
+            Enter a GitHub repository URL or owner/repo to visualize
+            contribution patterns
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -46,6 +54,7 @@ export default function Home() {
               Analyze
             </Button>
           </form>
+          <ExampleRepos onSelect={setRepoUrl} />
         </CardContent>
       </Card>
     </div>
