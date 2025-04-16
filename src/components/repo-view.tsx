@@ -23,8 +23,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { LoginDialog } from "./login-dialog";
 import { ContributorHoverCard } from "./contributor-hover-card";
-import { QuadrantChart } from "./QuadrantChart";
-import { LanguageLegend } from "./LanguageLegend";
+import { QuadrantChart } from "./quadrant-chart";
+import { LanguageLegend } from "./language-legend";
 import { supabase } from "@/lib/supabase";
 import {
   ScatterChart,

@@ -1,4 +1,5 @@
-import type { LanguageStats } from '@/types';
+// filepath: /Users/briandouglas/code/contributor.info/src/components/language-legend.tsx
+import type { LanguageStats } from "@/types";
 
 interface LanguageLegendProps {
   languages: LanguageStats[];
