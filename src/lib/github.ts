@@ -56,11 +56,11 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
       if (response.status === 404) {
         throw new Error(`Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`);
       } else if (response.status === 403 && error.message?.includes('rate limit')) {
-        throw new Error(
-          token
-            ? 'GitHub API rate limit exceeded. Please try again later.'
-            : 'GitHub API rate limit exceeded. Please log in with GitHub to increase the rate limit.'
-        );
+        if (!token) {
+          throw new Error('GitHub API rate limit exceeded. Please log in with GitHub to increase the rate limit.');
+        } else {
+          throw new Error('GitHub API rate limit exceeded. Please try again later.');
+        }
       } else if (response.status === 401) {
         throw new Error('Invalid GitHub token. Please check your token and try again. Make sure you\'ve copied the entire token correctly.');
       }
