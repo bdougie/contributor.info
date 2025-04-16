@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ContributionAnalyzer } from '../contribution-analyzer';
 import type { PullRequest } from '../types';
 
@@ -24,7 +24,6 @@ describe('ContributionAnalyzer', () => {
   });
 
   // Mock Math.random to return predictable values for tests
-  const originalRandom = Math.random;
   beforeEach(() => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
   });
