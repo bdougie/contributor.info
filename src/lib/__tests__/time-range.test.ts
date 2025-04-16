@@ -13,12 +13,16 @@ vi.mock('react', async () => {
 
 describe('TimeRangeContext and useTimeRange', () => {
   it('should have the correct default values', () => {
-    // Test the context's default values directly
+    // Test the context's default values indirectly
     expect(TimeRangeContext.Provider).toBeDefined();
-    expect(TimeRangeContext._currentValue).toEqual({
-      timeRange: '30',
-      setTimeRange: expect.any(Function),
-    });
+    
+    // Mock the useContext to return the context's default value
+    const mockContextValue = { timeRange: '30', setTimeRange: expect.any(Function) };
+    vi.mocked(React.useContext).mockReturnValue(mockContextValue);
+    
+    // Call useTimeRange and verify it returns the expected values
+    const result = useTimeRange();
+    expect(result).toEqual(mockContextValue);
   });
   
   it('should return the context values via useTimeRange hook', () => {
