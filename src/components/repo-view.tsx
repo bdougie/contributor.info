@@ -20,6 +20,7 @@ import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import LotteryFactor from "./lottery-factor";
 import Contributions from "./contributions";
 import Distribution from "./distribution";
+import { ExampleRepos } from "./example-repos";
 import type {
   RepoStats,
   LotteryFactor as LotteryFactorType,
@@ -144,23 +145,7 @@ export default function RepoView() {
               Search
             </Button>
           </form>
-          <div className="flex gap-2 mt-4">
-            {[
-              "kubernetes/kubernetes",
-              "facebook/react",
-              "etcd-io/etcd",
-              "argoproj/argo-cd",
-            ].map((example) => (
-              <Button
-                key={example}
-                variant="outline"
-                size="sm"
-                onClick={() => setSearchInput(example)}
-              >
-                {example}
-              </Button>
-            ))}
-          </div>
+          <ExampleRepos onSelect={setSearchInput} />
         </CardContent>
       </Card>
 
