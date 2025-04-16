@@ -16,13 +16,13 @@ export function humanizeNumber(num: number): string {
   return value + unitname;
 }
 
-export function calculateLotteryFactor(prs: PullRequest[]): LotteryFactor {
-  // Only consider PRs from the last 30 days
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+export function calculateLotteryFactor(prs: PullRequest[], timeRange: string = '30'): LotteryFactor {
+  // Use the provided time range
+  const daysAgo = new Date();
+  daysAgo.setDate(daysAgo.getDate() - parseInt(timeRange));
   
   const recentPRs = prs.filter(pr => 
-    new Date(pr.created_at) > thirtyDaysAgo
+    new Date(pr.created_at) > daysAgo
   );
 
   // Count PRs per contributor and collect their recent PRs
