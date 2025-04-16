@@ -44,6 +44,7 @@ import type {
   PullRequest,
   QuadrantData,
 } from "@/lib/types";
+import { useTimeRange } from "@/lib/time-range"; // Import useTimeRange
 
 // Context to share data between tabs
 const RepoStatsContext = React.createContext<{
@@ -894,6 +895,7 @@ function Distribution() {
 export default function RepoView() {
   const { owner, repo } = useParams();
   const navigate = useNavigate();
+  const { timeRange } = useTimeRange(); // Get timeRange from context
   const [stats, setStats] = useState<RepoStats>({
     pullRequests: [],
     loading: true,
@@ -935,7 +937,7 @@ export default function RepoView() {
 
       try {
         setStats((prev) => ({ ...prev, loading: true, error: null }));
-        const prs = await fetchPullRequests(owner, repo);
+        const prs = await fetchPullRequests(owner, repo, timeRange);
         setStats({ pullRequests: prs, loading: false, error: null });
         setLotteryFactor(calculateLotteryFactor(prs));
       } catch (error) {
@@ -949,7 +951,7 @@ export default function RepoView() {
     }
 
     loadPRData();
-  }, [owner, repo]);
+  }, [owner, repo, timeRange]); // Add timeRange as a dependency
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
