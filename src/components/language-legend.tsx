@@ -24,7 +24,7 @@ export function LanguageLegend({ languages }: LanguageLegendProps) {
       <div className="h-4 border-l border-muted" />
       <div className="flex items-center">
         <span className="w-2 h-2 rounded-full border border-muted" />
-        <span className="ml-2 text-sm">Zone markers</span>
+        <span className="ml-2 text-sm">Pull Requests</span>
       </div>
     </div>
   );
