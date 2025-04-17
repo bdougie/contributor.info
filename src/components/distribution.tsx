@@ -361,7 +361,7 @@ export default function Distribution() {
           past {timeRangeNumber} days
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 w-full">
         <div className="text-sm text-muted-foreground">
           {totalFiles.toLocaleString()} files changed ·
           {quadrants
