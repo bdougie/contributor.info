@@ -96,7 +96,7 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
 
   return (
     <TooltipProvider>
-      <div className="relative w-full aspect-[16/9] bg-background border rounded-lg">
+      <div className="relative w-full aspect-[16/9] bg-background border rounded-lg overflow-hidden mx-auto">
         {/* Grid lines */}
         <div className="absolute inset-0 border-dashed border-muted">
           <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-muted" />
