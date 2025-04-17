@@ -308,9 +308,12 @@ export function LotteryFactorContent({
 
 // LotteryFactor Tab Component that uses Context
 export default function LotteryFactor() {
-  const { stats, lotteryFactor, includeBots, setIncludeBots } = useContext(RepoStatsContext);
+  const { stats, lotteryFactor, includeBots, setIncludeBots } =
+    useContext(RepoStatsContext);
 
-  const botCount = stats.pullRequests.filter(pr => pr.user.type === 'Bot').length;
+  const botCount = stats.pullRequests.filter(
+    (pr) => pr.user.type === "Bot"
+  ).length;
   const hasBots = botCount > 0;
 
   return (
@@ -323,7 +326,7 @@ export default function LotteryFactor() {
       </CardHeader>
       <CardContent>
         <LotteryFactorContent stats={stats} lotteryFactor={lotteryFactor} />
-        
+
         {hasBots && (
           <div className="flex items-center space-x-2 mt-6 pt-4 border-t">
             <Switch
@@ -331,7 +334,10 @@ export default function LotteryFactor() {
               checked={includeBots}
               onCheckedChange={setIncludeBots}
             />
-            <Label htmlFor="show-bots" className="flex items-center gap-1 cursor-pointer">
+            <Label
+              htmlFor="show-bots"
+              className="flex items-center gap-1 cursor-pointer"
+            >
               <Bot className="h-4 w-4" />
               Show bots
               {botCount > 0 && (
