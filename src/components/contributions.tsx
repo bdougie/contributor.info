@@ -77,10 +77,12 @@ function ContributionsChart({
   stats,
   enhanceView,
   setEnhanceView,
+  includeBots,
 }: {
   stats?: RepoStats;
   enhanceView: boolean;
   setEnhanceView: (value: boolean) => void;
+  includeBots: boolean;
 }) {
   // Use default empty values if props are not provided
   const safeStats = stats || { pullRequests: [], loading: false, error: null };
@@ -93,6 +95,7 @@ function ContributionsChart({
   const getChartData = () => {
     // Sort by created_at and take only the last 50 PRs
     const recentPRs = [...safeStats.pullRequests]
+      .filter((pr) => includeBots || pr.user.type !== "Bot") // Filter out bots if includeBots is false
       .sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -137,6 +140,7 @@ function ContributionsChart({
           repository_owner: pr.repository_owner,
           repository_name: pr.repository_name,
           url: `https://github.com/${pr.repository_owner}/${pr.repository_name}/pull/${pr.number}`,
+          isBot: pr.user.type === "Bot",
         };
       })
       .filter(Boolean); // Remove null values
@@ -284,6 +288,7 @@ export default function Contributions() {
   const { effectiveTimeRange } = useTimeRange();
   const effectiveTimeRangeNumber = parseInt(effectiveTimeRange, 10);
   const [enhanceView, setEnhanceView] = useState(false);
+  const [includeBots, setIncludeBots] = useState(true);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   return (
@@ -301,10 +306,19 @@ export default function Contributions() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="flex items-center space-x-2 mb-4">
+          <Switch
+            id="include-bots"
+            checked={includeBots}
+            onCheckedChange={setIncludeBots}
+          />
+          <Label htmlFor="include-bots">Include bot contributions</Label>
+        </div>
         <ContributionsChart
           stats={stats}
           enhanceView={enhanceView}
           setEnhanceView={setEnhanceView}
+          includeBots={includeBots}
         />
       </CardContent>
     </Card>
