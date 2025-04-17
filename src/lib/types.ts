@@ -15,6 +15,7 @@ export interface PullRequest {
     login: string;
     avatar_url: string;
     organizations_url?: string;
+    type?: 'User' | 'Bot'; // Adding type field to track bot status
   };
   organizations?: {
     login: string;

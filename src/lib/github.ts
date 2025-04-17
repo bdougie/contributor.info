@@ -97,6 +97,11 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
         // Fetch user's organizations
         const organizations = await fetchUserOrganizations(pr.user.login, headers);
         
+        // Check if user is a bot by their type or by checking if name contains [bot]
+        const isBot = 
+          pr.user.type === 'Bot' || 
+          pr.user.login.includes('[bot]');
+        
         return {
           id: pr.id,
           number: pr.number,
@@ -113,6 +118,7 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
             id: pr.user.id,
             login: pr.user.login,
             avatar_url: pr.user.avatar_url,
+            type: isBot ? 'Bot' : 'User',
           },
           organizations,
         };
