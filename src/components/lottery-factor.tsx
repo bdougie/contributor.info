@@ -439,8 +439,6 @@ export default function LotteryFactor() {
     (pr) => pr.user.type === "Bot"
   ).length;
   const hasBots = botCount > 0;
-  // Only show YOLO coders button if there are direct commits
-  const hasYoloCoders = directCommitsData?.hasYoloCoders ?? false;
   // YOLO Coders button should only be visible if there are YOLO pushes
   const showYoloButton = directCommitsData?.hasYoloCoders === true;
 

@@ -44,10 +44,9 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
     // Calculate date range based on timeRange parameter
     const since = new Date();
     since.setDate(since.getDate() - parseInt(timeRange));
-    const sinceISOString = since.toISOString();
     
     const response = await fetch(
-      `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=100&since=${sinceISOString}`,
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=100&since=${since.toISOString()}`,
       { headers }
     );
 
@@ -186,7 +185,6 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
     // Calculate date range based on timeRange parameter
     const since = new Date();
     since.setDate(since.getDate() - parseInt(timeRange));
-    const sinceISOString = since.toISOString();
 
     // Get merged PRs for the repository in the time range
     const pullRequests = await fetchPullRequests(owner, repo, timeRange);
