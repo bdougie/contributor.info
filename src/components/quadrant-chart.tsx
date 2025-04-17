@@ -96,7 +96,31 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
 
   return (
     <TooltipProvider>
-      <div className="relative w-full aspect-[16/9] bg-background border rounded-lg">
+      {/* Mobile placeholder - only shown on small screens */}
+      <div className="md:hidden flex flex-col items-center justify-center p-6 border rounded-lg bg-background text-center space-y-4">
+        <div className="w-16 h-16 text-muted-foreground animate-pulse">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"
+            />
+          </svg>
+        </div>
+        <h3 className="text-lg font-medium">Rotate your device</h3>
+        <p className="text-sm text-muted-foreground">
+          The distribution chart works best in landscape mode on mobile devices.
+        </p>
+      </div>
+
+      {/* Desktop chart - hidden on small screens, shown on medium and up */}
+      <div className="hidden md:block relative w-full aspect-[16/9] bg-background border rounded-lg overflow-hidden mx-auto">
         {/* Grid lines */}
         <div className="absolute inset-0 border-dashed border-muted">
           <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-muted" />

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HelpCircle, MonitorPlay, Users } from "lucide-react";
+import { HelpCircle, Users } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -29,7 +29,7 @@ function LotteryFactorSkeleton() {
     <div className="space-y-6">
       <div className="flex items-start gap-2">
         <div className="text-xl font-semibold flex items-center gap-2">
-          <MonitorPlay className="h-5 w-5" />
+          <span>🎟️</span>
           Lottery Factor
         </div>
         <Skeleton className="ml-auto h-6 w-16" />
@@ -63,7 +63,7 @@ function LotteryFactorSkeleton() {
 function LotteryFactorEmpty() {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <MonitorPlay className="h-12 w-12 text-muted-foreground mb-4" />
+      <span>🎟️</span>
       <h3 className="text-lg font-medium">No data available</h3>
       <p className="text-sm text-muted-foreground mt-2">
         This repository doesn't have enough commit data to calculate the Lottery
@@ -134,7 +134,7 @@ export function LotteryFactorContent({
     <div className="space-y-6">
       <div className="flex items-start gap-2">
         <div className="text-xl font-semibold flex items-center gap-2">
-          <MonitorPlay className="h-5 w-5" />
+          <span>🎟️</span>
           Lottery Factor
           <TooltipProvider>
             <Tooltip>
