@@ -26,6 +26,8 @@ describe('ContributionAnalyzer', () => {
   // Mock Math.random to return predictable values for tests
   beforeEach(() => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    // Reset the analyzer's counters before each test
+    ContributionAnalyzer.resetCounts();
   });
 
   afterEach(() => {
@@ -94,5 +96,79 @@ describe('ContributionAnalyzer', () => {
     const result = ContributionAnalyzer.analyze(pr);
     
     expect(result.quadrant).toBe('maintenance');
+  });
+
+  // New tests for distribution functionality
+  
+  it('should return default distribution when no PRs are analyzed', () => {
+    const distribution = ContributionAnalyzer.getDistribution();
+    
+    expect(distribution.refinement).toBe(25);
+    expect(distribution.newStuff).toBe(25);
+    expect(distribution.maintenance).toBe(25);
+    expect(distribution.refactoring).toBe(25);
+  });
+  
+  it('should reset counts when resetCounts is called', () => {
+    // First analyze some PRs
+    ContributionAnalyzer.analyze(createMockPR(100, 20)); // newStuff
+    ContributionAnalyzer.analyze(createMockPR(20, 100)); // refinement
+    
+    // Then reset counts
+    ContributionAnalyzer.resetCounts();
+    
+    // Get the counts, which should be zero
+    const counts = ContributionAnalyzer.getCounts();
+    
+    expect(counts.refinement).toBe(0);
+    expect(counts.newStuff).toBe(0);
+    expect(counts.maintenance).toBe(0);
+    expect(counts.refactoring).toBe(0);
+  });
+  
+  it('should track counts for each quadrant correctly', () => {
+    // Analyze multiple PRs covering different quadrants
+    ContributionAnalyzer.analyze(createMockPR(100, 20)); // newStuff
+    ContributionAnalyzer.analyze(createMockPR(100, 20)); // newStuff
+    ContributionAnalyzer.analyze(createMockPR(20, 100)); // refinement
+    ContributionAnalyzer.analyze(createMockPR(50, 50));  // refactoring
+    ContributionAnalyzer.analyze(createMockPR(0, 0, [{ language: 'json', additions: 50, deletions: 20 }])); // maintenance
+    
+    // Get the counts
+    const counts = ContributionAnalyzer.getCounts();
+    
+    // Verify counts
+    expect(counts.newStuff).toBe(2);
+    expect(counts.refinement).toBe(1);
+    expect(counts.refactoring).toBe(1);
+    expect(counts.maintenance).toBe(1);
+  });
+  
+  it('should calculate distribution percentages correctly', () => {
+    // Analyze multiple PRs with known distribution
+    ContributionAnalyzer.analyze(createMockPR(100, 20)); // newStuff
+    ContributionAnalyzer.analyze(createMockPR(100, 20)); // newStuff
+    ContributionAnalyzer.analyze(createMockPR(100, 20)); // newStuff
+    ContributionAnalyzer.analyze(createMockPR(100, 20)); // newStuff (4 total)
+    
+    ContributionAnalyzer.analyze(createMockPR(20, 100)); // refinement
+    ContributionAnalyzer.analyze(createMockPR(20, 100)); // refinement (2 total)
+    
+    ContributionAnalyzer.analyze(createMockPR(50, 50)); // refactoring
+    ContributionAnalyzer.analyze(createMockPR(50, 50)); // refactoring (2 total)
+    
+    ContributionAnalyzer.analyze(createMockPR(0, 0, [{ language: 'json', additions: 50, deletions: 20 }])); // maintenance
+    ContributionAnalyzer.analyze(createMockPR(0, 0, [{ language: 'json', additions: 50, deletions: 20 }])); // maintenance (2 total)
+    
+    // Total: 10 PRs - 40% newStuff, 20% refinement, 20% refactoring, 20% maintenance
+    
+    // Get the distribution
+    const distribution = ContributionAnalyzer.getDistribution();
+    
+    // Verify percentages
+    expect(distribution.newStuff).toBe(40);
+    expect(distribution.refinement).toBe(20);
+    expect(distribution.refactoring).toBe(20);
+    expect(distribution.maintenance).toBe(20);
   });
 });

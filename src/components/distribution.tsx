@@ -11,6 +11,7 @@ import { QuadrantChart } from "./quadrant-chart";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
 import type { PullRequest, QuadrantData, LanguageStats } from "@/lib/types";
+import { ContributionAnalyzer } from "@/lib/contribution-analyzer";
 
 export default function Distribution() {
   const { stats } = useContext(RepoStatsContext);
@@ -47,30 +48,25 @@ export default function Distribution() {
       )
     );
 
-    // For now we'll calculate based on the stub data we're already generating
-    // In a real implementation, this would be calculated based on actual PR analysis
-    const quadrantNames = [
-      "Refinement",
-      "New Stuff",
-      "Maintenance",
-      "Refactoring",
-    ];
+    // Reset the analyzer's counters before processing the PRs
+    ContributionAnalyzer.resetCounts();
 
-    // Calculate percentages based on PR distribution
-    const quadrantPRs = [
-      prs.slice(0, 3).length, // Refinement
-      prs.slice(3, 6).length, // New Stuff
-      prs.slice(6, 9).length, // Maintenance
-      prs.slice(9, 12).length, // Refactoring
-    ];
+    // Analyze each PR to get its contribution metrics
+    prs.forEach((pr) => {
+      ContributionAnalyzer.analyze(pr);
+    });
 
-    const total = quadrantPRs.reduce((sum, count) => sum + count, 0);
+    // Get the distribution percentages
+    const distribution = ContributionAnalyzer.getDistribution();
 
+    // Format the quadrant data
     return {
-      quadrants: quadrantNames.map((name, index) => ({
-        name,
-        percentage: total > 0 ? (quadrantPRs[index] / total) * 100 : 25,
-      })),
+      quadrants: [
+        { name: "Refinement", percentage: distribution.refinement },
+        { name: "New Stuff", percentage: distribution.newStuff },
+        { name: "Maintenance", percentage: distribution.maintenance },
+        { name: "Refactoring", percentage: distribution.refactoring },
+      ],
       totalFiles,
     };
   };
@@ -218,44 +214,89 @@ export default function Distribution() {
   };
 
   const getQuadrantData = (prs: PullRequest[]): QuadrantData[] => {
-    // This is a stub for quadrant data
-    // In a real implementation, we would analyze PR data to determine quadrants
+    if (prs.length === 0) {
+      return [
+        {
+          name: "Refinement",
+          authors: [],
+          percentage: 25,
+          count: 0,
+        },
+        {
+          name: "New Stuff",
+          authors: [],
+          percentage: 25,
+          count: 0,
+        },
+        {
+          name: "Maintenance",
+          authors: [],
+          percentage: 25,
+          count: 0,
+        },
+        {
+          name: "Refactoring",
+          authors: [],
+          percentage: 25,
+          count: 0,
+        },
+      ];
+    }
+
+    // Make sure we have the latest distribution data
+    const distribution = ContributionAnalyzer.getDistribution();
+    const counts = ContributionAnalyzer.getCounts();
+
+    // Group PRs by the quadrant they belong to
+    const prsByQuadrant: Record<string, PullRequest[]> = {
+      refinement: [],
+      newStuff: [],
+      maintenance: [],
+      refactoring: [],
+    };
+
+    // Re-analyze PRs to group them by quadrant
+    prs.forEach((pr) => {
+      const metrics = ContributionAnalyzer.analyze(pr);
+      prsByQuadrant[metrics.quadrant].push(pr);
+    });
+
     return [
       {
         name: "Refinement",
-        authors: prs.slice(0, 3).map((pr) => ({
+        authors: prsByQuadrant.refinement.slice(0, 5).map((pr) => ({
           id: pr.user.id,
           login: pr.user.login,
         })),
-        percentage: 25,
-        count: prs.slice(0, 3).length,
+        percentage: distribution.refinement,
+        count: counts.refinement,
       },
       {
         name: "New Stuff",
-        authors: prs.slice(3, 6).map((pr) => ({
+        authors: prsByQuadrant.newStuff.slice(0, 5).map((pr) => ({
           id: pr.user.id,
           login: pr.user.login,
         })),
-        percentage: 25,
-        count: prs.slice(3, 6).length,
+        percentage: distribution.newStuff,
+        count: counts.newStuff,
       },
       {
         name: "Maintenance",
-        authors: prs.slice(6, 9).map((pr) => ({
+        authors: prsByQuadrant.maintenance.slice(0, 5).map((pr) => ({
           id: pr.user.id,
           login: pr.user.login,
         })),
-        percentage: 25,
-        count: prs.slice(6, 9).length,
+        percentage: distribution.maintenance,
+        count: counts.maintenance,
       },
       {
         name: "Refactoring",
-        authors: prs.slice(9, 12).map((pr) => ({
+        authors: prsByQuadrant.refactoring.slice(0, 5).map((pr) => ({
           id: pr.user.id,
           login: pr.user.login,
         })),
-        percentage: 25,
-        count: prs.slice(9, 12).length,
+        percentage: distribution.refactoring,
+        count: counts.refactoring,
       },
     ];
   };
