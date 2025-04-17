@@ -186,17 +186,6 @@ export function LotteryFactorContent({
     );
   }
 
-  const getRiskLevelColor = (level: "Low" | "Medium" | "High") => {
-    switch (level) {
-      case "Low":
-        return "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400";
-      case "Medium":
-        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400";
-      case "High":
-        return "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400";
-    }
-  };
-
   const getProgressBarSegments = (contributors: ContributorStats[]) => {
     const colors = [
       "bg-orange-500 hover:bg-orange-600",
@@ -226,35 +215,6 @@ export function LotteryFactorContent({
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <div className="flex items-start gap-2">
-          <div className="text-xl font-semibold flex items-center gap-2">
-            <LotteryIcon className="h-5 w-5" />
-            Lottery Factor
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs">
-                    The Lottery Factor measures the distribution of
-                    contributions across maintainers. A high percentage
-                    indicates increased risk due to concentrated knowledge.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <Badge
-            variant="secondary"
-            className={`ml-auto ${getRiskLevelColor(
-              safeLotteryFactor.riskLevel
-            )}`}
-          >
-            {safeLotteryFactor.riskLevel}
-          </Badge>
-        </div>
-
         {showYoloButton && (
           <button
             onClick={() => setShowYoloCoders(true)}
@@ -284,15 +244,6 @@ export function LotteryFactorContent({
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <div className="text-sm text-muted-foreground">
-            The top {safeLotteryFactor.topContributorsCount} contributors of
-            this repository have made{" "}
-            <span className="font-medium text-foreground">
-              {safeLotteryFactor.topContributorsPercentage}%
-            </span>{" "}
-            of all pull requests in the past {timeRangeNumber} days.
-          </div>
-
           <div className="h-2 w-full rounded-full overflow-hidden flex">
             {getProgressBarSegments(safeLotteryFactor.contributors).map(
               (segment, i) => (
@@ -444,13 +395,45 @@ export default function LotteryFactor() {
   // YOLO Coders button should only be visible if there are YOLO pushes
   const showYoloButton = directCommitsData?.hasYoloCoders === true;
 
+  const { timeRange } = useTimeRange();
+  const timeRangeNumber = parseInt(timeRange, 10);
+
+  const getRiskLevelColor = (level: "Low" | "Medium" | "High") => {
+    switch (level) {
+      case "Low":
+        return "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400";
+      case "Medium":
+        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400";
+      case "High":
+        return "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400";
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Repository Health</CardTitle>
-        <CardDescription>
-          Analyze the distribution of contributions and maintainer activity
-        </CardDescription>
+        <CardTitle className="flex items-center gap-2">
+          <LotteryIcon className="h-5 w-5" />
+          Lottery Factor
+        </CardTitle>
+        {lotteryFactor && (
+          <div className="flex items-start justify-between">
+            <CardDescription>
+              The top {lotteryFactor.topContributorsCount} contributors of this
+              repository have made{" "}
+              <span className="font-medium">
+                {lotteryFactor.topContributorsPercentage}%
+              </span>{" "}
+              of all pull requests in the past {timeRangeNumber} days.
+            </CardDescription>
+            <Badge
+              variant="secondary"
+              className={`${getRiskLevelColor(lotteryFactor.riskLevel)}`}
+            >
+              {lotteryFactor.riskLevel}
+            </Badge>
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         <LotteryFactorContent
