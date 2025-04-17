@@ -9,6 +9,7 @@ import {
 import { format } from "date-fns";
 import type { PullRequest, QuadrantData } from "@/lib/types";
 import { ContributionAnalyzer } from "@/lib/contribution-analyzer";
+import { ContributionHoverCard } from "./contribution-hover-card";
 
 interface QuadrantChartProps {
   data: PullRequest[];
@@ -120,7 +121,7 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
       </div>
 
       {/* Desktop chart - hidden on small screens, shown on medium and up */}
-      <div className="hidden md:block relative w-full aspect-[16/9] bg-background border rounded-lg overflow-hidden mx-auto">
+      <div className="hidden md:block relative w-full aspect-[16/9] bg-background border rounded-lg mx-auto">
         {/* Grid lines */}
         <div className="absolute inset-0 border-dashed border-muted">
           <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-muted" />
@@ -153,18 +154,22 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
               >
                 <div className="flex -space-x-2">
                   {authors.slice(0, 3).map((author, index) => (
-                    <Avatar
+                    <ContributionHoverCard
                       key={`${label}-${author.id}-${index}`}
-                      className="w-6 h-6 border-2 border-background"
+                      authorId={author.id}
+                      authorLogin={author.login}
+                      pullRequests={data}
                     >
-                      <AvatarImage
-                        src={`https://avatars.githubusercontent.com/u/${author.id}`}
-                        alt={author.login}
-                      />
-                      <AvatarFallback className="bg-primary text-[8px]">
-                        {author.login.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                      <Avatar className="w-6 h-6 border-2 border-background cursor-pointer">
+                        <AvatarImage
+                          src={`https://avatars.githubusercontent.com/u/${author.id}`}
+                          alt={author.login}
+                        />
+                        <AvatarFallback className="bg-primary text-[8px]">
+                          {author.login.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </ContributionHoverCard>
                   ))}
                   {authors.length > 3 && (
                     <Avatar className="w-6 h-6 border-2 border-background">
@@ -201,7 +206,7 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
                 href={point.pr.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="absolute w-2 h-2 rounded-full bg-primary hover:w-3 hover:h-3 transition-all hover:bg-primary hover:opacity-80"
+                className="absolute w-2 h-2 rounded-full bg-primary hover:w-3 hover:h-3 transition-all hover:bg-primary hover:opacity-80 z-10"
                 style={{
                   left: `${point.x}%`,
                   top: `${point.y}%`,
