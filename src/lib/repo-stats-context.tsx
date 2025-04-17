@@ -5,11 +5,15 @@ import type { RepoStats, LotteryFactor } from "@/lib/types";
 interface RepoStatsContextType {
   stats: RepoStats;
   lotteryFactor: LotteryFactor | null;
+  includeBots: boolean;
+  setIncludeBots: (value: boolean) => void;
 }
 
 export const RepoStatsContext = createContext<RepoStatsContextType>({
   stats: { pullRequests: [], loading: true, error: null },
   lotteryFactor: null,
+  includeBots: false,
+  setIncludeBots: () => {},
 });
 
 // Provider component for RepoStatsContext

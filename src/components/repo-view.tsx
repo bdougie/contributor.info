@@ -40,6 +40,7 @@ export default function RepoView() {
   const [lotteryFactor, setLotteryFactor] = useState<LotteryFactorType | null>(
     null
   );
+  const [includeBots, setIncludeBots] = useState(false);
 
   useEffect(() => {
     // Check login status
@@ -71,7 +72,7 @@ export default function RepoView() {
         setStats((prev) => ({ ...prev, loading: true, error: null }));
         const prs = await fetchPullRequests(owner, repo, timeRange);
         setStats({ pullRequests: prs, loading: false, error: null });
-        setLotteryFactor(calculateLotteryFactor(prs, timeRange));
+        setLotteryFactor(calculateLotteryFactor(prs, timeRange, includeBots));
       } catch (error) {
         setStats((prev) => ({
           ...prev,
@@ -83,7 +84,7 @@ export default function RepoView() {
     }
 
     loadPRData();
-  }, [owner, repo, timeRange]);
+  }, [owner, repo, timeRange, includeBots]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,7 +182,14 @@ export default function RepoView() {
             </Tabs>
 
             <div className="mt-6">
-              <RepoStatsProvider value={{ stats, lotteryFactor }}>
+              <RepoStatsProvider
+                value={{
+                  stats,
+                  lotteryFactor,
+                  includeBots,
+                  setIncludeBots,
+                }}
+              >
                 <Outlet />
               </RepoStatsProvider>
             </div>
