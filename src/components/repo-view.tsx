@@ -175,8 +175,8 @@ export default function RepoView() {
               }}
             >
               <TabsList>
-                <TabsTrigger value="lottery">Lottery Factor</TabsTrigger>
-                <TabsTrigger value="contributions">Contributions</TabsTrigger>
+                <TabsTrigger value="lottery">Health</TabsTrigger>
+                <TabsTrigger value="contributions">Activity</TabsTrigger>
                 <TabsTrigger value="distribution">Distribution</TabsTrigger>
               </TabsList>
             </Tabs>
