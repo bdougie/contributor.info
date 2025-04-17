@@ -91,18 +91,18 @@ function ContributionsChart({
   const mobileMaxDays = 7;
 
   const getChartData = () => {
-    // Sort by updated_at and take only the last 50 PRs
+    // Sort by created_at and take only the last 50 PRs
     const recentPRs = [...safeStats.pullRequests]
       .sort(
         (a, b) =>
-          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )
       .slice(0, 50);
 
     return recentPRs
       .map((pr, index) => {
         const daysAgo = Math.floor(
-          (new Date().getTime() - new Date(pr.updated_at).getTime()) /
+          (new Date().getTime() - new Date(pr.created_at).getTime()) /
             (1000 * 60 * 60 * 24)
         );
 
@@ -163,7 +163,7 @@ function ContributionsChart({
               domain={[0, "auto"]}
               reversed
               label={{
-                value: "Days Ago (Last Commit)",
+                value: "Days Ago (Created Date)",
                 position: "bottom",
                 offset: 20,
               }}
