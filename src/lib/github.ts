@@ -133,3 +133,190 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
     throw new Error('An unexpected error occurred while fetching repository data.');
   }
 }
+
+export async function fetchDirectCommits(owner: string, repo: string, timeRange: string = '30'): Promise<{
+  directCommits: Array<{
+    sha: string;
+    actor: {
+      login: string;
+      avatar_url: string;
+      type?: 'User' | 'Bot';
+    };
+    event_time: string;
+    push_num_commits: number;
+  }>;
+  hasYoloCoders: boolean;
+  yoloCoderStats: Array<{
+    login: string;
+    avatar_url: string;
+    directCommits: number;
+    totalPushedCommits: number;
+    type?: 'User' | 'Bot';
+  }>;
+}> {
+  const headers: HeadersInit = {
+    'Accept': 'application/vnd.github.v3+json',
+  };
+
+  // Try to get user's GitHub token from Supabase session
+  const { data: { session } } = await supabase.auth.getSession();
+  const userToken = session?.provider_token;
+
+  // Use user's token if available, otherwise fall back to env token
+  const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  if (token) {
+    headers.Authorization = `token ${token}`;
+  }
+
+  try {
+    // First, get the default branch for the repository
+    const repoResponse = await fetch(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}`,
+      { headers }
+    );
+
+    if (!repoResponse.ok) {
+      throw new Error(`Failed to fetch repository information: ${repoResponse.statusText}`);
+    }
+
+    const repoData = await repoResponse.json();
+    const defaultBranch = repoData.default_branch;
+    const defaultRef = `refs/heads/${defaultBranch}`;
+
+    // Calculate date range based on timeRange parameter
+    const since = new Date();
+    since.setDate(since.getDate() - parseInt(timeRange));
+    const sinceISOString = since.toISOString();
+
+    // Get merged PRs for the repository in the time range
+    const pullRequests = await fetchPullRequests(owner, repo, timeRange);
+    const mergedPRs = pullRequests.filter(pr => pr.merged_at);
+    
+    // Get the merge commit SHAs of the merged PRs
+    const prMergeShaSet = new Set<string>();
+    
+    await Promise.all(
+      mergedPRs.map(async (pr) => {
+        try {
+          // Fetch the PR details to get the merge commit SHA
+          const prResponse = await fetch(
+            `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}`,
+            { headers }
+          );
+          
+          if (prResponse.ok) {
+            const prData = await prResponse.json();
+            if (prData.merge_commit_sha) {
+              prMergeShaSet.add(prData.merge_commit_sha);
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch merge commit SHA for PR #${pr.number}:`, error);
+        }
+      })
+    );
+
+    // Fetch push events for the repository
+    // Note: GitHub API doesn't have a direct way to get push events for a specific branch,
+    // so we'll fetch all events and filter for push events to the default branch
+    const eventsResponse = await fetch(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/events?per_page=100`,
+      { headers }
+    );
+
+    if (!eventsResponse.ok) {
+      throw new Error(`Failed to fetch repository events: ${eventsResponse.statusText}`);
+    }
+
+    const events = await eventsResponse.json();
+    
+    // Filter for push events to the default branch
+    const pushEvents = events.filter((event: any) => {
+      // Check if it's a push event to the default branch
+      return event.type === 'PushEvent' && 
+             event.payload.ref === defaultRef &&
+             new Date(event.created_at) >= since;
+    });
+
+    // Identify YOLO pushes (pushes to default branch that don't correlate with PR merges)
+    const yoloPushes = pushEvents.filter((push: any) => {
+      return !prMergeShaSet.has(push.payload.head);
+    });
+
+    // Format the YOLO pushes data
+    const directCommits = await Promise.all(yoloPushes.map(async (push: any) => {
+      // Fetch user details to get avatar URL
+      let avatar_url = '';
+      try {
+        const userResponse = await fetch(
+          `${GITHUB_API_BASE}/users/${push.actor.login}`,
+          { headers }
+        );
+        
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          avatar_url = userData.avatar_url;
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch user details for ${push.actor.login}:`, error);
+      }
+
+      return {
+        sha: push.payload.head,
+        actor: {
+          login: push.actor.login,
+          avatar_url,
+          type: push.actor.login.includes('[bot]') ? 'Bot' : 'User'
+        },
+        event_time: push.created_at,
+        push_num_commits: push.payload.size
+      };
+    }));
+
+    // Calculate statistics for YOLO coders (authors with direct pushes)
+    const yoloCoderMap = new Map<string, { 
+      login: string; 
+      avatar_url: string; 
+      directCommits: number;
+      totalPushedCommits: number;
+      type?: 'User' | 'Bot'; 
+    }>();
+
+    for (const commit of directCommits) {
+      const login = commit.actor.login;
+      
+      // Check if this is a bot
+      const isBot = login.includes('[bot]');
+      
+      if (yoloCoderMap.has(login)) {
+        const coder = yoloCoderMap.get(login)!;
+        coder.directCommits += 1;
+        coder.totalPushedCommits += commit.push_num_commits;
+      } else {
+        yoloCoderMap.set(login, {
+          login,
+          avatar_url: commit.actor.avatar_url,
+          directCommits: 1,
+          totalPushedCommits: commit.push_num_commits,
+          type: isBot ? 'Bot' : 'User',
+        });
+      }
+    }
+
+    const yoloCoderStats = Array.from(yoloCoderMap.values())
+      .sort((a, b) => b.directCommits - a.directCommits);
+
+    return {
+      directCommits,
+      hasYoloCoders: directCommits.length > 0,
+      yoloCoderStats,
+    };
+  } catch (error) {
+    console.error('Error fetching direct commits:', error);
+    return {
+      directCommits: [],
+      hasYoloCoders: false,
+      yoloCoderStats: [],
+    };
+  }
+}

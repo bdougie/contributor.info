@@ -74,3 +74,16 @@ export interface LanguageStats {
   count: number;
   color: string;
 }
+
+export interface YoloCoderStats {
+  login: string;
+  avatar_url: string;
+  directCommits: number;
+  totalPushedCommits: number;
+  type?: 'User' | 'Bot';
+}
+
+export interface DirectCommitsData {
+  hasYoloCoders: boolean;
+  yoloCoderStats: YoloCoderStats[];
+}

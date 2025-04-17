@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchIcon } from "lucide-react";
 import { LoginDialog } from "./login-dialog";
 import { supabase } from "@/lib/supabase";
-import { fetchPullRequests } from "@/lib/github";
+import { fetchPullRequests, fetchDirectCommits } from "@/lib/github";
 import { calculateLotteryFactor } from "@/lib/utils";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
@@ -24,6 +24,7 @@ import { ExampleRepos } from "./example-repos";
 import type {
   RepoStats,
   LotteryFactor as LotteryFactorType,
+  DirectCommitsData,
 } from "@/lib/types";
 
 export default function RepoView() {
@@ -40,6 +41,8 @@ export default function RepoView() {
   const [lotteryFactor, setLotteryFactor] = useState<LotteryFactorType | null>(
     null
   );
+  const [directCommitsData, setDirectCommitsData] =
+    useState<DirectCommitsData | null>(null);
   const [includeBots, setIncludeBots] = useState(false);
 
   useEffect(() => {
@@ -70,9 +73,19 @@ export default function RepoView() {
 
       try {
         setStats((prev) => ({ ...prev, loading: true, error: null }));
-        const prs = await fetchPullRequests(owner, repo, timeRange);
+
+        // Fetch pull requests and direct commits in parallel
+        const [prs, directCommits] = await Promise.all([
+          fetchPullRequests(owner, repo, timeRange),
+          fetchDirectCommits(owner, repo, timeRange),
+        ]);
+
         setStats({ pullRequests: prs, loading: false, error: null });
         setLotteryFactor(calculateLotteryFactor(prs, timeRange, includeBots));
+        setDirectCommitsData({
+          hasYoloCoders: directCommits.hasYoloCoders,
+          yoloCoderStats: directCommits.yoloCoderStats,
+        });
       } catch (error) {
         setStats((prev) => ({
           ...prev,
@@ -186,6 +199,7 @@ export default function RepoView() {
                 value={{
                   stats,
                   lotteryFactor,
+                  directCommitsData,
                   includeBots,
                   setIncludeBots,
                 }}

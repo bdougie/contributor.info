@@ -80,15 +80,18 @@ function LotteryFactorEmpty() {
 export function LotteryFactorContent({
   stats,
   lotteryFactor,
+  showYoloButton,
 }: {
   stats?: RepoStats;
   lotteryFactor?: LotteryFactorType | null;
+  showYoloButton?: boolean;
 }) {
   const { timeRange } = useTimeRange();
   const timeRangeNumber = parseInt(timeRange, 10); // Parse the string to a number
   const safeStats = stats || { pullRequests: [], loading: false, error: null };
   const safeLotteryFactor = lotteryFactor || null;
   const [showYoloCoders, setShowYoloCoders] = useState(false);
+  const { directCommitsData } = useContext(RepoStatsContext);
 
   if (safeStats.loading) {
     return <LotteryFactorSkeleton />;
@@ -100,6 +103,33 @@ export function LotteryFactorContent({
 
   // YOLO Coders View
   if (showYoloCoders) {
+    // Check if we have YOLO coders data
+    if (!directCommitsData || directCommitsData.yoloCoderStats.length === 0) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowYoloCoders(false)}
+              className="text-muted-foreground hover:text-foreground flex items-center gap-1"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              back
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <YoloIcon className="w-4 h-5 text-muted-foreground" />
+            <h2 className="text-xl font-semibold">YOLO Coders</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            No direct commits to the main branch detected in the last{" "}
+            {timeRangeNumber} days.
+          </p>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-6">
         <div className="flex items-center mb-4">
@@ -118,41 +148,38 @@ export function LotteryFactorContent({
           <h2 className="text-xl font-semibold">YOLO Coders</h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          {safeLotteryFactor.topContributorsCount} contributors have pushed
+          {directCommitsData.yoloCoderStats.length} contributor
+          {directCommitsData.yoloCoderStats.length !== 1 ? "s" : ""} have pushed
           directly to the main branch of this repository in the last{" "}
           {timeRangeNumber} days without pull requests
         </p>
         <div className="space-y-4 mt-2">
-          {/* Mock data for now - will be replaced with actual data when backend is ready */}
-          {safeLotteryFactor.contributors
-            .slice(0, 3)
-            .map((contributor, index) => (
-              <div
-                key={contributor.login}
-                className="flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <img
-                    src={contributor.avatar_url}
-                    alt={contributor.login}
-                    className="w-8 h-8 rounded-full"
-                  />
-                  <div>
-                    <p className="font-medium">{contributor.login}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {index === 0
-                        ? "maintainer"
-                        : index === 1
-                        ? "member"
-                        : "contributor"}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {Math.round(contributor.pullRequests * 0.7)} direct commits
+          {directCommitsData.yoloCoderStats.map((coder) => (
+            <div
+              key={coder.login}
+              className="flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <img
+                  src={coder.avatar_url}
+                  alt={coder.login}
+                  className="w-8 h-8 rounded-full"
+                />
+                <div>
+                  <p className="font-medium">{coder.login}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {coder.type === "Bot" ? "bot" : "contributor"}
+                  </p>
                 </div>
               </div>
-            ))}
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">{coder.directCommits}</span> push
+                {coder.directCommits !== 1 ? "es" : ""} with{" "}
+                <span className="font-medium">{coder.totalPushedCommits}</span>{" "}
+                commit{coder.totalPushedCommits !== 1 ? "s" : ""}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -227,29 +254,31 @@ export function LotteryFactorContent({
           </Badge>
         </div>
 
-        <button
-          onClick={() => setShowYoloCoders(true)}
-          className="flex items-center justify-between w-full text-slate-500 shadow-sm !border !border-slate-300 p-1 gap-2 text-sm rounded-full"
-        >
-          <div className="flex gap-2 items-center">
-            <div className="flex items-center font-medium gap-1 px-2 py-0.5 rounded-2xl bg-light-red-4 text-light-red-11">
-              <YoloIcon className="h-4 w-4" />
-              YOLO Coders
+        {showYoloButton && (
+          <button
+            onClick={() => setShowYoloCoders(true)}
+            className="flex items-center justify-between w-full text-slate-500 shadow-sm !border !border-slate-300 p-1 gap-2 text-sm rounded-full"
+          >
+            <div className="flex gap-2 items-center">
+              <div className="flex items-center font-medium gap-1 px-2 py-0.5 rounded-2xl bg-light-red-4 text-light-red-11">
+                <YoloIcon className="h-4 w-4" />
+                YOLO Coders
+              </div>
+              <p className="block lg:hidden 2xl:block">
+                Pushing commits{" "}
+                <span className="xs:hidden sm:inline-block">directly</span> to
+                main
+              </p>
             </div>
-            <p className="block lg:hidden 2xl:block">
-              Pushing commits{" "}
-              <span className="xs:hidden sm:inline-block">directly</span> to
-              main
-            </p>
-          </div>
 
-          <div className="hidden xs:flex gap-2 items-center ml-auto mr-3">
-            <p className="hidden sm:inline-block xl:hidden min-[1650px]:inline-block">
-              See more
-            </p>
-            <ArrowRight className="hidden xs:inline-block h-4 w-4" />
-          </div>
-        </button>
+            <div className="hidden xs:flex gap-2 items-center ml-auto mr-3">
+              <p className="hidden sm:inline-block xl:hidden min-[1650px]:inline-block">
+                See more
+              </p>
+              <ArrowRight className="hidden xs:inline-block h-4 w-4" />
+            </div>
+          </button>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -397,13 +426,22 @@ export function LotteryFactorContent({
 
 // LotteryFactor Tab Component that uses Context
 export default function LotteryFactor() {
-  const { stats, lotteryFactor, includeBots, setIncludeBots } =
-    useContext(RepoStatsContext);
+  const {
+    stats,
+    lotteryFactor,
+    directCommitsData,
+    includeBots,
+    setIncludeBots,
+  } = useContext(RepoStatsContext);
 
   const botCount = stats.pullRequests.filter(
     (pr) => pr.user.type === "Bot"
   ).length;
   const hasBots = botCount > 0;
+  // Only show YOLO coders button if there are direct commits
+  const hasYoloCoders = directCommitsData?.hasYoloCoders ?? false;
+  // YOLO Coders button should only be visible if there are YOLO pushes
+  const showYoloButton = directCommitsData?.hasYoloCoders === true;
 
   return (
     <Card>
@@ -414,7 +452,11 @@ export default function LotteryFactor() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <LotteryFactorContent stats={stats} lotteryFactor={lotteryFactor} />
+        <LotteryFactorContent
+          stats={stats}
+          lotteryFactor={lotteryFactor}
+          showYoloButton={showYoloButton}
+        />
 
         {hasBots && (
           <div className="flex items-center space-x-2 mt-6 pt-4 border-t">
