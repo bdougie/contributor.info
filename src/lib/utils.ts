@@ -16,14 +16,27 @@ export function humanizeNumber(num: number): string {
   return value + unitname;
 }
 
-export function calculateLotteryFactor(prs: PullRequest[], timeRange: string = '30'): LotteryFactor {
+export function calculateLotteryFactor(
+  prs: PullRequest[], 
+  timeRange: string = '30', 
+  includeBots: boolean = false
+): LotteryFactor {
   // Use the provided time range
   const daysAgo = new Date();
   daysAgo.setDate(daysAgo.getDate() - parseInt(timeRange));
   
-  const recentPRs = prs.filter(pr => 
-    new Date(pr.created_at) > daysAgo
-  );
+  // Filter by time range and optionally by bot status
+  const recentPRs = prs.filter(pr => {
+    const isRecent = new Date(pr.created_at) > daysAgo;
+    const isBot = pr.user.type === 'Bot';
+    
+    // If includeBots is false, filter out bots
+    if (!includeBots && isBot) {
+      return false;
+    }
+    
+    return isRecent;
+  });
 
   // Count PRs per contributor and collect their recent PRs
   const contributorMap = new Map<string, ContributorStats>();
