@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import {
   Card,
   CardContent,
@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HelpCircle, Users, Bot } from "lucide-react";
+import { HelpCircle, Users, Bot, ArrowLeft, ArrowRight } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -17,9 +17,12 @@ import {
 } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { ContributorHoverCard } from "./contributor-hover-card";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
+import { YoloIcon } from "./icons/YoloIcon";
+import { LotteryIcon } from "./icons/LotteryIcon";
 import type {
   RepoStats,
   LotteryFactor as LotteryFactorType,
@@ -31,7 +34,7 @@ function LotteryFactorSkeleton() {
     <div className="space-y-6">
       <div className="flex items-start gap-2">
         <div className="text-xl font-semibold flex items-center gap-2">
-          <span>🎟️</span>
+          <LotteryIcon className="h-5 w-5" />
           Lottery Factor
         </div>
         <Skeleton className="ml-auto h-6 w-16" />
@@ -65,7 +68,7 @@ function LotteryFactorSkeleton() {
 function LotteryFactorEmpty() {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <span>🎟️</span>
+      <LotteryIcon className="h-5 w-5" />
       <h3 className="text-lg font-medium">No data available</h3>
       <p className="text-sm text-muted-foreground mt-2">
         This repository doesn't have enough commit data to calculate the Lottery
@@ -78,14 +81,18 @@ function LotteryFactorEmpty() {
 export function LotteryFactorContent({
   stats,
   lotteryFactor,
+  showYoloButton,
 }: {
   stats?: RepoStats;
   lotteryFactor?: LotteryFactorType | null;
+  showYoloButton?: boolean;
 }) {
   const { timeRange } = useTimeRange();
   const timeRangeNumber = parseInt(timeRange, 10); // Parse the string to a number
   const safeStats = stats || { pullRequests: [], loading: false, error: null };
   const safeLotteryFactor = lotteryFactor || null;
+  const [showYoloCoders, setShowYoloCoders] = useState(false);
+  const { directCommitsData } = useContext(RepoStatsContext);
 
   if (safeStats.loading) {
     return <LotteryFactorSkeleton />;
@@ -93,6 +100,90 @@ export function LotteryFactorContent({
 
   if (!safeLotteryFactor || safeLotteryFactor.contributors.length === 0) {
     return <LotteryFactorEmpty />;
+  }
+
+  // YOLO Coders View
+  if (showYoloCoders) {
+    // Check if we have YOLO coders data
+    if (!directCommitsData || directCommitsData.yoloCoderStats.length === 0) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowYoloCoders(false)}
+              className="text-muted-foreground hover:text-foreground flex items-center gap-1"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              back
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <YoloIcon className="w-4 h-5 text-muted-foreground" />
+            <h2 className="text-xl font-semibold">YOLO Coders</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            No direct commits to the main branch detected in the last{" "}
+            {timeRangeNumber} days.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowYoloCoders(false)}
+            className="text-muted-foreground hover:text-foreground flex items-center gap-1"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            back
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <YoloIcon className="w-4 h-5 text-muted-foreground" />
+          <h2 className="text-xl font-semibold">YOLO Coders</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {directCommitsData.yoloCoderStats.length} contributor
+          {directCommitsData.yoloCoderStats.length !== 1 ? "s" : ""} have pushed
+          directly to the main branch of this repository in the last{" "}
+          {timeRangeNumber} days without pull requests
+        </p>
+        <div className="space-y-4 mt-2">
+          {directCommitsData.yoloCoderStats.map((coder) => (
+            <div
+              key={coder.login}
+              className="flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <img
+                  src={coder.avatar_url}
+                  alt={coder.login}
+                  className="w-8 h-8 rounded-full"
+                />
+                <div>
+                  <p className="font-medium">{coder.login}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {coder.type === "Bot" ? "bot" : "contributor"}
+                  </p>
+                </div>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">{coder.directCommits}</span> push
+                {coder.directCommits !== 1 ? "es" : ""} with{" "}
+                <span className="font-medium">{coder.totalPushedCommits}</span>{" "}
+                commit{coder.totalPushedCommits !== 1 ? "s" : ""}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const getRiskLevelColor = (level: "Low" | "Medium" | "High") => {
@@ -134,33 +225,61 @@ export function LotteryFactorContent({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-2">
-        <div className="text-xl font-semibold flex items-center gap-2">
-          <span>🎟️</span>
-          Lottery Factor
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <HelpCircle className="h-4 w-4 text-muted-foreground" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="max-w-xs">
-                  The Lottery Factor measures the distribution of contributions
-                  across maintainers. A high percentage indicates increased risk
-                  due to concentrated knowledge.
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-start gap-2">
+          <div className="text-xl font-semibold flex items-center gap-2">
+            <LotteryIcon className="h-5 w-5" />
+            Lottery Factor
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    The Lottery Factor measures the distribution of
+                    contributions across maintainers. A high percentage
+                    indicates increased risk due to concentrated knowledge.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <Badge
+            variant="secondary"
+            className={`ml-auto ${getRiskLevelColor(
+              safeLotteryFactor.riskLevel
+            )}`}
+          >
+            {safeLotteryFactor.riskLevel}
+          </Badge>
         </div>
-        <Badge
-          variant="secondary"
-          className={`ml-auto ${getRiskLevelColor(
-            safeLotteryFactor.riskLevel
-          )}`}
-        >
-          {safeLotteryFactor.riskLevel}
-        </Badge>
+
+        {showYoloButton && (
+          <button
+            onClick={() => setShowYoloCoders(true)}
+            className="flex items-center justify-between w-full text-slate-500 shadow-sm !border !border-slate-300 p-1 gap-2 text-sm rounded-full"
+          >
+            <div className="flex gap-2 items-center">
+              <div className="flex items-center font-medium gap-1 px-2 py-0.5 rounded-2xl bg-light-red-4 text-light-red-11">
+                <YoloIcon className="h-4 w-4" />
+                YOLO Coders
+              </div>
+              <p className="block lg:hidden 2xl:block">
+                Pushing commits{" "}
+                <span className="xs:hidden sm:inline-block">directly</span> to
+                main
+              </p>
+            </div>
+
+            <div className="hidden xs:flex gap-2 items-center ml-auto mr-3">
+              <p className="hidden sm:inline-block xl:hidden min-[1650px]:inline-block">
+                See more
+              </p>
+              <ArrowRight className="hidden xs:inline-block h-4 w-4" />
+            </div>
+          </button>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -308,13 +427,20 @@ export function LotteryFactorContent({
 
 // LotteryFactor Tab Component that uses Context
 export default function LotteryFactor() {
-  const { stats, lotteryFactor, includeBots, setIncludeBots } =
-    useContext(RepoStatsContext);
+  const {
+    stats,
+    lotteryFactor,
+    directCommitsData,
+    includeBots,
+    setIncludeBots,
+  } = useContext(RepoStatsContext);
 
   const botCount = stats.pullRequests.filter(
     (pr) => pr.user.type === "Bot"
   ).length;
   const hasBots = botCount > 0;
+  // YOLO Coders button should only be visible if there are YOLO pushes
+  const showYoloButton = directCommitsData?.hasYoloCoders === true;
 
   return (
     <Card>
@@ -325,7 +451,11 @@ export default function LotteryFactor() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <LotteryFactorContent stats={stats} lotteryFactor={lotteryFactor} />
+        <LotteryFactorContent
+          stats={stats}
+          lotteryFactor={lotteryFactor}
+          showYoloButton={showYoloButton}
+        />
 
         {hasBots && (
           <div className="flex items-center space-x-2 mt-6 pt-4 border-t">
