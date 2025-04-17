@@ -128,7 +128,7 @@ function ContributionsChart({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full">
       <div className="flex items-center space-x-2">
         <Switch
           id="enhance-view"
@@ -139,7 +139,7 @@ function ContributionsChart({
       </div>
       <div className="h-[600px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart margin={{ top: 20, right: 20, bottom: 40, left: 60 }}>
+          <ScatterChart margin={{ top: 20, right: 10, bottom: 40, left: 40 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               type="number"
