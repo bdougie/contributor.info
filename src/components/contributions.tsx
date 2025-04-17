@@ -290,6 +290,11 @@ export default function Contributions() {
   const [enhanceView, setEnhanceView] = useState(false);
   const [includeBots, setIncludeBots] = useState(true);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  
+  const botCount = stats.pullRequests.filter(
+    (pr) => pr.user.type === "Bot"
+  ).length;
+  const hasBots = botCount > 0;
 
   return (
     <Card>
@@ -306,14 +311,16 @@ export default function Contributions() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center space-x-2 mb-4">
-          <Switch
-            id="include-bots"
-            checked={includeBots}
-            onCheckedChange={setIncludeBots}
-          />
-          <Label htmlFor="include-bots">Include bot contributions</Label>
-        </div>
+        {hasBots && (
+          <div className="flex items-center space-x-2 mb-4">
+            <Switch
+              id="include-bots"
+              checked={includeBots}
+              onCheckedChange={setIncludeBots}
+            />
+            <Label htmlFor="include-bots">Include bot contributions</Label>
+          </div>
+        )}
         <ContributionsChart
           stats={stats}
           enhanceView={enhanceView}
