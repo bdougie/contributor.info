@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import {
   Card,
   CardContent,
@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HelpCircle, Users, Bot } from "lucide-react";
+import { HelpCircle, Users, Bot, ArrowLeft, ArrowRight } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -17,9 +17,11 @@ import {
 } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { ContributorHoverCard } from "./contributor-hover-card";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
+import { YoloIcon } from "./icons/YoloIcon";
 import type {
   RepoStats,
   LotteryFactor as LotteryFactorType,
@@ -86,6 +88,7 @@ export function LotteryFactorContent({
   const timeRangeNumber = parseInt(timeRange, 10); // Parse the string to a number
   const safeStats = stats || { pullRequests: [], loading: false, error: null };
   const safeLotteryFactor = lotteryFactor || null;
+  const [showYoloCoders, setShowYoloCoders] = useState(false);
 
   if (safeStats.loading) {
     return <LotteryFactorSkeleton />;
@@ -93,6 +96,66 @@ export function LotteryFactorContent({
 
   if (!safeLotteryFactor || safeLotteryFactor.contributors.length === 0) {
     return <LotteryFactorEmpty />;
+  }
+
+  // YOLO Coders View
+  if (showYoloCoders) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowYoloCoders(false)}
+            className="text-muted-foreground hover:text-foreground flex items-center gap-1"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            back
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <YoloIcon className="w-4 h-5 text-muted-foreground" />
+          <h2 className="text-xl font-semibold">YOLO Coders</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {safeLotteryFactor.topContributorsCount} contributors have pushed
+          directly to the main branch of this repository in the last{" "}
+          {timeRangeNumber} days without pull requests
+        </p>
+        <div className="space-y-4 mt-2">
+          {/* Mock data for now - will be replaced with actual data when backend is ready */}
+          {safeLotteryFactor.contributors
+            .slice(0, 3)
+            .map((contributor, index) => (
+              <div
+                key={contributor.login}
+                className="flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <img
+                    src={contributor.avatar_url}
+                    alt={contributor.login}
+                    className="w-8 h-8 rounded-full"
+                  />
+                  <div>
+                    <p className="font-medium">{contributor.login}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {index === 0
+                        ? "maintainer"
+                        : index === 1
+                        ? "member"
+                        : "contributor"}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {Math.round(contributor.pullRequests * 0.7)} direct commits
+                </div>
+              </div>
+            ))}
+        </div>
+      </div>
+    );
   }
 
   const getRiskLevelColor = (level: "Low" | "Medium" | "High") => {
@@ -134,33 +197,59 @@ export function LotteryFactorContent({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-2">
-        <div className="text-xl font-semibold flex items-center gap-2">
-          <span>🎟️</span>
-          Lottery Factor
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <HelpCircle className="h-4 w-4 text-muted-foreground" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="max-w-xs">
-                  The Lottery Factor measures the distribution of contributions
-                  across maintainers. A high percentage indicates increased risk
-                  due to concentrated knowledge.
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-start gap-2">
+          <div className="text-xl font-semibold flex items-center gap-2">
+            <span>🎟️</span>
+            Lottery Factor
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    The Lottery Factor measures the distribution of
+                    contributions across maintainers. A high percentage
+                    indicates increased risk due to concentrated knowledge.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <Badge
+            variant="secondary"
+            className={`ml-auto ${getRiskLevelColor(
+              safeLotteryFactor.riskLevel
+            )}`}
+          >
+            {safeLotteryFactor.riskLevel}
+          </Badge>
         </div>
-        <Badge
-          variant="secondary"
-          className={`ml-auto ${getRiskLevelColor(
-            safeLotteryFactor.riskLevel
-          )}`}
+
+        <button
+          onClick={() => setShowYoloCoders(true)}
+          className="flex items-center justify-between w-full text-slate-500 shadow-sm !border !border-slate-300 p-1 gap-2 text-sm rounded-full"
         >
-          {safeLotteryFactor.riskLevel}
-        </Badge>
+          <div className="flex gap-2 items-center">
+            <div className="flex items-center font-medium gap-1 px-2 py-0.5 rounded-2xl bg-light-red-4 text-light-red-11">
+              <YoloIcon className="h-4 w-4" />
+              YOLO Coders
+            </div>
+            <p className="block lg:hidden 2xl:block">
+              Pushing commits{" "}
+              <span className="xs:hidden sm:inline-block">directly</span> to
+              main
+            </p>
+          </div>
+
+          <div className="hidden xs:flex gap-2 items-center ml-auto mr-3">
+            <p className="hidden sm:inline-block xl:hidden min-[1650px]:inline-block">
+              See more
+            </p>
+            <ArrowRight className="hidden xs:inline-block h-4 w-4" />
+          </div>
+        </button>
       </div>
 
       <div className="space-y-4">
