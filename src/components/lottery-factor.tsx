@@ -8,13 +8,15 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HelpCircle, Users } from "lucide-react";
+import { HelpCircle, Users, Bot } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { ContributorHoverCard } from "./contributor-hover-card";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
@@ -306,7 +308,13 @@ export function LotteryFactorContent({
 
 // LotteryFactor Tab Component that uses Context
 export default function LotteryFactor() {
-  const { stats, lotteryFactor } = useContext(RepoStatsContext);
+  const { stats, lotteryFactor, includeBots, setIncludeBots } =
+    useContext(RepoStatsContext);
+
+  const botCount = stats.pullRequests.filter(
+    (pr) => pr.user.type === "Bot"
+  ).length;
+  const hasBots = botCount > 0;
 
   return (
     <Card>
@@ -318,6 +326,28 @@ export default function LotteryFactor() {
       </CardHeader>
       <CardContent>
         <LotteryFactorContent stats={stats} lotteryFactor={lotteryFactor} />
+
+        {hasBots && (
+          <div className="flex items-center space-x-2 mt-6 pt-4 border-t">
+            <Switch
+              id="show-bots"
+              checked={includeBots}
+              onCheckedChange={setIncludeBots}
+            />
+            <Label
+              htmlFor="show-bots"
+              className="flex items-center gap-1 cursor-pointer"
+            >
+              <Bot className="h-4 w-4" />
+              Show bots
+              {botCount > 0 && (
+                <Badge variant="outline" className="ml-1">
+                  {botCount}
+                </Badge>
+              )}
+            </Label>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

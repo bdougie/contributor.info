@@ -9,6 +9,21 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { ContributorStats } from "@/lib/types";
 
+// Function to get status badge styling
+const getStatusBadgeStyle = (state: string, merged: boolean) => {
+  if (merged)
+    return "bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400";
+  if (state === "closed")
+    return "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400";
+  return "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400";
+};
+
+// Function to get status label
+const getStatusLabel = (state: string, merged: boolean) => {
+  if (merged) return "merged";
+  return state;
+};
+
 interface ContributorHoverCardProps {
   contributor: ContributorStats;
   role?: string;
@@ -82,6 +97,15 @@ export function ContributorHoverCard({
                         #{pr.number}
                       </Badge>
                       <span className="truncate">{pr.title}</span>
+                      <Badge
+                        variant="outline"
+                        className={`ml-auto text-xs shrink-0 ${getStatusBadgeStyle(
+                          pr.state,
+                          pr.merged_at !== null
+                        )}`}
+                      >
+                        {getStatusLabel(pr.state, pr.merged_at !== null)}
+                      </Badge>
                     </div>
                   </a>
                 ))}
