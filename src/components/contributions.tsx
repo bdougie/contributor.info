@@ -84,6 +84,11 @@ function ContributionsChart({
 }) {
   // Use default empty values if props are not provided
   const safeStats = stats || { pullRequests: [], loading: false, error: null };
+  // Get the mobile-aware time range
+  const { effectiveTimeRange } = useTimeRange();
+  // For mobile we limit to 7 days regardless of the selected timeRange
+  const isMobile = window.innerWidth < 768;
+  const mobileMaxDays = 7;
 
   const getChartData = () => {
     // Sort by updated_at and take only the last 50 PRs
@@ -94,37 +99,47 @@ function ContributionsChart({
       )
       .slice(0, 50);
 
-    return recentPRs.map((pr, index) => {
-      const daysAgo = Math.floor(
-        (new Date().getTime() - new Date(pr.updated_at).getTime()) /
-          (1000 * 60 * 60 * 24)
-      );
+    return recentPRs
+      .map((pr, index) => {
+        const daysAgo = Math.floor(
+          (new Date().getTime() - new Date(pr.updated_at).getTime()) /
+            (1000 * 60 * 60 * 24)
+        );
 
-      const linesChanged = pr.additions + pr.deletions;
+        // Skip PRs older than our limit (7 days for mobile, effectiveTimeRange for desktop)
+        if (
+          (isMobile && daysAgo > mobileMaxDays) ||
+          (!isMobile && daysAgo > parseInt(effectiveTimeRange, 10))
+        ) {
+          return null;
+        }
 
-      // Only show avatars for the first 25 PRs
-      const showAvatar = index < 25;
+        const linesChanged = pr.additions + pr.deletions;
 
-      return {
-        daysAgo,
-        linesChanged: enhanceView
-          ? Math.min(
-              linesChanged,
-              recentPRs[Math.floor(recentPRs.length * 0.25)].additions +
-                recentPRs[Math.floor(recentPRs.length * 0.25)].deletions
-            )
-          : linesChanged,
-        avatar: showAvatar ? pr.user.avatar_url : null,
-        state: pr.state,
-        merged: pr.merged_at !== null,
-        title: pr.title,
-        number: pr.number,
-        author: pr.user.login,
-        repository_owner: pr.repository_owner,
-        repository_name: pr.repository_name,
-        url: `https://github.com/${pr.repository_owner}/${pr.repository_name}/pull/${pr.number}`,
-      };
-    });
+        // Only show avatars for the first 25 PRs
+        const showAvatar = index < 25;
+
+        return {
+          daysAgo,
+          linesChanged: enhanceView
+            ? Math.min(
+                linesChanged,
+                recentPRs[Math.floor(recentPRs.length * 0.25)].additions +
+                  recentPRs[Math.floor(recentPRs.length * 0.25)].deletions
+              )
+            : linesChanged,
+          avatar: showAvatar ? pr.user.avatar_url : null,
+          state: pr.state,
+          merged: pr.merged_at !== null,
+          title: pr.title,
+          number: pr.number,
+          author: pr.user.login,
+          repository_owner: pr.repository_owner,
+          repository_name: pr.repository_name,
+          url: `https://github.com/${pr.repository_owner}/${pr.repository_name}/pull/${pr.number}`,
+        };
+      })
+      .filter(Boolean); // Remove null values
   };
 
   return (
@@ -266,9 +281,10 @@ function ContributionsChart({
 // Contributions Tab Component
 export default function Contributions() {
   const { stats } = useContext(RepoStatsContext);
-  const { timeRange } = useTimeRange();
-  const timeRangeNumber = parseInt(timeRange, 10); // Parse string to number
+  const { effectiveTimeRange } = useTimeRange();
+  const effectiveTimeRangeNumber = parseInt(effectiveTimeRange, 10);
   const [enhanceView, setEnhanceView] = useState(false);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   return (
     <Card>
@@ -276,7 +292,12 @@ export default function Contributions() {
         <CardTitle>Pull Request Contributions</CardTitle>
         <CardDescription>
           Visualize the size and frequency of contributions over the past{" "}
-          {timeRangeNumber} days
+          {isMobile ? 7 : effectiveTimeRangeNumber} days
+          {isMobile && effectiveTimeRangeNumber > 7 && (
+            <span className="block text-xs mt-1 text-muted-foreground">
+              (Limited to 7 days on mobile devices)
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
