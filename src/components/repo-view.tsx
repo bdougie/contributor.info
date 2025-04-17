@@ -18,6 +18,7 @@ import { calculateLotteryFactor } from "@/lib/utils";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import LotteryFactor from "./lottery-factor";
+import Confidence from "./confidence";
 import Contributions from "./contributions";
 import Distribution from "./distribution";
 import { ExampleRepos } from "./example-repos";
@@ -216,7 +217,12 @@ export default function RepoView() {
 
 // Route components
 export function LotteryFactorRoute() {
-  return <LotteryFactor />;
+  return (
+    <>
+      <LotteryFactor />
+      <Confidence />
+    </>
+  );
 }
 
 export function ContributionsRoute() {
