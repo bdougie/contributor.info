@@ -25,11 +25,25 @@ function ContributionsChart() {
   const [maxFilesModified, setMaxFilesModified] = useState(10);
   const [localIncludeBots, setLocalIncludeBots] = useState(contextIncludeBots);
   const safeStats = stats || { pullRequests: [], loading: false, error: null };
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" && window.innerWidth < 768
+  );
   const effectiveTimeRangeNumber = parseInt(effectiveTimeRange, 10);
   const mobileMaxDays = 7;
 
   const functionTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Add resize listener to update isMobile state
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     // Calculate max files modified for scale
@@ -141,21 +155,29 @@ function ContributionsChart() {
 
     return (
       <animated.foreignObject
-        width={35}
-        height={35}
+        width={isMobile ? 28 : 35}
+        height={isMobile ? 28 : 35}
         r={props.style.size.to((size: number) => size / 2) as unknown as number}
         y={
-          props.style.y.to((yVal: number) => yVal - 35 / 1) as unknown as number
+          props.style.y.to(
+            (yVal: number) => yVal - (isMobile ? 28 : 35) / 1
+          ) as unknown as number
         }
         x={
-          props.style.x.to((xVal: number) => xVal - 35 / 2) as unknown as number
+          props.style.x.to(
+            (xVal: number) => xVal - (isMobile ? 28 : 35) / 2
+          ) as unknown as number
         }
         style={{ pointerEvents: "auto" }} // This is crucial for hover to work
       >
         <HoverCardPrimitive.Root openDelay={100} closeDelay={200}>
           <HoverCardPrimitive.Trigger asChild>
             <div className="inline-block" style={{ pointerEvents: "auto" }}>
-              <Avatar className="w-8 h-8 border-2 border-background cursor-pointer">
+              <Avatar
+                className={`${
+                  isMobile ? "w-6 h-6" : "w-8 h-8"
+                } border-2 border-background cursor-pointer`}
+              >
                 <AvatarImage
                   src={props.node.data.image}
                   alt={props.node.data.contributor}
@@ -173,7 +195,9 @@ function ContributionsChart() {
               side="top"
               align="center"
               sideOffset={5}
-              className="z-50 w-80 rounded-md border bg-card p-4 text-card-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
+              className={`z-50 ${
+                isMobile ? "w-64" : "w-80"
+              } rounded-md border bg-card p-4 text-card-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2`}
               avoidCollisions={true}
             >
               <div className="flex justify-between space-x-4">
@@ -276,14 +300,14 @@ function ContributionsChart() {
   return (
     <div className="space-y-4 w-full">
       <div
-        className={`flex flex-col items-center justify-between px-0 pt-3 ${
-          isMobile ? "px-0" : "md:flex-row md:px-7"
+        className={`flex flex-col items-start justify-between pt-3 ${
+          isMobile ? "px-6" : "md:flex-row md:px-7"
         }`}
       >
         <div className="text-sm text-muted-foreground">
           {data[0].data.length} pull requests shown
         </div>
-        <div className="flex gap-2 mt-3 md:mt-0">
+        <div className={`flex flex-wrap gap-4 mt-3 md:mt-0 ${isMobile ? "w-full" : ""}`}>
           {hasBots && (
             <div className="flex items-center space-x-2">
               <Switch
@@ -308,15 +332,15 @@ function ContributionsChart() {
           </div>
         </div>
       </div>
-      <div className="h-[400px] w-full">
+      <div className={`${isMobile ? "h-[300px]" : "h-[400px]"} w-full`}>
         <ResponsiveScatterPlot
-          nodeSize={isMobile ? 25 : 35}
+          nodeSize={isMobile ? 20 : 35}
           data={data}
           margin={{
             top: 30,
-            right: isMobile ? 15 : 60,
-            bottom: 70,
-            left: isMobile ? 45 : 90,
+            right: isMobile ? 10 : 60,
+            bottom: isMobile ? 60 : 70, // Increased bottom margin on mobile
+            left: isMobile ? 40 : 90, // Increased left margin on mobile
           }}
           xScale={{
             type: "linear",
@@ -337,16 +361,16 @@ function ContributionsChart() {
             tickSize: 8,
             tickPadding: 5,
             tickRotation: 0,
-            tickValues: isMobile ? 4 : 7,
-            legend: "Date Created",
+            tickValues: isMobile ? 3 : 7,
+            legend: isMobile ? "Days Ago" : "Date Created",
             legendPosition: "middle",
-            legendOffset: 50,
+            legendOffset: isMobile ? 45 : 50, // Increased legend offset for mobile
             format: (value) =>
               value === 0
                 ? "Today"
                 : value > effectiveTimeRangeNumber
-                ? `${effectiveTimeRangeNumber}+ days ago`
-                : `${value} days ago`,
+                ? `${effectiveTimeRangeNumber}+`
+                : `${value}${isMobile ? "" : " days ago"}`,
           }}
           theme={{
             axis: {},
@@ -363,13 +387,16 @@ function ContributionsChart() {
             tickSize: 2,
             tickPadding: 5,
             tickRotation: 0,
-            tickValues: isMobile ? 0 : 5,
-            legend: "Lines Changed",
+            tickValues: isMobile ? 3 : 5,
+            legend: isMobile ? "Lines" : "Lines Changed",
             legendPosition: "middle",
-            legendOffset: isMobile ? -30 : -60,
+            legendOffset: isMobile ? -30 : -60, // Increased left offset on mobile from -25 to -30
             format: (value: number) => {
-              // Don't show tick labels on mobile
-              if (isMobile) return "";
+              if (isMobile) {
+                return parseInt(`${value}`) >= 1000
+                  ? humanizeNumber(value)
+                  : `${value}`;
+              }
               return parseInt(`${value}`) >= 1000
                 ? humanizeNumber(value)
                 : `${value}`;
@@ -385,7 +412,21 @@ function ContributionsChart() {
 export default function Contributions() {
   const { effectiveTimeRange } = useTimeRange();
   const effectiveTimeRangeNumber = parseInt(effectiveTimeRange, 10);
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" && window.innerWidth < 768
+  );
+
+  // Add resize listener to update isMobile state
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   return (
     <Card>
@@ -401,7 +442,7 @@ export default function Contributions() {
           )}
         </CardDescription>
       </CardHeader>
-      <CardContent className={`${isMobile ? "p-2" : "p-6"}`}>
+      <CardContent className={`${isMobile ? "p-0" : "p-6"}`}>
         <ContributionsChart />
       </CardContent>
     </Card>
