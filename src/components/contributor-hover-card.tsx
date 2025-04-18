@@ -54,9 +54,9 @@ export function ContributorHoverCard({
         avoidCollisions={true}
       >
         <div className="flex justify-between space-x-4">
-          <a 
-            href={`https://github.com/${contributor.login}`} 
-            target="_blank" 
+          <a
+            href={`https://github.com/${contributor.login}`}
+            target="_blank"
             rel="noopener noreferrer"
           >
             <Avatar className="cursor-pointer hover:opacity-80 transition-opacity">
@@ -67,7 +67,7 @@ export function ContributorHoverCard({
             </Avatar>
           </a>
           <div className="space-y-1">
-            <a 
+            <a
               href={`https://github.com/${contributor.login}`}
               target="_blank"
               rel="noopener noreferrer"
