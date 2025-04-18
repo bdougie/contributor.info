@@ -177,16 +177,29 @@ function ContributionsChart() {
               avoidCollisions={true}
             >
               <div className="flex justify-between space-x-4">
-                <Avatar>
-                  <AvatarImage src={contributorStats.avatar_url} />
-                  <AvatarFallback>
-                    {contributorStats.login[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <a
+                  href={`https://github.com/${contributorStats.login}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Avatar className="cursor-pointer hover:opacity-80 transition-opacity">
+                    <AvatarImage src={contributorStats.avatar_url} />
+                    <AvatarFallback>
+                      {contributorStats.login[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </a>
                 <div className="space-y-1">
-                  <h4 className="text-sm font-semibold">
-                    {contributorStats.login}
-                  </h4>
+                  <a
+                    href={`https://github.com/${contributorStats.login}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block hover:underline"
+                  >
+                    <h4 className="text-sm font-semibold">
+                      {contributorStats.login}
+                    </h4>
+                  </a>
                   {props.node.data._pr.user.type === "Bot" && (
                     <p className="text-sm text-muted-foreground">Bot</p>
                   )}
