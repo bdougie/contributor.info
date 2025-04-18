@@ -330,7 +330,7 @@ function ContributionsChart() {
             tickPadding: 5,
             tickRotation: 0,
             tickValues: isMobile ? 4 : 7,
-            legend: "Days Ago (Created Date)",
+            legend: "Date Created",
             legendPosition: "middle",
             legendOffset: 50,
             format: (value) =>
