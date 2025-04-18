@@ -110,9 +110,9 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
             />
           </svg>
         </div>
-        <h3 className="text-lg font-medium">Rotate your device</h3>
+        <h3 className="text-lg font-medium">Desktop Recommended</h3>
         <p className="text-sm text-muted-foreground">
-          The distribution chart works best in landscape mode on mobile devices.
+          For a better experience, view this chart on a desktop as it's optimized for larger screens.
         </p>
       </div>
 

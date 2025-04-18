@@ -10,7 +10,7 @@ export function ExampleRepos({ onSelect }: ExampleReposProps) {
     "facebook/react",
     "etcd-io/etcd",
     "argoproj/argo-cd",
-    "bdougie/contrbutor.info",
+    "bdougie/contributor.info",
   ];
 
   return (
