@@ -9,7 +9,7 @@ import {
 import { format } from "date-fns";
 import type { PullRequest, QuadrantData } from "@/lib/types";
 import { ContributionAnalyzer } from "@/lib/contribution-analyzer";
-import { ContributionHoverCard } from "./contribution-hover-card";
+import { ContributorHoverCard } from "@/components/contributor-hover-card";
 
 interface QuadrantChartProps {
   data: PullRequest[];
@@ -21,25 +21,21 @@ const QUADRANTS = {
     label: "Refinement",
     x: 25,
     y: 25,
-    description: "Code cleanup and removal",
   },
   NEW_STUFF: {
     label: "New Stuff",
     x: 75,
     y: 25,
-    description: "New features and additions",
   },
   MAINTENANCE: {
     label: "Maintenance",
     x: 25,
     y: 75,
-    description: "Configuration and dependencies",
   },
   REFACTORING: {
     label: "Refactoring",
     x: 75,
     y: 75,
-    description: "Code improvements",
   },
 };
 
@@ -137,66 +133,83 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
         </div>
 
         {/* Quadrant labels */}
-        {Object.entries(QUADRANTS).map(
-          ([key, { label, x, y, description }]) => {
-            const quadrant = quadrants.find((q) => q.name === label);
-            const authors = quadrant?.authors || [];
+        {Object.entries(QUADRANTS).map(([key, { label, x, y }]) => {
+          const quadrant = quadrants.find((q) => q.name === label);
+          const authors = quadrant?.authors || [];
 
-            return (
-              <div
-                key={key}
-                className="absolute flex items-center gap-2"
-                style={{
-                  left: `${x}%`,
-                  top: `${y}%`,
-                  transform: "translate(-50%, -50%)",
-                }}
-              >
-                <div className="flex -space-x-2">
-                  {authors.slice(0, 3).map((author, index) => (
-                    <ContributionHoverCard
-                      key={`${label}-${author.id}-${index}`}
-                      authorId={author.id}
-                      authorLogin={author.login}
-                      pullRequests={data}
+          return (
+            <div
+              key={key}
+              className="absolute flex items-center gap-2 group"
+              style={{
+                left: `${x}%`,
+                top: `${y}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <div className="flex -space-x-2">
+                {authors.slice(0, 3).map((author, index) => {
+                  // Use type assertion with the actual expected interface
+                  const authorContributions =
+                    "contributions" in author
+                      ? (author.contributions as number)
+                      : 0;
+
+                  // Create a minimal ContributorStats object for each author
+                  const contributorStats = {
+                    login: author.login,
+                    avatar_url: `https://avatars.githubusercontent.com/u/${
+                      author.id ?? 0
+                    }`,
+                    pullRequests: authorContributions || 0,
+                    percentage:
+                      ((authorContributions || 0) / (data.length || 1)) * 100,
+                    recentPRs: data
+                      .filter((pr) => pr.author?.login === author.login)
+                      .slice(0, 5), // Get up to 5 recent PRs
+                  };
+
+                  return (
+                    <ContributorHoverCard
+                      key={`${label}-${author.id || index}-${index}`}
+                      contributor={contributorStats}
                     >
                       <Avatar className="w-6 h-6 border-2 border-background cursor-pointer">
                         <AvatarImage
-                          src={`https://avatars.githubusercontent.com/u/${author.id}`}
+                          src={`https://avatars.githubusercontent.com/u/${
+                            author.id ?? 0
+                          }`}
                           alt={author.login}
                         />
                         <AvatarFallback className="bg-primary text-[8px]">
                           {author.login.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                    </ContributionHoverCard>
-                  ))}
-                  {authors.length > 3 && (
-                    <Avatar className="w-6 h-6 border-2 border-background">
-                      <AvatarFallback className="bg-primary text-[8px]">
-                        +{authors.length - 3}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">{label}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {
-                      quadrantCounts[
-                        key.toLowerCase() as keyof typeof quadrantCounts
-                      ]
-                    }{" "}
-                    files
-                  </span>
-                  <span className="text-xs text-muted-foreground hidden group-hover:block">
-                    {description}
-                  </span>
-                </div>
+                    </ContributorHoverCard>
+                  );
+                })}
+                {authors.length > 3 && (
+                  <Avatar className="w-6 h-6 border-2 border-background cursor-pointer">
+                    <AvatarFallback className="bg-primary text-[8px]">
+                      +{authors.length - 3}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
               </div>
-            );
-          }
-        )}
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">{label}</span>
+                <span className="text-xs text-muted-foreground">
+                  {
+                    quadrantCounts[
+                      key.toLowerCase() as keyof typeof quadrantCounts
+                    ]
+                  }{" "}
+                  files
+                </span>
+              </div>
+            </div>
+          );
+        })}
 
         {/* Data points */}
         {chartData.map((point, i) => (

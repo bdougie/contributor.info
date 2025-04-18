@@ -1,13 +1,11 @@
 import { GitPullRequest } from "lucide-react";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
+import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import type { ContributorStats } from "@/lib/types";
+import React from "react";
 
 // Function to get status badge styling
 const getStatusBadgeStyle = (state: string, merged: boolean) => {
@@ -36,18 +34,47 @@ export function ContributorHoverCard({
   children,
 }: ContributorHoverCardProps) {
   return (
-    <HoverCard>
-      <HoverCardTrigger asChild>{children}</HoverCardTrigger>
-      <HoverCardContent className="w-80">
+    <HoverCardPrimitive.Root openDelay={100} closeDelay={200}>
+      <HoverCardPrimitive.Trigger asChild>
+        <div className="inline-block" style={{ pointerEvents: "auto" }}>
+          {children}
+        </div>
+      </HoverCardPrimitive.Trigger>
+      <HoverCardPrimitive.Content
+        className={cn(
+          "z-50 w-80 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none",
+          "data-[state=open]:animate-in data-[state=closed]:animate-out",
+          "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+          "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
+          "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
+        )}
+        sideOffset={5}
+        align="center"
+        avoidCollisions={true}
+      >
         <div className="flex justify-between space-x-4">
-          <Avatar>
-            <AvatarImage src={contributor.avatar_url} />
-            <AvatarFallback>
-              {contributor.login[0].toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <a
+            href={`https://github.com/${contributor.login}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Avatar className="cursor-pointer hover:opacity-80 transition-opacity">
+              <AvatarImage src={contributor.avatar_url} />
+              <AvatarFallback>
+                {contributor.login[0].toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </a>
           <div className="space-y-1">
-            <h4 className="text-sm font-semibold">{contributor.login}</h4>
+            <a
+              href={`https://github.com/${contributor.login}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block hover:underline"
+            >
+              <h4 className="text-sm font-semibold">{contributor.login}</h4>
+            </a>
             {role && <p className="text-sm text-muted-foreground">{role}</p>}
           </div>
         </div>
@@ -66,12 +93,19 @@ export function ContributorHoverCard({
               <div className="text-sm font-medium">Organizations</div>
               <div className="flex gap-2">
                 {contributor.organizations.map((org) => (
-                  <Avatar key={org.login} className="h-6 w-6">
-                    <AvatarImage src={org.avatar_url} alt={org.login} />
-                    <AvatarFallback>
-                      {org.login[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <a
+                    key={org.login}
+                    href={`https://github.com/${org.login}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Avatar className="h-6 w-6 cursor-pointer hover:opacity-80 transition-opacity">
+                      <AvatarImage src={org.avatar_url} alt={org.login} />
+                      <AvatarFallback>
+                        {org.login[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </a>
                 ))}
               </div>
             </div>
@@ -113,7 +147,7 @@ export function ContributorHoverCard({
             </div>
           </>
         )}
-      </HoverCardContent>
-    </HoverCard>
+      </HoverCardPrimitive.Content>
+    </HoverCardPrimitive.Root>
   );
 }
