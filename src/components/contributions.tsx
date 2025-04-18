@@ -275,7 +275,11 @@ function ContributionsChart() {
 
   return (
     <div className="space-y-4 w-full">
-      <div className="flex flex-col items-center justify-between px-0 pt-3 md:flex-row md:px-7">
+      <div
+        className={`flex flex-col items-center justify-between px-0 pt-3 ${
+          isMobile ? "px-0" : "md:flex-row md:px-7"
+        }`}
+      >
         <div className="text-sm text-muted-foreground">
           {data[0].data.length} pull requests shown
         </div>
@@ -287,7 +291,9 @@ function ContributionsChart() {
                 checked={localIncludeBots}
                 onCheckedChange={handleToggleIncludeBots}
               />
-              <Label htmlFor="include-bots">Show Bots</Label>
+              <Label htmlFor="include-bots" className="text-sm">
+                Show Bots
+              </Label>
             </div>
           )}
           <div className="flex items-center space-x-2">
@@ -296,19 +302,21 @@ function ContributionsChart() {
               checked={isLogarithmic}
               onCheckedChange={handleSetLogarithmic}
             />
-            <Label htmlFor="logarithmic-scale">Enhance</Label>
+            <Label htmlFor="logarithmic-scale" className="text-sm">
+              Enhance
+            </Label>
           </div>
         </div>
       </div>
-      <div className="h-[400px]">
+      <div className="h-[400px] w-full">
         <ResponsiveScatterPlot
           nodeSize={isMobile ? 25 : 35}
           data={data}
           margin={{
             top: 30,
-            right: isMobile ? 30 : 60,
+            right: isMobile ? 15 : 60,
             bottom: 70,
-            left: isMobile ? 75 : 90,
+            left: isMobile ? 45 : 90,
           }}
           xScale={{
             type: "linear",
@@ -355,11 +363,13 @@ function ContributionsChart() {
             tickSize: 2,
             tickPadding: 5,
             tickRotation: 0,
-            tickValues: 5,
+            tickValues: isMobile ? 0 : 5,
             legend: "Lines Changed",
             legendPosition: "middle",
-            legendOffset: -60,
+            legendOffset: isMobile ? -30 : -60,
             format: (value: number) => {
+              // Don't show tick labels on mobile
+              if (isMobile) return "";
               return parseInt(`${value}`) >= 1000
                 ? humanizeNumber(value)
                 : `${value}`;
@@ -391,7 +401,7 @@ export default function Contributions() {
           )}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className={`${isMobile ? "p-2" : "p-6"}`}>
         <ContributionsChart />
       </CardContent>
     </Card>
