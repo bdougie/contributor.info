@@ -54,14 +54,27 @@ export function ContributorHoverCard({
         avoidCollisions={true}
       >
         <div className="flex justify-between space-x-4">
-          <Avatar>
-            <AvatarImage src={contributor.avatar_url} />
-            <AvatarFallback>
-              {contributor.login[0].toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <a 
+            href={`https://github.com/${contributor.login}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            <Avatar className="cursor-pointer hover:opacity-80 transition-opacity">
+              <AvatarImage src={contributor.avatar_url} />
+              <AvatarFallback>
+                {contributor.login[0].toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </a>
           <div className="space-y-1">
-            <h4 className="text-sm font-semibold">{contributor.login}</h4>
+            <a 
+              href={`https://github.com/${contributor.login}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block hover:underline"
+            >
+              <h4 className="text-sm font-semibold">{contributor.login}</h4>
+            </a>
             {role && <p className="text-sm text-muted-foreground">{role}</p>}
           </div>
         </div>
@@ -80,12 +93,19 @@ export function ContributorHoverCard({
               <div className="text-sm font-medium">Organizations</div>
               <div className="flex gap-2">
                 {contributor.organizations.map((org) => (
-                  <Avatar key={org.login} className="h-6 w-6">
-                    <AvatarImage src={org.avatar_url} alt={org.login} />
-                    <AvatarFallback>
-                      {org.login[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <a
+                    key={org.login}
+                    href={`https://github.com/${org.login}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Avatar className="h-6 w-6 cursor-pointer hover:opacity-80 transition-opacity">
+                      <AvatarImage src={org.avatar_url} alt={org.login} />
+                      <AvatarFallback>
+                        {org.login[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </a>
                 ))}
               </div>
             </div>
