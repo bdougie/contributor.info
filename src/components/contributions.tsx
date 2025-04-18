@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import { useState, useContext, useEffect, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -17,34 +17,19 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
 import type { PullRequest, ContributorStats } from "@/lib/types";
 
-// Custom tooltip for showing PR info
-const PRTooltip = ({ pullRequest }: { pullRequest: PullRequest }) => {
-  return (
-    <div className="relative w-8 h-8 cursor-pointer">
-      <Avatar className="w-8 h-8 border-2 border-background">
-        <AvatarImage
-          src={pullRequest.user.avatar_url}
-          alt={pullRequest.user.login}
-        />
-        <AvatarFallback>
-          {pullRequest.user.login[0].toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
-    </div>
-  );
-};
-
 function ContributionsChart() {
-  const { stats, includeBots, setIncludeBots } = useContext(RepoStatsContext);
+  const { stats, includeBots: contextIncludeBots } =
+    useContext(RepoStatsContext);
   const { effectiveTimeRange } = useTimeRange();
-  const [isLogarithmic, setIsLogarithmic] = useState(true);
+  const [isLogarithmic, setIsLogarithmic] = useState(false);
   const [maxFilesModified, setMaxFilesModified] = useState(10);
+  const [localIncludeBots, setLocalIncludeBots] = useState(contextIncludeBots);
   const safeStats = stats || { pullRequests: [], loading: false, error: null };
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   const effectiveTimeRangeNumber = parseInt(effectiveTimeRange, 10);
   const mobileMaxDays = 7;
 
-  let functionTimeout: any;
+  const functionTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Calculate max files modified for scale
@@ -56,10 +41,15 @@ function ContributionsChart() {
     }
   }, [safeStats.pullRequests]);
 
+  // Sync local state with context state when context changes
+  useEffect(() => {
+    setLocalIncludeBots(contextIncludeBots);
+  }, [contextIncludeBots]);
+
   const getScatterData = () => {
     // Sort by created_at and filter based on preferences
     const filteredPRs = [...safeStats.pullRequests]
-      .filter((pr) => includeBots || pr.user.type !== "Bot")
+      .filter((pr) => localIncludeBots || pr.user.type !== "Bot")
       .sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -88,7 +78,17 @@ function ContributionsChart() {
           _pr: pr, // store full PR for hover card
         };
       })
-      .filter(Boolean); // Remove nulls
+      .filter(
+        (
+          item
+        ): item is {
+          x: number;
+          y: number;
+          contributor: string;
+          image: string;
+          _pr: PullRequest;
+        } => item !== null
+      ); // Remove nulls with type guard
 
     return [
       {
@@ -211,7 +211,7 @@ function ContributionsChart() {
                         {contributorStats.recentPRs.map((pr) => (
                           <a
                             key={pr.id}
-                            href={pr.html_url || pr.url}
+                            href={pr.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
@@ -236,16 +236,21 @@ function ContributionsChart() {
   };
 
   const handleSetLogarithmic = () => {
-    clearTimeout(functionTimeout);
-    functionTimeout = setTimeout(() => {
+    if (functionTimeout.current) {
+      clearTimeout(functionTimeout.current);
+    }
+    functionTimeout.current = setTimeout(() => {
       setIsLogarithmic(!isLogarithmic);
     }, 50);
   };
 
   const handleToggleIncludeBots = () => {
-    clearTimeout(functionTimeout);
-    functionTimeout = setTimeout(() => {
-      setIncludeBots(!includeBots);
+    if (functionTimeout.current) {
+      clearTimeout(functionTimeout.current);
+    }
+    functionTimeout.current = setTimeout(() => {
+      setLocalIncludeBots(!localIncludeBots);
+      // We're not calling setIncludeBots anymore to avoid triggering a global state update
     }, 50);
   };
 
@@ -266,7 +271,7 @@ function ContributionsChart() {
             <div className="flex items-center space-x-2">
               <Switch
                 id="include-bots"
-                checked={includeBots}
+                checked={localIncludeBots}
                 onCheckedChange={handleToggleIncludeBots}
               />
               <Label htmlFor="include-bots">Show Bots</Label>
@@ -278,7 +283,7 @@ function ContributionsChart() {
               checked={isLogarithmic}
               onCheckedChange={handleSetLogarithmic}
             />
-            <Label htmlFor="logarithmic-scale">Enhance View</Label>
+            <Label htmlFor="logarithmic-scale">Enhance</Label>
           </div>
         </div>
       </div>
