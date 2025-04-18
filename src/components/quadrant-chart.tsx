@@ -149,29 +149,29 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
             >
               <div className="flex -space-x-2">
                 {authors.slice(0, 3).map((author, index) => {
+                  // Use type assertion with the actual expected interface
+                  const authorContributions =
+                    "contributions" in author
+                      ? (author.contributions as number)
+                      : 0;
+
                   // Create a minimal ContributorStats object for each author
                   const contributorStats = {
                     login: author.login,
                     avatar_url: `https://avatars.githubusercontent.com/u/${
                       author.id ?? 0
                     }`,
-                    pullRequests: (author as any).contributions || 0,
+                    pullRequests: authorContributions || 0,
                     percentage:
-                      (((author as any).contributions || 0) /
-                        (data.length || 1)) *
-                      100,
+                      ((authorContributions || 0) / (data.length || 1)) * 100,
                     recentPRs: data
-                      .filter(
-                        (pr) =>
-                          pr.author?.login === author.login ||
-                          (author.id != null && pr.author?.id === author.id)
-                      )
+                      .filter((pr) => pr.author?.login === author.login)
                       .slice(0, 5), // Get up to 5 recent PRs
                   };
 
                   return (
                     <ContributorHoverCard
-                      key={`${label}-${author.id}-${index}`}
+                      key={`${label}-${author.id || index}-${index}`}
                       contributor={contributorStats}
                     >
                       <Avatar className="w-6 h-6 border-2 border-background cursor-pointer">
