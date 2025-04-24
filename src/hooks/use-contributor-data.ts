@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { ContributorStats } from '@/lib/types';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
-import { fetchUserOrganizations } from '@/lib/github';
+import { fetchUserOrganizations } from '@/services/github';
 
 interface UseContributorDataProps {
   username: string;

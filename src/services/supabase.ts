@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from './supabase-client';
 import { PullRequestActivity } from '../types/github';
 
 /**

@@ -1,5 +1,9 @@
 import { PullRequestActivity } from '../types/github';
 import { getCachedGitHubActivity, cacheGitHubActivity } from './supabase';
+import { fetchPullRequests, fetchDirectCommits, fetchUserOrganizations } from './github-client';
+
+// Re-export the functions from github-client for backwards compatibility
+export { fetchPullRequests, fetchDirectCommits, fetchUserOrganizations };
 
 /**
  * Fetch pull request activities from GitHub for a given repository.

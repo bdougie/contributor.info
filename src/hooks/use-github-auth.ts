@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase-client';
 
 /**
  * Hook for managing GitHub authentication state and actions
@@ -15,7 +15,18 @@ export function useGitHubAuth() {
     // Check login status
     async function checkAuth() {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Check if the URL has auth parameters 
+      const hasAuthParams = window.location.href.includes('access_token') || 
+                           window.location.hash.includes('access_token');
+      
+      // Get the current session
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Error checking auth session:', error);
+      }
+      
       const isAuthenticated = !!session;
       setIsLoggedIn(isAuthenticated);
       
@@ -23,6 +34,14 @@ export function useGitHubAuth() {
       if (isAuthenticated) {
         if (showLoginDialog) {
           setShowLoginDialog(false);
+        }
+        
+        // Clean up URL if needed
+        if (hasAuthParams) {
+          // Remove hash params from URL if present
+          if (window.location.hash) {
+            window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+          }
         }
         
         // Check if there's a redirect path stored
@@ -43,7 +62,8 @@ export function useGitHubAuth() {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event);
       const loggedIn = !!session;
       setIsLoggedIn(loggedIn);
       
@@ -75,6 +95,7 @@ export function useGitHubAuth() {
       provider: 'github',
       options: {
         redirectTo: window.location.origin,
+        skipBrowserRedirect: false,
       },
     });
   };

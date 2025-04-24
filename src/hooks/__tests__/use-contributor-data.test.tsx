@@ -2,12 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, cleanup } from "@testing-library/react";
 import { useContributorData } from "../use-contributor-data";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
-import { fetchUserOrganizations } from "@/lib/github";
+import { fetchUserOrganizations } from "@/services/github";
 import type { PullRequest } from "@/lib/types";
 import React from "react";
 
 // Mock the GitHub API function
-vi.mock("@/lib/github", () => ({
+vi.mock("@/services/github", () => ({
   fetchUserOrganizations: vi.fn(),
 }));
 
