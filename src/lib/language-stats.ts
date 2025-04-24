@@ -97,8 +97,6 @@ export function getLanguageStats(prs: PullRequest[]): LanguageStats[] {
 
   // If we don't have any languages detected (no PRs or all PRs lack language data)
   if (languageMap.size === 0) {
-    console.log("No language data found, using placeholder data");
-    
     // Only use fallback data if we really have no language data
     if (prs.length === 0) {
       // Use minimal data to indicate there's nothing to display
