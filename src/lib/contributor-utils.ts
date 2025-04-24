@@ -18,13 +18,13 @@ export function findUserPullRequests(
   return allPullRequests.filter(pr => {
     // Normalize all potential user identifiers for comparison
     const prUserLogin = pr.user?.login?.toLowerCase() || '';
-    const prUserName = pr.author?.login?.toLowerCase() || '';
+    const prUserId = String(pr.user?.id || '').toLowerCase();
+    const prAuthorLogin = pr.author?.login?.toLowerCase() || '';
     
     // Check if any of the identifiers match
     return prUserLogin === normalizedUsername || 
-           prUserLogin === normalizedUserId ||
-           prUserName === normalizedUsername ||
-           prUserName === normalizedUserId;
+           (normalizedUserId && prUserId === normalizedUserId) ||
+           prAuthorLogin === normalizedUsername;
   });
 }
 
@@ -42,7 +42,7 @@ export function createContributorStats(
   
   // Calculate percentage contribution
   const percentage = allPullRequests.length > 0 
-    ? (userPRs.length / allPullRequests.length) * 100
+    ? Math.round((userPRs.length / allPullRequests.length) * 100)
     : 0;
   
   // Return the contributor stats object
