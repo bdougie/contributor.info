@@ -6,8 +6,15 @@ import {
   GitMergeIcon,
   MessageSquareIcon,
   ClipboardCheckIcon,
+  BotIcon,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ActivityItemProps {
   activity: PullRequestActivity;
@@ -86,6 +93,18 @@ export function ActivityItem({ activity }: ActivityItemProps) {
           <div className="space-y-1">
             <div className="flex items-center space-x-1 text-sm">
               <span className="font-medium">{user.name}</span>
+              {user.isBot && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <BotIcon className="h-3 w-3 text-muted-foreground ml-1" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Bot</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
               <span className="text-muted-foreground">{getActivityText()}</span>
               <a
                 href={pullRequest.url}

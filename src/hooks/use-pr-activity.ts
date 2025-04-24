@@ -28,6 +28,9 @@ export function usePRActivity(pullRequests: PullRequest[]) {
         const repoUrl = pr.html_url?.split("/pull/")[0] || `https://github.com/${pr.repository_owner}/${pr.repository_name}`;
         const owner = pr.repository_owner || (repoUrl.split("github.com/")[1]?.split("/")[0] || "");
         const repo = pr.repository_name || (repoUrl.split("github.com/")[1]?.split("/")[1] || "");
+        
+        // Check if user is a bot
+        const isBot = pr.user.type === 'Bot' || pr.user.login.includes('[bot]');
 
         // Add PR creation activity
         processedActivities.push({
@@ -37,6 +40,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
             id: pr.user.login,
             name: pr.user.login,
             avatar: pr.user.avatar_url,
+            isBot: isBot
           },
           pullRequest: {
             id: pr.id.toString(),
@@ -63,6 +67,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
               id: pr.user.login,
               name: pr.user.login,
               avatar: pr.user.avatar_url,
+              isBot: isBot
             },
             pullRequest: {
               id: pr.id.toString(),
@@ -87,6 +92,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
               id: pr.user.login,
               name: pr.user.login,
               avatar: pr.user.avatar_url,
+              isBot: isBot
             },
             pullRequest: {
               id: pr.id.toString(),
@@ -112,6 +118,9 @@ export function usePRActivity(pullRequests: PullRequest[]) {
               review.state === "APPROVED" ||
               review.state === "CHANGES_REQUESTED"
             ) {
+              // Check if reviewer is a bot
+              const reviewerIsBot = review.user.login.includes('[bot]');
+              
               processedActivities.push({
                 id: `review-${pr.id}-${index}`,
                 type: "reviewed",
@@ -119,6 +128,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
                   id: review.user.login,
                   name: review.user.login,
                   avatar: review.user.avatar_url,
+                  isBot: reviewerIsBot
                 },
                 pullRequest: {
                   id: pr.id.toString(),
@@ -142,6 +152,9 @@ export function usePRActivity(pullRequests: PullRequest[]) {
         // Add comments if available
         if (pr.comments && pr.comments.length > 0) {
           pr.comments.forEach((comment, index) => {
+            // Check if commenter is a bot
+            const commenterIsBot = comment.user.login.includes('[bot]');
+            
             processedActivities.push({
               id: `comment-${pr.id}-${index}`,
               type: "commented",
@@ -149,6 +162,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
                 id: comment.user.login,
                 name: comment.user.login,
                 avatar: comment.user.avatar_url,
+                isBot: commenterIsBot
               },
               pullRequest: {
                 id: pr.id.toString(),
