@@ -1,15 +1,10 @@
 import { useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { format } from "date-fns";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { PullRequest, QuadrantData } from "@/lib/types";
 import { ContributionAnalyzer } from "@/lib/contribution-analyzer";
 import { ContributorHoverCard } from "@/components/contributor-hover-card";
+import { FileHoverInfo } from "@/components/file-hover-info";
 
 interface QuadrantChartProps {
   data: PullRequest[];
@@ -69,6 +64,13 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
         0
       );
 
+      // Extract files touched information
+      const filesTouched = commits.map((commit) => ({
+        name: commit.language,
+        additions: commit.additions,
+        deletions: commit.deletions,
+      }));
+
       return {
         ...metrics,
         language: mainLanguage,
@@ -76,20 +78,11 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
         stats: {
           additions: totalAdditions,
           deletions: totalDeletions,
+          filesTouched: filesTouched,
         },
       };
     });
   }, [data]);
-
-  const quadrantCounts = useMemo(() => {
-    return chartData.reduce(
-      (acc, point) => {
-        acc[point.quadrant]++;
-        return acc;
-      },
-      { refinement: 0, newStuff: 0, maintenance: 0, refactoring: 0 }
-    );
-  }, [chartData]);
 
   return (
     <TooltipProvider>
@@ -112,12 +105,13 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
         </div>
         <h3 className="text-lg font-medium">Desktop Recommended</h3>
         <p className="text-sm text-muted-foreground">
-          For a better experience, view this chart on a desktop as it's optimized for larger screens.
+          For a better experience, view this chart on a desktop as it's
+          optimized for larger screens.
         </p>
       </div>
 
       {/* Desktop chart - hidden on small screens, shown on medium and up */}
-      <div className="hidden md:block relative w-full aspect-[16/9] bg-background border rounded-lg mx-auto">
+      <div className="hidden md:block relative w-full aspect-[16/9] bg-background border rounded-lg mx-auto overflow-visible">
         {/* Grid lines */}
         <div className="absolute inset-0 border-dashed border-muted">
           <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-muted" />
@@ -199,12 +193,8 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{label}</span>
                 <span className="text-xs text-muted-foreground">
-                  {
-                    quadrantCounts[
-                      key.toLowerCase() as keyof typeof quadrantCounts
-                    ]
-                  }{" "}
-                  files
+                  {/* Update label to "Files Touched" */}
+                  {quadrant?.count || 0} files touched
                 </span>
               </div>
             </div>
@@ -213,42 +203,24 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
 
         {/* Data points */}
         {chartData.map((point, i) => (
-          <Tooltip key={`point-${point.pr.id || point.pr.number}-${i}`}>
-            <TooltipTrigger asChild>
-              <a
-                href={point.pr.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="absolute w-2 h-2 rounded-full bg-primary hover:w-3 hover:h-3 transition-all hover:bg-primary hover:opacity-80 z-10"
-                style={{
-                  left: `${point.x}%`,
-                  top: `${point.y}%`,
-                  transform: "translate(-50%, -50%)",
-                  opacity: 0.6,
-                }}
-              />
-            </TooltipTrigger>
-            <TooltipContent className="max-w-[300px]">
-              <div className="space-y-2">
-                <div className="font-medium">{point.pr.title}</div>
-                <div className="text-xs text-muted-foreground">
-                  #{point.pr.number} by {point.pr.author?.login || "Unknown"} ·{" "}
-                  {point.pr.createdAt
-                    ? format(new Date(point.pr.createdAt), "MMM d, yyyy")
-                    : "Unknown date"}
-                </div>
-                <div className="flex gap-4 text-xs">
-                  <span className="text-green-500">
-                    +{point.stats.additions}
-                  </span>
-                  <span className="text-red-500">-{point.stats.deletions}</span>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Main language: {point.language || "Unknown"}
-                </div>
-              </div>
-            </TooltipContent>
-          </Tooltip>
+          <FileHoverInfo
+            key={`point-${point.pr.id || point.pr.number}-${i}`}
+            pullRequest={point.pr}
+            filesTouched={point.stats.filesTouched}
+          >
+            <a
+              href={point.pr.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute w-2 h-2 rounded-full bg-primary hover:w-3 hover:h-3 transition-all hover:bg-primary hover:opacity-80 z-10"
+              style={{
+                left: `${point.x}%`,
+                top: `${point.y}%`,
+                transform: "translate(-50%, -50%)",
+                opacity: 0.6,
+              }}
+            />
+          </FileHoverInfo>
         ))}
       </div>
     </TooltipProvider>
