@@ -1,4 +1,4 @@
-import { GitPullRequest } from "lucide-react";
+import { GitPullRequest, UserIcon } from "lucide-react";
 import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +62,11 @@ export function ContributorHoverCard({
             <Avatar className="cursor-pointer hover:opacity-80 transition-opacity">
               <AvatarImage src={contributor.avatar_url} />
               <AvatarFallback>
-                {contributor.login[0].toUpperCase()}
+                {contributor.login ? (
+                  contributor.login[0].toUpperCase()
+                ) : (
+                  <UserIcon className="h-4 w-4" />
+                )}
               </AvatarFallback>
             </Avatar>
           </a>
@@ -82,8 +86,12 @@ export function ContributorHoverCard({
         <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
           <GitPullRequest className="h-4 w-4" />
           <span>{contributor.pullRequests} pull requests</span>
-          <span className="text-muted-foreground/50">•</span>
-          <span>{Math.round(contributor.percentage)}% of total</span>
+          {contributor.percentage > 0 && (
+            <>
+              <span className="text-muted-foreground/50">•</span>
+              <span>{Math.round(contributor.percentage)}% of total</span>
+            </>
+          )}
         </div>
 
         {contributor.organizations && contributor.organizations.length > 0 && (
