@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchIcon } from "lucide-react";
-import { LoginDialog } from "./login-dialog";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import LotteryFactor from "./lottery-factor";
@@ -20,7 +19,6 @@ import Distribution from "./distribution";
 import PRActivity from "./pr-activity";
 import { ExampleRepos } from "./example-repos";
 import { useRepoData } from "@/hooks/use-repo-data";
-import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { useRepoSearch } from "@/hooks/use-repo-search";
 
 export default function RepoView() {
@@ -37,9 +35,8 @@ export default function RepoView() {
     includeBots
   );
 
-  const { showLoginDialog, setShowLoginDialog } = useGitHubAuth();
-
-  const { searchInput, setSearchInput, handleSearch } = useRepoSearch();
+  const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
+    useRepoSearch({ isHomeView: false });
 
   if (stats.loading) {
     return (
@@ -74,8 +71,6 @@ export default function RepoView() {
 
   return (
     <div className="container mx-auto py-8">
-      <LoginDialog open={showLoginDialog} onOpenChange={setShowLoginDialog} />
-
       <Card className="mb-8">
         <CardContent className="pt-6">
           <form onSubmit={handleSearch} className="flex gap-4">
@@ -85,12 +80,12 @@ export default function RepoView() {
               onChange={(e) => setSearchInput(e.target.value)}
               className="flex-1"
             />
-            <Button type="submit">
+            <Button type="submit" aria-label="Search">
               <SearchIcon className="mr-2 h-4 w-4" />
               Search
             </Button>
           </form>
-          <ExampleRepos onSelect={setSearchInput} />
+          <ExampleRepos onSelect={handleSelectExample} />
         </CardContent>
       </Card>
 
