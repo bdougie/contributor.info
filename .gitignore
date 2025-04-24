@@ -27,5 +27,3 @@ dist-ssr
 
 tsconfig.app.tsbuildinfo
 tsconfig.node.tsbuildinfo
-
-.vscode/mcp.json
