@@ -23,21 +23,23 @@ export class ContributionAnalyzer {
   };
 
   static analyze(pr: PullRequest): ContributionMetrics {
-    const { isConfig, additions, deletions } = this.calculateMetrics(pr);
+    const { isConfig, isCodePresent, codeAdditions, codeDeletions } = this.calculateMetrics(pr);
     
-    if (isConfig) {
+    // If PR only contains configuration/documentation files, it's maintenance
+    if (isConfig && !isCodePresent) {
       this.quadrantCounts.maintenance++;
       return this.getMaintenanceMetrics();
     }
 
-    const total = additions + deletions;
+    // If PR contains code, analyze based on code changes only
+    const total = codeAdditions + codeDeletions;
     if (total === 0) {
       this.quadrantCounts.maintenance++;
       return this.getMaintenanceMetrics();
     }
 
-    const additionRatio = additions / total;
-    const deletionRatio = deletions / total;
+    const additionRatio = codeAdditions / total;
+    const deletionRatio = codeDeletions / total;
 
     if (additionRatio > 0.7) {
       this.quadrantCounts.newStuff++;
@@ -99,25 +101,74 @@ export class ContributionAnalyzer {
 
   private static calculateMetrics(pr: PullRequest) {
     let isConfig = true;
-    let additions = 0;
-    let deletions = 0;
+    let isCodePresent = false;
+    let codeAdditions = 0;
+    let codeDeletions = 0;
+    let configAdditions = 0;
+    let configDeletions = 0;
+    let hasMdFile = false;
 
-    if (pr.commits) {
+    if (pr.commits && pr.commits.length > 0) {
       for (const commit of pr.commits) {
-        if (!NON_CODE_EXTENSIONS.has(commit.language)) {
+        if (NON_CODE_EXTENSIONS.has(commit.language)) {
+          // Track config file changes separately
+          configAdditions += commit.additions;
+          configDeletions += commit.deletions;
+          
+          // Specifically track if there are any .md files
+          if (commit.language === 'md') {
+            hasMdFile = true;
+          }
+        } else {
+          // This is a code file
           isConfig = false;
+          isCodePresent = true;
+          codeAdditions += commit.additions;
+          codeDeletions += commit.deletions;
         }
-        additions += commit.additions;
-        deletions += commit.deletions;
+      }
+      
+      // If this is only .md files or other non-code files, ensure it's maintenance
+      if (!isCodePresent && configAdditions + configDeletions > 0) {
+        isConfig = true;
+      }
+      
+      // Special case for documentation-only commits
+      if (hasMdFile && !isCodePresent) {
+        isConfig = true;
       }
     } else {
-      // If no commits data, fall back to PR level metrics
-      additions = pr.additions;
-      deletions = pr.deletions;
-      isConfig = false; // Assume it's not just configuration changes
+      // If no commits data, try to infer from PR title
+      const prTitleLower = pr.title.toLowerCase();
+      
+      // Check if PR title suggests it's documentation/config only
+      if (prTitleLower.includes('readme') || 
+          prTitleLower.includes('documentation') || 
+          prTitleLower.includes('docs') ||
+          prTitleLower.includes('config') ||
+          prTitleLower.includes('.md') ||
+          prTitleLower.includes('markdown')) {
+        isConfig = true;
+        isCodePresent = false;
+        configAdditions = pr.additions;
+        configDeletions = pr.deletions;
+      } else {
+        // If no hints in title, fall back to PR level metrics as code
+        codeAdditions = pr.additions;
+        codeDeletions = pr.deletions;
+        isConfig = false;
+        isCodePresent = (pr.additions > 0 || pr.deletions > 0);
+      }
     }
 
-    return { isConfig, additions, deletions };
+    return { 
+      isConfig, 
+      isCodePresent,
+      codeAdditions, 
+      codeDeletions,
+      configAdditions,
+      configDeletions
+    };
   }
 
   private static getMaintenanceMetrics(): ContributionMetrics {
