@@ -1,0 +1,54 @@
+import React from "react";
+import { ActivityItem } from "./activity-item";
+import { PullRequestActivity, ActivityType } from "@/types/pr-activity";
+import { Loader2 } from "lucide-react";
+
+export interface PullRequestActivityFeedProps {
+  activities?: PullRequestActivity[];
+  loading?: boolean;
+  error?: Error | null;
+  selectedTypes: ActivityType[];
+}
+
+export function PullRequestActivityFeed({
+  activities = [],
+  loading = false,
+  error = null,
+  selectedTypes,
+}: PullRequestActivityFeedProps) {
+  const filteredActivities = activities.filter((activity) =>
+    selectedTypes.includes(activity.type)
+  );
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-4 text-center text-destructive">
+        <p>Error loading PR activity: {error.message}</p>
+      </div>
+    );
+  }
+
+  if (filteredActivities.length === 0) {
+    return (
+      <div className="py-8 text-center text-muted-foreground">
+        <p>No PR activity found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {filteredActivities.map((activity) => (
+        <ActivityItem key={activity.id} activity={activity} />
+      ))}
+    </div>
+  );
+}
