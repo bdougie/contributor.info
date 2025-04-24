@@ -10,13 +10,18 @@ import {
 import { SearchIcon } from "lucide-react";
 import { ExampleRepos } from "./example-repos";
 import { useRepoSearch } from "@/hooks/use-repo-search";
+import { useGitHubAuth } from "@/hooks/use-github-auth";
+import { LoginDialog } from "./login-dialog";
 
 export default function Home() {
   const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
     useRepoSearch();
+  const { showLoginDialog, setShowLoginDialog } = useGitHubAuth();
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+      <LoginDialog open={showLoginDialog} onOpenChange={setShowLoginDialog} />
+
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-3xl font-bold text-center">
@@ -35,7 +40,11 @@ export default function Home() {
               onChange={(e) => setSearchInput(e.target.value)}
               className="flex-1"
             />
-            <Button type="submit">
+            <Button
+              type="submit"
+              aria-label="Analyze"
+              // Don't disable the button, so it can trigger the login dialog
+            >
               <SearchIcon className="mr-2 h-4 w-4" />
               Analyze
             </Button>
