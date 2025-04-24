@@ -50,6 +50,29 @@ When generating or modifying code for this project, please follow these guidelin
 - Ensure types are properly exported and imported where needed
 - Use precise typing and avoid `any` where possible
 
+## Error Handling and Code Cleanup
+
+When fixing build errors or improving code quality:
+
+1. Always check for unused imports, variables, and types first
+2. Prioritize removing dead code rather than adding new code to fix type errors
+3. When encountering TypeScript errors about unused variables or imports:
+   - Remove the unused imports/variables rather than using them artificially
+   - Only add back variables/imports if they're truly needed
+4. Before implementing new features, check if similar functionality already exists
+5. Remove commented-out code that's no longer relevant
+
+Example approach for fixing TypeScript errors:
+```typescript
+// Instead of this:
+import { useState, useEffect } from 'react'; // useEffect is flagged as unused
+// Using useEffect artificially to avoid the error
+useEffect(() => {}, []); 
+
+// Do this:
+import { useState } from 'react'; // Remove the unused import entirely
+```
+
 ## Testing
 
 When writing tests:

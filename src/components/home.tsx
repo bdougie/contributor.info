@@ -13,7 +13,7 @@ import { useRepoSearch } from "@/hooks/use-repo-search";
 
 export default function Home() {
   const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
-    useRepoSearch();
+    useRepoSearch({ isHomeView: true });
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
@@ -35,7 +35,7 @@ export default function Home() {
               onChange={(e) => setSearchInput(e.target.value)}
               className="flex-1"
             />
-            <Button type="submit">
+            <Button type="submit" aria-label="Analyze">
               <SearchIcon className="mr-2 h-4 w-4" />
               Analyze
             </Button>

@@ -4,6 +4,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogPortal,
+  DialogOverlay,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { GithubIcon } from "lucide-react";
@@ -15,25 +17,39 @@ interface LoginDialogProps {
 }
 
 export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
-  const { login } = useGitHubAuth();
+  const { login, isLoggedIn } = useGitHubAuth();
+
+  // Handle dialog close attempts - only allow close if logged in
+  const handleOpenChange = (newOpen: boolean) => {
+    // If trying to close the dialog and not logged in, prevent closing
+    if (!newOpen && !isLoggedIn) {
+      return;
+    }
+
+    // Otherwise, allow the change
+    onOpenChange(newOpen);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Login Required</DialogTitle>
-          <DialogDescription>
-            To avoid rate limiting and access more GitHub data, please log in
-            with your GitHub account.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex justify-center pt-4">
-          <Button onClick={login}>
-            <GithubIcon className="mr-2 h-4 w-4" />
-            Login with GitHub
-          </Button>
-        </div>
-      </DialogContent>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogPortal>
+        <DialogOverlay />
+        <DialogContent data-testid="login-dialog" className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Login Required</DialogTitle>
+            <DialogDescription>
+              You need to log in to search for repositories. This helps avoid
+              rate limiting and provides access to more GitHub data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center pt-4">
+            <Button onClick={login}>
+              <GithubIcon className="mr-2 h-4 w-4" />
+              Login with GitHub
+            </Button>
+          </div>
+        </DialogContent>
+      </DialogPortal>
     </Dialog>
   );
 }
