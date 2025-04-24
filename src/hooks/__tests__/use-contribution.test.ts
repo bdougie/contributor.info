@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { renderHook, act, cleanup } from '@testing-library/react';
 import { useContribution } from '../use-contribution';
 import { ContributionAnalyzer } from '@/lib/contribution-analyzer';
 import type { PullRequest } from '@/lib/types';
@@ -69,8 +69,17 @@ describe('useContribution', () => {
     vi.mocked(ContributionAnalyzer.getCounts).mockReturnValue(mockCounts);
   });
 
+  // Add cleanup after each test
+  afterEach(() => {
+    cleanup();
+    vi.resetAllMocks();
+  });
+
   it('should initialize with default values', () => {
     const { result } = renderHook(() => useContribution([]));
+    
+    // Ensure all state updates are processed
+    act(() => {});
     
     expect(result.current.distribution).toBeNull();
     expect(result.current.quadrantCounts).toEqual({
@@ -85,6 +94,9 @@ describe('useContribution', () => {
   it('should not analyze when pullRequests is empty', () => {
     renderHook(() => useContribution([]));
     
+    // Ensure all state updates are processed
+    act(() => {});
+    
     expect(ContributionAnalyzer.resetCounts).not.toHaveBeenCalled();
     expect(ContributionAnalyzer.analyze).not.toHaveBeenCalled();
     expect(ContributionAnalyzer.getDistribution).not.toHaveBeenCalled();
@@ -93,6 +105,9 @@ describe('useContribution', () => {
 
   it('should analyze PRs and update state', () => {
     const { result } = renderHook(() => useContribution(mockPRs));
+    
+    // Ensure all state updates are processed
+    act(() => {});
     
     // Verify ContributionAnalyzer methods were called
     expect(ContributionAnalyzer.resetCounts).toHaveBeenCalledTimes(1);
@@ -108,6 +123,9 @@ describe('useContribution', () => {
   it('should calculate total contributions correctly', () => {
     const { result } = renderHook(() => useContribution(mockPRs));
     
+    // Ensure all state updates are processed
+    act(() => {});
+    
     // The total should be the sum of all counts (1+1+1+1=4)
     expect(result.current.getTotalContributions()).toBe(4);
   });
@@ -116,6 +134,9 @@ describe('useContribution', () => {
     const { rerender } = renderHook(({ pullRequests }) => useContribution(pullRequests), {
       initialProps: { pullRequests: mockPRs }
     });
+    
+    // Ensure all state updates are processed
+    act(() => {});
     
     // First render should have analyzed
     expect(ContributionAnalyzer.resetCounts).toHaveBeenCalledTimes(1);
@@ -128,7 +149,9 @@ describe('useContribution', () => {
     ];
     
     // Rerender with new PRs
-    rerender({ pullRequests: newMockPRs });
+    act(() => {
+      rerender({ pullRequests: newMockPRs });
+    });
     
     // Verify ContributionAnalyzer methods were called again
     expect(ContributionAnalyzer.resetCounts).toHaveBeenCalledTimes(2);
@@ -137,6 +160,9 @@ describe('useContribution', () => {
 
   it('should analyze each PR individually', () => {
     renderHook(() => useContribution(mockPRs));
+    
+    // Ensure all state updates are processed
+    act(() => {});
     
     // Verify each PR was analyzed
     mockPRs.forEach(pr => {
