@@ -22,6 +22,9 @@ describe("useRepoSearch", () => {
     
     // Setup default mock implementation
     vi.mocked(useNavigate).mockReturnValue(mockNavigate);
+    
+    // Clear localStorage between tests
+    localStorage.clear();
   });
   
   describe("Home page behavior (isHomeView: true)", () => {
@@ -88,7 +91,7 @@ describe("useRepoSearch", () => {
   });
   
   describe("Repo view behavior (isHomeView: false)", () => {
-    it("should show login dialog when not logged in and searching from repo view", () => {
+    it("should redirect to login page when not logged in and searching from repo view", () => {
       // Setup auth mock to simulate not logged in
       vi.mocked(useGitHubAuth).mockReturnValue({
         isLoggedIn: false,
@@ -113,14 +116,14 @@ describe("useRepoSearch", () => {
         result.current.handleSearch(mockEvent);
       });
       
-      // Verify we don't navigate when not logged in on repo view
-      expect(mockNavigate).not.toHaveBeenCalled();
+      // Verify we redirect to login page when not logged in
+      expect(mockNavigate).toHaveBeenCalledWith("/login");
       
-      // Verify login dialog is shown instead
-      expect(mockSetShowLoginDialog).toHaveBeenCalledWith(true);
+      // Verify that we saved the intended destination in localStorage
+      expect(localStorage.getItem('redirectAfterLogin')).toBe('/facebook/react');
     });
     
-    it("should show login dialog when not logged in and selecting example repo from repo view", () => {
+    it("should redirect to login page when not logged in and selecting example repo from repo view", () => {
       // Setup auth mock to simulate not logged in
       vi.mocked(useGitHubAuth).mockReturnValue({
         isLoggedIn: false,
@@ -139,11 +142,11 @@ describe("useRepoSearch", () => {
         result.current.handleSelectExample("kubernetes/kubernetes");
       });
       
-      // Verify we don't navigate when not logged in on repo view
-      expect(mockNavigate).not.toHaveBeenCalled();
+      // Verify we redirect to login page when not logged in
+      expect(mockNavigate).toHaveBeenCalledWith("/login");
       
-      // Verify login dialog is shown instead
-      expect(mockSetShowLoginDialog).toHaveBeenCalledWith(true);
+      // Verify that we saved the intended destination in localStorage
+      expect(localStorage.getItem('redirectAfterLogin')).toBe('/kubernetes/kubernetes');
       
       // Verify input is updated
       expect(result.current.searchInput).toBe("kubernetes/kubernetes");
