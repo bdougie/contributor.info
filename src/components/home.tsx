@@ -14,7 +14,7 @@ import { useGitHubAuth } from "@/hooks/use-github-auth";
 
 export default function Home() {
   const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
-    useRepoSearch();
+    useRepoSearch({ isHomeView: true });
   const { setShowLoginDialog } = useGitHubAuth();
 
   return (

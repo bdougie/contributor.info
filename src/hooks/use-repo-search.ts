@@ -1,26 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGitHubAuth } from './use-github-auth';
 
 /**
  * Hook for handling repository search functionality
- * Allows one repository search without login, but requires login for subsequent searches
+ * @param options.isHomeView - Whether the hook is being used on the home page. 
+ * On home page, searches work regardless of login status. On repo view, searches require login.
  */
-export function useRepoSearch() {
+export function useRepoSearch({ isHomeView = false } = {}) {
   const [searchInput, setSearchInput] = useState('');
-  const [hasSearchedOnce, setHasSearchedOnce] = useState(false);
   const navigate = useNavigate();
-  const { isLoggedIn, showLoginDialog, setShowLoginDialog } = useGitHubAuth();
-
-  // Check localStorage for search history on mount
-  useEffect(() => {
-    const hasSearchedBefore = localStorage.getItem('hasSearchedBefore') === 'true';
-    setHasSearchedOnce(hasSearchedBefore);
-  }, []);
+  const { isLoggedIn, setShowLoginDialog } = useGitHubAuth();
 
   /**
    * Handles form submission for repository search
-   * Allows first search without login, but requires login for subsequent searches
+   * On home page: Always allows search regardless of login status
+   * On repo view: Requires login for all searches
    */
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,27 +25,23 @@ export function useRepoSearch() {
     if (match) {
       const [, newOwner, newRepo] = match;
       
-      // If user has already searched once and is not logged in, show login dialog
-      if (hasSearchedOnce && !isLoggedIn) {
+      // On the repo view, always require login
+      if (!isHomeView && !isLoggedIn) {
         // Store intended destination to navigate after login
         localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
         setShowLoginDialog(true);
         return;
       }
       
-      // Mark that user has searched at least once
-      if (!hasSearchedOnce) {
-        setHasSearchedOnce(true);
-        localStorage.setItem('hasSearchedBefore', 'true');
-      }
-      
+      // On home page or when logged in, continue with search
       navigate(`/${newOwner}/${newRepo}`);
     }
   };
 
   /**
    * Handles selection of an example repository
-   * Updates the search input and navigates to the repository
+   * On home page: Always navigates to the repository
+   * On repo view: Requires login before navigation
    */
   const handleSelectExample = (repo: string) => {
     setSearchInput(repo);
@@ -60,6 +51,15 @@ export function useRepoSearch() {
     
     if (match) {
       const [, newOwner, newRepo] = match;
+      
+      // On the repo view, require login
+      if (!isHomeView && !isLoggedIn) {
+        // Store intended destination to navigate after login
+        localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
+        setShowLoginDialog(true);
+        return;
+      }
+      
       navigate(`/${newOwner}/${newRepo}`);
     }
   };
@@ -68,7 +68,6 @@ export function useRepoSearch() {
     searchInput, 
     setSearchInput, 
     handleSearch,
-    handleSelectExample,
-    hasSearchedOnce
+    handleSelectExample
   };
 }
