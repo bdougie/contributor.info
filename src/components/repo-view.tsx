@@ -39,10 +39,7 @@ export default function RepoView() {
   const { isLoggedIn } = useGitHubAuth();
 
   const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
-    useRepoSearch();
-
-  // No auto-redirection logic here - all redirections are handled by
-  // the useRepoSearch hook through the form submission process
+    useRepoSearch({ isHomeView: false });
 
   if (stats.loading) {
     return (

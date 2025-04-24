@@ -24,96 +24,161 @@ describe("useRepoSearch", () => {
     vi.mocked(useNavigate).mockReturnValue(mockNavigate);
   });
   
-  it("should navigate to repo page when not logged in and trying to search", () => {
-    // Setup auth mock to simulate not logged in
-    vi.mocked(useGitHubAuth).mockReturnValue({
-      isLoggedIn: false,
-      setShowLoginDialog: mockSetShowLoginDialog,
-      loading: false,
-      login: vi.fn(),
-      logout: vi.fn(),
-      showLoginDialog: false,
+  describe("Home page behavior (isHomeView: true)", () => {
+    it("should navigate to repo page when not logged in and searching from home page", () => {
+      // Setup auth mock to simulate not logged in
+      vi.mocked(useGitHubAuth).mockReturnValue({
+        isLoggedIn: false,
+        setShowLoginDialog: mockSetShowLoginDialog,
+        loading: false,
+        login: vi.fn(),
+        logout: vi.fn(),
+        showLoginDialog: false,
+      });
+      
+      // Render the hook with isHomeView: true to simulate home page
+      const { result } = renderHook(() => useRepoSearch({ isHomeView: true }));
+      
+      // Set some input
+      act(() => {
+        result.current.setSearchInput("facebook/react");
+      });
+      
+      // Call handleSearch
+      act(() => {
+        const mockEvent = { preventDefault: vi.fn() } as unknown as React.FormEvent;
+        result.current.handleSearch(mockEvent);
+      });
+      
+      // Verify we navigate to the correct path even when not logged in
+      expect(mockNavigate).toHaveBeenCalledWith("/facebook/react");
+      
+      // Verify login dialog is NOT shown on home page
+      expect(mockSetShowLoginDialog).not.toHaveBeenCalled();
     });
     
-    // Render the hook
-    const { result } = renderHook(() => useRepoSearch());
-    
-    // Set some input
-    act(() => {
-      result.current.setSearchInput("facebook/react");
+    it("should navigate to repo page when not logged in and selecting example repo from home page", () => {
+      // Setup auth mock to simulate not logged in
+      vi.mocked(useGitHubAuth).mockReturnValue({
+        isLoggedIn: false,
+        setShowLoginDialog: mockSetShowLoginDialog,
+        loading: false,
+        login: vi.fn(),
+        logout: vi.fn(),
+        showLoginDialog: false,
+      });
+      
+      // Render the hook with isHomeView: true to simulate home page
+      const { result } = renderHook(() => useRepoSearch({ isHomeView: true }));
+      
+      // Call handleSelectExample
+      act(() => {
+        result.current.handleSelectExample("kubernetes/kubernetes");
+      });
+      
+      // Verify we navigate to the repo even when not logged in
+      expect(mockNavigate).toHaveBeenCalledWith("/kubernetes/kubernetes");
+      
+      // Verify login dialog is NOT shown on home page
+      expect(mockSetShowLoginDialog).not.toHaveBeenCalled();
+      
+      // Verify input is updated
+      expect(result.current.searchInput).toBe("kubernetes/kubernetes");
     });
-    
-    // Call handleSearch
-    act(() => {
-      const mockEvent = { preventDefault: vi.fn() } as unknown as React.FormEvent;
-      result.current.handleSearch(mockEvent);
-    });
-    
-    // Verify we navigate to the correct path even when not logged in
-    expect(mockNavigate).toHaveBeenCalledWith("/facebook/react");
-    
-    // Verify login dialog is NOT shown - this is the new behavior
-    expect(mockSetShowLoginDialog).not.toHaveBeenCalled();
   });
   
-  it("should navigate to repo page when logged in and searching", () => {
-    // Setup auth mock to simulate logged in
-    vi.mocked(useGitHubAuth).mockReturnValue({
-      isLoggedIn: true,
-      setShowLoginDialog: mockSetShowLoginDialog,
-      loading: false,
-      login: vi.fn(),
-      logout: vi.fn(),
-      showLoginDialog: false,
+  describe("Repo view behavior (isHomeView: false)", () => {
+    it("should show login dialog when not logged in and searching from repo view", () => {
+      // Setup auth mock to simulate not logged in
+      vi.mocked(useGitHubAuth).mockReturnValue({
+        isLoggedIn: false,
+        setShowLoginDialog: mockSetShowLoginDialog,
+        loading: false,
+        login: vi.fn(),
+        logout: vi.fn(),
+        showLoginDialog: false,
+      });
+      
+      // Render the hook with default isHomeView: false to simulate repo view
+      const { result } = renderHook(() => useRepoSearch({ isHomeView: false }));
+      
+      // Set some input
+      act(() => {
+        result.current.setSearchInput("facebook/react");
+      });
+      
+      // Call handleSearch
+      act(() => {
+        const mockEvent = { preventDefault: vi.fn() } as unknown as React.FormEvent;
+        result.current.handleSearch(mockEvent);
+      });
+      
+      // Verify we don't navigate when not logged in on repo view
+      expect(mockNavigate).not.toHaveBeenCalled();
+      
+      // Verify login dialog is shown instead
+      expect(mockSetShowLoginDialog).toHaveBeenCalledWith(true);
     });
     
-    // Render the hook
-    const { result } = renderHook(() => useRepoSearch());
-    
-    // Set some input
-    act(() => {
-      result.current.setSearchInput("facebook/react");
+    it("should show login dialog when not logged in and selecting example repo from repo view", () => {
+      // Setup auth mock to simulate not logged in
+      vi.mocked(useGitHubAuth).mockReturnValue({
+        isLoggedIn: false,
+        setShowLoginDialog: mockSetShowLoginDialog,
+        loading: false,
+        login: vi.fn(),
+        logout: vi.fn(),
+        showLoginDialog: false,
+      });
+      
+      // Render the hook with default isHomeView: false to simulate repo view
+      const { result } = renderHook(() => useRepoSearch({ isHomeView: false }));
+      
+      // Call handleSelectExample
+      act(() => {
+        result.current.handleSelectExample("kubernetes/kubernetes");
+      });
+      
+      // Verify we don't navigate when not logged in on repo view
+      expect(mockNavigate).not.toHaveBeenCalled();
+      
+      // Verify login dialog is shown instead
+      expect(mockSetShowLoginDialog).toHaveBeenCalledWith(true);
+      
+      // Verify input is updated
+      expect(result.current.searchInput).toBe("kubernetes/kubernetes");
     });
     
-    // Call handleSearch
-    act(() => {
-      const mockEvent = { preventDefault: vi.fn() } as unknown as React.FormEvent;
-      result.current.handleSearch(mockEvent);
+    it("should navigate to repo page when logged in and searching from repo view", () => {
+      // Setup auth mock to simulate logged in
+      vi.mocked(useGitHubAuth).mockReturnValue({
+        isLoggedIn: true,
+        setShowLoginDialog: mockSetShowLoginDialog,
+        loading: false,
+        login: vi.fn(),
+        logout: vi.fn(),
+        showLoginDialog: false,
+      });
+      
+      // Render the hook with default isHomeView: false
+      const { result } = renderHook(() => useRepoSearch({ isHomeView: false }));
+      
+      // Set some input
+      act(() => {
+        result.current.setSearchInput("facebook/react");
+      });
+      
+      // Call handleSearch
+      act(() => {
+        const mockEvent = { preventDefault: vi.fn() } as unknown as React.FormEvent;
+        result.current.handleSearch(mockEvent);
+      });
+      
+      // Verify we navigate to the correct path when logged in
+      expect(mockNavigate).toHaveBeenCalledWith("/facebook/react");
+      
+      // Verify login dialog is not shown
+      expect(mockSetShowLoginDialog).not.toHaveBeenCalled();
     });
-    
-    // Verify we navigate to the correct path
-    expect(mockNavigate).toHaveBeenCalledWith("/facebook/react");
-    
-    // Verify login dialog is not shown
-    expect(mockSetShowLoginDialog).not.toHaveBeenCalled();
-  });
-  
-  it("should navigate to repo page when not logged in and selecting example repo", () => {
-    // Setup auth mock to simulate not logged in
-    vi.mocked(useGitHubAuth).mockReturnValue({
-      isLoggedIn: false,
-      setShowLoginDialog: mockSetShowLoginDialog,
-      loading: false,
-      login: vi.fn(),
-      logout: vi.fn(),
-      showLoginDialog: false,
-    });
-    
-    // Render the hook
-    const { result } = renderHook(() => useRepoSearch());
-    
-    // Call handleSelectExample
-    act(() => {
-      result.current.handleSelectExample("kubernetes/kubernetes");
-    });
-    
-    // Verify we navigate to the repo even when not logged in
-    expect(mockNavigate).toHaveBeenCalledWith("/kubernetes/kubernetes");
-    
-    // Verify login dialog is NOT shown - this is the new behavior
-    expect(mockSetShowLoginDialog).not.toHaveBeenCalled();
-    
-    // Verify input is updated
-    expect(result.current.searchInput).toBe("kubernetes/kubernetes");
   });
 });
