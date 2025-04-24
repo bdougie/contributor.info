@@ -58,7 +58,7 @@ export function useContributorData({ username, avatarUrl }: UseContributorDataPr
       const percentage = userPRs.length / stats.pullRequests.length * 100;
 
       // Fetch organizations data
-      let organizations;
+      let organizations: Array<{ login: string; avatar_url: string }> = [];
       try {
         // This assumes you have a function to fetch user organizations
         const headers = {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { findUserPullRequests, createContributorStats } from '../contributor-utils';
 import type { PullRequest } from '@/lib/types';
 
@@ -93,7 +93,6 @@ describe('Contributor Utilities', () => {
       html_url: "https://github.com/testowner/testrepo/pull/104",
       author: {
         login: "user1", // Using author property instead of user
-        avatar_url: "https://example.com/avatar1.png"
       },
       user: {
         id: 9999, // Different ID but same login in the author field
@@ -253,20 +252,19 @@ describe('Contributor Utilities', () => {
 
     it('should limit recentPRs to maximum of 5', () => {
       // Create a test array with more than 5 PRs for the same user
-      const manyPRs = [
+      const extraPRs = Array(7).fill(0).map((_, i) => {
+        // Create a proper PullRequest object by copying the template
+        const prCopy = JSON.parse(JSON.stringify(mockPullRequests[0]));
+        // Update the necessary fields
+        prCopy.id = 100 + i;
+        prCopy.number = 200 + i;
+        prCopy.title = `Extra PR ${i+1}`;
+        return prCopy as PullRequest;
+      });
+      
+      const manyPRs: PullRequest[] = [
         ...mockPullRequests,
-        ...Array(7).fill(0).map((_, i) => ({
-          ...mockPullRequests[0],
-          id: 100 + i,
-          number: 200 + i,
-          title: `Extra PR ${i+1}`,
-          user: {
-            id: 1001,
-            login: 'user1',
-            avatar_url: 'https://example.com/avatar1.png',
-            type: 'User'
-          }
-        }))
+        ...extraPRs
       ];
       
       const result = createContributorStats(
