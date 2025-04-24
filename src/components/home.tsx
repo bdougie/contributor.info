@@ -10,12 +10,10 @@ import {
 import { SearchIcon } from "lucide-react";
 import { ExampleRepos } from "./example-repos";
 import { useRepoSearch } from "@/hooks/use-repo-search";
-import { useGitHubAuth } from "@/hooks/use-github-auth";
 
 export default function Home() {
   const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
     useRepoSearch({ isHomeView: true });
-  const { setShowLoginDialog } = useGitHubAuth();
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">

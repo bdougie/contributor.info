@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import { BrowserRouter } from "react-router-dom";
@@ -72,7 +72,6 @@ describe("Login behavior for repository search", () => {
         // Only update the search input, don't navigate
         mockSetSearchInput(repo);
       }),
-      hasSearchedOnce: false,
     });
   });
 
@@ -118,7 +117,6 @@ describe("Login behavior for repository search", () => {
         // Only update the search input, don't navigate
         mockSetSearchInput(repo);
       }),
-      hasSearchedOnce: true,
     });
 
     const user = userEvent.setup();
@@ -159,7 +157,6 @@ describe("Login behavior for repository search", () => {
         mockNavigate("/test/repo");
       }),
       handleSelectExample,
-      hasSearchedOnce: false,
     });
 
     render(
