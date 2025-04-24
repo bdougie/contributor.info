@@ -138,3 +138,17 @@ export interface PullRequestActivity {
   timestamp: string;
   createdAt: Date;
 }
+
+// Add TimeRange type for use in hooks
+export type TimeRange = string;
+
+// Updated QuadrantDistribution type to include both general distribution and detailed breakdown
+export interface QuadrantDistribution {
+  label: string;
+  value: number;
+  percentage: number;
+  refinement?: number;
+  newStuff?: number;
+  refactoring?: number;
+  maintenance?: number;
+}

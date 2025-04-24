@@ -47,6 +47,9 @@ describe('useContribution', () => {
 
   // Default mock returns
   const mockDistribution = {
+    label: "Contribution Distribution",
+    value: 100,
+    percentage: 100,
     refinement: 25,
     newStuff: 25, 
     refactoring: 25,

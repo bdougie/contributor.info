@@ -15,8 +15,7 @@ import type {
   QuadrantData as QuadrantDataType,
   LanguageStats,
 } from "@/lib/types";
-import { useDistribution, QuadrantData } from "@/hooks/use-distribution";
-import { useTimeFormatter } from "@/hooks/use-time-formatter";
+import { useDistribution } from "@/hooks/use-distribution";
 
 export default function Distribution() {
   const { stats } = useContext(RepoStatsContext);
@@ -26,8 +25,6 @@ export default function Distribution() {
   // Use our new hooks
   const { chartData, loading, getDominantQuadrant, getTotalContributions } =
     useDistribution(stats.pullRequests);
-
-  const { formatRelativeTime } = useTimeFormatter();
 
   // Get language statistics
   const getLanguageStats = (prs: PullRequest[]): LanguageStats[] => {

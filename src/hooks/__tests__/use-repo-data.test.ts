@@ -3,7 +3,7 @@ import { renderHook, cleanup } from '@testing-library/react';
 import { useRepoData } from '../use-repo-data';
 import { fetchPullRequests, fetchDirectCommits } from '@/lib/github';
 import { calculateLotteryFactor } from '@/lib/utils';
-import type { PullRequest, TimeRange } from '@/lib/types';
+import type { PullRequest } from '@/lib/types';
 
 // Mock dependencies
 vi.mock('@/lib/github', () => ({
@@ -83,18 +83,18 @@ describe('useRepoData', () => {
     riskLevel: 'High' as const
   };
 
-  const mockTimeRange: TimeRange = {
-    start: '2023-01-01',
-    end: '2023-01-31',
-    label: 'January 2023'
-  };
+  const mockTimeRange = "30";
 
   beforeEach(() => {
     vi.clearAllMocks();
     
     // Setup mock return values
     vi.mocked(fetchPullRequests).mockResolvedValue(mockPullRequests);
-    vi.mocked(fetchDirectCommits).mockResolvedValue(mockDirectCommits);
+    vi.mocked(fetchDirectCommits).mockResolvedValue({
+      hasYoloCoders: mockDirectCommits.hasYoloCoders,
+      yoloCoderStats: mockDirectCommits.yoloCoderStats,
+      directCommits: [] // Adding required property for the interface
+    });
     vi.mocked(calculateLotteryFactor).mockReturnValue(mockLotteryFactor);
   });
 
@@ -216,7 +216,7 @@ describe('useRepoData', () => {
     vi.clearAllMocks();
     
     // Update time range
-    const newTimeRange = { ...mockTimeRange, start: '2023-02-01', end: '2023-02-28' };
+    const newTimeRange = "60";
     rerender({
       owner: 'neworg',
       repo: 'newrepo',

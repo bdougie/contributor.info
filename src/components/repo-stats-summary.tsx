@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Card,
   CardContent,
@@ -6,8 +5,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useRepoStats } from '@/hooks/use-repo-stats';
-import { useTimeFormatter } from '@/hooks/use-time-formatter';
+import { useRepoStats } from "@/hooks/use-repo-stats";
+import { useTimeFormatter } from "@/hooks/use-time-formatter";
+import { LotteryFactor } from "@/lib/types";
+
+// Define type for the extended lottery factor with additional properties
+interface ExtendedLotteryFactorType extends LotteryFactor {
+  score: number;
+  rating: string;
+}
 
 /**
  * Component that displays repository statistics summary
@@ -15,21 +21,21 @@ import { useTimeFormatter } from '@/hooks/use-time-formatter';
  */
 export function RepoStatsSummary() {
   // Use our custom hooks
-  const { 
-    stats, 
-    lotteryFactor, 
+  const {
+    stats,
+    lotteryFactor,
     directCommitsData,
     getContributorStats,
-    getFilteredPullRequests
+    getFilteredPullRequests,
   } = useRepoStats();
-  
-  const { formatDate, formatRelativeTime } = useTimeFormatter();
-  
+
+  const { formatRelativeTime } = useTimeFormatter();
+
   // Get filtered data based on bot inclusion setting
   const includeBots = true; // This could be a prop or state
   const filteredPRs = getFilteredPullRequests(includeBots);
   const contributorStats = getContributorStats(includeBots);
-  
+
   if (stats.loading) {
     return (
       <Card>
@@ -43,7 +49,7 @@ export function RepoStatsSummary() {
       </Card>
     );
   }
-  
+
   if (stats.error) {
     return (
       <Card>
@@ -57,18 +63,19 @@ export function RepoStatsSummary() {
       </Card>
     );
   }
-  
+
   const totalPRs = filteredPRs.length;
-  
+
   // Calculate some statistics for display
-  const mergedPRs = filteredPRs.filter(pr => pr.merged_at).length;
+  const mergedPRs = filteredPRs.filter((pr) => pr.merged_at).length;
   const mergeRate = totalPRs > 0 ? (mergedPRs / totalPRs) * 100 : 0;
-  
+
   // Get the most recent PR
   const mostRecentPR = filteredPRs.sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )[0];
-  
+
   return (
     <Card>
       <CardHeader>
@@ -88,56 +95,62 @@ export function RepoStatsSummary() {
               {mergedPRs} merged ({mergeRate.toFixed(1)}% success rate)
             </p>
           </div>
-          
+
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-muted-foreground">
               Contributors
             </h3>
-            <div className="text-2xl font-bold">{contributorStats.totalContributors}</div>
+            <div className="text-2xl font-bold">
+              {contributorStats.totalContributors}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {contributorStats.topContributors.length > 0 
-                ? `Top: ${contributorStats.topContributors[0].login}` 
-                : 'No top contributors'}
+              {contributorStats.topContributors.length > 0
+                ? `Top: ${contributorStats.topContributors[0].login}`
+                : "No top contributors"}
             </p>
           </div>
-          
+
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-muted-foreground">
               Lottery Factor
             </h3>
             <div className="text-2xl font-bold">
-              {lotteryFactor ? lotteryFactor.score.toFixed(1) : 'N/A'}
+              {lotteryFactor
+                ? (lotteryFactor as ExtendedLotteryFactorType).score.toFixed(1)
+                : "N/A"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {lotteryFactor?.rating || 'Not calculated'}
+              {lotteryFactor
+                ? (lotteryFactor as ExtendedLotteryFactorType).rating
+                : "Not calculated"}
             </p>
           </div>
         </div>
-        
+
         {directCommitsData?.hasYoloCoders && (
           <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md p-3">
             <h3 className="font-medium text-amber-800 dark:text-amber-300">
               Warning: Direct Commits Detected
             </h3>
             <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-              {directCommitsData.yoloCoderStats.count} commits were pushed directly 
-              to the main branch, bypassing code review.
+              {directCommitsData.yoloCoderStats.length} commits were pushed
+              directly to the main branch, bypassing code review.
             </p>
           </div>
         )}
-        
+
         {mostRecentPR && (
           <div className="border-t pt-4">
             <h3 className="text-sm font-medium mb-2">Most Recent Activity</h3>
-            <a 
-              href={mostRecentPR.html_url} 
-              target="_blank" 
+            <a
+              href={mostRecentPR.html_url}
+              target="_blank"
               rel="noopener noreferrer"
               className="block hover:bg-muted p-2 -m-2 rounded-md transition-colors"
             >
               <div className="flex items-center gap-2">
-                <img 
-                  src={mostRecentPR.user.avatar_url} 
+                <img
+                  src={mostRecentPR.user.avatar_url}
                   alt={mostRecentPR.user.login}
                   className="w-6 h-6 rounded-full"
                 />

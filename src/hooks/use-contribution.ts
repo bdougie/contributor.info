@@ -27,7 +27,8 @@ export function useContribution(pullRequests: PullRequest[]) {
     });
     
     // Get the distribution and counts
-    setDistribution(ContributionAnalyzer.getDistribution());
+    const newDistribution = ContributionAnalyzer.getDistribution();
+    setDistribution(newDistribution);
     setQuadrantCounts(ContributionAnalyzer.getCounts());
   }, [pullRequests]);
   

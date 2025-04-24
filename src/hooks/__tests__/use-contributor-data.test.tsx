@@ -105,8 +105,10 @@ describe("useContributorData", () => {
             loading: false,
             error: null,
           },
-          setStats: vi.fn(),
+          lotteryFactor: null,
+          directCommitsData: null,
           includeBots: false,
+          setIncludeBots: vi.fn(),
         }}
       >
         {children}
@@ -154,8 +156,10 @@ describe("useContributorData", () => {
             loading: false,
             error: null,
           },
-          setStats: vi.fn(),
+          lotteryFactor: null,
+          directCommitsData: null,
           includeBots: false,
+          setIncludeBots: vi.fn(),
         }}
       >
         {children}
@@ -193,8 +197,10 @@ describe("useContributorData", () => {
             loading: false,
             error: null,
           },
-          setStats: vi.fn(),
+          lotteryFactor: null,
+          directCommitsData: null,
           includeBots: false,
+          setIncludeBots: vi.fn(),
         }}
       >
         {children}
@@ -232,8 +238,10 @@ describe("useContributorData", () => {
             loading: false,
             error: null,
           },
-          setStats: vi.fn(),
+          lotteryFactor: null,
+          directCommitsData: null,
           includeBots: false,
+          setIncludeBots: vi.fn(),
         }}
       >
         {children}
@@ -241,7 +249,7 @@ describe("useContributorData", () => {
     );
 
     // First render - should call the API
-    const { result: result1 } = renderHook(
+    renderHook(
       () =>
         useContributorData({
           username: "cache-test-user",
