@@ -1,6 +1,4 @@
-// Remove React import as it's not needed with modern JSX transform
 import { PullRequestActivity } from "@/types/pr-activity";
-// Remove unused icon imports
 import { BotIcon } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -9,6 +7,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ContributorHoverCard } from "@/components/contributor-hover-card";
+import { useContext, useMemo } from "react";
+import { RepoStatsContext } from "@/lib/repo-stats-context";
+import { createContributorStats } from "@/lib/contributor-utils";
 
 interface ActivityItemProps {
   activity: PullRequestActivity;
@@ -16,8 +18,18 @@ interface ActivityItemProps {
 
 export function ActivityItem({ activity }: ActivityItemProps) {
   const { type, user, pullRequest, repository, timestamp } = activity;
+  const { stats } = useContext(RepoStatsContext);
 
-  // This function is being used in the component
+  // Create contributor data with memoization to avoid recalculations
+  const contributorData = useMemo(() => {
+    return createContributorStats(
+      stats.pullRequests,
+      user.name,
+      user.avatar,
+      user.id
+    );
+  }, [user, stats.pullRequests]);
+
   const getActivityColor = () => {
     switch (type) {
       case "opened":
@@ -55,12 +67,17 @@ export function ActivityItem({ activity }: ActivityItemProps) {
   return (
     <div className="flex items-start space-x-3 p-3 rounded-md hover:bg-muted/50 transition-colors">
       <div className="relative flex-shrink-0">
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={user.avatar} alt={user.name} />
-          <AvatarFallback>
-            {user.name ? user.name.charAt(0).toUpperCase() : "?"}
-          </AvatarFallback>
-        </Avatar>
+        <ContributorHoverCard
+          contributor={contributorData}
+          role={user.isBot ? "Bot" : undefined}
+        >
+          <Avatar className="h-8 w-8 cursor-pointer">
+            <AvatarImage src={user.avatar} alt={user.name} />
+            <AvatarFallback>
+              {user.name ? user.name.charAt(0).toUpperCase() : "?"}
+            </AvatarFallback>
+          </Avatar>
+        </ContributorHoverCard>
         <div
           className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${getActivityColor()} border border-background`}
         ></div>
