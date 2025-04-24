@@ -1,16 +1,9 @@
-import { PullRequest } from './types';
+import { PullRequest, QuadrantDistribution } from './types';
 
 export interface ContributionMetrics {
   x: number;
   y: number;
   quadrant: 'refinement' | 'newStuff' | 'refactoring' | 'maintenance';
-}
-
-export interface QuadrantDistribution {
-  refinement: number;
-  newStuff: number;
-  maintenance: number;
-  refactoring: number;
 }
 
 const NON_CODE_EXTENSIONS = new Set([
@@ -77,6 +70,9 @@ export class ContributionAnalyzer {
     
     if (total === 0) {
       return {
+        label: "Contribution Distribution",
+        value: 0,
+        percentage: 0,
         refinement: 25,
         newStuff: 25,
         refactoring: 25,
@@ -84,7 +80,11 @@ export class ContributionAnalyzer {
       };
     }
 
+    // Create a distribution object conforming to the updated QuadrantDistribution interface
     return {
+      label: "Contribution Distribution",
+      value: total,
+      percentage: 100,
       refinement: (this.quadrantCounts.refinement / total) * 100,
       newStuff: (this.quadrantCounts.newStuff / total) * 100,
       refactoring: (this.quadrantCounts.refactoring / total) * 100,
