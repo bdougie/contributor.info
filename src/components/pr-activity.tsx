@@ -10,6 +10,7 @@ import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useContext } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { PullRequestActivityFeed } from "./pr-activity/pr-activity-feed";
 import { usePRActivity } from "@/hooks/use-pr-activity";
 
@@ -17,9 +18,21 @@ export default function PRActivity() {
   const { stats } = useContext(RepoStatsContext);
   const [selectedTypes, setSelectedTypes] = useState<
     Array<"opened" | "closed" | "merged" | "reviewed" | "commented">
-  >(["opened", "closed", "merged", "reviewed"]);
+  >(["opened", "merged", "commented"]);
+  const [visibleCount, setVisibleCount] = useState(15);
 
   const { activities, loading, error } = usePRActivity(stats.pullRequests);
+
+  const filteredActivities = activities.filter((activity) =>
+    selectedTypes.includes(activity.type)
+  );
+
+  const visibleActivities = filteredActivities.slice(0, visibleCount);
+  const hasMore = visibleActivities.length < filteredActivities.length;
+
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => prev + 15);
+  };
 
   return (
     <Card>
@@ -113,12 +126,29 @@ export default function PRActivity() {
           </div>
         </div>
 
+        <div className="mb-2 text-sm text-muted-foreground">
+          Showing {visibleActivities.length} of {filteredActivities.length}{" "}
+          activities
+        </div>
+
         <PullRequestActivityFeed
-          activities={activities}
+          activities={visibleActivities}
           loading={loading}
           error={error}
           selectedTypes={selectedTypes}
         />
+
+        {hasMore && (
+          <div className="mt-4 flex justify-center">
+            <Button
+              variant="secondary"
+              onClick={handleLoadMore}
+              disabled={loading}
+            >
+              Load More
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
