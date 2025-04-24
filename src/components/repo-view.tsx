@@ -20,6 +20,7 @@ import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import LotteryFactor from "./lottery-factor";
 import Contributions from "./contributions";
 import Distribution from "./distribution";
+import PRActivity from "./pr-activity";
 import { ExampleRepos } from "./example-repos";
 import type {
   RepoStats,
@@ -220,7 +221,12 @@ export function LotteryFactorRoute() {
 }
 
 export function ContributionsRoute() {
-  return <Contributions />;
+  return (
+    <div className="space-y-8">
+      <Contributions />
+      <PRActivity />
+    </div>
+  );
 }
 
 export function DistributionRoute() {

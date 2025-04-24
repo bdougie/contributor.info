@@ -3,7 +3,8 @@ import type { PullRequest } from './types';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
-async function fetchUserOrganizations(username: string, headers: HeadersInit): Promise<{ login: string; avatar_url: string; }[]> {
+// Export the fetchUserOrganizations function to fix the missing export error
+export async function fetchUserOrganizations(username: string, headers: HeadersInit): Promise<{ login: string; avatar_url: string; }[]> {
   try {
     const response = await fetch(
       `${GITHUB_API_BASE}/users/${username}/orgs`,
@@ -21,6 +22,59 @@ async function fetchUserOrganizations(username: string, headers: HeadersInit): P
     }));
   } catch (error) {
     console.error('Error fetching user organizations:', error);
+    return [];
+  }
+}
+
+async function fetchPRReviews(owner: string, repo: string, prNumber: number, headers: HeadersInit) {
+  try {
+    const response = await fetch(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}/reviews`,
+      { headers }
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const reviews = await response.json();
+    return reviews.map((review: any) => ({
+      id: review.id,
+      state: review.state,
+      user: {
+        login: review.user.login,
+        avatar_url: review.user.avatar_url
+      },
+      submitted_at: review.submitted_at
+    }));
+  } catch (error) {
+    console.error(`Error fetching reviews for PR #${prNumber}:`, error);
+    return [];
+  }
+}
+
+async function fetchPRComments(owner: string, repo: string, prNumber: number, headers: HeadersInit) {
+  try {
+    const response = await fetch(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/issues/${prNumber}/comments`,
+      { headers }
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const comments = await response.json();
+    return comments.map((comment: any) => ({
+      id: comment.id,
+      user: {
+        login: comment.user.login,
+        avatar_url: comment.user.avatar_url
+      },
+      created_at: comment.created_at
+    }));
+  } catch (error) {
+    console.error(`Error fetching comments for PR #${prNumber}:`, error);
     return [];
   }
 }
@@ -96,6 +150,12 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
         // Fetch user's organizations
         const organizations = await fetchUserOrganizations(pr.user.login, headers);
         
+        // Fetch PR reviews and comments (in parallel)
+        const [reviews, comments] = await Promise.all([
+          fetchPRReviews(owner, repo, pr.number, headers),
+          fetchPRComments(owner, repo, pr.number, headers)
+        ]);
+        
         // Check if user is a bot by their type or by checking if name contains [bot]
         const isBot = 
           pr.user.type === 'Bot' || 
@@ -109,10 +169,12 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
           created_at: pr.created_at,
           updated_at: pr.updated_at,
           merged_at: pr.merged_at,
+          closed_at: pr.closed_at,
           additions: details.additions,
           deletions: details.deletions,
           repository_owner: owner,
           repository_name: repo,
+          html_url: pr.html_url,
           user: {
             id: pr.user.id,
             login: pr.user.login,
@@ -120,6 +182,8 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
             type: isBot ? 'Bot' : 'User',
           },
           organizations,
+          reviews,
+          comments
         };
       })
     );
@@ -161,7 +225,7 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
   const { data: { session } } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
 
-  // Use user's token if available, otherwise fall back to env token
+  // Use user's token if available, otherwise fall back to env tokerm -rf src/github-activityn
   const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
   if (token) {
     headers.Authorization = `token ${token}`;

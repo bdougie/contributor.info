@@ -6,6 +6,7 @@ export interface PullRequest {
   created_at: string;
   updated_at: string;
   merged_at: string | null;
+  closed_at?: string | null;
   additions: number;
   deletions: number;
   repository_owner: string;
@@ -17,6 +18,7 @@ export interface PullRequest {
     organizations_url?: string;
     type?: 'User' | 'Bot'; // Adding type field to track bot status
   };
+  html_url?: string;
   organizations?: {
     login: string;
     avatar_url: string;
@@ -31,6 +33,23 @@ export interface PullRequest {
   };
   url?: string;
   createdAt?: string;
+  reviews?: Array<{
+    id: number;
+    state: string;
+    user: {
+      login: string;
+      avatar_url: string;
+    };
+    submitted_at: string;
+  }>;
+  comments?: Array<{
+    id: number;
+    user: {
+      login: string;
+      avatar_url: string;
+    };
+    created_at: string;
+  }>;
 }
 
 export interface RepoStats {
@@ -86,4 +105,36 @@ export interface YoloCoderStats {
 export interface DirectCommitsData {
   hasYoloCoders: boolean;
   yoloCoderStats: YoloCoderStats[];
+}
+
+// PR Activity types (moved from src/types/pr-activity.ts)
+export type ActivityType = 'opened' | 'closed' | 'merged' | 'reviewed' | 'commented';
+
+export interface User {
+  id: string;
+  name: string;
+  avatar: string;
+  isBot?: boolean;
+}
+
+export interface Repository {
+  id: string;
+  name: string;
+  owner: string;
+  url: string;
+}
+
+export interface PullRequestActivity {
+  id: string;
+  type: ActivityType;
+  user: User;
+  pullRequest: {
+    id: string;
+    number: number;
+    title: string;
+    url: string;
+  };
+  repository: Repository;
+  timestamp: string;
+  createdAt: Date;
 }
