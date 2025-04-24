@@ -178,4 +178,77 @@ describe('ContributionAnalyzer', () => {
     expect(distribution.refactoring).toBe(20);
     expect(distribution.maintenance).toBe(20);
   });
+
+  it('should properly identify and count all non-code files as maintenance', () => {
+    // Reset counters before test
+    ContributionAnalyzer.resetCounts();
+    
+    // Test all non-code extensions in the NON_CODE_EXTENSIONS set
+    const nonCodeExtensions = [
+      'yaml', 'yml', 'json', 'toml', 'ini', 'conf',
+      'md', 'txt', 'dockerfile', 'dockerignore',
+      'gitignore', 'env', 'example', 'template',
+      'lock', 'sum', 'mod'
+    ];
+    
+    // Create and analyze a PR for each non-code extension
+    nonCodeExtensions.forEach(ext => {
+      const pr = createMockPR(0, 0, [{ language: ext, additions: 30, deletions: 10 }]);
+      const result = ContributionAnalyzer.analyze(pr);
+      
+      expect(result.quadrant).toBe('maintenance');
+    });
+    
+    // Get the counts
+    const counts = ContributionAnalyzer.getCounts();
+    
+    // All PRs should be counted as maintenance
+    expect(counts.maintenance).toBe(nonCodeExtensions.length);
+    expect(counts.newStuff).toBe(0);
+    expect(counts.refinement).toBe(0);
+    expect(counts.refactoring).toBe(0);
+  });
+
+  it('should not count non-code files towards other contribution types', () => {
+    // Reset counters before test
+    ContributionAnalyzer.resetCounts();
+    
+    // Create PRs with mixed code and non-code files
+    const mixedPR1 = createMockPR(0, 0, [
+      { language: 'json', additions: 10, deletions: 5 },     // non-code
+      { language: 'md', additions: 20, deletions: 10 },      // non-code
+      { language: 'typescript', additions: 100, deletions: 20 } // code
+    ]);
+    
+    const mixedPR2 = createMockPR(0, 0, [
+      { language: 'yaml', additions: 30, deletions: 15 },    // non-code
+      { language: 'typescript', additions: 20, deletions: 100 } // code
+    ]);
+    
+    const mixedPR3 = createMockPR(0, 0, [
+      { language: 'lock', additions: 500, deletions: 400 },  // non-code
+      { language: 'typescript', additions: 50, deletions: 50 } // code
+    ]);
+    
+    // Create PR with only non-code files
+    const nonCodePR = createMockPR(0, 0, [
+      { language: 'json', additions: 50, deletions: 20 },
+      { language: 'md', additions: 30, deletions: 10 }
+    ]);
+    
+    // Analyze the PRs
+    ContributionAnalyzer.analyze(mixedPR1); // Should be newStuff due to typescript
+    ContributionAnalyzer.analyze(mixedPR2); // Should be refinement due to typescript
+    ContributionAnalyzer.analyze(mixedPR3); // Should be refactoring due to typescript
+    ContributionAnalyzer.analyze(nonCodePR); // Should be maintenance
+    
+    // Get the counts
+    const counts = ContributionAnalyzer.getCounts();
+    
+    // Verify each PR is categorized correctly
+    expect(counts.newStuff).toBe(1);      // mixedPR1
+    expect(counts.refinement).toBe(1);    // mixedPR2
+    expect(counts.refactoring).toBe(1);   // mixedPR3
+    expect(counts.maintenance).toBe(1);   // nonCodePR
+  });
 });

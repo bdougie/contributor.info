@@ -12,6 +12,7 @@ export interface QuadrantData {
   percentage: number;
   description: string;
   color: string;
+  debugFiles?: Array<{title: string, number: number, extensions: string[]}>; // Debug info
 }
 
 /**
@@ -30,6 +31,13 @@ export function useDistribution(pullRequests: PullRequest[]) {
   const [chartData, setChartData] = useState<QuadrantData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
+  // Debug information storage
+  const [debugInfo, setDebugInfo] = useState<Record<string, Array<{title: string, number: number, extensions: string[]}>>>({
+    refinement: [],
+    newStuff: [],
+    refactoring: [],
+    maintenance: []
+  });
   
   // Quadrant descriptions and colors
   const quadrantInfo = {
@@ -65,19 +73,57 @@ export function useDistribution(pullRequests: PullRequest[]) {
         return;
       }
       
-      // Reset analyzer counts
+      // Reset analyzer counts to ensure we're starting fresh
       ContributionAnalyzer.resetCounts();
+      
+      // Debug tracking for PRs in each quadrant
+      const debugQuadrantPRs: Record<string, Array<{title: string, number: number, extensions: string[]}>> = {
+        refinement: [],
+        newStuff: [],
+        refactoring: [],
+        maintenance: []
+      };
       
       // Analyze each PR
       pullRequests.forEach(pr => {
-        ContributionAnalyzer.analyze(pr);
+        // Extract file extensions from commits
+        const extensions: string[] = [];
+        if (pr.commits && pr.commits.length > 0) {
+          pr.commits.forEach(commit => {
+            if (commit.language) {
+              extensions.push(commit.language);
+            }
+          });
+        } else {
+          // Try to infer extensions from PR title
+          const titleExtMatch = pr.title.match(/\.([\w]+)/g);
+          if (titleExtMatch) {
+            titleExtMatch.forEach(ext => extensions.push(ext.substring(1)));
+          }
+        }
+        
+        // Analyze PR - this will also increment the internal counts in ContributionAnalyzer
+        const result = ContributionAnalyzer.analyze(pr);
+        
+        // Store info for debugging
+        debugQuadrantPRs[result.quadrant].push({
+          title: pr.title,
+          number: pr.number,
+          extensions: extensions.filter((v, i, a) => a.indexOf(v) === i) // Unique extensions
+        });
       });
       
-      // Get the distribution and counts
+      // Store debug info
+      setDebugInfo(debugQuadrantPRs);
+      
+      // Get the distribution and counts from the analyzer
       const newDistribution = ContributionAnalyzer.getDistribution();
       const newCounts = ContributionAnalyzer.getCounts();
       
-      // Use the setState function to update the state
+      // Log for debugging
+      console.log("Quadrant counts from analyzer:", newCounts);
+      
+      // Update state with counts and distribution
       setDistribution(newDistribution);
       setQuadrantCounts(newCounts);
       
@@ -92,7 +138,8 @@ export function useDistribution(pullRequests: PullRequest[]) {
           value,
           percentage: totalContributions > 0 ? (value / totalContributions) * 100 : 0,
           description: info.description,
-          color: info.color
+          color: info.color,
+          debugFiles: debugQuadrantPRs[key] // Add debug info to chart data
         };
       });
       
@@ -128,6 +175,7 @@ export function useDistribution(pullRequests: PullRequest[]) {
     chartData,
     loading,
     error,
+    debugInfo, // Expose debug info
     getDominantQuadrant,
     getTotalContributions
   };

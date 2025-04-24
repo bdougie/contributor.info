@@ -19,7 +19,7 @@ export function QuadrantStats({ data }: QuadrantStatsProps) {
               {quadrant.percentage.toFixed(1)}%
             </div>
             <p className="text-sm text-muted-foreground">
-              {quadrant.count} PRs
+              {quadrant.count} files touched
             </p>
           </CardContent>
         </Card>
