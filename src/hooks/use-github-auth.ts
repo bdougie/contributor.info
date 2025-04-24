@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -8,17 +9,30 @@ export function useGitHubAuth() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [showLoginDialog, setShowLoginDialog] = useState<boolean>(false);
+  const navigate = useNavigate();
   
   useEffect(() => {
     // Check login status
     async function checkAuth() {
       setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
-      setIsLoggedIn(!!session);
+      const isAuthenticated = !!session;
+      setIsLoggedIn(isAuthenticated);
       
-      // Close login dialog if logged in
-      if (!!session && showLoginDialog) {
-        setShowLoginDialog(false);
+      // Close login dialog if logged in and check for redirect
+      if (isAuthenticated) {
+        if (showLoginDialog) {
+          setShowLoginDialog(false);
+        }
+        
+        // Check if there's a redirect path stored
+        const redirectPath = localStorage.getItem('redirectAfterLogin');
+        if (redirectPath) {
+          // Clear the stored path
+          localStorage.removeItem('redirectAfterLogin');
+          // Navigate to the stored path
+          navigate(redirectPath);
+        }
       }
       
       setLoading(false);
@@ -33,14 +47,25 @@ export function useGitHubAuth() {
       const loggedIn = !!session;
       setIsLoggedIn(loggedIn);
       
-      // Close login dialog if logged in
-      if (loggedIn && showLoginDialog) {
-        setShowLoginDialog(false);
+      // Close login dialog if logged in and check for redirect
+      if (loggedIn) {
+        if (showLoginDialog) {
+          setShowLoginDialog(false);
+        }
+        
+        // Check if there's a redirect path stored
+        const redirectPath = localStorage.getItem('redirectAfterLogin');
+        if (redirectPath) {
+          // Clear the stored path
+          localStorage.removeItem('redirectAfterLogin');
+          // Navigate to the stored path
+          navigate(redirectPath);
+        }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [showLoginDialog]);
+  }, [showLoginDialog, navigate]);
 
   /**
    * Initiates GitHub OAuth login flow

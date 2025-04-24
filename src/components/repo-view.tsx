@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Outlet } from "react-router-dom";
 import {
   Card,
@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchIcon } from "lucide-react";
-import { LoginDialog } from "./login-dialog";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import LotteryFactor from "./lottery-factor";
@@ -37,10 +36,13 @@ export default function RepoView() {
     includeBots
   );
 
-  const { showLoginDialog, setShowLoginDialog } = useGitHubAuth();
+  const { isLoggedIn } = useGitHubAuth();
 
   const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
     useRepoSearch();
+
+  // No auto-redirection logic here - all redirections are handled by
+  // the useRepoSearch hook through the form submission process
 
   if (stats.loading) {
     return (
@@ -75,22 +77,16 @@ export default function RepoView() {
 
   return (
     <div className="container mx-auto py-8">
-      <LoginDialog open={showLoginDialog} onOpenChange={setShowLoginDialog} />
-
       <Card className="mb-8">
         <CardContent className="pt-6">
-          <form onSubmit={handleSearch} className="flex gap-4" role="form">
+          <form onSubmit={handleSearch} className="flex gap-4">
             <Input
               placeholder="Search another repository (e.g., facebook/react)"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="flex-1"
             />
-            <Button
-              type="submit"
-              // Don't disable the button, so it can trigger the login dialog
-              aria-label="Search"
-            >
+            <Button type="submit" aria-label="Search">
               <SearchIcon className="mr-2 h-4 w-4" />
               Search
             </Button>
