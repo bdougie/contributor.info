@@ -10,10 +10,10 @@ import { LanguageLegend } from "./language-legend";
 import { QuadrantChart } from "./quadrant-chart";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
+import { getLanguageStats } from "@/lib/language-stats";
 import type {
   PullRequest,
   QuadrantData as QuadrantDataType,
-  LanguageStats,
 } from "@/lib/types";
 import { useDistribution } from "@/hooks/use-distribution";
 
@@ -22,151 +22,14 @@ export default function Distribution() {
   const { timeRange } = useTimeRange();
   const timeRangeNumber = parseInt(timeRange, 10); // Parse string to number
 
-  // Use our new hooks
-  const { chartData, loading, getDominantQuadrant, getTotalContributions } =
-    useDistribution(stats.pullRequests);
-
-  // Get language statistics
-  const getLanguageStats = (prs: PullRequest[]): LanguageStats[] => {
-    // Create language stats based on the additions/deletions in each PR
-    const languageMap = new Map<
-      string,
-      { count: number; color: string; totalChanges: number }
-    >();
-
-    // Common language colors from GitHub
-    const colorMap: Record<string, string> = {
-      JavaScript: "#f1e05a",
-      TypeScript: "#2b7489",
-      CSS: "#563d7c",
-      HTML: "#e34c26",
-      Python: "#3572A5",
-      Java: "#b07219",
-      Go: "#00ADD8",
-      Rust: "#dea584",
-      Other: "#cccccc",
-    };
-
-    // Count languages based on PRs
-    prs.forEach((pr) => {
-      if (pr.commits) {
-        pr.commits.forEach((commit) => {
-          const lang = commit.language || "Other";
-          const current = languageMap.get(lang) || {
-            count: 0,
-            color: colorMap[lang] || colorMap["Other"],
-            totalChanges: 0,
-          };
-          languageMap.set(lang, {
-            count: current.count + 1,
-            color: current.color,
-            totalChanges:
-              current.totalChanges + commit.additions + commit.deletions,
-          });
-        });
-      } else {
-        // For PRs without commit data, infer language from PR title/additions/deletions
-
-        // Try to extract language from PR title
-        let lang = "Other";
-        const titleLower = pr.title.toLowerCase();
-
-        if (titleLower.includes("typescript") || titleLower.includes(".ts")) {
-          lang = "TypeScript";
-        } else if (
-          titleLower.includes("javascript") ||
-          titleLower.includes(".js")
-        ) {
-          lang = "JavaScript";
-        } else if (titleLower.includes("css") || titleLower.includes("style")) {
-          lang = "CSS";
-        } else if (
-          titleLower.includes("html") ||
-          titleLower.includes("markup")
-        ) {
-          lang = "HTML";
-        } else if (
-          titleLower.includes("python") ||
-          titleLower.includes(".py")
-        ) {
-          lang = "Python";
-        } else if (
-          titleLower.includes("java") ||
-          titleLower.includes(".java")
-        ) {
-          lang = "Java";
-        } else if (titleLower.includes("go") || titleLower.includes(".go")) {
-          lang = "Go";
-        } else if (titleLower.includes("rust") || titleLower.includes(".rs")) {
-          lang = "Rust";
-        }
-
-        const size = pr.additions + pr.deletions;
-
-        const current = languageMap.get(lang) || {
-          count: 0,
-          color: colorMap[lang] || colorMap["Other"],
-          totalChanges: 0,
-        };
-
-        languageMap.set(lang, {
-          count: current.count + 1,
-          color: current.color,
-          totalChanges: current.totalChanges + size,
-        });
-      }
-    });
-
-    // If we don't have any languages yet (no PRs or all are empty), create some placeholder data
-    // based on the repository context
-    if (languageMap.size === 0) {
-      // Since this is a React project (based on file structure), we'll use realistic data
-      return [
-        {
-          name: "TypeScript",
-          color: colorMap["TypeScript"],
-          count: prs.length > 0 ? Math.ceil(prs.length * 0.6) : 15,
-        },
-        {
-          name: "JavaScript",
-          color: colorMap["JavaScript"],
-          count: prs.length > 0 ? Math.ceil(prs.length * 0.2) : 8,
-        },
-        {
-          name: "CSS",
-          color: colorMap["CSS"],
-          count: prs.length > 0 ? Math.ceil(prs.length * 0.15) : 5,
-        },
-        {
-          name: "HTML",
-          color: colorMap["HTML"],
-          count: prs.length > 0 ? Math.ceil(prs.length * 0.05) : 2,
-        },
-      ];
-    }
-
-    // Convert the map to array format required by LanguageLegend
-    return (
-      Array.from(languageMap.entries())
-        .map(([name, { count, color, totalChanges }]) => ({
-          name,
-          count,
-          color,
-          // Store the total changes to help with sorting
-          totalChanges,
-        }))
-        // Sort by total changes (most significant languages first)
-        .sort((a, b) => b.totalChanges - a.totalChanges)
-        // Take top 8 languages at most to avoid cluttering the UI
-        .slice(0, 8)
-        // Remove the totalChanges prop since it's not in the LanguageStats interface
-        .map(({ name, count, color }) => ({
-          name,
-          count,
-          color,
-        }))
-    );
-  };
+  // Use our hook
+  const {
+    chartData,
+    loading,
+    getDominantQuadrant,
+    getTotalContributions,
+    quadrantCounts,
+  } = useDistribution(stats.pullRequests);
 
   // Convert our hook data into the format expected by QuadrantChart
   const getQuadrantData = (): QuadrantDataType[] => {
@@ -179,7 +42,7 @@ export default function Distribution() {
           count: 0,
         },
         {
-          name: "New Features",
+          name: "New Stuff", // This is the name expected by the chart
           authors: [],
           percentage: 25,
           count: 0,
@@ -199,19 +62,43 @@ export default function Distribution() {
       ];
     }
 
-    // Map our chart data to the expected format
-    return chartData.map((quadrant) => ({
-      name: quadrant.label,
-      percentage: quadrant.percentage,
-      count: quadrant.value,
-      // We don't have author information in our hook data yet
-      // In a full implementation, we would track this information
-      authors: [],
-    }));
+    // Create an array that maps the quadrants to the format expected by QuadrantChart
+    // with the correct counts from our hook data
+    return [
+      {
+        name: "Refinement",
+        authors: [],
+        percentage:
+          chartData.find((q) => q.id === "refinement")?.percentage || 0,
+        count: quadrantCounts.refinement,
+      },
+      {
+        name: "New Stuff", // This is the name expected by the chart
+        authors: [],
+        percentage: chartData.find((q) => q.id === "newStuff")?.percentage || 0,
+        count: quadrantCounts.newStuff,
+      },
+      {
+        name: "Maintenance",
+        authors: [],
+        percentage:
+          chartData.find((q) => q.id === "maintenance")?.percentage || 0,
+        count: quadrantCounts.maintenance,
+      },
+      {
+        name: "Refactoring",
+        authors: [],
+        percentage:
+          chartData.find((q) => q.id === "refactoring")?.percentage || 0,
+        count: quadrantCounts.refactoring,
+      },
+    ];
   };
 
-  // Calculate total files changed (approximate based on additions/deletions)
+  // Calculate total files touched (approximate based on additions/deletions)
   const calculateTotalFiles = (prs: PullRequest[]): number => {
+    if (prs.length === 0) return 0;
+
     return Math.min(
       500, // Cap to avoid unrealistic numbers
       Math.ceil(
@@ -230,12 +117,16 @@ export default function Distribution() {
   const totalContributions = getTotalContributions();
   const dominantQuadrant = getDominantQuadrant();
 
-  // Add commit data to PRs (stub)
+  // Add language data to PRs (for visualization)
   const prepareDataForQuadrantChart = (prs: PullRequest[]) => {
-    return prs.map((pr) => ({
+    // Only process a limited number to avoid performance issues in the visualization
+    const limitedPrs = prs.slice(0, 20);
+
+    return limitedPrs.map((pr) => ({
       ...pr,
-      // Adding stub data for commits since our PR model doesn't have them
+      // If the PR already has commit data, use it
       commits: pr.commits || [
+        // Otherwise create synthetic commit data based on the PR's additions/deletions
         {
           additions: pr.additions * 0.6,
           deletions: pr.deletions * 0.6,
@@ -277,7 +168,7 @@ export default function Distribution() {
   }
 
   return (
-    <Card>
+    <Card className="overflow-visible">
       <CardHeader>
         <CardTitle>Pull Request Distribution Analysis</CardTitle>
         <CardDescription>
@@ -285,20 +176,23 @@ export default function Distribution() {
           past {timeRangeNumber} days
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6 w-full">
+      <CardContent className="space-y-6 w-full overflow-visible">
         <div className="text-sm text-muted-foreground">
-          {totalFiles.toLocaleString()} files changed · {totalContributions}{" "}
-          contributions analyzed
+          {totalFiles.toLocaleString()} files touched · {totalContributions}{" "}
+          pull requests analyzed
           {dominantQuadrant && ` · Primary focus: ${dominantQuadrant.label}`}
         </div>
+
         <LanguageLegend languages={languageStats} />
-        <QuadrantChart
-          data={prepareDataForQuadrantChart(stats.pullRequests.slice(0, 20))}
-          quadrants={quadrantData}
-        />
+        <div className="overflow-visible">
+          <QuadrantChart
+            data={prepareDataForQuadrantChart(stats.pullRequests)}
+            quadrants={quadrantData}
+          />
+        </div>
         <div className="text-sm text-muted-foreground mt-4">
           <p>
-            This chart categorizes contributions into four quadrants based on
+            This chart categorizes files touched into four quadrants based on
             the nature of changes:
           </p>
           <ul className="list-disc pl-5 mt-2 space-y-1">
