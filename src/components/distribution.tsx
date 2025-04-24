@@ -10,66 +10,24 @@ import { LanguageLegend } from "./language-legend";
 import { QuadrantChart } from "./quadrant-chart";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
-import type { PullRequest, QuadrantData, LanguageStats } from "@/lib/types";
-import { ContributionAnalyzer } from "@/lib/contribution-analyzer";
+import type {
+  PullRequest,
+  QuadrantData as QuadrantDataType,
+  LanguageStats,
+} from "@/lib/types";
+import { useDistribution, QuadrantData } from "@/hooks/use-distribution";
+import { useTimeFormatter } from "@/hooks/use-time-formatter";
 
 export default function Distribution() {
   const { stats } = useContext(RepoStatsContext);
   const { timeRange } = useTimeRange();
   const timeRangeNumber = parseInt(timeRange, 10); // Parse string to number
 
-  // Create a function to calculate quadrant percentages
-  const getQuadrantStats = (
-    prs: PullRequest[]
-  ): {
-    quadrants: { name: string; percentage: number }[];
-    totalFiles: number;
-  } => {
-    if (prs.length === 0) {
-      return {
-        quadrants: [
-          { name: "Refinement", percentage: 25 },
-          { name: "New Stuff", percentage: 25 },
-          { name: "Maintenance", percentage: 25 },
-          { name: "Refactoring", percentage: 25 },
-        ],
-        totalFiles: 0,
-      };
-    }
+  // Use our new hooks
+  const { chartData, loading, getDominantQuadrant, getTotalContributions } =
+    useDistribution(stats.pullRequests);
 
-    // Count files from the PRs (just an approximation based on additions/deletions)
-    const totalFiles = Math.min(
-      500, // Cap to avoid unrealistic numbers
-      Math.ceil(
-        prs.reduce(
-          (sum, pr) => sum + Math.ceil((pr.additions + pr.deletions) / 100),
-          0
-        )
-      )
-    );
-
-    // Reset the analyzer's counters before processing the PRs
-    ContributionAnalyzer.resetCounts();
-
-    // Analyze each PR to get its contribution metrics
-    prs.forEach((pr) => {
-      ContributionAnalyzer.analyze(pr);
-    });
-
-    // Get the distribution percentages
-    const distribution = ContributionAnalyzer.getDistribution();
-
-    // Format the quadrant data
-    return {
-      quadrants: [
-        { name: "Refinement", percentage: distribution.refinement },
-        { name: "New Stuff", percentage: distribution.newStuff },
-        { name: "Maintenance", percentage: distribution.maintenance },
-        { name: "Refactoring", percentage: distribution.refactoring },
-      ],
-      totalFiles,
-    };
-  };
+  const { formatRelativeTime } = useTimeFormatter();
 
   // Get language statistics
   const getLanguageStats = (prs: PullRequest[]): LanguageStats[] => {
@@ -213,8 +171,9 @@ export default function Distribution() {
     );
   };
 
-  const getQuadrantData = (prs: PullRequest[]): QuadrantData[] => {
-    if (prs.length === 0) {
+  // Convert our hook data into the format expected by QuadrantChart
+  const getQuadrantData = (): QuadrantDataType[] => {
+    if (stats.pullRequests.length === 0) {
       return [
         {
           name: "Refinement",
@@ -223,7 +182,7 @@ export default function Distribution() {
           count: 0,
         },
         {
-          name: "New Stuff",
+          name: "New Features",
           authors: [],
           percentage: 25,
           count: 0,
@@ -243,68 +202,36 @@ export default function Distribution() {
       ];
     }
 
-    // Make sure we have the latest distribution data
-    const distribution = ContributionAnalyzer.getDistribution();
-    const counts = ContributionAnalyzer.getCounts();
+    // Map our chart data to the expected format
+    return chartData.map((quadrant) => ({
+      name: quadrant.label,
+      percentage: quadrant.percentage,
+      count: quadrant.value,
+      // We don't have author information in our hook data yet
+      // In a full implementation, we would track this information
+      authors: [],
+    }));
+  };
 
-    // Group PRs by the quadrant they belong to
-    const prsByQuadrant: Record<string, PullRequest[]> = {
-      refinement: [],
-      newStuff: [],
-      maintenance: [],
-      refactoring: [],
-    };
-
-    // Re-analyze PRs to group them by quadrant
-    prs.forEach((pr) => {
-      const metrics = ContributionAnalyzer.analyze(pr);
-      prsByQuadrant[metrics.quadrant].push(pr);
-    });
-
-    return [
-      {
-        name: "Refinement",
-        authors: prsByQuadrant.refinement.slice(0, 5).map((pr) => ({
-          id: pr.user.id,
-          login: pr.user.login,
-        })),
-        percentage: distribution.refinement,
-        count: counts.refinement,
-      },
-      {
-        name: "New Stuff",
-        authors: prsByQuadrant.newStuff.slice(0, 5).map((pr) => ({
-          id: pr.user.id,
-          login: pr.user.login,
-        })),
-        percentage: distribution.newStuff,
-        count: counts.newStuff,
-      },
-      {
-        name: "Maintenance",
-        authors: prsByQuadrant.maintenance.slice(0, 5).map((pr) => ({
-          id: pr.user.id,
-          login: pr.user.login,
-        })),
-        percentage: distribution.maintenance,
-        count: counts.maintenance,
-      },
-      {
-        name: "Refactoring",
-        authors: prsByQuadrant.refactoring.slice(0, 5).map((pr) => ({
-          id: pr.user.id,
-          login: pr.user.login,
-        })),
-        percentage: distribution.refactoring,
-        count: counts.refactoring,
-      },
-    ];
+  // Calculate total files changed (approximate based on additions/deletions)
+  const calculateTotalFiles = (prs: PullRequest[]): number => {
+    return Math.min(
+      500, // Cap to avoid unrealistic numbers
+      Math.ceil(
+        prs.reduce(
+          (sum, pr) => sum + Math.ceil((pr.additions + pr.deletions) / 100),
+          0
+        )
+      )
+    );
   };
 
   // Get the statistics for display
   const languageStats = getLanguageStats(stats.pullRequests);
-  const quadrantData = getQuadrantData(stats.pullRequests);
-  const { quadrants, totalFiles } = getQuadrantStats(stats.pullRequests);
+  const quadrantData = getQuadrantData();
+  const totalFiles = calculateTotalFiles(stats.pullRequests);
+  const totalContributions = getTotalContributions();
+  const dominantQuadrant = getDominantQuadrant();
 
   // Add commit data to PRs (stub)
   const prepareDataForQuadrantChart = (prs: PullRequest[]) => {
@@ -338,7 +265,7 @@ export default function Distribution() {
     }));
   };
 
-  if (stats.loading) {
+  if (loading || stats.loading) {
     return (
       <Card>
         <CardHeader>
@@ -363,10 +290,9 @@ export default function Distribution() {
       </CardHeader>
       <CardContent className="space-y-6 w-full">
         <div className="text-sm text-muted-foreground">
-          {totalFiles.toLocaleString()} files changed ·
-          {quadrants
-            .map((q) => ` ${q.percentage.toFixed(1)}% ${q.name.toLowerCase()}`)
-            .join(" · ")}
+          {totalFiles.toLocaleString()} files changed · {totalContributions}{" "}
+          contributions analyzed
+          {dominantQuadrant && ` · Primary focus: ${dominantQuadrant.label}`}
         </div>
         <LanguageLegend languages={languageStats} />
         <QuadrantChart
@@ -384,8 +310,8 @@ export default function Distribution() {
               removal
             </li>
             <li>
-              <span className="font-medium">New Stuff</span>: New features and
-              additions
+              <span className="font-medium">New Features</span>: New features
+              and additions
             </li>
             <li>
               <span className="font-medium">Maintenance</span>: Configuration
