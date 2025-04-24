@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate, Outlet } from "react-router-dom";
 import {
   Card,
@@ -19,7 +19,6 @@ import Distribution from "./distribution";
 import PRActivity from "./pr-activity";
 import { ExampleRepos } from "./example-repos";
 import { useRepoData } from "@/hooks/use-repo-data";
-import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { useRepoSearch } from "@/hooks/use-repo-search";
 
 export default function RepoView() {
@@ -35,8 +34,6 @@ export default function RepoView() {
     timeRange,
     includeBots
   );
-
-  const { isLoggedIn } = useGitHubAuth();
 
   const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
     useRepoSearch({ isHomeView: false });
