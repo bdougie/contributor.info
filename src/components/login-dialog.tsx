@@ -4,6 +4,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogPortal,
+  DialogOverlay,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { GithubIcon } from "lucide-react";
@@ -30,21 +32,24 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent data-testid="login-dialog" className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Login Required</DialogTitle>
-          <DialogDescription>
-            You need to log in to search for repositories. This helps avoid rate
-            limiting and provides access to more GitHub data.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex justify-center pt-4">
-          <Button onClick={login}>
-            <GithubIcon className="mr-2 h-4 w-4" />
-            Login with GitHub
-          </Button>
-        </div>
-      </DialogContent>
+      <DialogPortal>
+        <DialogOverlay />
+        <DialogContent data-testid="login-dialog" className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Login Required</DialogTitle>
+            <DialogDescription>
+              You need to log in to search for repositories. This helps avoid
+              rate limiting and provides access to more GitHub data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center pt-4">
+            <Button onClick={login}>
+              <GithubIcon className="mr-2 h-4 w-4" />
+              Login with GitHub
+            </Button>
+          </div>
+        </DialogContent>
+      </DialogPortal>
     </Dialog>
   );
 }

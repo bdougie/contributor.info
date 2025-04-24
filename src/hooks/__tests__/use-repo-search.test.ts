@@ -24,7 +24,7 @@ describe("useRepoSearch", () => {
     vi.mocked(useNavigate).mockReturnValue(mockNavigate);
   });
   
-  it("should show login dialog when not logged in and trying to search", () => {
+  it("should navigate to repo page when not logged in and trying to search", () => {
     // Setup auth mock to simulate not logged in
     vi.mocked(useGitHubAuth).mockReturnValue({
       isLoggedIn: false,
@@ -49,11 +49,11 @@ describe("useRepoSearch", () => {
       result.current.handleSearch(mockEvent);
     });
     
-    // Verify login dialog is shown
-    expect(mockSetShowLoginDialog).toHaveBeenCalledWith(true);
+    // Verify we navigate to the correct path even when not logged in
+    expect(mockNavigate).toHaveBeenCalledWith("/facebook/react");
     
-    // Verify we do not navigate
-    expect(mockNavigate).not.toHaveBeenCalled();
+    // Verify login dialog is NOT shown - this is the new behavior
+    expect(mockSetShowLoginDialog).not.toHaveBeenCalled();
   });
   
   it("should navigate to repo page when logged in and searching", () => {
@@ -88,7 +88,7 @@ describe("useRepoSearch", () => {
     expect(mockSetShowLoginDialog).not.toHaveBeenCalled();
   });
   
-  it("should show login dialog when not logged in and selecting example repo", () => {
+  it("should navigate to repo page when not logged in and selecting example repo", () => {
     // Setup auth mock to simulate not logged in
     vi.mocked(useGitHubAuth).mockReturnValue({
       isLoggedIn: false,
@@ -107,11 +107,11 @@ describe("useRepoSearch", () => {
       result.current.handleSelectExample("kubernetes/kubernetes");
     });
     
-    // Verify login dialog is shown
-    expect(mockSetShowLoginDialog).toHaveBeenCalledWith(true);
+    // Verify we navigate to the repo even when not logged in
+    expect(mockNavigate).toHaveBeenCalledWith("/kubernetes/kubernetes");
     
-    // Verify we do not navigate
-    expect(mockNavigate).not.toHaveBeenCalled();
+    // Verify login dialog is NOT shown - this is the new behavior
+    expect(mockSetShowLoginDialog).not.toHaveBeenCalled();
     
     // Verify input is updated
     expect(result.current.searchInput).toBe("kubernetes/kubernetes");

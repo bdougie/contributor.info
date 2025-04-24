@@ -8,12 +8,14 @@ import RepoView, {
   DistributionRoute,
 } from "@/components/repo-view";
 import Home from "@/components/home";
+import LoginPage from "@/components/login-page";
 
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
       <Router>
         <Routes>
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="/:owner/:repo" element={<RepoView />}>
