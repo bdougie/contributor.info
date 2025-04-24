@@ -1,6 +1,5 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { useDistribution } from '../use-distribution';
 import { ContributionAnalyzer } from '@/lib/contribution-analyzer';
 import type { PullRequest } from '@/lib/types';
 
@@ -67,12 +66,15 @@ describe('useDistribution', () => {
     }
   ];
 
-  // Mock data that ContributionAnalyzer will return
+  // Update the mock distribution to include all required properties
   const mockDistribution = {
+    label: "Contribution Distribution",
+    value: 100,
+    percentage: 100,
     refinement: 25,
-    newStuff: 50,
-    refactoring: 15,
-    maintenance: 10
+    newStuff: 25,
+    refactoring: 25,
+    maintenance: 25
   };
 
   const mockCounts = {

@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, cleanup, render } from "@testing-library/react";
+import { renderHook, cleanup } from "@testing-library/react";
 import { useRepoStats } from "../use-repo-stats";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { fetchPullRequests, fetchDirectCommits } from "@/lib/github";
 import { calculateLotteryFactor } from "@/lib/utils";
-import type { PullRequest, TimeRange } from "@/lib/types";
+import type { PullRequest } from "@/lib/types";
 import React from "react";
 
 // Mock dependencies
@@ -109,6 +109,7 @@ describe("useRepoStats", () => {
         totalPushedCommits: 20,
       },
     ],
+    directCommits: [], // Adding required property for the DirectCommitsData interface
   };
 
   // Mock lottery factor
@@ -155,7 +156,7 @@ describe("useRepoStats", () => {
     try {
       // We need to access the hook directly to trigger the error
       useRepoStats();
-    } catch (error) {
+    } catch (_error) {
       // Just check that some error was thrown
       errorThrown = true;
     }
@@ -173,8 +174,10 @@ describe("useRepoStats", () => {
             loading: false,
             error: null,
           },
-          setStats: vi.fn(),
+          lotteryFactor: null,
+          directCommitsData: null,
           includeBots: false,
+          setIncludeBots: vi.fn(),
         }}
       >
         {children}
@@ -209,8 +212,10 @@ describe("useRepoStats", () => {
             loading: false,
             error: null,
           },
-          setStats: vi.fn(),
+          lotteryFactor: null,
+          directCommitsData: null,
           includeBots: false,
+          setIncludeBots: vi.fn(),
         }}
       >
         {children}
@@ -244,8 +249,10 @@ describe("useRepoStats", () => {
             loading: false,
             error: null,
           },
-          setStats: vi.fn(),
+          lotteryFactor: null,
+          directCommitsData: null,
           includeBots: false,
+          setIncludeBots: vi.fn(),
         }}
       >
         {children}
@@ -254,11 +261,7 @@ describe("useRepoStats", () => {
 
     const { result } = renderHook(() => useRepoStats(), { wrapper });
 
-    const timeRange: TimeRange = {
-      start: "2023-01-01",
-      end: "2023-01-31",
-      label: "January 2023",
-    };
+    const timeRange = "30";
 
     const data = await result.current.fetchRepoData(
       "testorg",

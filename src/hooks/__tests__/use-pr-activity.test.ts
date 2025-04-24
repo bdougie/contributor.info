@@ -21,14 +21,15 @@ describe('use-pr-activity utilities', () => {
 
   beforeEach(() => {
     // Mock Date constructor to always return our fixed date for "now"
-    global.Date = class extends Date {
-      constructor(...args: any[]) {
+    global.Date = class extends originalDate {
+      constructor(...args: unknown[]) {
         if (args.length === 0) {
+          super();
           return mockDate;
         }
-        return new originalDate(...args);
+        super(...(args as []));
       }
-    } as any;
+    } as unknown as typeof Date;
   });
 
   afterEach(() => {

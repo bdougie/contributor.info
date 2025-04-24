@@ -77,6 +77,7 @@ export function useDistribution(pullRequests: PullRequest[]) {
       const newDistribution = ContributionAnalyzer.getDistribution();
       const newCounts = ContributionAnalyzer.getCounts();
       
+      // Use the setState function to update the state
       setDistribution(newDistribution);
       setQuadrantCounts(newCounts);
       

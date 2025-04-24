@@ -103,6 +103,10 @@ describe('ContributionAnalyzer', () => {
   it('should return default distribution when no PRs are analyzed', () => {
     const distribution = ContributionAnalyzer.getDistribution();
     
+    // Check the updated structure matches QuadrantDistribution interface
+    expect(distribution.label).toBe("Contribution Distribution");
+    expect(distribution.value).toBe(0);
+    expect(distribution.percentage).toBe(0);
     expect(distribution.refinement).toBe(25);
     expect(distribution.newStuff).toBe(25);
     expect(distribution.maintenance).toBe(25);
@@ -166,6 +170,9 @@ describe('ContributionAnalyzer', () => {
     const distribution = ContributionAnalyzer.getDistribution();
     
     // Verify percentages
+    expect(distribution.label).toBe("Contribution Distribution");
+    expect(distribution.value).toBe(10); // 10 total PRs
+    expect(distribution.percentage).toBe(100);
     expect(distribution.newStuff).toBe(40);
     expect(distribution.refinement).toBe(20);
     expect(distribution.refactoring).toBe(20);

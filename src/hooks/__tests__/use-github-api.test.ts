@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import nock from 'nock';
 import { useGitHubApi } from '../use-github-api';
 
@@ -241,19 +241,20 @@ describe('useGitHubApi', () => {
     const { result } = renderHook(() => useGitHubApi());
     
     // Use try/catch to test error handling
-    let error;
+    let error: Error | undefined;
     await act(async () => {
       try {
         await result.current.fetchRepository('nonexistent', 'repo');
       } catch (err) {
-        error = err;
+        error = err as Error;
       }
     });
     
     expect(error).toBeInstanceOf(Error);
-    expect((error as Error).message).toContain('GitHub API error: 404 Not Found');
+    expect(error?.message).toContain('GitHub API error: 404 Not Found');
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.error).toBeInstanceOf(Error);
+    expect(result.current.error).not.toBeUndefined();
+    expect(result.current.error instanceof Error).toBe(true);
     expect(result.current.error?.message).toContain('GitHub API error: 404 Not Found');
   });
 
