@@ -39,7 +39,8 @@ export default function RepoView() {
 
   const { showLoginDialog, setShowLoginDialog } = useGitHubAuth();
 
-  const { searchInput, setSearchInput, handleSearch } = useRepoSearch();
+  const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
+    useRepoSearch();
 
   if (stats.loading) {
     return (
@@ -78,19 +79,23 @@ export default function RepoView() {
 
       <Card className="mb-8">
         <CardContent className="pt-6">
-          <form onSubmit={handleSearch} className="flex gap-4">
+          <form onSubmit={handleSearch} className="flex gap-4" role="form">
             <Input
               placeholder="Search another repository (e.g., facebook/react)"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="flex-1"
             />
-            <Button type="submit">
+            <Button
+              type="submit"
+              // Don't disable the button, so it can trigger the login dialog
+              aria-label="Search"
+            >
               <SearchIcon className="mr-2 h-4 w-4" />
               Search
             </Button>
           </form>
-          <ExampleRepos onSelect={setSearchInput} />
+          <ExampleRepos onSelect={handleSelectExample} />
         </CardContent>
       </Card>
 

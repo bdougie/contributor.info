@@ -15,16 +15,27 @@ interface LoginDialogProps {
 }
 
 export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
-  const { login } = useGitHubAuth();
+  const { login, isLoggedIn } = useGitHubAuth();
+
+  // Handle dialog close attempts - only allow close if logged in
+  const handleOpenChange = (newOpen: boolean) => {
+    // If trying to close the dialog and not logged in, prevent closing
+    if (!newOpen && !isLoggedIn) {
+      return;
+    }
+
+    // Otherwise, allow the change
+    onOpenChange(newOpen);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent data-testid="login-dialog" className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Login Required</DialogTitle>
           <DialogDescription>
-            To avoid rate limiting and access more GitHub data, please log in
-            with your GitHub account.
+            You need to log in to search for repositories. This helps avoid rate
+            limiting and provides access to more GitHub data.
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-center pt-4">
