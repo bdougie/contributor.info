@@ -15,6 +15,9 @@ export function ExampleRepos({ onSelect }: ExampleReposProps) {
 
   return (
     <div className="flex flex-wrap gap-2 mt-4 w-full">
+      <div className="w-full text-sm text-muted-foreground mb-1">
+        Popular examples:
+      </div>
       {examples.map((example) => (
         <Button
           key={example}

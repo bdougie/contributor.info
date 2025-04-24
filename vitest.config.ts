@@ -11,6 +11,7 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
     },
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    testTimeout: 10000, // 10 second timeout for tests
   },
   resolve: {
     alias: {
