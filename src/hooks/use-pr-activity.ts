@@ -25,8 +25,9 @@ export function usePRActivity(pullRequests: PullRequest[]) {
 
       // Process pull requests
       pullRequests.forEach((pr) => {
-        const repoUrl = pr.html_url.split("/pull/")[0];
-        const [owner, repo] = repoUrl.split("github.com/")[1].split("/");
+        const repoUrl = pr.html_url?.split("/pull/")[0] || `https://github.com/${pr.repository_owner}/${pr.repository_name}`;
+        const owner = pr.repository_owner || (repoUrl.split("github.com/")[1]?.split("/")[0] || "");
+        const repo = pr.repository_name || (repoUrl.split("github.com/")[1]?.split("/")[1] || "");
 
         // Add PR creation activity
         processedActivities.push({
@@ -41,7 +42,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
             id: pr.id.toString(),
             number: pr.number,
             title: pr.title,
-            url: pr.html_url,
+            url: pr.html_url || `https://github.com/${owner}/${repo}/pull/${pr.number}`,
           },
           repository: {
             id: repo,
@@ -67,7 +68,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
               id: pr.id.toString(),
               number: pr.number,
               title: pr.title,
-              url: pr.html_url,
+              url: pr.html_url || `https://github.com/${owner}/${repo}/pull/${pr.number}`,
             },
             repository: {
               id: repo,
@@ -91,7 +92,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
               id: pr.id.toString(),
               number: pr.number,
               title: pr.title,
-              url: pr.html_url,
+              url: pr.html_url || `https://github.com/${owner}/${repo}/pull/${pr.number}`,
             },
             repository: {
               id: repo,
@@ -99,13 +100,13 @@ export function usePRActivity(pullRequests: PullRequest[]) {
               owner: owner,
               url: repoUrl,
             },
-            timestamp: formatTimestamp(pr.closed_at),
-            createdAt: new Date(pr.closed_at),
+            timestamp: formatTimestamp(pr.closed_at || ""),
+            createdAt: new Date(pr.closed_at || ""),
           });
         }
 
         // Add reviews if available
-        if (pr.reviews) {
+        if (pr.reviews && pr.reviews.length > 0) {
           pr.reviews.forEach((review, index) => {
             if (
               review.state === "APPROVED" ||
@@ -123,7 +124,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
                   id: pr.id.toString(),
                   number: pr.number,
                   title: pr.title,
-                  url: pr.html_url,
+                  url: pr.html_url || `https://github.com/${owner}/${repo}/pull/${pr.number}`,
                 },
                 repository: {
                   id: repo,
@@ -139,7 +140,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
         }
 
         // Add comments if available
-        if (pr.comments) {
+        if (pr.comments && pr.comments.length > 0) {
           pr.comments.forEach((comment, index) => {
             processedActivities.push({
               id: `comment-${pr.id}-${index}`,
@@ -153,7 +154,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
                 id: pr.id.toString(),
                 number: pr.number,
                 title: pr.title,
-                url: pr.html_url,
+                url: pr.html_url || `https://github.com/${owner}/${repo}/pull/${pr.number}`,
               },
               repository: {
                 id: repo,

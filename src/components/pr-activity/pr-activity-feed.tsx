@@ -16,11 +16,7 @@ export function PullRequestActivityFeed({
   error = null,
   selectedTypes,
 }: PullRequestActivityFeedProps) {
-  const filteredActivities = activities.filter((activity) =>
-    selectedTypes.includes(activity.type)
-  );
-
-  if (loading) {
+  if (loading && activities.length === 0) {
     return (
       <div className="flex justify-center items-center py-8">
         <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
@@ -36,7 +32,7 @@ export function PullRequestActivityFeed({
     );
   }
 
-  if (filteredActivities.length === 0) {
+  if (activities.length === 0) {
     return (
       <div className="py-8 text-center text-muted-foreground">
         <p>No PR activity found</p>
@@ -46,9 +42,14 @@ export function PullRequestActivityFeed({
 
   return (
     <div className="space-y-2">
-      {filteredActivities.map((activity) => (
+      {activities.map((activity) => (
         <ActivityItem key={activity.id} activity={activity} />
       ))}
+      {loading && activities.length > 0 && (
+        <div className="flex justify-center items-center py-4">
+          <Loader2 className="animate-spin h-6 w-6 text-muted-foreground" />
+        </div>
+      )}
     </div>
   );
 }
