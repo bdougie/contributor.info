@@ -9,6 +9,23 @@ import RepoView from "../repo-view";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { useRepoSearch } from "@/hooks/use-repo-search";
 
+// Mock problematic components to avoid ESM/CJS issues
+vi.mock("../contributions", () => ({
+  default: () => (
+    <div data-testid="mocked-contributions">Mocked Contributions</div>
+  ),
+}));
+
+vi.mock("../distribution", () => ({
+  default: () => (
+    <div data-testid="mocked-distribution">Mocked Distribution</div>
+  ),
+}));
+
+vi.mock("../pr-activity", () => ({
+  default: () => <div data-testid="mocked-pr-activity">Mocked PR Activity</div>,
+}));
+
 // Mock the hooks
 vi.mock("@/hooks/use-github-auth", () => ({
   useGitHubAuth: vi.fn(),
