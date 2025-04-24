@@ -3,7 +3,8 @@ import type { PullRequest } from './types';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
-async function fetchUserOrganizations(username: string, headers: HeadersInit): Promise<{ login: string; avatar_url: string; }[]> {
+// Export the fetchUserOrganizations function to fix the missing export error
+export async function fetchUserOrganizations(username: string, headers: HeadersInit): Promise<{ login: string; avatar_url: string; }[]> {
   try {
     const response = await fetch(
       `${GITHUB_API_BASE}/users/${username}/orgs`,
