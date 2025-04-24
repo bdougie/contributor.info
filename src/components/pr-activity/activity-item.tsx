@@ -1,4 +1,4 @@
-import { PullRequestActivity } from "@/types/pr-activity";
+import { PullRequestActivity } from "@/lib/types";
 import { BotIcon } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {

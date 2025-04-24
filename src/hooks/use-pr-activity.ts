@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { PullRequestActivity } from "@/types/pr-activity";
-import type { PullRequest } from "@/lib/types";
+import { PullRequestActivity, PullRequest } from "@/lib/types";
 
 function formatTimestamp(date: string): string {
   const now = new Date();
