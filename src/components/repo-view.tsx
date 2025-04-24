@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate, Outlet } from "react-router-dom";
 import {
   Card,
@@ -12,9 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchIcon } from "lucide-react";
 import { LoginDialog } from "./login-dialog";
-import { supabase } from "@/lib/supabase";
-import { fetchPullRequests, fetchDirectCommits } from "@/lib/github";
-import { calculateLotteryFactor } from "@/lib/utils";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import LotteryFactor from "./lottery-factor";
@@ -22,94 +19,27 @@ import Contributions from "./contributions";
 import Distribution from "./distribution";
 import PRActivity from "./pr-activity";
 import { ExampleRepos } from "./example-repos";
-import type {
-  RepoStats,
-  LotteryFactor as LotteryFactorType,
-  DirectCommitsData,
-} from "@/lib/types";
+import { useRepoData } from "@/hooks/use-repo-data";
+import { useGitHubAuth } from "@/hooks/use-github-auth";
+import { useRepoSearch } from "@/hooks/use-repo-search";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
   const navigate = useNavigate();
   const timeRange = useTimeRangeStore((state) => state.timeRange);
-  const [stats, setStats] = useState<RepoStats>({
-    pullRequests: [],
-    loading: true,
-    error: null,
-  });
-  const [searchInput, setSearchInput] = useState("");
-  const [showLoginDialog, setShowLoginDialog] = useState(false);
-  const [lotteryFactor, setLotteryFactor] = useState<LotteryFactorType | null>(
-    null
-  );
-  const [directCommitsData, setDirectCommitsData] =
-    useState<DirectCommitsData | null>(null);
   const [includeBots, setIncludeBots] = useState(false);
 
-  useEffect(() => {
-    // Check login status
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const loggedIn = !!session;
-      if (loggedIn && showLoginDialog) {
-        setShowLoginDialog(false);
-      }
-    });
+  // Use our custom hooks
+  const { stats, lotteryFactor, directCommitsData } = useRepoData(
+    owner,
+    repo,
+    timeRange,
+    includeBots
+  );
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      const loggedIn = !!session;
-      if (loggedIn && showLoginDialog) {
-        setShowLoginDialog(false);
-      }
-    });
+  const { showLoginDialog, setShowLoginDialog } = useGitHubAuth();
 
-    return () => subscription.unsubscribe();
-  }, [showLoginDialog]);
-
-  useEffect(() => {
-    async function loadPRData() {
-      if (!owner || !repo) return;
-
-      try {
-        setStats((prev) => ({ ...prev, loading: true, error: null }));
-
-        // Fetch pull requests and direct commits in parallel
-        const [prs, directCommits] = await Promise.all([
-          fetchPullRequests(owner, repo, timeRange),
-          fetchDirectCommits(owner, repo, timeRange),
-        ]);
-
-        setStats({ pullRequests: prs, loading: false, error: null });
-        setLotteryFactor(calculateLotteryFactor(prs, timeRange, includeBots));
-        setDirectCommitsData({
-          hasYoloCoders: directCommits.hasYoloCoders,
-          yoloCoderStats: directCommits.yoloCoderStats,
-        });
-      } catch (error) {
-        setStats((prev) => ({
-          ...prev,
-          loading: false,
-          error:
-            error instanceof Error ? error.message : "Failed to fetch data",
-        }));
-      }
-    }
-
-    loadPRData();
-  }, [owner, repo, timeRange, includeBots]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const match = searchInput.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
-
-    if (match) {
-      const [, newOwner, newRepo] = match;
-      navigate(`/${newOwner}/${newRepo}`);
-    }
-  };
+  const { searchInput, setSearchInput, handleSearch } = useRepoSearch();
 
   if (stats.loading) {
     return (

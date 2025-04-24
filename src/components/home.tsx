@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,23 +10,11 @@ import {
 } from "@/components/ui/card";
 import { SearchIcon } from "lucide-react";
 import { ExampleRepos } from "./example-repos";
+import { useRepoSearch } from "@/hooks/use-repo-search";
 
 export default function Home() {
-  const navigate = useNavigate();
-  const [repoUrl, setRepoUrl] = useState("");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Extract owner and repo from input
-    // Supports both full URLs and owner/repo format
-    const match = repoUrl.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
-
-    if (match) {
-      const [, owner, repo] = match;
-      navigate(`/${owner}/${repo}`);
-    }
-  };
+  const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
+    useRepoSearch();
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
@@ -42,11 +29,11 @@ export default function Home() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="flex gap-4">
+          <form onSubmit={handleSearch} className="flex gap-4">
             <Input
               placeholder="e.g., etcd-io/etcd or https://github.com/etcd-io/etcd"
-              value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="flex-1"
             />
             <Button type="submit">
@@ -54,7 +41,7 @@ export default function Home() {
               Analyze
             </Button>
           </form>
-          <ExampleRepos onSelect={setRepoUrl} />
+          <ExampleRepos onSelect={handleSelectExample} />
         </CardContent>
       </Card>
     </div>
