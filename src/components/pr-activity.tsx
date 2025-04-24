@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { PullRequestActivityFeed } from "./pr-activity/pr-activity-feed";
 import { usePRActivity } from "@/hooks/use-pr-activity";
+import { PullRequestActivity } from "@/types/pr-activity";
 
 export default function PRActivity() {
   const { stats } = useContext(RepoStatsContext);
@@ -20,11 +21,28 @@ export default function PRActivity() {
     Array<"opened" | "closed" | "merged" | "reviewed" | "commented">
   >(["opened", "merged", "commented"]);
   const [visibleCount, setVisibleCount] = useState(15);
+  const [includeBots, setIncludeBots] = useState(true);
+  const [hasBots, setHasBots] = useState(false);
 
-  const { activities, loading, error } = usePRActivity(stats.pullRequests);
+  const {
+    activities: allActivities,
+    loading,
+    error,
+  } = usePRActivity(stats.pullRequests);
 
-  const filteredActivities = activities.filter((activity) =>
-    selectedTypes.includes(activity.type)
+  // Check if there are any bot activities
+  useEffect(() => {
+    const botActivities = allActivities.some(
+      (activity) => activity.user.isBot === true
+    );
+    setHasBots(botActivities);
+  }, [allActivities]);
+
+  // Filter activities based on type and bot settings
+  const filteredActivities = allActivities.filter(
+    (activity) =>
+      selectedTypes.includes(activity.type) &&
+      (includeBots || activity.user.isBot !== true)
   );
 
   const visibleActivities = filteredActivities.slice(0, visibleCount);
@@ -37,7 +55,7 @@ export default function PRActivity() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>PR Activity Feed</CardTitle>
+        <CardTitle>Pull Request Activity Feed</CardTitle>
         <CardDescription>
           Track detailed activity on pull requests in this repository
         </CardDescription>
@@ -124,6 +142,18 @@ export default function PRActivity() {
               Commented
             </Label>
           </div>
+          {hasBots && (
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="filter-bots"
+                checked={includeBots}
+                onCheckedChange={setIncludeBots}
+              />
+              <Label htmlFor="filter-bots" className="text-sm">
+                Show Bots
+              </Label>
+            </div>
+          )}
         </div>
 
         <div className="mb-2 text-sm text-muted-foreground">
