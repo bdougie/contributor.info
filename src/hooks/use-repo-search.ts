@@ -10,7 +10,7 @@ import { useGitHubAuth } from './use-github-auth';
 export function useRepoSearch({ isHomeView = false } = {}) {
   const [searchInput, setSearchInput] = useState('');
   const navigate = useNavigate();
-  const { isLoggedIn, setShowLoginDialog } = useGitHubAuth();
+  const { isLoggedIn } = useGitHubAuth();
 
   /**
    * Handles form submission for repository search
@@ -29,7 +29,7 @@ export function useRepoSearch({ isHomeView = false } = {}) {
       if (!isHomeView && !isLoggedIn) {
         // Store intended destination to navigate after login
         localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
-        setShowLoginDialog(true);
+        navigate('/login');
         return;
       }
       
@@ -56,7 +56,7 @@ export function useRepoSearch({ isHomeView = false } = {}) {
       if (!isHomeView && !isLoggedIn) {
         // Store intended destination to navigate after login
         localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
-        setShowLoginDialog(true);
+        navigate('/login');
         return;
       }
       
