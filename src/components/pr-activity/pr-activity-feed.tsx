@@ -1,4 +1,4 @@
-import React from "react";
+// Remove React import as it's not needed with modern JSX transform
 import { ActivityItem } from "./activity-item";
 import { PullRequestActivity, ActivityType } from "@/types/pr-activity";
 import { Loader2 } from "lucide-react";
@@ -7,14 +7,13 @@ export interface PullRequestActivityFeedProps {
   activities?: PullRequestActivity[];
   loading?: boolean;
   error?: Error | null;
-  selectedTypes: ActivityType[];
+  selectedTypes: ActivityType[]; // This is passed from the parent but not used in this component
 }
 
 export function PullRequestActivityFeed({
   activities = [],
   loading = false,
   error = null,
-  selectedTypes,
 }: PullRequestActivityFeedProps) {
   if (loading && activities.length === 0) {
     return (

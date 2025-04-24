@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import {
   Card,
   CardContent,
@@ -7,13 +7,12 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
-import { useContext } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { PullRequestActivityFeed } from "./pr-activity/pr-activity-feed";
 import { usePRActivity } from "@/hooks/use-pr-activity";
-import { PullRequestActivity } from "@/types/pr-activity";
+// Remove the unused PullRequestActivity import
 
 export default function PRActivity() {
   const { stats } = useContext(RepoStatsContext);

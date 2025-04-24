@@ -1,13 +1,7 @@
-import React from "react";
+// Remove React import as it's not needed with modern JSX transform
 import { PullRequestActivity } from "@/types/pr-activity";
-import {
-  GitPullRequestIcon,
-  CheckCircleIcon,
-  GitMergeIcon,
-  MessageSquareIcon,
-  ClipboardCheckIcon,
-  BotIcon,
-} from "lucide-react";
+// Remove unused icon imports
+import { BotIcon } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -23,20 +17,21 @@ interface ActivityItemProps {
 export function ActivityItem({ activity }: ActivityItemProps) {
   const { type, user, pullRequest, repository, timestamp } = activity;
 
-  const getActivityIcon = () => {
+  // This function is being used in the component
+  const getActivityColor = () => {
     switch (type) {
       case "opened":
-        return <GitPullRequestIcon className="h-4 w-4 text-emerald-500" />;
+        return "bg-emerald-500";
       case "closed":
-        return <CheckCircleIcon className="h-4 w-4 text-red-500" />;
+        return "bg-red-500";
       case "merged":
-        return <GitMergeIcon className="h-4 w-4 text-purple-500" />;
+        return "bg-purple-500";
       case "reviewed":
-        return <ClipboardCheckIcon className="h-4 w-4 text-blue-500" />;
+        return "bg-blue-500";
       case "commented":
-        return <MessageSquareIcon className="h-4 w-4 text-gray-500" />;
+        return "bg-gray-500";
       default:
-        return <GitPullRequestIcon className="h-4 w-4" />;
+        return "bg-gray-400";
     }
   };
 
@@ -54,23 +49,6 @@ export function ActivityItem({ activity }: ActivityItemProps) {
         return "commented on";
       default:
         return "updated";
-    }
-  };
-
-  const getActivityColor = () => {
-    switch (type) {
-      case "opened":
-        return "bg-emerald-500";
-      case "closed":
-        return "bg-red-500";
-      case "merged":
-        return "bg-purple-500";
-      case "reviewed":
-        return "bg-blue-500";
-      case "commented":
-        return "bg-gray-500";
-      default:
-        return "bg-gray-400";
     }
   };
 
