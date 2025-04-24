@@ -1,6 +1,6 @@
 // Remove React import as it's not needed with modern JSX transform
 import { ActivityItem } from "./activity-item";
-import { PullRequestActivity, ActivityType } from "@/types/pr-activity";
+import { PullRequestActivity, ActivityType } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 
 export interface PullRequestActivityFeedProps {
