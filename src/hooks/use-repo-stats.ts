@@ -1,7 +1,7 @@
 import { useContext, useCallback } from 'react';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
 import type { PullRequest, TimeRange } from '@/lib/types';
-import { fetchPullRequests, fetchDirectCommits } from '@/lib/github';
+import { fetchPullRequests, fetchDirectCommits } from '@/services/github';
 import { calculateLotteryFactor } from '@/lib/utils';
 
 /**

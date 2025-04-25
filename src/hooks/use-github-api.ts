@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase-client';
 
 // Base URL for GitHub API
 const GITHUB_API_BASE = 'https://api.github.com';

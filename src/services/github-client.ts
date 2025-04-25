@@ -1,5 +1,5 @@
-import { supabase } from './supabase';
-import type { PullRequest } from './types';
+import { supabase } from './supabase-client';
+import type { PullRequest } from '../lib/types';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
