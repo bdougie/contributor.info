@@ -14,18 +14,14 @@ export function InsightsDrawer() {
   const [error, setError] = useState<string | null>(null);
   const { stats } = useContext(RepoStatsContext);
 
-  // Check if we have PRs to analyze
-  const hasPullRequests = stats.pullRequests && stats.pullRequests.length > 0;
-
   const generateInsights = async () => {
-    if (!hasPullRequests) {
-      setError('No pull requests available for analysis');
-      return;
-    }
-
     setLoading(true);
     setError(null);
     try {
+      if (!stats.pullRequests || stats.pullRequests.length === 0) {
+        throw new Error('No pull requests available for analysis');
+      }
+
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/insights`;
       
       const response = await fetch(apiUrl, {
@@ -67,14 +63,12 @@ export function InsightsDrawer() {
           variant="outline" 
           size="icon"
           className="fixed bottom-4 right-4 h-12 w-12 rounded-full shadow-lg"
-          disabled={!hasPullRequests || loading}
           onClick={() => {
             setIsOpen(true);
-            if (!insights && !loading && hasPullRequests) {
+            if (!insights && !loading) {
               generateInsights();
             }
           }}
-          title={!hasPullRequests ? "No pull requests available for analysis" : "Generate insights"}
         >
           <MessageSquare className="h-6 w-6" />
         </Button>
@@ -97,15 +91,13 @@ export function InsightsDrawer() {
                   <p className="text-sm text-muted-foreground mt-1">{error}</p>
                 </div>
               </div>
-              {hasPullRequests && (
-                <Button 
-                  variant="outline" 
-                  onClick={generateInsights}
-                  className="w-full"
-                >
-                  Try Again
-                </Button>
-              )}
+              <Button 
+                variant="outline" 
+                onClick={generateInsights}
+                className="w-full"
+              >
+                Try Again
+              </Button>
             </div>
           ) : insights ? (
             <div className="prose dark:prose-invert max-w-none">
@@ -113,11 +105,7 @@ export function InsightsDrawer() {
             </div>
           ) : (
             <div className="text-muted-foreground">
-              {hasPullRequests ? (
-                "No insights available. Click generate to analyze pull requests."
-              ) : (
-                "No pull requests available to analyze. Pull requests are needed to generate insights."
-              )}
+              No insights available. Click generate to analyze pull requests.
             </div>
           )}
         </ScrollArea>
