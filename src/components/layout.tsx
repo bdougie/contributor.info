@@ -9,8 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/services/supabase-client";
 import { useTimeRangeStore } from "@/lib/time-range-store";
+import { AuthDebugger } from "./auth-debugger";
 
 export default function Layout() {
   const { timeRange, setTimeRange } = useTimeRangeStore();
@@ -81,6 +82,9 @@ export default function Layout() {
           </a>
         </div>
       </footer>
+
+      {/* Authentication debugger */}
+      {import.meta.env.DEV && <AuthDebugger />}
     </div>
   );
 }

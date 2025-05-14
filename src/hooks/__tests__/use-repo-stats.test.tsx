@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, cleanup } from "@testing-library/react";
 import { useRepoStats } from "../use-repo-stats";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
-import { fetchPullRequests, fetchDirectCommits } from "@/lib/github";
+import { fetchPullRequests, fetchDirectCommits } from "@/services/github";
 import { calculateLotteryFactor } from "@/lib/utils";
 import type { PullRequest } from "@/lib/types";
 import React from "react";
 
 // Mock dependencies
-vi.mock("@/lib/github", () => ({
+vi.mock("@/services/github", () => ({
   fetchPullRequests: vi.fn(),
   fetchDirectCommits: vi.fn(),
 }));

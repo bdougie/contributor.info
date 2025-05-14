@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import { BrowserRouter } from "react-router-dom";
+import { useEffect } from "react";
 import RepoView from "../repo-view";
 
 // Import the hooks before mocking them
@@ -40,6 +41,8 @@ vi.mock("@/hooks/use-repo-data", () => ({
     },
     lotteryFactor: null,
     directCommitsData: null,
+    includeBots: false,
+    setIncludeBots: vi.fn(),
   })),
 }));
 
@@ -47,9 +50,26 @@ vi.mock("@/hooks/use-repo-data", () => ({
 const mockNavigate = vi.fn();
 const mockSetSearchInput = vi.fn();
 const mockSetShowLoginDialog = vi.fn();
+const mockLogin = vi.fn();
+const mockLogout = vi.fn();
 
 vi.mock("@/hooks/use-repo-search", () => ({
   useRepoSearch: vi.fn(),
+}));
+
+vi.mock("@/services/supabase-client", () => ({
+  supabase: {
+    auth: {
+      getSession: vi
+        .fn()
+        .mockResolvedValue({ data: { session: null }, error: null }),
+      signInWithOAuth: vi.fn(),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      }),
+    },
+  },
 }));
 
 vi.mock("react-router-dom", async () => {
@@ -221,5 +241,163 @@ describe("Login behavior for repository search", () => {
     // Since RepoView doesn't auto-redirect anymore with our fix,
     // we should not have any navigation occurring
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+});
+
+// Add new test suite for login and redirect flow
+describe("Login and redirect flow", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+
+    // Set up default mocks
+    vi.mocked(useGitHubAuth).mockReturnValue({
+      isLoggedIn: false,
+      loading: false,
+      login: mockLogin,
+      logout: mockLogout,
+      showLoginDialog: false,
+      setShowLoginDialog: mockSetShowLoginDialog,
+    });
+
+    vi.mocked(useRepoSearch).mockReturnValue({
+      searchInput: "test/repo",
+      setSearchInput: mockSetSearchInput,
+      handleSearch: vi.fn((e) => {
+        e.preventDefault();
+        mockNavigate("/test/repo");
+      }),
+      handleSelectExample: vi.fn(),
+    });
+  });
+
+  it("stores intended destination in localStorage when navigating to login page", async () => {
+    // Initially not logged in, trying to access a protected route
+    const originalPath = "/kubernetes/kubernetes";
+    localStorage.setItem("redirectAfterLogin", originalPath);
+
+    // Render repo view component
+    render(
+      <BrowserRouter>
+        <RepoView />
+      </BrowserRouter>
+    );
+
+    // Simulate user clicking login button
+    const loginButton = screen.getByRole("button", {
+      name: /login with github/i,
+    });
+    await userEvent.click(loginButton);
+
+    // Should have called the login function from useGitHubAuth
+    expect(mockLogin).toHaveBeenCalled();
+
+    // The redirect path should remain in localStorage for after auth
+    expect(localStorage.getItem("redirectAfterLogin")).toBe(originalPath);
+  });
+
+  it("redirects to intended destination after successful login", async () => {
+    // Setup: Store intended destination
+    const intendedDestination = "/facebook/react";
+    localStorage.setItem("redirectAfterLogin", intendedDestination);
+
+    // Update the mock to simulate a successful login
+    const mockAuthStateChange = vi.fn();
+    let authCallback: any;
+
+    vi.mocked(useGitHubAuth).mockImplementation(() => {
+      // Mock the auth state change listener being triggered
+      useEffect(() => {
+        // Simulate auth state change after login
+        setTimeout(() => {
+          if (authCallback) {
+            authCallback("SIGNED_IN", { user: { id: "test-user" } });
+          }
+        }, 100);
+      }, []);
+
+      return {
+        isLoggedIn: true, // Now logged in
+        loading: false,
+        login: mockLogin,
+        logout: mockLogout,
+        showLoginDialog: false,
+        setShowLoginDialog: mockSetShowLoginDialog,
+      };
+    });
+
+    // Mock supabase auth state change
+    vi.mocked(supabase.auth.onAuthStateChange).mockImplementation(
+      (callback) => {
+        authCallback = callback;
+        return {
+          data: {
+            subscription: { unsubscribe: vi.fn() },
+          },
+        };
+      }
+    );
+
+    // Render the component
+    render(
+      <BrowserRouter>
+        <RepoView />
+      </BrowserRouter>
+    );
+
+    // Wait for the auth state change to be processed
+    await waitFor(() => {
+      // Verify navigation to intended destination
+      expect(mockNavigate).toHaveBeenCalledWith(intendedDestination);
+      // Verify localStorage was cleared
+      expect(localStorage.getItem("redirectAfterLogin")).toBeNull();
+    });
+  });
+
+  it("signs out successfully when logout is called", async () => {
+    // Setup: Initially logged in
+    vi.mocked(useGitHubAuth).mockReturnValue({
+      isLoggedIn: true,
+      loading: false,
+      login: mockLogin,
+      logout: mockLogout,
+      showLoginDialog: false,
+      setShowLoginDialog: mockSetShowLoginDialog,
+    });
+
+    // Render with authenticated state
+    render(
+      <BrowserRouter>
+        <RepoView />
+      </BrowserRouter>
+    );
+
+    // Find and click the logout button/option
+    // Note: This assumes the RepoView has access to logout functionality
+    // If it's in a different component, you might need to adjust this test
+    const logoutButton = screen.getByRole("button", { name: /logout/i });
+    await userEvent.click(logoutButton);
+
+    // Verify logout was called
+    expect(mockLogout).toHaveBeenCalled();
+
+    // After logout, we'd update the mock to show logged out state
+    vi.mocked(useGitHubAuth).mockReturnValue({
+      isLoggedIn: false,
+      loading: false,
+      login: mockLogin,
+      logout: mockLogout,
+      showLoginDialog: false,
+      setShowLoginDialog: mockSetShowLoginDialog,
+    });
+
+    // Wait for the auth state to update and verify appropriate UI changes
+    await waitFor(() => {
+      // Verify login button is now present
+      const loginButtonAfterLogout = screen.getByRole("button", {
+        name: /login with github/i,
+      });
+      expect(loginButtonAfterLogout).toBeInTheDocument();
+    });
   });
 });

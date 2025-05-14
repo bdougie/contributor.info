@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fetchPullRequests, fetchDirectCommits } from '@/lib/github';
+import { fetchPullRequests, fetchDirectCommits } from '@/services/github';
 import { calculateLotteryFactor } from '@/lib/utils';
 import type { RepoStats, LotteryFactor, DirectCommitsData, TimeRange } from '@/lib/types';
 

@@ -9,11 +9,15 @@ import RepoView, {
 } from "@/components/repo-view";
 import Home from "@/components/home";
 import LoginPage from "@/components/login-page";
+import { AuthCallbackHandler } from "@/components/auth-callback-handler";
 
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
       <Router>
+        {/* Authentication callback handler - processes auth redirects */}
+        <AuthCallbackHandler />
+
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<Layout />}>

@@ -152,3 +152,37 @@ export interface QuadrantDistribution {
   refactoring?: number;
   maintenance?: number;
 }
+
+// Supabase Database Types
+export interface Database {
+  public: {
+    Tables: {
+      github_activity_cache: {
+        Row: {
+          repo: string;
+          activity_data: PullRequestActivity[];
+          updated_at: string;
+        };
+        Insert: {
+          repo: string;
+          activity_data: PullRequestActivity[];
+          updated_at?: string;
+        };
+        Update: {
+          repo?: string;
+          activity_data?: PullRequestActivity[];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+    };
+    Views: Record<string, {
+      Row: Record<string, unknown>;
+      Relationships: [];
+    }>;
+    Functions: Record<string, {
+      Args: Record<string, unknown>;
+      Returns: unknown;
+    }>;
+  };
+}
