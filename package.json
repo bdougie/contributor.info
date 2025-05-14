@@ -44,6 +44,7 @@
     "@radix-ui/react-toggle-group": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.1.2",
     "@supabase/supabase-js": "^2.39.8",
+    "@tailwindcss/typography": "^0.5.16",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -70,7 +71,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.11.1",
-    "@tailwindcss/typography": "^0.5.10",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",

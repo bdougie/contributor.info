@@ -1,105 +1,105 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.39.8';
-import { Configuration, OpenAIApi } from 'npm:openai@4.28.0';
+import { Supabase } from '@supabase/supabase-js';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { corsHeaders } from '../_shared/cors.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
 interface PullRequest {
   title: string;
-  description?: string;
   state: string;
   created_at: string;
-  merged_at?: string;
+  merged_at: string | null;
   number: number;
-  url: string;
+  html_url: string;
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const openaiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiKey) {
-      throw new Error('OpenAI API key is not configured');
+    const { pullRequests } = await req.json();
+
+    if (!openaiApiKey) {
+      throw new Error('Missing OpenAI API key');
     }
 
-    const { pullRequests, type } = await req.json();
+    // Separate open and merged PRs
+    const openPRs = pullRequests.filter((pr: PullRequest) => pr.state === 'open');
+    const mergedPRs = pullRequests.filter((pr: PullRequest) => pr.merged_at !== null);
 
-    // Initialize OpenAI
-    const openai = new OpenAIApi(
-      new Configuration({
-        apiKey: openaiKey,
-      })
-    );
+    // Format PRs for the prompt
+    const formatPRList = (prs: PullRequest[]) => {
+      return prs.map(pr => `#${pr.number}: ${pr.title} (${pr.html_url})`).join('\n');
+    };
 
-    // Filter PRs based on type (open or merged)
-    const filteredPRs = pullRequests.filter((pr: PullRequest) => 
-      type === 'open' ? pr.state === 'open' : pr.merged_at !== null
-    );
+    const prompt = `Analyze these GitHub Pull Requests and provide insights:
 
-    if (filteredPRs.length === 0) {
-      return new Response(
-        JSON.stringify({ 
-          message: `No ${type} pull requests found to analyze.`
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
+Open Pull Requests:
+${formatPRList(openPRs)}
 
-    // Create PR summaries for context
-    const prSummaries = filteredPRs.map((pr: PullRequest) => `
-      #${pr.number}: ${pr.title}
-      ${pr.description ? `Description: ${pr.description}\n` : ''}
-      State: ${pr.state}
-      Created: ${new Date(pr.created_at).toLocaleDateString()}
-      ${pr.merged_at ? `Merged: ${new Date(pr.merged_at).toLocaleDateString()}` : ''}
-      URL: ${pr.url}
-    `).join('\n\n');
+Recently Merged Pull Requests:
+${formatPRList(mergedPRs.slice(0, 5))}
 
-    // Generate insights using GPT-4
-    const prompt = type === 'open' 
-      ? `Analyze these open pull requests and provide insights about features in progress. Focus on identifying themes, potential impacts, and development patterns. Format the response in markdown:\n\n${prSummaries}`
-      : `Analyze these recently merged pull requests and summarize the completed features and improvements. Focus on identifying themes, impacts, and development patterns. Format the response in markdown:\n\n${prSummaries}`;
+Provide a markdown-formatted analysis that includes:
+1. Summary of features in progress (from open PRs)
+2. Summary of recently completed work (from merged PRs)
+3. Identify any patterns or trends
+4. Highlight any potential areas of focus
 
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-4-1106-preview',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert code reviewer and technical analyst. Provide clear, concise insights about pull requests in markdown format. Focus on technical impact, patterns, and business value.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
+Format the response in clear markdown sections.`;
+
+    // Call OpenAI API
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4-1106-preview',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert software development analyst. Analyze GitHub pull requests and provide clear, actionable insights.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+      }),
     });
 
-    const insights = completion.data.choices[0].message?.content || 'No insights generated.';
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const insights = data.choices[0].message.content;
 
     return new Response(
       JSON.stringify({ insights }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      },
     );
   } catch (error) {
-    console.error('Error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'An unexpected error occurred',
-        details: error instanceof Error ? error.stack : undefined
-      }),
+      JSON.stringify({ error: error.message }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      },
     );
   }
 });

@@ -1,26 +1,26 @@
-import { useState } from 'react';
-import { useParams, useNavigate, Outlet } from 'react-router-dom';
+import { useState } from "react";
+import { useParams, useNavigate, Outlet } from "react-router-dom";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SearchIcon } from 'lucide-react';
-import { useTimeRangeStore } from '@/lib/time-range-store';
-import { RepoStatsProvider } from '@/lib/repo-stats-context';
-import LotteryFactor from './lottery-factor';
-import Contributions from './contributions';
-import Distribution from './distribution';
-import PRActivity from './pr-activity';
-import { ExampleRepos } from './example-repos';
-import { useRepoData } from '@/hooks/use-repo-data';
-import { useRepoSearch } from '@/hooks/use-repo-search';
-import { InsightsDrawer } from './insights-drawer';
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SearchIcon } from "lucide-react";
+import { useTimeRangeStore } from "@/lib/time-range-store";
+import { RepoStatsProvider } from "@/lib/repo-stats-context";
+import LotteryFactor from "./lottery-factor";
+import Contributions from "./contributions";
+import Distribution from "./distribution";
+import PRActivity from "./pr-activity";
+import { ExampleRepos } from "./example-repos";
+import { useRepoData } from "@/hooks/use-repo-data";
+import { useRepoSearch } from "@/hooks/use-repo-search";
+import { InsightsDrawer } from "./insights-drawer";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
