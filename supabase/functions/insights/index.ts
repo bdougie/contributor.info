@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.39.1';
 import { corsHeaders } from '../_shared/cors.ts';
 
-const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+const openaiApiKey = Deno.env.get('VITE_OPENAI_API_KEY');
 
 interface PullRequest {
   title: string;
