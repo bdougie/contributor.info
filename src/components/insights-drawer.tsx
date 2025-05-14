@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, MessageSquare } from 'lucide-react';
+import { Loader2, MessageSquare, AlertCircle } from 'lucide-react';
 import { useContext } from 'react';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
 import ReactMarkdown from 'react-markdown';
@@ -18,6 +18,10 @@ export function InsightsDrawer() {
     setLoading(true);
     setError(null);
     try {
+      if (!stats.pullRequests || stats.pullRequests.length === 0) {
+        throw new Error('No pull requests available for analysis');
+      }
+
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/insights`;
       
       const response = await fetch(apiUrl, {
@@ -32,7 +36,8 @@ export function InsightsDrawer() {
       });
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`);
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `API error: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -43,7 +48,8 @@ export function InsightsDrawer() {
       
       setInsights(data.insights);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate insights');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate insights';
+      setError(errorMessage);
       console.error('Error generating insights:', err);
     } finally {
       setLoading(false);
@@ -77,12 +83,18 @@ export function InsightsDrawer() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : error ? (
-            <div className="text-destructive space-y-2">
-              <p>Error: {error}</p>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 text-destructive">
+                <AlertCircle className="h-5 w-5 mt-0.5" />
+                <div>
+                  <p className="font-medium">Error generating insights</p>
+                  <p className="text-sm text-muted-foreground mt-1">{error}</p>
+                </div>
+              </div>
               <Button 
                 variant="outline" 
                 onClick={generateInsights}
-                className="mt-2"
+                className="w-full"
               >
                 Try Again
               </Button>

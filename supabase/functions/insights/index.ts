@@ -22,7 +22,11 @@ serve(async (req) => {
     const { pullRequests } = await req.json();
 
     if (!openaiApiKey) {
-      throw new Error('Missing OpenAI API key');
+      throw new Error('OpenAI API key is not configured. Please check your environment variables.');
+    }
+
+    if (!Array.isArray(pullRequests) || pullRequests.length === 0) {
+      throw new Error('No pull requests provided for analysis');
     }
 
     // Separate open and merged PRs
@@ -50,7 +54,7 @@ Provide a markdown-formatted analysis that includes:
 
 Format the response in clear markdown sections.`;
 
-    // Call OpenAI API
+    // Call OpenAI API with improved error handling
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -74,10 +78,17 @@ Format the response in clear markdown sections.`;
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
+      const errorData = await response.json().catch(() => null);
+      const errorMessage = errorData?.error?.message || response.statusText;
+      throw new Error(`OpenAI API error (${response.status}): ${errorMessage}`);
     }
 
     const data = await response.json();
+    
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response format from OpenAI API');
+    }
+
     const insights = data.choices[0].message.content;
 
     return new Response(
@@ -90,8 +101,19 @@ Format the response in clear markdown sections.`;
       },
     );
   } catch (error) {
+    console.error('Edge function error:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = error.message;
+    if (error.message.includes('Failed to fetch')) {
+      errorMessage = 'Failed to connect to OpenAI API. Please check your network connection and API key configuration.';
+    }
+
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: errorMessage,
+        details: error.message // Include original error for debugging
+      }),
       {
         status: 500,
         headers: {
