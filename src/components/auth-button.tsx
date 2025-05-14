@@ -1,31 +1,49 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { GithubIcon, LogOut } from 'lucide-react';
-import type { User } from '@supabase/supabase-js';
+} from "@/components/ui/dropdown-menu";
+import { GithubIcon, LogOut } from "lucide-react";
+import type { User } from "@supabase/supabase-js";
 
 export function AuthButton() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data: { session }, error: sessionError }) => {
+        console.log(
+          "Auth session check:",
+          session ? "Session found" : "No session"
+        );
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          setError(sessionError.message);
+        }
+        setUser(session?.user ?? null);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to get session:", err);
+        setError("Failed to get session");
+        setLoading(false);
+      });
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("Auth state change event:", _event);
+      console.log("New session state:", session ? "Logged in" : "Logged out");
       setUser(session?.user ?? null);
     });
 
@@ -33,20 +51,53 @@ export function AuthButton() {
   }, []);
 
   const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
+    try {
+      setError(null);
+      console.log("Initiating GitHub OAuth login...");
+      const { error: signInError } = await supabase.auth.signInWithOAuth({
+        provider: "github",
+        options: {
+          redirectTo: window.location.origin,
+          scopes: "repo user",
+        },
+      });
+
+      if (signInError) {
+        console.error("Sign in error:", signInError);
+        setError(signInError.message);
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Failed to initiate login");
+    }
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      setError(null);
+      console.log("Signing out...");
+      const { error: signOutError } = await supabase.auth.signOut();
+
+      if (signOutError) {
+        console.error("Sign out error:", signOutError);
+        setError(signOutError.message);
+      }
+    } catch (err) {
+      console.error("Logout error:", err);
+      setError("Failed to log out");
+    }
   };
 
   if (loading) {
-    return null;
+    return (
+      <Button variant="outline" disabled>
+        Loading...
+      </Button>
+    );
+  }
+
+  if (error) {
+    console.error("Auth error:", error);
   }
 
   if (!user) {
@@ -63,8 +114,13 @@ export function AuthButton() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user.user_metadata.avatar_url} alt={user.user_metadata.user_name} />
-            <AvatarFallback>{user.user_metadata.user_name?.charAt(0)}</AvatarFallback>
+            <AvatarImage
+              src={user.user_metadata.avatar_url}
+              alt={user.user_metadata.user_name}
+            />
+            <AvatarFallback>
+              {user.user_metadata.user_name?.charAt(0)}
+            </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
