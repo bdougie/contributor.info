@@ -7,6 +7,7 @@ export default function TestInsights() {
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [requestDetails, setRequestDetails] = useState<any>(null);
 
   // Sample PR data for testing
   const testData = {
@@ -40,10 +41,23 @@ export default function TestInsights() {
     setLoading(true);
     setError(null);
     setResponse(null);
+    setRequestDetails(null);
 
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/insights`;
       
+      // Log request details
+      const requestInfo = {
+        url: apiUrl,
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        data: data
+      };
+      console.log('Request details:', requestInfo);
+      setRequestDetails(requestInfo);
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -53,7 +67,12 @@ export default function TestInsights() {
         body: JSON.stringify(data),
       });
 
+      // Log response details
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       const result = await response.json();
+      console.log('Response data:', result);
       
       if (!response.ok) {
         throw new Error(result.error || `HTTP error! status: ${response.status}`);
@@ -61,7 +80,8 @@ export default function TestInsights() {
       
       setResponse(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      setError(`${errorMessage}\n\nPlease check the console for more details.`);
       console.error('Test function error:', err);
     } finally {
       setLoading(false);
@@ -69,7 +89,7 @@ export default function TestInsights() {
   };
 
   return (
-    <Card className="max-w-2xl mx-auto my-8">
+    <Card className="max-w-4xl mx-auto my-8">
       <CardHeader>
         <CardTitle>Test Insights Function</CardTitle>
       </CardHeader>
@@ -99,14 +119,23 @@ export default function TestInsights() {
         {error && (
           <div className="p-4 bg-destructive/10 text-destructive rounded-md">
             <p className="font-semibold">Error:</p>
-            <p className="text-sm">{error}</p>
+            <p className="text-sm whitespace-pre-wrap">{error}</p>
+          </div>
+        )}
+
+        {requestDetails && (
+          <div className="p-4 bg-muted rounded-md">
+            <p className="font-semibold">Request Details:</p>
+            <pre className="text-sm mt-2 whitespace-pre-wrap overflow-x-auto">
+              {JSON.stringify(requestDetails, null, 2)}
+            </pre>
           </div>
         )}
 
         {response && (
           <div className="p-4 bg-muted rounded-md">
             <p className="font-semibold">Response:</p>
-            <pre className="text-sm mt-2 whitespace-pre-wrap">
+            <pre className="text-sm mt-2 whitespace-pre-wrap overflow-x-auto">
               {JSON.stringify(response, null, 2)}
             </pre>
           </div>
