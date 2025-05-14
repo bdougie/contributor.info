@@ -18,9 +18,19 @@ export function InsightsDrawer() {
     setLoading(true);
     setError(null);
     try {
-      if (!stats.pullRequests || stats.pullRequests.length === 0) {
+      // Validate pull requests data
+      if (!Array.isArray(stats?.pullRequests)) {
+        throw new Error('Invalid pull request data structure');
+      }
+
+      if (stats.pullRequests.length === 0) {
         throw new Error('No pull requests available for analysis');
       }
+
+      console.log('Sending pull requests data:', {
+        count: stats.pullRequests.length,
+        sample: stats.pullRequests[0]
+      });
 
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/insights`;
       
@@ -31,16 +41,18 @@ export function InsightsDrawer() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          pullRequests: stats.pullRequests,
+          pullRequests: stats.pullRequests
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
+        console.error('Supabase function error response:', errorData);
         throw new Error(errorData?.error || `API error: ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('Supabase function response:', data);
       
       if (data.error) {
         throw new Error(data.error);
@@ -49,8 +61,8 @@ export function InsightsDrawer() {
       setInsights(data.insights);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate insights';
-      setError(errorMessage);
       console.error('Error generating insights:', err);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
