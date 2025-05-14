@@ -1,13 +1,22 @@
-import { useState } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, MessageSquare, AlertCircle } from 'lucide-react';
-import { useContext } from 'react';
-import { RepoStatsContext } from '@/lib/repo-stats-context';
-import ReactMarkdown from 'react-markdown';
+import { useState } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Loader2, MessageSquare, AlertCircle } from "lucide-react";
+import { useContext } from "react";
+import { RepoStatsContext } from "@/lib/repo-stats-context";
+import ReactMarkdown from "react-markdown";
+import { analyzePullRequests } from "@/lib/insights/pullRequests";
+import { useParams } from "react-router-dom";
 
 export function InsightsDrawer() {
+  const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const [isOpen, setIsOpen] = useState(false);
   const [insights, setInsights] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -18,61 +27,179 @@ export function InsightsDrawer() {
     setLoading(true);
     setError(null);
     try {
-      // Validate pull requests data
-      if (!Array.isArray(stats?.pullRequests)) {
-        throw new Error('Invalid pull request data structure');
+      // Verify we have owner/repo from URL parameters
+      if (!owner || !repo) {
+        throw new Error(
+          "Repository information not available. Please check the URL."
+        );
       }
 
-      if (stats.pullRequests.length === 0) {
-        throw new Error('No pull requests available for analysis');
+      console.log(`Analyzing repository: ${owner}/${repo}`);
+
+      // Use the local analysis function
+      const analysisResult = await analyzePullRequests(owner, repo);
+      console.log("Analysis result:", analysisResult);
+
+      if (analysisResult.totalPRs === 0) {
+        throw new Error("No pull requests available for analysis");
       }
 
-      console.log('Sending pull requests data:', {
-        count: stats.pullRequests.length,
-        sample: stats.pullRequests[0]
-      });
-
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/insights`;
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          pullRequests: stats.pullRequests
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        console.error('Supabase function error response:', errorData);
-        throw new Error(errorData?.error || `API error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('Supabase function response:', data);
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      
-      setInsights(data.insights);
+      // Generate markdown insights based on the analysis results
+      const insightsMarkdown = generateMarkdownInsights(
+        owner,
+        repo,
+        analysisResult
+      );
+      setInsights(insightsMarkdown);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate insights';
-      console.error('Error generating insights:', err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to generate insights";
+      console.error("Error generating insights:", err);
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  // Function to generate markdown insights from the analysis results
+  const generateMarkdownInsights = (
+    owner: string,
+    repo: string,
+    analysis: {
+      totalPRs: number;
+      averageTimeToMerge: number;
+      prsByAuthor: Record<string, number>;
+      prMergeTimesByAuthor: Record<string, number[]>;
+    }
+  ): string => {
+    // Create sorted lists of contributors
+    const topContributors = Object.entries(analysis.prsByAuthor)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    // Calculate fastest/slowest merge times
+    const authorMergeTimes: Record<string, number> = {};
+    for (const [author, times] of Object.entries(
+      analysis.prMergeTimesByAuthor
+    )) {
+      if (times.length > 0) {
+        authorMergeTimes[author] =
+          times.reduce((sum, time) => sum + time, 0) / times.length;
+      }
+    }
+
+    const fastestMergers = Object.entries(authorMergeTimes)
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, 3);
+
+    const slowestMergers = Object.entries(authorMergeTimes)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+
+    return `
+# ${owner}/${repo} Pull Request Analysis
+
+## Overview
+This repository has **${
+      analysis.totalPRs
+    } pull requests** in the analyzed time period. The average time to merge a PR is **${analysis.averageTimeToMerge.toFixed(
+      1
+    )} hours** (about ${(analysis.averageTimeToMerge / 24).toFixed(1)} days).
+
+## Top Contributors
+${topContributors
+  .map((c, i) => `${i + 1}. **${c[0]}** - ${c[1]} PRs`)
+  .join("\n")}
+
+## Merge Time Statistics
+### Fastest Merged PRs
+${
+  fastestMergers.length > 0
+    ? fastestMergers
+        .map((c, i) => `${i + 1}. **${c[0]}** - ${c[1].toFixed(1)} hours`)
+        .join("\n")
+    : "No merge time data available."
+}
+
+### Slowest Merged PRs
+${
+  slowestMergers.length > 0
+    ? slowestMergers
+        .map((c, i) => `${i + 1}. **${c[0]}** - ${c[1].toFixed(1)} hours`)
+        .join("\n")
+    : "No merge time data available."
+}
+
+## Health Assessment
+${getHealthAssessment(analysis)}
+`;
+  };
+
+  // Generate a health assessment based on the analysis
+  const getHealthAssessment = (analysis: {
+    totalPRs: number;
+    averageTimeToMerge: number;
+    prsByAuthor: Record<string, number>;
+  }): string => {
+    // Calculate how distributed the contributions are
+    const totalAuthors = Object.keys(analysis.prsByAuthor).length;
+    const totalPRs = analysis.totalPRs;
+
+    // Check merge time (below 24 hours is good)
+    const mergeTimeAssessment =
+      analysis.averageTimeToMerge <= 24
+        ? "The average merge time is good, suggesting an efficient review process."
+        : analysis.averageTimeToMerge <= 72
+        ? "The average merge time is acceptable but could be improved."
+        : "The average merge time is quite long, which could indicate review bottlenecks.";
+
+    // Check contribution distribution
+    const topContributorCount = Object.values(analysis.prsByAuthor).reduce(
+      (count, prCount) => {
+        return count + (prCount > totalPRs * 0.1 ? 1 : 0);
+      },
+      0
+    );
+
+    const distributionAssessment =
+      totalAuthors === 1
+        ? "This repository has only one contributor, which presents a high bus factor risk."
+        : topContributorCount <= 3 && totalAuthors >= 5
+        ? "The repository has a healthy distribution of contributors."
+        : "The repository has a concentration of contributions among a few developers.";
+
+    return `
+### Observations
+- ${mergeTimeAssessment}
+- ${distributionAssessment}
+- This repository has ${totalAuthors} unique contributors.
+
+### Recommendations
+${
+  analysis.averageTimeToMerge > 72
+    ? "- Consider streamlining your PR review process to reduce merge times.\n"
+    : ""
+}${
+      topContributorCount === 1 && totalAuthors === 1
+        ? "- Onboard more contributors to reduce the bus factor risk.\n"
+        : ""
+    }${
+      topContributorCount > totalAuthors * 0.4 && totalAuthors > 1
+        ? "- Encourage more distributed contribution across the team.\n"
+        : ""
+    }${
+      analysis.totalPRs < 10
+        ? "- There are relatively few PRs to analyze. Consider a longer time frame for better insights.\n"
+        : ""
+    }
+`;
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="icon"
           className="fixed bottom-4 right-4 h-12 w-12 rounded-full shadow-lg"
           onClick={() => {
@@ -103,8 +230,8 @@ export function InsightsDrawer() {
                   <p className="text-sm text-muted-foreground mt-1">{error}</p>
                 </div>
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={generateInsights}
                 className="w-full"
               >
