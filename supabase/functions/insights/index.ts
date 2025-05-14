@@ -22,12 +22,17 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const openaiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openaiKey) {
+      throw new Error('OpenAI API key is not configured');
+    }
+
     const { pullRequests, type } = await req.json();
 
     // Initialize OpenAI
     const openai = new OpenAIApi(
       new Configuration({
-        apiKey: Deno.env.get('OPENAI_API_KEY'),
+        apiKey: openaiKey,
       })
     );
 
@@ -87,7 +92,10 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'An unexpected error occurred',
+        details: error instanceof Error ? error.stack : undefined
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

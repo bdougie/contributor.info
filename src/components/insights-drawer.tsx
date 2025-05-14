@@ -2,19 +2,22 @@ import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Lightbulb, Loader2 } from 'lucide-react';
+import { AlertCircle, Lightbulb, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRepoStats } from '@/hooks/use-repo-stats';
 import { Markdown } from './markdown';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export function InsightsDrawer() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [insights, setInsights] = useState<{ open?: string; merged?: string }>({});
   const { stats } = useRepoStats();
 
   const generateInsights = async (type: 'open' | 'merged') => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/insights`, {
         method: 'POST',
@@ -29,7 +32,8 @@ export function InsightsDrawer() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate insights');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to generate insights');
       }
 
       const data = await response.json();
@@ -39,6 +43,11 @@ export function InsightsDrawer() {
       }));
     } catch (error) {
       console.error('Error generating insights:', error);
+      setError(error instanceof Error ? error.message : 'Failed to generate insights');
+      setInsights(prev => ({
+        ...prev,
+        [type]: undefined
+      }));
     } finally {
       setLoading(false);
     }
@@ -66,6 +75,12 @@ export function InsightsDrawer() {
               </TabsTrigger>
             </TabsList>
             <ScrollArea className="h-[calc(100vh-12rem)] mt-4 rounded-md border p-4">
+              {error && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
               {loading ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="h-8 w-8 animate-spin" />
