@@ -1,7 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.39.1';
 import { corsHeaders } from '../_shared/cors.ts';
 
-const openaiApiKey = Deno.env.get('VITE_OPENAI_API_KEY');
+// Use OPENAI_API_KEY instead of VITE_ prefixed key for edge functions
+const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
 interface PullRequest {
   title: string;
@@ -30,10 +31,10 @@ serve(async (req) => {
 
     const { pullRequests } = body;
 
-    // Validate OpenAI API key
+    // Validate OpenAI API key with more specific error message
     if (!openaiApiKey) {
       console.error('OpenAI API key missing');
-      throw new Error('OpenAI API key is not configured. Please check your environment variables.');
+      throw new Error('OpenAI API key is not configured in the edge function environment. Please add OPENAI_API_KEY to your Supabase project settings.');
     }
 
     // Validate pull requests data
@@ -78,74 +79,101 @@ Format the response in clear markdown sections.`;
 
     console.log('Sending request to OpenAI API');
 
-    // Call OpenAI API with improved error handling
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4-1106-preview',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert software development analyst. Analyze GitHub pull requests and provide clear, actionable insights.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-      }),
-    });
+    try {
+      // Call OpenAI API with improved error handling and timeout
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-    console.log('OpenAI API response status:', response.status);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      console.error('OpenAI API error:', errorData);
-      const errorMessage = errorData?.error?.message || response.statusText;
-      throw new Error(`OpenAI API error (${response.status}): ${errorMessage}`);
-    }
-
-    const data = await response.json();
-    console.log('OpenAI API response received');
-    
-    if (!data.choices?.[0]?.message?.content) {
-      console.error('Invalid response format from OpenAI API:', data);
-      throw new Error('Invalid response format from OpenAI API');
-    }
-
-    const insights = data.choices[0].message.content;
-    console.log('Function completed successfully');
-
-    return new Response(
-      JSON.stringify({ insights }),
-      {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
         headers: {
-          ...corsHeaders,
+          'Authorization': `Bearer ${openaiApiKey}`,
           'Content-Type': 'application/json',
         },
-      },
-    );
+        body: JSON.stringify({
+          model: 'gpt-4-1106-preview',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert software development analyst. Analyze GitHub pull requests and provide clear, actionable insights.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      console.log('OpenAI API response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        console.error('OpenAI API error:', errorData);
+        
+        // Provide more specific error messages based on status codes
+        let errorMessage = 'An error occurred while calling the OpenAI API';
+        if (response.status === 401) {
+          errorMessage = 'Invalid OpenAI API key. Please check your API key configuration.';
+        } else if (response.status === 429) {
+          errorMessage = 'OpenAI API rate limit exceeded. Please try again later.';
+        } else if (response.status >= 500) {
+          errorMessage = 'OpenAI API service is currently unavailable. Please try again later.';
+        }
+        
+        throw new Error(`${errorMessage} (Status: ${response.status})`);
+      }
+
+      const data = await response.json();
+      console.log('OpenAI API response received');
+      
+      if (!data.choices?.[0]?.message?.content) {
+        console.error('Invalid response format from OpenAI API:', data);
+        throw new Error('Invalid response format from OpenAI API');
+      }
+
+      const insights = data.choices[0].message.content;
+      console.log('Function completed successfully');
+
+      return new Response(
+        JSON.stringify({ insights }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error('OpenAI API request timed out after 30 seconds');
+      }
+      throw error;
+    }
   } catch (error) {
     console.error('Edge function error:', error);
     
     // Provide more specific error messages
     let errorMessage = error.message;
-    if (error.message.includes('Failed to fetch')) {
-      errorMessage = 'Failed to connect to OpenAI API. Please check your network connection and API key configuration.';
+    let status = 500;
+
+    if (error.message.includes('API key')) {
+      status = 401;
+    } else if (error.message.includes('rate limit')) {
+      status = 429;
     }
 
     return new Response(
       JSON.stringify({ 
         error: errorMessage,
-        details: error.message // Include original error for debugging
+        details: error.message
       }),
       {
-        status: 500,
+        status,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',

@@ -58,6 +58,10 @@ export default function TestInsights() {
       console.log('Request details:', requestInfo);
       setRequestDetails(requestInfo);
 
+      // Add timeout to the fetch request
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -65,7 +69,10 @@ export default function TestInsights() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeout);
 
       // Log response details
       console.log('Response status:', response.status);
@@ -75,12 +82,30 @@ export default function TestInsights() {
       console.log('Response data:', result);
       
       if (!response.ok) {
-        throw new Error(result.error || `HTTP error! status: ${response.status}`);
+        // Handle specific error cases
+        let errorMessage = result.error || `HTTP error! status: ${response.status}`;
+        if (response.status === 401) {
+          errorMessage = 'Authentication error: Please check your API keys in the environment settings.';
+        } else if (response.status === 429) {
+          errorMessage = 'Rate limit exceeded: Please try again later.';
+        } else if (response.status >= 500) {
+          errorMessage = 'Server error: The service is currently unavailable. Please try again later.';
+        }
+        throw new Error(errorMessage);
       }
       
       setResponse(result);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      let errorMessage: string;
+      
+      if (err.name === 'AbortError') {
+        errorMessage = 'Request timed out after 30 seconds. Please try again.';
+      } else if (err instanceof TypeError && err.message === 'Failed to fetch') {
+        errorMessage = 'Network error: Unable to connect to the server. Please check your internet connection and try again.';
+      } else {
+        errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      }
+      
       setError(`${errorMessage}\n\nPlease check the console for more details.`);
       console.error('Test function error:', err);
     } finally {
