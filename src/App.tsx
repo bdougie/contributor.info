@@ -9,6 +9,7 @@ import RepoView, {
 } from "@/components/repo-view";
 import Home from "@/components/home";
 import LoginPage from "@/components/login-page";
+import DebugAuthPage from "@/components/debug-auth-page";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/debug-auth" element={<DebugAuthPage />} />
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="/:owner/:repo" element={<RepoView />}>
