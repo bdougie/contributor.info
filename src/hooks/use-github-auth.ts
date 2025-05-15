@@ -41,30 +41,39 @@ export function useGitHubAuth() {
     checkAuth();
 
     // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      const loggedIn = !!session;
-      setIsLoggedIn(loggedIn);
-      
-      // Close login dialog if logged in and check for redirect
-      if (loggedIn) {
-        if (showLoginDialog) {
-          setShowLoginDialog(false);
-        }
+    // Using try/catch to handle potential errors in tests
+    try {
+      const subscription = supabase.auth.onAuthStateChange((_event, session) => {
+        const loggedIn = !!session;
+        setIsLoggedIn(loggedIn);
         
-        // Check if there's a redirect path stored
-        const redirectPath = localStorage.getItem('redirectAfterLogin');
-        if (redirectPath) {
-          // Clear the stored path
-          localStorage.removeItem('redirectAfterLogin');
-          // Navigate to the stored path
-          navigate(redirectPath);
+        // Close login dialog if logged in and check for redirect
+        if (loggedIn) {
+          if (showLoginDialog) {
+            setShowLoginDialog(false);
+          }
+          
+          // Check if there's a redirect path stored
+          const redirectPath = localStorage.getItem('redirectAfterLogin');
+          if (redirectPath) {
+            // Clear the stored path
+            localStorage.removeItem('redirectAfterLogin');
+            // Navigate to the stored path
+            navigate(redirectPath);
+          }
         }
-      }
     });
 
-    return () => subscription.unsubscribe();
+      // Simplified cleanup using subscription directly
+      return () => {
+        if (subscription && typeof subscription.unsubscribe === 'function') {
+          subscription.unsubscribe();
+        }
+      };
+    } catch (error) {
+      console.error('Error setting up auth state change listener:', error);
+      return () => {}; // Empty cleanup function
+    }
   }, [showLoginDialog, navigate]);
 
   /**
