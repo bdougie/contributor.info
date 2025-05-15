@@ -30,10 +30,10 @@ import { useRepoSearch } from "../hooks/use-repo-search";
 
 // A wrapper component to provide context for hooks that would normally
 // rely on React Router's context
-const wrapper = ({ children }) => children;
+const wrapper = ({ children }: { children: React.ReactNode }) => children;
 
 describe("Authentication Redirection Logic", () => {
-  let mockNavigate;
+  let mockNavigate: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.resetAllMocks();

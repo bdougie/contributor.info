@@ -18,8 +18,9 @@ const mockAuthCallback = vi.fn();
 
 // Mock supabase
 vi.mock("../lib/supabase", () => {
-  const mockSession = { user: { id: "user-123" } };
-  const mockSubscription = { unsubscribe: vi.fn() };
+  const mockSubscription = {
+    unsubscribe: vi.fn(),
+  };
 
   return {
     supabase: {
@@ -36,7 +37,11 @@ vi.mock("../lib/supabase", () => {
           // Store the callback so we can call it directly in tests
           mockAuthCallback.mockImplementation(callback);
           // Return a subscription object with unsubscribe method
-          return mockSubscription;
+          return {
+            data: {
+              subscription: mockSubscription,
+            },
+          };
         }),
       },
     },
@@ -49,7 +54,9 @@ import { useGitHubAuth } from "../hooks/use-github-auth";
 import { supabase } from "../lib/supabase";
 
 // Proper React component wrapper for hooks using Router
-const wrapper = ({ children }) => <MemoryRouter>{children}</MemoryRouter>;
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <MemoryRouter>{children}</MemoryRouter>
+);
 
 describe("useGitHubAuth Hook", () => {
   beforeEach(() => {
@@ -105,7 +112,24 @@ describe("useGitHubAuth Hook", () => {
   it("allows users to log out", async () => {
     // Set up supabase mock to return a logged-in session initially
     vi.mocked(supabase.auth.getSession).mockImplementationOnce(async () => ({
-      data: { session: { user: { id: "user-123" } } },
+      data: {
+        session: {
+          user: {
+            id: "user-123",
+            app_metadata: {},
+            user_metadata: {},
+            aud: "authenticated",
+            email: "test@example.com",
+            created_at: new Date().toISOString(),
+          },
+          // Include all required props needed to satisfy the Session type
+          expires_in: 3600,
+          expires_at: 999999,
+          token_type: "bearer",
+          access_token: "fake-token",
+          refresh_token: "fake-refresh-token",
+        },
+      },
       error: null,
     }));
 

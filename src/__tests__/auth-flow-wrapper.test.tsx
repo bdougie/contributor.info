@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import "@testing-library/jest-dom"; // Add jest-dom matchers
 
@@ -25,7 +25,7 @@ vi.mock("../hooks/use-github-auth", () => ({
 }));
 
 // Create a component that uses our mocked hook for auth protection
-const AuthGuard = ({ children }) => {
+const AuthGuard = ({ children }: { children: React.ReactNode }) => {
   const { isLoggedIn } = mockUseGitHubAuth();
 
   if (!isLoggedIn) {
