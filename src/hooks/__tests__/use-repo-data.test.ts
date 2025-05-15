@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, cleanup } from '@testing-library/react';
+import { renderHook, cleanup, waitFor } from '@testing-library/react';
 import { useRepoData } from '../use-repo-data';
 import { fetchPullRequests, fetchDirectCommits } from '@/lib/github';
 import { calculateLotteryFactor } from '@/lib/utils';
@@ -111,8 +111,8 @@ describe('useRepoData', () => {
     expect(result.current.stats.loading).toBe(true);
     expect(result.current.stats.error).toBe(null);
     
-    // Wait for data to be fetched
-    await vi.waitFor(() => {
+    // Wait for data to be fetched - using imported waitFor from testing-library
+    await waitFor(() => {
       expect(result.current.stats.loading).toBe(false);
     });
     
@@ -139,7 +139,7 @@ describe('useRepoData', () => {
     );
     
     // Wait for the error to be processed
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.stats.loading).toBe(false);
     });
     
@@ -169,7 +169,7 @@ describe('useRepoData', () => {
     );
     
     // Wait for initial fetch
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.stats.loading).toBe(false);
     });
     
@@ -187,10 +187,10 @@ describe('useRepoData', () => {
       includeBots: false
     });
     
-    // Wait for refetch - need longer timeout
-    await vi.waitFor(() => {
+    // Wait for refetch - using testing-library waitFor
+    await waitFor(() => {
       expect(fetchPullRequests).toHaveBeenCalled();
-    }, { timeout: 3000 });
+    });
     
     expect(fetchPullRequests).toHaveBeenCalledWith('neworg', 'testrepo', mockTimeRange);
     
@@ -206,9 +206,9 @@ describe('useRepoData', () => {
     });
     
     // Wait for refetch
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(fetchPullRequests).toHaveBeenCalled();
-    }, { timeout: 3000 });
+    });
     
     expect(fetchPullRequests).toHaveBeenCalledWith('neworg', 'newrepo', mockTimeRange);
     
@@ -225,9 +225,9 @@ describe('useRepoData', () => {
     });
     
     // Wait for refetch
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(fetchPullRequests).toHaveBeenCalled();
-    }, { timeout: 3000 });
+    });
     
     expect(fetchPullRequests).toHaveBeenCalledWith('neworg', 'newrepo', newTimeRange);
     
@@ -243,17 +243,17 @@ describe('useRepoData', () => {
     });
     
     // First ensure that fetchPullRequests is called
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(fetchPullRequests).toHaveBeenCalled();
-    }, { timeout: 3000 });
+    });
     
     // Then wait for calculateLotteryFactor to be called with the new includeBots value
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(calculateLotteryFactor).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
         true
       );
-    }, { timeout: 3000 });
+    });
   });
 });
