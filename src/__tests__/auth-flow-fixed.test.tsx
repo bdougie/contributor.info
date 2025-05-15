@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useNavigate } from "react-router-dom";
 import "@testing-library/jest-dom"; // Add jest-dom matchers
 
@@ -56,7 +56,7 @@ Object.defineProperty(window, "location", {
 });
 
 // Auth guard component for testing redirect behavior
-const AuthGuard = ({ children }) => {
+const AuthGuard = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const { isLoggedIn } = mockUseGitHubAuth();
 
@@ -73,7 +73,7 @@ const AuthGuard = ({ children }) => {
 };
 
 describe("Authentication Flow", () => {
-  let mockNavigate;
+  let mockNavigate: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.resetAllMocks();
