@@ -10,6 +10,7 @@ import RepoView, {
 import Home from "@/components/home";
 import LoginPage from "@/components/login-page";
 import TestInsights from "@/components/test-insights";
+import DebugAuthPage from "@/components/debug-auth-page";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/test-insights" element={<TestInsights />} />
+          <Route path="/debug-auth" element={<DebugAuthPage />} />
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="/:owner/:repo" element={<RepoView />}>
