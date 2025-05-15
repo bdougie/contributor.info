@@ -82,7 +82,75 @@ export default {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            color: 'hsl(var(--foreground))',
+            a: {
+              color: 'hsl(var(--primary))',
+              '&:hover': {
+                color: 'hsl(var(--primary))',
+              },
+            },
+            '[class~="lead"]': {
+              color: 'hsl(var(--foreground))',
+            },
+            strong: {
+              color: 'hsl(var(--foreground))',
+            },
+            'ol > li::marker': {
+              color: 'hsl(var(--foreground))',
+            },
+            'ul > li::marker': {
+              color: 'hsl(var(--foreground))',
+            },
+            hr: {
+              borderColor: 'hsl(var(--border))',
+            },
+            blockquote: {
+              borderLeftColor: 'hsl(var(--border))',
+              color: 'hsl(var(--foreground))',
+            },
+            h1: {
+              color: 'hsl(var(--foreground))',
+            },
+            h2: {
+              color: 'hsl(var(--foreground))',
+            },
+            h3: {
+              color: 'hsl(var(--foreground))',
+            },
+            h4: {
+              color: 'hsl(var(--foreground))',
+            },
+            'figure figcaption': {
+              color: 'hsl(var(--muted-foreground))',
+            },
+            code: {
+              color: 'hsl(var(--foreground))',
+            },
+            'a code': {
+              color: 'hsl(var(--foreground))',
+            },
+            pre: {
+              color: 'hsl(var(--foreground))',
+              backgroundColor: 'hsl(var(--muted))',
+            },
+            thead: {
+              color: 'hsl(var(--foreground))',
+              borderBottomColor: 'hsl(var(--border))',
+            },
+            'tbody tr': {
+              borderBottomColor: 'hsl(var(--border))',
+            },
+          },
+        },
+      },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('tailwindcss-animate'),
+    require('@tailwindcss/typography'),
+  ],
 };
