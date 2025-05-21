@@ -73,6 +73,28 @@ useEffect(() => {}, []);
 import { useState } from 'react'; // Remove the unused import entirely
 ```
 
+## Error Handling in Catch Blocks
+When handling errors in catch blocks, always follow these guidelines:
+
+1. **Properly type-check errors before accessing properties**
+   - In TypeScript, caught errors have the type `unknown` by default
+   - Always use `instanceof Error` before accessing Error properties:
+
+```typescript
+try {
+  // code that might throw
+} catch (err) {
+  if (err instanceof Error && err.name === "AbortError") {
+    // Handle AbortError specifically
+  } else if (err instanceof Error) {
+    // Access standard Error properties safely
+    console.error(err.message);
+  } else {
+    // Handle non-Error objects
+    console.error("An unknown error occurred:", err);
+  }
+}
+
 ## Testing
 
 When writing tests:

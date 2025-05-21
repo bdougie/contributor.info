@@ -5,7 +5,20 @@ import "@testing-library/jest-dom";
 import { BrowserRouter } from "react-router-dom";
 import RepoView from "../repo-view";
 
-// Import the hooks before mocking them
+// Mock the Supabase client BEFORE importing any hooks
+vi.mock("@/lib/supabase", () => ({
+  supabase: {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      onAuthStateChange: vi.fn(() => ({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      })),
+    },
+  },
+  createSupabaseClient: vi.fn(),
+}));
+
+// Import the hooks after mocking Supabase
 import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { useRepoSearch } from "@/hooks/use-repo-search";
 
