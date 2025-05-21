@@ -122,7 +122,7 @@ export default function TestInsights() {
     } catch (err) {
       let errorMessage: string;
 
-      if (err.name === "AbortError") {
+      if (err instanceof Error && err.name === "AbortError") {
         errorMessage = "Request timed out after 30 seconds. Please try again.";
       } else if (
         err instanceof TypeError &&

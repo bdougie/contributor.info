@@ -9,8 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, MessageSquare, AlertCircle } from "lucide-react";
-import { useContext } from "react";
-import { RepoStatsContext } from "@/lib/repo-stats-context";
 import ReactMarkdown from "react-markdown";
 import { analyzePullRequests } from "@/lib/insights/pullRequests";
 import { useParams } from "react-router-dom";
@@ -21,7 +19,6 @@ export function InsightsDrawer() {
   const [insights, setInsights] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { stats } = useContext(RepoStatsContext);
 
   const generateInsights = async () => {
     setLoading(true);

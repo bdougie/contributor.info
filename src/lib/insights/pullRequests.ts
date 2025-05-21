@@ -1,5 +1,4 @@
 import { fetchPullRequests } from '../github';
-import type { PullRequest } from '../types';
 
 export interface PRAnalysisResult {
   totalPRs: number;
