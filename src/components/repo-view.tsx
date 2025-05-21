@@ -20,6 +20,7 @@ import PRActivity from "./pr-activity";
 import { ExampleRepos } from "./example-repos";
 import { useRepoData } from "@/hooks/use-repo-data";
 import { useRepoSearch } from "@/hooks/use-repo-search";
+import { InsightsDrawer } from "./insights-drawer";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -136,6 +137,7 @@ export default function RepoView() {
           </CardContent>
         </Card>
       </div>
+      <InsightsDrawer />
     </div>
   );
 }
