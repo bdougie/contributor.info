@@ -6,11 +6,11 @@ interface ExampleReposProps {
 
 export function ExampleRepos({ onSelect }: ExampleReposProps) {
   const examples = [
+    "continuedev/continue",
     "kubernetes/kubernetes",
     "facebook/react",
     "etcd-io/etcd",
     "argoproj/argo-cd",
-    "bdougie/contributor.info",
   ];
 
   return (
