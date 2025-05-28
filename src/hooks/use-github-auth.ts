@@ -24,9 +24,31 @@ export function useGitHubAuth() {
       
       if (window.location.hash.includes('access_token')) {
         console.log('Auth tokens found in URL hash');
-        // Since detectSessionInUrl is enabled in Supabase config, 
-        // we just need to wait a moment for it to process
-        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        try {
+          // Manually parse the hash parameters
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+          
+          if (accessToken && refreshToken) {
+            console.log('Setting session with extracted tokens');
+            
+            // Set the session manually using the extracted tokens
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+            
+            if (error) {
+              console.error('Error setting session:', error);
+            } else {
+              console.log('Session set successfully:', data.session);
+            }
+          }
+        } catch (err) {
+          console.error('Error processing auth tokens:', err);
+        }
         
         // Clear the URL hash after processing
         window.history.replaceState({}, document.title, window.location.pathname);
