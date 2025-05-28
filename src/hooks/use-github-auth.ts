@@ -21,6 +21,8 @@ export function useGitHubAuth() {
       const currentUrl = window.location.href;
       console.log('Current URL:', currentUrl);
       console.log('URL Hash:', window.location.hash);
+      console.log('Environment:', import.meta.env.MODE);
+      console.log('Origin:', window.location.origin);
       
       if (window.location.hash.includes('access_token')) {
         console.log('Auth tokens found in URL hash');
@@ -33,6 +35,8 @@ export function useGitHubAuth() {
           
           if (accessToken && refreshToken) {
             console.log('Setting session with extracted tokens');
+            console.log('Access token length:', accessToken.length);
+            console.log('Refresh token length:', refreshToken.length);
             
             // Set the session manually using the extracted tokens
             const { data, error } = await supabase.auth.setSession({
@@ -42,9 +46,25 @@ export function useGitHubAuth() {
             
             if (error) {
               console.error('Error setting session:', error);
+              console.error('Error details:', {
+                message: error.message,
+                status: error.status
+              });
+              
+              // Try to decode the JWT to see if it's valid
+              try {
+                const payload = JSON.parse(atob(accessToken.split('.')[1]));
+                console.log('JWT payload:', payload);
+                console.log('JWT expires at:', new Date(payload.exp * 1000));
+                console.log('Current time:', new Date());
+              } catch (jwtError) {
+                console.error('Error decoding JWT:', jwtError);
+              }
             } else {
               console.log('Session set successfully:', data.session);
             }
+          } else {
+            console.log('Missing tokens - accessToken:', !!accessToken, 'refreshToken:', !!refreshToken);
           }
         } catch (err) {
           console.error('Error processing auth tokens:', err);

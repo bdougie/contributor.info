@@ -3,22 +3,28 @@ import { createClient } from '@supabase/supabase-js';
 // Helper function to create the Supabase client
 export function createSupabaseClient() {
   // Check required environment variables
-  if (!import.meta.env.VITE_SUPABASE_URL) {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Missing');
+  console.log('Supabase Anon Key:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 10)}...` : 'Missing');
+  
+  if (!supabaseUrl) {
     throw new Error('Missing environment variable: VITE_SUPABASE_URL');
   }
 
-  if (!import.meta.env.VITE_SUPABASE_ANON_KEY) {
+  if (!supabaseAnonKey) {
     throw new Error('Missing environment variable: VITE_SUPABASE_ANON_KEY');
   }
   
   return createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_ANON_KEY,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: true,
+        detectSessionInUrl: false, // Disable automatic detection since we're handling manually
         flowType: 'implicit'
       }
     }
