@@ -15,12 +15,15 @@ export function useGitHubAuth() {
     // Check login status
     async function checkAuth() {
       setLoading(true);
+      console.log('Checking auth status...');
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('Current session:', session);
       const isAuthenticated = !!session;
       setIsLoggedIn(isAuthenticated);
       
       // Close login dialog if logged in and check for redirect
       if (isAuthenticated) {
+        console.log('User is authenticated');
         if (showLoginDialog) {
           setShowLoginDialog(false);
         }
@@ -28,11 +31,14 @@ export function useGitHubAuth() {
         // Check if there's a redirect path stored
         const redirectPath = localStorage.getItem('redirectAfterLogin');
         if (redirectPath) {
+          console.log('Redirecting to:', redirectPath);
           // Clear the stored path
           localStorage.removeItem('redirectAfterLogin');
           // Navigate to the stored path
           navigate(redirectPath);
         }
+      } else {
+        console.log('User is not authenticated');
       }
       
       setLoading(false);
@@ -40,15 +46,28 @@ export function useGitHubAuth() {
     
     checkAuth();
 
+    // Check URL for auth tokens
+    const currentUrl = window.location.href;
+    console.log('Current URL:', currentUrl);
+    console.log('URL Hash:', window.location.hash);
+    
+    if (window.location.hash.includes('access_token')) {
+      console.log('Auth tokens found in URL hash');
+    }
+
     // Listen for auth changes
     // Using try/catch to handle potential errors in tests
     try {
-      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        console.log('Auth event:', event);
+        console.log('Session:', session);
+        
         const loggedIn = !!session;
         setIsLoggedIn(loggedIn);
         
         // Close login dialog if logged in and check for redirect
         if (loggedIn) {
+          console.log('User is now logged in');
           if (showLoginDialog) {
             setShowLoginDialog(false);
           }
@@ -56,6 +75,7 @@ export function useGitHubAuth() {
           // Check if there's a redirect path stored
           const redirectPath = localStorage.getItem('redirectAfterLogin');
           if (redirectPath) {
+            console.log('Redirecting to:', redirectPath);
             // Clear the stored path
             localStorage.removeItem('redirectAfterLogin');
             // Navigate to the stored path
@@ -80,19 +100,48 @@ export function useGitHubAuth() {
    * Initiates GitHub OAuth login flow
    */
   const login = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
+    try {
+      // Store the current path for redirect after login if needed
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login') {
+        console.log('Storing redirect path:', currentPath);
+        localStorage.setItem('redirectAfterLogin', currentPath);
+      }
+      
+      console.log('Starting GitHub login flow...');
+      // Start the login flow with the correct redirect URL
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: window.location.origin, // This ensures redirect to your domain root
+        },
+      });
+      
+      if (error) {
+        console.error('Login error:', error);
+        throw error;
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      // Handle login error appropriately
+    }
   };
 
   /**
    * Signs the user out
    */
   const logout = async () => {
+    console.log('Logging out...');
     await supabase.auth.signOut();
+  };
+
+  /**
+   * Force check the current session
+   */
+  const checkSession = async () => {
+    const { data } = await supabase.auth.getSession();
+    console.log('Manual session check:', data.session);
+    return !!data.session;
   };
 
   return { 
@@ -100,6 +149,7 @@ export function useGitHubAuth() {
     loading, 
     login, 
     logout,
+    checkSession,
     showLoginDialog,
     setShowLoginDialog
   };

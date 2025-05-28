@@ -27,3 +27,11 @@ export function createSupabaseClient() {
 
 // Export the Supabase client instance
 export const supabase = createSupabaseClient();
+
+// Helper to debug authentication issues
+export const debugAuthSession = async () => {
+  const { data, error } = await supabase.auth.getSession();
+  console.log('Current session:', data.session);
+  console.log('Session error:', error);
+  return { session: data.session, error };
+};

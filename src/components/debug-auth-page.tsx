@@ -1,80 +1,175 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { 
-  Card, 
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter 
-} from '@/components/ui/card';
+  CardFooter,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { debugAuthSession } from "@/lib/supabase";
 
 export default function DebugAuthPage() {
   const [sessionInfo, setSessionInfo] = useState<any>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState<any>(null);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const navigate = useNavigate();
+
+  // Add a log entry
+  const addLog = (message: string) => {
+    setDebugLogs((prev) => [
+      ...prev,
+      `${new Date().toISOString()}: ${message}`,
+    ]);
+  };
 
   const checkSession = async () => {
     try {
+      addLog("Checking session...");
       const { data, error } = await supabase.auth.getSession();
       if (error) {
         setAuthError(error.message);
+        addLog(`Session error: ${error.message}`);
       } else {
         setSessionInfo(data);
         if (data.session?.user) {
           setUserInfo(data.session.user);
+          addLog(
+            `Session found for user: ${
+              data.session.user.email || data.session.user.id
+            }`
+          );
         } else {
           setUserInfo(null);
+          addLog("No active session found");
         }
       }
     } catch (err) {
-      setAuthError('Failed to check session');
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to check session";
+      setAuthError(errorMessage);
+      addLog(`Session check error: ${errorMessage}`);
     }
   };
 
   const handleLogin = async () => {
     try {
       setAuthError(null);
+      addLog("Starting login process...");
+
+      // Store the current path for redirect after login (for testing)
+      localStorage.setItem("redirectAfterLogin", "/debug-auth");
+
       const { error: signInError } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
+        provider: "github",
         options: {
           redirectTo: `${window.location.origin}/debug-auth`,
-          scopes: 'repo user',
+          scopes: "repo user",
         },
       });
-      
+
       if (signInError) {
         setAuthError(signInError.message);
+        addLog(`Login error: ${signInError.message}`);
+      } else {
+        addLog("Login initiated, waiting for redirect...");
       }
     } catch (err) {
-      setAuthError('Failed to initiate login');
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to initiate login";
+      setAuthError(errorMessage);
+      addLog(`Login error: ${errorMessage}`);
     }
   };
 
   const handleLogout = async () => {
     try {
       setAuthError(null);
+      addLog("Starting logout process...");
       const { error: signOutError } = await supabase.auth.signOut();
-      
+
       if (signOutError) {
         setAuthError(signOutError.message);
+        addLog(`Logout error: ${signOutError.message}`);
       } else {
         // Clear state on successful logout
         setUserInfo(null);
+        addLog("Logout successful");
         checkSession();
       }
     } catch (err) {
-      setAuthError('Failed to log out');
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to log out";
+      setAuthError(errorMessage);
+      addLog(`Logout error: ${errorMessage}`);
     }
   };
 
+  // Force Supabase session refresh
+  const handleForceRefresh = async () => {
+    try {
+      addLog("Forcing session refresh...");
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error) {
+        addLog(`Refresh error: ${error.message}`);
+        setAuthError(error.message);
+      } else {
+        addLog("Session refreshed successfully");
+        if (data.session) {
+          addLog(
+            `Refreshed session for user: ${
+              data.session.user.email || data.session.user.id
+            }`
+          );
+          setSessionInfo({ session: data.session });
+          setUserInfo(data.session.user);
+        } else {
+          addLog("No session after refresh");
+        }
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to refresh session";
+      setAuthError(errorMessage);
+      addLog(`Refresh error: ${errorMessage}`);
+    }
+  };
+
+  // Manual redirect test
+  const handleTestRedirect = () => {
+    const redirectPath = "/login?redirectTo=/debug-auth";
+    addLog(`Testing redirect to: ${redirectPath}`);
+    navigate(redirectPath);
+  };
+
   useEffect(() => {
+    addLog("Component mounted");
+    addLog(`Current URL: ${window.location.href}`);
+    addLog(`URL Hash: ${window.location.hash}`);
+    addLog(`URL Search: ${window.location.search}`);
+    addLog(`Protocol: ${window.location.protocol}`);
+
+    // Check for auth tokens in URL
+    if (window.location.hash.includes("access_token")) {
+      addLog("Auth tokens found in URL hash");
+    }
+
     checkSession();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      addLog(`Auth event: ${event}`);
+      if (session) {
+        addLog(`Session update for user: ${session.user.id}`);
+      } else {
+        addLog("Session update: No session");
+      }
       checkSession();
     });
 
@@ -84,125 +179,217 @@ export default function DebugAuthPage() {
   return (
     <div className="container max-w-4xl mx-auto py-8">
       <h1 className="text-3xl font-bold mb-8">Authentication Debugging</h1>
-      
-      <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Authentication Status</CardTitle>
-            <CardDescription>Current login state and session information</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-medium">Status</h3>
-                <p className="text-muted-foreground">
-                  {userInfo ? (
-                    <span className="text-green-500 font-medium">Logged in</span>
-                  ) : (
-                    <span className="text-yellow-500 font-medium">Not logged in</span>
-                  )}
-                </p>
-              </div>
-              
-              {userInfo && (
+
+      <Tabs defaultValue="status">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsTrigger value="status">Auth Status</TabsTrigger>
+          <TabsTrigger value="details">Session Details</TabsTrigger>
+          <TabsTrigger value="logs">Debug Logs</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="status" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Authentication Status</CardTitle>
+              <CardDescription>
+                Current login state and session information
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
                 <div>
-                  <h3 className="text-lg font-medium">User Information</h3>
-                  <div className="bg-muted p-4 rounded-md mt-2">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm font-medium">User ID</p>
-                        <p className="text-sm text-muted-foreground break-all">{userInfo.id}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Email</p>
-                        <p className="text-sm text-muted-foreground">{userInfo.email || 'Not available'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Provider</p>
-                        <p className="text-sm text-muted-foreground">{userInfo.app_metadata?.provider || 'Unknown'}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Created At</p>
-                        <p className="text-sm text-muted-foreground">
-                          {userInfo.created_at 
-                            ? new Date(userInfo.created_at).toLocaleString() 
-                            : 'Not available'}
-                        </p>
+                  <h3 className="text-lg font-medium">Status</h3>
+                  <p className="text-muted-foreground">
+                    {userInfo ? (
+                      <span className="text-green-500 font-medium">
+                        Logged in
+                      </span>
+                    ) : (
+                      <span className="text-yellow-500 font-medium">
+                        Not logged in
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                {userInfo && (
+                  <div>
+                    <h3 className="text-lg font-medium">User Information</h3>
+                    <div className="bg-muted p-4 rounded-md mt-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-medium">User ID</p>
+                          <p className="text-sm text-muted-foreground break-all">
+                            {userInfo.id}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Email</p>
+                          <p className="text-sm text-muted-foreground">
+                            {userInfo.email || "Not available"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Provider</p>
+                          <p className="text-sm text-muted-foreground">
+                            {userInfo.app_metadata?.provider || "Unknown"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Created At</p>
+                          <p className="text-sm text-muted-foreground">
+                            {userInfo.created_at
+                              ? new Date(userInfo.created_at).toLocaleString()
+                              : "Not available"}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-              
-              {authError && (
-                <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-md text-sm">
-                  <p className="font-medium">Error:</p>
-                  <p>{authError}</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-end space-x-2">
-            {userInfo ? (
-              <Button variant="destructive" onClick={handleLogout}>Sign Out</Button>
-            ) : (
-              <Button onClick={handleLogin}>Sign In with GitHub</Button>
-            )}
-          </CardFooter>
-        </Card>
+                )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Session Details</CardTitle>
-            <CardDescription>Raw session information from Supabase</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-muted rounded-md p-4 overflow-auto max-h-96">
-              <pre className="text-xs">
-                {JSON.stringify(sessionInfo, null, 2)}
-              </pre>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" onClick={checkSession}>Refresh Session Info</Button>
-          </CardFooter>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Environment</CardTitle>
-            <CardDescription>Information about your environment configuration</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div>
-                <p className="font-medium">Current URL</p>
-                <p className="text-sm text-muted-foreground break-all">{window.location.href}</p>
-              </div>
-              <div>
-                <p className="font-medium">Origin</p>
-                <p className="text-sm text-muted-foreground">{window.location.origin}</p>
-              </div>
-              <div>
-                <p className="font-medium">Supabase Configuration</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-                  <div className="bg-muted p-2 rounded-md">
-                    <p className="text-sm font-medium">Supabase URL</p>
-                    <p className="text-sm text-muted-foreground">
-                      {import.meta.env.VITE_SUPABASE_URL ? '✓ Set' : '✗ Missing'}
-                    </p>
+                {authError && (
+                  <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-md text-sm">
+                    <p className="font-medium">Error:</p>
+                    <p>{authError}</p>
                   </div>
-                  <div className="bg-muted p-2 rounded-md">
-                    <p className="text-sm font-medium">Supabase Anon Key</p>
-                    <p className="text-sm text-muted-foreground">
-                      {import.meta.env.VITE_SUPABASE_ANON_KEY ? '✓ Set' : '✗ Missing'}
-                    </p>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between gap-2 flex-wrap">
+              {userInfo ? (
+                <>
+                  <Button variant="destructive" onClick={handleLogout}>
+                    Sign Out
+                  </Button>
+                  <Button variant="outline" onClick={handleForceRefresh}>
+                    Refresh Token
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button onClick={handleLogin}>Sign In with GitHub</Button>
+                  <Button variant="outline" onClick={handleTestRedirect}>
+                    Test Redirect Flow
+                  </Button>
+                </>
+              )}
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Environment</CardTitle>
+              <CardDescription>
+                Information about your environment configuration
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div>
+                  <p className="font-medium">Current URL</p>
+                  <p className="text-sm text-muted-foreground break-all">
+                    {window.location.href}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium">Origin</p>
+                  <p className="text-sm text-muted-foreground">
+                    {window.location.origin}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium">Supabase Configuration</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                    <div className="bg-muted p-2 rounded-md">
+                      <p className="text-sm font-medium">Supabase URL</p>
+                      <p className="text-sm text-muted-foreground">
+                        {import.meta.env.VITE_SUPABASE_URL
+                          ? "✓ Set"
+                          : "✗ Missing"}
+                      </p>
+                    </div>
+                    <div className="bg-muted p-2 rounded-md">
+                      <p className="text-sm font-medium">Supabase Anon Key</p>
+                      <p className="text-sm text-muted-foreground">
+                        {import.meta.env.VITE_SUPABASE_ANON_KEY
+                          ? "✓ Set"
+                          : "✗ Missing"}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="details">
+          <Card>
+            <CardHeader>
+              <CardTitle>Session Details</CardTitle>
+              <CardDescription>
+                Raw session information from Supabase
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-muted rounded-md p-4 overflow-auto max-h-96">
+                <pre className="text-xs">
+                  {JSON.stringify(sessionInfo, null, 2)}
+                </pre>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" onClick={checkSession}>
+                Refresh Session Info
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="logs">
+          <Card>
+            <CardHeader>
+              <CardTitle>Debug Logs</CardTitle>
+              <CardDescription>
+                Detailed logs of authentication events
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-muted rounded-md p-4 overflow-auto max-h-96 font-mono text-xs">
+                {debugLogs.map((log, i) => (
+                  <div key={i} className="border-b border-border pb-1 mb-1">
+                    {log}
+                  </div>
+                ))}
+                {debugLogs.length === 0 && (
+                  <div className="text-muted-foreground">No logs yet...</div>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button
+                variant="outline"
+                onClick={() =>
+                  debugAuthSession().then(() =>
+                    addLog("Manual debug session check completed")
+                  )
+                }
+              >
+                Debug Auth Session
+              </Button>
+              <Button variant="ghost" onClick={() => setDebugLogs([])}>
+                Clear Logs
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <div className="mt-8 flex justify-center">
+        <Button variant="ghost" onClick={() => navigate("/")}>
+          Return to Home
+        </Button>
       </div>
     </div>
   );
