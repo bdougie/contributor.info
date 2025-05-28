@@ -16,6 +16,22 @@ export function useGitHubAuth() {
     async function checkAuth() {
       setLoading(true);
       console.log('Checking auth status...');
+      
+      // Check URL for auth tokens first and handle them
+      const currentUrl = window.location.href;
+      console.log('Current URL:', currentUrl);
+      console.log('URL Hash:', window.location.hash);
+      
+      if (window.location.hash.includes('access_token')) {
+        console.log('Auth tokens found in URL hash');
+        // Since detectSessionInUrl is enabled in Supabase config, 
+        // we just need to wait a moment for it to process
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Clear the URL hash after processing
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      
       const { data: { session } } = await supabase.auth.getSession();
       console.log('Current session:', session);
       const isAuthenticated = !!session;
@@ -45,15 +61,6 @@ export function useGitHubAuth() {
     }
     
     checkAuth();
-
-    // Check URL for auth tokens
-    const currentUrl = window.location.href;
-    console.log('Current URL:', currentUrl);
-    console.log('URL Hash:', window.location.hash);
-    
-    if (window.location.hash.includes('access_token')) {
-      console.log('Auth tokens found in URL hash');
-    }
 
     // Listen for auth changes
     try {
