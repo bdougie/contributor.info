@@ -13,6 +13,7 @@ import TestInsights from "@/components/test-insights";
 import DebugAuthPage from "@/components/debug-auth-page";
 
 function App() {
+
   return (
     <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
       <Router>

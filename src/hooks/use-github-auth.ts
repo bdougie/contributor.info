@@ -15,6 +15,40 @@ export function useGitHubAuth() {
     // Check login status
     async function checkAuth() {
       setLoading(true);
+      // Check URL for auth tokens first and handle them manually
+      // This prevents 401 errors that occur when Supabase's automatic detection fails
+      if (window.location.hash.includes('access_token')) {
+        try {
+          // Manually parse the hash parameters
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+          
+          if (accessToken && refreshToken) {
+            // Set the session manually using the extracted tokens
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+            
+            if (error) {
+              console.error('Error setting session:', error);
+              console.error('Error details:', {
+                message: error.message,
+                status: error.status
+              });
+              
+            
+            };
+          }
+        } catch (err) {
+          console.error('Error processing auth tokens:', err);
+        }
+        
+        // Clear the URL hash after processing
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      
       const { data: { session } } = await supabase.auth.getSession();
       const isAuthenticated = !!session;
       setIsLoggedIn(isAuthenticated);
@@ -41,9 +75,8 @@ export function useGitHubAuth() {
     checkAuth();
 
     // Listen for auth changes
-    // Using try/catch to handle potential errors in tests
     try {
-      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      const authSubscription = supabase.auth.onAuthStateChange((_, session) => {
         const loggedIn = !!session;
         setIsLoggedIn(loggedIn);
         
@@ -64,10 +97,11 @@ export function useGitHubAuth() {
         }
     });
 
-      // Correct cleanup that accesses the data.subscription property
+      // Return proper cleanup function
       return () => {
-        if (data && data.subscription && typeof data.subscription.unsubscribe === 'function') {
-          data.subscription.unsubscribe();
+        // For newer versions of Supabase client - the subscription object has an unsubscribe method
+        if (authSubscription && authSubscription.data && authSubscription.data.subscription && typeof authSubscription.data.subscription.unsubscribe === 'function') {
+          authSubscription.data.subscription.unsubscribe();
         }
       };
     } catch (error) {
@@ -80,12 +114,26 @@ export function useGitHubAuth() {
    * Initiates GitHub OAuth login flow
    */
   const login = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
+    try {
+      // Store the current path for redirect after login if needed
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login') {
+        localStorage.setItem('redirectAfterLogin', currentPath);
+      }
+      // Start the login flow with the correct redirect URL
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: window.location.origin, // This ensures redirect to your domain root
+        },
+      });
+      
+      if (error) {
+        throw error;
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+    }
   };
 
   /**
@@ -95,11 +143,20 @@ export function useGitHubAuth() {
     await supabase.auth.signOut();
   };
 
+  /**
+   * Force check the current session
+   */
+  const checkSession = async () => {
+    const { data } = await supabase.auth.getSession();
+    return !!data.session;
+  };
+
   return { 
     isLoggedIn, 
     loading, 
     login, 
     logout,
+    checkSession,
     showLoginDialog,
     setShowLoginDialog
   };

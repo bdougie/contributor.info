@@ -36,6 +36,7 @@ describe("useRepoSearch", () => {
         loading: false,
         login: vi.fn(),
         logout: vi.fn(),
+        checkSession: vi.fn().mockResolvedValue(false),
         showLoginDialog: false,
       });
       
@@ -68,6 +69,7 @@ describe("useRepoSearch", () => {
         loading: false,
         login: vi.fn(),
         logout: vi.fn(),
+        checkSession: vi.fn().mockResolvedValue(false),
         showLoginDialog: false,
       });
       
@@ -99,6 +101,7 @@ describe("useRepoSearch", () => {
         loading: false,
         login: vi.fn(),
         logout: vi.fn(),
+        checkSession: vi.fn().mockResolvedValue(false),
         showLoginDialog: false,
       });
       
@@ -131,6 +134,7 @@ describe("useRepoSearch", () => {
         loading: false,
         login: vi.fn(),
         logout: vi.fn(),
+        checkSession: vi.fn().mockResolvedValue(false),
         showLoginDialog: false,
       });
       
@@ -160,6 +164,7 @@ describe("useRepoSearch", () => {
         loading: false,
         login: vi.fn(),
         logout: vi.fn(),
+        checkSession: vi.fn().mockResolvedValue(true),
         showLoginDialog: false,
       });
       
