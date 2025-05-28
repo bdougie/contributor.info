@@ -86,6 +86,7 @@ describe("Login behavior for repository search", () => {
       loading: false,
       login: vi.fn(),
       logout: vi.fn(),
+      checkSession: vi.fn().mockResolvedValue(false),
       showLoginDialog: false,
       setShowLoginDialog: mockSetShowLoginDialog,
     });
@@ -221,6 +222,7 @@ describe("Login behavior for repository search", () => {
       loading: false,
       login: vi.fn(),
       logout: vi.fn(),
+      checkSession: vi.fn().mockResolvedValue(true),
       showLoginDialog: false,
       setShowLoginDialog: mockSetShowLoginDialog,
     });

@@ -17,7 +17,7 @@ import { supabase } from "@/lib/supabase";
  * Dedicated login page that handles authentication and redirects
  */
 export default function LoginPage() {
-  const { login, isLoggedIn, checkSession } = useGitHubAuth();
+  const { login, isLoggedIn } = useGitHubAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
@@ -58,6 +58,7 @@ export default function LoginPage() {
       setDebugInfo("Login function called, waiting for redirect...");
     } catch (err) {
       console.error("Login error:", err);
+
       setError(
         err instanceof Error ? err.message : "Login failed. Please try again."
       );

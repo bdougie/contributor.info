@@ -63,6 +63,7 @@ describe("Authentication Flow with Navigation", () => {
       loading: false,
       login: vi.fn(),
       logout: vi.fn(),
+      checkSession: vi.fn().mockResolvedValue(false),
     });
 
     // Reset window.location.pathname
@@ -108,6 +109,7 @@ describe("Authentication Flow with Navigation", () => {
       loading: false,
       login: vi.fn(),
       logout: vi.fn(),
+      checkSession: vi.fn().mockResolvedValue(true),
     });
 
     // Set pathname to simulate repository page
@@ -167,6 +169,7 @@ describe("Authentication Flow with Navigation", () => {
       loading: false,
       login: vi.fn(),
       logout: vi.fn(),
+      checkSession: vi.fn().mockResolvedValue(false),
     });
 
     const { rerender, getByTestId } = render(
@@ -189,6 +192,7 @@ describe("Authentication Flow with Navigation", () => {
       loading: false,
       login: vi.fn(),
       logout: vi.fn(),
+      checkSession: vi.fn().mockResolvedValue(true),
     });
 
     // Rerender to trigger the redirect logic

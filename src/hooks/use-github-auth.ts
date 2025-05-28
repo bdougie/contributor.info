@@ -56,9 +56,9 @@ export function useGitHubAuth() {
     }
 
     // Listen for auth changes
-    // Using try/catch to handle potential errors in tests
     try {
-      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      // Simplify the auth state subscription to avoid issues with return type
+      const authSubscription = supabase.auth.onAuthStateChange((event, session) => {
         console.log('Auth event:', event);
         console.log('Session:', session);
         
@@ -84,10 +84,11 @@ export function useGitHubAuth() {
         }
     });
 
-      // Correct cleanup that accesses the data.subscription property
+      // Return proper cleanup function
       return () => {
-        if (data && data.subscription && typeof data.subscription.unsubscribe === 'function') {
-          data.subscription.unsubscribe();
+        // For newer versions of Supabase client - the subscription object has an unsubscribe method
+        if (authSubscription && authSubscription.data && authSubscription.data.subscription && typeof authSubscription.data.subscription.unsubscribe === 'function') {
+          authSubscription.data.subscription.unsubscribe();
         }
       };
     } catch (error) {

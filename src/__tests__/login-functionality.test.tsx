@@ -29,6 +29,7 @@ describe("Login Functionality", () => {
       showLoginDialog: false,
       setShowLoginDialog: vi.fn(),
       logout: vi.fn(),
+      checkSession: vi.fn().mockResolvedValue(true),
     });
 
     render(
@@ -51,6 +52,7 @@ describe("Login Functionality", () => {
       showLoginDialog: false,
       setShowLoginDialog: vi.fn(),
       logout: vi.fn(),
+      checkSession: vi.fn().mockResolvedValue(false),
     });
 
     render(

@@ -11,7 +11,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { debugAuthSession } from "@/lib/supabase";
+import { useGitHubAuth } from "@/hooks/use-github-auth";
 
 export default function DebugAuthPage() {
   const [sessionInfo, setSessionInfo] = useState<any>(null);
@@ -19,6 +19,7 @@ export default function DebugAuthPage() {
   const [userInfo, setUserInfo] = useState<any>(null);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const navigate = useNavigate();
+  const { checkSession: hookCheckSession } = useGitHubAuth();
 
   // Add a log entry
   const addLog = (message: string) => {
@@ -28,7 +29,7 @@ export default function DebugAuthPage() {
     ]);
   };
 
-  const checkSession = async () => {
+  const refreshSessionInfo = async () => {
     try {
       addLog("Checking session...");
       const { data, error } = await supabase.auth.getSession();
@@ -100,7 +101,7 @@ export default function DebugAuthPage() {
         // Clear state on successful logout
         setUserInfo(null);
         addLog("Logout successful");
-        checkSession();
+        refreshSessionInfo();
       }
     } catch (err) {
       const errorMessage =
@@ -147,6 +148,23 @@ export default function DebugAuthPage() {
     navigate(redirectPath);
   };
 
+  // Hook check session
+  const handleHookCheckSession = async () => {
+    try {
+      addLog("Using hook to check session...");
+      const isActive = await hookCheckSession();
+      addLog(
+        `Hook session check result: ${
+          isActive ? "Active session" : "No active session"
+        }`
+      );
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed with hook check session";
+      addLog(`Hook session check error: ${errorMessage}`);
+    }
+  };
+
   useEffect(() => {
     addLog("Component mounted");
     addLog(`Current URL: ${window.location.href}`);
@@ -159,7 +177,7 @@ export default function DebugAuthPage() {
       addLog("Auth tokens found in URL hash");
     }
 
-    checkSession();
+    refreshSessionInfo();
 
     const {
       data: { subscription },
@@ -170,7 +188,7 @@ export default function DebugAuthPage() {
       } else {
         addLog("Session update: No session");
       }
-      checkSession();
+      refreshSessionInfo();
     });
 
     return () => subscription.unsubscribe();
@@ -340,7 +358,7 @@ export default function DebugAuthPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" onClick={checkSession}>
+              <Button variant="outline" onClick={refreshSessionInfo}>
                 Refresh Session Info
               </Button>
             </CardFooter>
@@ -368,14 +386,7 @@ export default function DebugAuthPage() {
               </div>
             </CardContent>
             <CardFooter className="flex justify-between">
-              <Button
-                variant="outline"
-                onClick={() =>
-                  debugAuthSession().then(() =>
-                    addLog("Manual debug session check completed")
-                  )
-                }
-              >
+              <Button variant="outline" onClick={handleHookCheckSession}>
                 Debug Auth Session
               </Button>
               <Button variant="ghost" onClick={() => setDebugLogs([])}>

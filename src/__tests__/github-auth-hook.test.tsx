@@ -38,9 +38,7 @@ vi.mock("../lib/supabase", () => {
           mockAuthCallback.mockImplementation(callback);
           // Return a subscription object with unsubscribe method
           return {
-            data: {
-              subscription: mockSubscription,
-            },
+            subscription: mockSubscription,
           };
         }),
       },
@@ -81,6 +79,7 @@ describe("useGitHubAuth Hook", () => {
     });
 
     expect(result.current.isLoggedIn).toBe(false);
+    expect(typeof result.current.checkSession).toBe("function");
   });
 
   it("handles login success and redirects to stored path", async () => {
@@ -93,7 +92,7 @@ describe("useGitHubAuth Hook", () => {
     // Render the hook
     renderHook(() => useGitHubAuth(), { wrapper });
 
-    // Manually trigger the navigationt o simulate what would happen when
+    // Manually trigger the navigation to simulate what would happen when
     // authChangeCallback is invoked
     mockNavigate("/facebook/react");
     localStorage.removeItem("redirectAfterLogin");
@@ -143,6 +142,34 @@ describe("useGitHubAuth Hook", () => {
 
     // Verify initial state
     expect(result.current.isLoggedIn).toBe(true);
+
+    // Mock the checkSession function
+    vi.mocked(supabase.auth.getSession).mockImplementationOnce(async () => ({
+      data: {
+        session: {
+          user: {
+            id: "user-123",
+            app_metadata: {},
+            user_metadata: {},
+            aud: "authenticated",
+            email: "test@example.com",
+            created_at: new Date().toISOString(),
+          },
+          expires_in: 3600,
+          expires_at: 999999,
+          token_type: "bearer",
+          access_token: "fake-token",
+          refresh_token: "fake-refresh-token",
+        },
+      },
+      error: null,
+    }));
+
+    // Test checkSession
+    await act(async () => {
+      const isActive = await result.current.checkSession();
+      expect(isActive).toBe(true);
+    });
 
     // Call logout
     await act(async () => {
