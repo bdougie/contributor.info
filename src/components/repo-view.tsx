@@ -14,6 +14,7 @@ import { SearchIcon } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import LotteryFactor from "./lottery-factor";
+import Confidence from "./confidence";
 import Contributions from "./contributions";
 import Distribution from "./distribution";
 import PRActivity from "./pr-activity";
@@ -144,7 +145,12 @@ export default function RepoView() {
 
 // Route components
 export function LotteryFactorRoute() {
-  return <LotteryFactor />;
+  return (
+    <>
+      <LotteryFactor />
+      <Confidence />
+    </>
+  );
 }
 
 export function ContributionsRoute() {
