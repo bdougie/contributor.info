@@ -7,7 +7,11 @@ export function createSupabaseClient() {
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   
   console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Missing');
-  console.log('Supabase Anon Key:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 10)}...` : 'Missing');
+  console.log('Supabase URL value:', supabaseUrl);
+  console.log('Supabase Anon Key:', supabaseAnonKey ? 'Set' : 'Missing');
+  console.log('Supabase Anon Key preview:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'Missing');
+  console.log('Environment mode:', import.meta.env.MODE);
+  console.log('All env vars:', import.meta.env);
   
   if (!supabaseUrl) {
     throw new Error('Missing environment variable: VITE_SUPABASE_URL');

@@ -57,6 +57,10 @@ export function useGitHubAuth() {
                 console.log('JWT payload:', payload);
                 console.log('JWT expires at:', new Date(payload.exp * 1000));
                 console.log('Current time:', new Date());
+                console.log('JWT issuer (iss):', payload.iss);
+                console.log('Expected Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+                console.log('URLs match:', payload.iss === `${import.meta.env.VITE_SUPABASE_URL}/auth/v1`);
+                console.log('Current anon key being used:', import.meta.env.VITE_SUPABASE_ANON_KEY ? `${import.meta.env.VITE_SUPABASE_ANON_KEY.substring(0, 20)}...` : 'Missing');
               } catch (jwtError) {
                 console.error('Error decoding JWT:', jwtError);
               }
