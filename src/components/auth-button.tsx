@@ -21,10 +21,6 @@ export function AuthButton() {
     supabase.auth
       .getSession()
       .then(({ data: { session }, error: sessionError }) => {
-        console.log(
-          "Auth session check:",
-          session ? "Session found" : "No session"
-        );
         if (sessionError) {
           console.error("Session error:", sessionError);
           setError(sessionError.message);
@@ -42,8 +38,6 @@ export function AuthButton() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log("Auth state change event:", _event);
-      console.log("New session state:", session ? "Logged in" : "Logged out");
       setUser(session?.user ?? null);
     });
 
@@ -53,7 +47,6 @@ export function AuthButton() {
   const handleLogin = async () => {
     try {
       setError(null);
-      console.log("Initiating GitHub OAuth login...");
       const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: "github",
         options: {
@@ -75,7 +68,6 @@ export function AuthButton() {
   const handleLogout = async () => {
     try {
       setError(null);
-      console.log("Signing out...");
       const { error: signOutError } = await supabase.auth.signOut();
 
       if (signOutError) {

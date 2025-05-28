@@ -6,13 +6,6 @@ export function createSupabaseClient() {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   
-  console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Missing');
-  console.log('Supabase URL value:', supabaseUrl);
-  console.log('Supabase Anon Key:', supabaseAnonKey ? 'Set' : 'Missing');
-  console.log('Supabase Anon Key preview:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'Missing');
-  console.log('Environment mode:', import.meta.env.MODE);
-  console.log('All env vars:', import.meta.env);
-  
   if (!supabaseUrl) {
     throw new Error('Missing environment variable: VITE_SUPABASE_URL');
   }
@@ -28,7 +21,7 @@ export function createSupabaseClient() {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: false, // Disable automatic detection since we're handling manually
+        detectSessionInUrl: false, // Manual session handling prevents 401 errors with OAuth redirect tokens
         flowType: 'implicit'
       }
     }
