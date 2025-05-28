@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { GithubIcon } from "lucide-react";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
+import { useState } from "react";
 
 interface LoginDialogProps {
   open: boolean;
@@ -18,6 +19,8 @@ interface LoginDialogProps {
 
 export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
   const { login, isLoggedIn } = useGitHubAuth();
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Handle dialog close attempts - only allow close if logged in
   const handleOpenChange = (newOpen: boolean) => {
@@ -28,6 +31,27 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
 
     // Otherwise, allow the change
     onOpenChange(newOpen);
+  };
+
+  const handleLogin = async () => {
+    try {
+      setIsLoggingIn(true);
+      setError(null);
+
+      // Store current path for redirect after login
+      const currentPath = window.location.pathname;
+      localStorage.setItem("redirectAfterLogin", currentPath);
+
+      await login();
+      // The dialog will close automatically when isLoggedIn changes
+    } catch (err) {
+      console.error("Login error:", err);
+      setError(
+        err instanceof Error ? err.message : "Login failed. Please try again."
+      );
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   return (
@@ -42,11 +66,17 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
               rate limiting and provides access to more GitHub data.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-center pt-4">
-            <Button onClick={login}>
+          <div className="flex flex-col items-center pt-4 gap-2">
+            <Button onClick={handleLogin} disabled={isLoggingIn}>
               <GithubIcon className="mr-2 h-4 w-4" />
-              Login with GitHub
+              {isLoggingIn ? "Logging in..." : "Login with GitHub"}
             </Button>
+
+            {error && (
+              <div className="text-red-500 text-sm mt-2 text-center">
+                {error}
+              </div>
+            )}
           </div>
         </DialogContent>
       </DialogPortal>
