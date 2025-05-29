@@ -1,3 +1,5 @@
+import type { TimeRange } from './time-range';
+
 export interface PullRequest {
   id: number;
   number: number;
@@ -16,13 +18,10 @@ export interface PullRequest {
     login: string;
     avatar_url: string;
     organizations_url?: string;
-    type?: 'User' | 'Bot'; // Adding type field to track bot status
+    type?: 'User' | 'Bot';
   };
   html_url?: string;
-  organizations?: {
-    login: string;
-    avatar_url: string;
-  }[];
+  organizations?: Organization[];
   commits?: Array<{
     language: string;
     additions: number;
@@ -50,12 +49,54 @@ export interface PullRequest {
     };
     created_at: string;
   }>;
+  files?: Array<{
+    filename: string;
+    additions: number;
+    deletions: number;
+    changes: number;
+    status: string;
+    raw_url: string;
+    language?: string;
+  }>;
 }
 
-export interface RepoStats {
-  pullRequests: PullRequest[];
-  loading: boolean;
-  error: string | null;
+export interface Organization {
+  id: number;
+  login: string;
+  avatar_url: string;
+  description?: string;
+  url: string;
+}
+
+export interface OrganizationMember {
+  login: string;
+  id: number;
+  avatar_url: string;
+  role: 'admin' | 'member';
+  organization: Organization;
+}
+
+export interface Team {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  privacy: 'secret' | 'closed' | 'visible';
+  organization: Organization;
+}
+
+export interface RepositoryCollaborator {
+  login: string;
+  id: number;
+  avatar_url: string;
+  permissions: {
+    admin: boolean;
+    maintain: boolean;
+    push: boolean;
+    triage: boolean;
+    pull: boolean;
+  };
+  role_name: string;
 }
 
 export interface ContributorStats {
@@ -64,10 +105,23 @@ export interface ContributorStats {
   pullRequests: number;
   percentage: number;
   recentPRs?: PullRequest[];
-  organizations?: {
-    login: string;
-    avatar_url: string;
-  }[];
+  organizations?: Organization[];
+  role?: 'maintainer' | 'member' | 'contributor';
+  permissions?: RepositoryCollaborator['permissions'];
+  organizationMemberships?: OrganizationMember[];
+  teamMemberships?: Team[];
+  totalCommits?: number;
+  commitFrequency?: {
+    daily: number;
+    weekly: number;
+    monthly: number;
+  };
+}
+
+export interface RepoStats {
+  pullRequests: PullRequest[];
+  loading: boolean;
+  error: string | null;
 }
 
 export interface LotteryFactor {
@@ -107,7 +161,6 @@ export interface DirectCommitsData {
   yoloCoderStats: YoloCoderStats[];
 }
 
-// PR Activity types (moved from src/types/pr-activity.ts)
 export type ActivityType = 'opened' | 'closed' | 'merged' | 'reviewed' | 'commented';
 
 export interface User {
@@ -139,10 +192,6 @@ export interface PullRequestActivity {
   createdAt: Date;
 }
 
-// Add TimeRange type for use in hooks
-export type TimeRange = string;
-
-// Updated QuadrantDistribution type to include both general distribution and detailed breakdown
 export interface QuadrantDistribution {
   label: string;
   value: number;
