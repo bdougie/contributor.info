@@ -184,8 +184,8 @@ export class ContributionAnalyzer {
     return {
       // Higher x (more additions) with some variance
       x: Math.min(95, additionRatio * 100 + Math.random() * 10),
-      // Lower y (fewer deletions) with some variance
-      y: Math.max(5, deletionRatio * 100 - Math.random() * 10),
+      // Higher y (more additions) with some variance
+      y: Math.min(95, additionRatio * 100 + Math.random() * 10),
       quadrant: 'newStuff'
     };
   }
@@ -202,9 +202,10 @@ export class ContributionAnalyzer {
 
   private static getRefactoringMetrics(additionRatio: number, deletionRatio: number): ContributionMetrics {
     return {
-      // Balanced x and y with some variance
-      x: Math.min(95, Math.max(5, additionRatio * 100 + Math.random() * 20 - 10)),
-      y: Math.min(95, Math.max(5, deletionRatio * 100 + Math.random() * 20 - 10)),
+      // Higher x (more additions) with some variance
+      x: Math.min(95, additionRatio * 100 + Math.random() * 10),
+      // Lower y (fewer deletions) with some variance
+      y: Math.max(5, deletionRatio * 100 - Math.random() * 10),
       quadrant: 'refactoring'
     };
   }
