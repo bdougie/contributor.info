@@ -184,8 +184,8 @@ export class ContributionAnalyzer {
     return {
       // Higher x (more additions) with some variance
       x: Math.min(95, additionRatio * 100 + Math.random() * 10),
-      // Higher y (more additions) with some variance
-      y: Math.min(95, additionRatio * 100 + Math.random() * 10),
+      // Lower y (fewer deletions) with some variance
+      y: Math.max(5, (1 - deletionRatio) * 50 - Math.random() * 10),
       quadrant: 'newStuff'
     };
   }
