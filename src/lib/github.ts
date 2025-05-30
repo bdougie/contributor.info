@@ -1,10 +1,9 @@
 import { supabase } from './supabase';
-import type { PullRequest } from './types';
+import type { PullRequest, Organization, OrganizationMember, Team, RepositoryCollaborator } from './types';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
-// Export the fetchUserOrganizations function to fix the missing export error
-export async function fetchUserOrganizations(username: string, headers: HeadersInit): Promise<{ login: string; avatar_url: string; }[]> {
+export async function fetchUserOrganizations(username: string, headers: HeadersInit): Promise<Organization[]> {
   try {
     const response = await fetch(
       `${GITHUB_API_BASE}/users/${username}/orgs`,
@@ -17,13 +16,180 @@ export async function fetchUserOrganizations(username: string, headers: HeadersI
 
     const orgs = await response.json();
     return orgs.slice(0, 3).map((org: any) => ({
+      id: org.id,
       login: org.login,
       avatar_url: org.avatar_url,
+      description: org.description,
+      url: org.url
     }));
   } catch (error) {
     console.error('Error fetching user organizations:', error);
     return [];
   }
+}
+
+export async function fetchRepositoryCollaborators(
+  owner: string,
+  repo: string,
+  headers: HeadersInit
+): Promise<RepositoryCollaborator[]> {
+  try {
+    const response = await fetch(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/collaborators?affiliation=all`,
+      { headers }
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const collaborators = await response.json();
+    return collaborators.map((collab: any) => ({
+      login: collab.login,
+      id: collab.id,
+      avatar_url: collab.avatar_url,
+      permissions: collab.permissions,
+      role_name: collab.role_name
+    }));
+  } catch (error) {
+    console.error('Error fetching repository collaborators:', error);
+    return [];
+  }
+}
+
+export async function fetchOrganizationMembers(
+  orgLogin: string,
+  headers: HeadersInit
+): Promise<OrganizationMember[]> {
+  try {
+    const response = await fetch(
+      `${GITHUB_API_BASE}/orgs/${orgLogin}/members`,
+      { headers }
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const members = await response.json();
+    return members.map((member: any) => ({
+      login: member.login,
+      id: member.id,
+      avatar_url: member.avatar_url,
+      role: member.role || 'member',
+      organization: {
+        id: member.organization?.id,
+        login: orgLogin,
+        avatar_url: member.organization?.avatar_url,
+        url: member.organization?.url
+      }
+    }));
+  } catch (error) {
+    console.error('Error fetching organization members:', error);
+    return [];
+  }
+}
+
+export async function fetchUserTeams(
+  username: string,
+  orgLogin: string,
+  headers: HeadersInit
+): Promise<Team[]> {
+  try {
+    const response = await fetch(
+      `${GITHUB_API_BASE}/orgs/${orgLogin}/teams`,
+      { headers }
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const teams = await response.json();
+    return teams
+      .filter((team: any) => team.members_url.includes(username))
+      .map((team: any) => ({
+        id: team.id,
+        name: team.name,
+        slug: team.slug,
+        description: team.description,
+        privacy: team.privacy,
+        organization: {
+          id: team.organization?.id,
+          login: orgLogin,
+          avatar_url: team.organization?.avatar_url,
+          url: team.organization?.url
+        }
+      }));
+  } catch (error) {
+    console.error('Error fetching user teams:', error);
+    return [];
+  }
+}
+
+async function fetchPRFiles(owner: string, repo: string, prNumber: number, headers: HeadersInit) {
+  try {
+    const response = await fetch(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}/files`,
+      { headers }
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const files = await response.json();
+    return files.map((file: any) => ({
+      filename: file.filename,
+      additions: file.additions,
+      deletions: file.deletions,
+      changes: file.changes,
+      status: file.status,
+      raw_url: file.raw_url,
+      language: getLanguageFromFilename(file.filename)
+    }));
+  } catch (error) {
+    console.error(`Error fetching files for PR #${prNumber}:`, error);
+    return [];
+  }
+}
+
+function getLanguageFromFilename(filename: string): string {
+  const extension = filename.split('.').pop()?.toLowerCase();
+  const languageMap: Record<string, string> = {
+    ts: 'TypeScript',
+    tsx: 'TypeScript',
+    js: 'JavaScript',
+    jsx: 'JavaScript',
+    py: 'Python',
+    rb: 'Ruby',
+    java: 'Java',
+    go: 'Go',
+    rs: 'Rust',
+    cpp: 'C++',
+    c: 'C',
+    h: 'C',
+    cs: 'C#',
+    php: 'PHP',
+    swift: 'Swift',
+    kt: 'Kotlin',
+    scala: 'Scala',
+    css: 'CSS',
+    scss: 'CSS',
+    less: 'CSS',
+    html: 'HTML',
+    md: 'Markdown',
+    json: 'JSON',
+    yml: 'YAML',
+    yaml: 'YAML',
+    xml: 'XML',
+    sql: 'SQL',
+    sh: 'Shell',
+    bash: 'Shell',
+    zsh: 'Shell',
+  };
+
+  return extension ? (languageMap[extension] || 'Other') : 'Other';
 }
 
 async function fetchPRReviews(owner: string, repo: string, prNumber: number, headers: HeadersInit) {
@@ -84,18 +250,15 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
     'Accept': 'application/vnd.github.v3+json',
   };
 
-  // Try to get user's GitHub token from Supabase session
   const { data: { session } } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
-
-  // Use user's token if available, otherwise fall back to env token
   const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  
   if (token) {
     headers.Authorization = `token ${token}`;
   }
 
   try {
-    // Calculate date range based on timeRange parameter
     const since = new Date();
     since.setDate(since.getDate() - parseInt(timeRange));
     
@@ -115,26 +278,27 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
           throw new Error('GitHub API rate limit exceeded. Please try again later.');
         }
       } else if (response.status === 401) {
-        throw new Error('Invalid GitHub token. Please check your token and try again. Make sure you\'ve copied the entire token correctly.');
+        throw new Error('Invalid GitHub token. Please check your token and try again.');
       }
       throw new Error(`GitHub API error: ${error.message || response.statusText}`);
     }
 
     const prs = await response.json();
     
-    // Filter PRs by the time range
     const filteredPRs = prs.filter((pr: any) => {
       const prDate = new Date(pr.updated_at);
       return prDate >= since;
     });
     
-    // Fetch additional details for each PR to get additions/deletions
     const detailedPRs = await Promise.all(
       filteredPRs.map(async (pr: any) => {
-        const detailsResponse = await fetch(
-          `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}`,
-          { headers }
-        );
+        const [detailsResponse, files, reviews, comments, organizations] = await Promise.all([
+          fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}`, { headers }),
+          fetchPRFiles(owner, repo, pr.number, headers),
+          fetchPRReviews(owner, repo, pr.number, headers),
+          fetchPRComments(owner, repo, pr.number, headers),
+          fetchUserOrganizations(pr.user.login, headers)
+        ]);
 
         if (!detailsResponse.ok) {
           console.warn(`Failed to fetch details for PR #${pr.number}`);
@@ -147,20 +311,25 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
 
         const details = await detailsResponse.json();
         
-        // Fetch user's organizations
-        const organizations = await fetchUserOrganizations(pr.user.login, headers);
+        const isBot = pr.user.type === 'Bot' || pr.user.login.includes('[bot]');
         
-        // Fetch PR reviews and comments (in parallel)
-        const [reviews, comments] = await Promise.all([
-          fetchPRReviews(owner, repo, pr.number, headers),
-          fetchPRComments(owner, repo, pr.number, headers)
-        ]);
-        
-        // Check if user is a bot by their type or by checking if name contains [bot]
-        const isBot = 
-          pr.user.type === 'Bot' || 
-          pr.user.login.includes('[bot]');
-        
+        // Aggregate file changes by language
+        const languageChanges = files.reduce((acc: Record<string, { additions: number; deletions: number }>, file) => {
+          const lang = file.language || 'Other';
+          if (!acc[lang]) {
+            acc[lang] = { additions: 0, deletions: 0 };
+          }
+          acc[lang].additions += file.additions;
+          acc[lang].deletions += file.deletions;
+          return acc;
+        }, {});
+
+        const commits = Object.entries(languageChanges).map(([language, changes]) => ({
+          language,
+          additions: changes.additions,
+          deletions: changes.deletions
+        }));
+
         return {
           id: pr.id,
           number: pr.number,
@@ -182,6 +351,8 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
             type: isBot ? 'Bot' : 'User',
           },
           organizations,
+          commits,
+          files,
           reviews,
           comments
         };
@@ -221,18 +392,15 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
     'Accept': 'application/vnd.github.v3+json',
   };
 
-  // Try to get user's GitHub token from Supabase session
   const { data: { session } } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
-
-  // Use user's token if available, otherwise fall back to env tokerm -rf src/github-activityn
   const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  
   if (token) {
     headers.Authorization = `token ${token}`;
   }
 
   try {
-    // First, get the default branch for the repository
     const repoResponse = await fetch(
       `${GITHUB_API_BASE}/repos/${owner}/${repo}`,
       { headers }
@@ -246,21 +414,17 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
     const defaultBranch = repoData.default_branch;
     const defaultRef = `refs/heads/${defaultBranch}`;
 
-    // Calculate date range based on timeRange parameter
     const since = new Date();
     since.setDate(since.getDate() - parseInt(timeRange));
 
-    // Get merged PRs for the repository in the time range
     const pullRequests = await fetchPullRequests(owner, repo, timeRange);
     const mergedPRs = pullRequests.filter(pr => pr.merged_at);
     
-    // Get the merge commit SHAs of the merged PRs
     const prMergeShaSet = new Set<string>();
     
     await Promise.all(
       mergedPRs.map(async (pr) => {
         try {
-          // Fetch the PR details to get the merge commit SHA
           const prResponse = await fetch(
             `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}`,
             { headers }
@@ -278,9 +442,6 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
       })
     );
 
-    // Fetch push events for the repository
-    // Note: GitHub API doesn't have a direct way to get push events for a specific branch,
-    // so we'll fetch all events and filter for push events to the default branch
     const eventsResponse = await fetch(
       `${GITHUB_API_BASE}/repos/${owner}/${repo}/events?per_page=100`,
       { headers }
@@ -292,22 +453,17 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
 
     const events = await eventsResponse.json();
     
-    // Filter for push events to the default branch
     const pushEvents = events.filter((event: any) => {
-      // Check if it's a push event to the default branch
       return event.type === 'PushEvent' && 
              event.payload.ref === defaultRef &&
              new Date(event.created_at) >= since;
     });
 
-    // Identify YOLO pushes (pushes to default branch that don't correlate with PR merges)
     const yoloPushes = pushEvents.filter((push: any) => {
       return !prMergeShaSet.has(push.payload.head);
     });
 
-    // Format the YOLO pushes data
     const directCommits = await Promise.all(yoloPushes.map(async (push: any) => {
-      // Fetch user details to get avatar URL
       let avatar_url = '';
       try {
         const userResponse = await fetch(
@@ -335,7 +491,6 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
       };
     }));
 
-    // Calculate statistics for YOLO coders (authors with direct pushes)
     const yoloCoderMap = new Map<string, { 
       login: string; 
       avatar_url: string; 
@@ -346,8 +501,6 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
 
     for (const commit of directCommits) {
       const login = commit.actor.login;
-      
-      // Check if this is a bot
       const isBot = login.includes('[bot]');
       
       if (yoloCoderMap.has(login)) {
