@@ -32,14 +32,14 @@
   - [x] 1.3 Create interfaces for monthly cycle states (winner announcement, running leaderboard phases)
   - [x] 1.4 Write unit tests in `lib/contributors/types.test.ts` for type validation and constants
 
-- [ ] 2.0 Implement contributor activity calculation and ranking system
-  - [ ] 2.1 Create core calculation logic in `lib/contributors/calculator.ts` for weighted activity scoring
-  - [ ] 2.2 Implement monthly cycle management (1st-7th winner display, 8th+ running tally reset)
-  - [ ] 2.3 Add tie-breaking logic to select contributor with earliest contribution in month
-  - [ ] 2.4 Create date utility functions in `lib/utils/date-helpers.ts` for monthly cycle calculations
-  - [ ] 2.5 Implement API integration functions in `lib/contributors/api.ts` to fetch repository activity data
-  - [ ] 2.6 Add caching strategy for contributor calculations to minimize performance impact
-  - [ ] 2.7 Write comprehensive unit tests for calculator logic, date helpers, and API functions
+- [x] 2.0 Implement contributor activity calculation and ranking system
+  - [x] 2.1 Create core calculation logic in `lib/contributors/calculator.ts` for weighted activity scoring
+  - [x] 2.2 Implement monthly cycle management (1st-7th winner display, 8th+ running tally reset)
+  - [x] 2.3 Add tie-breaking logic to select contributor with earliest contribution in month
+  - [x] 2.4 Create date utility functions in `lib/utils/date-helpers.ts` for monthly cycle calculations
+  - [x] 2.5 Implement API integration functions in `lib/contributors/api.ts` to fetch repository activity data
+  - [x] 2.6 Add caching strategy for contributor calculations to minimize performance impact
+  - [x] 2.7 Write comprehensive unit tests for calculator logic, date helpers, and API functions
 
 - [ ] 3.0 Create responsive UI components for contributor display
   - [ ] 3.1 Build `ContributorCard.tsx` component with avatar, name, and contribution breakdown
