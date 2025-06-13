@@ -26,11 +26,11 @@
 
 ## Tasks
 
-- [ ] 1.0 Set up data structures and types for contributor tracking
-  - [ ] 1.1 Create TypeScript interfaces in `lib/contributors/types.ts` for contributor data, activity types, and ranking results
-  - [ ] 1.2 Define activity weight constants (Comments: 3x, Reviews: 3x, PRs: 1x) in the types file
-  - [ ] 1.3 Create interfaces for monthly cycle states (winner announcement, running leaderboard phases)
-  - [ ] 1.4 Write unit tests in `lib/contributors/types.test.ts` for type validation and constants
+- [x] 1.0 Set up data structures and types for contributor tracking
+  - [x] 1.1 Create TypeScript interfaces in `lib/contributors/types.ts` for contributor data, activity types, and ranking results
+  - [x] 1.2 Define activity weight constants (Comments: 3x, Reviews: 3x, PRs: 1x) in the types file
+  - [x] 1.3 Create interfaces for monthly cycle states (winner announcement, running leaderboard phases)
+  - [x] 1.4 Write unit tests in `lib/contributors/types.test.ts` for type validation and constants
 
 - [ ] 2.0 Implement contributor activity calculation and ranking system
   - [ ] 2.1 Create core calculation logic in `lib/contributors/calculator.ts` for weighted activity scoring
