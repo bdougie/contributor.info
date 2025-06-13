@@ -1,6 +1,5 @@
 ---
-description: 
-globs: 
+description: Generate tasks for the agent to complete. 
 alwaysApply: false
 ---
 # Rule: Generating a Task List from a PRD
