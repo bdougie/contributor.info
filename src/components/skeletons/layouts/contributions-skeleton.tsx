@@ -15,12 +15,16 @@ export function ContributionsSkeleton({ className, isMobile = false }: Contribut
         <CardTitle>
           <Skeleton className="h-7 w-56" />
         </CardTitle>
-        <CardDescription>
-          <div className="space-y-1">
-            <Skeleton className="h-4 w-80" />
-            {isMobile && <Skeleton className="h-4 w-64" />}
-          </div>
-        </CardDescription>
+        <div className="space-y-1">
+          <CardDescription>
+            <span className="inline-block h-4 w-80 animate-pulse rounded-md bg-primary/10" />
+          </CardDescription>
+          {isMobile && (
+            <CardDescription>
+              <span className="inline-block h-4 w-64 animate-pulse rounded-md bg-primary/10" />
+            </CardDescription>
+          )}
+        </div>
       </CardHeader>
       <CardContent className={isMobile ? "p-0" : "p-6"}>
         <ContributionsChartSkeleton isMobile={isMobile} />

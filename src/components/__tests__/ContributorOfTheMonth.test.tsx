@@ -85,12 +85,10 @@ describe("ContributorOfTheMonth", () => {
   it("renders loading state correctly", () => {
     render(<ContributorOfTheMonth ranking={null} loading={true} />);
 
-    expect(screen.getByText("Contributor of the Month")).toBeInTheDocument();
-    expect(
-      screen.getByText("Loading contributor rankings...")
-    ).toBeInTheDocument();
-    // Loading spinner should be present
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    // Should render skeleton instead of loading text
+    expect(document.querySelector('.animate-pulse')).toBeInTheDocument();
+    // Should have the skeleton structure
+    expect(document.querySelector('[role="region"]')).toBeInTheDocument();
   });
 
   it("renders error state correctly", () => {

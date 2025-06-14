@@ -5,6 +5,10 @@ import {
   RepoViewSkeleton, 
   ContributionsSkeleton, 
   DistributionSkeleton,
+  ContributorOfMonthSkeleton,
+  PRActivitySkeleton,
+  ContributorCardSkeleton,
+  ActivityItemSkeleton,
   SkeletonCard,
   SkeletonList,
   SkeletonChart
@@ -45,6 +49,49 @@ describe("Skeleton Components", () => {
     it("shows mobile placeholder when isMobile is true", () => {
       render(<DistributionSkeleton isMobile={true} />);
       expect(document.querySelector(".overflow-visible")).toBeInTheDocument();
+    });
+  });
+
+  describe("Phase 2 Feature Skeletons", () => {
+    it("ContributorOfMonthSkeleton renders winner phase", () => {
+      render(<ContributorOfMonthSkeleton phase="winner" contributorCount={5} />);
+      expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
+      expect(document.querySelector('[role="region"]')).toBeInTheDocument();
+    });
+
+    it("ContributorOfMonthSkeleton renders leaderboard phase", () => {
+      render(<ContributorOfMonthSkeleton phase="leaderboard" contributorCount={3} />);
+      expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
+    });
+
+    it("PRActivitySkeleton renders with filters", () => {
+      render(<PRActivitySkeleton showFilters={true} itemCount={5} />);
+      expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
+    });
+
+    it("PRActivitySkeleton renders without filters", () => {
+      render(<PRActivitySkeleton showFilters={false} />);
+      expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
+    });
+  });
+
+  describe("Phase 2 Component Skeletons", () => {
+    it("ContributorCardSkeleton renders with winner styling", () => {
+      render(<ContributorCardSkeleton isWinner={true} showRank={false} />);
+      expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
+      expect(document.querySelector(".ring-yellow-500")).toBeInTheDocument();
+    });
+
+    it("ContributorCardSkeleton renders with rank badge", () => {
+      render(<ContributorCardSkeleton showRank={true} />);
+      expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
+    });
+
+    it("ActivityItemSkeleton renders correctly", () => {
+      render(<ActivityItemSkeleton />);
+      expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
+      // Should have avatar skeleton
+      expect(document.querySelector(".rounded-full")).toBeInTheDocument();
     });
   });
 

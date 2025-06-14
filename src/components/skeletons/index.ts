@@ -9,9 +9,9 @@ export { ContributionsSkeleton } from "./layouts/contributions-skeleton";
 export { DistributionSkeleton } from "./layouts/distribution-skeleton";
 
 // Feature skeletons (Phase 2)
-// export { ContributorOfMonthSkeleton } from "./features/contributor-of-month-skeleton";
-// export { PRActivitySkeleton } from "./features/pr-activity-skeleton";
+export { ContributorOfMonthSkeleton } from "./features/contributor-of-month-skeleton";
+export { PRActivitySkeleton } from "./features/pr-activity-skeleton";
 
-// Component skeletons (Phase 3)
-// export { ContributorCardSkeleton } from "./components/contributor-card-skeleton";
-// export { ActivityItemSkeleton } from "./components/activity-item-skeleton";
+// Component skeletons (Phase 2)
+export { ContributorCardSkeleton } from "./components/contributor-card-skeleton";
+export { ActivityItemSkeleton } from "./components/activity-item-skeleton";

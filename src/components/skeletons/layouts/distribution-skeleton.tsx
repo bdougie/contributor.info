@@ -15,12 +15,14 @@ export function DistributionSkeleton({ className, isMobile = false }: Distributi
         <CardTitle>
           <Skeleton className="h-7 w-80" />
         </CardTitle>
-        <CardDescription>
-          <div className="space-y-1">
-            <Skeleton className="h-4 w-96" />
-            <Skeleton className="h-4 w-72" />
-          </div>
-        </CardDescription>
+        <div className="space-y-1">
+          <CardDescription>
+            <span className="inline-block h-4 w-96 animate-pulse rounded-md bg-primary/10" />
+          </CardDescription>
+          <CardDescription>
+            <span className="inline-block h-4 w-72 animate-pulse rounded-md bg-primary/10" />
+          </CardDescription>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6 w-full overflow-visible">
         {/* Stats summary */}
