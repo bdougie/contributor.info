@@ -11,6 +11,7 @@ import Home from "@/components/home";
 import LoginPage from "@/components/login-page";
 import TestInsights from "@/components/test-insights";
 import DebugAuthPage from "@/components/debug-auth-page";
+import NotFound from "@/components/not-found";
 
 function App() {
 
@@ -29,6 +30,7 @@ function App() {
               <Route path="distribution" element={<DistributionRoute />} />
             </Route>
           </Route>
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
       <Toaster />
