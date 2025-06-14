@@ -24,6 +24,8 @@ interface GitHubPullRequest {
   number: number;
   user: GitHubUser;
   created_at: string;
+  merged_at: string | null;
+  closed_at: string | null;
   html_url: string;
 }
 
@@ -259,6 +261,7 @@ export async function fetchRepositoryActivity(
           avatarUrl: author.avatar_url,
           profileUrl: author.html_url,
           pullRequests: 0,
+          mergedPullRequests: 0,
           comments: 0,
           reviews: 0,
           earliestContribution: new Date(pr.created_at),
@@ -269,6 +272,11 @@ export async function fetchRepositoryActivity(
 
       const contributor = contributors.get(contributorId)!;
       contributor.pullRequests++;
+      
+      // Only count merged PRs for scoring
+      if (pr.merged_at) {
+        contributor.mergedPullRequests++;
+      }
 
       // Update contribution dates
       const prDate = new Date(pr.created_at);
@@ -296,6 +304,7 @@ export async function fetchRepositoryActivity(
                 avatarUrl: review.user.avatar_url,
                 profileUrl: review.user.html_url,
                 pullRequests: 0,
+                mergedPullRequests: 0,
                 comments: 0,
                 reviews: 0,
                 earliestContribution: reviewDate,
@@ -337,6 +346,7 @@ export async function fetchRepositoryActivity(
                 avatarUrl: comment.user.avatar_url,
                 profileUrl: comment.user.html_url,
                 pullRequests: 0,
+                mergedPullRequests: 0,
                 comments: 0,
                 reviews: 0,
                 earliestContribution: commentDate,
@@ -377,6 +387,7 @@ export async function fetchRepositoryActivity(
             avatarUrl: comment.user.avatar_url,
             profileUrl: comment.user.html_url,
             pullRequests: 0,
+            mergedPullRequests: 0,
             comments: 0,
             reviews: 0,
             earliestContribution: commentDate,
@@ -464,6 +475,7 @@ export async function fetchContributorActivity(
           if (allContributors.has(contributorId)) {
             const existing = allContributors.get(contributorId)!;
             existing.pullRequests += activity.pullRequests;
+            existing.mergedPullRequests += activity.mergedPullRequests;
             existing.comments += activity.comments;
             existing.reviews += activity.reviews;
             existing.repositoriesContributed++;
