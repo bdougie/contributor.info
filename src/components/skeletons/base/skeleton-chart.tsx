@@ -71,6 +71,28 @@ export function SkeletonChart({
             ))}
           </div>
         );
+      case "line":
+        return (
+          <div className="relative w-full h-full">
+            {/* Line chart path */}
+            <div className="absolute inset-4">
+              <Skeleton className="w-full h-1" style={{ 
+                clipPath: `polygon(0% 80%, 25% 60%, 50% 40%, 75% 20%, 100% 50%)` 
+              }} />
+            </div>
+            {/* Data points */}
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton
+                key={i}
+                className="absolute w-2 h-2 rounded-full"
+                style={{
+                  left: `${20 + i * 20}%`,
+                  top: `${80 - Math.random() * 60}%`
+                }}
+              />
+            ))}
+          </div>
+        );
       default:
         return <Skeleton className="w-full h-full" />;
     }
