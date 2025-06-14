@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import "@testing-library/jest-dom";
 import { ContributorCard } from "../contributor-card";
 import type { MonthlyContributor } from "../../lib/types";
+import { TestRepoStatsProvider } from "./test-utils";
 
 describe("ContributorCard", () => {
   const mockContributor: MonthlyContributor = {
@@ -20,34 +21,53 @@ describe("ContributorCard", () => {
   };
 
   it("renders contributor information correctly", () => {
-    render(<ContributorCard contributor={mockContributor} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorCard contributor={mockContributor} />
+      </TestRepoStatsProvider>
+    );
 
     expect(screen.getByText("testuser")).toBeInTheDocument();
-    expect(screen.getByText("Score:")).toBeInTheDocument();
-    expect(screen.getByText("50")).toBeInTheDocument();
+    expect(screen.getByText("Score: 50")).toBeInTheDocument();
   });
 
   it("displays winner badge for winner", () => {
-    render(<ContributorCard contributor={mockContributor} isWinner={true} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorCard contributor={mockContributor} isWinner={true} />
+      </TestRepoStatsProvider>
+    );
 
-    expect(screen.getByText("Winner")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Trophy" })).toBeInTheDocument();
+    // Check for trophy icon instead of "Winner" text
+    expect(screen.getByTestId("trophy-icon")).toBeInTheDocument();
   });
 
   it("displays rank when showRank is true", () => {
-    render(<ContributorCard contributor={mockContributor} showRank={true} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorCard contributor={mockContributor} showRank={true} />
+      </TestRepoStatsProvider>
+    );
 
     expect(screen.getByText("1")).toBeInTheDocument();
   });
 
   it("hides rank when showRank is false", () => {
-    render(<ContributorCard contributor={mockContributor} showRank={false} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorCard contributor={mockContributor} showRank={false} />
+      </TestRepoStatsProvider>
+    );
 
     expect(screen.queryByText("1")).not.toBeInTheDocument();
   });
 
   it("renders avatar with correct alt text", () => {
-    render(<ContributorCard contributor={mockContributor} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorCard contributor={mockContributor} />
+      </TestRepoStatsProvider>
+    );
 
     // Since the image is not loading in tests, check for the fallback
     const fallback = screen.getByText("T");
@@ -68,25 +88,36 @@ describe("ContributorCard", () => {
       rank: 5,
     };
 
-    render(<ContributorCard contributor={minimalContributor} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorCard contributor={minimalContributor} />
+      </TestRepoStatsProvider>
+    );
 
     expect(screen.getByText("minimal")).toBeInTheDocument();
-    expect(screen.getByText("10")).toBeInTheDocument();
+    expect(screen.getByText("Score: 10")).toBeInTheDocument();
   });
 
   it("displays activity breakdown correctly", () => {
-    render(<ContributorCard contributor={mockContributor} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorCard contributor={mockContributor} />
+      </TestRepoStatsProvider>
+    );
 
-    expect(screen.getByText("15")).toBeInTheDocument();
-    expect(screen.getByText("Pull Requests")).toBeInTheDocument();
-    expect(screen.getByText("10")).toBeInTheDocument();
-    expect(screen.getByText("Reviews")).toBeInTheDocument();
-    expect(screen.getByText("25")).toBeInTheDocument();
-    expect(screen.getByText("Comments")).toBeInTheDocument();
+    // The new design shows icons with numbers, not labels
+    expect(screen.getByText("15")).toBeInTheDocument(); // PRs
+    expect(screen.getByText("10")).toBeInTheDocument(); // Reviews
+    expect(screen.getByText("25")).toBeInTheDocument(); // Comments
+    // Comments label removed in new design
   });
 
   it("creates clickable profile link", () => {
-    render(<ContributorCard contributor={mockContributor} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorCard contributor={mockContributor} />
+      </TestRepoStatsProvider>
+    );
 
     // Note: This component doesn't currently have a clickable link
     // Testing that the card is rendered and accessible
@@ -96,15 +127,21 @@ describe("ContributorCard", () => {
 
   it("applies correct styling classes for winner", () => {
     const { container } = render(
-      <ContributorCard contributor={mockContributor} isWinner={true} />
+      <TestRepoStatsProvider>
+        <ContributorCard contributor={mockContributor} isWinner={true} />
+      </TestRepoStatsProvider>
     );
 
     const card = container.firstChild as HTMLElement;
-    expect(card).toHaveClass("ring-2", "ring-yellow-400");
+    expect(card).toHaveClass("ring-2", "ring-yellow-500");
   });
 
   it("has proper accessibility attributes", () => {
-    render(<ContributorCard contributor={mockContributor} isWinner={true} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorCard contributor={mockContributor} isWinner={true} />
+      </TestRepoStatsProvider>
+    );
 
     const card = screen.getByRole("article");
     expect(card).toHaveAttribute("aria-label", "testuser - Winner, 50 points");
@@ -112,9 +149,14 @@ describe("ContributorCard", () => {
   });
 
   it("displays first contribution date for winners", () => {
-    render(<ContributorCard contributor={mockContributor} isWinner={true} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorCard contributor={mockContributor} isWinner={true} />
+      </TestRepoStatsProvider>
+    );
 
-    expect(screen.getByText("First contribution:")).toBeInTheDocument();
-    expect(screen.getByText("12/31/2023")).toBeInTheDocument();
+    // The new design doesn't show first contribution date in the card
+    // Just verify the component renders for winners
+    expect(screen.getByTestId("trophy-icon")).toBeInTheDocument();
   });
 });

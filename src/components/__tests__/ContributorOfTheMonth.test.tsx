@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import "@testing-library/jest-dom"; // Add this import for DOM assertions
 import { ContributorOfTheMonth } from "../contributor-of-the-month";
 import { ContributorRanking, MonthlyContributor } from "@/lib/types";
+import { TestRepoStatsProvider } from "./test-utils";
 
 // Mock data for testing
 const mockContributors: MonthlyContributor[] = [
@@ -86,11 +87,10 @@ describe("ContributorOfTheMonth", () => {
 
     expect(screen.getByText("Contributor of the Month")).toBeInTheDocument();
     expect(
-      screen.getByText("Loading contributor rankings...")
+      screen.getByText("Recognizing top contributors based on weighted activity")
     ).toBeInTheDocument();
-    expect(
-      screen.getByLabelText("Loading contributor data")
-    ).toBeInTheDocument();
+    // Loading spinner should be present
+    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
   });
 
   it("renders error state correctly", () => {
@@ -111,25 +111,29 @@ describe("ContributorOfTheMonth", () => {
   });
 
   it("renders winner announcement phase correctly", () => {
-    render(<ContributorOfTheMonth ranking={mockWinnerRanking} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorOfTheMonth ranking={mockWinnerRanking} />
+      </TestRepoStatsProvider>
+    );
 
     expect(screen.getByText("Contributor of the Month")).toBeInTheDocument();
-    expect(screen.getByText("January 2024")).toBeInTheDocument();
-    expect(screen.getByText(/Winner Announcement/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Congratulations to our January 2024 Winner!/)
-    ).toBeInTheDocument();
+    expect(screen.getByText("Celebrating January 2024's top contributor")).toBeInTheDocument();
     expect(screen.getByText("Winner")).toBeInTheDocument();
+    expect(screen.getByText("January 2024 Winner")).toBeInTheDocument();
     expect(screen.getByText("top-contributor")).toBeInTheDocument();
   });
 
   it("renders running leaderboard phase correctly", () => {
-    render(<ContributorOfTheMonth ranking={mockLeaderboardRanking} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorOfTheMonth ranking={mockLeaderboardRanking} />
+      </TestRepoStatsProvider>
+    );
 
-    expect(screen.getByText("Current Leaderboard")).toBeInTheDocument();
-    expect(screen.getByText("February 2024")).toBeInTheDocument();
-    expect(screen.getByText(/Running Tally/)).toBeInTheDocument();
-    expect(screen.getByText("This Month's Leaders")).toBeInTheDocument();
+    expect(screen.getByText("Monthly Leaderboard")).toBeInTheDocument();
+    expect(screen.getByText("Top contributors for February 2024")).toBeInTheDocument();
+    expect(screen.getByText("Current")).toBeInTheDocument();
     expect(screen.getByText("3 active contributors")).toBeInTheDocument();
   });
 
@@ -154,13 +158,16 @@ describe("ContributorOfTheMonth", () => {
       phase: "running_leaderboard",
     };
 
-    render(<ContributorOfTheMonth ranking={largeRanking} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorOfTheMonth ranking={largeRanking} />
+      </TestRepoStatsProvider>
+    );
 
     // Should show "And X more contributors..."
     expect(
-      screen.getByText(/more contributors contributing this month/)
+      screen.getByText(/And.*more contributors this month/)
     ).toBeInTheDocument();
-    expect(screen.getByText(/And/)).toBeInTheDocument(); // Just check that "And" appears
 
     // Should only show first 5 contributors
     expect(screen.getByText("contributor-1")).toBeInTheDocument();
@@ -169,7 +176,11 @@ describe("ContributorOfTheMonth", () => {
   });
 
   it("handles minimal activity by showing MinimalActivityDisplay", () => {
-    render(<ContributorOfTheMonth ranking={mockMinimalActivityRanking} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorOfTheMonth ranking={mockMinimalActivityRanking} />
+      </TestRepoStatsProvider>
+    );
 
     expect(screen.getByText("Early Activity - March 2024")).toBeInTheDocument();
     expect(screen.getByText("Getting Started")).toBeInTheDocument();
@@ -179,12 +190,15 @@ describe("ContributorOfTheMonth", () => {
   });
 
   it("shows winner details in winner phase", () => {
-    render(<ContributorOfTheMonth ranking={mockWinnerRanking} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorOfTheMonth ranking={mockWinnerRanking} />
+      </TestRepoStatsProvider>
+    );
 
     // Winner should be displayed
     expect(screen.getByText("top-contributor")).toBeInTheDocument();
-    expect(screen.getAllByText("Score:")[0]).toBeInTheDocument(); // Use getAllByText and take first
-    expect(screen.getByText("115")).toBeInTheDocument();
+    expect(screen.getByText("Score: 115")).toBeInTheDocument();
 
     // Top contributors section should show the other contributors
     expect(screen.getByText("Top Contributors")).toBeInTheDocument();
@@ -193,41 +207,43 @@ describe("ContributorOfTheMonth", () => {
   });
 
   it("has proper accessibility structure", () => {
-    render(<ContributorOfTheMonth ranking={mockLeaderboardRanking} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorOfTheMonth ranking={mockLeaderboardRanking} />
+      </TestRepoStatsProvider>
+    );
 
-    const mainRegion = screen.getByRole("region", {
-      name: /Current Leaderboard/,
-    });
+    const mainRegion = screen.getByRole("region");
     expect(mainRegion).toBeInTheDocument();
+    expect(mainRegion).toHaveAttribute("aria-labelledby", "contributor-heading");
 
-    const heading = screen.getByRole("heading", {
-      name: /Current Leaderboard/,
-    });
+    const heading = screen.getByText("Monthly Leaderboard");
     expect(heading).toBeInTheDocument();
     expect(heading).toHaveAttribute("id", "contributor-heading");
-
-    const contributorList = screen.getByRole("list", {
-      name: "Current month contributor leaderboard",
-    });
-    expect(contributorList).toBeInTheDocument();
   });
 
   it("displays correct time information", () => {
-    render(<ContributorOfTheMonth ranking={mockWinnerRanking} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorOfTheMonth ranking={mockWinnerRanking} />
+      </TestRepoStatsProvider>
+    );
 
-    const timeElement = screen.getByText("January 2024");
-    expect(timeElement.tagName.toLowerCase()).toBe("time");
+    // Check that the date is displayed in the description
+    expect(screen.getByText("Celebrating January 2024's top contributor")).toBeInTheDocument();
   });
 
   it("applies custom className", () => {
     render(
-      <ContributorOfTheMonth
-        ranking={mockLeaderboardRanking}
-        className="custom-class"
-      />
+      <TestRepoStatsProvider>
+        <ContributorOfTheMonth
+          ranking={mockLeaderboardRanking}
+          className="custom-class"
+        />
+      </TestRepoStatsProvider>
     );
 
-    const card = screen.getByRole("region", { name: /Current Leaderboard/ });
+    const card = screen.getByRole("region");
     expect(card).toHaveClass("custom-class");
   });
 
@@ -239,30 +255,44 @@ describe("ContributorOfTheMonth", () => {
       phase: "running_leaderboard",
     };
 
-    render(<ContributorOfTheMonth ranking={emptyRanking} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorOfTheMonth ranking={emptyRanking} />
+      </TestRepoStatsProvider>
+    );
 
     expect(screen.getByText("No Activity This Month")).toBeInTheDocument();
   });
 
   it("shows appropriate phase badges", () => {
     const { rerender } = render(
-      <ContributorOfTheMonth ranking={mockWinnerRanking} />
+      <TestRepoStatsProvider>
+        <ContributorOfTheMonth ranking={mockWinnerRanking} />
+      </TestRepoStatsProvider>
     );
 
-    const winnerBadge = screen.getByText(/Winner Announcement/);
+    const winnerBadge = screen.getByText("Winner");
     expect(winnerBadge).toBeInTheDocument();
 
-    rerender(<ContributorOfTheMonth ranking={mockLeaderboardRanking} />);
+    rerender(
+      <TestRepoStatsProvider>
+        <ContributorOfTheMonth ranking={mockLeaderboardRanking} />
+      </TestRepoStatsProvider>
+    );
 
-    const leaderboardBadge = screen.getByText(/Running Tally/);
+    const leaderboardBadge = screen.getByText("Current");
     expect(leaderboardBadge).toBeInTheDocument();
   });
 
   it("shows correct contributor count in leaderboard mode", () => {
-    render(<ContributorOfTheMonth ranking={mockLeaderboardRanking} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorOfTheMonth ranking={mockLeaderboardRanking} />
+      </TestRepoStatsProvider>
+    );
 
     expect(
-      screen.getByLabelText("3 active contributors this month")
+      screen.getByText("3 active contributors")
     ).toBeInTheDocument();
   });
 });

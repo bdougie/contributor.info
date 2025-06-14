@@ -35,11 +35,11 @@ describe("Contributor Feature Integration", () => {
 
     // Check main component
     expect(screen.getByText("Contributor of the Month")).toBeInTheDocument();
-    expect(screen.getByText("January 2024")).toBeInTheDocument();
+    expect(screen.getByText("Celebrating January 2024's top contributor")).toBeInTheDocument();
 
     // Check contributor details
     expect(screen.getByText("test-user")).toBeInTheDocument();
-    expect(screen.getByText("39")).toBeInTheDocument(); // Score
+    expect(screen.getByText("Score: 39")).toBeInTheDocument(); // Score
 
     // Check winner badge
     expect(screen.getByText("Winner")).toBeInTheDocument();
@@ -53,7 +53,7 @@ describe("Contributor Feature Integration", () => {
     );
 
     expect(screen.getByText("test-user")).toBeInTheDocument();
-    expect(screen.getByText("39")).toBeInTheDocument();
+    expect(screen.getByText("Score: 39")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument(); // PRs
     expect(screen.getByText("5")).toBeInTheDocument(); // Reviews
     expect(screen.getByText("7")).toBeInTheDocument(); // Comments
@@ -83,11 +83,27 @@ describe("Contributor Feature Integration", () => {
   });
 
   it("handles responsive design classes", () => {
+    // Create multiple contributors to ensure grid is rendered (need at least 3 to avoid minimal activity display)
+    const secondContributor: MonthlyContributor = {
+      ...mockContributor,
+      login: "user2",
+      rank: 2,
+      activity: { ...mockContributor.activity, totalScore: 25 },
+    };
+    
+    const thirdContributor: MonthlyContributor = {
+      ...mockContributor,
+      login: "user3",
+      rank: 3,
+      activity: { ...mockContributor.activity, totalScore: 15 },
+    };
+    
     // Test with leaderboard phase to ensure grid is rendered
     const leaderboardRanking: ContributorRanking = {
       ...mockRanking,
       phase: "running_leaderboard",
-      contributors: [mockContributor, { ...mockContributor, login: "user2", rank: 2 }],
+      contributors: [mockContributor, secondContributor, thirdContributor],
+      winner: undefined,
     };
     
     const { container } = render(
