@@ -65,6 +65,7 @@ describe('Type Structure Validation', () => {
       avatarUrl: 'https://example.com/avatar.jpg',
       profileUrl: 'https://github.com/testuser',
       pullRequests: 5,
+      mergedPullRequests: 3,
       comments: 15,
       reviews: 10,
       earliestContribution: new Date('2024-01-01'),
@@ -79,6 +80,7 @@ describe('Type Structure Validation', () => {
     expect(mockActivity.avatarUrl).toBeDefined();
     expect(mockActivity.profileUrl).toBeDefined();
     expect(typeof mockActivity.pullRequests).toBe('number');
+    expect(typeof mockActivity.mergedPullRequests).toBe('number');
     expect(typeof mockActivity.comments).toBe('number');
     expect(typeof mockActivity.reviews).toBe('number');
     expect(mockActivity.earliestContribution).toBeInstanceOf(Date);
@@ -94,6 +96,7 @@ describe('Type Structure Validation', () => {
       avatarUrl: 'https://example.com/avatar.jpg',
       profileUrl: 'https://github.com/testuser',
       pullRequests: 2,
+      mergedPullRequests: 2,
       comments: 6,
       reviews: 4,
       earliestContribution: new Date('2024-01-01'),
@@ -107,6 +110,7 @@ describe('Type Structure Validation', () => {
       rank: 1,
       scoreBreakdown: {
         pullRequestsScore: 2,
+        mergedPullRequestsScore: 2,
         commentsScore: 18,
         reviewsScore: 12,
       },
@@ -114,12 +118,13 @@ describe('Type Structure Validation', () => {
     };
 
     expect(mockRanking.scoreBreakdown.pullRequestsScore).toBe(2);
+    expect(mockRanking.scoreBreakdown.mergedPullRequestsScore).toBe(2);
     expect(mockRanking.scoreBreakdown.commentsScore).toBe(18);
     expect(mockRanking.scoreBreakdown.reviewsScore).toBe(12);
     
-    // Verify total matches weighted score
+    // Verify total matches weighted score (using merged PRs for actual scoring)
     const totalFromBreakdown = 
-      mockRanking.scoreBreakdown.pullRequestsScore +
+      mockRanking.scoreBreakdown.mergedPullRequestsScore +
       mockRanking.scoreBreakdown.commentsScore +
       mockRanking.scoreBreakdown.reviewsScore;
     
@@ -214,6 +219,7 @@ describe('Edge Case Validation', () => {
       avatarUrl: '',
       profileUrl: 'https://github.com/emptyuser',
       pullRequests: 0,
+      mergedPullRequests: 0,
       comments: 0,
       reviews: 0,
       earliestContribution: new Date(),
@@ -222,6 +228,7 @@ describe('Edge Case Validation', () => {
     };
 
     expect(emptyActivity.pullRequests).toBe(0);
+    expect(emptyActivity.mergedPullRequests).toBe(0);
     expect(emptyActivity.comments).toBe(0);
     expect(emptyActivity.reviews).toBe(0);
     expect(emptyActivity.repositoriesContributed).toBe(0);
@@ -236,6 +243,7 @@ describe('Edge Case Validation', () => {
         avatarUrl: '',
         profileUrl: 'https://github.com/tieduser',
         pullRequests: 1,
+        mergedPullRequests: 1,
         comments: 1,
         reviews: 1,
         earliestContribution: new Date('2024-01-15'),
@@ -246,6 +254,7 @@ describe('Edge Case Validation', () => {
       rank: 2,
       scoreBreakdown: {
         pullRequestsScore: 1,
+        mergedPullRequestsScore: 1,
         commentsScore: 3,
         reviewsScore: 3,
       },

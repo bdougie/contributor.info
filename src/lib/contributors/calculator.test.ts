@@ -30,6 +30,7 @@ describe('Contributor Calculator', () => {
     avatarUrl: 'https://example.com/avatar.jpg',
     profileUrl: 'https://github.com/testuser',
     pullRequests: 2,
+    mergedPullRequests: 2,
     comments: 4,
     reviews: 1,
     earliestContribution: new Date('2024-06-01'),
@@ -43,6 +44,7 @@ describe('Contributor Calculator', () => {
       id: 'user1',
       username: 'alice',
       pullRequests: 5,
+      mergedPullRequests: 5,
       comments: 10,
       reviews: 3,
       earliestContribution: new Date('2024-06-01T08:00:00'),
@@ -52,6 +54,7 @@ describe('Contributor Calculator', () => {
       id: 'user2',
       username: 'bob',
       pullRequests: 3,
+      mergedPullRequests: 3,
       comments: 6,
       reviews: 2,
       earliestContribution: new Date('2024-06-01T10:00:00'),
@@ -61,6 +64,7 @@ describe('Contributor Calculator', () => {
       id: 'user3',
       username: 'charlie',
       pullRequests: 1,
+      mergedPullRequests: 1,
       comments: 2,
       reviews: 0,
       earliestContribution: new Date('2024-06-02'),
@@ -87,6 +91,7 @@ describe('Contributor Calculator', () => {
       const zeroContributor = {
         ...sampleContributor,
         pullRequests: 0,
+        mergedPullRequests: 0,
         comments: 0,
         reviews: 0,
       };
@@ -98,6 +103,7 @@ describe('Contributor Calculator', () => {
       const contributor = {
         ...sampleContributor,
         pullRequests: 1,
+        mergedPullRequests: 1,
         comments: 1,
         reviews: 1,
       };
@@ -115,6 +121,7 @@ describe('Contributor Calculator', () => {
       
       expect(breakdown).toEqual({
         pullRequestsScore: 2 * ACTIVITY_WEIGHTS.PULL_REQUESTS,
+        mergedPullRequestsScore: 2 * ACTIVITY_WEIGHTS.PULL_REQUESTS,
         commentsScore: 4 * ACTIVITY_WEIGHTS.COMMENTS,
         reviewsScore: 1 * ACTIVITY_WEIGHTS.REVIEWS,
       });
@@ -131,6 +138,7 @@ describe('Contributor Calculator', () => {
       const zeroContributor = {
         ...sampleContributor,
         pullRequests: 0,
+        mergedPullRequests: 0,
         comments: 0,
         reviews: 0,
       };
@@ -168,6 +176,7 @@ describe('Contributor Calculator', () => {
           id: 'user1',
           username: 'early',
           pullRequests: 5, // Score: 5
+          mergedPullRequests: 5, // Score: 5
           comments: 0,
           reviews: 0,
           earliestContribution: new Date('2024-06-01T08:00:00'),
@@ -177,6 +186,7 @@ describe('Contributor Calculator', () => {
           id: 'user2',
           username: 'late',
           pullRequests: 5, // Score: 5 (same as above)
+          mergedPullRequests: 5, // Score: 5 (same as above)
           comments: 0,
           reviews: 0,
           earliestContribution: new Date('2024-06-01T10:00:00'),
@@ -245,6 +255,7 @@ describe('Contributor Calculator', () => {
           id: 'user1',
           username: 'user1',
           pullRequests: 5, // Score: 5
+          mergedPullRequests: 5, // Score: 5
           comments: 0,
           reviews: 0,
           earliestContribution: new Date('2024-06-01T08:00:00'),
@@ -254,6 +265,7 @@ describe('Contributor Calculator', () => {
           id: 'user2',
           username: 'user2',
           pullRequests: 5, // Score: 5 (tied)
+          mergedPullRequests: 5, // Score: 5 (tied)
           comments: 0,
           reviews: 0,
           earliestContribution: new Date('2024-06-01T10:00:00'),
@@ -263,6 +275,7 @@ describe('Contributor Calculator', () => {
           id: 'user3',
           username: 'user3',
           pullRequests: 3, // Score: 3 (different)
+          mergedPullRequests: 3, // Score: 3 (different)
           comments: 0,
           reviews: 0,
           earliestContribution: new Date('2024-06-02'),
@@ -303,6 +316,7 @@ describe('Contributor Calculator', () => {
           id: 'user1',
           username: 'early',
           pullRequests: 5,
+          mergedPullRequests: 5,
           comments: 0,
           reviews: 0,
           earliestContribution: new Date('2024-06-01T08:00:00'),
@@ -312,6 +326,7 @@ describe('Contributor Calculator', () => {
           id: 'user2',
           username: 'late',
           pullRequests: 5,
+          mergedPullRequests: 5,
           comments: 0,
           reviews: 0,
           earliestContribution: new Date('2024-06-01T10:00:00'),
@@ -379,15 +394,15 @@ describe('Contributor Calculator', () => {
 
   describe('analyzeContributorTrends', () => {
     const currentContributors: ContributorActivity[] = [
-      { ...sampleContributor, id: 'user1', username: 'alice', pullRequests: 5 },
-      { ...sampleContributor, id: 'user2', username: 'bob', pullRequests: 8 }, // Improved
-      { ...sampleContributor, id: 'user4', username: 'diana', pullRequests: 3 }, // New
+      { ...sampleContributor, id: 'user1', username: 'alice', pullRequests: 5, mergedPullRequests: 5 },
+      { ...sampleContributor, id: 'user2', username: 'bob', pullRequests: 8, mergedPullRequests: 8 }, // Improved
+      { ...sampleContributor, id: 'user4', username: 'diana', pullRequests: 3, mergedPullRequests: 3 }, // New
     ];
 
     const previousContributors: ContributorActivity[] = [
-      { ...sampleContributor, id: 'user1', username: 'alice', pullRequests: 4 },
-      { ...sampleContributor, id: 'user2', username: 'bob', pullRequests: 2 },
-      { ...sampleContributor, id: 'user3', username: 'charlie', pullRequests: 1 }, // Left
+      { ...sampleContributor, id: 'user1', username: 'alice', pullRequests: 4, mergedPullRequests: 4 },
+      { ...sampleContributor, id: 'user2', username: 'bob', pullRequests: 2, mergedPullRequests: 2 },
+      { ...sampleContributor, id: 'user3', username: 'charlie', pullRequests: 1, mergedPullRequests: 1 }, // Left
     ];
 
     it('should identify new contributors', () => {
@@ -451,7 +466,7 @@ describe('Contributor Calculator', () => {
 
     it('should detect negative values', () => {
       const invalidContributors = [
-        { ...sampleContributor, pullRequests: -1 },
+        { ...sampleContributor, pullRequests: -1, mergedPullRequests: -1 },
       ];
       
       const result = validateContributorData(invalidContributors);
@@ -482,6 +497,7 @@ describe('Contributor Calculator', () => {
         {
           ...sampleContributor,
           pullRequests: 0,
+          mergedPullRequests: 0,
           comments: 0,
           reviews: 0,
         },
@@ -499,6 +515,7 @@ describe('Contributor Calculator', () => {
         {
           ...sampleContributor,
           pullRequests: 1001, // Over the 1000 threshold
+          mergedPullRequests: 1001, // Over the 1000 threshold
           comments: 0,
           reviews: 0,
         },
