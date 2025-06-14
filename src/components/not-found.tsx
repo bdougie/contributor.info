@@ -49,7 +49,7 @@ export default function NotFound() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-2xl shadow-lg border-gray-800 dark:border-gray-700">
         {/* Terminal title bar */}
         <div className="bg-gray-800 dark:bg-gray-900 text-white p-2 rounded-t-lg flex items-center">
@@ -102,10 +102,6 @@ export default function NotFound() {
             <div className="mt-8 text-red-400">
               <div>fatal: 404 Not Found</div>
               <div className="mt-2">The page you're looking for doesn't exist or has been moved.</div>
-            </div>
-            
-            <div className="mt-6 text-gray-400">
-              <div>Tip: Try running <span className="text-green-400">git checkout main</span> to return to the main branch.</div>
             </div>
           </div>
         </CardContent>
