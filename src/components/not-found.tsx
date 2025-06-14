@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,9 +37,9 @@ export default function NotFound() {
     return () => clearTimeout(promptTimer);
   }, []);
 
-  // Handle keyboard events
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !isRedirecting) {
+  // Handle navigation (both keyboard and button)
+  const handleNavigation = () => {
+    if (!isRedirecting) {
       setIsRedirecting(true);
       
       // Simulate a brief loading delay before redirecting
@@ -48,11 +49,18 @@ export default function NotFound() {
     }
   };
 
+  // Handle keyboard events
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleNavigation();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <Card className="w-full max-w-2xl shadow-lg border-gray-800 dark:border-gray-700">
+      <Card className="w-full max-w-2xl shadow-lg">
         {/* Terminal title bar */}
-        <div className="bg-gray-800 dark:bg-gray-900 text-white p-2 rounded-t-lg flex items-center">
+        <div className="bg-muted text-foreground p-2 rounded-t-lg flex items-center border-b">
           <Terminal className="h-4 w-4 mr-2" />
           <div className="text-sm font-mono">contributor.info - Terminal</div>
           <div className="ml-auto flex space-x-1.5">
@@ -72,34 +80,45 @@ export default function NotFound() {
         >
           <div 
             className={cn(
-              "font-mono text-sm sm:text-base p-4 sm:p-6 bg-gray-900/95 text-green-400 min-h-[300px]",
-              "focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50",
+              "font-mono text-sm sm:text-base p-4 sm:p-6 bg-card text-card-foreground min-h-[300px]",
+              "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-opacity-50",
               "transition-all duration-200"
             )}
           >
-            <div className="mb-2 text-gray-400">Last login: {new Date().toLocaleString()}</div>
+            <div className="mb-2 text-muted-foreground">Last login: {new Date().toLocaleString()}</div>
             
             <div className="flex items-start">
-              <span className="text-blue-400 mr-2">$</span>
+              <span className="text-primary mr-2">$</span>
               <div className="flex-1">
                 <span>git rebase HEAD~1</span>
-                {showCursor && <span className="inline-block w-2 h-4 ml-1 bg-green-400 animate-pulse-subtle"></span>}
+                {showCursor && <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse-subtle"></span>}
               </div>
             </div>
             
             {isRedirecting ? (
-              <div className="mt-4 text-yellow-300 animate-pulse">
+              <div className="mt-4 text-yellow-600 animate-pulse">
                 Rebasing... Redirecting to home page...
               </div>
             ) : (
               showEnterPrompt && (
-                <div className="mt-6 text-gray-400 animate-bounce-gentle">
-                  Press <span className="px-2 py-1 bg-gray-800 rounded text-white">Enter</span> to go back to the home page
+                <div className="mt-6 space-y-4">
+                  <div className="text-muted-foreground animate-bounce-gentle">
+                    Press <span className="px-2 py-1 bg-muted rounded text-foreground">Enter</span> to go back to the home page
+                  </div>
+                  <div className="sm:hidden">
+                    <Button 
+                      onClick={handleNavigation}
+                      variant="default"
+                      className="w-full font-mono"
+                    >
+                      Go Back to Home
+                    </Button>
+                  </div>
                 </div>
               )
             )}
             
-            <div className="mt-8 text-red-400">
+            <div className="mt-8 text-destructive">
               <div>fatal: 404 Not Found</div>
               <div className="mt-2">The page you're looking for doesn't exist or has been moved.</div>
             </div>
