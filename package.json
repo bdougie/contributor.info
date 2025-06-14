@@ -12,7 +12,9 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "preview-storybook": "npm run build-storybook && npx http-server storybook-static -p 6006 -o",
+    "test-storybook-build": "./.storybook/test-build.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
