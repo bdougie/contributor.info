@@ -10,6 +10,7 @@ import { LanguageLegend } from "./language-legend";
 import { QuadrantChart } from "./quadrant-chart";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
+import { DistributionSkeleton } from "./skeletons";
 import { getLanguageStats } from "@/lib/language-stats";
 import type {
   PullRequest,
@@ -154,17 +155,7 @@ export default function Distribution() {
   };
 
   if (loading || stats.loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Pull Request Distribution Analysis</CardTitle>
-          <CardDescription>Loading distribution data...</CardDescription>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </CardContent>
-      </Card>
-    );
+    return <DistributionSkeleton />;
   }
 
   return (

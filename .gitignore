@@ -31,3 +31,5 @@ tsconfig.node.tsbuildinfo
 .vscode/mcp.json
 
 CLAUDE.md
+
+.mcp.json
