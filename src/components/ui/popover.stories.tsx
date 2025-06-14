@@ -253,9 +253,8 @@ export const QuickActions: Story = {
             >
               <path d="M5 12V7a5 5 0 1 1 10 0v5" />
               <rect width="13" height="11" x="1" y="11" rx="2" ry="2" />
-            </path>
-          </svg>
-          <span>Upload File</span>
+            </svg>
+            Upload File
           </Button>
           <Button variant="ghost" className="justify-start">
             <svg
