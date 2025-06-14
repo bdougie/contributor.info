@@ -1,3 +1,4 @@
+import React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { SkeletonChart } from "../base/skeleton-chart";
