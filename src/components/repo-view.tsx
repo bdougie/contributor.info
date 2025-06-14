@@ -17,6 +17,7 @@ import LotteryFactor from "./lottery-factor";
 import Contributions from "./contributions";
 import Distribution from "./distribution";
 import PRActivity from "./pr-activity";
+import ContributorOfTheMonthWrapper from "./contributor-of-month-wrapper";
 import { ExampleRepos } from "./example-repos";
 import { useRepoData } from "@/hooks/use-repo-data";
 import { useRepoSearch } from "@/hooks/use-repo-search";
@@ -151,6 +152,7 @@ export function ContributionsRoute() {
   return (
     <div className="space-y-8">
       <Contributions />
+      <ContributorOfTheMonthWrapper />
       <PRActivity />
     </div>
   );
