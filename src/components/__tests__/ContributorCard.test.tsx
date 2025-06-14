@@ -171,5 +171,5 @@ describe("ContributorCard", () => {
     const card = screen.getByRole("listitem");
     expect(card).toBeInTheDocument();
     expect(card).toHaveClass("cursor-pointer");
-
-
+  });
+});
