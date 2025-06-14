@@ -159,4 +159,17 @@ describe("ContributorCard", () => {
     // Just verify the component renders for winners
     expect(screen.getByTestId("trophy-icon")).toBeInTheDocument();
   });
+
+  it("renders tooltip trigger element", () => {
+    render(
+      <TestRepoStatsProvider>
+        <ContributorCard contributor={mockContributor} />
+      </TestRepoStatsProvider>
+    );
+
+    // The card should be wrapped in a tooltip trigger
+    const card = screen.getByRole("listitem");
+    expect(card).toBeInTheDocument();
+    expect(card).toHaveClass("cursor-pointer");
+  });
 });
