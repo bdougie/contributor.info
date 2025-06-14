@@ -72,7 +72,12 @@ export function ContributorCard({
           <div className="flex items-center gap-2">
             <h3 className="font-medium text-sm truncate">{login}</h3>
             {isWinner && (
-              <Trophy className="h-4 w-4 text-yellow-600" data-testid="trophy-icon" />
+              <Trophy 
+                className="h-4 w-4 text-yellow-600" 
+                data-testid="trophy-icon"
+                aria-label="Winner"
+                role="img"
+              />
             )}
           </div>
           

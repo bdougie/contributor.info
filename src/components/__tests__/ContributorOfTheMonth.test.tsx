@@ -87,7 +87,7 @@ describe("ContributorOfTheMonth", () => {
 
     expect(screen.getByText("Contributor of the Month")).toBeInTheDocument();
     expect(
-      screen.getByText("Recognizing top contributors based on weighted activity")
+      screen.getByText("Loading contributor rankings...")
     ).toBeInTheDocument();
     // Loading spinner should be present
     expect(document.querySelector('.animate-spin')).toBeInTheDocument();

@@ -28,7 +28,7 @@ export function ContributorOfTheMonth({
         <CardHeader>
           <CardTitle>Contributor of the Month</CardTitle>
           <CardDescription>
-            Recognizing top contributors based on weighted activity
+            Loading contributor rankings...
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -102,7 +102,11 @@ export function ContributorOfTheMonth({
             {/* Winner Display */}
             <div className="text-center space-y-4">
               <div className="flex items-center justify-center gap-2">
-                <Trophy className="h-5 w-5 text-yellow-600" />
+                <Trophy 
+                  className="h-5 w-5 text-yellow-600" 
+                  aria-label="Trophy" 
+                  role="img" 
+                />
                 <h3 className="text-lg font-semibold">
                   {ranking.month} {ranking.year} Winner
                 </h3>
