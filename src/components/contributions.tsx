@@ -301,13 +301,13 @@ function ContributionsChart() {
     <div className="space-y-4 w-full">
       <div
         className={`flex flex-col items-start justify-between pt-3 ${
-          isMobile ? "px-6" : "md:flex-row md:px-7"
+          isMobile ? "px-2" : "md:flex-row md:px-7"
         }`}
       >
         <div className="text-sm text-muted-foreground">
           {data[0].data.length} pull requests shown
         </div>
-        <div className={`flex flex-wrap gap-4 mt-3 md:mt-0 ${isMobile ? "w-full" : ""}`}>
+        <div className={`flex flex-wrap gap-2 mt-3 md:mt-0 ${isMobile ? "w-full" : ""}`}>
           {hasBots && (
             <div className="flex items-center space-x-2">
               <Switch
@@ -332,15 +332,15 @@ function ContributionsChart() {
           </div>
         </div>
       </div>
-      <div className={`${isMobile ? "h-[300px]" : "h-[400px]"} w-full`}>
+      <div className={`${isMobile ? "h-[280px]" : "h-[400px]"} w-full`}>
         <ResponsiveScatterPlot
           nodeSize={isMobile ? 20 : 35}
           data={data}
           margin={{
-            top: 30,
-            right: isMobile ? 10 : 60,
-            bottom: isMobile ? 60 : 70, // Increased bottom margin on mobile
-            left: isMobile ? 40 : 90, // Increased left margin on mobile
+            top: 20,
+            right: isMobile ? 5 : 60,
+            bottom: isMobile ? 50 : 70,
+            left: isMobile ? 30 : 90,
           }}
           xScale={{
             type: "linear",
@@ -358,13 +358,13 @@ function ContributionsChart() {
           annotations={[]}
           nodeComponent={CustomNode}
           axisBottom={{
-            tickSize: 8,
-            tickPadding: 5,
+            tickSize: 6,
+            tickPadding: 4,
             tickRotation: 0,
             tickValues: isMobile ? 3 : 7,
             legend: isMobile ? "Days Ago" : "Date Created",
             legendPosition: "middle",
-            legendOffset: isMobile ? 45 : 50, // Increased legend offset for mobile
+            legendOffset: isMobile ? 35 : 50,
             format: (value) =>
               value === 0
                 ? "Today"
@@ -385,12 +385,12 @@ function ContributionsChart() {
           isInteractive={true}
           axisLeft={{
             tickSize: 2,
-            tickPadding: 5,
+            tickPadding: 3,
             tickRotation: 0,
             tickValues: isMobile ? 3 : 5,
             legend: isMobile ? "Lines" : "Lines Changed",
             legendPosition: "middle",
-            legendOffset: isMobile ? -30 : -60, // Increased left offset on mobile from -25 to -30
+            legendOffset: isMobile ? -20 : -60,
             format: (value: number) => {
               if (isMobile) {
                 return parseInt(`${value}`) >= 1000
@@ -442,7 +442,7 @@ export default function Contributions() {
           )}
         </CardDescription>
       </CardHeader>
-      <CardContent className={`${isMobile ? "p-0" : "p-6"}`}>
+      <CardContent className={`${isMobile ? "p-2" : "p-6"}`}>
         <ContributionsChart />
       </CardContent>
     </Card>
