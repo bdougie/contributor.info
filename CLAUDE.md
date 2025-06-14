@@ -91,3 +91,119 @@ Create a PRD when:
 - **PRDs**: For strategic planning and complex features
 - **Todo Lists**: For tactical execution and task tracking during implementation
 - Use both together: PRD for overall strategy, todos for daily execution
+
+## Supabase Integration
+
+### Environment Setup
+
+The project uses Supabase for data persistence. Key environment variables:
+
+```bash
+VITE_SUPABASE_URL=https://egcxzonpmmcirmgqdrla.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_TOKEN=your-service-role-key  # For admin operations
+```
+
+### Database Schema
+
+The database has 11 core tables for storing GitHub contributor data:
+- `contributors`, `repositories`, `pull_requests`, `reviews`, `comments`
+- `organizations`, `contributor_organizations`, `tracked_repositories`
+- `monthly_rankings`, `daily_activity_snapshots`, `sync_logs`
+
+Plus 3 views: `contributor_stats`, `repository_stats`, `recent_activity`
+
+### Debugging Supabase Issues
+
+#### 1. Check Migration Status
+```sql
+-- Verify tables exist
+SELECT table_name FROM information_schema.tables 
+WHERE table_schema = 'public' ORDER BY table_name;
+
+-- Check RLS status
+SELECT tablename, rowsecurity FROM pg_tables 
+WHERE schemaname = 'public';
+
+-- Count records
+SELECT 'contributors' as table_name, COUNT(*) FROM contributors
+UNION ALL SELECT 'repositories', COUNT(*) FROM repositories
+UNION ALL SELECT 'pull_requests', COUNT(*) FROM pull_requests;
+```
+
+#### 2. Test Database Connection
+```javascript
+// Quick connection test
+import { supabase } from '@/lib/supabase';
+
+const { data, error } = await supabase
+  .from('contributors')
+  .select('*')
+  .limit(1);
+  
+console.log('Connection test:', { data, error });
+```
+
+#### 3. Common Issues & Fixes
+
+**Tables not found after migration:**
+- Check UUID extension: `CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`
+- Run migration via Supabase Dashboard if CLI fails
+
+**RLS blocking all access:**
+```sql
+-- Check policies
+SELECT tablename, policyname FROM pg_policies 
+WHERE schemaname = 'public';
+
+-- Quick fix - ensure public read
+CREATE POLICY "public_read" ON table_name 
+FOR SELECT USING (true);
+```
+
+**Authentication issues:**
+```javascript
+// Check auth state
+const { data: { session } } = await supabase.auth.getSession();
+console.log('Auth session:', session);
+```
+
+#### 4. Storage Monitoring
+```sql
+-- Check database size (500MB free limit)
+SELECT pg_database_size(current_database()) / 1024 / 1024 as size_mb;
+
+-- Table sizes
+SELECT tablename,
+  pg_size_pretty(pg_total_relation_size(tablename::regclass)) AS size
+FROM pg_tables WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size(tablename::regclass) DESC;
+```
+
+### Key Files for Supabase
+
+- `supabase/migrations/20240614000000_initial_contributor_schema.sql` - Database schema
+- `supabase/apply-rls-policies.sql` - Row Level Security policies
+- `supabase/IMPLEMENTATION_GUIDE.md` - Complete setup documentation
+- `supabase/QUICK_REFERENCE.md` - Common commands and queries
+- `src/lib/supabase.ts` - Supabase client configuration
+
+### Important Notes
+
+1. **Progressive Onboarding**: RLS allows public read access, so first search works without login
+2. **MCP Server**: Configured in `.mcp.json` for direct database access
+3. **Docker Issues**: Use Supabase Dashboard SQL Editor when Docker isn't running
+4. **Storage**: Each large repo uses ~400MB/year. Plan archival for old data.
+
+### Useful Debug Commands
+
+```bash
+# Test RLS policies
+node test-rls-access.js
+
+# Check Supabase status (requires Docker)
+npx supabase status
+
+# Apply migrations via Dashboard
+# Copy contents of migration file and run in SQL Editor
+```
