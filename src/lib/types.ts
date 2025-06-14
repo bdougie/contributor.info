@@ -152,3 +152,35 @@ export interface QuadrantDistribution {
   refactoring?: number;
   maintenance?: number;
 }
+
+// Contributor of the Month types
+export interface ContributorActivity {
+  pullRequests: number;
+  reviews: number;
+  comments: number;
+  totalScore: number;
+  firstContributionDate: string;
+}
+
+export interface MonthlyContributor {
+  login: string;
+  avatar_url: string;
+  activity: ContributorActivity;
+  rank: number;
+  isWinner?: boolean;
+}
+
+export interface ContributorRanking {
+  month: string;
+  year: number;
+  contributors: MonthlyContributor[];
+  winner?: MonthlyContributor;
+  phase: 'winner_announcement' | 'running_leaderboard';
+}
+
+// Activity weight constants for contributor scoring
+export const ACTIVITY_WEIGHTS = {
+  PULL_REQUESTS: 1,
+  REVIEWS: 3,
+  COMMENTS: 3,
+} as const;
