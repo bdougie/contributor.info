@@ -6,8 +6,9 @@ import {
 } from "./contributor-empty-state";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, TrendingUp, Loader2 } from "lucide-react";
+import { Trophy, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ContributorOfMonthSkeleton } from "./skeletons";
 
 interface ContributorOfTheMonthProps {
   ranking: ContributorRanking | null;
@@ -24,19 +25,11 @@ export function ContributorOfTheMonth({
 }: ContributorOfTheMonthProps) {
   if (loading) {
     return (
-      <Card className={cn("w-full", className)}>
-        <CardHeader>
-          <CardTitle>Contributor of the Month</CardTitle>
-          <CardDescription>
-            Loading contributor rankings...
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-center items-center py-8">
-            <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
+      <ContributorOfMonthSkeleton 
+        className={className}
+        phase="leaderboard"
+        contributorCount={5}
+      />
     );
   }
 
