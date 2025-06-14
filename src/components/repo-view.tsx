@@ -22,6 +22,7 @@ import { ExampleRepos } from "./example-repos";
 import { useRepoData } from "@/hooks/use-repo-data";
 import { useRepoSearch } from "@/hooks/use-repo-search";
 import { InsightsDrawer } from "./insights-drawer";
+import { RepoViewSkeleton } from "./skeletons";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -41,17 +42,7 @@ export default function RepoView() {
     useRepoSearch({ isHomeView: false });
 
   if (stats.loading) {
-    return (
-      <div className="container mx-auto py-8">
-        <Card>
-          <CardContent className="p-8">
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <RepoViewSkeleton />;
   }
 
   if (stats.error) {

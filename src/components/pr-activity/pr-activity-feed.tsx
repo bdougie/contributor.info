@@ -1,6 +1,7 @@
 import { ActivityItem } from "./activity-item";
 import { PullRequestActivity, ActivityType } from "@/lib/types";
 import { Loader2 } from "lucide-react";
+import { ActivityItemSkeleton } from "../skeletons";
 
 export interface PullRequestActivityFeedProps {
   activities?: PullRequestActivity[];
@@ -23,8 +24,10 @@ export function PullRequestActivityFeed({
 
   if (loading && filteredActivities.length === 0) {
     return (
-      <div className="flex justify-center items-center py-8">
-        <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
+      <div className="space-y-2">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <ActivityItemSkeleton key={i} />
+        ))}
       </div>
     );
   }
