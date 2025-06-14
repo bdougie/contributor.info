@@ -5,6 +5,7 @@ import { ContributorOfTheMonth } from "../contributor-of-the-month";
 import { ContributorCard } from "../contributor-card";
 import { ContributorEmptyState } from "../contributor-empty-state";
 import { ContributorRanking, MonthlyContributor } from "@/lib/types";
+import { TestRepoStatsProvider } from "./test-utils";
 
 describe("Contributor Feature Integration", () => {
   const mockContributor: MonthlyContributor = {
@@ -45,7 +46,11 @@ describe("Contributor Feature Integration", () => {
   });
 
   it("renders individual contributor card correctly", () => {
-    render(<ContributorCard contributor={mockContributor} />);
+    render(
+      <TestRepoStatsProvider>
+        <ContributorCard contributor={mockContributor} />
+      </TestRepoStatsProvider>
+    );
 
     expect(screen.getByText("test-user")).toBeInTheDocument();
     expect(screen.getByText("39")).toBeInTheDocument();
@@ -78,8 +83,15 @@ describe("Contributor Feature Integration", () => {
   });
 
   it("handles responsive design classes", () => {
+    // Test with leaderboard phase to ensure grid is rendered
+    const leaderboardRanking: ContributorRanking = {
+      ...mockRanking,
+      phase: "running_leaderboard",
+      contributors: [mockContributor, { ...mockContributor, login: "user2", rank: 2 }],
+    };
+    
     const { container } = render(
-      <ContributorOfTheMonth ranking={mockRanking} />
+      <ContributorOfTheMonth ranking={leaderboardRanking} />
     );
 
     // Check that grid layout classes are present
