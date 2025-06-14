@@ -12,15 +12,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { PullRequestActivityFeed } from "./pr-activity/pr-activity-feed";
 import { usePRActivity } from "@/hooks/use-pr-activity";
-// Remove the unused PullRequestActivity import
+import { usePRActivityStore } from "@/lib/pr-activity-store";
 
 export default function PRActivity() {
   const { stats } = useContext(RepoStatsContext);
-  const [selectedTypes, setSelectedTypes] = useState<
-    Array<"opened" | "closed" | "merged" | "reviewed" | "commented">
-  >(["opened", "merged", "commented"]);
+  const { selectedTypes, includeBots, toggleActivityType, setIncludeBots } = usePRActivityStore();
   const [visibleCount, setVisibleCount] = useState(15);
-  const [includeBots, setIncludeBots] = useState(true);
   const [hasBots, setHasBots] = useState(false);
 
   const {
@@ -65,13 +62,7 @@ export default function PRActivity() {
             <Switch
               id="filter-opened"
               checked={selectedTypes.includes("opened")}
-              onCheckedChange={(checked) => {
-                setSelectedTypes((prev) =>
-                  checked
-                    ? [...prev, "opened"]
-                    : prev.filter((type) => type !== "opened")
-                );
-              }}
+              onCheckedChange={() => toggleActivityType("opened")}
             />
             <Label htmlFor="filter-opened" className="text-sm">
               Opened
@@ -81,13 +72,7 @@ export default function PRActivity() {
             <Switch
               id="filter-closed"
               checked={selectedTypes.includes("closed")}
-              onCheckedChange={(checked) => {
-                setSelectedTypes((prev) =>
-                  checked
-                    ? [...prev, "closed"]
-                    : prev.filter((type) => type !== "closed")
-                );
-              }}
+              onCheckedChange={() => toggleActivityType("closed")}
             />
             <Label htmlFor="filter-closed" className="text-sm">
               Closed
@@ -97,13 +82,7 @@ export default function PRActivity() {
             <Switch
               id="filter-merged"
               checked={selectedTypes.includes("merged")}
-              onCheckedChange={(checked) => {
-                setSelectedTypes((prev) =>
-                  checked
-                    ? [...prev, "merged"]
-                    : prev.filter((type) => type !== "merged")
-                );
-              }}
+              onCheckedChange={() => toggleActivityType("merged")}
             />
             <Label htmlFor="filter-merged" className="text-sm">
               Merged
@@ -113,13 +92,7 @@ export default function PRActivity() {
             <Switch
               id="filter-reviewed"
               checked={selectedTypes.includes("reviewed")}
-              onCheckedChange={(checked) => {
-                setSelectedTypes((prev) =>
-                  checked
-                    ? [...prev, "reviewed"]
-                    : prev.filter((type) => type !== "reviewed")
-                );
-              }}
+              onCheckedChange={() => toggleActivityType("reviewed")}
             />
             <Label htmlFor="filter-reviewed" className="text-sm">
               Reviewed
@@ -129,13 +102,7 @@ export default function PRActivity() {
             <Switch
               id="filter-commented"
               checked={selectedTypes.includes("commented")}
-              onCheckedChange={(checked) => {
-                setSelectedTypes((prev) =>
-                  checked
-                    ? [...prev, "commented"]
-                    : prev.filter((type) => type !== "commented")
-                );
-              }}
+              onCheckedChange={() => toggleActivityType("commented")}
             />
             <Label htmlFor="filter-commented" className="text-sm">
               Commented
