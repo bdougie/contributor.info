@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { MonthlyContributor } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { ContributorHoverCard } from "@/components/contributor-hover-card";
 import { useMemo, useContext } from "react";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
@@ -34,18 +35,42 @@ export function ContributorCard({
     );
   }, [login, avatar_url, stats.pullRequests]);
 
+  // Create tooltip content with activity breakdown
+  const tooltipContent = (
+    <div className="space-y-1">
+      <div className="font-medium">{login}'s Activity</div>
+      <div className="text-xs space-y-1">
+        <div className="flex items-center gap-2">
+          <GitPullRequest className="h-3 w-3" />
+          <span>{activity.pullRequests} Pull Requests</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <GitPullRequestDraft className="h-3 w-3" />
+          <span>{activity.reviews} Reviews</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <MessageSquare className="h-3 w-3" />
+          <span>{activity.comments} Comments</span>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div
-      className={cn(
-        "relative p-4 rounded-lg border bg-card transition-all",
-        "hover:bg-muted/50",
-        isWinner && "ring-2 ring-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10",
-        className
-      )}
-      role={isWinner ? "article" : "listitem"}
-      aria-label={`${login}${isWinner ? " - Winner" : ""}, ${activity.totalScore} points`}
-      tabIndex={0}
-    >
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className={cn(
+              "relative p-4 rounded-lg border bg-card transition-all cursor-pointer",
+              "hover:bg-muted/50",
+              isWinner && "ring-2 ring-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10",
+              className
+            )}
+            role={isWinner ? "article" : "listitem"}
+            aria-label={`${login}${isWinner ? " - Winner" : ""}, ${activity.totalScore} points`}
+            tabIndex={0}
+          >
       {/* Rank Badge */}
       {showRank && (
         <div className="absolute -top-2 -right-2 z-10">
@@ -103,7 +128,12 @@ export function ContributorCard({
           </div>
         </div>
       </div>
-
-    </div>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          {tooltipContent}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
