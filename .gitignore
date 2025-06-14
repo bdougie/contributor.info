@@ -29,3 +29,5 @@ tsconfig.app.tsbuildinfo
 tsconfig.node.tsbuildinfo
 
 .vscode/mcp.json
+
+CLAUDE.md
