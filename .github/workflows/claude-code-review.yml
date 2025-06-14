@@ -69,7 +69,7 @@ jobs:
           # allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
           
           # Optional: Skip review for certain conditions
-          # if: |
-          #   !contains(github.event.pull_request.title, '[skip-review]') &&
-          #   !contains(github.event.pull_request.title, '[WIP]')
+          if: |
+            !contains(github.event.pull_request.title, '[skip-review]') &&
+            !contains(github.event.pull_request.title, '[WIP]')
 
