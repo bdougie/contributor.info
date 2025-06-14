@@ -1,9 +1,9 @@
 import { ContributorRanking } from "@/lib/types";
-import { ContributorCard } from "./ContributorCard";
+import { ContributorCard } from "./contributor-card";
 import {
   ContributorEmptyState,
   MinimalActivityDisplay,
-} from "./ContributorEmptyState";
+} from "./contributor-empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Trophy, TrendingUp } from "lucide-react";

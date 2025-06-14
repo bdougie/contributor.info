@@ -1,9 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import "@testing-library/jest-dom";
-import { ContributorOfTheMonth } from "../ContributorOfTheMonth";
-import { ContributorCard } from "../ContributorCard";
-import { ContributorEmptyState } from "../ContributorEmptyState";
+import { ContributorOfTheMonth } from "../contributor-of-the-month";
+import { ContributorCard } from "../contributor-card";
+import { ContributorEmptyState } from "../contributor-empty-state";
 import { ContributorRanking, MonthlyContributor } from "@/lib/types";
 
 describe("Contributor Feature Integration", () => {

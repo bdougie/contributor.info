@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import "@testing-library/jest-dom";
-import { ContributorCard } from "../ContributorCard";
+import { ContributorCard } from "../contributor-card";
 import type { MonthlyContributor } from "../../lib/types";
 
 describe("ContributorCard", () => {
