@@ -33,11 +33,12 @@ export const DEFAULT_CALCULATION_CONFIG: ContributorCalculationConfig = {
  * Calculates the weighted score for a contributor based on their activity
  */
 export function calculateWeightedScore(activity: ContributorActivity): number {
-  const pullRequestsScore = activity.pullRequests * ACTIVITY_WEIGHTS.PULL_REQUESTS;
+  // Only count merged PRs for scoring, not all PRs
+  const mergedPullRequestsScore = activity.mergedPullRequests * ACTIVITY_WEIGHTS.PULL_REQUESTS;
   const commentsScore = activity.comments * ACTIVITY_WEIGHTS.COMMENTS;
   const reviewsScore = activity.reviews * ACTIVITY_WEIGHTS.REVIEWS;
   
-  return pullRequestsScore + commentsScore + reviewsScore;
+  return mergedPullRequestsScore + commentsScore + reviewsScore;
 }
 
 /**
@@ -46,13 +47,14 @@ export function calculateWeightedScore(activity: ContributorActivity): number {
 export function createScoreBreakdown(activity: ContributorActivity) {
   return {
     pullRequestsScore: activity.pullRequests * ACTIVITY_WEIGHTS.PULL_REQUESTS,
+    mergedPullRequestsScore: activity.mergedPullRequests * ACTIVITY_WEIGHTS.PULL_REQUESTS,
     commentsScore: activity.comments * ACTIVITY_WEIGHTS.COMMENTS,
     reviewsScore: activity.reviews * ACTIVITY_WEIGHTS.REVIEWS,
   };
 }
 
 /**
- * Calculates the total activity count for a contributor
+ * Calculates the total activity count for a contributor (includes all PRs for activity threshold)
  */
 export function calculateTotalActivity(activity: ContributorActivity): number {
   return activity.pullRequests + activity.comments + activity.reviews;
@@ -415,6 +417,7 @@ export function createContributorRankingsCached(
   const cacheKey = `rankings:${JSON.stringify(contributors.map(c => ({
     id: c.id,
     pr: c.pullRequests,
+    mpr: c.mergedPullRequests,
     c: c.comments,
     r: c.reviews,
     ec: c.earliestContribution.getTime(),

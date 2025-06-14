@@ -26,6 +26,7 @@ export function useContributorOfMonth() {
           avatarUrl: pr.user?.avatar_url || "",
           profileUrl: pr.html_url || `https://github.com/${username}`,
           pullRequests: 0,
+          mergedPullRequests: 0,
           reviews: 0,
           comments: 0,
           earliestContribution: new Date(pr.created_at),
@@ -38,6 +39,11 @@ export function useContributorOfMonth() {
       
       // Count PRs opened
       activity.pullRequests = (activity.pullRequests || 0) + 1;
+      
+      // Count merged PRs separately for scoring
+      if (pr.merged_at) {
+        activity.mergedPullRequests = (activity.mergedPullRequests || 0) + 1;
+      }
 
       // Update contribution dates
       const prDate = new Date(pr.created_at);
@@ -69,6 +75,7 @@ export function useContributorOfMonth() {
           activity.avatarUrl &&
           activity.profileUrl &&
           typeof activity.pullRequests === 'number' &&
+          typeof activity.mergedPullRequests === 'number' &&
           typeof activity.reviews === 'number' &&
           typeof activity.comments === 'number' &&
           activity.earliestContribution &&

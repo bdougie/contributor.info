@@ -26,8 +26,10 @@ export interface ContributorActivity {
   avatarUrl: string;
   /** Profile URL on GitHub */
   profileUrl: string;
-  /** Number of pull requests created */
+  /** Number of pull requests created (total) */
   pullRequests: number;
+  /** Number of pull requests that were merged */
+  mergedPullRequests: number;
   /** Number of comments made (on PRs, issues, reviews) */
   comments: number;
   /** Number of reviews submitted */
@@ -53,6 +55,7 @@ export interface ContributorRanking {
   /** Breakdown of score calculation */
   scoreBreakdown: {
     pullRequestsScore: number;
+    mergedPullRequestsScore: number;
     commentsScore: number;
     reviewsScore: number;
   };

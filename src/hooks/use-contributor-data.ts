@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import { ContributorStats } from '@/lib/types';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
 import { fetchUserOrganizations } from '@/lib/github';
@@ -11,6 +11,11 @@ interface UseContributorDataProps {
 // Create a cache to store fetched contributor data
 const contributorCache = new Map<string, ContributorStats>();
 
+// Add a function to clear the cache when needed
+export function clearContributorCache() {
+  contributorCache.clear();
+}
+
 export function useContributorData({ username, avatarUrl }: UseContributorDataProps): ContributorStats {
   const [contributorData, setContributorData] = useState<ContributorStats>({
     login: username,
@@ -20,8 +25,15 @@ export function useContributorData({ username, avatarUrl }: UseContributorDataPr
   });
 
   const { stats } = useContext(RepoStatsContext);
+  const prevStatsRef = useRef(stats.pullRequests);
   
   useEffect(() => {
+    // Clear cache when pullRequests data changes (new repo, time range, etc)
+    if (prevStatsRef.current !== stats.pullRequests) {
+      clearContributorCache();
+      prevStatsRef.current = stats.pullRequests;
+    }
+    
     // Check if we already have this user in the cache
     const cacheKey = username.toLowerCase();
     if (contributorCache.has(cacheKey)) {
