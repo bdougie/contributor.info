@@ -6,7 +6,7 @@ import {
 } from "./contributor-empty-state";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, TrendingUp, Loader2 } from "lucide-react";
+import { Trophy, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContributorOfMonthSkeleton } from "./skeletons";
 
