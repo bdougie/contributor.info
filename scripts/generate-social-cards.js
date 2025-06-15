@@ -20,7 +20,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Configuration
 const config = {
-  baseUrl: process.env.BASE_URL || 'http://localhost:5173',
+  baseUrl: process.env.BASE_URL || (process.env.NODE_ENV === 'production' ? 'http://localhost:4173' : 'http://localhost:5173'),
   outputDir: path.join(__dirname, '../temp-social-cards'),
   cards: [
     {
