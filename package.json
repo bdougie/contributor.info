@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "npm test && tsc -b && vite build && node scripts/build-with-social-cards.js",
+    "build": "npm test && tsc -b && vite build && npx playwright install --with-deps && node scripts/build-with-social-cards.js",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
