@@ -33,3 +33,7 @@ tsconfig.node.tsbuildinfo
 .mcp.json
 *storybook.log
 storybook-static
+
+# Chromatic
+build-storybook.log
+chromatic-diagnostics.json
