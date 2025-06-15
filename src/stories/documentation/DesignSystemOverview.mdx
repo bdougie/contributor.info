@@ -1,0 +1,347 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Documentation/Design System Overview" />
+
+# Design System Overview
+
+Welcome to the contributor.info design system - a comprehensive collection of reusable components, patterns, and guidelines that power our GitHub contributor analytics platform.
+
+## Design Philosophy
+
+### Core Principles
+
+#### 1. **Contributor-Centric Design**
+Our design system prioritizes the needs of open-source contributors and maintainers:
+- Clear data visualization for contribution metrics
+- Intuitive navigation through contributor profiles and repositories
+- Accessible information architecture for diverse user needs
+
+#### 2. **Performance & Accessibility**
+Every component is built with performance and accessibility as foundational requirements:
+- Lightweight, optimized components with minimal bundle impact
+- WCAG 2.1 AA compliance for all interactive elements
+- Keyboard navigation and screen reader support
+- High contrast mode compatibility
+
+#### 3. **Scalable & Maintainable**
+The system grows with our platform while maintaining consistency:
+- Modular component architecture
+- Consistent design tokens and spacing
+- Clear documentation and usage guidelines
+- Automated testing and quality assurance
+
+#### 4. **GitHub Ecosystem Integration**
+Seamless integration with GitHub's visual language and user expectations:
+- Familiar patterns for developers already using GitHub
+- Consistent terminology and iconography
+- Respect for GitHub's brand guidelines while maintaining our identity
+
+## Design Tokens
+
+### Color System
+
+Our color palette is carefully crafted to work in both light and dark modes while maintaining excellent accessibility standards.
+
+#### Primary Colors
+- **Primary**: Used for main actions, links, and brand elements
+- **Secondary**: Supporting elements and secondary actions
+- **Accent**: Highlights, notifications, and special states
+
+#### Semantic Colors
+- **Success**: Positive feedback, completed states
+- **Warning**: Caution states, pending actions
+- **Destructive**: Error states, dangerous actions
+- **Muted**: Secondary text, disabled states
+
+#### Background & Borders
+- **Background**: Page backgrounds, card surfaces
+- **Foreground**: Primary text color
+- **Border**: Component borders, dividers
+- **Ring**: Focus indicators, active states
+
+### Typography Scale
+
+Our typography system uses a modular scale to ensure consistent hierarchy and readability:
+
+#### Headings
+- **H1 (4xl)**: Page titles, main headings
+- **H2 (3xl)**: Section titles
+- **H3 (2xl)**: Subsection titles
+- **H4 (xl)**: Component titles
+
+#### Body Text
+- **Large**: Important descriptions, lead text
+- **Base**: Standard body text, most content
+- **Small**: Secondary information, captions
+- **Muted**: Least important text, metadata
+
+#### Code & Monospace
+- Optimized for displaying code snippets, usernames, and technical data
+- Consistent with GitHub's code presentation
+
+### Spacing System
+
+Based on a 4px grid system for consistent rhythm and alignment:
+- **0.5 (2px)**: Minimal spacing, fine adjustments
+- **1 (4px)**: Very tight spacing
+- **2 (8px)**: Standard spacing between related elements
+- **4 (16px)**: Spacing between components
+- **6 (24px)**: Section spacing
+- **8 (32px)**: Large section spacing
+- **12 (48px)**: Page section spacing
+- **16 (64px)**: Major layout spacing
+
+## Component Architecture
+
+### Base Layer
+Fundamental building blocks that rarely change:
+- **Button**: All clickable actions
+- **Input**: Form field inputs
+- **Label**: Form field labels
+- **Typography**: Text styling components
+
+### Composite Layer
+Components built from base components:
+- **Card**: Content containers
+- **Dialog**: Modal interactions
+- **Form**: Input groupings with validation
+- **Navigation**: Menu and routing components
+
+### Pattern Layer
+Complex components for specific use cases:
+- **Contributor Card**: User profile display
+- **Repository Stats**: Repo metrics visualization
+- **Activity Timeline**: Contribution history
+- **Ranking Tables**: Leaderboard displays
+
+### Layout Layer
+Page and section organization:
+- **Grid Systems**: Responsive layouts
+- **Container**: Content width constraints
+- **Stack**: Vertical spacing
+- **Cluster**: Horizontal grouping
+
+## Component Categories
+
+### Data Display
+Components for presenting contributor and repository information:
+
+#### **Avatar & Profile**
+- Avatar with fallback initials
+- Profile cards with contributor metadata
+- Status indicators for activity levels
+
+#### **Metrics & Charts**
+- Contribution count displays
+- Activity heatmaps
+- Progress indicators
+- Statistical summaries
+
+#### **Tables & Lists**
+- Sortable contributor rankings
+- Repository listings
+- Activity logs
+- Filterable data grids
+
+### Navigation & Actions
+Components for user interactions and navigation:
+
+#### **Navigation**
+- Primary navigation menus
+- Breadcrumb trails
+- Tab systems for content organization
+- Pagination for large datasets
+
+#### **Actions**
+- Primary and secondary buttons
+- Icon buttons for compact interfaces
+- Action menus and dropdowns
+- Bulk action selections
+
+### Form & Input
+Components for user input and form interactions:
+
+#### **Input Fields**
+- Text inputs for search and filters
+- Select dropdowns for options
+- Checkbox and radio selections
+- Date pickers for time ranges
+
+#### **Validation**
+- Inline error messaging
+- Success state indicators
+- Helper text and tooltips
+- Form submission feedback
+
+### Feedback & Communication
+Components for system feedback and user communication:
+
+#### **Alerts & Notifications**
+- Success, warning, and error alerts
+- Toast notifications for actions
+- Loading states and skeletons
+- Empty state illustrations
+
+#### **Help & Guidance**
+- Tooltips for feature explanations
+- Onboarding guides
+- Help text and documentation links
+- Accessibility announcements
+
+## Usage Guidelines
+
+### When to Use Components
+
+#### **Use Design System Components When:**
+- Building any user interface element
+- Creating consistent experiences across pages
+- Implementing common interaction patterns
+- Ensuring accessibility compliance
+
+#### **Consider Custom Solutions When:**
+- Existing components don't meet specific needs
+- Creating one-off experimental features
+- Building highly specialized data visualizations
+- Working with third-party integrations that require custom styling
+
+### Component Selection Guide
+
+#### **Choosing the Right Component:**
+
+1. **Start with the most basic component** that meets your needs
+2. **Compose multiple simple components** rather than using complex ones
+3. **Use semantic variants** (success, warning, destructive) appropriately
+4. **Consider the user's context** and cognitive load
+5. **Test with real content** and various content lengths
+
+#### **Common Combinations:**
+
+```tsx
+// User Profile Display
+<Card>
+  <CardHeader>
+    <Avatar + Badge + Typography />
+  </CardHeader>
+  <CardContent>
+    <Metrics + Progress />
+  </CardContent>
+  <CardFooter>
+    <Button Group />
+  </CardFooter>
+</Card>
+
+// Data Table with Actions
+<Table>
+  <TableHeader />
+  <TableBody>
+    <TableRow>
+      <Avatar + Typography + Badge + Actions />
+    </TableRow>
+  </TableBody>
+</Table>
+
+// Form with Validation
+<Form>
+  <Label + Input + ErrorMessage />
+  <Button Group />
+</Form>
+```
+
+## Responsive Design Strategy
+
+### Mobile-First Approach
+All components are designed to work excellently on mobile devices first, then enhanced for larger screens:
+
+- **Touch-friendly targets**: Minimum 44px touch targets
+- **Readable typography**: Optimized for small screens
+- **Simplified navigation**: Collapsible menus and navigation
+- **Progressive disclosure**: Hide secondary information on small screens
+
+### Breakpoint Strategy
+- **Mobile**: 0-640px (sm)
+- **Tablet**: 641-1024px (md)
+- **Desktop**: 1025-1440px (lg)
+- **Large Desktop**: 1441px+ (xl)
+
+### Adaptive Components
+Components automatically adapt to different screen sizes:
+- Navigation collapses to hamburger menus
+- Cards stack vertically on mobile
+- Tables become scrollable or transform to cards
+- Sidebars collapse or become overlays
+
+## Accessibility Standards
+
+### WCAG 2.1 AA Compliance
+All components meet or exceed WCAG 2.1 AA standards:
+
+#### **Perceivable**
+- 4.5:1 contrast ratio for normal text
+- 3:1 contrast ratio for large text
+- Color is not the only means of conveying information
+- Alternative text for all images and icons
+
+#### **Operable**
+- All functionality available via keyboard
+- No seizure-inducing animations
+- Users have enough time to read content
+- Clear focus indicators
+
+#### **Understandable**
+- Clear, simple language
+- Consistent navigation patterns
+- Input requirements clearly explained
+- Error messages are helpful and specific
+
+#### **Robust**
+- Valid HTML markup
+- Compatible with assistive technologies
+- Progressive enhancement approach
+- Graceful degradation for older browsers
+
+## Testing Strategy
+
+### Automated Testing
+- **Unit tests** for component logic
+- **Integration tests** for component interactions
+- **Visual regression tests** with Chromatic
+- **Accessibility tests** with axe-core
+
+### Manual Testing
+- **Keyboard navigation** testing
+- **Screen reader** compatibility
+- **Color blindness** simulation
+- **Mobile device** testing
+
+## Contributing to the Design System
+
+### Adding New Components
+1. **Research existing solutions** - Can current components be composed?
+2. **Define the use case** - What problem does this solve?
+3. **Design for accessibility** - Include ARIA attributes and keyboard support
+4. **Create comprehensive stories** - Cover all variants and states
+5. **Add interaction tests** - Ensure component works as expected
+6. **Document usage guidelines** - When and how to use the component
+
+### Modifying Existing Components
+1. **Consider backward compatibility** - Will this break existing usage?
+2. **Update all related stories** - Keep documentation current
+3. **Test thoroughly** - Run visual regression and interaction tests
+4. **Update usage guidelines** - Reflect any new patterns or best practices
+
+## Future Roadmap
+
+### Planned Enhancements
+- **Advanced Data Visualizations**: Charts and graphs for contribution analytics
+- **Animation System**: Consistent motion design for transitions
+- **Advanced Form Components**: Multi-step forms, advanced validation
+- **Customization Tools**: Theme builder for different GitHub organizations
+
+### Community Contributions
+We welcome contributions from the open-source community:
+- **Component requests** through GitHub issues
+- **Accessibility improvements** and testing
+- **Performance optimizations** and bundle size reductions
+- **Documentation improvements** and usage examples
+
+This design system continues to evolve with the needs of our users and the broader open-source community. Every component is designed to make contributor analytics more accessible, performant, and delightful to use.

@@ -1,0 +1,88 @@
+name: Storybook Interaction Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  interaction-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build Storybook
+      run: npm run build-storybook --quiet
+      
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+      
+    - name: Run Storybook interaction tests
+      run: |
+        npx concurrently -k -s first -n "SB,TEST" -c "magenta,blue" \
+          "npx http-server storybook-static --port 6006 --silent" \
+          "wait-on tcp:6006 && npm run test-storybook"
+      env:
+        NODE_ENV: test
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: storybook-test-results
+        path: |
+          test-results/
+          storybook-static/
+        retention-days: 30
+
+  accessibility-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build Storybook
+      run: npm run build-storybook --quiet
+      
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+      
+    - name: Run accessibility tests via test-runner
+      run: |
+        npx concurrently -k -s first -n "SB,A11Y" -c "magenta,green" \
+          "npx http-server storybook-static --port 6006 --silent" \
+          "wait-on tcp:6006 && npm run test-storybook -- --includeTags accessibility"
+      env:
+        NODE_ENV: test
+        
+    - name: Upload accessibility results
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: accessibility-test-results
+        path: |
+          test-results/
+          storybook-static/
+        retention-days: 30
