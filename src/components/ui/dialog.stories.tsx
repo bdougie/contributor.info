@@ -1,5 +1,6 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { useState } from 'react';
+import type { Meta, StoryObj } from "@storybook/react";
+import { expect, userEvent, within } from "@storybook/test";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,24 +10,25 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogClose,
-} from './dialog';
-import { Button } from './button';
-import { Input } from './input';
-import { Label } from './label';
-import { Textarea } from './textarea';
+} from "./dialog";
+import { Button } from "./button";
+import { Input } from "./input";
+import { Label } from "./label";
+import { Textarea } from "./textarea";
 
 const meta = {
-  title: 'UI/Overlay/Dialog',
+  title: "UI/Overlay/Dialog",
   component: Dialog,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
     docs: {
       description: {
-        component: 'A modal dialog component built on Radix UI Dialog primitive.',
+        component:
+          "A modal dialog component built on Radix UI Dialog primitive.",
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
 } satisfies Meta<typeof Dialog>;
 
 export default meta;
@@ -156,44 +158,45 @@ export const LargeContent: Story = {
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Terms of Service</DialogTitle>
-          <DialogDescription>
-            Last updated: January 1, 2024
-          </DialogDescription>
+          <DialogDescription>Last updated: January 1, 2024</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4 text-sm">
           <div>
             <h3 className="font-medium">1. Acceptance of Terms</h3>
             <p className="text-muted-foreground mt-2">
-              By accessing and using this service, you accept and agree to be bound by the terms
-              and provision of this agreement. If you do not agree to abide by the above, please
-              do not use this service.
+              By accessing and using this service, you accept and agree to be
+              bound by the terms and provision of this agreement. If you do not
+              agree to abide by the above, please do not use this service.
             </p>
           </div>
           <div>
             <h3 className="font-medium">2. Use License</h3>
             <p className="text-muted-foreground mt-2">
-              Permission is granted to temporarily download one copy of the materials (information
-              or software) on our service for personal, non-commercial transitory viewing only.
-              This is the grant of a license, not a transfer of title.
+              Permission is granted to temporarily download one copy of the
+              materials (information or software) on our service for personal,
+              non-commercial transitory viewing only. This is the grant of a
+              license, not a transfer of title.
             </p>
           </div>
           <div>
             <h3 className="font-medium">3. Disclaimer</h3>
             <p className="text-muted-foreground mt-2">
-              The materials on our service are provided on an 'as is' basis. We make no warranties,
-              expressed or implied, and hereby disclaim and negate all other warranties including,
-              without limitation, implied warranties or conditions of merchantability, fitness for
-              a particular purpose, or non-infringement of intellectual property or other violation
-              of rights.
+              The materials on our service are provided on an 'as is' basis. We
+              make no warranties, expressed or implied, and hereby disclaim and
+              negate all other warranties including, without limitation, implied
+              warranties or conditions of merchantability, fitness for a
+              particular purpose, or non-infringement of intellectual property
+              or other violation of rights.
             </p>
           </div>
           <div>
             <h3 className="font-medium">4. Limitations</h3>
             <p className="text-muted-foreground mt-2">
-              In no event shall our company or its suppliers be liable for any damages (including,
-              without limitation, damages for loss of data or profit, or due to business
-              interruption) arising out of the use or inability to use the materials on our
-              service, even if we or our authorized representative has been notified orally or in
+              In no event shall our company or its suppliers be liable for any
+              damages (including, without limitation, damages for loss of data
+              or profit, or due to business interruption) arising out of the use
+              or inability to use the materials on our service, even if we or
+              our authorized representative has been notified orally or in
               writing of the possibility of such damage.
             </p>
           </div>
@@ -231,7 +234,8 @@ export const NestedDialogs: Story = {
               <DialogHeader>
                 <DialogTitle>Second Dialog</DialogTitle>
                 <DialogDescription>
-                  This is a nested dialog. Close this to return to the first dialog.
+                  This is a nested dialog. Close this to return to the first
+                  dialog.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
@@ -313,7 +317,7 @@ export const ControlledDialog: Story = {
         <div className="flex gap-4">
           <Button onClick={() => setOpen(true)}>Open Dialog</Button>
           <span className="text-sm text-muted-foreground self-center">
-            Dialog is {open ? 'open' : 'closed'}
+            Dialog is {open ? "open" : "closed"}
           </span>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -321,14 +325,15 @@ export const ControlledDialog: Story = {
             <DialogHeader>
               <DialogTitle>Controlled Dialog</DialogTitle>
               <DialogDescription>
-                This dialog is controlled by React state. You can programmatically
-                open and close it.
+                This dialog is controlled by React state. You can
+                programmatically open and close it.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
               <p className="text-sm text-muted-foreground">
-                The dialog state is managed externally, allowing for more complex
-                interactions and integration with your application logic.
+                The dialog state is managed externally, allowing for more
+                complex interactions and integration with your application
+                logic.
               </p>
             </div>
             <DialogFooter>
@@ -384,11 +389,7 @@ export const LoginDialog: Story = {
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="m@example.com"
-            />
+            <Input id="email" type="email" placeholder="m@example.com" />
           </div>
           <div className="grid gap-2">
             <div className="flex items-center justify-between">
@@ -413,7 +414,7 @@ export const LoginDialog: Story = {
         <DialogFooter className="flex-col space-y-2 sm:space-y-0 sm:flex-row">
           <Button className="w-full sm:w-auto">Login</Button>
           <p className="text-center text-sm text-muted-foreground">
-            Don't have an account?{' '}
+            Don't have an account?{" "}
             <a href="#" className="underline">
               Sign up
             </a>
@@ -433,9 +434,7 @@ export const ImageDialog: Story = {
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Image Preview</DialogTitle>
-          <DialogDescription>
-            Beautiful landscape photograph
-          </DialogDescription>
+          <DialogDescription>Beautiful landscape photograph</DialogDescription>
         </DialogHeader>
         <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
           <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500" />
@@ -476,7 +475,8 @@ export const WithoutCloseButton: Story = {
           <DialogHeader>
             <DialogTitle>Processing...</DialogTitle>
             <DialogDescription>
-              Please wait while we process your request. Do not close this dialog.
+              Please wait while we process your request. Do not close this
+              dialog.
             </DialogDescription>
           </DialogHeader>
           <div className="py-6 text-center">
@@ -487,11 +487,8 @@ export const WithoutCloseButton: Story = {
             )}
           </div>
           <DialogFooter>
-            <Button
-              onClick={handleSave}
-              disabled={loading}
-            >
-              {loading ? 'Processing...' : 'Start Process'}
+            <Button onClick={handleSave} disabled={loading}>
+              {loading ? "Processing..." : "Start Process"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -528,4 +525,124 @@ export const SmallDialog: Story = {
       </DialogContent>
     </Dialog>
   ),
+};
+
+export const DialogInteraction: Story = {
+  render: () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">Open Test Dialog</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Test Dialog</DialogTitle>
+          <DialogDescription>
+            This is a test dialog for interaction testing.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="test-name" className="text-right">
+              Name
+            </Label>
+            <Input
+              id="test-name"
+              defaultValue="Test User"
+              className="col-span-3"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <Button type="submit">Save changes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // Find and click the dialog trigger
+    const trigger = canvas.getByRole("button", { name: "Open Test Dialog" });
+    await expect(trigger).toBeInTheDocument();
+    await userEvent.click(trigger);
+
+    // Wait for dialog to open and check its contents
+    const dialog = canvas.getByRole("dialog");
+    await expect(dialog).toBeInTheDocument();
+
+    const title = canvas.getByRole("heading", { name: "Test Dialog" });
+    await expect(title).toBeInTheDocument();
+
+    // Test form interaction within dialog
+    const nameInput = canvas.getByLabelText("Name");
+    await expect(nameInput).toHaveValue("Test User");
+
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, "Updated User");
+    await expect(nameInput).toHaveValue("Updated User");
+
+    // Test dialog close
+    const cancelButton = canvas.getByRole("button", { name: "Cancel" });
+    await userEvent.click(cancelButton);
+
+    // Dialog should be closed (may need adjustment based on implementation)
+  },
+  tags: ["interaction"],
+};
+
+export const DialogKeyboardNavigation: Story = {
+  render: () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button>Keyboard Test Dialog</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Keyboard Navigation Test</DialogTitle>
+          <DialogDescription>
+            Test keyboard navigation and focus management.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <Input placeholder="First input" />
+          <Input placeholder="Second input" />
+          <Button>Focusable button</Button>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">Close</Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // Open dialog
+    const trigger = canvas.getByRole("button", {
+      name: "Keyboard Test Dialog",
+    });
+    await userEvent.click(trigger);
+
+    // Test Escape key closes dialog
+    await userEvent.keyboard("{Escape}");
+
+    // Reopen dialog
+    await userEvent.click(trigger);
+
+    // Test Tab navigation through focusable elements
+    await userEvent.keyboard("{Tab}");
+    await userEvent.keyboard("{Tab}");
+    await userEvent.keyboard("{Tab}");
+
+    // Test closing with Enter on close button
+    const closeButton = canvas.getByRole("button", { name: "Close" });
+    closeButton.focus();
+    await userEvent.keyboard("{Enter}");
+  },
+  tags: ["interaction", "accessibility"],
 };

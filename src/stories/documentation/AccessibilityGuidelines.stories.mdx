@@ -1,0 +1,677 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Documentation/Accessibility Guidelines" />
+
+# Accessibility Guidelines & Testing
+
+Our commitment to accessibility ensures that contributor.info is usable by everyone, including people with disabilities. This guide provides comprehensive guidelines for building accessible components and testing strategies to maintain WCAG 2.1 AA compliance.
+
+## Our Accessibility Standards
+
+### WCAG 2.1 AA Compliance
+We follow the Web Content Accessibility Guidelines (WCAG) 2.1 at the AA level, ensuring our platform meets international accessibility standards.
+
+#### The Four Principles of Accessibility
+
+1. **Perceivable** - Information must be presentable in ways users can perceive
+2. **Operable** - Interface components must be operable by all users
+3. **Understandable** - Information and UI operation must be understandable
+4. **Robust** - Content must be robust enough to work with assistive technologies
+
+## Design Guidelines
+
+### Color and Contrast
+
+#### Contrast Requirements
+- **Normal text**: Minimum 4.5:1 contrast ratio
+- **Large text** (18pt+ or 14pt+ bold): Minimum 3:1 contrast ratio
+- **Non-text elements**: Minimum 3:1 contrast ratio for UI components
+
+#### Implementation
+```tsx
+// ✅ Good - High contrast text
+<p className="text-foreground bg-background">
+  Primary content with excellent contrast
+</p>
+
+// ✅ Good - Semantic color usage
+<Alert variant="destructive">
+  <AlertTriangle className="h-4 w-4" />
+  <AlertTitle>Error</AlertTitle>
+  <AlertDescription>
+    This error message uses both color and iconography
+  </AlertDescription>
+</Alert>
+
+// ❌ Avoid - Color as the only indicator
+<p className="text-red-500">Error occurred</p> // Missing icon or text indicator
+
+// ❌ Avoid - Low contrast combinations
+<p className="text-gray-400 bg-gray-300">Hard to read text</p>
+```
+
+#### Color Blindness Considerations
+- Never rely solely on color to convey information
+- Use icons, patterns, or text labels alongside color
+- Test with color blindness simulators
+
+```tsx
+// ✅ Good - Multiple indicators
+<div className="flex items-center gap-2">
+  <CheckCircleIcon className="h-4 w-4 text-green-600" />
+  <span className="text-green-600 font-medium">Success</span>
+</div>
+
+// ✅ Good - Pattern + color for charts
+<div className="w-4 h-4 bg-blue-500 border-2 border-blue-700" />
+<div className="w-4 h-4 bg-red-500 border-dotted border-2 border-red-700" />
+```
+
+### Typography and Readability
+
+#### Text Sizing
+- Base font size: 16px minimum
+- Line height: 1.5 minimum for body text
+- Line length: 45-75 characters for optimal readability
+
+```tsx
+// ✅ Good - Readable typography
+<div className="text-base leading-relaxed max-w-prose">
+  <p>Content with optimal line length and spacing for readability.</p>
+</div>
+
+// ✅ Good - Responsive text sizing
+<h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold">
+  Responsive Heading
+</h1>
+```
+
+#### Font and Text Guidelines
+- Use system fonts for better performance and familiarity
+- Ensure sufficient white space around text elements
+- Avoid justified text which can create uneven spacing
+
+### Focus Management
+
+#### Visible Focus Indicators
+All interactive elements must have clear focus indicators:
+
+```tsx
+// ✅ Good - Clear focus indicator (built into our components)
+<Button className="focus:ring-2 focus:ring-primary focus:ring-offset-2">
+  Accessible Button
+</Button>
+
+// ✅ Good - Custom focus styles when needed
+<div 
+  tabIndex={0}
+  className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
+  onKeyDown={handleKeyDown}
+>
+  Custom focusable element
+</div>
+```
+
+#### Focus Order and Trapping
+Ensure logical tab order and trap focus in modal dialogs:
+
+```tsx
+// ✅ Good - Modal with focus trap (built into Dialog component)
+<Dialog open={isOpen} onOpenChange={setIsOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Confirmation Required</DialogTitle>
+    </DialogHeader>
+    <DialogDescription>
+      This action cannot be undone.
+    </DialogDescription>
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setIsOpen(false)}>
+        Cancel
+      </Button>
+      <Button onClick={handleConfirm}>
+        Confirm
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+```
+
+## Semantic HTML and ARIA
+
+### Semantic Markup
+
+#### Use Proper HTML Elements
+Always use semantic HTML elements for their intended purpose:
+
+```tsx
+// ✅ Good - Semantic structure
+<main>
+  <section aria-labelledby="contributors-heading">
+    <h2 id="contributors-heading">Top Contributors</h2>
+    <nav aria-label="Contributors pagination">
+      <Button>Previous</Button>
+      <Button>Next</Button>
+    </nav>
+    <table>
+      <caption>Contributors ranked by total contributions</caption>
+      <thead>
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Contributions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {contributors.map(contributor => (
+          <tr key={contributor.id}>
+            <td>{contributor.name}</td>
+            <td>{contributor.contributions}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+</main>
+
+// ❌ Avoid - Generic elements for everything
+<div>
+  <div>Top Contributors</div>
+  <div>
+    <div>Previous</div>
+    <div>Next</div>
+  </div>
+  <div>
+    {contributors.map(contributor => (
+      <div key={contributor.id}>
+        <div>{contributor.name}</div>
+        <div>{contributor.contributions}</div>
+      </div>
+    ))}
+  </div>
+</div>
+```
+
+### ARIA Attributes
+
+#### Essential ARIA Patterns
+
+**Labels and Descriptions**
+```tsx
+// ✅ Good - Proper labeling
+<Input
+  id="search-contributors"
+  aria-label="Search contributors"
+  aria-describedby="search-help"
+  placeholder="Enter contributor name..."
+/>
+<div id="search-help" className="text-sm text-muted-foreground">
+  Search by name, username, or repository
+</div>
+
+// ✅ Good - Complex label relationships
+<fieldset>
+  <legend>Filter by contribution type</legend>
+  <div className="space-y-2">
+    <label className="flex items-center gap-2">
+      <Checkbox id="commits" />
+      Commits
+    </label>
+    <label className="flex items-center gap-2">
+      <Checkbox id="prs" />
+      Pull Requests
+    </label>
+  </div>
+</fieldset>
+```
+
+**Live Regions for Dynamic Content**
+```tsx
+// ✅ Good - Announce search results
+<div aria-live="polite" aria-atomic="true" className="sr-only">
+  {searchResults.length > 0 
+    ? `Found ${searchResults.length} contributors`
+    : "No contributors found"
+  }
+</div>
+
+// ✅ Good - Status updates
+<div aria-live="assertive" className="sr-only">
+  {status === 'loading' && 'Loading contributors...'}
+  {status === 'error' && 'Error loading contributors. Please try again.'}
+  {status === 'success' && 'Contributors loaded successfully.'}
+</div>
+```
+
+**Expandable Content**
+```tsx
+// ✅ Good - Collapsible sections
+<Collapsible>
+  <CollapsibleTrigger 
+    aria-expanded={isOpen}
+    aria-controls="advanced-filters"
+  >
+    Advanced Filters
+    <ChevronDownIcon 
+      className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+      aria-hidden="true"
+    />
+  </CollapsibleTrigger>
+  <CollapsibleContent id="advanced-filters">
+    {/* Filter content */}
+  </CollapsibleContent>
+</Collapsible>
+```
+
+## Keyboard Navigation
+
+### Standard Keyboard Patterns
+
+#### Navigation Keys
+- **Tab/Shift+Tab**: Move between focusable elements
+- **Enter/Space**: Activate buttons and controls
+- **Arrow Keys**: Navigate within components (tabs, menus, tables)
+- **Escape**: Close modals, menus, and cancel operations
+
+#### Implementation Examples
+
+**Tab Navigation**
+```tsx
+// ✅ Good - Proper tab navigation
+<div className="flex gap-2">
+  <Button>First Action</Button>      {/* Tab stop 1 */}
+  <Button>Second Action</Button>     {/* Tab stop 2 */}
+  <Input placeholder="Search..." />  {/* Tab stop 3 */}
+  <Button variant="outline">Filter</Button> {/* Tab stop 4 */}
+</div>
+
+// ✅ Good - Skip non-essential elements
+<Button className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4">
+  Skip to main content
+</Button>
+```
+
+**Arrow Key Navigation**
+```tsx
+// ✅ Good - Tabs with arrow navigation (built into Tabs component)
+<Tabs defaultValue="overview" orientation="horizontal">
+  <TabsList>
+    <TabsTrigger value="overview">Overview</TabsTrigger>
+    <TabsTrigger value="activity">Activity</TabsTrigger>
+    <TabsTrigger value="stats">Statistics</TabsTrigger>
+  </TabsList>
+</Tabs>
+
+// ✅ Good - Custom arrow navigation
+const [focusedIndex, setFocusedIndex] = useState(0);
+
+const handleKeyDown = (e: KeyboardEvent) => {
+  switch (e.key) {
+    case 'ArrowDown':
+      e.preventDefault();
+      setFocusedIndex((prev) => (prev + 1) % items.length);
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      setFocusedIndex((prev) => (prev - 1 + items.length) % items.length);
+      break;
+    case 'Enter':
+    case ' ':
+      e.preventDefault();
+      selectItem(focusedIndex);
+      break;
+  }
+};
+```
+
+## Screen Reader Support
+
+### Content Structure
+
+#### Headings Hierarchy
+Maintain logical heading structure for screen reader navigation:
+
+```tsx
+// ✅ Good - Logical heading hierarchy
+<main>
+  <h1>Contributor Dashboard</h1>
+  <section>
+    <h2>Top Contributors</h2>
+    <div>
+      <h3>This Month</h3>
+      {/* Content */}
+    </div>
+    <div>
+      <h3>This Year</h3>
+      {/* Content */}
+    </div>
+  </section>
+  <section>
+    <h2>Recent Activity</h2>
+    {/* Content */}
+  </section>
+</main>
+
+// ❌ Avoid - Skipping heading levels
+<h1>Dashboard</h1>
+<h3>Contributors</h3> {/* Skipped h2 */}
+<h5>Recent</h5>      {/* Skipped h4 */}
+```
+
+#### Landmarks and Regions
+Use ARIA landmarks to help screen reader users navigate:
+
+```tsx
+// ✅ Good - Clear page structure
+<div className="min-h-screen">
+  <header role="banner">
+    <nav aria-label="Main navigation">
+      {/* Navigation content */}
+    </nav>
+  </header>
+  
+  <main role="main">
+    <section aria-labelledby="dashboard-heading">
+      <h1 id="dashboard-heading">Dashboard</h1>
+      {/* Main content */}
+    </section>
+  </main>
+  
+  <aside role="complementary" aria-labelledby="recent-activity-heading">
+    <h2 id="recent-activity-heading">Recent Activity</h2>
+    {/* Sidebar content */}
+  </aside>
+  
+  <footer role="contentinfo">
+    {/* Footer content */}
+  </footer>
+</div>
+```
+
+### Screen Reader Only Content
+
+#### Providing Context
+Add screen reader only content to provide additional context:
+
+```tsx
+// ✅ Good - Screen reader context
+<div className="grid grid-cols-3 gap-4">
+  {stats.map((stat) => (
+    <Card key={stat.label}>
+      <CardContent className="pt-6">
+        <div className="text-2xl font-bold">{stat.value}</div>
+        <p className="text-xs text-muted-foreground">
+          {stat.label}
+          <span className="sr-only">
+            {stat.trend > 0 ? ' increased by ' : ' decreased by '}
+            {Math.abs(stat.trend)}% from last month
+          </span>
+        </p>
+      </CardContent>
+    </Card>
+  ))}
+</div>
+
+// ✅ Good - Table context
+<Table>
+  <caption className="sr-only">
+    Contributor rankings showing name, contributions, and recent activity.
+    Table can be sorted by clicking column headers.
+  </caption>
+  {/* Table content */}
+</Table>
+```
+
+## Testing Strategies
+
+### Automated Testing
+
+#### axe-core Integration
+We use axe-core for automated accessibility testing:
+
+```javascript
+// Example: Automated accessibility test
+import { axe, toHaveNoViolations } from 'jest-axe';
+
+expect.extend(toHaveNoViolations);
+
+test('contributor card should be accessible', async () => {
+  const { container } = render(<ContributorCard contributor={mockContributor} />);
+  const results = await axe(container);
+  expect(results).toHaveNoViolations();
+});
+```
+
+#### Storybook Accessibility Testing
+All stories include accessibility tests:
+
+```tsx
+// Example: Story with accessibility testing
+export const DefaultContributorCard = {
+  args: {
+    contributor: mockContributor,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    
+    // Test keyboard navigation
+    await userEvent.tab();
+    expect(canvas.getByRole('button', { name: /view profile/i })).toHaveFocus();
+    
+    // Test screen reader content
+    expect(canvas.getByLabelText(/contributor profile for/i)).toBeInTheDocument();
+  },
+};
+```
+
+### Manual Testing
+
+#### Keyboard Testing Checklist
+- [ ] Can reach all interactive elements with Tab key
+- [ ] Tab order is logical and predictable
+- [ ] Enter/Space activates buttons and controls
+- [ ] Arrow keys work for navigation within components
+- [ ] Escape closes modals and cancels operations
+- [ ] Focus is visible on all interactive elements
+- [ ] Focus is trapped in modal dialogs
+
+#### Screen Reader Testing
+**NVDA (Windows - Free)**
+```bash
+# Download and install NVDA
+# Test with common commands:
+# - NVDA + Space: Toggle speech mode
+# - H: Navigate by headings
+# - L: Navigate by landmarks
+# - T: Navigate by tables
+# - F: Navigate by form fields
+```
+
+**VoiceOver (macOS - Built-in)**
+```bash
+# Enable VoiceOver
+sudo spctl --master-disable # Enable accessibility
+# Test with commands:
+# - Control + Option + Right Arrow: Next element
+# - Control + Option + U: Rotor menu
+# - Control + Option + Space: Activate element
+```
+
+**JAWS (Windows - Commercial)**
+- Most comprehensive screen reader
+- Test critical user flows
+- Verify complex interactions
+
+#### Color Blindness Testing
+
+**Browser Tools**
+- Chrome DevTools: Rendering tab > Emulate vision deficiencies
+- Firefox: Accessibility Inspector
+
+**Online Tools**
+- Coblis Color Blindness Simulator
+- Stark plugin for design tools
+
+#### Mobile Accessibility Testing
+
+**iOS VoiceOver**
+```
+Settings > Accessibility > VoiceOver
+- Triple-click home button to toggle
+- Swipe right: Next element
+- Double-tap: Activate
+- Rotor: Rotate two fingers to change navigation mode
+```
+
+**Android TalkBack**
+```
+Settings > Accessibility > TalkBack
+- Volume up + down: Toggle
+- Swipe right: Next element
+- Double-tap: Activate
+- L-shaped gesture: Global navigation
+```
+
+## Common Accessibility Issues and Solutions
+
+### Issue 1: Missing Alternative Text
+```tsx
+// ❌ Problem
+<img src="/avatar.jpg" />
+
+// ✅ Solution
+<img src="/avatar.jpg" alt="John Doe's profile picture" />
+
+// ✅ Better - Using our Avatar component
+<Avatar>
+  <AvatarImage src="/avatar.jpg" alt="John Doe's profile picture" />
+  <AvatarFallback>JD</AvatarFallback>
+</Avatar>
+```
+
+### Issue 2: Inaccessible Form Labels
+```tsx
+// ❌ Problem
+<input placeholder="Enter your email" />
+
+// ✅ Solution
+<div className="space-y-2">
+  <Label htmlFor="email">Email Address</Label>
+  <Input id="email" type="email" placeholder="Enter your email" />
+</div>
+```
+
+### Issue 3: Poor Color Contrast
+```tsx
+// ❌ Problem
+<p className="text-gray-400">Important information</p>
+
+// ✅ Solution
+<p className="text-foreground">Important information</p>
+
+// ✅ Or use semantic colors
+<Alert>
+  <AlertDescription>Important information</AlertDescription>
+</Alert>
+```
+
+### Issue 4: Missing Focus Management
+```tsx
+// ❌ Problem
+<div onClick={handleClick}>Clickable div</div>
+
+// ✅ Solution
+<Button onClick={handleClick}>Accessible button</Button>
+
+// ✅ Or if div is necessary
+<div 
+  role="button"
+  tabIndex={0}
+  onClick={handleClick}
+  onKeyDown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  }}
+>
+  Accessible clickable div
+</div>
+```
+
+### Issue 5: Inadequate Error Messages
+```tsx
+// ❌ Problem
+<Input className="border-red-500" />
+
+// ✅ Solution
+<div className="space-y-2">
+  <Label htmlFor="username">Username</Label>
+  <Input
+    id="username"
+    aria-invalid={!!error}
+    aria-describedby="username-error"
+  />
+  {error && (
+    <p id="username-error" className="text-sm text-destructive">
+      {error}
+    </p>
+  )}
+</div>
+```
+
+## Accessibility Checklist
+
+### Design Phase
+- [ ] Color contrast meets WCAG requirements
+- [ ] Focus indicators are clearly visible
+- [ ] Text size is readable (16px minimum)
+- [ ] Information is not conveyed by color alone
+- [ ] Touch targets are at least 44px
+
+### Development Phase
+- [ ] Semantic HTML elements are used
+- [ ] All images have appropriate alt text
+- [ ] Forms have proper labels and error messages
+- [ ] Keyboard navigation works throughout
+- [ ] ARIA attributes are used correctly
+- [ ] Focus management is implemented
+- [ ] Content structure uses proper headings
+
+### Testing Phase
+- [ ] Automated accessibility tests pass
+- [ ] Manual keyboard testing completed
+- [ ] Screen reader testing completed
+- [ ] Color blindness simulation tested
+- [ ] Mobile accessibility verified
+
+### Documentation
+- [ ] Accessibility features documented
+- [ ] Testing procedures documented
+- [ ] Known issues and workarounds noted
+- [ ] User guides include accessibility information
+
+## Resources and Tools
+
+### Testing Tools
+- **axe DevTools**: Browser extension for accessibility testing
+- **WAVE**: Web accessibility evaluation tool
+- **Lighthouse**: Built-in Chrome accessibility audit
+- **Stark**: Design tool plugin for accessibility
+
+### Screen Readers
+- **NVDA**: Free Windows screen reader
+- **VoiceOver**: Built-in macOS and iOS screen reader
+- **JAWS**: Professional Windows screen reader
+- **TalkBack**: Built-in Android screen reader
+
+### Guidelines and Standards
+- [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
+- [WAI-ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/)
+- [MDN Accessibility Documentation](https://developer.mozilla.org/en-US/docs/Web/Accessibility)
+
+### Color and Contrast Tools
+- [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/)
+- [Colour Contrast Analyser](https://www.tpgi.com/color-contrast-checker/)
+- [Stark Plugin](https://www.getstark.co/)
+
+Remember: Accessibility is not a checklist item to complete, but an ongoing commitment to inclusive design. Regular testing and user feedback help us continuously improve the accessibility of our platform.

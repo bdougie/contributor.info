@@ -1,5 +1,5 @@
 {
-  "projectToken": "chpt_b541243b54ef448",
+  "projectToken": "CHROMATIC_PROJECT_TOKEN",
   "buildScriptName": "build-storybook",
   "exitZeroOnChanges": true,
   "exitOnceUploaded": false,

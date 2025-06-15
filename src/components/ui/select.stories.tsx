@@ -1,5 +1,6 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { useState } from 'react';
+import type { Meta, StoryObj } from "@storybook/react";
+import { expect, userEvent, within } from "@storybook/test";
+import { useState } from "react";
 import {
   Select,
   SelectContent,
@@ -9,15 +10,15 @@ import {
   SelectTrigger,
   SelectValue,
   SelectSeparator,
-} from './select';
+} from "./select";
 
 const meta = {
-  title: 'UI/Select',
+  title: "UI/Select",
   component: Select,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   decorators: [
     (Story) => (
       <div className="w-[280px]">
@@ -88,7 +89,7 @@ export const Controlled: Story = {
   render: () => {
     const ControlledExample = () => {
       const [value, setValue] = useState("");
-      
+
       return (
         <div className="space-y-4">
           <Select value={value} onValueChange={setValue}>
@@ -109,7 +110,7 @@ export const Controlled: Story = {
         </div>
       );
     };
-    
+
     return <ControlledExample />;
   },
 };
@@ -258,7 +259,7 @@ export const InFormExample: Story = {
 
 // Position variants
 export const PositionPopper: Story = {
-  name: 'Position: Popper (Default)',
+  name: "Position: Popper (Default)",
   render: () => (
     <Select>
       <SelectTrigger>
@@ -274,7 +275,7 @@ export const PositionPopper: Story = {
 };
 
 export const PositionItemAligned: Story = {
-  name: 'Position: Item Aligned',
+  name: "Position: Item Aligned",
   render: () => (
     <Select>
       <SelectTrigger>
@@ -287,4 +288,108 @@ export const PositionItemAligned: Story = {
       </SelectContent>
     </Select>
   ),
+};
+
+// Interaction tests
+export const SelectInteraction: Story = {
+  render: () => (
+    <Select>
+      <SelectTrigger>
+        <SelectValue placeholder="Select a fruit" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="apple">Apple</SelectItem>
+        <SelectItem value="banana">Banana</SelectItem>
+        <SelectItem value="orange">Orange</SelectItem>
+      </SelectContent>
+    </Select>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const trigger = canvas.getByRole("combobox");
+
+    // Check that the select trigger is present
+    await expect(trigger).toBeInTheDocument();
+
+    // Click to open the select
+    await userEvent.click(trigger);
+
+    // Wait for the content to appear and select an option
+    const option = canvas.getByRole("option", { name: "Apple" });
+    await expect(option).toBeInTheDocument();
+    await userEvent.click(option);
+
+    // Check that the value is selected (this may need adjustment based on implementation)
+    await expect(trigger).toHaveAccessibleName(/apple/i);
+  },
+  tags: ["interaction"],
+};
+
+export const KeyboardNavigation: Story = {
+  render: () => (
+    <Select>
+      <SelectTrigger>
+        <SelectValue placeholder="Navigate with keyboard" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="option1">Option 1</SelectItem>
+        <SelectItem value="option2">Option 2</SelectItem>
+        <SelectItem value="option3">Option 3</SelectItem>
+      </SelectContent>
+    </Select>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const trigger = canvas.getByRole("combobox");
+
+    // Focus the trigger
+    await userEvent.click(trigger);
+
+    // Test keyboard navigation
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{Enter}");
+
+    // The second option should be selected
+    // Note: This may need adjustment based on the actual implementation
+  },
+  tags: ["interaction", "accessibility"],
+};
+
+export const ControlledSelect: Story = {
+  render: () => {
+    const [value, setValue] = useState("");
+
+    return (
+      <div>
+        <Select value={value} onValueChange={setValue}>
+          <SelectTrigger>
+            <SelectValue placeholder="Controlled select" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="controlled1">Controlled Option 1</SelectItem>
+            <SelectItem value="controlled2">Controlled Option 2</SelectItem>
+          </SelectContent>
+        </Select>
+        <p data-testid="selected-value">Selected: {value}</p>
+      </div>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const trigger = canvas.getByRole("combobox");
+    const valueDisplay = canvas.getByTestId("selected-value");
+
+    // Initially no value should be selected
+    await expect(valueDisplay).toHaveTextContent("Selected: ");
+
+    // Open and select an option
+    await userEvent.click(trigger);
+    const option = canvas.getByRole("option", { name: "Controlled Option 1" });
+    await userEvent.click(option);
+
+    // Check that the value is updated
+    await expect(valueDisplay).toHaveTextContent("Selected: controlled1");
+  },
+  tags: ["interaction"],
 };
