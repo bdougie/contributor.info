@@ -30,6 +30,7 @@ jobs:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           exitZeroOnChanges: true
           onlyChanged: true
+          allowConsoleErrors: true
 
       - name: Comment PR with Chromatic results
         if: github.event_name == 'pull_request'

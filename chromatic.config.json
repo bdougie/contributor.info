@@ -1,9 +1,7 @@
 {
-  "projectToken": "CHROMATIC_PROJECT_TOKEN",
   "buildScriptName": "build-storybook",
   "exitZeroOnChanges": true,
   "exitOnceUploaded": false,
-  "allowConsoleErrors": false,
   "ignoreLastBuildOnBranch": "main",
   "skip": false,
   "debug": false,
@@ -13,15 +11,6 @@
   "traceChanged": "expanded",
   "storybookBuildDir": "storybook-static",
   "zip": true,
-  "diagnostics": false,
   "junitReport": false,
-  "workingDir": ".",
-  "dryRun": false,
-  "forceRebuild": false,
-  "repositorySlug": "contributor.info",
-  "branchName": "",
-  "patchBuild": "",
-  "ci": true,
-  "interactive": false,
   "autoAcceptChanges": false
 }

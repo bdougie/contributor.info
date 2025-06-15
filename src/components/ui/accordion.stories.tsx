@@ -7,7 +7,13 @@ import {
   AccordionTrigger,
 } from "./accordion";
 
-const meta = {
+interface AccordionArgs {
+  type?: "single" | "multiple";
+  collapsible?: boolean;
+  className?: string;
+}
+
+const meta: Meta<AccordionArgs> = {
   title: "UI/Navigation/Accordion",
   component: Accordion,
   parameters: {
@@ -27,7 +33,16 @@ const meta = {
       </div>
     ),
   ],
-} satisfies Meta<typeof Accordion>;
+  argTypes: {
+    type: {
+      control: { type: "select" },
+      options: ["single", "multiple"],
+    },
+    collapsible: {
+      control: { type: "boolean" },
+    },
+  },
+};
 
 export default meta;
 type Story = StoryObj<typeof meta>;
