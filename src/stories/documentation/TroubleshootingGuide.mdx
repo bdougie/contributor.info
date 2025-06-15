@@ -1,0 +1,688 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Documentation/Troubleshooting Guide" />
+
+# Troubleshooting Guide
+
+This guide helps developers diagnose and resolve common issues when working with the contributor.info design system components.
+
+## Quick Diagnostics
+
+### Component Not Rendering
+
+#### 1. Check Import Path
+```tsx
+// ❌ Incorrect import
+import { Button } from 'components/ui/button';
+
+// ✅ Correct import
+import { Button } from '@/components/ui/button';
+```
+
+#### 2. Verify Component Installation
+```bash
+# Check if design system is properly installed
+npm list @contributor-info/ui
+# or check package.json dependencies
+```
+
+#### 3. Check TypeScript Errors
+```tsx
+// Look for TypeScript errors in console
+// Common issue: Missing required props
+<Button> {/* Missing children prop */}
+</Button>
+
+// Fixed
+<Button>Click me</Button>
+```
+
+### Styling Issues
+
+#### 1. Tailwind CSS Not Applied
+```bash
+# Verify Tailwind is installed and configured
+npm list tailwindcss
+
+# Check tailwind.config.js includes component paths
+module.exports = {
+  content: [
+    "./src/**/*.{js,ts,jsx,tsx}",
+    "./node_modules/@contributor-info/ui/**/*.js" // Include component library
+  ],
+  // ...
+}
+```
+
+#### 2. CSS Classes Not Working
+```tsx
+// ❌ Conflicting styles
+<Button className="bg-red-500">Submit</Button> // May not override component styles
+
+// ✅ Use component variants instead
+<Button variant="destructive">Submit</Button>
+
+// ✅ Or force override if necessary
+<Button className="!bg-red-500">Submit</Button>
+```
+
+## Common Issues by Component
+
+### Button Component
+
+#### Issue: Button Not Responding to Clicks
+```tsx
+// ❌ Problem: Event handler not attached
+<Button>Submit</Button>
+
+// ✅ Solution: Add onClick handler
+<Button onClick={handleSubmit}>Submit</Button>
+
+// ❌ Problem: Button is disabled
+<Button disabled onClick={handleSubmit}>Submit</Button>
+
+// ✅ Solution: Check disabled state
+<Button disabled={isLoading} onClick={handleSubmit}>
+  {isLoading ? 'Loading...' : 'Submit'}
+</Button>
+```
+
+#### Issue: Button Styling Incorrect
+```tsx
+// ❌ Problem: Invalid variant
+<Button variant="primary">Submit</Button> // 'primary' doesn't exist
+
+// ✅ Solution: Use correct variant
+<Button variant="default">Submit</Button>
+
+// Available variants: default, secondary, destructive, outline, ghost, link
+```
+
+#### Issue: Button Size Wrong
+```tsx
+// ❌ Problem: Invalid size
+<Button size="medium">Submit</Button> // 'medium' doesn't exist
+
+// ✅ Solution: Use correct size
+<Button size="default">Submit</Button>
+
+// Available sizes: sm, default, lg, icon
+```
+
+### Form Components (Input, Select, etc.)
+
+#### Issue: Form Validation Not Working
+```tsx
+// ❌ Problem: Missing form setup
+<Input required />
+
+// ✅ Solution: Proper form setup with react-hook-form
+import { useForm } from 'react-hook-form';
+
+const MyForm = () => {
+  const { register, handleSubmit, formState: { errors } } = useForm();
+  
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          {...register('email', { required: 'Email is required' })}
+          aria-invalid={!!errors.email}
+        />
+        {errors.email && (
+          <p className="text-sm text-destructive">{errors.email.message}</p>
+        )}
+      </div>
+    </form>
+  );
+};
+```
+
+#### Issue: Input Not Accessible
+```tsx
+// ❌ Problem: Missing label
+<Input placeholder="Enter your name" />
+
+// ✅ Solution: Proper labeling
+<div className="space-y-2">
+  <Label htmlFor="name">Full Name</Label>
+  <Input
+    id="name"
+    placeholder="Enter your name"
+    aria-describedby="name-description"
+  />
+  <p id="name-description" className="text-sm text-muted-foreground">
+    This will be displayed on your profile
+  </p>
+</div>
+```
+
+#### Issue: Select Component Not Opening
+```tsx
+// ❌ Problem: Missing value/onValueChange
+<Select>
+  <SelectTrigger>
+    <SelectValue />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="option1">Option 1</SelectItem>
+  </SelectContent>
+</Select>
+
+// ✅ Solution: Controlled component
+const [value, setValue] = useState('');
+
+<Select value={value} onValueChange={setValue}>
+  <SelectTrigger>
+    <SelectValue placeholder="Select an option" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="option1">Option 1</SelectItem>
+    <SelectItem value="option2">Option 2</SelectItem>
+  </SelectContent>
+</Select>
+```
+
+### Dialog and Modal Components
+
+#### Issue: Dialog Not Closing
+```tsx
+// ❌ Problem: Missing onOpenChange handler
+<Dialog open={isOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Confirm</DialogTitle>
+    </DialogHeader>
+  </DialogContent>
+</Dialog>
+
+// ✅ Solution: Proper state management
+const [isOpen, setIsOpen] = useState(false);
+
+<Dialog open={isOpen} onOpenChange={setIsOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Confirm</DialogTitle>
+    </DialogHeader>
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setIsOpen(false)}>
+        Cancel
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+```
+
+#### Issue: Dialog Content Overflowing
+```tsx
+// ❌ Problem: No max height or scroll
+<DialogContent>
+  <div>Very long content that exceeds viewport height...</div>
+</DialogContent>
+
+// ✅ Solution: Add scroll container
+<DialogContent className="max-h-[80vh] overflow-y-auto">
+  <div>Very long content that exceeds viewport height...</div>
+</DialogContent>
+```
+
+#### Issue: Focus Trap Not Working
+```tsx
+// Problem: Focus escaping dialog
+// This is usually handled automatically by the Dialog component
+// If you're experiencing issues, check for:
+
+// 1. Conflicting focus management
+// 2. Elements with tabIndex outside the dialog
+// 3. Custom event handlers preventing default behavior
+
+// ✅ Ensure proper focus management
+<Dialog open={isOpen} onOpenChange={setIsOpen}>
+  <DialogContent>
+    {/* First focusable element */}
+    <DialogHeader>
+      <DialogTitle>Title</DialogTitle>
+    </DialogHeader>
+    <DialogDescription>
+      Description content
+    </DialogDescription>
+    <DialogFooter>
+      {/* Last focusable elements */}
+      <Button variant="outline">Cancel</Button>
+      <Button>Confirm</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+```
+
+### Navigation Components
+
+#### Issue: Tabs Not Switching
+```tsx
+// ❌ Problem: Missing value/onValueChange
+<Tabs>
+  <TabsList>
+    <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+    <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+  </TabsList>
+</Tabs>
+
+// ✅ Solution: Controlled or default value
+// Option 1: Uncontrolled (recommended for simple cases)
+<Tabs defaultValue="tab1">
+  <TabsList>
+    <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+    <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+  </TabsList>
+  <TabsContent value="tab1">Content 1</TabsContent>
+  <TabsContent value="tab2">Content 2</TabsContent>
+</Tabs>
+
+// Option 2: Controlled
+const [activeTab, setActiveTab] = useState('tab1');
+
+<Tabs value={activeTab} onValueChange={setActiveTab}>
+  {/* ... */}
+</Tabs>
+```
+
+#### Issue: Accordion Not Expanding
+```tsx
+// ❌ Problem: Missing value management
+<Accordion>
+  <AccordionItem value="item1">
+    <AccordionTrigger>Item 1</AccordionTrigger>
+    <AccordionContent>Content 1</AccordionContent>
+  </AccordionItem>
+</Accordion>
+
+// ✅ Solution: Specify type and default value
+<Accordion type="single" defaultValue="item1" collapsible>
+  <AccordionItem value="item1">
+    <AccordionTrigger>Item 1</AccordionTrigger>
+    <AccordionContent>Content 1</AccordionContent>
+  </AccordionItem>
+</Accordion>
+
+// For multiple items open at once
+<Accordion type="multiple" defaultValue={['item1', 'item2']}>
+  {/* ... */}
+</Accordion>
+```
+
+### Table Components
+
+#### Issue: Table Not Responsive
+```tsx
+// ❌ Problem: Table overflowing on mobile
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>Very Long Column Name</TableHead>
+      <TableHead>Another Long Column</TableHead>
+      <TableHead>Third Column</TableHead>
+    </TableRow>
+  </TableHeader>
+</Table>
+
+// ✅ Solution: Add scroll container
+<div className="overflow-x-auto">
+  <Table>
+    <TableHeader>
+      <TableRow>
+        <TableHead className="min-w-[150px]">Very Long Column Name</TableHead>
+        <TableHead className="min-w-[120px]">Another Long Column</TableHead>
+        <TableHead>Third Column</TableHead>
+      </TableRow>
+    </TableHeader>
+  </Table>
+</div>
+
+// ✅ Alternative: Hide columns on mobile
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>Name</TableHead>
+      <TableHead className="hidden md:table-cell">Email</TableHead>
+      <TableHead>Actions</TableHead>
+    </TableRow>
+  </TableHeader>
+</Table>
+```
+
+#### Issue: Table Data Not Updating
+```tsx
+// ❌ Problem: Stale data reference
+const data = useMemo(() => fetchData(), []); // Empty dependency array
+
+// ✅ Solution: Proper dependencies
+const data = useMemo(() => fetchData(), [filters, sortOrder]);
+
+// ✅ Or use state for dynamic data
+const [data, setData] = useState([]);
+
+useEffect(() => {
+  fetchData().then(setData);
+}, [filters, sortOrder]);
+```
+
+## Performance Issues
+
+### Slow Component Rendering
+
+#### Issue: Large Lists Causing Performance Problems
+```tsx
+// ❌ Problem: Rendering thousands of items
+<div>
+  {largeArray.map(item => (
+    <ComplexComponent key={item.id} data={item} />
+  ))}
+</div>
+
+// ✅ Solution: Implement virtualization
+import { FixedSizeList as List } from 'react-window';
+
+<List
+  height={600}
+  itemCount={largeArray.length}
+  itemSize={80}
+  itemData={largeArray}
+>
+  {({ index, style, data }) => (
+    <div style={style}>
+      <ComplexComponent data={data[index]} />
+    </div>
+  )}
+</List>
+```
+
+#### Issue: Components Re-rendering Too Often
+```tsx
+// ❌ Problem: Creating new objects in render
+const Component = ({ data }) => {
+  return (
+    <ChildComponent 
+      config={{ sortBy: 'name', order: 'asc' }} // New object every render
+      onSort={(field) => handleSort(field)} // New function every render
+    />
+  );
+};
+
+// ✅ Solution: Memoize objects and callbacks
+const Component = ({ data }) => {
+  const config = useMemo(() => ({ 
+    sortBy: 'name', 
+    order: 'asc' 
+  }), []);
+  
+  const handleSort = useCallback((field) => {
+    // Sort logic
+  }, []);
+  
+  return (
+    <ChildComponent 
+      config={config}
+      onSort={handleSort}
+    />
+  );
+};
+```
+
+### Bundle Size Issues
+
+#### Issue: Design System Increasing Bundle Size
+```bash
+# Check bundle size impact
+npm run build -- --analyze
+
+# Look for large imports in bundle analyzer
+```
+
+```tsx
+// ❌ Problem: Importing entire library
+import * as Components from '@contributor-info/ui';
+
+// ✅ Solution: Import only what you need
+import { Button } from '@contributor-info/ui/button';
+import { Input } from '@contributor-info/ui/input';
+
+// ✅ Or use tree-shakable imports
+import { Button, Input } from '@contributor-info/ui';
+```
+
+## Accessibility Issues
+
+### Screen Reader Problems
+
+#### Issue: Component Not Announced
+```tsx
+// ❌ Problem: Missing ARIA labels
+<Button>
+  <IconComponent />
+</Button>
+
+// ✅ Solution: Add accessible label
+<Button aria-label="Delete item">
+  <TrashIcon className="h-4 w-4" />
+</Button>
+
+// ✅ Or use screen reader only text
+<Button>
+  <TrashIcon className="h-4 w-4" />
+  <span className="sr-only">Delete item</span>
+</Button>
+```
+
+#### Issue: Dynamic Content Not Announced
+```tsx
+// ❌ Problem: Status changes not announced
+<div>Status: {status}</div>
+
+// ✅ Solution: Use live regions
+<div aria-live="polite" aria-atomic="true">
+  Status: {status}
+</div>
+
+// For urgent announcements
+<div aria-live="assertive">
+  Error: {errorMessage}
+</div>
+```
+
+### Keyboard Navigation Issues
+
+#### Issue: Focus Not Visible
+```tsx
+// Check if focus styles are applied
+// Default focus styles should be visible
+// If not, check for CSS conflicts
+
+// ✅ Ensure focus is visible
+<Button className="focus:ring-2 focus:ring-primary focus:ring-offset-2">
+  Focusable Button
+</Button>
+```
+
+#### Issue: Focus Trap Not Working
+```tsx
+// Issue usually occurs in custom modal implementations
+// Use our Dialog component which handles focus trap automatically
+
+// ✅ Proper modal with focus trap
+<Dialog open={isOpen} onOpenChange={setIsOpen}>
+  <DialogContent>
+    {/* Focus automatically trapped within this content */}
+  </DialogContent>
+</Dialog>
+```
+
+## Development Environment Issues
+
+### TypeScript Errors
+
+#### Issue: Component Props Type Errors
+```tsx
+// ❌ Problem: TypeScript can't find component types
+// Property 'variant' does not exist on type...
+
+// Check import path and TypeScript configuration
+// Ensure @contributor-info/ui is properly typed
+
+// ✅ Solution: Check tsconfig.json paths
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/components/ui/*": ["./src/components/ui/*"]
+    }
+  }
+}
+```
+
+#### Issue: Missing Type Definitions
+```bash
+# Install type definitions if missing
+npm install --save-dev @types/react @types/react-dom
+
+# Check if component library includes types
+npm list @contributor-info/ui
+```
+
+### Build Errors
+
+#### Issue: Build Failing with Component Imports
+```bash
+# Check for conflicting dependencies
+npm ls react
+npm ls react-dom
+
+# Ensure peer dependencies are met
+npm install react react-dom
+
+# Clear cache if needed
+rm -rf node_modules package-lock.json
+npm install
+```
+
+## Debugging Tools and Techniques
+
+### React Developer Tools
+
+#### Component State Inspection
+```tsx
+// Use React DevTools to inspect component state
+// Look for:
+// - Unexpected re-renders
+// - Missing state updates
+// - Incorrect prop values
+```
+
+#### Performance Profiling
+```tsx
+// Use React DevTools Profiler to identify:
+// - Slow rendering components
+// - Unnecessary re-renders
+// - Performance bottlenecks
+```
+
+### Browser Developer Tools
+
+#### CSS Debugging
+```css
+/* Check for conflicting styles */
+/* Look for overridden Tailwind classes */
+/* Verify CSS custom properties are defined */
+```
+
+#### Accessibility Testing
+```bash
+# Use browser extensions:
+# - axe DevTools
+# - WAVE Web Accessibility Evaluator
+# - Lighthouse accessibility audit
+```
+
+### Console Debugging
+
+#### Component Debug Information
+```tsx
+// Add debug information to components
+const Button = ({ variant, ...props }) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Button render:', { variant, props });
+  }
+  
+  return <button {...props} />;
+};
+```
+
+#### Event Debugging
+```tsx
+// Debug event handlers
+const handleClick = (event) => {
+  console.log('Button clicked:', event);
+  console.log('Event target:', event.target);
+  console.log('Current target:', event.currentTarget);
+  
+  // Your click logic here
+};
+```
+
+## Getting Help
+
+### Before Asking for Help
+
+1. **Check this troubleshooting guide** for common issues
+2. **Review component documentation** in Storybook
+3. **Check console for errors** and warnings
+4. **Test with minimal reproduction** to isolate the issue
+5. **Verify you're using latest version** of components
+
+### How to Report Issues
+
+#### Create a Minimal Reproduction
+```tsx
+// Provide minimal code that reproduces the issue
+import { Button } from '@contributor-info/ui';
+
+const BugReport = () => {
+  return (
+    <Button variant="invalid">
+      This variant doesn't exist and causes an error
+    </Button>
+  );
+};
+```
+
+#### Include Environment Information
+```bash
+# Include version information
+npm list @contributor-info/ui
+npm list react
+npm list typescript
+
+# Browser information
+# Operating system
+# Node.js version
+```
+
+#### Describe Expected vs Actual Behavior
+```markdown
+**Expected:** Button should render with default styling
+**Actual:** Button throws TypeScript error about invalid variant
+**Steps to reproduce:** 
+1. Import Button component
+2. Use variant="invalid"
+3. See error in console
+```
+
+### Community Resources
+
+- **GitHub Issues**: Report bugs and feature requests
+- **Discord/Slack**: Real-time help from community
+- **Documentation**: Comprehensive guides and examples
+- **Storybook**: Interactive component documentation
+
+This troubleshooting guide covers the most common issues. For complex problems or issues not covered here, please create a detailed bug report with reproduction steps.

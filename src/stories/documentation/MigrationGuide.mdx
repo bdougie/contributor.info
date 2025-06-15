@@ -1,0 +1,768 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Documentation/Migration Guide" />
+
+# Migration Guide for Developers
+
+This guide helps developers migrate to our design system components, whether you're adopting the system for the first time, upgrading from a previous version, or transitioning from custom components.
+
+## Overview
+
+### Why Migrate to the Design System?
+
+1. **Consistency**: Unified visual language across the entire platform
+2. **Accessibility**: Built-in WCAG 2.1 AA compliance
+3. **Maintainability**: Centralized updates and bug fixes
+4. **Performance**: Optimized components with minimal bundle impact
+5. **Developer Experience**: Comprehensive documentation and TypeScript support
+
+### Migration Scope
+
+This migration guide covers:
+- Transitioning from custom components to design system components
+- Updating existing implementations to use new component APIs
+- Converting legacy styling approaches to our token-based system
+- Adopting new accessibility patterns and best practices
+
+## Pre-Migration Assessment
+
+### Audit Your Current Components
+
+Before starting migration, assess your current component usage:
+
+```bash
+# Find all custom button implementations
+grep -r "className.*button\|<button" src/ --include="*.tsx" --include="*.jsx"
+
+# Find custom form components
+grep -r "input\|select\|textarea" src/ --include="*.tsx" --include="*.jsx"
+
+# Find custom card/container components
+grep -r "className.*card\|className.*container" src/ --include="*.tsx" --include="*.jsx"
+```
+
+### Identify Migration Priorities
+
+**High Priority (Immediate Migration)**
+- Form components (Button, Input, Select)
+- Navigation components (Tabs, Accordion)
+- Feedback components (Alert, Dialog)
+
+**Medium Priority (Next Phase)**
+- Layout components (Card, Container)
+- Data display components (Table, Badge)
+- Advanced interactions (DropdownMenu, Popover)
+
+**Low Priority (Optional)**
+- Specialized components with unique requirements
+- Third-party integrations
+- One-off custom implementations
+
+## Migration Strategies
+
+### Strategy 1: Incremental Migration (Recommended)
+
+Migrate components gradually to minimize risk and allow for testing:
+
+```tsx
+// Phase 1: Start with simple components
+// Before
+const CustomButton = ({ children, variant, ...props }) => (
+  <button 
+    className={`btn ${variant === 'primary' ? 'btn-primary' : 'btn-secondary'}`}
+    {...props}
+  >
+    {children}
+  </button>
+);
+
+// After
+import { Button } from '@/components/ui/button';
+
+const MigratedButton = ({ children, variant = 'default', ...props }) => (
+  <Button variant={variant} {...props}>
+    {children}
+  </Button>
+);
+```
+
+### Strategy 2: Component-by-Component Migration
+
+Focus on one component type at a time:
+
+```tsx
+// Week 1: Migrate all buttons
+// Week 2: Migrate all inputs
+// Week 3: Migrate all cards
+// etc.
+```
+
+### Strategy 3: Page-by-Page Migration
+
+Migrate entire pages or features at once:
+
+```tsx
+// Migration order by page complexity:
+// 1. Simple pages (About, Contact)
+// 2. Medium complexity (User Profile)
+// 3. Complex pages (Dashboard, Analytics)
+```
+
+## Component Migration Guide
+
+### Button Component Migration
+
+#### From Custom Button
+```tsx
+// ❌ Before: Custom button implementation
+const CustomButton = ({ 
+  children, 
+  type = 'button',
+  variant = 'primary',
+  size = 'medium',
+  disabled = false,
+  onClick,
+  className = '',
+  ...props 
+}) => {
+  const baseClasses = 'px-4 py-2 rounded font-medium transition-colors';
+  const variantClasses = {
+    primary: 'bg-blue-600 text-white hover:bg-blue-700',
+    secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300',
+    danger: 'bg-red-600 text-white hover:bg-red-700'
+  };
+  const sizeClasses = {
+    small: 'px-2 py-1 text-sm',
+    medium: 'px-4 py-2',
+    large: 'px-6 py-3 text-lg'
+  };
+  
+  return (
+    <button
+      type={type}
+      disabled={disabled}
+      onClick={onClick}
+      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
+
+// ✅ After: Using design system Button
+import { Button } from '@/components/ui/button';
+
+const MigratedComponent = () => (
+  <div className="space-x-2">
+    <Button variant="default">Primary Action</Button>
+    <Button variant="secondary">Secondary Action</Button>
+    <Button variant="destructive">Delete</Button>
+  </div>
+);
+```
+
+#### Variant Mapping
+```tsx
+// Migration mapping for button variants
+const variantMapping = {
+  primary: 'default',
+  secondary: 'secondary', 
+  danger: 'destructive',
+  ghost: 'ghost',
+  link: 'link'
+};
+
+// Size mapping
+const sizeMapping = {
+  small: 'sm',
+  medium: 'default', // or undefined
+  large: 'lg'
+};
+```
+
+### Form Components Migration
+
+#### Input Field Migration
+```tsx
+// ❌ Before: Custom input with manual validation
+const CustomInput = ({ 
+  label, 
+  error, 
+  required = false, 
+  ...inputProps 
+}) => (
+  <div className="mb-4">
+    <label className="block text-sm font-medium mb-2">
+      {label}
+      {required && <span className="text-red-500">*</span>}
+    </label>
+    <input
+      className={`
+        w-full px-3 py-2 border rounded-md
+        ${error ? 'border-red-500' : 'border-gray-300'}
+        focus:outline-none focus:ring-2 focus:ring-blue-500
+      `}
+      {...inputProps}
+    />
+    {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+  </div>
+);
+
+// ✅ After: Using design system components
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+const MigratedInput = ({ 
+  label, 
+  error, 
+  required = false,
+  id,
+  ...inputProps 
+}) => (
+  <div className="space-y-2">
+    <Label htmlFor={id}>
+      {label}
+      {required && <span className="text-destructive ml-1">*</span>}
+    </Label>
+    <Input
+      id={id}
+      aria-invalid={!!error}
+      aria-describedby={error ? `${id}-error` : undefined}
+      {...inputProps}
+    />
+    {error && (
+      <p id={`${id}-error`} className="text-sm text-destructive">
+        {error}
+      </p>
+    )}
+  </div>
+);
+```
+
+#### Select Component Migration
+```tsx
+// ❌ Before: Custom select component
+const CustomSelect = ({ options, value, onChange, label, ...props }) => (
+  <div className="mb-4">
+    <label className="block text-sm font-medium mb-2">{label}</label>
+    <select
+      value={value}
+      onChange={onChange}
+      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+      {...props}
+    >
+      {options.map(option => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  </div>
+);
+
+// ✅ After: Using design system Select
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+
+const MigratedSelect = ({ options, value, onValueChange, label, id }) => (
+  <div className="space-y-2">
+    <Label htmlFor={id}>{label}</Label>
+    <Select value={value} onValueChange={onValueChange}>
+      <SelectTrigger id={id}>
+        <SelectValue placeholder="Select an option" />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map(option => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  </div>
+);
+```
+
+### Card Component Migration
+
+#### Layout Card Migration
+```tsx
+// ❌ Before: Custom card implementation
+const CustomCard = ({ 
+  title, 
+  children, 
+  footer, 
+  className = '',
+  ...props 
+}) => (
+  <div 
+    className={`
+      bg-white rounded-lg shadow-md border border-gray-200 
+      overflow-hidden ${className}
+    `}
+    {...props}
+  >
+    {title && (
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h3 className="text-lg font-semibold">{title}</h3>
+      </div>
+    )}
+    <div className="px-6 py-4">
+      {children}
+    </div>
+    {footer && (
+      <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+        {footer}
+      </div>
+    )}
+  </div>
+);
+
+// ✅ After: Using design system Card
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+
+const MigratedCard = ({ title, children, footer, ...props }) => (
+  <Card {...props}>
+    {title && (
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+    )}
+    <CardContent>
+      {children}
+    </CardContent>
+    {footer && (
+      <CardFooter>
+        {footer}
+      </CardFooter>
+    )}
+  </Card>
+);
+```
+
+### Navigation Component Migration
+
+#### Tab Component Migration
+```tsx
+// ❌ Before: Custom tabs implementation
+const CustomTabs = ({ tabs, activeTab, onTabChange }) => (
+  <div>
+    <div className="flex border-b border-gray-200">
+      {tabs.map(tab => (
+        <button
+          key={tab.id}
+          onClick={() => onTabChange(tab.id)}
+          className={`
+            px-4 py-2 text-sm font-medium border-b-2 transition-colors
+            ${activeTab === tab.id 
+              ? 'border-blue-500 text-blue-600' 
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+            }
+          `}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+    <div className="mt-4">
+      {tabs.find(tab => tab.id === activeTab)?.content}
+    </div>
+  </div>
+);
+
+// ✅ After: Using design system Tabs
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+const MigratedTabs = ({ tabs, defaultValue }) => (
+  <Tabs defaultValue={defaultValue} className="w-full">
+    <TabsList>
+      {tabs.map(tab => (
+        <TabsTrigger key={tab.id} value={tab.id}>
+          {tab.label}
+        </TabsTrigger>
+      ))}
+    </TabsList>
+    {tabs.map(tab => (
+      <TabsContent key={tab.id} value={tab.id}>
+        {tab.content}
+      </TabsContent>
+    ))}
+  </Tabs>
+);
+```
+
+## Styling Migration
+
+### From CSS Classes to Design Tokens
+
+#### Color Migration
+```tsx
+// ❌ Before: Hardcoded colors
+const styles = {
+  primary: 'bg-blue-600 text-white',
+  secondary: 'bg-gray-200 text-gray-900',
+  success: 'bg-green-600 text-white',
+  danger: 'bg-red-600 text-white'
+};
+
+// ✅ After: Using design system colors
+const styles = {
+  primary: 'bg-primary text-primary-foreground',
+  secondary: 'bg-secondary text-secondary-foreground', 
+  success: 'bg-green-600 text-white', // or create success variant
+  danger: 'bg-destructive text-destructive-foreground'
+};
+```
+
+#### Spacing Migration
+```tsx
+// ❌ Before: Arbitrary spacing values
+const spacing = {
+  small: 'p-2 m-1',
+  medium: 'p-4 m-2', 
+  large: 'p-6 m-4'
+};
+
+// ✅ After: Consistent spacing scale
+const spacing = {
+  small: 'p-2 m-1',    // 8px padding, 4px margin
+  medium: 'p-4 m-2',   // 16px padding, 8px margin
+  large: 'p-6 m-4'     // 24px padding, 16px margin
+};
+```
+
+#### Typography Migration
+```tsx
+// ❌ Before: Custom font sizes
+const typography = {
+  heading: 'text-2xl font-bold',
+  subheading: 'text-lg font-semibold',
+  body: 'text-base',
+  caption: 'text-sm text-gray-600'
+};
+
+// ✅ After: Semantic typography
+const typography = {
+  heading: 'text-2xl font-bold',           // Keep same scale
+  subheading: 'text-lg font-semibold',     // Keep same scale
+  body: 'text-base',                       // Keep same scale
+  caption: 'text-sm text-muted-foreground' // Use semantic color
+};
+```
+
+## Accessibility Migration
+
+### Improving Accessibility During Migration
+
+#### Keyboard Navigation
+```tsx
+// ❌ Before: Missing keyboard support
+const CustomDropdown = ({ options, onSelect }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <div className="relative">
+      <button onClick={() => setIsOpen(!isOpen)}>
+        Select option
+      </button>
+      {isOpen && (
+        <div className="absolute top-full left-0 bg-white shadow-lg">
+          {options.map(option => (
+            <div
+              key={option.value}
+              onClick={() => onSelect(option)}
+              className="p-2 hover:bg-gray-100 cursor-pointer"
+            >
+              {option.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ✅ After: Full keyboard and screen reader support
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
+const AccessibleDropdown = ({ options, onSelect }) => (
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <Button variant="outline">Select option</Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent>
+      {options.map(option => (
+        <DropdownMenuItem
+          key={option.value}
+          onClick={() => onSelect(option)}
+        >
+          {option.label}
+        </DropdownMenuItem>
+      ))}
+    </DropdownMenuContent>
+  </DropdownMenu>
+);
+```
+
+#### Form Accessibility
+```tsx
+// ❌ Before: Poor form accessibility
+const CustomForm = () => (
+  <form>
+    <input placeholder="Enter your name" />
+    <input placeholder="Enter your email" />
+    <button type="submit">Submit</button>
+  </form>
+);
+
+// ✅ After: Accessible form with proper labels
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+const AccessibleForm = () => (
+  <form className="space-y-4">
+    <div className="space-y-2">
+      <Label htmlFor="name">Full Name</Label>
+      <Input 
+        id="name" 
+        type="text" 
+        placeholder="Enter your name"
+        required
+      />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="email">Email Address</Label>
+      <Input 
+        id="email" 
+        type="email" 
+        placeholder="Enter your email"
+        required
+      />
+    </div>
+    <Button type="submit">Submit</Button>
+  </form>
+);
+```
+
+## Migration Testing Strategy
+
+### Testing Your Migration
+
+#### Component Testing
+```tsx
+// Test component behavior after migration
+import { render, screen, userEvent } from '@testing-library/react';
+import { MigratedButton } from './MigratedButton';
+
+describe('MigratedButton', () => {
+  test('maintains existing functionality', async () => {
+    const handleClick = jest.fn();
+    render(<MigratedButton onClick={handleClick}>Click me</MigratedButton>);
+    
+    await userEvent.click(screen.getByRole('button'));
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+  
+  test('supports keyboard interaction', async () => {
+    const handleClick = jest.fn();
+    render(<MigratedButton onClick={handleClick}>Click me</MigratedButton>);
+    
+    const button = screen.getByRole('button');
+    button.focus();
+    await userEvent.keyboard('[Enter]');
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+});
+```
+
+#### Visual Regression Testing
+```tsx
+// Use Chromatic or similar tools to catch visual changes
+// Run before and after migration to ensure consistency
+npm run chromatic -- --exit-zero-on-changes
+```
+
+#### Accessibility Testing
+```tsx
+import { axe, toHaveNoViolations } from 'jest-axe';
+
+expect.extend(toHaveNoViolations);
+
+test('migrated component is accessible', async () => {
+  const { container } = render(<MigratedComponent />);
+  const results = await axe(container);
+  expect(results).toHaveNoViolations();
+});
+```
+
+## Common Migration Challenges
+
+### Challenge 1: API Differences
+
+**Problem**: New component API doesn't match old component
+```tsx
+// Old API
+<CustomButton variant="primary" size="large">Submit</CustomButton>
+
+// New API
+<Button variant="default" size="lg">Submit</Button>
+```
+
+**Solution**: Create wrapper components for gradual migration
+```tsx
+const ButtonWrapper = ({ variant, size, ...props }) => {
+  const variantMap = { primary: 'default', secondary: 'secondary' };
+  const sizeMap = { large: 'lg', medium: 'default', small: 'sm' };
+  
+  return (
+    <Button 
+      variant={variantMap[variant] || variant} 
+      size={sizeMap[size] || size}
+      {...props}
+    />
+  );
+};
+```
+
+### Challenge 2: Breaking Style Changes
+
+**Problem**: New components have different default styles
+```tsx
+// Old component had different padding/margins
+// New component breaks existing layouts
+```
+
+**Solution**: Use className prop to maintain compatibility
+```tsx
+<Button className="px-8 py-4">Custom spacing</Button>
+```
+
+### Challenge 3: Missing Functionality
+
+**Problem**: Custom component has features not available in design system
+```tsx
+// Custom component has loading state
+<CustomButton loading={isLoading}>Submit</CustomButton>
+```
+
+**Solution**: Extend the design system component
+```tsx
+const LoadingButton = ({ loading, children, ...props }) => (
+  <Button disabled={loading} {...props}>
+    {loading ? (
+      <>
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        Loading...
+      </>
+    ) : (
+      children
+    )}
+  </Button>
+);
+```
+
+## Migration Checklist
+
+### Pre-Migration
+- [ ] Audit existing components and usage patterns
+- [ ] Identify migration priorities and phases
+- [ ] Set up testing infrastructure
+- [ ] Create migration timeline and milestones
+
+### During Migration
+- [ ] Create wrapper components for API compatibility
+- [ ] Test each migrated component thoroughly
+- [ ] Update documentation and examples
+- [ ] Run accessibility audits on migrated components
+- [ ] Perform visual regression testing
+
+### Post-Migration
+- [ ] Remove deprecated custom components
+- [ ] Update team documentation and guidelines
+- [ ] Conduct training sessions for the team
+- [ ] Monitor for issues and gather feedback
+- [ ] Plan for ongoing maintenance and updates
+
+## Team Training and Communication
+
+### Developer Onboarding
+
+#### Training Materials
+1. **Storybook Documentation**: Interactive component examples
+2. **Migration Guide**: This document with practical examples
+3. **Code Review Checklist**: Standards for new implementations
+4. **Accessibility Guidelines**: Requirements and testing procedures
+
+#### Hands-on Workshops
+```tsx
+// Workshop exercises
+// 1. Migrate a simple form component
+// 2. Implement complex composition patterns
+// 3. Test migrated components for accessibility
+// 4. Optimize performance with design system
+```
+
+### Code Review Standards
+
+#### Review Checklist
+- [ ] Uses design system components instead of custom implementations
+- [ ] Follows component composition patterns
+- [ ] Maintains accessibility standards
+- [ ] Includes proper TypeScript types
+- [ ] Has appropriate test coverage
+- [ ] Follows naming conventions
+
+## Ongoing Maintenance
+
+### Staying Up to Date
+
+#### Component Updates
+```bash
+# Regularly update design system package
+npm update @your-org/design-system
+
+# Check for breaking changes in changelog
+# Test components after updates
+npm run test
+npm run storybook
+```
+
+#### Contribution Guidelines
+- Report bugs through GitHub issues
+- Propose new components through RFCs
+- Contribute improvements via pull requests
+- Participate in design system community discussions
+
+### Performance Monitoring
+
+#### Bundle Size Tracking
+```bash
+# Monitor bundle size impact
+npm run build && npm run analyze
+
+# Track metrics over time
+# - Component bundle sizes
+# - Tree-shaking effectiveness
+# - Runtime performance
+```
+
+This migration guide provides a comprehensive approach to adopting our design system. Remember that migration is a journey, not a destination. Start small, test thoroughly, and gradually expand your usage of design system components.

@@ -1,0 +1,70 @@
+# Netlify configuration for Storybook deployment
+# This will deploy the Storybook build to design.contributor.info
+
+[build]
+  # Build command for Storybook
+  command = "npm run build-storybook"
+  
+  # Directory where Storybook builds to
+  publish = "storybook-static"
+  
+  # Node.js version
+  environment = { NODE_VERSION = "18" }
+
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+[build.processing.html]
+  pretty_urls = true
+
+# Redirect rules for SPA behavior
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Role = ["admin"]}
+
+# Headers for security and performance
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Environment variables for build
+[context.production.environment]
+  NODE_ENV = "production"
+  
+[context.deploy-preview.environment]
+  NODE_ENV = "development"
+  
+[context.branch-deploy.environment]
+  NODE_ENV = "development"
+
+# Custom domain configuration (will be set in Netlify dashboard)
+# Domain: design.contributor.info

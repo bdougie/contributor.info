@@ -1,0 +1,363 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Documentation/Component Guidelines" />
+
+# Component Usage Guidelines & Best Practices
+
+This guide provides comprehensive guidelines for using components from our design system effectively and consistently across the contributor.info application.
+
+## General Principles
+
+### 1. Consistency First
+- Always use design system components instead of creating custom alternatives
+- Follow established patterns for spacing, typography, and color usage
+- Maintain consistent component behavior across different contexts
+
+### 2. Accessibility by Default
+- All components are built with accessibility in mind
+- Use semantic HTML elements and proper ARIA attributes
+- Test with keyboard navigation and screen readers
+- Ensure proper color contrast ratios
+
+### 3. Performance Considerations
+- Components are optimized for performance with minimal re-renders
+- Use appropriate loading states and progressive enhancement
+- Implement proper error boundaries for robust user experience
+
+## Component Categories
+
+### Form Components
+
+#### Button
+**When to use:**
+- Primary actions (CTAs, form submissions)
+- Secondary actions (cancel, reset)
+- Icon-only actions with tooltips
+
+**Best practices:**
+```tsx
+// ✅ Good - Clear action and appropriate variant
+<Button variant="default" size="md">
+  Submit Contribution
+</Button>
+
+// ✅ Good - Icon with accessible label
+<Button variant="outline" size="icon" aria-label="Edit contributor">
+  <EditIcon />
+</Button>
+
+// ❌ Avoid - Vague action text
+<Button>Click here</Button>
+
+// ❌ Avoid - Too many primary buttons
+<div>
+  <Button variant="default">Action 1</Button>
+  <Button variant="default">Action 2</Button> {/* Should be outline or secondary */}
+</div>
+```
+
+#### Input & Form Fields
+**When to use:**
+- Text input, email, password fields
+- Always pair with proper labels
+- Include validation feedback
+
+**Best practices:**
+```tsx
+// ✅ Good - Proper labeling and validation
+<div className="space-y-2">
+  <Label htmlFor="github-username">GitHub Username</Label>
+  <Input
+    id="github-username"
+    type="text"
+    placeholder="Enter your GitHub username"
+    aria-describedby="username-error"
+  />
+  <p id="username-error" className="text-sm text-destructive">
+    {error && "Username is required"}
+  </p>
+</div>
+
+// ❌ Avoid - Missing label or accessibility attributes
+<Input placeholder="Username" />
+```
+
+### Navigation Components
+
+#### Tabs
+**When to use:**
+- Organizing related content into logical sections
+- When users need to switch between different views of the same dataset
+
+**Best practices:**
+```tsx
+// ✅ Good - Clear tab labels and proper structure
+<Tabs defaultValue="overview" className="w-full">
+  <TabsList>
+    <TabsTrigger value="overview">Overview</TabsTrigger>
+    <TabsTrigger value="contributions">Contributions</TabsTrigger>
+    <TabsTrigger value="activity">Activity</TabsTrigger>
+  </TabsList>
+  <TabsContent value="overview">
+    <OverviewContent />
+  </TabsContent>
+</Tabs>
+
+// ❌ Avoid - Too many tabs (consider dropdown or different navigation)
+<TabsList>
+  <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+  <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+  <TabsTrigger value="tab3">Tab 3</TabsTrigger>
+  <TabsTrigger value="tab4">Tab 4</TabsTrigger>
+  <TabsTrigger value="tab5">Tab 5</TabsTrigger>
+  <TabsTrigger value="tab6">Tab 6</TabsTrigger>
+</TabsList>
+```
+
+### Feedback Components
+
+#### Alert & Dialog
+**When to use:**
+- **Alert**: Important information, warnings, or success messages
+- **Dialog**: Actions that require user confirmation or additional input
+
+**Best practices:**
+```tsx
+// ✅ Good - Alert with clear message and action
+<Alert variant="destructive">
+  <AlertTriangle className="h-4 w-4" />
+  <AlertTitle>Error</AlertTitle>
+  <AlertDescription>
+    Failed to load contributor data. Please try again.
+  </AlertDescription>
+</Alert>
+
+// ✅ Good - Dialog with clear purpose
+<AlertDialog>
+  <AlertDialogTrigger asChild>
+    <Button variant="destructive">Delete Contributor</Button>
+  </AlertDialogTrigger>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+      <AlertDialogDescription>
+        This action cannot be undone. This will permanently delete the contributor profile.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogAction>Delete</AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+```
+
+### Data Display Components
+
+#### Card & Table
+**When to use:**
+- **Card**: Displaying individual contributors, repositories, or summary information
+- **Table**: Structured data with multiple columns and rows
+
+**Best practices:**
+```tsx
+// ✅ Good - Card with proper hierarchy and actions
+<Card>
+  <CardHeader>
+    <CardTitle>John Doe</CardTitle>
+    <CardDescription>React Developer • 150 contributions</CardDescription>
+  </CardHeader>
+  <CardContent>
+    <p className="text-sm text-muted-foreground">
+      Active contributor focusing on UI components and accessibility improvements.
+    </p>
+  </CardContent>
+  <CardFooter>
+    <Button variant="outline" size="sm">View Profile</Button>
+  </CardFooter>
+</Card>
+
+// ✅ Good - Table with proper headers and responsive design
+<Table>
+  <TableCaption>Recent contributions by top contributors</TableCaption>
+  <TableHeader>
+    <TableRow>
+      <TableHead>Contributor</TableHead>
+      <TableHead>Repository</TableHead>
+      <TableHead className="text-right">Contributions</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    {contributors.map((contributor) => (
+      <TableRow key={contributor.id}>
+        <TableCell className="font-medium">{contributor.name}</TableCell>
+        <TableCell>{contributor.repository}</TableCell>
+        <TableCell className="text-right">{contributor.count}</TableCell>
+      </TableRow>
+    ))}
+  </TableBody>
+</Table>
+```
+
+## Spacing & Layout
+
+### Using Tailwind Spacing
+Follow consistent spacing patterns using Tailwind utilities:
+
+```tsx
+// ✅ Good - Consistent spacing patterns
+<div className="space-y-6"> {/* Vertical spacing between sections */}
+  <section className="space-y-4"> {/* Spacing within sections */}
+    <h2 className="text-2xl font-bold">Section Title</h2>
+    <div className="grid gap-4 md:grid-cols-2"> {/* Grid spacing */}
+      <Card className="p-6">Content</Card>
+      <Card className="p-6">Content</Card>
+    </div>
+  </section>
+</div>
+
+// ❌ Avoid - Inconsistent or arbitrary spacing
+<div style={{ marginBottom: '23px' }}>
+  <h2 style={{ marginTop: '15px' }}>Title</h2>
+</div>
+```
+
+### Responsive Design
+Always consider mobile-first responsive design:
+
+```tsx
+// ✅ Good - Mobile-first responsive approach
+<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  {items.map(item => <Card key={item.id}>{item.content}</Card>)}
+</div>
+
+// ✅ Good - Responsive text and spacing
+<h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6">
+  Contributor Dashboard
+</h1>
+```
+
+## State Management
+
+### Loading States
+Always provide loading feedback for async operations:
+
+```tsx
+// ✅ Good - Clear loading state with skeleton
+{isLoading ? (
+  <div className="space-y-4">
+    {Array.from({ length: 3 }).map((_, i) => (
+      <Skeleton key={i} className="h-20 w-full" />
+    ))}
+  </div>
+) : (
+  <ContributorList contributors={contributors} />
+)}
+
+// ✅ Good - Button loading state
+<Button disabled={isSubmitting}>
+  {isSubmitting ? (
+    <>
+      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      Submitting...
+    </>
+  ) : (
+    "Submit"
+  )}
+</Button>
+```
+
+### Error States
+Provide clear error messages and recovery options:
+
+```tsx
+// ✅ Good - Helpful error message with action
+{error ? (
+  <Alert variant="destructive">
+    <AlertCircle className="h-4 w-4" />
+    <AlertTitle>Failed to load contributors</AlertTitle>
+    <AlertDescription>
+      There was a problem loading the contributor data. 
+      <Button variant="link" className="p-0 h-auto" onClick={retry}>
+        Try again
+      </Button>
+    </AlertDescription>
+  </Alert>
+) : (
+  <ContributorGrid contributors={contributors} />
+)}
+```
+
+## Testing Guidelines
+
+### Interaction Testing
+All components should be testable with interaction tests:
+
+```tsx
+// Example play function for testing
+export const InteractiveExample = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    
+    // Test user interactions
+    await userEvent.click(canvas.getByRole('button', { name: /submit/i }));
+    await expect(canvas.getByText(/success/i)).toBeInTheDocument();
+  },
+};
+```
+
+### Accessibility Testing
+Ensure components meet accessibility standards:
+
+- Use semantic HTML elements
+- Provide proper ARIA labels and descriptions
+- Test keyboard navigation
+- Verify screen reader compatibility
+- Maintain proper color contrast ratios
+
+## Common Pitfalls to Avoid
+
+1. **Overriding Component Styles**: Use the built-in variants and sizes instead of custom CSS
+2. **Missing Accessibility**: Always include proper labels, ARIA attributes, and keyboard support
+3. **Inconsistent Spacing**: Follow the established spacing system using Tailwind utilities
+4. **Poor Error Handling**: Always provide feedback for loading, error, and success states
+5. **Non-responsive Design**: Test components on different screen sizes
+6. **Ignoring Component Props**: Use the designed props instead of forcing custom behavior
+
+## Component Composition
+
+When building complex UI patterns, compose multiple components together:
+
+```tsx
+// ✅ Good - Proper component composition
+<Card>
+  <CardHeader>
+    <div className="flex items-center justify-between">
+      <div>
+        <CardTitle>Contributor Profile</CardTitle>
+        <CardDescription>Active since 2023</CardDescription>
+      </div>
+      <Badge variant="outline">Pro Contributor</Badge>
+    </div>
+  </CardHeader>
+  <CardContent>
+    <div className="flex items-center space-x-4">
+      <Avatar>
+        <AvatarImage src="/avatar.jpg" alt="John Doe" />
+        <AvatarFallback>JD</AvatarFallback>
+      </Avatar>
+      <div>
+        <p className="font-medium">John Doe</p>
+        <p className="text-sm text-muted-foreground">@johndoe</p>
+      </div>
+    </div>
+  </CardContent>
+  <CardFooter>
+    <Button variant="outline" className="w-full">
+      View Full Profile
+    </Button>
+  </CardFooter>
+</Card>
+```
+
+This approach ensures consistent styling, proper spacing, and maintained accessibility across complex interfaces.
