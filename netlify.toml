@@ -1,12 +1,11 @@
-# Netlify configuration for Storybook deployment
-# This will deploy the Storybook build to design.contributor.info
+# Netlify configuration for main app deployment
 
 [build]
-  # Build command for Storybook
-  command = "npm run build-storybook"
+  # Build command for main React app
+  command = "npm run build"
   
-  # Directory where Storybook builds to
-  publish = "storybook-static"
+  # Directory where Vite builds to
+  publish = "dist"
   
   # Node.js version
   environment = { NODE_VERSION = "18" }
@@ -30,7 +29,7 @@
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = {Role = ["admin"]}
+  force = false
 
 # Headers for security and performance
 [[headers]]
@@ -66,5 +65,4 @@
 [context.branch-deploy.environment]
   NODE_ENV = "development"
 
-# Custom domain configuration (will be set in Netlify dashboard)
-# Domain: design.contributor.info
+# Main app deployment configuration
