@@ -374,7 +374,7 @@ export const KeyboardNavigation: Story = {
     const option1 = screen.getByRole("option", { name: "Option 1" });
     
     // Check for various possible highlight attributes or simply verify option is found
-    const hasHighlight = option1.hasAttribute("data-highlighted") || 
+    option1.hasAttribute("data-highlighted") || 
                         option1.hasAttribute("data-state") || 
                         option1.hasAttribute("aria-selected");
     
