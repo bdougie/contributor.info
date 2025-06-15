@@ -4,6 +4,46 @@ import { chromium } from 'playwright';
 
 const sleep = promisify(setTimeout);
 
+// Install Playwright browsers if needed
+async function ensurePlaywrightBrowsers() {
+  console.log('Checking Playwright browser installation...');
+  
+  try {
+    // Try to launch browser to check if it's installed
+    const browser = await chromium.launch({ headless: true });
+    await browser.close();
+    console.log('Playwright browsers already installed');
+    return true;
+  } catch (error) {
+    if (error.message.includes('Executable doesn\'t exist') || 
+        error.message.includes('Browser is not installed')) {
+      console.log('Installing Playwright browsers...');
+      
+      return new Promise((resolve, reject) => {
+        const install = spawn('npx', ['playwright', 'install', 'chromium'], {
+          stdio: 'inherit',
+          cwd: process.cwd()
+        });
+        
+        install.on('close', (code) => {
+          if (code === 0) {
+            console.log('Playwright browsers installed successfully');
+            resolve(true);
+          } else {
+            reject(new Error(`Playwright install failed with code ${code}`));
+          }
+        });
+        
+        install.on('error', (error) => {
+          reject(new Error(`Failed to install Playwright browsers: ${error.message}`));
+        });
+      });
+    } else {
+      throw error;
+    }
+  }
+}
+
 // Wait for server to be ready
 async function waitForServer(url, maxAttempts = 30) {
   for (let i = 0; i < maxAttempts; i++) {
@@ -23,6 +63,9 @@ async function waitForServer(url, maxAttempts = 30) {
 
 async function generateSocialCardsWithPreview() {
   console.log('Starting preview server for social card generation...');
+  
+  // Ensure Playwright browsers are installed
+  await ensurePlaywrightBrowsers();
   
   // Start the preview server
   const server = spawn('npm', ['run', 'preview'], {
