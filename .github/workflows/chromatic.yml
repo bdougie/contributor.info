@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build Storybook
+        run: npm run build-storybook
+
       - name: Publish to Chromatic
         uses: chromaui/action@latest
         with:
@@ -34,6 +37,7 @@ jobs:
           exitZeroOnChanges: true
           onlyChanged: true
           allowConsoleErrors: true
+          buildScriptName: ""
 
       - name: Comment PR with Chromatic results
         if: github.event_name == 'pull_request'
