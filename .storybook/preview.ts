@@ -15,23 +15,7 @@ const preview: Preview = {
     },
     // Apply custom theme to docs
     docs: {
-      theme: {
-        base: 'light',
-        brandTitle: theme.brandTitle,
-        brandUrl: theme.brandUrl,
-        fontBase: theme.fontBase,
-        fontCode: theme.fontCode,
-        colorPrimary: theme.colorPrimary,
-        colorSecondary: theme.colorSecondary,
-        appBg: theme.appBg,
-        appContentBg: theme.appContentBg,
-        textColor: theme.textColor,
-        barTextColor: theme.barTextColor,
-        barBg: theme.barBg,
-        inputBg: theme.inputBg,
-        inputBorder: theme.inputBorder,
-        inputTextColor: theme.textColor,
-      },
+      theme: theme,
     },
     // Custom backgrounds that match our app theme
     backgrounds: {
@@ -39,15 +23,15 @@ const preview: Preview = {
       values: [
         {
           name: 'light',
-          value: theme.appBg,
+          value: '#ffffff',
         },
         {
           name: 'secondary',
-          value: theme.colorSecondary,
+          value: '#f5f5f5',
         },
         {
           name: 'dark',
-          value: theme.textColor,
+          value: '#0a0a0a',
         },
       ],
     },

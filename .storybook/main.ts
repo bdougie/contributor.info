@@ -7,7 +7,18 @@ const config: StorybookConfig = {
     "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"
   ],
   addons: [
-    "@storybook/addon-docs",
+    {
+      name: "@storybook/addon-essentials",
+      options: {
+        docs: {
+          mdxPluginOptions: {
+            mdxCompileOptions: {
+              remarkPlugins: [],
+            },
+          },
+        },
+      },
+    },
     "@storybook/addon-onboarding",
     "@storybook/addon-interactions"
   ],
@@ -27,7 +38,7 @@ const config: StorybookConfig = {
     return mergeConfig(config, {
       // Add dependencies to pre-optimization
       optimizeDeps: {
-        include: [],
+        include: ['@mdx-js/react'],
       },
     });
   },

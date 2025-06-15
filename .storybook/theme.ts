@@ -99,4 +99,12 @@ export const theme = {
   inputBorder: brandColors.input,
   inputTextColor: brandColors.foreground,
   inputBorderRadius: brandTypography.borderRadius.md,
+  
+  // Additional required properties
+  appPreviewBg: brandColors.background,
+  barHoverColor: brandColors.primary,
+  buttonBg: brandColors.secondary,
+  buttonBorder: brandColors.border,
+  booleanBg: brandColors.secondary,
+  booleanSelectedBg: brandColors.primary,
 } as const;
