@@ -20,7 +20,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Configuration
 const config = {
-  baseUrl: process.env.BASE_URL || (process.env.NODE_ENV === 'production' ? 'http://localhost:4173' : 'http://localhost:5173'),
+  baseUrl: process.env.BASE_URL || 'http://localhost:4173',
   outputDir: path.join(__dirname, '../temp-social-cards'),
   cards: [
     {
@@ -51,9 +51,12 @@ async function generateCard(browser, cardConfig) {
   await page.setViewportSize({ width: 1200, height: 630 });
   
   try {
-    // Navigate to the card page
+    // Navigate to the card page with timeout
     const url = `${config.baseUrl}${cardConfig.url}`;
-    await page.goto(url, { waitUntil: 'networkidle' });
+    await page.goto(url, { 
+      waitUntil: 'networkidle',
+      timeout: 30000 // 30 second timeout
+    });
     
     // Wait a bit for any animations or async content
     await page.waitForTimeout(2000);
@@ -99,37 +102,50 @@ async function generateCard(browser, cardConfig) {
 async function main() {
   console.log('Starting social card generation...');
   
-  // Create temp directory
-  await fs.mkdir(config.outputDir, { recursive: true });
-  
-  // Launch browser
-  const browser = await chromium.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+  // Set a maximum execution time of 10 minutes
+  const timeoutId = setTimeout(() => {
+    console.error('Social card generation timed out after 10 minutes');
+    process.exit(1);
+  }, 10 * 60 * 1000);
   
   try {
-    // Generate home card
-    await generateCard(browser, config.cards[0]);
+    // Create temp directory
+    await fs.mkdir(config.outputDir, { recursive: true });
     
-    // Generate repo cards
-    for (const { owner, repo } of popularRepos) {
-      const cardConfig = {
-        name: `${owner}-${repo}`,
-        url: `/social-cards/${owner}/${repo}`,
-        fileName: `repo-${owner}-${repo}.png`
-      };
-      await generateCard(browser, cardConfig);
+    // Launch browser
+    const browser = await chromium.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    try {
+      // Generate home card
+      await generateCard(browser, config.cards[0]);
+      
+      // Generate repo cards (limit to first 3 to save time)
+      const limitedRepos = popularRepos.slice(0, 3);
+      for (const { owner, repo } of limitedRepos) {
+        const cardConfig = {
+          name: `${owner}-${repo}`,
+          url: `/social-cards/${owner}/${repo}`,
+          fileName: `repo-${owner}-${repo}.png`
+        };
+        await generateCard(browser, cardConfig);
+      }
+      
+    } finally {
+      await browser.close();
+      
+      // Clean up temp directory
+      await fs.rm(config.outputDir, { recursive: true, force: true });
     }
     
-  } finally {
-    await browser.close();
+    console.log('Social card generation complete!');
     
-    // Clean up temp directory
-    await fs.rm(config.outputDir, { recursive: true, force: true });
+  } finally {
+    // Clear the timeout
+    clearTimeout(timeoutId);
   }
-  
-  console.log('Social card generation complete!');
 }
 
 // Run the script

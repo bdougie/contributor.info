@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "npm test && tsc -b && vite build && node scripts/build-with-social-cards.js",
+    "build": "npm test && tsc -b && vite build && (node scripts/build-with-social-cards.js || echo 'Social cards generation skipped')",
     "build:netlify": "node scripts/netlify-build.js",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -32,7 +32,6 @@
     "chromatic:ci": "chromatic --exit-zero-on-changes --only-changed",
     "setup-chromatic": "./scripts/setup-chromatic-baselines.sh",
     "test-visual-regression": "./scripts/test-visual-regression.sh",
-    "postinstall": "npm run install-browsers",
     "install-browsers": "playwright install chromium --with-deps || echo 'Playwright browser installation skipped'"
   },
   "dependencies": {

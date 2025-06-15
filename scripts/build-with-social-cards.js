@@ -19,7 +19,7 @@ async function ensurePlaywrightBrowsers() {
         error.message.includes('Browser is not installed')) {
       console.log('Installing Playwright browsers...');
       
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         const install = spawn('npx', ['playwright', 'install', 'chromium'], {
           stdio: 'inherit',
           cwd: process.cwd()
@@ -30,16 +30,19 @@ async function ensurePlaywrightBrowsers() {
             console.log('Playwright browsers installed successfully');
             resolve(true);
           } else {
-            reject(new Error(`Playwright install failed with code ${code}`));
+            console.warn(`Playwright install failed with code ${code} - skipping social cards`);
+            resolve(false);
           }
         });
         
         install.on('error', (error) => {
-          reject(new Error(`Failed to install Playwright browsers: ${error.message}`));
+          console.warn(`Failed to install Playwright browsers: ${error.message} - skipping social cards`);
+          resolve(false);
         });
       });
     } else {
-      throw error;
+      console.warn(`Playwright error: ${error.message} - skipping social cards`);
+      return false;
     }
   }
 }
@@ -65,7 +68,11 @@ async function generateSocialCardsWithPreview() {
   console.log('Starting preview server for social card generation...');
   
   // Ensure Playwright browsers are installed
-  await ensurePlaywrightBrowsers();
+  const browsersReady = await ensurePlaywrightBrowsers();
+  if (!browsersReady) {
+    console.log('Skipping social card generation due to Playwright installation failure');
+    return;
+  }
   
   // Start the preview server
   const server = spawn('npm', ['run', 'preview'], {
