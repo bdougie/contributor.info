@@ -2,7 +2,7 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, ready_for_review]
     # Optional: Only run on specific file changes
     # paths:
     #   - "src/**/*.ts"
@@ -71,5 +71,6 @@ jobs:
           # Optional: Skip review for certain conditions
           if: |
             !contains(github.event.pull_request.title, '[skip-review]') &&
-            !contains(github.event.pull_request.title, '[WIP]')
+            !contains(github.event.pull_request.title, '[WIP]') &&
+            !github.event.pull_request.draft
 

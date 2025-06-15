@@ -2,13 +2,16 @@ name: Chromatic Visual Testing
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    types: [opened, synchronize, ready_for_review]
+    branches: [main]
 
 jobs:
   chromatic-deployment:
     runs-on: ubuntu-latest
+    # Skip for draft PRs
+    if: github.event_name == 'push' || !github.event.pull_request.draft
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
