@@ -100,10 +100,10 @@ export const ScreenReaderSupport: Story = {
 
         {/* Radio group with proper labeling */}
         <fieldset className="space-y-2">
-          <legend className="text-sm font-medium">
+          <legend id="preference-legend" className="text-sm font-medium">
             Choose your preference
           </legend>
-          <RadioGroup defaultValue="email">
+          <RadioGroup defaultValue="email" aria-labelledby="preference-legend">
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="email" id="pref-email" />
               <Label htmlFor="pref-email">Email notifications</Label>
