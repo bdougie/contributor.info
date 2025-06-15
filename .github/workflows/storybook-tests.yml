@@ -69,11 +69,11 @@ jobs:
     - name: Install Playwright browsers
       run: npx playwright install --with-deps
       
-    - name: Run accessibility tests
+    - name: Run accessibility tests via test-runner
       run: |
         npx concurrently -k -s first -n "SB,A11Y" -c "magenta,green" \
           "npx http-server storybook-static --port 6006 --silent" \
-          "wait-on tcp:6006 && npx test-storybook --stories-json && npx axe-storybook --port 6006"
+          "wait-on tcp:6006 && npm run test-storybook -- --tags accessibility"
       env:
         NODE_ENV: test
         
@@ -83,6 +83,6 @@ jobs:
       with:
         name: accessibility-test-results
         path: |
-          a11y-results/
-          axe-reports/
+          test-results/
+          storybook-static/
         retention-days: 30
