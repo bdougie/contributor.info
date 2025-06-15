@@ -363,3 +363,5 @@ npx supabase status
 # Apply migrations via Dashboard
 # Copy contents of migration file and run in SQL Editor
 ```
+
+FILENAMES should be `this-is-component.tsx` and not `ThisIsComponent.tsx` or `this_is_component.tsx`. Use kebab-case for filenames.
