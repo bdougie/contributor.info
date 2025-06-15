@@ -22,6 +22,7 @@ export default function Home() {
         title="contributor.info - Visualizing Open Source Contributions"
         description="Discover and visualize GitHub contributors and their contributions. Track open source activity, analyze contribution patterns, and celebrate community impact."
         url="https://contributor.info"
+        image="social-cards/home-card.png"
       />
       <Card className="w-full max-w-2xl">
         <CardHeader>

@@ -57,7 +57,17 @@ export function SocialMetaTags({
   siteName = "contributor.info"
 }: SocialMetaTagsProps) {
   const currentUrl = url || (typeof window !== "undefined" ? window.location.href : "https://contributor.info");
-  const imageUrl = image.startsWith("http") ? image : `https://contributor.info${image}`;
+  
+  // Handle Supabase Storage URLs
+  let imageUrl = image;
+  if (!image.startsWith("http")) {
+    // Check if it's a social card path
+    if (image.includes("social-cards/")) {
+      imageUrl = `https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/${image}`;
+    } else {
+      imageUrl = `https://contributor.info${image}`;
+    }
+  }
 
   return (
     <Helmet>

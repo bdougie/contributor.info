@@ -74,6 +74,7 @@ export default function RepoView() {
         description={repoDescription}
         url={repoUrl}
         type="article"
+        image={`social-cards/repo-${owner}-${repo}.png`}
       />
       <Card className="mb-8">
         <CardContent className="pt-6">
