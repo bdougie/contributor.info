@@ -18,27 +18,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Storybook
-        run: npm run build-storybook
-
       - name: Publish to Chromatic
         uses: chromaui/action@latest
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-          buildScriptName: "build-storybook"
-          storybookBuildDir: "storybook-static"
           exitZeroOnChanges: true
-          exitOnceUploaded: false
-          allowConsoleErrors: false
-          onlyChanged: true # 👈 Reduces build times by only testing changed stories
-          skip: false
-          debug: false
+          onlyChanged: true
 
       - name: Comment PR with Chromatic results
         if: github.event_name == 'pull_request'
