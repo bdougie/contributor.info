@@ -12,6 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     # Skip for draft PRs
     if: github.event_name == 'push' || !github.event.pull_request.draft
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
