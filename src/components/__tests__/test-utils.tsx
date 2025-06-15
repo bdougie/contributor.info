@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { RepoStats } from "@/lib/types";
+import { MetaTagsProvider } from "../meta-tags-provider";
 
 export const mockRepoStats: RepoStats = {
   pullRequests: [
@@ -29,16 +30,18 @@ export const mockRepoStats: RepoStats = {
 
 export function TestRepoStatsProvider({ children }: { children: ReactNode }) {
   return (
-    <RepoStatsContext.Provider
-      value={{
-        stats: mockRepoStats,
-        lotteryFactor: null,
-        directCommitsData: null,
-        includeBots: false,
-        setIncludeBots: () => {},
-      }}
-    >
-      {children}
-    </RepoStatsContext.Provider>
+    <MetaTagsProvider>
+      <RepoStatsContext.Provider
+        value={{
+          stats: mockRepoStats,
+          lotteryFactor: null,
+          directCommitsData: null,
+          includeBots: false,
+          setIncludeBots: () => {},
+        }}
+      >
+        {children}
+      </RepoStatsContext.Provider>
+    </MetaTagsProvider>
   );
 }

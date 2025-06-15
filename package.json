@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "npm test && tsc -b && vite build",
+    "build:netlify": "node scripts/netlify-build.js",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
@@ -18,13 +19,20 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test-storybook": "test-storybook",
+    "generate-social-cards": "node scripts/generate-social-cards.js",
+    "setup-storage": "node scripts/setup-supabase-storage.js",
+    "test-social-cards": "node scripts/test-social-cards.js",
+    "monitor-cdn": "node scripts/monitor-cdn-performance.js",
+    "setup-regeneration": "node scripts/setup-card-regeneration.js setup",
+    "check-regeneration": "node scripts/setup-card-regeneration.js check",
     "test-storybook:ci": "./scripts/test-storybook-interactions.sh",
     "preview-storybook": "npm run build-storybook && npx http-server storybook-static -p 6006 -o",
     "test-storybook-build": "./.storybook/test-build.sh",
     "chromatic": "chromatic --exit-zero-on-changes",
     "chromatic:ci": "chromatic --exit-zero-on-changes --only-changed",
     "setup-chromatic": "./scripts/setup-chromatic-baselines.sh",
-    "test-visual-regression": "./scripts/test-visual-regression.sh"
+    "test-visual-regression": "./scripts/test-visual-regression.sh",
+    "install-browsers": "playwright install chromium --with-deps || echo 'Playwright browser installation skipped'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -72,6 +80,7 @@
     "react": "^18.3.1",
     "react-day-picker": "^9.6.7",
     "react-dom": "^18.3.1",
+    "react-helmet-async": "^2.0.5",
     "react-hook-form": "^7.53.0",
     "react-icons": "^5.5.0",
     "react-markdown": "^9.0.1",
@@ -83,7 +92,8 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.0.0",
     "zod": "^3.23.8",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "playwright": "^1.53.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.11.1",

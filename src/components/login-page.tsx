@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { GithubIcon } from "lucide-react";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
+import { SocialMetaTags } from "./meta-tags-provider";
 
 /**
  * Dedicated login page that handles authentication and redirects
@@ -51,6 +52,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+      <SocialMetaTags
+        title="Login - contributor.info"
+        description="Log in to contributor.info to analyze GitHub repositories and track contribution patterns."
+        url="https://contributor.info/login"
+      />
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Login Required</CardTitle>

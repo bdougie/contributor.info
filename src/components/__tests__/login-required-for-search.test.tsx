@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import { BrowserRouter } from "react-router-dom";
 import RepoView from "../repo-view";
+import { MetaTagsProvider } from "../meta-tags-provider";
 
 // Mock the Supabase client BEFORE importing any hooks
 vi.mock("@/lib/supabase", () => ({
@@ -110,9 +111,11 @@ describe("Login behavior for repository search", () => {
     const user = userEvent.setup();
 
     render(
-      <BrowserRouter>
-        <RepoView />
-      </BrowserRouter>
+      <MetaTagsProvider>
+        <BrowserRouter>
+          <RepoView />
+        </BrowserRouter>
+      </MetaTagsProvider>
     );
 
     // Since our component is mocked to simulate viewing a repo already,
@@ -153,9 +156,11 @@ describe("Login behavior for repository search", () => {
     const user = userEvent.setup();
 
     render(
-      <BrowserRouter>
-        <RepoView />
-      </BrowserRouter>
+      <MetaTagsProvider>
+        <BrowserRouter>
+          <RepoView />
+        </BrowserRouter>
+      </MetaTagsProvider>
     );
 
     // Find the search form and submit button
@@ -191,9 +196,11 @@ describe("Login behavior for repository search", () => {
     });
 
     render(
-      <BrowserRouter>
-        <RepoView />
-      </BrowserRouter>
+      <MetaTagsProvider>
+        <BrowserRouter>
+          <RepoView />
+        </BrowserRouter>
+      </MetaTagsProvider>
     );
 
     // Find example repo buttons
@@ -228,9 +235,11 @@ describe("Login behavior for repository search", () => {
     });
 
     render(
-      <BrowserRouter>
-        <RepoView />
-      </BrowserRouter>
+      <MetaTagsProvider>
+        <BrowserRouter>
+          <RepoView />
+        </BrowserRouter>
+      </MetaTagsProvider>
     );
 
     // Since RepoView doesn't auto-redirect anymore with our fix,

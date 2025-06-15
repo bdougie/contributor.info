@@ -10,6 +10,7 @@ import {
 import { SearchIcon } from "lucide-react";
 import { ExampleRepos } from "./example-repos";
 import { useRepoSearch } from "@/hooks/use-repo-search";
+import { SocialMetaTags } from "./meta-tags-provider";
 
 export default function Home() {
   const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
@@ -17,6 +18,12 @@ export default function Home() {
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+      <SocialMetaTags
+        title="contributor.info - Visualizing Open Source Contributions"
+        description="Discover and visualize GitHub contributors and their contributions. Track open source activity, analyze contribution patterns, and celebrate community impact."
+        url="https://contributor.info"
+        image="social-cards/home-card.png"
+      />
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-3xl font-bold text-center">
