@@ -210,10 +210,111 @@ The `.github/workflows/chromatic.yml` file:
 3. Remove deprecated stories
 4. Update mock data when APIs change
 
+## Social Card Visual Testing
+
+### Special Considerations for Social Cards
+
+Social cards require specific testing approaches due to their unique requirements:
+
+#### Viewport Requirements
+- **Always test at 1200x630 resolution** for social card components
+- Use the `socialCard` viewport in Storybook preview
+- Ensure cards render correctly at exact social media dimensions
+
+#### Platform Compatibility Testing
+```typescript
+// Example social card story with platform testing
+export const TwitterCard: Story = {
+  parameters: {
+    chromatic: {
+      viewports: [1200], // Social card width
+      delay: 500,        // Allow rendering completion
+    }
+  }
+};
+```
+
+#### Mock Data Requirements
+- **Use deterministic data** - avoid `Math.random()` or `Date.now()`
+- **Consistent contributor avatars** - use fixed avatar URLs
+- **Stable statistics** - use fixed numbers for PR counts, contributors, etc.
+
+#### Visual Regression Scenarios
+Test these specific scenarios for social cards:
+
+✅ **Essential Tests:**
+- Repository cards with 1, 5, and 50+ contributors
+- Long repository names that might overflow
+- Different statistic scales (small vs enterprise repos)
+- Home card with standard branding
+
+✅ **Platform-Specific Tests:**
+- Twitter Card dimensions and contrast
+- Facebook Open Graph compatibility  
+- LinkedIn preview requirements
+- Discord/Slack embed appearance
+
+✅ **Edge Cases:**
+- Missing contributor data
+- Zero statistics scenarios
+- Extremely long organization names
+- High contrast requirements
+
+#### Approval Process for Social Cards
+
+When social card visual changes are detected:
+
+1. **Review carefully** - these affect external social media appearance
+2. **Test on actual platforms** using validator tools:
+   - Twitter: https://cards-dev.twitter.com/validator
+   - Facebook: https://developers.facebook.com/tools/debug/
+   - LinkedIn: https://www.linkedin.com/post-inspector/
+3. **Check dimensions** - must be exactly 1200x630
+4. **Verify text readability** - especially on mobile devices
+5. **Accept only intentional changes** - social cards are customer-facing
+
+#### Common Social Card Issues
+
+**Font Loading Problems:**
+```typescript
+// Add delay for font loading
+parameters: {
+  chromatic: { delay: 1000 }
+}
+```
+
+**Inconsistent Avatar Loading:**
+- Use cached avatar URLs in mock data
+- Avoid external API calls in stories
+- Test with and without avatars
+
+**Text Overflow Issues:**
+- Test with maximum length repository names
+- Verify truncation works correctly
+- Check multi-line text handling
+
+### Build Integration Testing
+
+Social cards are tested both in Storybook and in the build process:
+
+#### Storybook Visual Testing
+- Component-level testing with Chromatic
+- Design system consistency
+- Platform compatibility validation
+
+#### Build Process Testing
+- End-to-end card generation testing
+- CDN upload verification
+- Social platform validation
+
 ## Support and Resources
 
 - **Chromatic Documentation**: [chromatic.com/docs](https://www.chromatic.com/docs/)
 - **Project Dashboard**: Visit chromatic.com and select this project
 - **Storybook Documentation**: [storybook.js.org](https://storybook.js.org/)
+- **Social Card Platform Validators**:
+  - Twitter: https://cards-dev.twitter.com/validator
+  - Facebook: https://developers.facebook.com/tools/debug/
+  - LinkedIn: https://www.linkedin.com/post-inspector/
 
 For help with setup or issues, check the project README or ask the team lead.
