@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within } from "@storybook/test";
+import { expect, userEvent, within, screen } from "@storybook/test";
+import { waitForPortalElement, waitForElementToDisappear } from "@/lib/test-utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -286,25 +287,26 @@ export const AlertDialogInteraction: Story = {
     await expect(trigger).toBeInTheDocument();
     await userEvent.click(trigger);
 
-    // Check that alert dialog opens
-    const dialog = canvas.getByRole("alertdialog");
+    // Wait for alert dialog to open (use screen for portal elements)
+    const dialog = await waitForPortalElement("alertdialog");
     await expect(dialog).toBeInTheDocument();
 
-    // Check dialog content
-    const title = canvas.getByRole("heading", {
+    // Check dialog content using screen queries
+    const title = screen.getByRole("heading", {
       name: "Are you absolutely sure?",
     });
     await expect(title).toBeInTheDocument();
 
-    const description = canvas.getByText(/This action cannot be undone/);
+    const description = screen.getByText(/This action cannot be undone/);
     await expect(description).toBeInTheDocument();
 
     // Test cancel action
-    const cancelButton = canvas.getByRole("button", { name: "Cancel" });
+    const cancelButton = screen.getByRole("button", { name: "Cancel" });
     await expect(cancelButton).toBeInTheDocument();
     await userEvent.click(cancelButton);
 
-    // Dialog should close (may need adjustment based on implementation)
+    // Wait for dialog to close
+    await waitForElementToDisappear(() => screen.queryByRole("alertdialog"));
   },
   tags: ["interaction"],
 };
@@ -336,12 +338,16 @@ export const AlertDialogConfirmAction: Story = {
     const trigger = canvas.getByRole("button", { name: "Confirm Action" });
     await userEvent.click(trigger);
 
+    // Wait for alert dialog to open
+    await waitForPortalElement("alertdialog");
+
     // Test confirm action
-    const confirmButton = canvas.getByRole("button", { name: "Confirm" });
+    const confirmButton = screen.getByRole("button", { name: "Confirm" });
     await expect(confirmButton).toBeInTheDocument();
     await userEvent.click(confirmButton);
 
-    // Dialog should close and action should be confirmed
+    // Wait for dialog to close after confirmation
+    await waitForElementToDisappear(() => screen.queryByRole("alertdialog"));
   },
   tags: ["interaction"],
 };
@@ -373,17 +379,23 @@ export const AlertDialogKeyboardNavigation: Story = {
     const trigger = canvas.getByRole("button", { name: "Keyboard Test" });
     await userEvent.click(trigger);
 
-    // Test Tab navigation between buttons
+    // Wait for alert dialog to open
+    await waitForPortalElement("alertdialog");
+
+    // Test Tab navigation between buttons using screen queries
     await userEvent.keyboard("{Tab}");
-    const cancelButton = canvas.getByRole("button", { name: "Cancel" });
+    const cancelButton = screen.getByRole("button", { name: "Cancel" });
     await expect(cancelButton).toHaveFocus();
 
     await userEvent.keyboard("{Tab}");
-    const okButton = canvas.getByRole("button", { name: "OK" });
+    const okButton = screen.getByRole("button", { name: "OK" });
     await expect(okButton).toHaveFocus();
 
-    // Test Escape key
+    // Test Escape key closes dialog
     await userEvent.keyboard("{Escape}");
+    
+    // Wait for dialog to close
+    await waitForElementToDisappear(() => screen.queryByRole("alertdialog"));
   },
   tags: ["interaction", "accessibility"],
 };

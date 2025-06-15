@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within } from "@storybook/test";
+import { expect, userEvent, within, screen } from "@storybook/test";
 import { useState } from "react";
+import { waitForSelectOpen, waitForElementToDisappear } from "@/lib/test-utils";
 import {
   Select,
   SelectContent,
@@ -314,13 +315,19 @@ export const SelectInteraction: Story = {
     // Click to open the select
     await userEvent.click(trigger);
 
-    // Wait for the content to appear and select an option
-    const option = canvas.getByRole("option", { name: "Apple" });
+    // Wait for the dropdown to open (uses portal)
+    await waitForSelectOpen();
+
+    // Select option using screen queries (since it's in portal)
+    const option = screen.getByRole("option", { name: "Apple" });
     await expect(option).toBeInTheDocument();
     await userEvent.click(option);
 
-    // Check that the value is selected (this may need adjustment based on implementation)
-    await expect(trigger).toHaveAccessibleName(/apple/i);
+    // Wait for dropdown to close
+    await waitForElementToDisappear(() => screen.queryByRole("listbox"));
+
+    // Check that the value is selected
+    await expect(trigger).toHaveTextContent("Apple");
   },
   tags: ["interaction"],
 };
@@ -343,15 +350,32 @@ export const KeyboardNavigation: Story = {
     const trigger = canvas.getByRole("combobox");
 
     // Focus the trigger
-    await userEvent.click(trigger);
+    trigger.focus();
+    await expect(trigger).toHaveFocus();
 
-    // Test keyboard navigation
+    // Open dropdown with keyboard
+    await userEvent.keyboard("{Space}");
+
+    // Wait for dropdown to open
+    await waitForSelectOpen();
+
+    // Test keyboard navigation through options
     await userEvent.keyboard("{ArrowDown}");
+    const option1 = screen.getByRole("option", { name: "Option 1" });
+    await expect(option1).toHaveAttribute("data-highlighted", "");
+
     await userEvent.keyboard("{ArrowDown}");
+    const option2 = screen.getByRole("option", { name: "Option 2" });
+    await expect(option2).toHaveAttribute("data-highlighted", "");
+
+    // Select with Enter
     await userEvent.keyboard("{Enter}");
 
-    // The second option should be selected
-    // Note: This may need adjustment based on the actual implementation
+    // Wait for dropdown to close
+    await waitForElementToDisappear(() => screen.queryByRole("listbox"));
+
+    // Check that option 2 is selected
+    await expect(trigger).toHaveTextContent("Option 2");
   },
   tags: ["interaction", "accessibility"],
 };
@@ -385,8 +409,16 @@ export const ControlledSelect: Story = {
 
     // Open and select an option
     await userEvent.click(trigger);
-    const option = canvas.getByRole("option", { name: "Controlled Option 1" });
+    
+    // Wait for dropdown to open
+    await waitForSelectOpen();
+    
+    // Select option using screen queries (portal)
+    const option = screen.getByRole("option", { name: "Controlled Option 1" });
     await userEvent.click(option);
+
+    // Wait for dropdown to close
+    await waitForElementToDisappear(() => screen.queryByRole("listbox"));
 
     // Check that the value is updated
     await expect(valueDisplay).toHaveTextContent("Selected: controlled1");

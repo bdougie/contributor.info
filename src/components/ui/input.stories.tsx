@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within } from "@storybook/test";
 import { Input } from "./input";
+import { Label } from "./label";
 
 const meta = {
   title: "UI/Forms/Input",
@@ -145,8 +146,11 @@ export const PasswordInteraction: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const input =
-      canvas.getByLabelText(/password/i) || canvas.getByRole("textbox");
+    // Password inputs don't have role="textbox", they use the input element directly
+    const input = canvas.getByPlaceholderText("Enter password...");
+
+    // Check that it's a password input
+    await expect(input).toHaveAttribute("type", "password");
 
     // Test typing in password field
     await userEvent.click(input);
@@ -177,4 +181,34 @@ export const DisabledInput: Story = {
     await expect(input).toHaveValue("");
   },
   tags: ["interaction"],
+};
+
+export const WithLabelAssociation: Story = {
+  render: () => (
+    <div className="space-y-2">
+      <Label htmlFor="username-input">Username</Label>
+      <Input id="username-input" type="text" placeholder="Enter your username" />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    
+    // Test that input can be found by its label
+    const input = canvas.getByLabelText("Username");
+    await expect(input).toBeInTheDocument();
+    
+    // Test that input has correct attributes
+    await expect(input).toHaveAttribute("id", "username-input");
+    await expect(input).toHaveAttribute("type", "text");
+    
+    // Test interaction via label
+    const label = canvas.getByText("Username");
+    await userEvent.click(label);
+    await expect(input).toHaveFocus();
+    
+    // Test typing
+    await userEvent.type(input, "testuser");
+    await expect(input).toHaveValue("testuser");
+  },
+  tags: ["interaction", "accessibility"],
 };

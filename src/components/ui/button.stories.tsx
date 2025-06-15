@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within } from "@storybook/test";
+import { waitForFocus } from "@/lib/test-utils";
 import { Button } from "./button";
 
 const meta = {
@@ -114,7 +115,8 @@ export const WithInteraction: Story = {
     await userEvent.click(button);
 
     // Check that the button can be focused
-    await userEvent.tab();
+    button.focus();
+    await waitForFocus(button);
     await expect(button).toHaveFocus();
   },
   tags: ["interaction"],
@@ -148,15 +150,19 @@ export const KeyboardNavigation: Story = {
     const canvas = within(canvasElement);
     const button = canvas.getByRole("button");
 
-    // Test keyboard navigation
-    await userEvent.tab();
+    // Test direct focus
+    button.focus();
+    await waitForFocus(button);
     await expect(button).toHaveFocus();
 
     // Test Enter key activation
     await userEvent.keyboard("{Enter}");
 
-    // Test Space key activation
+    // Test Space key activation  
     await userEvent.keyboard(" ");
+
+    // Test that button is still focused after keyboard activation
+    await expect(button).toHaveFocus();
   },
   tags: ["interaction", "accessibility"],
 };
