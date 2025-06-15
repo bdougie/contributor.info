@@ -93,6 +93,7 @@ The Storybook interaction tests have been consistently failing with 10 failed te
 - ✅ Run interaction tests locally and verify all pass
 - ✅ Verify build succeeds with TypeScript checks
 - ✅ Test in CI environment (all tests passing)
+- ✅ Fix accessibility test workflow (corrected --includeTags parameter)
 - ✅ Verify no regressions in visual tests
 - ✅ Update documentation if needed
 

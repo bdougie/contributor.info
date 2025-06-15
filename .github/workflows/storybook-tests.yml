@@ -73,7 +73,7 @@ jobs:
       run: |
         npx concurrently -k -s first -n "SB,A11Y" -c "magenta,green" \
           "npx http-server storybook-static --port 6006 --silent" \
-          "wait-on tcp:6006 && npm run test-storybook -- --tags accessibility"
+          "wait-on tcp:6006 && npm run test-storybook -- --includeTags accessibility"
       env:
         NODE_ENV: test
         
