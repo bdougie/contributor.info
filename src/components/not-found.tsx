@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SocialMetaTags } from "./meta-tags-provider";
 
 export default function NotFound() {
   const navigate = useNavigate();
@@ -58,6 +59,10 @@ export default function NotFound() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+      <SocialMetaTags
+        title="404 - Page Not Found | contributor.info"
+        description="The page you're looking for doesn't exist. Return to contributor.info to analyze GitHub repositories and contributions."
+      />
       <Card className="w-full max-w-2xl shadow-lg">
         {/* Terminal title bar */}
         <div className="bg-muted text-foreground p-2 rounded-t-lg flex items-center border-b">

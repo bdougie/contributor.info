@@ -68,6 +68,13 @@ const preview: Preview = {
             height: '900px',
           },
         },
+        socialCard: {
+          name: 'Social Card (1200x630)',
+          styles: {
+            width: '1200px',
+            height: '630px',
+          },
+        },
       },
     },
     // Test environment enhancements

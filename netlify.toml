@@ -1,14 +1,20 @@
 # Netlify configuration for main app deployment
 
 [build]
-  # Build command for main React app
-  command = "npm run build"
+  # Build command for main React app with social cards
+  command = "npm run build:netlify"
   
   # Directory where Vite builds to
   publish = "dist"
   
-  # Node.js version
-  environment = { NODE_VERSION = "18" }
+  # Node.js version (required for Playwright)
+  environment = { NODE_VERSION = "20" }
+  
+  # Functions timeout (15 minutes for build functions)
+  functions = "src/functions"
+  
+  # Build timeout - extend for complex builds
+  command_timeout_minutes = 20
 
 [build.processing]
   skip_processing = false

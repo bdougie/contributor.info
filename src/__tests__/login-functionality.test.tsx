@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { BrowserRouter } from "react-router-dom";
 import LoginPage from "@/components/login-page";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
+import { MetaTagsProvider } from "@/components/meta-tags-provider";
 
 // Mock the auth hook with named export
 vi.mock("@/hooks/use-github-auth", () => ({
@@ -33,9 +34,11 @@ describe("Login Functionality", () => {
     });
 
     render(
-      <BrowserRouter>
-        <LoginPage />
-      </BrowserRouter>
+      <MetaTagsProvider>
+        <BrowserRouter>
+          <LoginPage />
+        </BrowserRouter>
+      </MetaTagsProvider>
     );
 
     await waitFor(() => {
@@ -56,9 +59,11 @@ describe("Login Functionality", () => {
     });
 
     render(
-      <BrowserRouter>
-        <LoginPage />
-      </BrowserRouter>
+      <MetaTagsProvider>
+        <BrowserRouter>
+          <LoginPage />
+        </BrowserRouter>
+      </MetaTagsProvider>
     );
 
     const loginButton = screen.getByRole("button", {

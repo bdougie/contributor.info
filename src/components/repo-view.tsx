@@ -23,6 +23,7 @@ import { useRepoData } from "@/hooks/use-repo-data";
 import { useRepoSearch } from "@/hooks/use-repo-search";
 import { InsightsDrawer } from "./insights-drawer";
 import { RepoViewSkeleton } from "./skeletons";
+import { SocialMetaTags } from "./meta-tags-provider";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -62,8 +63,19 @@ export default function RepoView() {
     );
   }
 
+  const repoTitle = `${owner}/${repo} - Contributor Analysis`;
+  const repoDescription = `Analyze GitHub contributors for ${owner}/${repo}. View contribution patterns, pull request activity, and community impact metrics.`;
+  const repoUrl = `https://contributor.info/${owner}/${repo}`;
+
   return (
     <div className="container mx-auto py-8">
+      <SocialMetaTags
+        title={repoTitle}
+        description={repoDescription}
+        url={repoUrl}
+        type="article"
+        image={`social-cards/repo-${owner}-${repo}.png`}
+      />
       <Card className="mb-8">
         <CardContent className="pt-6">
           <form onSubmit={handleSearch} className="flex gap-4">
