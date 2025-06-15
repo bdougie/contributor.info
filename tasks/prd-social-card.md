@@ -15,73 +15,76 @@ The project currently has a `social.png` file but lacks proper meta tags and dyn
 
 ## Implementation Plan
 
-### Phase 1: Meta Tag Management (1-2 days) ✅ Partially Complete
+### Phase 1: Meta Tag Management (1-2 days) ✅ COMPLETE
 - [x] Add basic Open Graph and Twitter Card meta tags to index.html
-- [ ] Install react-helmet-async for dynamic meta tags
-- [ ] Create MetaTagsProvider component
-- [ ] Implement useSocialMeta hook for page-specific meta data
-- [ ] Add dynamic meta tags to all route components
+- [x] Install react-helmet-async for dynamic meta tags
+- [x] Create MetaTagsProvider component
+- [x] Implement useSocialMeta hook for page-specific meta data
+- [x] Add dynamic meta tags to all route components
 
-### Phase 2: Social Card Generation with Netlify Functions (2-3 days)
-**Note: Using Netlify-compatible approach instead of @vercel/og**
+### Phase 2: Social Card Generation with Supabase Storage + CDN (2-3 days)
+**Note: Pivoted to Supabase Storage approach for better performance and simpler architecture**
 
-- [ ] Set up Netlify Functions infrastructure
-- [ ] Install dependencies: `satori`, `@resvg/resvg-js`, `sharp`
-- [ ] Create serverless functions:
-  - `/netlify/functions/og-home` - Home page social card
-  - `/netlify/functions/og-repo` - Repository-specific cards
-- [ ] Implement social card templates matching design system
-- [ ] Add caching headers (s-maxage: 86400 for 24hr cache)
-- [ ] Handle error cases with static fallback images
+- [ ] Create Supabase Storage bucket for social cards
+- [ ] Set up build-time social card generation script
+- [ ] Install dependencies: `playwright` for card generation
+- [ ] Create social card templates matching design system
+- [ ] Implement card generation for:
+  - Home page social card
+  - Repository-specific cards with dynamic data
+- [ ] Upload generated cards to Supabase Storage
+- [ ] Configure Smart CDN for automatic cache invalidation
+- [ ] Update meta tags to point to Supabase Storage URLs
 
 **Technical Implementation:**
 ```javascript
-// netlify/functions/og-image.js
-import satori from 'satori';
-import { Resvg } from '@resvg/resvg-js';
+// scripts/generate-social-cards.js
+import puppeteer from 'puppeteer';
+import { supabase } from '../src/lib/supabase.js';
 
-export async function handler(event) {
-  // Parse query parameters
-  const { repo, owner } = event.queryStringParameters;
+async function generateSocialCard(url, fileName) {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
   
-  // Generate SVG with Satori
-  const svg = await satori(
-    <SocialCard repo={repo} owner={owner} />,
-    { width: 1200, height: 630, fonts: [...] }
-  );
+  // Set viewport for social card dimensions
+  await page.setViewport({ width: 1200, height: 630 });
   
-  // Convert to PNG
-  const resvg = new Resvg(svg);
-  const pngData = resvg.render();
+  // Navigate to card generation page
+  await page.goto(`http://localhost:3000/social-cards/${url}`);
   
-  return {
-    statusCode: 200,
-    headers: {
-      'Content-Type': 'image/png',
-      'Cache-Control': 'public, s-maxage=86400',
-    },
-    body: pngData.asPng().toString('base64'),
-    isBase64Encoded: true,
-  };
+  // Generate screenshot
+  const screenshot = await page.screenshot({ type: 'png' });
+  
+  // Upload to Supabase Storage
+  const { data, error } = await supabase.storage
+    .from('social-cards')
+    .upload(fileName, screenshot, {
+      contentType: 'image/png',
+      cacheControl: '31536000' // 1 year cache
+    });
+    
+  await browser.close();
+  return { data, error };
 }
 ```
 
 ### Phase 3: Chart Integration (1-2 days)
-- [ ] Extract chart components from contributions.tsx
-- [ ] Create simplified chart components for Satori rendering
-- [ ] Implement mini contribution charts for repo cards
-- [ ] Add top contributor avatars (max 5)
-- [ ] Include PR/issue statistics
-- [ ] Ensure charts work without client-side JS
+- [ ] Create dedicated social card view pages at `/social-cards/*` routes
+- [ ] Extract chart components from contributions.tsx for card rendering
+- [ ] Implement simplified chart components for card display
+- [ ] Add mini contribution charts for repo cards
+- [ ] Include top contributor avatars (max 5)
+- [ ] Add PR/issue statistics display
+- [ ] Ensure cards render properly for screenshot generation
 
 ### Phase 4: Local Testing Infrastructure (1 day)
-- [ ] Create `/dev/social-cards` preview page
-- [ ] Set up Netlify CLI for local function testing (`netlify dev`)
+- [ ] Create `/dev/social-cards` preview page for manual testing
+- [ ] Set up card generation script with local development mode
 - [ ] Build preview interface showing:
   - Generated card preview
   - Meta tag inspector
   - Different content scenarios
-  - URL sharing simulator
+  - Storage URL testing
 - [ ] Add test cases for:
   - Long repository names
   - Repos with no activity
@@ -89,30 +92,37 @@ export async function handler(event) {
   - Error states
 
 ### Phase 5: Production Deployment (1 day)
-- [ ] Configure Netlify Functions in production
-- [ ] Update meta tags to use function URLs
+- [ ] Integrate card generation into build pipeline
+- [ ] Configure Supabase Storage bucket permissions and policies
 - [ ] Test with platform validators:
   - Twitter Card Validator
   - Facebook Sharing Debugger
   - LinkedIn Post Inspector
   - Discord/Slack preview
-- [ ] Monitor function performance
-- [ ] Implement usage analytics
-- [ ] Document deployment process
+- [ ] Monitor CDN performance and cache hit rates
+- [ ] Set up automated card regeneration on data updates
+- [ ] Document deployment and maintenance process
 
-## Alternative Approaches (If Performance Issues)
+## Architecture Benefits
 
-### Option A: Build-Time Generation
-- Pre-generate cards for known routes during build
-- Use Puppeteer or Playwright for complex visualizations
-- Store in public directory
-- Pros: Zero latency, no function limits
-- Cons: Can't handle dynamic content
+### Chosen Approach: Supabase Storage + Build-Time Generation
+- **Performance**: Zero latency after first load via global CDN
+- **Cost**: No function execution costs, only storage
+- **Reliability**: No function timeouts or cold starts
+- **Scale**: Handles any traffic volume
+- **Maintenance**: Simple architecture, fewer moving parts
+
+### Alternative Approaches Considered
+
+### Option A: On-Demand Function Generation
+- Real-time card generation via Netlify Functions
+- Pros: Always up-to-date content
+- Cons: 3-second latency, function limits, complexity
 
 ### Option B: External Service
 - Use Cloudinary or Bannerbear
 - Pros: Robust, scalable
-- Cons: Additional cost, external dependency
+- Cons: Additional cost, external dependency, vendor lock-in
 
 ## Technical Specifications
 
@@ -132,10 +142,10 @@ export async function handler(event) {
   - Last activity indicator
 
 ### Performance Requirements
-- Image generation < 3 seconds
-- CDN caching for 24 hours minimum
+- Build-time card generation < 2 minutes total
+- CDN caching with Smart CDN auto-invalidation
 - Fallback to static image on error
-- Function memory limit: 1024MB (Netlify default)
+- Cards served with <100ms latency globally
 
 ### Dependencies
 ```json
@@ -144,19 +154,17 @@ export async function handler(event) {
     "react-helmet-async": "^2.0.0"
   },
   "devDependencies": {
-    "satori": "^0.10.0",
-    "@resvg/resvg-js": "^2.6.0",
-    "@netlify/functions": "^2.0.0"
+    "playwright": "^1.40.0"
   }
 }
 ```
 
 ## Success Metrics
-- [ ] All pages have appropriate meta tags
-- [ ] Social cards generate in < 3 seconds
+- [x] All pages have appropriate meta tags
+- [ ] Social cards generate during build process
 - [ ] Cards display correctly on all major platforms
-- [ ] No increase in build time > 30 seconds
-- [ ] Function costs stay within free tier
+- [ ] Build time increase < 2 minutes
+- [ ] Storage costs stay within Supabase free tier (100GB)
 
 ## Estimated Timeline: 6-9 days total
 

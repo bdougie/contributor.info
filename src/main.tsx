@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/react";
 import App from './App.tsx';
 import './index.css';
 import { PHProvider } from './lib/posthog';
+import { MetaTagsProvider } from './components/meta-tags-provider';
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
@@ -23,8 +24,10 @@ Sentry.init({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <PHProvider>
-      <App />
-    </PHProvider>
+    <MetaTagsProvider>
+      <PHProvider>
+        <App />
+      </PHProvider>
+    </MetaTagsProvider>
   </StrictMode>
 );
