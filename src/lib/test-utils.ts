@@ -104,21 +104,35 @@ export const waitForSelectOpen = async (timeout = 5000) => {
   try {
     return await waitFor(
       () => {
+        // Check for Radix UI Select content portal
+        const selectContent = document.querySelector('[data-radix-select-content]');
+        if (selectContent) {
+          // Check if it's visible and has the open state
+          const isOpen = selectContent.getAttribute('data-state') === 'open';
+          const isVisible = getComputedStyle(selectContent).display !== 'none';
+          
+          if (isOpen && isVisible) {
+            return selectContent;
+          }
+        }
+
+        // Fallback: try to find listbox role
         try {
           const listbox = screen.getByRole('listbox');
           return listbox;
         } catch (queryError) {
-          // Check for select-related elements
-          const selectElements = document.querySelectorAll('select, [data-radix-select], [role="combobox"]');
+          // Check for select-related elements for debugging
+          const selectElements = document.querySelectorAll('select, [data-radix-select], [role="combobox"], [data-radix-select-content]');
           const elementInfo = Array.from(selectElements).map(el => ({
             tagName: el.tagName,
             role: el.getAttribute('role'),
             state: el.getAttribute('data-state'),
             expanded: el.getAttribute('aria-expanded'),
+            visible: getComputedStyle(el).display !== 'none',
           }));
           
           throw new Error(
-            `Select listbox not found. Available select-related elements: ${JSON.stringify(elementInfo, null, 2)}`
+            `Select dropdown not found or not open. Available select-related elements: ${JSON.stringify(elementInfo, null, 2)}`
           );
         }
       },

@@ -134,10 +134,13 @@ export const DisabledInteraction: Story = {
     // Check that the button is disabled
     await expect(button).toBeDisabled();
 
-    // Check that disabled button cannot be clicked
-    await userEvent.click(button);
-    // The button should still be disabled after click attempt
-    await expect(button).toBeDisabled();
+    // Check that disabled button has pointer-events: none (preventing clicks)
+    const computedStyle = getComputedStyle(button);
+    await expect(computedStyle.pointerEvents).toBe("none");
+
+    // Verify button is not focusable when disabled
+    button.focus();
+    await expect(button).not.toHaveFocus();
   },
   tags: ["interaction"],
 };

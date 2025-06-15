@@ -16,7 +16,7 @@ const config: TestRunnerConfig = {
   },
 
   // Custom page setup for better portal handling
-  async preRender(page) {
+  async preVisit(page) {
     // Add custom test utilities to the page
     await page.addInitScript(() => {
       // Helper function to wait for elements outside the canvas
@@ -97,7 +97,7 @@ const config: TestRunnerConfig = {
   },
 
   // Post-test cleanup
-  async postRender(page) {
+  async postVisit(page) {
     // Clean up after each story test
     await page.evaluate(() => {
       if (window.cleanupTestEnvironment) {
