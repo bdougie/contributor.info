@@ -29,7 +29,7 @@
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = {Role = ["admin"]}
+  force = false
 
 # Headers for security and performance
 [[headers]]
