@@ -41,14 +41,14 @@
   - [x] 4.1.6 Create initial visual baselines for all existing stories
   - [x] 4.1.7 Test visual regression detection with intentional UI changes
 
-- [ ] 4.2 Custom Storybook Theme & Branding
-  - [ ] 4.2.1 Create custom theme configuration matching app branding
-  - [ ] 4.2.2 Extract brand colors and typography from main app
-  - [ ] 4.2.3 Configure Storybook manager UI with custom theme
-  - [ ] 4.2.4 Add custom logo and favicon to Storybook
-  - [ ] 4.2.5 Customize sidebar styling and component organization
-  - [ ] 4.2.6 Apply custom styling to docs pages and controls panel
-  - [ ] 4.2.7 Test theme consistency across all Storybook views
+- [x] 4.2 Custom Storybook Theme & Branding
+  - [x] 4.2.1 Create custom theme configuration matching app branding
+  - [x] 4.2.2 Extract brand colors and typography from main app
+  - [x] 4.2.3 Configure Storybook manager UI with custom theme
+  - [x] 4.2.4 Add custom logo and favicon to Storybook
+  - [x] 4.2.5 Customize sidebar styling and component organization
+  - [x] 4.2.6 Apply custom styling to docs pages and controls panel
+  - [x] 4.2.7 Test theme consistency across all Storybook views
 
 - [ ] 4.3 Interaction Testing Implementation
   - [ ] 4.3.1 Install @storybook/testing-library and @storybook/jest
@@ -68,38 +68,3 @@
   - [ ] 4.4.6 Document component API changes and versioning strategy
   - [ ] 4.4.7 Create troubleshooting guide for common component issues
 
-- [ ] 4.5 Storybook Deployment Setup
-  - [ ] 4.5.1 Configure static build process for Storybook deployment
-  - [ ] 4.5.2 Set up GitHub Actions workflow for automatic deployment
-  - [ ] 4.5.3 Configure deployment target (Netlify, Vercel, or GitHub Pages)
-  - [ ] 4.5.4 Add custom domain configuration if required
-  - [ ] 4.5.5 Set up branch-based preview deployments for PRs
-  - [ ] 4.5.6 Configure deployment notifications and status checks
-  - [ ] 4.5.7 Test deployment pipeline with sample changes
-
-- [ ] 4.6 Automatic Story Generation
-  - [ ] 4.6.1 Evaluate feasibility of automatic story generation for simple components
-  - [ ] 4.6.2 Install and configure @storybook/addon-docs for enhanced documentation
-  - [ ] 4.6.3 Set up automatic prop detection and controls generation
-  - [ ] 4.6.4 Create templates for consistent story structure across components
-  - [ ] 4.6.5 Add automatic story validation and linting rules
-  - [ ] 4.6.6 Configure story inheritance patterns for component variants
-  - [ ] 4.6.7 Test automatic generation with sample components
-
-- [ ] 4.7 Performance & Quality Optimization
-  - [ ] 4.7.1 Optimize Storybook build performance and bundle size
-  - [ ] 4.7.2 Configure lazy loading for large component libraries
-  - [ ] 4.7.3 Add performance monitoring for story load times
-  - [ ] 4.7.4 Set up story validation and quality checks
-  - [ ] 4.7.5 Configure accessibility testing automation
-  - [ ] 4.7.6 Add component usage analytics and metrics tracking
-  - [ ] 4.7.7 Create performance benchmarks and monitoring dashboard
-
-- [ ] 4.8 Final Integration & Polish
-  - [ ] 4.8.1 Integrate all Phase 4 features into main Storybook configuration
-  - [ ] 4.8.2 Test complete workflow from development to deployment
-  - [ ] 4.8.3 Create comprehensive testing checklist for future component additions
-  - [ ] 4.8.4 Document maintenance procedures and update processes
-  - [ ] 4.8.5 Conduct final quality assurance review of all advanced features
-  - [ ] 4.8.6 Create team training materials for advanced Storybook features
-  - [ ] 4.8.7 Establish monitoring and alerting for production Storybook instance

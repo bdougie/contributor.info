@@ -1,5 +1,5 @@
 {
-  "projectToken": "YOUR_PROJECT_TOKEN_HERE",
+  "projectToken": "chpt_b541243b54ef448",
   "buildScriptName": "build-storybook",
   "exitZeroOnChanges": true,
   "exitOnceUploaded": false,

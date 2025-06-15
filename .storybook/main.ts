@@ -14,6 +14,13 @@ const config: StorybookConfig = {
     name: "@storybook/react-vite",
     options: {}
   },
+  // Custom manager head configuration
+  managerHead: (head) => `
+    ${head}
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>Contributor.info - Storybook</title>
+    <meta name="description" content="Component library and design system for Contributor.info" />
+  `,
   async viteFinal(config) {
     // Merge custom configuration into the default config
     return mergeConfig(config, {
