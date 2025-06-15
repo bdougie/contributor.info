@@ -65,11 +65,11 @@ The Storybook interaction tests have been consistently failing with 10 failed te
 - ✅ Fix Button component focus and interaction tests
 - ✅ Fix Input component label associations
 
-### Phase 4: Future Enhancements (Not Started)
-- [ ] Update Storybook preview for better test environment
-- [ ] Configure test-specific decorators if needed
-- [ ] Ensure proper cleanup between tests
-- [ ] Add error handling improvements
+### Phase 4: Future Enhancements ✅
+- ✅ Update Storybook preview for better test environment
+- ✅ Configure test-specific decorators if needed
+- ✅ Ensure proper cleanup between tests
+- ✅ Add error handling improvements
 
 ### Phase 5: Extended Testing (Not Started)
 - [ ] Add more comprehensive accessibility tests
@@ -154,6 +154,7 @@ If you wish to access them, then set the `hidden` option to `true`.
 
 ### Files Modified:
 - `.storybook/test-runner.ts`
+- `.storybook/preview.ts`
 - `src/lib/test-utils.ts` (new file)
 - `src/components/ui/dialog.stories.tsx`
 - `src/components/ui/alert-dialog.stories.tsx`
@@ -161,6 +162,35 @@ If you wish to access them, then set the `hidden` option to `true`.
 - `src/components/ui/button.stories.tsx`
 - `src/components/ui/input.stories.tsx`
 
+### Phase 4 Enhancements ✅
+
+**Storybook Preview Improvements** (`.storybook/preview.ts`):
+- Added test environment enhancements with reduced animation duration
+- Enhanced accessibility testing configuration for portal components
+- Configured test-specific decorators with environment detection
+- Added focus visibility improvements for test environments
+
+**Test Runner Improvements** (`.storybook/test-runner.ts`):
+- Added comprehensive cleanup functionality between tests
+- Implemented portal element cleanup (Radix UI portals, dialogs, toasts)
+- Added focus reset and CSS property cleanup
+- Enhanced retry configuration for flaky tests
+- Added post-render cleanup with automatic execution
+
+**Test Utilities Enhancements** (`src/lib/test-utils.ts`):
+- Added comprehensive error logging with context and debugging info
+- Enhanced all utility functions with detailed error messages
+- Added DOM state inspection for failed queries
+- Implemented retry wrapper (`withRetry`) for flaky operations
+- Improved debugging information for focus, visibility, and state issues
+
+**Key Benefits**:
+- Better test isolation and reduced flakiness
+- Enhanced debugging capabilities with detailed error information
+- Automatic cleanup prevents test interference
+- Improved accessibility testing for portal components
+- More robust error handling with contextual information
+
 ---
-**Last Updated**: December 15, 2024
-**Status**: ✅ **COMPLETED** - All interaction tests now passing
+**Last Updated**: June 15, 2025
+**Status**: ✅ **COMPLETED** - All interaction tests now passing with enhanced infrastructure

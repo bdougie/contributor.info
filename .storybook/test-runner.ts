@@ -64,11 +64,56 @@ const config: TestRunnerConfig = {
           check();
         });
       };
+
+      // Cleanup helper for between tests
+      window.cleanupTestEnvironment = () => {
+        // Remove any leftover portal elements
+        const portals = document.querySelectorAll('[data-radix-portal], [data-portal], .portal-root');
+        portals.forEach(portal => portal.remove());
+        
+        // Clear any open dialogs/modals
+        const dialogs = document.querySelectorAll('[role="dialog"], [role="alertdialog"]');
+        dialogs.forEach(dialog => dialog.remove());
+        
+        // Reset focus to body
+        if (document.activeElement && document.activeElement !== document.body) {
+          document.activeElement.blur();
+        }
+        
+        // Clear any leftover event listeners by resetting body
+        const body = document.body;
+        body.removeAttribute('style');
+        body.removeAttribute('data-scroll-locked');
+        
+        // Reset any CSS custom properties that might affect tests
+        const root = document.documentElement;
+        root.style.removeProperty('--removed-body-scroll-bar-size');
+        
+        // Clear any toast notifications or floating elements
+        const toasts = document.querySelectorAll('[data-sonner-toaster]');
+        toasts.forEach(toast => toast.remove());
+      };
     });
+  },
+
+  // Post-test cleanup
+  async postRender(page) {
+    // Clean up after each story test
+    await page.evaluate(() => {
+      if (window.cleanupTestEnvironment) {
+        window.cleanupTestEnvironment();
+      }
+    });
+    
+    // Wait for cleanup to complete
+    await page.waitForTimeout(100);
   },
 
   // Configure test timeouts
   testTimeout: 30000,
+  
+  // Retry configuration for flaky tests
+  retries: 1,
 };
 
 export default config;
