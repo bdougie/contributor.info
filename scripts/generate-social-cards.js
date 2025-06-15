@@ -122,8 +122,10 @@ async function main() {
       // Generate home card
       await generateCard(browser, config.cards[0]);
       
-      // Generate repo cards (limit to first 3 to save time)
-      const limitedRepos = popularRepos.slice(0, 3);
+      // Generate repo cards (configurable count via REPO_COUNT env var)
+      const repoCount = parseInt(process.env.REPO_COUNT) || 1;
+      const limitedRepos = popularRepos.slice(0, repoCount);
+      console.log(`Generating cards for ${limitedRepos.length} repositories`);
       for (const { owner, repo } of limitedRepos) {
         const cardConfig = {
           name: `${owner}-${repo}`,
