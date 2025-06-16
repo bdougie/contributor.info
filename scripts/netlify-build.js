@@ -6,8 +6,8 @@ console.log('Netlify build starting...');
 console.log('📦 Running optimized build without social card generation');
 console.log('🎨 Social cards will be generated via GitHub Actions');
 
-// Run the standard build command
-const build = spawn('npm', ['run', 'build'], {
+// Run the production build command (skips tests)
+const build = spawn('npm', ['run', 'build:prod'], {
   stdio: 'inherit',
   cwd: process.cwd(),
   env: process.env
