@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { Heart, TrendingUp, TrendingDown, Minus, AlertTriangle } from "lucide-react";
+import { Heart, TrendingUp, TrendingDown, Minus, AlertTriangle, Sparkles, Brain } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { calculateHealthMetrics, type HealthMetrics } from "@/lib/insights/health-metrics";
+import { llmService, type LLMInsight } from "@/lib/llm";
 
 
 interface RepositoryHealthProps {
@@ -16,6 +18,8 @@ interface RepositoryHealthProps {
 export function RepositoryHealth({ owner, repo, timeRange }: RepositoryHealthProps) {
   const [loading, setLoading] = useState(true);
   const [health, setHealth] = useState<HealthMetrics | null>(null);
+  const [llmInsight, setLlmInsight] = useState<LLMInsight | null>(null);
+  const [llmLoading, setLlmLoading] = useState(false);
 
   useEffect(() => {
     loadHealthMetrics();
@@ -23,14 +27,34 @@ export function RepositoryHealth({ owner, repo, timeRange }: RepositoryHealthPro
 
   const loadHealthMetrics = async () => {
     setLoading(true);
+    setLlmInsight(null);
+    
     try {
       const metrics = await calculateHealthMetrics(owner, repo, timeRange);
       setHealth(metrics);
+      
+      // Load LLM insight after health metrics are available
+      if (metrics && llmService.isAvailable()) {
+        loadLLMInsight(metrics);
+      }
     } catch (error) {
       console.error("Failed to load health metrics:", error);
       setHealth(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLLMInsight = async (healthData: HealthMetrics) => {
+    setLlmLoading(true);
+    try {
+      const insight = await llmService.generateHealthInsight(healthData, { owner, repo });
+      setLlmInsight(insight);
+    } catch (error) {
+      console.error("Failed to load LLM insight:", error);
+      setLlmInsight(null);
+    } finally {
+      setLlmLoading(false);
     }
   };
 
@@ -64,11 +88,24 @@ export function RepositoryHealth({ owner, repo, timeRange }: RepositoryHealthPro
     }
   };
 
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 0.8) return "text-green-600";
+    if (confidence >= 0.6) return "text-yellow-600";
+    return "text-gray-600";
+  };
+
+  const getConfidenceLabel = (confidence: number) => {
+    if (confidence >= 0.8) return "High";
+    if (confidence >= 0.6) return "Medium";
+    return "Low";
+  };
+
   if (loading) {
     return (
       <div className="space-y-3">
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-24 w-full" />
       </div>
     );
   }
@@ -153,6 +190,44 @@ export function RepositoryHealth({ owner, repo, timeRange }: RepositoryHealthPro
               </li>
             ))}
           </ul>
+        </Card>
+      )}
+
+      {/* AI-Generated Insight */}
+      {(llmInsight || llmLoading) && (
+        <Card className="p-4 border-blue-200 bg-blue-50/50">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium flex items-center gap-2">
+              <Brain className="h-4 w-4 text-blue-600" />
+              AI Health Assessment
+            </h4>
+            {llmInsight && (
+              <Badge 
+                variant="outline" 
+                className={cn("text-xs", getConfidenceColor(llmInsight.confidence))}
+              >
+                <Sparkles className="h-3 w-3 mr-1" />
+                {getConfidenceLabel(llmInsight.confidence)} Confidence
+              </Badge>
+            )}
+          </div>
+          
+          {llmLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-4/5" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ) : llmInsight ? (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-700 leading-relaxed">
+                {llmInsight.content}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Generated {new Date(llmInsight.timestamp).toLocaleTimeString()}
+              </p>
+            </div>
+          ) : null}
         </Card>
       )}
     </div>

@@ -78,17 +78,17 @@ Currently, the insights sidebar has:
 - [x] Timeout handling for slow responses
 
 #### Task C5: LLM Health Assessments ✅
-**Status**: Pending  
+**Status**: COMPLETED ✅  
 **Deliverables**:
 - Natural language explanations of health metrics
 - Contextual insights about repository state
 - Trend explanations in plain English
 
 **Acceptance Criteria**:
-- [ ] Health explanations generated from real metrics
-- [ ] Context-aware insights (repo size, age, activity)
-- [ ] Clear, actionable language
-- [ ] Fallback to static text if LLM fails
+- [x] Health explanations generated from real metrics
+- [x] Context-aware insights (repo size, age, activity)
+- [x] Clear, actionable language
+- [x] Fallback to static text if LLM fails
 
 #### Task C6: LLM Actionable Recommendations ✅
 **Status**: Pending  
