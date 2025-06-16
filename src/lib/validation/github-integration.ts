@@ -9,9 +9,6 @@ import {
   githubPullRequestSchema,
   githubReviewSchema,
   githubCommentSchema,
-  contributorCreateSchema,
-  repositoryCreateSchema,
-  pullRequestCreateSchema,
   validateData,
   type GitHubUser,
   type GitHubRepository,
@@ -88,13 +85,13 @@ export function transformGitHubUserToContributor(githubUser: GitHubUser): Contri
     location: githubUser.location || null,
     bio: githubUser.bio || null,
     blog: githubUser.blog || null,
-    public_repos: (githubUser.public_repos ?? 0) as number,
-    public_gists: (githubUser.public_gists ?? 0) as number,
-    followers: (githubUser.followers ?? 0) as number,
-    following: (githubUser.following ?? 0) as number,
+    public_repos: githubUser.public_repos ?? 0,
+    public_gists: githubUser.public_gists ?? 0,
+    followers: githubUser.followers ?? 0,
+    following: githubUser.following ?? 0,
     github_created_at: githubUser.created_at ? new Date(githubUser.created_at) : null,
     is_bot: githubUser.type === 'Bot',
-    is_active: true as boolean,
+    is_active: true,
   };
   return result;
 }
@@ -115,7 +112,7 @@ export function transformGitHubRepositoryToRepository(githubRepo: GitHubReposito
     watchers_count: githubRepo.watchers_count,
     forks_count: githubRepo.forks_count,
     open_issues_count: githubRepo.open_issues_count,
-    size: (githubRepo.size ?? 0) as number,
+    size: githubRepo.size ?? 0,
     default_branch: githubRepo.default_branch,
     is_fork: githubRepo.fork,
     is_archived: githubRepo.archived,
@@ -127,11 +124,11 @@ export function transformGitHubRepositoryToRepository(githubRepo: GitHubReposito
     has_pages: githubRepo.has_pages,
     has_downloads: githubRepo.has_downloads,
     license: githubRepo.license?.spdx_id || null,
-    topics: githubRepo.topics || [],
+    topics: githubRepo.topics ?? [],
     github_created_at: new Date(githubRepo.created_at),
     github_updated_at: new Date(githubRepo.updated_at),
     github_pushed_at: githubRepo.pushed_at ? new Date(githubRepo.pushed_at) : null,
-    is_active: true as boolean,
+    is_active: true,
   };
   return result;
 }
@@ -236,15 +233,7 @@ export function validateAndTransformGitHubUser(userData: unknown): ContributorCr
   }
   
   // Transform the validated data
-  const transformed = transformGitHubUserToContributor(inputValidation.data);
-  
-  // Validate the transformed data
-  const outputValidation = validateData(contributorCreateSchema, transformed, 'Transformed contributor');
-  if (!outputValidation.success || !outputValidation.data) {
-    return null;
-  }
-  
-  return outputValidation.data;
+  return transformGitHubUserToContributor(inputValidation.data);
 }
 
 /**
@@ -258,15 +247,7 @@ export function validateAndTransformGitHubRepository(repoData: unknown): Reposit
   }
   
   // Transform the validated data
-  const transformed = transformGitHubRepositoryToRepository(inputValidation.data);
-  
-  // Validate the transformed data
-  const outputValidation = validateData(repositoryCreateSchema, transformed, 'Transformed repository');
-  if (!outputValidation.success || !outputValidation.data) {
-    return null;
-  }
-  
-  return outputValidation.data;
+  return transformGitHubRepositoryToRepository(inputValidation.data);
 }
 
 /**
@@ -286,21 +267,13 @@ export function validateAndTransformGitHubPullRequest(
   }
   
   // Transform the validated data
-  const transformed = transformGitHubPullRequestToPullRequest(
+  return transformGitHubPullRequestToPullRequest(
     inputValidation.data, 
     repositoryId, 
     authorId, 
     assigneeId, 
     mergedById
   );
-  
-  // Validate the transformed data
-  const outputValidation = validateData(pullRequestCreateSchema, transformed, 'Transformed pull request');
-  if (!outputValidation.success || !outputValidation.data) {
-    return null;
-  }
-  
-  return outputValidation.data;
 }
 
 // =====================================================
