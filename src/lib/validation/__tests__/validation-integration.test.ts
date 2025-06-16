@@ -9,15 +9,9 @@ import {
   contributorCreateSchema,
   repositoryCreateSchema,
   pullRequestCreateSchema,
-  reviewCreateSchema,
-  commentCreateSchema,
   
   // GitHub API schemas
   githubUserSchema,
-  githubRepositorySchema,
-  githubPullRequestSchema,
-  githubReviewSchema,
-  githubCommentSchema,
   
   // Validation utilities
   validateData,

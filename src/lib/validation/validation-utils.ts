@@ -3,8 +3,8 @@
  * Provides common validation patterns and error handling for database operations
  */
 
-import { z } from 'zod';
-import type { ZodSchema, ZodError } from 'zod';
+import { ZodError } from 'zod';
+import type { ZodSchema } from 'zod';
 
 // =====================================================
 // VALIDATION RESULT TYPES
@@ -17,13 +17,13 @@ export interface ValidationResult<T> {
   success: boolean;
   data?: T;
   error?: string;
-  errors?: ValidationError[];
+  errors?: ValidationIssue[];
 }
 
 /**
  * Detailed validation error type
  */
-export interface ValidationError {
+export interface ValidationIssue {
   field: string;
   message: string;
   code: string;
@@ -39,7 +39,7 @@ export interface BulkValidationResult<T> {
   invalidItems: Array<{
     index: number;
     item: unknown;
-    errors: ValidationError[];
+    errors: ValidationIssue[];
   }>;
   totalProcessed: number;
   totalValid: number;
@@ -107,7 +107,7 @@ export function validateBulkData<T>(
   const invalidItems: Array<{
     index: number;
     item: unknown;
-    errors: ValidationError[];
+    errors: ValidationIssue[];
   }> = [];
 
   items.forEach((item, index) => {
@@ -180,19 +180,19 @@ export function transformAndValidate<TInput, TOutput>(
 /**
  * Formats Zod validation errors into a standardized format
  */
-export function formatZodErrors(zodError: ZodError): ValidationError[] {
+export function formatZodErrors(zodError: ZodError): ValidationIssue[] {
   return zodError.errors.map((error) => ({
     field: error.path.join('.') || 'root',
     message: error.message,
     code: error.code,
-    received: error.received,
+    received: (error as any).received || undefined,
   }));
 }
 
 /**
  * Creates a human-readable error message from validation errors
  */
-export function createErrorMessage(errors: ValidationError[]): string {
+export function createErrorMessage(errors: ValidationIssue[]): string {
   if (errors.length === 0) {
     return 'Unknown validation error';
   }
@@ -208,7 +208,7 @@ export function createErrorMessage(errors: ValidationError[]): string {
 /**
  * Groups validation errors by field for easier handling
  */
-export function groupErrorsByField(errors: ValidationError[]): Record<string, ValidationError[]> {
+export function groupErrorsByField(errors: ValidationIssue[]): Record<string, ValidationIssue[]> {
   return errors.reduce((acc, error) => {
     const field = error.field;
     if (!acc[field]) {
@@ -216,7 +216,7 @@ export function groupErrorsByField(errors: ValidationError[]): Record<string, Va
     }
     acc[field].push(error);
     return acc;
-  }, {} as Record<string, ValidationError[]>);
+  }, {} as Record<string, ValidationIssue[]>);
 }
 
 // =====================================================
@@ -248,9 +248,9 @@ export function createValidationMiddleware<T>(
  * Custom ValidationError class for better error handling
  */
 export class ValidationError extends Error {
-  public readonly validationErrors: ValidationError[];
+  public readonly validationErrors: ValidationIssue[];
   
-  constructor(message: string, errors: ValidationError[] = []) {
+  constructor(message: string, errors: ValidationIssue[] = []) {
     super(message);
     this.name = 'ValidationError';
     this.validationErrors = errors;
@@ -442,7 +442,9 @@ export function createMemoizedValidator<T>(
     if (cache.size >= maxCacheSize) {
       // Remove oldest entry
       const firstKey = cache.keys().next().value;
-      cache.delete(firstKey);
+      if (firstKey !== undefined) {
+        cache.delete(firstKey);
+      }
     }
     
     cache.set(cacheKey, result);

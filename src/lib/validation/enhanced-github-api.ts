@@ -6,18 +6,16 @@
 import { supabase } from '../supabase';
 import { 
   validateGitHubPullRequest,
-  validateGitHubUser,
   validateGitHubRepository,
-  validateGitHubReview,
-  validateGitHubComment,
-  validateAndTransformGitHubUser,
   validateAndTransformGitHubRepository,
   safeValidateGitHubResponse,
+} from './github-integration';
+import {
   githubPullRequestsArraySchema,
   githubUsersArraySchema,
   githubReviewsArraySchema,
   githubCommentsArraySchema,
-} from './github-integration';
+} from './github-api-schemas';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
@@ -226,7 +224,7 @@ export async function fetchPullRequestsWithValidation(
               `PR #${pr.number} reviews`
             );
             
-            if (reviewsValidation) {
+            if (Array.isArray(reviewsValidation)) {
               validatedReviews = reviewsValidation.map((review: any) => ({
                 id: review.id,
                 state: review.state,
@@ -254,7 +252,7 @@ export async function fetchPullRequestsWithValidation(
               `PR #${pr.number} comments`
             );
             
-            if (commentsValidation) {
+            if (Array.isArray(commentsValidation)) {
               validatedComments = commentsValidation.map((comment: any) => ({
                 id: comment.id,
                 user: {
@@ -372,10 +370,12 @@ export async function fetchUserOrganizationsWithValidation(
       };
     }
 
-    const organizations = validatedOrgs.slice(0, 3).map((org: any) => ({
-      login: org.login,
-      avatar_url: org.avatar_url,
-    }));
+    const organizations = Array.isArray(validatedOrgs) 
+      ? validatedOrgs.slice(0, 3).map((org: any) => ({
+          login: org.login,
+          avatar_url: org.avatar_url,
+        }))
+      : [];
 
     return {
       organizations,

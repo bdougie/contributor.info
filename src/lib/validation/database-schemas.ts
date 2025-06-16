@@ -258,9 +258,24 @@ export const pullRequestUpdateSchema = pullRequestBaseSchema.partial().omit({
   github_id: true,
 });
 
-export const pullRequestSelectSchema = pullRequestCreateSchema.extend({
+export const pullRequestSelectSchema = pullRequestBaseSchema.extend({
   id: uuidSchema,
-});
+}).refine(
+  (data) => {
+    // If merged is true, merged_at should be set
+    if (data.merged && !data.merged_at) {
+      return false;
+    }
+    // If closed, closed_at should be set
+    if (data.state === 'closed' && !data.closed_at) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Merged PRs must have merged_at timestamp, closed PRs must have closed_at timestamp',
+  }
+);
 
 /**
  * Reviews table schema
@@ -324,7 +339,7 @@ export const commentSelectSchema = commentCreateSchema.extend({
 /**
  * Monthly rankings table schema
  */
-export const monthlyRankingCreateSchema = z.object({
+const monthlyRankingBaseSchema = z.object({
   month: z.number().int().min(1, 'Month must be 1-12').max(12, 'Month must be 1-12'),
   year: z.number().int().min(2020, 'Year must be >= 2020').max(2100, 'Year must be <= 2100'),
   contributor_id: uuidSchema,
@@ -340,7 +355,9 @@ export const monthlyRankingCreateSchema = z.object({
   first_contribution_at: z.coerce.date().nullable(),
   last_contribution_at: z.coerce.date().nullable(),
   is_winner: z.boolean().default(false),
-}).refine(
+});
+
+export const monthlyRankingCreateSchema = monthlyRankingBaseSchema.refine(
   (data) => {
     // If both contribution dates exist, first should be <= last
     if (data.first_contribution_at && data.last_contribution_at) {
@@ -353,12 +370,23 @@ export const monthlyRankingCreateSchema = z.object({
   }
 );
 
-export const monthlyRankingUpdateSchema = monthlyRankingCreateSchema.partial();
+export const monthlyRankingUpdateSchema = monthlyRankingBaseSchema.partial();
 
-export const monthlyRankingSelectSchema = monthlyRankingCreateSchema.extend({
+export const monthlyRankingSelectSchema = monthlyRankingBaseSchema.extend({
   id: uuidSchema,
   calculated_at: z.coerce.date(),
-});
+}).refine(
+  (data) => {
+    // If both contribution dates exist, first should be <= last
+    if (data.first_contribution_at && data.last_contribution_at) {
+      return data.first_contribution_at <= data.last_contribution_at;
+    }
+    return true;
+  },
+  {
+    message: 'First contribution date must be before or equal to last contribution date',
+  }
+);
 
 /**
  * Daily activity snapshots table schema
@@ -397,7 +425,7 @@ export const syncStatusSchema = z.enum(['started', 'completed', 'failed', 'cance
   errorMap: () => ({ message: 'Invalid sync status' }),
 });
 
-export const syncLogCreateSchema = z.object({
+const syncLogBaseSchema = z.object({
   sync_type: syncTypeSchema,
   repository_id: uuidSchema.nullable(),
   status: syncStatusSchema,
@@ -411,7 +439,9 @@ export const syncLogCreateSchema = z.object({
   github_api_calls_used: nonNegativeIntSchema.default(0),
   rate_limit_remaining: nonNegativeIntSchema.nullable(),
   metadata: z.record(z.unknown()).nullable(),
-}).refine(
+});
+
+export const syncLogCreateSchema = syncLogBaseSchema.refine(
   (data) => {
     // If status is completed or failed, completed_at should be set
     if (['completed', 'failed', 'cancelled'].includes(data.status) && !data.completed_at) {
@@ -428,9 +458,9 @@ export const syncLogCreateSchema = z.object({
   }
 );
 
-export const syncLogUpdateSchema = syncLogCreateSchema.partial();
+export const syncLogUpdateSchema = syncLogBaseSchema.partial();
 
-export const syncLogSelectSchema = syncLogCreateSchema.extend({
+export const syncLogSelectSchema = syncLogBaseSchema.extend({
   id: uuidSchema,
 });
 

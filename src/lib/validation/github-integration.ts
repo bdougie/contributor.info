@@ -12,10 +12,7 @@ import {
   contributorCreateSchema,
   repositoryCreateSchema,
   pullRequestCreateSchema,
-  reviewCreateSchema,
-  commentCreateSchema,
   validateData,
-  transformAndValidate,
   type GitHubUser,
   type GitHubRepository,
   type GitHubPullRequest,
@@ -37,7 +34,7 @@ import {
  */
 export function validateGitHubUser(userData: unknown): GitHubUser | null {
   const result = validateData(githubUserSchema, userData, 'GitHub user');
-  return result.success ? result.data! : null;
+  return result.success && result.data ? result.data : null;
 }
 
 /**
@@ -45,7 +42,7 @@ export function validateGitHubUser(userData: unknown): GitHubUser | null {
  */
 export function validateGitHubRepository(repoData: unknown): GitHubRepository | null {
   const result = validateData(githubRepositorySchema, repoData, 'GitHub repository');
-  return result.success ? result.data! : null;
+  return result.success && result.data ? result.data : null;
 }
 
 /**
@@ -53,7 +50,7 @@ export function validateGitHubRepository(repoData: unknown): GitHubRepository | 
  */
 export function validateGitHubPullRequest(prData: unknown): GitHubPullRequest | null {
   const result = validateData(githubPullRequestSchema, prData, 'GitHub pull request');
-  return result.success ? result.data! : null;
+  return result.success && result.data ? result.data : null;
 }
 
 /**
@@ -61,7 +58,7 @@ export function validateGitHubPullRequest(prData: unknown): GitHubPullRequest | 
  */
 export function validateGitHubReview(reviewData: unknown): GitHubReview | null {
   const result = validateData(githubReviewSchema, reviewData, 'GitHub review');
-  return result.success ? result.data! : null;
+  return result.success && result.data ? result.data : null;
 }
 
 /**
@@ -69,7 +66,7 @@ export function validateGitHubReview(reviewData: unknown): GitHubReview | null {
  */
 export function validateGitHubComment(commentData: unknown): GitHubComment | null {
   const result = validateData(githubCommentSchema, commentData, 'GitHub comment');
-  return result.success ? result.data! : null;
+  return result.success && result.data ? result.data : null;
 }
 
 // =====================================================
@@ -80,7 +77,7 @@ export function validateGitHubComment(commentData: unknown): GitHubComment | nul
  * Transforms GitHub user data into database contributor format
  */
 export function transformGitHubUserToContributor(githubUser: GitHubUser): ContributorCreate {
-  return {
+  const result = {
     github_id: githubUser.id,
     username: githubUser.login,
     display_name: githubUser.name || null,
@@ -91,21 +88,22 @@ export function transformGitHubUserToContributor(githubUser: GitHubUser): Contri
     location: githubUser.location || null,
     bio: githubUser.bio || null,
     blog: githubUser.blog || null,
-    public_repos: githubUser.public_repos || 0,
-    public_gists: githubUser.public_gists || 0,
-    followers: githubUser.followers || 0,
-    following: githubUser.following || 0,
+    public_repos: (githubUser.public_repos ?? 0) as number,
+    public_gists: (githubUser.public_gists ?? 0) as number,
+    followers: (githubUser.followers ?? 0) as number,
+    following: (githubUser.following ?? 0) as number,
     github_created_at: githubUser.created_at ? new Date(githubUser.created_at) : null,
     is_bot: githubUser.type === 'Bot',
-    is_active: true,
+    is_active: true as boolean,
   };
+  return result;
 }
 
 /**
  * Transforms GitHub repository data into database repository format
  */
 export function transformGitHubRepositoryToRepository(githubRepo: GitHubRepository): RepositoryCreate {
-  return {
+  const result = {
     github_id: githubRepo.id,
     full_name: githubRepo.full_name,
     owner: githubRepo.owner.login,
@@ -117,7 +115,7 @@ export function transformGitHubRepositoryToRepository(githubRepo: GitHubReposito
     watchers_count: githubRepo.watchers_count,
     forks_count: githubRepo.forks_count,
     open_issues_count: githubRepo.open_issues_count,
-    size: githubRepo.size,
+    size: (githubRepo.size ?? 0) as number,
     default_branch: githubRepo.default_branch,
     is_fork: githubRepo.fork,
     is_archived: githubRepo.archived,
@@ -133,8 +131,9 @@ export function transformGitHubRepositoryToRepository(githubRepo: GitHubReposito
     github_created_at: new Date(githubRepo.created_at),
     github_updated_at: new Date(githubRepo.updated_at),
     github_pushed_at: githubRepo.pushed_at ? new Date(githubRepo.pushed_at) : null,
-    is_active: true,
+    is_active: true as boolean,
   };
+  return result;
 }
 
 /**
@@ -161,16 +160,16 @@ export function transformGitHubPullRequestToPullRequest(
     draft: githubPR.draft,
     mergeable: githubPR.mergeable,
     mergeable_state: githubPR.mergeable_state,
-    merged: githubPR.merged,
+    merged: githubPR.merged ?? false,
     merged_by_id: mergedById || null,
     created_at: new Date(githubPR.created_at),
     updated_at: new Date(githubPR.updated_at),
     merged_at: githubPR.merged_at ? new Date(githubPR.merged_at) : null,
     closed_at: githubPR.closed_at ? new Date(githubPR.closed_at) : null,
-    additions: githubPR.additions,
-    deletions: githubPR.deletions,
-    changed_files: githubPR.changed_files,
-    commits: githubPR.commits,
+    additions: githubPR.additions ?? 0,
+    deletions: githubPR.deletions ?? 0,
+    changed_files: githubPR.changed_files ?? 0,
+    commits: githubPR.commits ?? 0,
     html_url: githubPR.html_url || null,
     diff_url: githubPR.diff_url || null,
     patch_url: githubPR.patch_url || null,
@@ -230,30 +229,44 @@ export function transformGitHubCommentToComment(
  * Validates GitHub user data and transforms it for database storage
  */
 export function validateAndTransformGitHubUser(userData: unknown): ContributorCreate | null {
-  const result = transformAndValidate(
-    githubUserSchema,
-    contributorCreateSchema,
-    transformGitHubUserToContributor,
-    userData,
-    'GitHub user to contributor'
-  );
+  // First validate the input
+  const inputValidation = validateData(githubUserSchema, userData, 'GitHub user');
+  if (!inputValidation.success || !inputValidation.data) {
+    return null;
+  }
   
-  return result.success ? result.data! : null;
+  // Transform the validated data
+  const transformed = transformGitHubUserToContributor(inputValidation.data);
+  
+  // Validate the transformed data
+  const outputValidation = validateData(contributorCreateSchema, transformed, 'Transformed contributor');
+  if (!outputValidation.success || !outputValidation.data) {
+    return null;
+  }
+  
+  return outputValidation.data;
 }
 
 /**
  * Validates GitHub repository data and transforms it for database storage
  */
 export function validateAndTransformGitHubRepository(repoData: unknown): RepositoryCreate | null {
-  const result = transformAndValidate(
-    githubRepositorySchema,
-    repositoryCreateSchema,
-    transformGitHubRepositoryToRepository,
-    repoData,
-    'GitHub repository to repository'
-  );
+  // First validate the input
+  const inputValidation = validateData(githubRepositorySchema, repoData, 'GitHub repository');
+  if (!inputValidation.success || !inputValidation.data) {
+    return null;
+  }
   
-  return result.success ? result.data! : null;
+  // Transform the validated data
+  const transformed = transformGitHubRepositoryToRepository(inputValidation.data);
+  
+  // Validate the transformed data
+  const outputValidation = validateData(repositoryCreateSchema, transformed, 'Transformed repository');
+  if (!outputValidation.success || !outputValidation.data) {
+    return null;
+  }
+  
+  return outputValidation.data;
 }
 
 /**
@@ -266,15 +279,28 @@ export function validateAndTransformGitHubPullRequest(
   assigneeId?: string,
   mergedById?: string
 ): PullRequestCreate | null {
-  const result = transformAndValidate(
-    githubPullRequestSchema,
-    pullRequestCreateSchema,
-    (githubPR) => transformGitHubPullRequestToPullRequest(githubPR, repositoryId, authorId, assigneeId, mergedById),
-    prData,
-    'GitHub pull request to pull request'
+  // First validate the input
+  const inputValidation = validateData(githubPullRequestSchema, prData, 'GitHub pull request');
+  if (!inputValidation.success || !inputValidation.data) {
+    return null;
+  }
+  
+  // Transform the validated data
+  const transformed = transformGitHubPullRequestToPullRequest(
+    inputValidation.data, 
+    repositoryId, 
+    authorId, 
+    assigneeId, 
+    mergedById
   );
   
-  return result.success ? result.data! : null;
+  // Validate the transformed data
+  const outputValidation = validateData(pullRequestCreateSchema, transformed, 'Transformed pull request');
+  if (!outputValidation.success || !outputValidation.data) {
+    return null;
+  }
+  
+  return outputValidation.data;
 }
 
 // =====================================================
@@ -354,7 +380,7 @@ export function safeValidateGitHubResponse<T>(
     return null;
   }
   
-  return result.data!;
+  return result.data as T;
 }
 
 /**
