@@ -3,12 +3,71 @@ name: Storybook Interaction Tests
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'src/components/**'
+      - 'src/stories/**'
+      - '.storybook/**'
+      - '**/*.stories.@(js|jsx|ts|tsx|mdx)'
+      - 'src/**/*.css'
+      - 'src/**/*.scss'
+      - 'tailwind.config.js'
+      - 'package.json'
+      - 'package-lock.json'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'src/components/**'
+      - 'src/stories/**'
+      - '.storybook/**'
+      - '**/*.stories.@(js|jsx|ts|tsx|mdx)'
+      - 'src/**/*.css'
+      - 'src/**/*.scss'
+      - 'tailwind.config.js'
+      - 'package.json'
+      - 'package-lock.json'
 
 jobs:
+  check-visual-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.changes.outputs.visual }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for visual changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            visual:
+              - 'src/components/**'
+              - 'src/stories/**'
+              - '.storybook/**'
+              - '**/*.stories.@(js|jsx|ts|tsx|mdx)'
+              - 'src/**/*.css'
+              - 'src/**/*.scss'
+              - 'tailwind.config.js'
+              - 'package.json'
+              - 'package-lock.json'
+
+      - name: Report test status
+        run: |
+          if [ "${{ steps.changes.outputs.visual }}" == "true" ]; then
+            echo "✅ Visual changes detected - Storybook tests will run"
+            echo "Changed paths: ${{ steps.changes.outputs.visual_files }}"
+          else
+            echo "⏭️ No visual changes detected - Skipping Storybook tests"
+            echo "Monitored paths: components, stories, styles, Storybook config"
+          fi
+
   interaction-tests:
     runs-on: ubuntu-latest
+    needs: check-visual-changes
+    # Only run if there are visual changes
+    if: needs.check-visual-changes.outputs.should-run == 'true'
     
     steps:
     - name: Checkout repository
@@ -23,7 +82,7 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
-    - name: Build Storybook
+    - name: Build Storybook for interaction testing
       run: npm run build-storybook --quiet
       
     - name: Install Playwright browsers
@@ -49,6 +108,9 @@ jobs:
 
   accessibility-tests:
     runs-on: ubuntu-latest
+    needs: check-visual-changes
+    # Only run if there are visual changes
+    if: needs.check-visual-changes.outputs.should-run == 'true'
     
     steps:
     - name: Checkout repository
@@ -63,7 +125,7 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
-    - name: Build Storybook
+    - name: Build Storybook for accessibility testing
       run: npm run build-storybook --quiet
       
     - name: Install Playwright browsers
