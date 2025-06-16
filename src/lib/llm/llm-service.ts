@@ -57,6 +57,11 @@ class LLMService {
         cacheService.set(cacheKey, insight, dataHash);
       }
       
+      // If OpenAI is unavailable (returns null), use fallback
+      if (!insight && this.options.enableFallbacks) {
+        return this.generateFallbackHealthInsight(healthData);
+      }
+      
       return insight;
     } catch (error) {
       console.error('LLM health insight failed:', error);
@@ -95,6 +100,11 @@ class LLMService {
         cacheService.set(cacheKey, insight, dataHash);
       }
       
+      // If OpenAI is unavailable (returns null), use fallback
+      if (!insight && this.options.enableFallbacks) {
+        return this.generateFallbackRecommendations(data);
+      }
+      
       return insight;
     } catch (error) {
       console.error('LLM recommendations failed:', error);
@@ -131,6 +141,11 @@ class LLMService {
       
       if (insight && this.options.enableCaching) {
         cacheService.set(cacheKey, insight, dataHash);
+      }
+      
+      // If OpenAI is unavailable (returns null), use fallback
+      if (!insight && this.options.enableFallbacks) {
+        return this.generateFallbackPatternInsight(prData);
       }
       
       return insight;

@@ -3,7 +3,7 @@
  * Tracks daily usage across different model tiers
  */
 
-interface DailyUsage {
+export interface DailyUsage {
   date: string; // YYYY-MM-DD format
   primaryTokens: number;  // gpt-4o, gpt-4.1, etc (1M daily limit)
   miniTokens: number;     // gpt-4o-mini, etc (10M daily limit)
