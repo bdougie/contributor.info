@@ -4,20 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { calculateHealthMetrics, type HealthMetrics } from "@/lib/insights/health-metrics";
 
-interface HealthMetrics {
-  score: number; // 0-100
-  trend: "improving" | "declining" | "stable";
-  lastChecked: Date;
-  factors: {
-    name: string;
-    score: number;
-    weight: number;
-    status: "good" | "warning" | "critical";
-    description: string;
-  }[];
-  recommendations: string[];
-}
 
 interface RepositoryHealthProps {
   owner: string;
@@ -36,59 +24,12 @@ export function RepositoryHealth({ owner, repo, timeRange }: RepositoryHealthPro
   const loadHealthMetrics = async () => {
     setLoading(true);
     try {
-      // TODO: Implement actual health metrics calculation
-      setTimeout(() => {
-        setHealth({
-          score: 78,
-          trend: "improving",
-          lastChecked: new Date(),
-          factors: [
-            {
-              name: "PR Merge Time",
-              score: 85,
-              weight: 25,
-              status: "good",
-              description: "Average merge time is 36 hours"
-            },
-            {
-              name: "Contributor Diversity",
-              score: 70,
-              weight: 20,
-              status: "warning",
-              description: "5 active contributors, could be more diverse"
-            },
-            {
-              name: "Review Coverage",
-              score: 90,
-              weight: 20,
-              status: "good",
-              description: "95% of PRs receive reviews"
-            },
-            {
-              name: "Bus Factor",
-              score: 60,
-              weight: 20,
-              status: "warning",
-              description: "2 contributors handle 60% of work"
-            },
-            {
-              name: "Response Time",
-              score: 75,
-              weight: 15,
-              status: "good",
-              description: "First response within 24 hours"
-            }
-          ],
-          recommendations: [
-            "Encourage more contributors to review PRs",
-            "Consider onboarding new contributors to improve bus factor",
-            "Maintain current merge time performance"
-          ]
-        });
-        setLoading(false);
-      }, 700);
+      const metrics = await calculateHealthMetrics(owner, repo, timeRange);
+      setHealth(metrics);
     } catch (error) {
       console.error("Failed to load health metrics:", error);
+      setHealth(null);
+    } finally {
       setLoading(false);
     }
   };
