@@ -75,9 +75,11 @@ describe('LLM Service', () => {
 
   it('should provide cache statistics', () => {
     const stats = llmService.getCacheStats();
-    expect(stats).toHaveProperty('size');
+    expect(stats).toHaveProperty('memorySize');
+    expect(stats).toHaveProperty('persistentSize');
     expect(stats).toHaveProperty('hitRate');
-    expect(typeof stats.size).toBe('number');
+    expect(typeof stats.memorySize).toBe('number');
+    expect(typeof stats.persistentSize).toBe('number');
     expect(typeof stats.hitRate).toBe('number');
   });
 

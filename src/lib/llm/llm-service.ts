@@ -4,11 +4,7 @@
  */
 
 import { openAIService, type LLMInsight } from './openai-service';
-
-export interface CachedInsight extends LLMInsight {
-  cacheKey: string;
-  expiresAt: Date;
-}
+import { cacheService } from './cache-service';
 
 export interface LLMServiceOptions {
   enableCaching: boolean;
@@ -17,7 +13,6 @@ export interface LLMServiceOptions {
 }
 
 class LLMService {
-  private cache = new Map<string, CachedInsight>();
   private options: LLMServiceOptions;
 
   constructor(options: Partial<LLMServiceOptions> = {}) {
@@ -44,10 +39,11 @@ class LLMService {
     repoInfo: { owner: string; repo: string }
   ): Promise<LLMInsight | null> {
     const cacheKey = this.buildCacheKey('health', repoInfo, healthData.score);
+    const dataHash = this.generateDataHash(healthData);
     
     // Check cache first
     if (this.options.enableCaching) {
-      const cached = this.getFromCache(cacheKey);
+      const cached = cacheService.get(cacheKey, dataHash);
       if (cached) {
         return cached;
       }
@@ -58,7 +54,7 @@ class LLMService {
       const insight = await openAIService.generateHealthInsight(healthData, repoInfo);
       
       if (insight && this.options.enableCaching) {
-        this.saveToCache(cacheKey, insight);
+        cacheService.set(cacheKey, insight, dataHash);
       }
       
       return insight;
@@ -81,10 +77,11 @@ class LLMService {
     repoInfo: { owner: string; repo: string }
   ): Promise<LLMInsight | null> {
     const cacheKey = this.buildCacheKey('recommendations', repoInfo, data.health?.score || 0);
+    const dataHash = this.generateDataHash(data);
     
     // Check cache first
     if (this.options.enableCaching) {
-      const cached = this.getFromCache(cacheKey);
+      const cached = cacheService.get(cacheKey, dataHash);
       if (cached) {
         return cached;
       }
@@ -95,7 +92,7 @@ class LLMService {
       const insight = await openAIService.generateRecommendations(data, repoInfo);
       
       if (insight && this.options.enableCaching) {
-        this.saveToCache(cacheKey, insight);
+        cacheService.set(cacheKey, insight, dataHash);
       }
       
       return insight;
@@ -118,10 +115,11 @@ class LLMService {
     repoInfo: { owner: string; repo: string }
   ): Promise<LLMInsight | null> {
     const cacheKey = this.buildCacheKey('patterns', repoInfo, prData.length);
+    const dataHash = this.generateDataHash(prData);
     
     // Check cache first
     if (this.options.enableCaching) {
-      const cached = this.getFromCache(cacheKey);
+      const cached = cacheService.get(cacheKey, dataHash);
       if (cached) {
         return cached;
       }
@@ -132,7 +130,7 @@ class LLMService {
       const insight = await openAIService.analyzePRPatterns(prData, repoInfo);
       
       if (insight && this.options.enableCaching) {
-        this.saveToCache(cacheKey, insight);
+        cacheService.set(cacheKey, insight, dataHash);
       }
       
       return insight;
@@ -151,30 +149,28 @@ class LLMService {
    * Clear all cached insights
    */
   clearCache(): void {
-    this.cache.clear();
+    cacheService.clear();
   }
 
   /**
    * Clear expired cache entries
    */
   cleanupCache(): void {
-    const now = new Date();
-    for (const [key, insight] of this.cache.entries()) {
-      if (now > insight.expiresAt) {
-        this.cache.delete(key);
-      }
-    }
+    cacheService.cleanup();
   }
 
   /**
    * Get cache statistics
    */
-  getCacheStats(): { size: number; hitRate: number } {
-    // Simple implementation - in production would track hit/miss rates
-    return {
-      size: this.cache.size,
-      hitRate: 0 // Would need to implement hit tracking
-    };
+  getCacheStats() {
+    return cacheService.getStats();
+  }
+
+  /**
+   * Invalidate cache for a specific repository
+   */
+  invalidateRepository(owner: string, repo: string): void {
+    cacheService.invalidateRepository(owner, repo);
   }
 
   /**
@@ -185,43 +181,20 @@ class LLMService {
   }
 
   /**
-   * Get insight from cache if not expired
+   * Generate hash from data for cache invalidation
    */
-  private getFromCache(cacheKey: string): LLMInsight | null {
-    const cached = this.cache.get(cacheKey);
-    
-    if (cached && new Date() <= cached.expiresAt) {
-      return {
-        type: cached.type,
-        content: cached.content,
-        confidence: cached.confidence,
-        timestamp: cached.timestamp
-      };
+  private generateDataHash(data: any): string {
+    // Simple hash function for data changes detection
+    const dataString = JSON.stringify(data);
+    let hash = 0;
+    for (let i = 0; i < dataString.length; i++) {
+      const char = dataString.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
     }
-    
-    // Remove expired entry
-    if (cached) {
-      this.cache.delete(cacheKey);
-    }
-    
-    return null;
+    return Math.abs(hash).toString(36);
   }
 
-  /**
-   * Save insight to cache with expiry
-   */
-  private saveToCache(cacheKey: string, insight: LLMInsight): void {
-    const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + this.options.cacheExpiryMinutes);
-    
-    const cachedInsight: CachedInsight = {
-      ...insight,
-      cacheKey,
-      expiresAt
-    };
-    
-    this.cache.set(cacheKey, cachedInsight);
-  }
 
   /**
    * Generate fallback health insight when LLM fails
