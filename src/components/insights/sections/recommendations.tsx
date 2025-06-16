@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
-import { Sparkles, Lightbulb, Target, Zap, CheckCircle } from "lucide-react";
+import { Sparkles, Lightbulb, Target, Zap, CheckCircle, Brain } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { llmService, type LLMInsight } from "@/lib/llm";
+import { calculateHealthMetrics } from "@/lib/insights/health-metrics";
+import { calculatePrActivityMetrics } from "@/lib/insights/pr-activity-metrics";
+import { calculateTrendMetrics } from "@/lib/insights/trends-metrics";
 
 interface Recommendation {
   id: string;
@@ -32,6 +36,8 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
   const [loading, setLoading] = useState(true);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [llmInsight, setLlmInsight] = useState<LLMInsight | null>(null);
+  const [llmLoading, setLlmLoading] = useState(false);
 
   useEffect(() => {
     loadRecommendations();
@@ -39,75 +45,153 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
 
   const loadRecommendations = async () => {
     setLoading(true);
+    setLlmInsight(null);
+    
     try {
-      // TODO: Implement actual recommendations engine
-      setTimeout(() => {
-        setRecommendations([
-          {
-            id: "rec-1",
-            type: "contributor",
-            priority: "high",
-            title: "Onboard new contributors",
-            description: "Your repository has low contributor diversity. Consider creating good-first-issue labels and documentation.",
-            impact: "Increase bus factor and community growth",
-            actionable: true,
-            actions: [
-              { label: "Create good-first-issues", onClick: () => console.log("Create issues") },
-              { label: "View contributing guide", url: `https://github.com/${owner}/${repo}/blob/main/CONTRIBUTING.md` }
-            ]
-          },
-          {
-            id: "rec-2",
-            type: "process",
-            priority: "medium",
-            title: "Automate PR checks",
-            description: "Enable GitHub Actions for automated testing and linting to reduce review burden.",
-            impact: "Reduce review time by 40%",
-            actionable: true,
-            actions: [
-              { label: "Setup GitHub Actions", url: `https://github.com/${owner}/${repo}/actions/new` }
-            ]
-          },
-          {
-            id: "rec-3",
-            type: "performance",
-            priority: "medium",
-            title: "Optimize review assignments",
-            description: "Use CODEOWNERS file to automatically assign reviewers based on expertise.",
-            impact: "Faster review turnaround",
-            actionable: true,
-            actions: [
-              { label: "Create CODEOWNERS", url: `https://github.com/${owner}/${repo}/new/main?filename=.github/CODEOWNERS` }
-            ]
-          },
-          {
-            id: "rec-4",
-            type: "quality",
-            priority: "low",
-            title: "Add PR templates",
-            description: "Standardize PR descriptions with templates to improve review efficiency.",
-            impact: "Better PR documentation",
-            actionable: true,
-            actions: [
-              { label: "Add PR template", url: `https://github.com/${owner}/${repo}/new/main?filename=.github/pull_request_template.md` }
-            ]
-          },
-          {
-            id: "rec-5",
-            type: "process",
-            priority: "low",
-            title: "Weekly contributor sync",
-            description: "Schedule regular sync meetings to discuss blockers and align on priorities.",
-            impact: "Improved team coordination",
-            actionable: false
-          }
-        ]);
-        setLoading(false);
-      }, 800);
+      // Fetch all insights data in parallel
+      const [healthData, activityData, trendsData] = await Promise.all([
+        calculateHealthMetrics(owner, repo, timeRange),
+        calculatePrActivityMetrics(owner, repo, timeRange),
+        calculateTrendMetrics(owner, repo, timeRange)
+      ]);
+
+      // Generate rule-based recommendations first
+      const ruleBasedRecs = generateRuleBasedRecommendations(healthData, activityData, trendsData);
+      setRecommendations(ruleBasedRecs);
+      
+      // Generate LLM recommendations if available
+      if (llmService.isAvailable()) {
+        loadLLMRecommendations(healthData, activityData, trendsData);
+      }
+      
     } catch (error) {
       console.error("Failed to load recommendations:", error);
+      
+      // Fallback recommendations
+      setRecommendations(getFallbackRecommendations());
+    } finally {
       setLoading(false);
     }
+  };
+
+  const loadLLMRecommendations = async (healthData: any, activityData: any, trendsData: any[]) => {
+    setLlmLoading(true);
+    try {
+      const combinedData = {
+        health: healthData,
+        activity: activityData,
+        trends: trendsData
+      };
+      
+      const insight = await llmService.generateRecommendations(combinedData, { owner, repo });
+      setLlmInsight(insight);
+    } catch (error) {
+      console.error("Failed to load LLM recommendations:", error);
+      setLlmInsight(null);
+    } finally {
+      setLlmLoading(false);
+    }
+  };
+
+  const generateRuleBasedRecommendations = (healthData: any, activityData: any, trendsData: any[]): Recommendation[] => {
+    const recommendations: Recommendation[] = [];
+    
+    // Health-based recommendations
+    if (healthData.score < 60) {
+      const criticalFactors = healthData.factors.filter((f: any) => f.status === 'critical');
+      if (criticalFactors.length > 0) {
+        recommendations.push({
+          id: "health-critical",
+          type: "quality",
+          priority: "high",
+          title: `Improve ${criticalFactors[0].name}`,
+          description: criticalFactors[0].description,
+          impact: "Increase repository health score",
+          actionable: true,
+          actions: [
+            { label: "View health details", onClick: () => console.log("Navigate to health") }
+          ]
+        });
+      }
+    }
+
+    // Activity-based recommendations  
+    if (activityData.weeklyVelocity < 5) {
+      recommendations.push({
+        id: "velocity-low",
+        type: "process",
+        priority: "medium",
+        title: "Increase development velocity",
+        description: "Weekly PR velocity is low. Consider breaking down large features into smaller PRs.",
+        impact: "Improve development speed",
+        actionable: true,
+        actions: [
+          { label: "GitHub Flow guide", url: "https://guides.github.com/introduction/flow/" }
+        ]
+      });
+    }
+
+    // Trend-based recommendations
+    const prVolumeDecline = trendsData.find(t => t.metric.includes('PR Volume') && t.trend === 'down');
+    if (prVolumeDecline && prVolumeDecline.change < -20) {
+      recommendations.push({
+        id: "pr-decline",
+        type: "contributor",
+        priority: "medium",
+        title: "Address declining PR activity",
+        description: `PR volume has decreased by ${Math.abs(prVolumeDecline.change)}%. Consider engaging more contributors.`,
+        impact: "Maintain development momentum",
+        actionable: true,
+        actions: [
+          { label: "Create good-first-issues", url: `https://github.com/${owner}/${repo}/labels/good%20first%20issue` }
+        ]
+      });
+    }
+
+    // Always include general process improvements
+    recommendations.push({
+      id: "automation",
+      type: "process",
+      priority: "low",
+      title: "Automate PR checks",
+      description: "Enable GitHub Actions for automated testing and linting to reduce review burden.",
+      impact: "Reduce review time by 40%",
+      actionable: true,
+      actions: [
+        { label: "Setup GitHub Actions", url: `https://github.com/${owner}/${repo}/actions/new` }
+      ]
+    });
+
+    return recommendations.slice(0, 4); // Limit to top 4
+  };
+
+  const getFallbackRecommendations = (): Recommendation[] => {
+    return [
+      {
+        id: "fallback-1",
+        type: "quality",
+        priority: "medium",
+        title: "Improve code review process",
+        description: "Establish clear review guidelines and ensure all PRs receive proper review.",
+        impact: "Better code quality",
+        actionable: true,
+        actions: [
+          { label: "Review guide", url: `https://github.com/${owner}/${repo}/blob/main/CONTRIBUTING.md` }
+        ]
+      },
+      {
+        id: "fallback-2",
+        type: "process",
+        priority: "low",
+        title: "Document development workflow",
+        description: "Create clear documentation for new contributors to understand the development process.",
+        impact: "Faster onboarding",
+        actionable: true,
+        actions: [
+          { label: "Add README", url: `https://github.com/${owner}/${repo}/edit/main/README.md` }
+        ]
+      }
+    ];
   };
 
   const getTypeIcon = (type: Recommendation["type"]) => {
@@ -142,6 +226,18 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
     (rec) => !dismissedIds.has(rec.id) && !rec.completed
   );
 
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 0.8) return "text-green-600";
+    if (confidence >= 0.6) return "text-yellow-600";
+    return "text-gray-600";
+  };
+
+  const getConfidenceLabel = (confidence: number) => {
+    if (confidence >= 0.8) return "High";
+    if (confidence >= 0.6) return "Medium";
+    return "Low";
+  };
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -152,7 +248,7 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
     );
   }
 
-  if (visibleRecommendations.length === 0) {
+  if (visibleRecommendations.length === 0 && !llmInsight && !llmLoading) {
     return (
       <div className="text-center py-8">
         <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
@@ -228,17 +324,57 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
           </Card>
         );
       })}
+
+      {/* AI-Generated Recommendations */}
+      {(llmInsight || llmLoading) && (
+        <Card className="p-4 border-purple-200 bg-purple-50/50 dark:border-purple-700 dark:bg-purple-900/20">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium flex items-center gap-2">
+              <Brain className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              AI Insights
+            </h4>
+            {llmInsight && (
+              <Badge 
+                variant="outline" 
+                className={cn("text-xs", getConfidenceColor(llmInsight.confidence))}
+              >
+                <Sparkles className="h-3 w-3 mr-1" />
+                {getConfidenceLabel(llmInsight.confidence)} Confidence
+              </Badge>
+            )}
+          </div>
+          
+          {llmLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-4/5" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ) : llmInsight ? (
+            <div className="space-y-3">
+              <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+                {llmInsight.content}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Generated {new Date(llmInsight.timestamp).toLocaleTimeString()}
+              </p>
+            </div>
+          ) : null}
+        </Card>
+      )}
       
-      <div className="text-center pt-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-xs"
-          onClick={() => setDismissedIds(new Set())}
-        >
-          Show dismissed ({dismissedIds.size})
-        </Button>
-      </div>
+      {visibleRecommendations.length > 0 && (
+        <div className="text-center pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs"
+            onClick={() => setDismissedIds(new Set())}
+          >
+            Show dismissed ({dismissedIds.size})
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
