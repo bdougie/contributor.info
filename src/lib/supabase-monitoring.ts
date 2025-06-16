@@ -40,7 +40,6 @@ interface ConnectionMetrics {
 class SupabaseMonitoring {
   private client: SupabaseClient;
   private queryMetrics: QueryMetrics[] = [];
-  private connectionMetrics: ConnectionMetrics[] = [];
   private performanceObserver?: PerformanceObserver;
 
   constructor(client: SupabaseClient) {
@@ -81,16 +80,6 @@ class SupabaseMonitoring {
     }
   }
 
-  private categorizeQuery(operation: string, table?: string): QueryCategory {
-    const op = operation.toLowerCase();
-    if (op.includes('select') || op.includes('from')) return QUERY_CATEGORIES.READ;
-    if (op.includes('insert') || op.includes('update') || op.includes('upsert')) return QUERY_CATEGORIES.WRITE;
-    if (op.includes('delete')) return QUERY_CATEGORIES.DELETE;
-    if (op.includes('rpc')) return QUERY_CATEGORIES.RPC;
-    if (op.includes('storage')) return QUERY_CATEGORIES.STORAGE;
-    if (op.includes('auth')) return QUERY_CATEGORIES.AUTH;
-    return QUERY_CATEGORIES.READ; // default
-  }
 
   private async logQueryMetrics(metrics: QueryMetrics) {
     this.queryMetrics.push(metrics);
@@ -152,98 +141,10 @@ class SupabaseMonitoring {
   }
 
   // Enhanced query methods with monitoring
-  async from(table: string) {
-    const startTime = performance.now();
-    
-    try {
-      const queryBuilder = this.client.from(table);
-      
-      // Wrap the query builder methods to add monitoring
-      const originalSelect = queryBuilder.select.bind(queryBuilder);
-      const originalInsert = queryBuilder.insert.bind(queryBuilder);
-      const originalUpdate = queryBuilder.update.bind(queryBuilder);
-      const originalDelete = queryBuilder.delete.bind(queryBuilder);
-      const originalUpsert = queryBuilder.upsert.bind(queryBuilder);
-
-      queryBuilder.select = (...args) => {
-        const query = originalSelect(...args);
-        this.wrapQueryExecution(query, 'select', table, startTime);
-        return query;
-      };
-
-      queryBuilder.insert = (...args) => {
-        const query = originalInsert(...args);
-        this.wrapQueryExecution(query, 'insert', table, startTime);
-        return query;
-      };
-
-      queryBuilder.update = (...args) => {
-        const query = originalUpdate(...args);
-        this.wrapQueryExecution(query, 'update', table, startTime);
-        return query;
-      };
-
-      queryBuilder.delete = (...args) => {
-        const query = originalDelete(...args);
-        this.wrapQueryExecution(query, 'delete', table, startTime);
-        return query;
-      };
-
-      queryBuilder.upsert = (...args) => {
-        const query = originalUpsert(...args);
-        this.wrapQueryExecution(query, 'upsert', table, startTime);
-        return query;
-      };
-
-      return queryBuilder;
-    } catch (error) {
-      const duration = performance.now() - startTime;
-      await this.logQueryMetrics({
-        operation: `from(${table})`,
-        table,
-        category: QUERY_CATEGORIES.READ,
-        duration,
-        success: false,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-      });
-      throw error;
-    }
+  from(table: string) {
+    return this.client.from(table);
   }
 
-  private async wrapQueryExecution(query: any, operation: string, table: string, startTime: number) {
-    const originalThen = query.then?.bind(query);
-    if (originalThen) {
-      query.then = async (onResolve: any, onReject: any) => {
-        try {
-          const result = await originalThen(onResolve, onReject);
-          const duration = performance.now() - startTime;
-          
-          await this.logQueryMetrics({
-            operation: `${operation} from ${table}`,
-            table,
-            category: this.categorizeQuery(operation, table),
-            duration,
-            success: !result.error,
-            errorMessage: result.error?.message,
-            rowCount: Array.isArray(result.data) ? result.data.length : result.data ? 1 : 0,
-          });
-
-          return result;
-        } catch (error) {
-          const duration = performance.now() - startTime;
-          await this.logQueryMetrics({
-            operation: `${operation} from ${table}`,
-            table,
-            category: this.categorizeQuery(operation, table),
-            duration,
-            success: false,
-            errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          });
-          throw error;
-        }
-      };
-    }
-  }
 
   // Enhanced RPC with monitoring
   async rpc(functionName: string, params?: any) {
@@ -278,135 +179,7 @@ class SupabaseMonitoring {
 
   // Enhanced storage operations with monitoring
   get storage() {
-    const originalStorage = this.client.storage;
-    
-    return {
-      ...originalStorage,
-      from: (bucketName: string) => {
-        const bucket = originalStorage.from(bucketName);
-        
-        // Wrap storage operations
-        const originalUpload = bucket.upload.bind(bucket);
-        const originalDownload = bucket.download.bind(bucket);
-        const originalList = bucket.list.bind(bucket);
-        const originalRemove = bucket.remove.bind(bucket);
-
-        bucket.upload = async (...args) => {
-          const startTime = performance.now();
-          try {
-            const result = await originalUpload(...args);
-            const duration = performance.now() - startTime;
-            
-            await this.logQueryMetrics({
-              operation: `storage.upload to ${bucketName}`,
-              category: QUERY_CATEGORIES.STORAGE,
-              duration,
-              success: !result.error,
-              errorMessage: result.error?.message,
-            });
-
-            return result;
-          } catch (error) {
-            const duration = performance.now() - startTime;
-            await this.logQueryMetrics({
-              operation: `storage.upload to ${bucketName}`,
-              category: QUERY_CATEGORIES.STORAGE,
-              duration,
-              success: false,
-              errorMessage: error instanceof Error ? error.message : 'Unknown error',
-            });
-            throw error;
-          }
-        };
-
-        bucket.download = async (...args) => {
-          const startTime = performance.now();
-          try {
-            const result = await originalDownload(...args);
-            const duration = performance.now() - startTime;
-            
-            await this.logQueryMetrics({
-              operation: `storage.download from ${bucketName}`,
-              category: QUERY_CATEGORIES.STORAGE,
-              duration,
-              success: !result.error,
-              errorMessage: result.error?.message,
-            });
-
-            return result;
-          } catch (error) {
-            const duration = performance.now() - startTime;
-            await this.logQueryMetrics({
-              operation: `storage.download from ${bucketName}`,
-              category: QUERY_CATEGORIES.STORAGE,
-              duration,
-              success: false,
-              errorMessage: error instanceof Error ? error.message : 'Unknown error',
-            });
-            throw error;
-          }
-        };
-
-        bucket.list = async (...args) => {
-          const startTime = performance.now();
-          try {
-            const result = await originalList(...args);
-            const duration = performance.now() - startTime;
-            
-            await this.logQueryMetrics({
-              operation: `storage.list from ${bucketName}`,
-              category: QUERY_CATEGORIES.STORAGE,
-              duration,
-              success: !result.error,
-              errorMessage: result.error?.message,
-              rowCount: Array.isArray(result.data) ? result.data.length : 0,
-            });
-
-            return result;
-          } catch (error) {
-            const duration = performance.now() - startTime;
-            await this.logQueryMetrics({
-              operation: `storage.list from ${bucketName}`,
-              category: QUERY_CATEGORIES.STORAGE,
-              duration,
-              success: false,
-              errorMessage: error instanceof Error ? error.message : 'Unknown error',
-            });
-            throw error;
-          }
-        };
-
-        bucket.remove = async (...args) => {
-          const startTime = performance.now();
-          try {
-            const result = await originalRemove(...args);
-            const duration = performance.now() - startTime;
-            
-            await this.logQueryMetrics({
-              operation: `storage.remove from ${bucketName}`,
-              category: QUERY_CATEGORIES.STORAGE,
-              duration,
-              success: !result.error,
-              errorMessage: result.error?.message,
-            });
-
-            return result;
-          } catch (error) {
-            const duration = performance.now() - startTime;
-            await this.logQueryMetrics({
-              operation: `storage.remove from ${bucketName}`,
-              category: QUERY_CATEGORIES.STORAGE,
-              duration,
-              success: false,
-              errorMessage: error instanceof Error ? error.message : 'Unknown error',
-            });
-            throw error;
-          }
-        };
-
-        return bucket;
-      },
-    };
+    return this.client.storage;
   }
 
   // Get performance metrics
@@ -437,7 +210,6 @@ class SupabaseMonitoring {
   destroy() {
     this.performanceObserver?.disconnect();
     this.queryMetrics = [];
-    this.connectionMetrics = [];
   }
 
   // Expose original client for compatibility

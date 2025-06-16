@@ -75,8 +75,7 @@ class GitHubAPIMonitoring {
   async wrapGitHubAPICall<T>(
     apiCall: () => Promise<Response>,
     endpoint: string,
-    method: string = 'GET',
-    useCache: boolean = false
+    method: string = 'GET'
   ): Promise<T> {
     const startTime = performance.now();
     const timestamp = new Date();
