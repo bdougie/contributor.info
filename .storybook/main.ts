@@ -26,6 +26,10 @@ const config: StorybookConfig = {
     name: "@storybook/react-vite",
     options: {}
   },
+  features: {
+    // Enable TurboSnap for Chromatic
+    buildStoriesJson: true,
+  },
   // Custom manager head configuration
   managerHead: (head) => `
     ${head}

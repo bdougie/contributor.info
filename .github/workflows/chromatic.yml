@@ -3,15 +3,64 @@ name: Chromatic Visual Testing
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/components/**'
+      - 'src/stories/**'
+      - '.storybook/**'
+      - '**/*.stories.@(js|jsx|ts|tsx|mdx)'
+      - 'src/**/*.css'
+      - 'src/**/*.scss'
+      - 'tailwind.config.js'
+      - 'package.json'
+      - 'package-lock.json'
   pull_request:
     types: [opened, synchronize, ready_for_review]
     branches: [main]
+    paths:
+      - 'src/components/**'
+      - 'src/stories/**'
+      - '.storybook/**'
+      - '**/*.stories.@(js|jsx|ts|tsx|mdx)'
+      - 'src/**/*.css'
+      - 'src/**/*.scss'
+      - 'tailwind.config.js'
+      - 'package.json'
+      - 'package-lock.json'
 
 jobs:
+  check-visual-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.changes.outputs.visual }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for visual changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            visual:
+              - 'src/components/**'
+              - 'src/stories/**'
+              - '.storybook/**'
+              - '**/*.stories.@(js|jsx|ts|tsx|mdx)'
+              - 'src/**/*.css'
+              - 'src/**/*.scss'
+              - 'tailwind.config.js'
+              - 'package.json'
+              - 'package-lock.json'
+
   chromatic-deployment:
     runs-on: ubuntu-latest
-    # Skip for draft PRs
-    if: github.event_name == 'push' || !github.event.pull_request.draft
+    needs: check-visual-changes
+    # Only run if there are visual changes and not a draft PR
+    if: |
+      needs.check-visual-changes.outputs.should-run == 'true' && 
+      (github.event_name == 'push' || !github.event.pull_request.draft)
     permissions:
       contents: read
       pull-requests: write
@@ -32,7 +81,7 @@ jobs:
         run: npm ci
 
       - name: Build Storybook
-        run: npm run build-storybook
+        run: npm run build-storybook -- --stats-json
 
       - name: Publish to Chromatic
         uses: chromaui/action@latest
@@ -42,6 +91,9 @@ jobs:
           onlyChanged: true
           allowConsoleErrors: true
           buildScriptName: ""
+          storybookBuildDir: storybook-static
+          # Enable TurboSnap for faster visual testing
+          zip: true
 
       - name: Comment PR with Chromatic results
         if: github.event_name == 'pull_request'
@@ -51,9 +103,12 @@ jobs:
             const output = `
             ## 🎨 Chromatic Visual Testing
             
-            Visual regression testing has been completed for this PR.
+            ✅ **Visual regression testing completed** - Changes detected in components, stories, or styles.
             
             🔍 **[View visual changes on Chromatic →](https://www.chromatic.com/build?appId=${{ secrets.CHROMATIC_PROJECT_TOKEN }}&number=${{ github.run_number }})**
+            
+            > **Note:** This test only runs when visual components are modified to optimize CI performance.
+            > Monitored paths: components, stories, styles, Storybook config
             
             If you see any unexpected visual changes, please review them in Chromatic before merging.
             `;
