@@ -3,8 +3,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { PullRequest, QuadrantData } from "@/lib/types";
 import { ContributionAnalyzer } from "@/lib/contribution-analyzer";
-import { ContributorHoverCard } from "@/components/contributor-hover-card";
-import { FileHoverInfo } from "@/components/file-hover-info";
+import { ContributorHoverCard } from "../contributor";
+import { FileHoverInfo } from "@/components/common/cards";
 
 interface QuadrantChartProps {
   data: PullRequest[];

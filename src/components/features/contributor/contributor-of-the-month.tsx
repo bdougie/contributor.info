@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Trophy, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ContributorOfMonthSkeleton } from "./skeletons";
+import { ContributorOfMonthSkeleton } from "@/components/skeletons";
 
 interface ContributorOfTheMonthProps {
   ranking: ContributorRanking | null;

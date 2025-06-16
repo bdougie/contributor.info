@@ -10,7 +10,7 @@ import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { PullRequestActivityFeed } from "./pr-activity/pr-activity-feed";
+import { PullRequestActivityFeed } from "./pr-activity-feed";
 import { usePRActivity } from "@/hooks/use-pr-activity";
 import { usePRActivityStore } from "@/lib/pr-activity-store";
 

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import "@testing-library/jest-dom"; // Add this import for DOM assertions
-import { LanguageLegend } from "../language-legend";
+import { LanguageLegend } from "../features/distribution";
 import type { LanguageStats } from "@/types";
 
 describe("LanguageLegend", () => {
