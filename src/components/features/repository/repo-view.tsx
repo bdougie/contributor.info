@@ -20,7 +20,7 @@ import { ContributorOfMonthWrapper } from "../contributor";
 import { ExampleRepos } from "./example-repos";
 import { useRepoData } from "@/hooks/use-repo-data";
 import { useRepoSearch } from "@/hooks/use-repo-search";
-import { InsightsDrawer } from "@/components/insights/insights-drawer";
+import { InsightsSidebar } from "@/components/insights/insights-sidebar";
 import { RepoViewSkeleton } from "@/components/skeletons";
 import { SocialMetaTags } from "@/components/common/layout";
 
@@ -67,7 +67,7 @@ export default function RepoView() {
   const repoUrl = `https://contributor.info/${owner}/${repo}`;
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-8 md:pr-20 lg:pr-80">
       <SocialMetaTags
         title={repoTitle}
         description={repoDescription}
@@ -140,7 +140,7 @@ export default function RepoView() {
           </CardContent>
         </Card>
       </div>
-      <InsightsDrawer />
+      <InsightsSidebar />
     </div>
   );
 }
