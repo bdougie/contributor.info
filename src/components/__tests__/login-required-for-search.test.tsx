@@ -3,8 +3,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import { BrowserRouter } from "react-router-dom";
-import RepoView from "../repo-view";
-import { MetaTagsProvider } from "../meta-tags-provider";
+import { RepoView } from "../features/repository";
+import { MetaTagsProvider } from "../common/layout";
 
 // Mock the Supabase client BEFORE importing any hooks
 vi.mock("@/lib/supabase", () => ({

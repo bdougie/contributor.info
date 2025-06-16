@@ -1,17 +1,15 @@
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/common/theming";
 import { Toaster } from "@/components/ui/sonner";
-import Layout from "@/components/layout";
-import RepoView, {
+import { Layout, Home, NotFound } from "@/components/common/layout";
+import { 
+  RepoView,
   LotteryFactorRoute,
   ContributionsRoute,
   DistributionRoute,
-} from "@/components/repo-view";
-import Home from "@/components/home";
-import LoginPage from "@/components/login-page";
-import TestInsights from "@/components/test-insights";
-import DebugAuthPage from "@/components/debug-auth-page";
-import NotFound from "@/components/not-found";
+} from "@/components/features/repository";
+import { LoginPage, DebugAuthPage } from "@/components/features/auth";
+import TestInsights from "@/components/features/auth/test-insights";
 import CardLayout from "@/components/social-cards/card-layout";
 import HomeSocialCardWithData from "@/components/social-cards/home-card-with-data";
 import RepoCardWithData from "@/components/social-cards/repo-card-with-data";

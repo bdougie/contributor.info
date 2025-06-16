@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SearchIcon } from "lucide-react";
-import { ExampleRepos } from "./example-repos";
+import { ExampleRepos } from "../../features/repository";
 import { useRepoSearch } from "@/hooks/use-repo-search";
 import { SocialMetaTags } from "./meta-tags-provider";
 

@@ -13,17 +13,16 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchIcon } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
-import LotteryFactor from "./lottery-factor";
-import Contributions from "./contributions";
-import Distribution from "./distribution";
-import PRActivity from "./pr-activity";
-import ContributorOfTheMonthWrapper from "./contributor-of-month-wrapper";
+import { LotteryFactor } from "../health";
+import { Contributions, PRActivity } from "../activity";
+import { Distribution } from "../distribution";
+import { ContributorOfMonthWrapper } from "../contributor";
 import { ExampleRepos } from "./example-repos";
 import { useRepoData } from "@/hooks/use-repo-data";
 import { useRepoSearch } from "@/hooks/use-repo-search";
-import { InsightsDrawer } from "./insights-drawer";
-import { RepoViewSkeleton } from "./skeletons";
-import { SocialMetaTags } from "./meta-tags-provider";
+import { InsightsDrawer } from "@/components/insights/insights-drawer";
+import { RepoViewSkeleton } from "@/components/skeletons";
+import { SocialMetaTags } from "@/components/common/layout";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -155,7 +154,7 @@ export function ContributionsRoute() {
   return (
     <div className="space-y-8">
       <Contributions />
-      <ContributorOfTheMonthWrapper />
+      <ContributorOfMonthWrapper />
       <PRActivity />
     </div>
   );

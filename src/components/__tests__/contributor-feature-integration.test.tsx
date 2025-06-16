@@ -1,9 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import "@testing-library/jest-dom";
-import { ContributorOfTheMonth } from "../contributor-of-the-month";
-import { ContributorCard } from "../contributor-card";
-import { ContributorEmptyState } from "../contributor-empty-state";
+import { ContributorOfTheMonth, ContributorCard, ContributorEmptyState } from "../features/contributor";
 import { ContributorRanking, MonthlyContributor } from "@/lib/types";
 import { TestRepoStatsProvider } from "./test-utils";
 

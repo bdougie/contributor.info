@@ -4,7 +4,7 @@ import "@testing-library/jest-dom"; // Add this import for DOM assertions
 import {
   ContributorEmptyState,
   MinimalActivityDisplay,
-} from "../contributor-empty-state";
+} from "../features/contributor/contributor-empty-state";
 
 describe("ContributorEmptyState", () => {
   it("renders no_data state correctly", () => {
