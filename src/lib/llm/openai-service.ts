@@ -209,12 +209,12 @@ Current Recommendations:
 ${healthData.recommendations.map((r: string) => `- ${r}`).join('\n')}
 
 Provide a concise assessment focusing on:
-1. Overall health interpretation
+1. Overall health interpretation with workflow patterns observed
 2. Most critical areas needing attention
-3. Positive trends to maintain
+3. Team collaboration and development patterns
 4. One specific actionable next step
 
-Keep response under 150 words and avoid repeating the raw numbers.`;
+Include insights about development workflow effectiveness, review patterns, and team dynamics where relevant. Keep response under 150 words and avoid repeating the raw numbers.`;
   }
 
   /**
@@ -227,12 +227,12 @@ Health: ${data.health.score}/100
 Trends: ${data.trends.map((t: any) => `${t.metric}: ${t.change > 0 ? '+' : ''}${t.change}%`).join(', ')}
 Activity: ${data.activity.weeklyVelocity} PRs/week
 
-Focus on:
-1. High-impact improvements
-2. Specific steps (not generic advice)
-3. Measurable outcomes
+Analyze workflow patterns and provide recommendations for:
+1. Process improvements based on development patterns
+2. Team collaboration enhancements
+3. Workflow bottleneck resolution
 
-Format as numbered list, max 120 words total.`;
+Focus on specific, measurable steps that address both metrics and development workflow effectiveness. Format as numbered list, max 120 words total.`;
   }
 
   /**
