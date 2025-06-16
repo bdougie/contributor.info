@@ -99,7 +99,6 @@ export function RepositoryHealth({ owner, repo, timeRange }: RepositoryHealthPro
     if (confidence >= 0.6) return "Medium";
     return "Low";
   };
-
   if (loading) {
     return (
       <div className="space-y-3">

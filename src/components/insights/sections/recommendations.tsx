@@ -193,7 +193,6 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
       }
     ];
   };
-
   const getTypeIcon = (type: Recommendation["type"]) => {
     switch (type) {
       case "process":
@@ -237,7 +236,6 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
     if (confidence >= 0.6) return "Medium";
     return "Low";
   };
-
   if (loading) {
     return (
       <div className="space-y-3">
