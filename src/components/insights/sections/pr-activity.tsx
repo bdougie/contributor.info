@@ -4,24 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { calculatePrActivityMetrics, type ActivityMetrics } from "@/lib/insights/pr-activity-metrics";
 
-interface ActivityMetrics {
-  totalPRs: number;
-  openPRs: number;
-  mergedThisWeek: number;
-  averageMergeTime: number; // in hours
-  averageMergeTimeTrend: "up" | "down" | "stable";
-  topContributors: Array<{
-    name: string;
-    avatar: string;
-    prCount: number;
-  }>;
-  velocity: {
-    current: number;
-    previous: number;
-    change: number;
-  };
-}
 
 interface PrActivityProps {
   owner: string;
@@ -40,29 +24,12 @@ export function PrActivity({ owner, repo, timeRange }: PrActivityProps) {
   const loadMetrics = async () => {
     setLoading(true);
     try {
-      // TODO: Implement actual metrics loading
-      setTimeout(() => {
-        setMetrics({
-          totalPRs: 156,
-          openPRs: 23,
-          mergedThisWeek: 12,
-          averageMergeTime: 36,
-          averageMergeTimeTrend: "down",
-          topContributors: [
-            { name: "alice", avatar: "", prCount: 8 },
-            { name: "bob", avatar: "", prCount: 6 },
-            { name: "charlie", avatar: "", prCount: 5 },
-          ],
-          velocity: {
-            current: 12,
-            previous: 9,
-            change: 33,
-          },
-        });
-        setLoading(false);
-      }, 600);
+      const metrics = await calculatePrActivityMetrics(owner, repo, timeRange);
+      setMetrics(metrics);
     } catch (error) {
       console.error("Failed to load PR metrics:", error);
+      setMetrics(null);
+    } finally {
       setLoading(false);
     }
   };
@@ -111,7 +78,10 @@ export function PrActivity({ owner, repo, timeRange }: PrActivityProps) {
             <span className="text-xs text-muted-foreground">Avg Time</span>
           </div>
           <p className={cn("text-2xl font-bold mt-2", mergeTimeColor)}>
-            {metrics.averageMergeTime}h
+            {metrics.averageMergeTime < 24 
+              ? `${Math.round(metrics.averageMergeTime)}h`
+              : `${(metrics.averageMergeTime / 24).toFixed(1)}d`
+            }
           </p>
           <div className="flex items-center gap-1">
             {metrics.averageMergeTimeTrend === "down" ? (
@@ -158,19 +128,25 @@ export function PrActivity({ owner, repo, timeRange }: PrActivityProps) {
           Active Contributors
         </h4>
         <div className="space-y-2">
-          {metrics.topContributors.map((contributor) => (
-            <div key={contributor.name} className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded-full bg-secondary flex items-center justify-center text-xs font-medium">
-                  {contributor.name[0].toUpperCase()}
+          {metrics.topContributors.length > 0 ? (
+            metrics.topContributors.map((contributor) => (
+              <div key={contributor.name} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-full bg-secondary flex items-center justify-center text-xs font-medium">
+                    {contributor.name[0].toUpperCase()}
+                  </div>
+                  <span className="text-sm">{contributor.name}</span>
                 </div>
-                <span className="text-sm">{contributor.name}</span>
+                <span className="text-sm text-muted-foreground">
+                  {contributor.prCount} PRs
+                </span>
               </div>
-              <span className="text-sm text-muted-foreground">
-                {contributor.prCount} PRs
-              </span>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-2">
+              No contributors in this period
+            </p>
+          )}
         </div>
       </Card>
     </div>
