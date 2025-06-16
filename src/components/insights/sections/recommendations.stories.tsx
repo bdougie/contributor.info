@@ -195,16 +195,16 @@ export const Interactive: Story = {
     const canvas = within(canvasElement);
     
     // Wait for component to load
-    await expect(canvas.getByText(/recommendations/i)).toBeInTheDocument();
+    await expect(canvas.getByText("AI Recommendations")).toBeInTheDocument();
     
     // Check that AI insight is displayed
-    await expect(canvas.getByText(/based on the repository metrics/i)).toBeInTheDocument();
+    await expect(canvas.getByText(/Based on the repository metrics/)).toBeInTheDocument();
     
     // Verify confidence badge is shown
-    await expect(canvas.getByText(/85%/)).toBeInTheDocument();
+    await expect(canvas.getByText("85% confident")).toBeInTheDocument();
     
     // Check repository info is displayed
-    await expect(canvas.getByText(/facebook\/react/i)).toBeInTheDocument();
+    await expect(canvas.getByText("facebook/react")).toBeInTheDocument();
   }
 };
 

@@ -162,19 +162,19 @@ export const Interactive: Story = {
     const canvas = within(canvasElement);
     
     // Verify cache debug component is displayed
-    await expect(canvas.getByText(/cache debug/i)).toBeInTheDocument();
+    await expect(canvas.getByText("Cache Debug")).toBeInTheDocument();
     
     // Check hit rate is displayed
-    await expect(canvas.getByText(/85.3%/)).toBeInTheDocument();
+    await expect(canvas.getByText("85.3%")).toBeInTheDocument();
     
     // Check total entries count
-    await expect(canvas.getByText(/45/)).toBeInTheDocument();
+    await expect(canvas.getByText("45")).toBeInTheDocument();
     
     // Test action buttons
-    const cleanupButton = canvas.getByText(/cleanup/i);
+    const cleanupButton = canvas.getByText("Cleanup");
     await expect(cleanupButton).toBeInTheDocument();
     
-    const clearButton = canvas.getByText(/clear all/i);
+    const clearButton = canvas.getByText("Clear All");
     await expect(clearButton).toBeInTheDocument();
   }
 };

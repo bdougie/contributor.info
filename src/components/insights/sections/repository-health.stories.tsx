@@ -251,20 +251,20 @@ export const Interactive: Story = {
     const canvas = within(canvasElement);
     
     // Wait for component to load
-    await expect(canvas.getByText(/repository health/i)).toBeInTheDocument();
+    await expect(canvas.getByText("Repository Health")).toBeInTheDocument();
     
     // Check health score is displayed
-    await expect(canvas.getByText(/92/)).toBeInTheDocument();
+    await expect(canvas.getByText("92/100")).toBeInTheDocument();
     
     // Verify health factors are shown
-    await expect(canvas.getByText(/review coverage/i)).toBeInTheDocument();
-    await expect(canvas.getByText(/response time/i)).toBeInTheDocument();
+    await expect(canvas.getByText("Review Coverage")).toBeInTheDocument();
+    await expect(canvas.getByText("Response Time")).toBeInTheDocument();
     
     // Check AI insight is displayed
-    await expect(canvas.getByText(/outstanding repository health/i)).toBeInTheDocument();
+    await expect(canvas.getByText(/Outstanding repository health/)).toBeInTheDocument();
     
     // Verify confidence badge
-    await expect(canvas.getByText(/92%/)).toBeInTheDocument();
+    await expect(canvas.getByText("92% confident")).toBeInTheDocument();
   }
 };
 

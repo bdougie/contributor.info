@@ -247,12 +247,12 @@ export const Interactive: Story = {
     const canvas = within(canvasElement);
     
     // Verify sidebar is visible
-    await expect(canvas.getByText(/insights/i)).toBeInTheDocument();
+    await expect(canvas.getByText("Insights")).toBeInTheDocument();
     
     // Check for insight sections
-    await expect(canvas.getByText(/repository health/i)).toBeInTheDocument();
-    await expect(canvas.getByText(/ai recommendations/i)).toBeInTheDocument();
-    await expect(canvas.getByText(/needs attention/i)).toBeInTheDocument();
+    await expect(canvas.getByText("Repository Health")).toBeInTheDocument();
+    await expect(canvas.getByText("AI Recommendations")).toBeInTheDocument();
+    await expect(canvas.getByText("Needs Attention")).toBeInTheDocument();
   }
 };
 
