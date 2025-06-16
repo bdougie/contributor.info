@@ -1,0 +1,277 @@
+/**
+ * OpenAI GPT-4 service for generating natural language insights
+ * Uses VITE_OPENAI_API_KEY environment variable
+ */
+
+export interface LLMInsight {
+  type: 'health' | 'recommendation' | 'pattern' | 'trend';
+  content: string;
+  confidence: number; // 0-1
+  timestamp: Date;
+}
+
+export interface LLMServiceConfig {
+  model: string;
+  maxTokens: number;
+  temperature: number;
+  timeout: number; // milliseconds
+}
+
+class OpenAIService {
+  private apiKey: string | undefined;
+  private baseUrl = 'https://api.openai.com/v1';
+  private config: LLMServiceConfig;
+
+  constructor() {
+    this.apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    this.config = {
+      model: 'gpt-4',
+      maxTokens: 500,
+      temperature: 0.3, // Lower for more consistent insights
+      timeout: 10000, // 10 seconds
+    };
+  }
+
+  /**
+   * Check if OpenAI service is configured and available
+   */
+  isAvailable(): boolean {
+    return !!this.apiKey;
+  }
+
+  /**
+   * Generate health assessment insight from repository metrics
+   */
+  async generateHealthInsight(healthData: {
+    score: number;
+    trend: string;
+    factors: Array<{
+      name: string;
+      score: number;
+      status: string;
+      description: string;
+    }>;
+    recommendations: string[];
+  }, repoInfo: { owner: string; repo: string }): Promise<LLMInsight | null> {
+    if (!this.isAvailable()) {
+      return null;
+    }
+
+    const prompt = this.buildHealthPrompt(healthData, repoInfo);
+    
+    try {
+      const response = await this.callOpenAI(prompt);
+      
+      return {
+        type: 'health',
+        content: response,
+        confidence: this.calculateConfidence(healthData.score),
+        timestamp: new Date()
+      };
+    } catch (error) {
+      console.error('Failed to generate health insight:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate actionable recommendations based on repository data
+   */
+  async generateRecommendations(data: {
+    health: any;
+    trends: any[];
+    activity: any;
+  }, repoInfo: { owner: string; repo: string }): Promise<LLMInsight | null> {
+    if (!this.isAvailable()) {
+      return null;
+    }
+
+    const prompt = this.buildRecommendationPrompt(data, repoInfo);
+    
+    try {
+      const response = await this.callOpenAI(prompt);
+      
+      return {
+        type: 'recommendation',
+        content: response,
+        confidence: 0.8, // Default confidence for recommendations
+        timestamp: new Date()
+      };
+    } catch (error) {
+      console.error('Failed to generate recommendations:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Analyze PR patterns and contributor behavior
+   */
+  async analyzePRPatterns(prData: any[], repoInfo: { owner: string; repo: string }): Promise<LLMInsight | null> {
+    if (!this.isAvailable()) {
+      return null;
+    }
+
+    const prompt = this.buildPatternPrompt(prData, repoInfo);
+    
+    try {
+      const response = await this.callOpenAI(prompt);
+      
+      return {
+        type: 'pattern',
+        content: response,
+        confidence: 0.7, // Patterns can be more subjective
+        timestamp: new Date()
+      };
+    } catch (error) {
+      console.error('Failed to analyze PR patterns:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Make API call to OpenAI with rate limiting and error handling
+   */
+  private async callOpenAI(prompt: string): Promise<string> {
+    if (!this.apiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: this.config.model,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant that provides concise, actionable insights about GitHub repository health and development patterns. Keep responses under 150 words and focus on practical advice.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: this.config.maxTokens,
+          temperature: this.config.temperature,
+        }),
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error('OpenAI API rate limit exceeded');
+        } else if (response.status === 401) {
+          throw new Error('Invalid OpenAI API key');
+        } else {
+          throw new Error(`OpenAI API error: ${response.status}`);
+        }
+      }
+
+      const data = await response.json();
+      
+      if (!data.choices || data.choices.length === 0) {
+        throw new Error('No response from OpenAI');
+      }
+
+      return data.choices[0].message.content.trim();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('OpenAI request timeout');
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Build prompt for health assessment
+   */
+  private buildHealthPrompt(healthData: any, repoInfo: { owner: string; repo: string }): string {
+    return `Analyze the health of repository ${repoInfo.owner}/${repoInfo.repo}:
+
+Health Score: ${healthData.score}/100 (${healthData.trend})
+
+Factors:
+${healthData.factors.map((f: any) => `- ${f.name}: ${f.score}/100 (${f.status}) - ${f.description}`).join('\n')}
+
+Current Recommendations:
+${healthData.recommendations.map((r: string) => `- ${r}`).join('\n')}
+
+Provide a concise assessment focusing on:
+1. Overall health interpretation
+2. Most critical areas needing attention
+3. Positive trends to maintain
+4. One specific actionable next step
+
+Keep response under 150 words and avoid repeating the raw numbers.`;
+  }
+
+  /**
+   * Build prompt for recommendations
+   */
+  private buildRecommendationPrompt(data: any, repoInfo: { owner: string; repo: string }): string {
+    return `Based on ${repoInfo.owner}/${repoInfo.repo} repository data, provide 3 specific, actionable recommendations:
+
+Health: ${data.health.score}/100
+Trends: ${data.trends.map((t: any) => `${t.metric}: ${t.change > 0 ? '+' : ''}${t.change}%`).join(', ')}
+Activity: ${data.activity.weeklyVelocity} PRs/week
+
+Focus on:
+1. High-impact improvements
+2. Specific steps (not generic advice)
+3. Measurable outcomes
+
+Format as numbered list, max 120 words total.`;
+  }
+
+  /**
+   * Build prompt for pattern analysis
+   */
+  private buildPatternPrompt(prData: any[], repoInfo: { owner: string; repo: string }): string {
+    const totalPRs = prData.length;
+    const merged = prData.filter(pr => pr.merged_at).length;
+    const avgSize = prData.reduce((sum, pr) => sum + (pr.additions + pr.deletions), 0) / totalPRs;
+    
+    return `Analyze PR patterns for ${repoInfo.owner}/${repoInfo.repo}:
+
+PRs: ${totalPRs} total, ${merged} merged (${Math.round(merged/totalPRs*100)}%)
+Avg size: ${Math.round(avgSize)} lines changed
+
+Identify:
+1. Development workflow patterns
+2. Potential bottlenecks or inefficiencies
+3. Team collaboration insights
+4. One specific improvement suggestion
+
+Keep under 140 words, focus on actionable observations.`;
+  }
+
+  /**
+   * Calculate confidence score based on data quality
+   */
+  private calculateConfidence(healthScore: number): number {
+    // Higher confidence for extreme scores (very good or very bad)
+    // Lower confidence for middle-range scores
+    if (healthScore >= 80 || healthScore <= 30) {
+      return 0.9;
+    } else if (healthScore >= 70 || healthScore <= 40) {
+      return 0.8;
+    } else {
+      return 0.7;
+    }
+  }
+}
+
+// Export singleton instance
+export const openAIService = new OpenAIService();
