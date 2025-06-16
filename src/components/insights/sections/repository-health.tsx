@@ -195,10 +195,10 @@ export function RepositoryHealth({ owner, repo, timeRange }: RepositoryHealthPro
 
       {/* AI-Generated Insight */}
       {(llmInsight || llmLoading) && (
-        <Card className="p-4 border-blue-200 bg-blue-50/50">
+        <Card className="p-4 border-purple-200 bg-purple-50/50 dark:border-purple-700 dark:bg-purple-900/20">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-medium flex items-center gap-2">
-              <Brain className="h-4 w-4 text-blue-600" />
+              <Brain className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               AI Health Assessment
             </h4>
             {llmInsight && (
@@ -220,9 +220,9 @@ export function RepositoryHealth({ owner, repo, timeRange }: RepositoryHealthPro
             </div>
           ) : llmInsight ? (
             <div className="space-y-3">
-              <p className="text-sm text-gray-700 leading-relaxed">
+              <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
                 {llmInsight.content}
-              </p>
+              </div>
               <p className="text-xs text-muted-foreground">
                 Generated {new Date(llmInsight.timestamp).toLocaleTimeString()}
               </p>

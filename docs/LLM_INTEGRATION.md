@@ -11,6 +11,7 @@ The LLM integration enhances the insights sidebar with AI-generated natural lang
 - **Health Assessments**: Natural language explanations of repository health scores
 - **Strategic Recommendations**: AI-generated actionable advice based on real data
 - **Smart Caching**: Reduces API costs by 80% through intelligent response caching
+- **Free Tier Optimization**: Intelligent model selection to maximize OpenAI free token usage
 - **Graceful Fallbacks**: Works perfectly even when LLM services are unavailable
 - **Dark Mode Compatible**: Seamlessly integrates with the application's theme
 
@@ -199,19 +200,83 @@ if (healthData.score >= 80) {
 
 ## Cost Optimization
 
-### 1. Caching Strategy
+### 1. Free Tier Token Management
+
+The system includes intelligent token tracking to maximize OpenAI's free tier benefits:
+
+#### OpenAI Free Tier Quotas
+- **gpt-4o**: 1,000,000 tokens/day (premium models)
+- **gpt-4o-mini**: 10,000,000 tokens/day (high-efficiency models)
+
+#### Smart Model Selection
+```typescript
+// Automatic model selection based on insight type and quota availability
+getRecommendedModel(insightType: 'health' | 'recommendation' | 'pattern'): string {
+  // Health insights → gpt-4o-mini (simple analysis, high quota)
+  if (insightType === 'health' && miniQuotaAvailable) {
+    return 'gpt-4o-mini';
+  }
+  
+  // Recommendations → gpt-4o (complex analysis, premium quality)
+  if (insightType === 'recommendation' && primaryQuotaAvailable) {
+    return 'gpt-4o';
+  }
+  
+  // Smart fallbacks when quotas are exhausted
+}
+```
+
+#### Token Usage Tracking
+```typescript
+// Estimated token usage by insight type
+const tokenEstimates = {
+  health: 150,        // Simple health summaries
+  recommendation: 250, // Complex strategic advice
+  pattern: 200        // Pattern analysis
+};
+
+// Daily usage tracking (stored in localStorage)
+interface DailyUsage {
+  date: '2025-06-16';
+  primaryTokens: 750000;  // Used 750K of 1M quota
+  miniTokens: 2000000;    // Used 2M of 10M quota
+}
+```
+
+#### Usage Statistics API
+```typescript
+import { tokenTracker } from '@/lib/llm/token-tracker';
+
+// Get current usage statistics
+const stats = tokenTracker.getUsageStats();
+console.log(stats.primaryRemaining);    // Tokens remaining for gpt-4o
+console.log(stats.miniRemaining);       // Tokens remaining for gpt-4o-mini
+console.log(stats.primaryPercentUsed);  // Percentage of primary quota used
+console.log(stats.canUsePrimary);       // Boolean: can use premium models
+```
+
+#### Cost Optimization Flow
+1. **Before API Call**: Check current usage vs daily limits
+2. **Model Selection**: Choose optimal model based on:
+   - Insight complexity (health = simple, recommendations = complex)
+   - Available quota (prefer high-quota models when possible)
+   - Fallback logic when quotas are exhausted
+3. **Usage Recording**: Track actual token consumption after successful calls
+4. **Daily Reset**: Quotas automatically reset at midnight UTC
+
+### 2. Caching Strategy
 - **80% cost reduction** for repeat visits
 - Memory cache for instant responses
 - Persistent cache survives page reloads
 - Smart invalidation prevents stale data
 
-### 2. Prompt Optimization
+### 3. Prompt Optimization
 - **Maximum 500 tokens** per response
 - **Temperature 0.3** for consistent, cost-effective responses
 - Structured prompts minimize unnecessary tokens
 - Focused context reduces API costs
 
-### 3. Request Management
+### 4. Request Management
 - **10-second timeout** prevents hanging requests
 - **Rate limiting** prevents API abuse
 - **Batch operations** where possible
@@ -294,6 +359,18 @@ const stats = cacheService.getStats();
 - Clear browser storage if corrupted
 - Verify no browser extensions blocking localStorage
 
+#### 5. "Free tier quota exceeded"
+- Check token usage: `tokenTracker.getUsageStats()`
+- Reset usage tracking: `tokenTracker.resetUsage()` (for testing)
+- Wait for daily quota reset (midnight UTC)
+- Consider upgrading OpenAI plan for higher limits
+
+#### 6. Wrong model being selected
+- Verify quota availability with `tokenTracker.getUsageStats()`
+- Check token estimates are reasonable for your use case
+- Review model selection logic in browser console
+- Manually reset daily usage if corrupted
+
 ### Debug Commands
 
 ```typescript
@@ -302,6 +379,21 @@ console.log(llmService.isAvailable());
 
 // Get detailed cache stats
 console.log(cacheService.getStats());
+
+// Check token usage and quotas
+import { tokenTracker } from '@/lib/llm/token-tracker';
+const tokenStats = tokenTracker.getUsageStats();
+console.log('Primary tokens used:', tokenStats.today.primaryTokens, '/ 1M');
+console.log('Mini tokens used:', tokenStats.today.miniTokens, '/ 10M');
+console.log('Primary remaining:', tokenStats.primaryRemaining);
+console.log('Mini remaining:', tokenStats.miniRemaining);
+
+// Test model selection
+console.log('Recommended for health:', tokenTracker.getRecommendedModel('health'));
+console.log('Recommended for recommendations:', tokenTracker.getRecommendedModel('recommendation'));
+
+// Reset token tracking (for testing only)
+tokenTracker.resetUsage();
 
 // Test API connectivity
 llmService.generateHealthInsight(testData, { owner: 'test', repo: 'test' })

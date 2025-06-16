@@ -3,6 +3,8 @@
  * Uses VITE_OPENAI_API_KEY environment variable
  */
 
+import { tokenTracker } from './token-tracker';
+
 export interface LLMInsight {
   type: 'health' | 'recommendation' | 'pattern' | 'trend';
   content: string;
@@ -15,20 +17,43 @@ export interface LLMServiceConfig {
   maxTokens: number;
   temperature: number;
   timeout: number; // milliseconds
+  fallbackModel?: string;
+}
+
+export interface ModelTier {
+  primary: string[];
+  mini: string[];
+  dailyLimits: {
+    primary: number; // 1M tokens
+    mini: number;    // 10M tokens
+  };
 }
 
 class OpenAIService {
   private apiKey: string | undefined;
   private baseUrl = 'https://api.openai.com/v1';
   private config: LLMServiceConfig;
+  private modelTiers: ModelTier;
 
   constructor() {
     this.apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    
+    // Free tier eligible models
+    this.modelTiers = {
+      primary: ['gpt-4o', 'gpt-4.5-preview', 'gpt-4.1', 'o1', 'o3'],
+      mini: ['gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4.1-nano', 'o1-mini', 'o3-mini', 'o4-mini', 'codex-mini-latest'],
+      dailyLimits: {
+        primary: 1000000,   // 1M tokens/day
+        mini: 10000000      // 10M tokens/day
+      }
+    };
+
     this.config = {
-      model: 'gpt-4',
+      model: 'gpt-4o-mini',        // Start with high-quota free model
+      fallbackModel: 'gpt-4o',     // Fallback to primary free model
       maxTokens: 500,
-      temperature: 0.3, // Lower for more consistent insights
-      timeout: 10000, // 10 seconds
+      temperature: 0.3,
+      timeout: 10000,
     };
   }
 
@@ -37,6 +62,35 @@ class OpenAIService {
    */
   isAvailable(): boolean {
     return !!this.apiKey;
+  }
+
+  /**
+   * Select optimal model based on insight type and complexity
+   */
+  private selectModel(insightType: 'health' | 'recommendation' | 'pattern'): string {
+    // For simple health summaries, use mini models (10M free tokens/day)
+    if (insightType === 'health') {
+      return 'gpt-4o-mini';
+    }
+    
+    // For complex recommendations and patterns, use primary models (1M free tokens/day)
+    if (insightType === 'recommendation' || insightType === 'pattern') {
+      return 'gpt-4o';
+    }
+    
+    return this.config.model;
+  }
+
+  /**
+   * Get estimated token usage for different insight types
+   */
+  private getEstimatedTokens(insightType: 'health' | 'recommendation' | 'pattern'): number {
+    switch (insightType) {
+      case 'health': return 150;        // Simple health summary
+      case 'recommendation': return 250; // Complex strategic advice
+      case 'pattern': return 200;       // Pattern analysis
+      default: return 200;
+    }
   }
 
   /**
@@ -58,9 +112,10 @@ class OpenAIService {
     }
 
     const prompt = this.buildHealthPrompt(healthData, repoInfo);
+    const model = this.selectModel('health');
     
     try {
-      const response = await this.callOpenAI(prompt);
+      const response = await this.callOpenAI(prompt, model);
       
       return {
         type: 'health',
@@ -87,9 +142,10 @@ class OpenAIService {
     }
 
     const prompt = this.buildRecommendationPrompt(data, repoInfo);
+    const model = this.selectModel('recommendation');
     
     try {
-      const response = await this.callOpenAI(prompt);
+      const response = await this.callOpenAI(prompt, model);
       
       return {
         type: 'recommendation',
@@ -112,9 +168,10 @@ class OpenAIService {
     }
 
     const prompt = this.buildPatternPrompt(prData, repoInfo);
+    const model = this.selectModel('pattern');
     
     try {
-      const response = await this.callOpenAI(prompt);
+      const response = await this.callOpenAI(prompt, model);
       
       return {
         type: 'pattern',
@@ -131,7 +188,7 @@ class OpenAIService {
   /**
    * Make API call to OpenAI with rate limiting and error handling
    */
-  private async callOpenAI(prompt: string): Promise<string> {
+  private async callOpenAI(prompt: string, model?: string): Promise<string> {
     if (!this.apiKey) {
       throw new Error('OpenAI API key not configured');
     }
@@ -148,7 +205,7 @@ class OpenAIService {
         },
         signal: controller.signal,
         body: JSON.stringify({
-          model: this.config.model,
+          model: model || this.config.model,
           messages: [
             {
               role: 'system',
