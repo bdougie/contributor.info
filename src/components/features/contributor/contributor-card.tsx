@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
-import { ContributorHoverCard } from "@/components/contributor-hover-card";
+import { ContributorHoverCard } from "./contributor-hover-card";
 import { useMemo, useContext } from "react";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { createContributorStats } from "@/lib/contributor-utils";

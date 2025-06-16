@@ -1,4 +1,4 @@
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/common/theming";
 import "@/index.css";
 
 interface CardLayoutProps {

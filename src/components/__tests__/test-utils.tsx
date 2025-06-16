@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { RepoStats } from "@/lib/types";
-import { MetaTagsProvider } from "../meta-tags-provider";
+import { MetaTagsProvider } from "../common/layout";
 
 export const mockRepoStats: RepoStats = {
   pullRequests: [

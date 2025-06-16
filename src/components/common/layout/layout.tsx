@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
-import { ModeToggle } from "./mode-toggle";
-import { AuthButton } from "./auth-button";
+import { ModeToggle } from "../theming";
+import { AuthButton } from "../../features/auth";
 import {
   Select,
   SelectContent,

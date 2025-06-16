@@ -18,11 +18,11 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ContributorHoverCard } from "./contributor-hover-card";
+import { ContributorHoverCard } from "../contributor";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
-import { YoloIcon } from "./icons/YoloIcon";
-import { LotteryIcon } from "./icons/LotteryIcon";
+import { YoloIcon } from "@/components/icons/YoloIcon";
+import { LotteryIcon } from "@/components/icons/LotteryIcon";
 import type {
   RepoStats,
   LotteryFactor as LotteryFactorType,

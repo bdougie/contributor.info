@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import "@testing-library/jest-dom"; // Add this import for DOM assertions
-import { ContributorOfTheMonth } from "../contributor-of-the-month";
+import { ContributorOfTheMonth } from "../features/contributor";
 import { ContributorRanking, MonthlyContributor } from "@/lib/types";
 import { TestRepoStatsProvider } from "./test-utils";
 

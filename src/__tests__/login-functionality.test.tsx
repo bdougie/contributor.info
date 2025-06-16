@@ -2,9 +2,9 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BrowserRouter } from "react-router-dom";
-import LoginPage from "@/components/login-page";
+import { LoginPage } from "@/components/features/auth";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
-import { MetaTagsProvider } from "@/components/meta-tags-provider";
+import { MetaTagsProvider } from "@/components/common/layout";
 
 // Mock the auth hook with named export
 vi.mock("@/hooks/use-github-auth", () => ({

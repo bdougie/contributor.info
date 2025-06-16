@@ -4,7 +4,7 @@ import * as Sentry from "@sentry/react";
 import App from './App.tsx';
 import './index.css';
 import { PHProvider } from './lib/posthog';
-import { MetaTagsProvider } from './components/meta-tags-provider';
+import { MetaTagsProvider } from './components/common/layout';
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,

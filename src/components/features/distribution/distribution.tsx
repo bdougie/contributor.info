@@ -7,10 +7,10 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { LanguageLegend } from "./language-legend";
-import { QuadrantChart } from "./quadrant-chart";
+import { QuadrantChart } from "../health";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
-import { DistributionSkeleton } from "./skeletons";
+import { DistributionSkeleton } from "@/components/skeletons";
 import { getLanguageStats } from "@/lib/language-stats";
 import type {
   PullRequest,

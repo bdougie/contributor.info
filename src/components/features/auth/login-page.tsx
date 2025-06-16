@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { GithubIcon } from "lucide-react";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
-import { SocialMetaTags } from "./meta-tags-provider";
+import { SocialMetaTags } from "@/components/common/layout";
 
 /**
  * Dedicated login page that handles authentication and redirects
