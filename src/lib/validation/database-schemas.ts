@@ -207,7 +207,8 @@ export const pullRequestStateSchema = z.enum(['open', 'closed'], {
   errorMap: () => ({ message: 'Pull request state must be either "open" or "closed"' }),
 });
 
-export const pullRequestCreateSchema = z.object({
+// Base schema without refinement for partial operations
+const pullRequestBaseSchema = z.object({
   github_id: githubIdSchema,
   number: positiveIntSchema,
   title: z.string().min(1, 'Title cannot be empty').max(500, 'Title too long'),
@@ -234,7 +235,9 @@ export const pullRequestCreateSchema = z.object({
   html_url: urlSchema,
   diff_url: urlSchema,
   patch_url: urlSchema,
-}).refine(
+});
+
+export const pullRequestCreateSchema = pullRequestBaseSchema.refine(
   (data) => {
     // If merged is true, merged_at should be set
     if (data.merged && !data.merged_at) {
@@ -251,7 +254,7 @@ export const pullRequestCreateSchema = z.object({
   }
 );
 
-export const pullRequestUpdateSchema = pullRequestCreateSchema.partial().omit({
+export const pullRequestUpdateSchema = pullRequestBaseSchema.partial().omit({
   github_id: true,
 });
 
