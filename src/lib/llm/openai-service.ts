@@ -3,7 +3,6 @@
  * Uses VITE_OPENAI_API_KEY environment variable
  */
 
-import { tokenTracker } from './token-tracker';
 
 export interface LLMInsight {
   type: 'health' | 'recommendation' | 'pattern' | 'trend';
@@ -20,33 +19,15 @@ export interface LLMServiceConfig {
   fallbackModel?: string;
 }
 
-export interface ModelTier {
-  primary: string[];
-  mini: string[];
-  dailyLimits: {
-    primary: number; // 1M tokens
-    mini: number;    // 10M tokens
-  };
-}
 
 class OpenAIService {
   private apiKey: string | undefined;
   private baseUrl = 'https://api.openai.com/v1';
   private config: LLMServiceConfig;
-  private modelTiers: ModelTier;
 
   constructor() {
     this.apiKey = import.meta.env.VITE_OPENAI_API_KEY;
     
-    // Free tier eligible models
-    this.modelTiers = {
-      primary: ['gpt-4o', 'gpt-4.5-preview', 'gpt-4.1', 'o1', 'o3'],
-      mini: ['gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4.1-nano', 'o1-mini', 'o3-mini', 'o4-mini', 'codex-mini-latest'],
-      dailyLimits: {
-        primary: 1000000,   // 1M tokens/day
-        mini: 10000000      // 10M tokens/day
-      }
-    };
 
     this.config = {
       model: 'gpt-4o-mini',        // Start with high-quota free model
@@ -81,17 +62,6 @@ class OpenAIService {
     return this.config.model;
   }
 
-  /**
-   * Get estimated token usage for different insight types
-   */
-  private getEstimatedTokens(insightType: 'health' | 'recommendation' | 'pattern'): number {
-    switch (insightType) {
-      case 'health': return 150;        // Simple health summary
-      case 'recommendation': return 250; // Complex strategic advice
-      case 'pattern': return 200;       // Pattern analysis
-      default: return 200;
-    }
-  }
 
   /**
    * Generate health assessment insight from repository metrics

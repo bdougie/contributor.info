@@ -219,7 +219,7 @@ export const llmErrorHandler = new LLMErrorHandler();
 
 // Export utilities for components
 export const createErrorBoundaryProps = () => ({
-  onError: (error: Error, errorInfo: any) => {
+  onError: (error: Error) => {
     llmErrorHandler.handleError(error, 'React Error Boundary');
   }
 });
