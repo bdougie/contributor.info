@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "npm test && tsc -b && vite build",
+    "build:prod": "tsc -b && vite build",
     "build:netlify": "node scripts/netlify-build.js",
     "lint": "eslint .",
     "preview": "vite preview",
