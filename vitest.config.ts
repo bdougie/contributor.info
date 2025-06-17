@@ -24,11 +24,41 @@ export default defineConfig({
       VITE_SUPABASE_ANON_KEY: 'test-anon-key',
       VITE_GITHUB_TOKEN: 'test-github-token',
       VITE_OPENAI_API_KEY: 'test-openai-key'
-    }
+    },
+    // Enhanced ES module handling for CI compatibility
+    server: {
+      deps: {
+        inline: [
+          // Core @nivo packages
+          '@nivo/core', 
+          '@nivo/scatterplot',
+          // All d3 dependencies causing ES module issues
+          /^d3-/,  // All d3 packages
+          '@react-spring/web',
+          // Victory vendor dependencies
+          'victory-vendor'
+        ]
+      }
+    },
+    // Mock problematic modules early in setup
+    setupFiles: ['./src/__mocks__/setup.ts']
   },
+  // Enhanced resolve configuration for CI compatibility
   resolve: {
     alias: {
       '@': resolve(__dirname, './src')
     },
+    // Help resolve ES modules in Node 18
+    conditions: ['import', 'module', 'browser', 'default']
+  },
+  // Optimize build for different environments
+  optimizeDeps: {
+    // Exclude problematic ES modules from pre-bundling
+    exclude: [
+      '@nivo/core',
+      '@nivo/scatterplot',
+      'd3-interpolate',
+      '@react-spring/web'
+    ]
   },
 });

@@ -1,5 +1,43 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { llmService } from '../llm-service';
+
+// Mock the OpenAI service to avoid real API calls in tests
+vi.mock('../openai-service', () => ({
+  OpenAIService: vi.fn().mockImplementation(() => ({
+    generateHealthInsight: vi.fn().mockResolvedValue({
+      type: 'health',
+      content: 'Mock health insight',
+      confidence: 85,
+      timestamp: Date.now(),
+      metadata: { model: 'mock', tokens: 100 }
+    }),
+    generateRecommendations: vi.fn().mockResolvedValue({
+      type: 'recommendation',
+      content: '1. Mock recommendation\n2. Another suggestion',
+      confidence: 80,
+      timestamp: Date.now(),
+      metadata: { model: 'mock', tokens: 120 }
+    }),
+    isAvailable: vi.fn().mockReturnValue(true)
+  })),
+  openAIService: {
+    generateHealthInsight: vi.fn().mockResolvedValue({
+      type: 'health',
+      content: 'Mock health insight',
+      confidence: 85,
+      timestamp: Date.now(),
+      metadata: { model: 'mock', tokens: 100 }
+    }),
+    generateRecommendations: vi.fn().mockResolvedValue({
+      type: 'recommendation',
+      content: '1. Mock recommendation\n2. Another suggestion',
+      confidence: 80,
+      timestamp: Date.now(),
+      metadata: { model: 'mock', tokens: 120 }
+    }),
+    isAvailable: vi.fn().mockReturnValue(true)
+  }
+}));
 
 describe('LLM Service', () => {
   beforeEach(() => {

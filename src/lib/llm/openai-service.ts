@@ -26,7 +26,8 @@ class OpenAIService {
   private config: LLMServiceConfig;
 
   constructor() {
-    this.apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    // Handle both Vite and Node.js environments
+    this.apiKey = import.meta.env?.VITE_OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
     
 
     this.config = {
@@ -161,6 +162,11 @@ class OpenAIService {
   private async callOpenAI(prompt: string, model?: string): Promise<string> {
     if (!this.apiKey) {
       throw new Error('OpenAI API key not configured');
+    }
+
+    // Prevent real API calls in test environment
+    if (process.env.NODE_ENV === 'test' || this.apiKey === 'test-openai-key' || this.apiKey === 'test-key-for-ci') {
+      throw new Error('OpenAI API calls blocked in test environment');
     }
 
     const controller = new AbortController();

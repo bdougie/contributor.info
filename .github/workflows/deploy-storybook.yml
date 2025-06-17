@@ -3,25 +3,19 @@ name: Deploy Storybook to Netlify
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'src/components/**'
-      - 'src/stories/**'
-      - '.storybook/**'
-      - 'package.json'
-      - 'package-lock.json'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'src/components/**'
-      - 'src/stories/**'
-      - '.storybook/**'
-      - 'package.json'
-      - 'package-lock.json'
 
 jobs:
+  check-visual:
+    uses: ./.github/workflows/check-visual-changes.yml
+
   deploy-storybook:
     name: Build and Deploy Storybook
     runs-on: ubuntu-latest
+    needs: check-visual
+    # Only run if visual changes are detected
+    if: needs.check-visual.outputs.has-visual-changes == 'true'
     
     steps:
       - name: Checkout code
@@ -30,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           
       - name: Install dependencies
