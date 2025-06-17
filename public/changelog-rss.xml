@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>contributor.info Changelog</title>
+    <description>All notable changes to contributor.info - the platform for understanding open source repository health and dynamics.</description>
+    <link>https://contributor.info/changelog</link>
+    <atom:link href="https://contributor.info/changelog-rss.xml" rel="self" type="application/rss+xml" />
+    <language>en-us</language>
+    <lastBuildDate>Mon, 17 Jun 2025 00:00:00 GMT</lastBuildDate>
+    <pubDate>Mon, 17 Jun 2025 00:00:00 GMT</pubDate>
+    <ttl>1440</ttl>
+    
+    <item>
+      <title>Version 1.0.0 - Initial Release</title>
+      <description><![CDATA[
+        <h2>🎉 Introducing contributor.info</h2>
+        <p>We're excited to announce the official 1.0 release of contributor.info! This platform helps maintainers and contributors understand the health and dynamics of open source repositories through data-driven insights.</p>
+        
+        <h3>🚀 Major Features</h3>
+        <ul>
+          <li><strong>AI-Powered Repository Insights</strong> - Real-time analysis with health assessments, smart recommendations, and PR attention detection</li>
+          <li><strong>Dynamic Social Media Cards</strong> - Auto-generated social cards with repository metrics</li>
+          <li><strong>Comprehensive Analytics Dashboard</strong> - Lottery factor analysis, contribution patterns, language distribution, and monthly rankings</li>
+        </ul>
+        
+        <h3>🐛 Bug Fixes</h3>
+        <ul>
+          <li>Fixed mobile responsiveness issues on contribution charts</li>
+          <li>Improved 404 page interactions and color consistency</li>
+          <li>Resolved authentication flow issues for first-time users</li>
+          <li>Fixed skeleton loader animations during data fetching</li>
+        </ul>
+        
+        <h3>📊 By the Numbers</h3>
+        <ul>
+          <li>35 test suites with 291 passing tests</li>
+          <li>80%+ code coverage across critical paths</li>
+          <li>&lt;3s average page load time</li>
+          <li>99.9% uptime since soft launch</li>
+        </ul>
+      ]]></description>
+      <link>https://contributor.info/changelog#version-1-0-0</link>
+      <guid>https://contributor.info/changelog#version-1-0-0</guid>
+      <pubDate>Mon, 17 Jun 2025 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+    </item>
+  </channel>
+</rss>
