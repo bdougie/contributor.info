@@ -95,6 +95,9 @@ jobs:
           "wait-on tcp:6006 && npm run test-storybook"
       env:
         NODE_ENV: test
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        VITE_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -138,6 +141,9 @@ jobs:
           "wait-on tcp:6006 && npm run test-storybook -- --includeTags accessibility"
       env:
         NODE_ENV: test
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        VITE_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Upload accessibility results
       uses: actions/upload-artifact@v4
