@@ -131,7 +131,7 @@ export function DocsPage() {
         </div>
 
         <div className="flex gap-8">
-          <aside className="sticky top-8 h-fit">
+          <aside className="hidden lg:block sticky top-8 h-fit">
             <DocsNavigation 
               entries={navigationEntries}
               activeSection={activeSection}
@@ -188,7 +188,7 @@ export function DocsPage() {
                 )}
               </div>
               
-              <aside className="sticky top-8 h-fit">
+              <aside className="hidden xl:block sticky top-8 h-fit">
                 {docsContent.length > 0 && (
                   <DocsToc content={docsContent.map(section => section.content).join('\n\n')} />
                 )}
