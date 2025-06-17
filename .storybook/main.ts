@@ -44,6 +44,12 @@ const config: StorybookConfig = {
       optimizeDeps: {
         include: ['@mdx-js/react'],
       },
+      resolve: {
+        alias: {
+          // Mock Supabase for Storybook to avoid needing real credentials
+          '@/lib/supabase': new URL('./mocks/supabase.ts', import.meta.url).pathname,
+        },
+      },
     });
   },
 };

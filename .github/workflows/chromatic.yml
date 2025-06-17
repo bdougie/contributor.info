@@ -57,8 +57,10 @@ jobs:
   chromatic-deployment:
     runs-on: ubuntu-latest
     needs: check-visual-changes
+    # TEMPORARILY DISABLED - Chromatic disabled during development
     # Only run if there are visual changes and not a draft PR
     if: |
+      false &&
       needs.check-visual-changes.outputs.should-run == 'true' && 
       (github.event_name == 'push' || !github.event.pull_request.draft)
     permissions:
