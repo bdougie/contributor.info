@@ -164,6 +164,11 @@ class OpenAIService {
       throw new Error('OpenAI API key not configured');
     }
 
+    // Prevent real API calls in test environment
+    if (process.env.NODE_ENV === 'test' || this.apiKey === 'test-openai-key' || this.apiKey === 'test-key-for-ci') {
+      throw new Error('OpenAI API calls blocked in test environment');
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
 

@@ -25,9 +25,25 @@ vi.mock('d3-interpolate', () => ({
 }));
 
 // Mock OpenAI service to avoid real API calls
-vi.mock('../lib/llm/openai-service', () => ({
+vi.mock('@/lib/llm/openai-service', () => ({
   openAIService: {
     isAvailable: vi.fn(() => false), // Return false in tests to use fallbacks
+    generateHealthInsight: vi.fn(() => Promise.resolve(null)),
+    generateRecommendations: vi.fn(() => Promise.resolve(null)),
+    analyzePRPatterns: vi.fn(() => Promise.resolve(null))
+  }
+}));
+
+// Also mock the OpenAI service class
+vi.mock('../lib/llm/openai-service.ts', () => ({
+  OpenAIService: vi.fn().mockImplementation(() => ({
+    isAvailable: vi.fn(() => false),
+    generateHealthInsight: vi.fn(() => Promise.resolve(null)),
+    generateRecommendations: vi.fn(() => Promise.resolve(null)),
+    analyzePRPatterns: vi.fn(() => Promise.resolve(null))
+  })),
+  openAIService: {
+    isAvailable: vi.fn(() => false),
     generateHealthInsight: vi.fn(() => Promise.resolve(null)),
     generateRecommendations: vi.fn(() => Promise.resolve(null)),
     analyzePRPatterns: vi.fn(() => Promise.resolve(null))
@@ -37,6 +53,17 @@ vi.mock('../lib/llm/openai-service', () => ({
 // Mock fetch globally to avoid network requests in tests
 import { setupGitHubApiMock } from './github-api';
 setupGitHubApiMock();
+
+// Global fetch mock for any missed network calls
+global.fetch = vi.fn(() =>
+  Promise.resolve({
+    ok: false,
+    status: 500,
+    statusText: 'Internal Server Error',
+    json: () => Promise.resolve({ error: 'Network call blocked in tests' }),
+    text: () => Promise.resolve('Network call blocked in tests')
+  } as Response)
+);
 
 // Suppress console methods in tests to reduce noise
 const originalConsole = { ...console };

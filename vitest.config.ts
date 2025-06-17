@@ -29,7 +29,17 @@ export default defineConfig({
     server: {
       deps: {
         external: [],
-        inline: ['@nivo/core', '@nivo/scatterplot', 'd3-interpolate', 'victory-vendor']
+        inline: [
+          '@nivo/core', 
+          '@nivo/scatterplot', 
+          'd3-interpolate', 
+          'd3-scale',
+          'd3-color',
+          'd3-format',
+          'd3-time',
+          'd3-time-format',
+          'victory-vendor'
+        ]
       }
     },
     // Mock problematic modules
