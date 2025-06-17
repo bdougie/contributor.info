@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, Link } from "react-router-dom";
 import { ModeToggle } from "../theming";
 import { AuthButton } from "../../features/auth";
 import {
@@ -37,13 +37,19 @@ export default function Layout() {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b">
         <div className="container flex h-16 items-center px-4">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-6">
             <button
               onClick={() => navigate("/")}
               className="text-xl font-bold hover:text-primary transition-colors"
             >
               contributor.info
             </button>
+            <Link
+              to="/changelog"
+              className="text-sm font-medium hover:text-primary transition-colors"
+            >
+              Changelog
+            </Link>
           </div>
           <div className="ml-auto flex items-center space-x-4">
             {isLoggedIn && (
