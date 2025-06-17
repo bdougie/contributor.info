@@ -26,7 +26,8 @@ class OpenAIService {
   private config: LLMServiceConfig;
 
   constructor() {
-    this.apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    // Handle both Vite and Node.js environments
+    this.apiKey = import.meta.env?.VITE_OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
     
 
     this.config = {

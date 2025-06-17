@@ -30,6 +30,7 @@
     "setup-regeneration": "node scripts/setup-card-regeneration.js setup",
     "check-regeneration": "node scripts/setup-card-regeneration.js check",
     "test-storybook:ci": "./scripts/test-storybook-interactions.sh",
+    "check-commits": "node scripts/check-commits.cjs",
     "preview-storybook": "npm run build-storybook && npx http-server storybook-static -p 6006 -o",
     "test-storybook-build": "./.storybook/test-build.sh",
     "chromatic": "echo 'Chromatic disabled during development - use npm run chromatic:enable to re-enable'",

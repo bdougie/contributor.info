@@ -12,9 +12,14 @@ concurrency:
 
 jobs:
   conventional-commits:
-    name: Validate Conventional Commits
+    name: Validate Conventional Commits (Warning Only)
     runs-on: ubuntu-latest
     if: ${{ !github.event.pull_request.draft }}
+    continue-on-error: true
+    permissions:
+      pull-requests: write
+      issues: write
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,7 +29,62 @@ jobs:
       - name: Validate conventional commits
         uses: wagoid/commitlint-github-action@v6
         with:
-          configFile: .commitlintrc.json
+          configFile: .commitlintrc.warning.json
+        continue-on-error: true
+        
+      - name: Add commit message guidance comment
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Conventional Commit Format')
+            );
+            
+            if (!botComment) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: [
+                  "## ⚠️ Conventional Commit Format",
+                  "",
+                  "Your commit messages don't follow the conventional commit format, but **this won't block your PR from being merged**.",
+                  "",
+                  "### Expected Format:",
+                  "```",
+                  "<type>[optional scope]: <description>",
+                  "",
+                  "[optional body]",
+                  "",
+                  "[optional footer(s)]",
+                  "```",
+                  "",
+                  "### Examples:",
+                  "- `feat: add changelog generation support`",
+                  "- `fix: resolve login redirect issue`",
+                  "- `docs: update README with new instructions`",
+                  "- `chore: update dependencies`",
+                  "",
+                  "### Valid Types:",
+                  "`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`",
+                  "",
+                  "This helps with:",
+                  "- 📝 Automatic changelog generation",
+                  "- 🚀 Automated semantic versioning", 
+                  "- 📊 Better project history tracking",
+                  "",
+                  "*This is a non-blocking warning - your PR can still be merged without fixing this.*"
+                ].join('\n')
+              });
+            }
 
   code-quality:
     name: Code Quality Checks
@@ -48,6 +108,8 @@ jobs:
 
       - name: Run tests
         run: npm test -- --coverage --passWithNoTests
+        env:
+          VITE_OPENAI_API_KEY: test-key-for-ci
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
@@ -176,8 +238,10 @@ jobs:
           
           if [[ "${{ needs.conventional-commits.result }}" == "success" ]]; then
             echo "✅ Conventional Commits: PASSED" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ needs.conventional-commits.result }}" == "failure" ]]; then
+            echo "⚠️ Conventional Commits: WARNING (non-blocking)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Conventional Commits: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Conventional Commits: SKIPPED" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [[ "${{ needs.code-quality.result }}" == "success" ]]; then

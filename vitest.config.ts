@@ -24,7 +24,16 @@ export default defineConfig({
       VITE_SUPABASE_ANON_KEY: 'test-anon-key',
       VITE_GITHUB_TOKEN: 'test-github-token',
       VITE_OPENAI_API_KEY: 'test-openai-key'
-    }
+    },
+    // Handle ES modules properly
+    server: {
+      deps: {
+        external: [],
+        inline: ['@nivo/core', '@nivo/scatterplot', 'd3-interpolate', 'victory-vendor']
+      }
+    },
+    // Mock problematic modules
+    setupFiles: ['./src/__mocks__/setup.ts']
   },
   resolve: {
     alias: {

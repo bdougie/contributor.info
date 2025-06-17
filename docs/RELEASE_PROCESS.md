@@ -11,7 +11,7 @@ We use **Semantic Versioning** and **Conventional Commits** for automated releas
 
 ## Conventional Commits
 
-### Commit Format
+### Commit Format (Warning Only)
 ```
 <type>[optional scope]: <description>
 
@@ -19,6 +19,8 @@ We use **Semantic Versioning** and **Conventional Commits** for automated releas
 
 [optional footer(s)]
 ```
+
+**Note**: Conventional commit format is recommended but not strictly enforced. Non-conventional commits will show warnings but won't block PR merging.
 
 ### Types
 - `feat`: New feature (minor version bump)
@@ -53,6 +55,14 @@ git commit -m "feat!: redesign dashboard layout
 
 BREAKING CHANGE: Dashboard components require new props"
 ```
+
+### Local Commit Validation
+Check your commit messages before pushing:
+```bash
+npm run check-commits
+```
+
+This script provides helpful feedback about conventional commit format but is non-blocking.
 
 ## Release Workflow
 
