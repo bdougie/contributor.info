@@ -113,8 +113,6 @@ The database has 11 core tables for storing GitHub contributor data:
 
 Plus 3 views: `contributor_stats`, `repository_stats`, `recent_activity`
 
-```
-
 ### Key Files for Supabase
 
 - `supabase/migrations/20240614000000_initial_contributor_schema.sql` - Database schema
@@ -142,3 +140,7 @@ npx supabase status
 # Apply migrations via Dashboard
 # Copy contents of migration file and run in SQL Editor
 ```
+
+## Development Memories
+
+- Replaced all require() calls with proper ES module patterns in storybook

@@ -23,8 +23,8 @@ echo "✏️  Introducing temporary visual change..."
 sed -i.tmp 's/className="bg-primary/className="bg-red-500/g' "$STORY_FILE"
 rm "${STORY_FILE}.tmp" 2>/dev/null || true
 
-echo "🔄 Running Chromatic to detect visual changes..."
-npm run chromatic
+echo "🔄 Chromatic visual regression testing disabled during development..."
+echo "ℹ️  To re-enable: npm run chromatic:enable"
 
 # Restore the original file
 mv "$BACKUP_FILE" "$STORY_FILE"

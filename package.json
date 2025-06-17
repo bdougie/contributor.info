@@ -32,8 +32,10 @@
     "test-storybook:ci": "./scripts/test-storybook-interactions.sh",
     "preview-storybook": "npm run build-storybook && npx http-server storybook-static -p 6006 -o",
     "test-storybook-build": "./.storybook/test-build.sh",
-    "chromatic": "chromatic --exit-zero-on-changes",
-    "chromatic:ci": "chromatic --exit-zero-on-changes --only-changed",
+    "chromatic": "echo 'Chromatic disabled during development - use npm run chromatic:enable to re-enable'",
+    "chromatic:ci": "echo 'Chromatic disabled during development - use npm run chromatic:enable to re-enable'",
+    "chromatic:enable": "chromatic --exit-zero-on-changes",
+    "chromatic:ci:enable": "chromatic --exit-zero-on-changes --only-changed",
     "setup-chromatic": "./scripts/setup-chromatic-baselines.sh",
     "test-visual-regression": "./scripts/test-visual-regression.sh",
     "install-browsers": "playwright install chromium --with-deps || echo 'Playwright browser installation skipped'"

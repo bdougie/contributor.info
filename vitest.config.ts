@@ -22,7 +22,8 @@ export default defineConfig({
     env: {
       VITE_SUPABASE_URL: 'https://example.supabase.co',
       VITE_SUPABASE_ANON_KEY: 'test-anon-key',
-      VITE_GITHUB_TOKEN: 'test-github-token'
+      VITE_GITHUB_TOKEN: 'test-github-token',
+      VITE_OPENAI_API_KEY: 'test-openai-key'
     }
   },
   resolve: {
