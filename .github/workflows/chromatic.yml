@@ -3,65 +3,22 @@ name: Chromatic Visual Testing
 on:
   push:
     branches: [main]
-    paths:
-      - 'src/components/**'
-      - 'src/stories/**'
-      - '.storybook/**'
-      - '**/*.stories.@(js|jsx|ts|tsx|mdx)'
-      - 'src/**/*.css'
-      - 'src/**/*.scss'
-      - 'tailwind.config.js'
-      - 'package.json'
-      - 'package-lock.json'
   pull_request:
     types: [opened, synchronize, ready_for_review]
     branches: [main]
-    paths:
-      - 'src/components/**'
-      - 'src/stories/**'
-      - '.storybook/**'
-      - '**/*.stories.@(js|jsx|ts|tsx|mdx)'
-      - 'src/**/*.css'
-      - 'src/**/*.scss'
-      - 'tailwind.config.js'
-      - 'package.json'
-      - 'package-lock.json'
 
 jobs:
-  check-visual-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      should-run: ${{ steps.changes.outputs.visual }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Check for visual changes
-        uses: dorny/paths-filter@v3
-        id: changes
-        with:
-          filters: |
-            visual:
-              - 'src/components/**'
-              - 'src/stories/**'
-              - '.storybook/**'
-              - '**/*.stories.@(js|jsx|ts|tsx|mdx)'
-              - 'src/**/*.css'
-              - 'src/**/*.scss'
-              - 'tailwind.config.js'
-              - 'package.json'
-              - 'package-lock.json'
+  check-visual:
+    uses: ./.github/workflows/check-visual-changes.yml
 
   chromatic-deployment:
     runs-on: ubuntu-latest
-    needs: check-visual-changes
+    needs: check-visual
     # TEMPORARILY DISABLED - Chromatic disabled during development
     # Only run if there are visual changes and not a draft PR
     if: |
       false &&
-      needs.check-visual-changes.outputs.should-run == 'true' && 
+      needs.check-visual.outputs.has-visual-changes == 'true' && 
       (github.event_name == 'push' || !github.event.pull_request.draft)
     permissions:
       contents: read

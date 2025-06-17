@@ -1,0 +1,79 @@
+name: Check Visual Changes
+
+on:
+  workflow_call:
+    outputs:
+      has-visual-changes:
+        description: 'Whether visual changes were detected'
+        value: ${{ jobs.check-changes.outputs.visual }}
+      changed-files:
+        description: 'List of changed files'
+        value: ${{ jobs.check-changes.outputs.files }}
+
+jobs:
+  check-changes:
+    name: Detect Visual Changes
+    runs-on: ubuntu-latest
+    outputs:
+      visual: ${{ steps.filter.outputs.visual }}
+      files: ${{ steps.filter.outputs.visual_files }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for visual changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          list-files: json
+          filters: |
+            visual:
+              - 'src/components/**'
+              - 'src/stories/**'
+              - '.storybook/**'
+              - '**/*.stories.@(js|jsx|ts|tsx|mdx)'
+              - 'src/**/*.css'
+              - 'src/**/*.scss'
+              - 'tailwind.config.js'
+              - 'postcss.config.js'
+              - 'package.json'
+              - 'package-lock.json'
+              - added|modified: 'src/components/**/*.{tsx,jsx}'
+              - added|modified: 'src/components/**/index.ts'
+            # Exclude test files from triggering visual checks
+            visual-exclude:
+              - '**/__tests__/**'
+              - '**/*.test.*'
+              - '**/*.spec.*'
+              - '**/test-utils.*'
+              - '**/__mocks__/**'
+
+      - name: Report detection results
+        run: |
+          echo "## Visual Change Detection Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.filter.outputs.visual }}" == "true" ]; then
+            echo "✅ **Visual changes detected**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Changed Files:" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo '${{ steps.filter.outputs.visual_files }}' | jq -r '.[]' >> $GITHUB_STEP_SUMMARY || echo "Unable to parse file list" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Action:** Storybook workflows will run" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⏭️ **No visual changes detected**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Action:** Skipping Storybook workflows to save CI time" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Monitored Paths:" >> $GITHUB_STEP_SUMMARY
+            echo "- Component files: `src/components/**`" >> $GITHUB_STEP_SUMMARY
+            echo "- Story files: `src/stories/**`, `**/*.stories.*`" >> $GITHUB_STEP_SUMMARY
+            echo "- Styles: `**/*.css`, `**/*.scss`, `tailwind.config.js`" >> $GITHUB_STEP_SUMMARY
+            echo "- Storybook config: `.storybook/**`" >> $GITHUB_STEP_SUMMARY
+            echo "- Dependencies: `package.json`, `package-lock.json`" >> $GITHUB_STEP_SUMMARY
+          fi

@@ -1,0 +1,137 @@
+# PR Labeler Configuration
+# Automatically applies labels to PRs based on changed files
+
+# Frontend changes
+frontend:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "src/**"
+      - "public/**"
+      - "*.html"
+      - "*.css"
+      - "*.scss"
+
+# Component changes
+components:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "src/components/**"
+      - "src/stories/**"
+
+# Hook changes
+hooks:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "src/hooks/**"
+
+# Library/utility changes
+lib:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "src/lib/**"
+
+# Type definitions
+types:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "src/types.ts"
+      - "src/**/*.d.ts"
+      - "src/vite-env.d.ts"
+
+# Testing changes
+testing:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "src/**/*.test.ts"
+      - "src/**/*.test.tsx"
+      - "src/**/*.spec.ts"
+      - "src/**/*.spec.tsx"
+      - "vitest.config.ts"
+      - "src/lib/test-utils.ts"
+
+# Documentation changes
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "*.md"
+      - "docs/**"
+      - "src/stories/**/*.mdx"
+
+# Configuration changes
+config:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "*.json"
+      - "*.js"
+      - "*.ts"
+      - ".github/**"
+      - "netlify.toml"
+      - "tailwind.config.js"
+      - "vite.config.ts"
+      - "tsconfig*.json"
+      - "eslint.config.js"
+      - "postcss.config.js"
+
+# Database/Supabase changes
+database:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "supabase/**"
+
+# CI/CD changes
+ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+
+# Dependency changes
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "package.json"
+      - "package-lock.json"
+
+# Build/tooling changes
+build:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "scripts/**"
+      - "vite.config.ts"
+      - "vitest.config.ts"
+      - "chromatic.config.json"
+
+# Security changes
+security:
+  - changed-files:
+    - any-glob-to-any-file:
+      - ".github/workflows/compliance.yml"
+      - "supabase/apply-rls-policies.sql"
+      - "supabase/RLS_POLICIES.md"
+
+# Performance changes
+performance:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "src/components/performance-monitoring-dashboard.tsx"
+      - "src/lib/github-api-monitoring.ts"
+      - "src/lib/supabase-monitoring.ts"
+      - "docs/PERFORMANCE_MONITORING.md"
+
+# Social cards/metadata
+social:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "src/components/social-cards/**"
+      - "scripts/*social-cards*"
+      - "public/social.png"
+
+# Storybook changes
+storybook:
+  - changed-files:
+    - any-glob-to-any-file:
+      - "src/**/*.stories.ts"
+      - "src/**/*.stories.tsx"
+      - "src/stories/**"
+      - ".storybook/**"
+      - "chromatic.config.json"

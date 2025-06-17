@@ -37,3 +37,6 @@ storybook-static
 # Chromatic
 build-storybook.log
 chromatic-diagnostics.json
+
+# Coverage reports
+coverage
