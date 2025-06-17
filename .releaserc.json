@@ -148,7 +148,7 @@
       {
         "successComment": "🎉 This ${issue.pull_request ? 'PR is included' : 'issue has been resolved'} in version [${nextRelease.version}](${releases.filter(release => !!release.url).pop().url}) :tada:",
         "labels": ["released"],
-        "releasedLabels": ["released<%= nextRelease.channel ? \`-\${nextRelease.channel}\` : \"\" %>"]
+        "releasedLabels": ["released"]
       }
     ]
   ]
