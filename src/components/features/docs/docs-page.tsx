@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Book, FileText } from 'lucide-react';
 import { DocsNavigation } from './docs-navigation';
+import { DocsToc } from './docs-toc';
 import { DocsSEO } from './docs-seo';
 
 interface DocsSection {
@@ -139,50 +140,60 @@ export function DocsPage() {
           </aside>
           
           <main className="flex-1 max-w-4xl">
-            <div className="space-y-6">
-              {docsContent.map((section, index) => {
-                const anchor = `section-${section.title.toLowerCase().replace(/\s+/g, '-')}`;
-                const IconComponent = getCategoryIcon(section.category);
-                
-                return (
-                  <Card key={index} id={anchor} className="overflow-hidden">
+            <div className="flex gap-8">
+              <div className="flex-1">
+                <div className="space-y-6">
+                  {docsContent.map((section, index) => {
+                    const anchor = `section-${section.title.toLowerCase().replace(/\s+/g, '-')}`;
+                    const IconComponent = getCategoryIcon(section.category);
+                    
+                    return (
+                      <Card key={index} id={anchor} className="overflow-hidden">
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-2xl flex items-center gap-2">
+                              <IconComponent className="h-6 w-6" />
+                              {section.title}
+                            </CardTitle>
+                            <Badge 
+                              variant="secondary" 
+                              className={getCategoryColor(section.category)}
+                            >
+                              {section.category === 'feature' ? 'Feature' : 'Insight'}
+                            </Badge>
+                          </div>
+                          <CardDescription>
+                            {section.description}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Markdown className="prose-sm max-w-none">
+                            {section.content}
+                          </Markdown>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                {docsContent.length === 0 && (
+                  <Card>
                     <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-2xl flex items-center gap-2">
-                          <IconComponent className="h-6 w-6" />
-                          {section.title}
-                        </CardTitle>
-                        <Badge 
-                          variant="secondary" 
-                          className={getCategoryColor(section.category)}
-                        >
-                          {section.category === 'feature' ? 'Feature' : 'Insight'}
-                        </Badge>
-                      </div>
+                      <CardTitle>No Documentation Available</CardTitle>
                       <CardDescription>
-                        {section.description}
+                        Documentation sections are being prepared. Check back soon!
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <Markdown className="prose-sm max-w-none">
-                        {section.content}
-                      </Markdown>
-                    </CardContent>
                   </Card>
-                );
-              })}
+                )}
+              </div>
+              
+              <aside className="sticky top-8 h-fit">
+                {docsContent.length > 0 && (
+                  <DocsToc content={docsContent.map(section => section.content).join('\n\n')} />
+                )}
+              </aside>
             </div>
-
-            {docsContent.length === 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>No Documentation Available</CardTitle>
-                  <CardDescription>
-                    Documentation sections are being prepared. Check back soon!
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            )}
           </main>
         </div>
       </div>
