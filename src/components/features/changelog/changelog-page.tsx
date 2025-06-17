@@ -3,7 +3,7 @@ import { Markdown } from '@/components/common/layout/markdown';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CalendarDays, Package, Bug, Sparkles } from 'lucide-react';
+import { Package, Bug, Sparkles } from 'lucide-react';
 import { ChangelogNavigation } from './changelog-navigation';
 import { ChangelogSEO } from './changelog-seo';
 
@@ -11,6 +11,7 @@ interface ChangelogEntry {
   version: string;
   date: string;
   content: string;
+  versionLink?: string;
 }
 
 export function ChangelogPage() {
@@ -41,13 +42,18 @@ export function ChangelogPage() {
 
   const parseChangelog = (content: string): ChangelogEntry[] => {
     const entries: ChangelogEntry[] = [];
-    const versionRegex = /## (.+?) \((.+?)\)/g;
+    // Updated regex to handle markdown links in version headers
+    const versionRegex = /## (\[([0-9.]+)\]\(([^)]+)\)|([0-9.]+)) \((.+?)\)/g;
     const matches = [...content.matchAll(versionRegex)];
     
     for (let i = 0; i < matches.length; i++) {
       const match = matches[i];
-      const version = match[1];
-      const date = match[2];
+      // match[2] is version from [version](link), match[4] is version without link
+      const version = match[2] || match[4];
+      // match[3] is the link URL if present
+      const versionLink = match[3];
+      // match[5] is the date
+      const date = match[5];
       const startIndex = match.index! + match[0].length;
       const endIndex = matches[i + 1]?.index || content.length;
       const entryContent = content.slice(startIndex, endIndex).trim();
@@ -55,7 +61,8 @@ export function ChangelogPage() {
       entries.push({
         version,
         date,
-        content: entryContent
+        content: entryContent,
+        versionLink
       });
     }
     
@@ -152,19 +159,27 @@ export function ChangelogPage() {
               return (
                 <Card key={index} id={anchor} className="overflow-hidden">
                   <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-2xl">
-                        Version {entry.version}
-                      </CardTitle>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <CalendarDays className="h-4 w-4" />
-                    {new Date(entry.date).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                      </div>
-                    </div>
+                    <CardTitle className="text-2xl flex items-center gap-2">
+                      {entry.versionLink ? (
+                        <a 
+                          href={entry.versionLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-primary transition-colors"
+                        >
+                          v{entry.version}
+                        </a>
+                      ) : (
+                        <span>v{entry.version}</span>
+                      )}
+                      <span className="text-lg text-muted-foreground font-normal">
+                        ({new Date(entry.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })})
+                      </span>
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
                 {sections.map((section, sectionIndex) => {
