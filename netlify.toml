@@ -1,8 +1,8 @@
 # Netlify configuration for main app deployment
 
 [build]
-  # Build command for main React app with social cards
-  command = "npm run build:netlify"
+  # Build command for main React app (social cards handled by GitHub Actions)
+  command = "npm run build:prod"
   
   # Directory where Vite builds to
   publish = "dist"
