@@ -25,7 +25,7 @@ export default defineConfig({
       VITE_GITHUB_TOKEN: 'test-github-token',
       VITE_OPENAI_API_KEY: 'test-openai-key'
     },
-    // Handle ES modules properly
+    // Handle ES modules properly - force all problematic modules to be processed as CJS
     server: {
       deps: {
         external: [],
@@ -38,9 +38,16 @@ export default defineConfig({
           'd3-format',
           'd3-time',
           'd3-time-format',
+          'd3-array',
+          'd3-shape',
+          'd3-path',
           'victory-vendor'
         ]
       }
+    },
+    // Force dependencies to be treated as CJS
+    transformMode: {
+      ssr: [/\.tsx?$/, /node_modules/]
     },
     // Mock problematic modules
     setupFiles: ['./src/__mocks__/setup.ts']

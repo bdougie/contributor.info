@@ -1,6 +1,19 @@
 // Test setup file for mocking problematic dependencies
 import { vi, beforeEach, afterEach } from 'vitest';
 
+// Mock the entire features that import problematic modules
+vi.mock('@/components/features/activity/contributions', () => ({
+  default: vi.fn(() => 'MockContributions'),
+  Contributions: vi.fn(() => 'MockContributions')
+}));
+
+vi.mock('@/components/features/activity', () => ({
+  Contributions: vi.fn(() => 'MockContributions'),
+  PRActivity: vi.fn(() => 'MockPRActivity'),
+  ActivityItem: vi.fn(() => 'MockActivityItem'),
+  PRActivityFeed: vi.fn(() => 'MockPRActivityFeed')
+}));
+
 // Mock @nivo/scatterplot to avoid d3-interpolate ES module issues
 vi.mock('@nivo/scatterplot', () => ({
   ResponsiveScatterPlot: vi.fn(() => 'MockScatterPlot'),
@@ -13,6 +26,65 @@ vi.mock('@nivo/core', () => ({
   ResponsiveWrapper: vi.fn(({ children }) => children),
   withContainer: vi.fn((component) => component),
   SvgWrapper: vi.fn(() => 'MockSvgWrapper'),
+  Container: vi.fn(() => 'MockContainer'),
+  default: vi.fn()
+}));
+
+// Mock all d3 modules that could cause ES module issues
+vi.mock('d3-scale', () => ({
+  scaleLinear: vi.fn(() => ({
+    domain: vi.fn(() => ({ range: vi.fn() })),
+    range: vi.fn(() => ({ domain: vi.fn() }))
+  })),
+  scaleOrdinal: vi.fn(() => ({
+    domain: vi.fn(() => ({ range: vi.fn() })),
+    range: vi.fn(() => ({ domain: vi.fn() }))
+  })),
+  default: vi.fn()
+}));
+
+vi.mock('d3-color', () => ({
+  rgb: vi.fn(() => ({ toString: () => '#000000' })),
+  hsl: vi.fn(() => ({ toString: () => '#000000' })),
+  default: vi.fn()
+}));
+
+vi.mock('d3-format', () => ({
+  format: vi.fn(() => vi.fn()),
+  default: vi.fn()
+}));
+
+vi.mock('d3-time', () => ({
+  timeDay: vi.fn(),
+  timeMonth: vi.fn(),
+  default: vi.fn()
+}));
+
+vi.mock('d3-time-format', () => ({
+  timeFormat: vi.fn(() => vi.fn()),
+  default: vi.fn()
+}));
+
+vi.mock('d3-array', () => ({
+  extent: vi.fn(() => [0, 100]),
+  max: vi.fn(() => 100),
+  min: vi.fn(() => 0),
+  default: vi.fn()
+}));
+
+vi.mock('d3-shape', () => ({
+  line: vi.fn(() => vi.fn()),
+  area: vi.fn(() => vi.fn()),
+  default: vi.fn()
+}));
+
+vi.mock('d3-path', () => ({
+  path: vi.fn(() => ({
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    closePath: vi.fn(),
+    toString: () => 'M0,0L100,100'
+  })),
   default: vi.fn()
 }));
 
