@@ -39,7 +39,9 @@
     "chromatic:ci:enable": "chromatic --exit-zero-on-changes --only-changed",
     "setup-chromatic": "./scripts/setup-chromatic-baselines.sh",
     "test-visual-regression": "./scripts/test-visual-regression.sh",
-    "install-browsers": "playwright install chromium --with-deps || echo 'Playwright browser installation skipped'"
+    "install-browsers": "playwright install chromium --with-deps || echo 'Playwright browser installation skipped'",
+    "test:ci-env": "node scripts/test-ci-environment.js",
+    "verify:es-module-fix": "node scripts/verify-es-module-fix.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

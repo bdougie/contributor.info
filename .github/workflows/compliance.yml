@@ -97,7 +97,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
@@ -106,10 +106,20 @@ jobs:
       - name: Run TypeScript type checking
         run: npm run build
 
+      - name: Debug environment
+        run: |
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Current directory: $(pwd)"
+          echo "Package.json type: $(node -p 'JSON.parse(require("fs").readFileSync("package.json", "utf8")).type')"
+          ls -la node_modules/@nivo/ || echo "@nivo not found"
+          ls -la node_modules/d3-interpolate/ || echo "d3-interpolate not found"
+          
       - name: Run tests
-        run: npm test -- --coverage --passWithNoTests
+        run: npm test -- --coverage --passWithNoTests --reporter=verbose
         env:
           VITE_OPENAI_API_KEY: test-key-for-ci
+          NODE_OPTIONS: "--unhandled-rejections=strict"
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
@@ -131,7 +141,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
@@ -162,21 +172,43 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
       - name: Build application
-        run: npm run build
+        run: npm run build:prod
 
       - name: Analyze bundle size
-        uses: preactjs/compressed-size-action@v2
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          pattern: "./dist/**/*.{js,css}"
-          exclude: "{**/*.map,**/node_modules/**}"
+        run: |
+          echo "## Bundle Size Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Get bundle sizes
+          if [ -d "dist" ]; then
+            echo "### JavaScript Bundles:" >> $GITHUB_STEP_SUMMARY
+            find dist -name "*.js" -not -name "*.map" -exec du -h {} \; | sort -hr | head -10 >> $GITHUB_STEP_SUMMARY
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### CSS Bundles:" >> $GITHUB_STEP_SUMMARY
+            find dist -name "*.css" -exec du -h {} \; | sort -hr >> $GITHUB_STEP_SUMMARY
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Total Size:" >> $GITHUB_STEP_SUMMARY
+            du -sh dist >> $GITHUB_STEP_SUMMARY
+            
+            # Check if bundle sizes are reasonable (warn if JS > 2MB)
+            total_js_size=$(find dist -name "*.js" -not -name "*.map" -exec stat -c%s {} \; | awk '{sum+=$1} END {print sum}')
+            if [ "$total_js_size" -gt 2097152 ]; then
+              echo "⚠️ **Warning**: Total JavaScript bundle size is $(( total_js_size / 1024 / 1024 ))MB" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "✅ Bundle size looks good!" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "❌ No dist folder found" >> $GITHUB_STEP_SUMMARY
+          fi
 
   file-validation:
     name: Required Files Check

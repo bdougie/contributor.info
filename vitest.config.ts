@@ -25,36 +25,40 @@ export default defineConfig({
       VITE_GITHUB_TOKEN: 'test-github-token',
       VITE_OPENAI_API_KEY: 'test-openai-key'
     },
-    // Handle ES modules properly - force all problematic modules to be processed as CJS
+    // Enhanced ES module handling for CI compatibility
     server: {
       deps: {
-        external: [],
         inline: [
+          // Core @nivo packages
           '@nivo/core', 
-          '@nivo/scatterplot', 
-          'd3-interpolate', 
-          'd3-scale',
-          'd3-color',
-          'd3-format',
-          'd3-time',
-          'd3-time-format',
-          'd3-array',
-          'd3-shape',
-          'd3-path',
+          '@nivo/scatterplot',
+          // All d3 dependencies causing ES module issues
+          /^d3-/,  // All d3 packages
+          '@react-spring/web',
+          // Victory vendor dependencies
           'victory-vendor'
         ]
       }
     },
-    // Force dependencies to be treated as CJS
-    transformMode: {
-      ssr: [/\.tsx?$/, /node_modules/]
-    },
-    // Mock problematic modules
+    // Mock problematic modules early in setup
     setupFiles: ['./src/__mocks__/setup.ts']
   },
+  // Enhanced resolve configuration for CI compatibility
   resolve: {
     alias: {
       '@': resolve(__dirname, './src')
     },
+    // Help resolve ES modules in Node 18
+    conditions: ['import', 'module', 'browser', 'default']
+  },
+  // Optimize build for different environments
+  optimizeDeps: {
+    // Exclude problematic ES modules from pre-bundling
+    exclude: [
+      '@nivo/core',
+      '@nivo/scatterplot',
+      'd3-interpolate',
+      '@react-spring/web'
+    ]
   },
 });

@@ -1,32 +1,93 @@
 // Test setup file for mocking problematic dependencies
 import { vi, beforeEach, afterEach } from 'vitest';
+import { createElement } from 'react';
+
+// Create mock components
+const createMockComponent = (name: string) => 
+  vi.fn(({ children, ...props }) => 
+    createElement('div', { 
+      'data-testid': `mock-${name.toLowerCase()}`,
+      ...props 
+    }, children || `Mock ${name}`)
+  );
+
+// Create mock for @nivo/scatterplot components with proper types
+const mockResponsiveScatterPlot = vi.fn(({ nodeComponent, data = [], ...props }: any) => {
+  // Render nodes if nodeComponent and data are provided
+  const nodes = data.flatMap((series: any) => 
+    series.data?.map((point: any, index: number) => {
+      if (nodeComponent) {
+        return createElement(nodeComponent, {
+          key: `${series.id}-${index}`,
+          node: { data: point },
+          style: {
+            x: { to: () => 50 },
+            y: { to: () => 50 },
+            size: { to: () => 10 }
+          }
+        });
+      }
+      return null;
+    }).filter(Boolean) || []
+  );
+  
+  return createElement('div', {
+    'data-testid': 'mock-responsive-scatterplot',
+    'data-points': data.reduce((acc: number, series: any) => acc + (series.data?.length || 0), 0),
+    ...props
+  }, nodes);
+});
+
+const mockScatterPlot = vi.fn(({ nodeComponent, data = [], ...props }: any) => {
+  const nodes = data.flatMap((series: any) => 
+    series.data?.map((point: any, index: number) => {
+      if (nodeComponent) {
+        return createElement(nodeComponent, {
+          key: `${series.id}-${index}`,
+          node: { data: point },
+          style: {
+            x: { to: () => 50 },
+            y: { to: () => 50 },
+            size: { to: () => 10 }
+          }
+        });
+      }
+      return null;
+    }).filter(Boolean) || []
+  );
+  
+  return createElement('div', {
+    'data-testid': 'mock-scatterplot',
+    'data-points': data.reduce((acc: number, series: any) => acc + (series.data?.length || 0), 0),
+    ...props
+  }, nodes);
+});
 
 // Mock the entire features that import problematic modules
 vi.mock('@/components/features/activity/contributions', () => ({
-  default: vi.fn(() => 'MockContributions'),
-  Contributions: vi.fn(() => 'MockContributions')
+  default: createMockComponent('Contributions')
 }));
 
 vi.mock('@/components/features/activity', () => ({
-  Contributions: vi.fn(() => 'MockContributions'),
-  PRActivity: vi.fn(() => 'MockPRActivity'),
-  ActivityItem: vi.fn(() => 'MockActivityItem'),
-  PRActivityFeed: vi.fn(() => 'MockPRActivityFeed')
+  Contributions: createMockComponent('Contributions'),
+  PRActivity: createMockComponent('PRActivity'),
+  ActivityItem: createMockComponent('ActivityItem'),
+  PRActivityFeed: createMockComponent('PRActivityFeed')
 }));
 
-// Mock @nivo/scatterplot to avoid d3-interpolate ES module issues
+// Mock @nivo/scatterplot with comprehensive mock
 vi.mock('@nivo/scatterplot', () => ({
-  ResponsiveScatterPlot: vi.fn(() => 'MockScatterPlot'),
-  ScatterPlot: vi.fn(() => 'MockScatterPlot'),
-  default: vi.fn(() => 'MockScatterPlot')
+  ResponsiveScatterPlot: mockResponsiveScatterPlot,
+  ScatterPlot: mockScatterPlot,
+  default: mockResponsiveScatterPlot
 }));
 
-// Mock @nivo/core to avoid ES module issues
+// Mock @nivo/core
 vi.mock('@nivo/core', () => ({
   ResponsiveWrapper: vi.fn(({ children }) => children),
   withContainer: vi.fn((component) => component),
-  SvgWrapper: vi.fn(() => 'MockSvgWrapper'),
-  Container: vi.fn(() => 'MockContainer'),
+  SvgWrapper: createMockComponent('SvgWrapper'),
+  Container: createMockComponent('Container'),
   default: vi.fn()
 }));
 
