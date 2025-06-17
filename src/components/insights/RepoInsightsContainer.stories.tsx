@@ -1,9 +1,18 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, within } from "@storybook/test";
-import { RepoInsightsContainer } from "./RepoInsightsContainer";
+
+// Mock the entire RepoInsightsContainer to avoid Supabase dependency chain
+const MockRepoInsightsContainer = ({ owner, repo }: { owner: string; repo: string }) => (
+  <div className="space-y-6">
+    <h1 className="text-2xl font-bold">Repository Insights: {owner}/{repo}</h1>
+    <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm">
+      <MockPullRequestInsights owner={owner} repo={repo} dateRange={{}} />
+    </div>
+  </div>
+);
 
 // Mock the PullRequestInsights component to avoid API calls
-const mockPullRequestInsights = ({ owner, repo, dateRange }: any) => (
+const MockPullRequestInsights = ({ owner, repo, dateRange }: any) => (
   <div className="p-6 border rounded-lg bg-card">
     <h3 className="text-xl font-semibold mb-4">Pull Request Insights</h3>
     <div className="space-y-3">
@@ -42,9 +51,9 @@ const mockPullRequestInsights = ({ owner, repo, dateRange }: any) => (
   </div>
 );
 
-const meta: Meta<typeof RepoInsightsContainer> = {
+const meta: Meta<typeof MockRepoInsightsContainer> = {
   title: "Components/Insights/RepoInsightsContainer",
-  component: RepoInsightsContainer,
+  component: MockRepoInsightsContainer,
   parameters: {
     layout: "padded",
     docs: {
@@ -75,37 +84,16 @@ type Story = StoryObj<typeof meta>;
 
 
 // Default story
-export const Default: Story = {
-  render: (args) => (
-    <div className="max-w-4xl">
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">
-          Repository Insights: {args.owner}/{args.repo}
-        </h1>
-        {/* Mock PullRequestInsights component */}
-        {mockPullRequestInsights({ owner: args.owner, repo: args.repo, dateRange: {} })}
-      </div>
-    </div>
-  )
-};
+export const Default: Story = {};
 
 // Different repositories
 export const DifferentRepositories: Story = {
   render: () => (
     <div className="max-w-4xl space-y-8">
       <div className="space-y-8">
-        <div className="space-y-6">
-          <h1 className="text-2xl font-bold">Repository Insights: facebook/react</h1>
-          {mockPullRequestInsights({ owner: "facebook", repo: "react", dateRange: {} })}
-        </div>
-        <div className="space-y-6">
-          <h1 className="text-2xl font-bold">Repository Insights: microsoft/typescript</h1>
-          {mockPullRequestInsights({ owner: "microsoft", repo: "typescript", dateRange: {} })}
-        </div>
-        <div className="space-y-6">
-          <h1 className="text-2xl font-bold">Repository Insights: vercel/next.js</h1>
-          {mockPullRequestInsights({ owner: "vercel", repo: "next.js", dateRange: {} })}
-        </div>
+        <MockRepoInsightsContainer owner="facebook" repo="react" />
+        <MockRepoInsightsContainer owner="microsoft" repo="typescript" />
+        <MockRepoInsightsContainer owner="vercel" repo="next.js" />
       </div>
     </div>
   )
@@ -113,48 +101,22 @@ export const DifferentRepositories: Story = {
 
 // Large repository name
 export const LongRepositoryName: Story = {
-  render: () => (
-    <div className="max-w-4xl">
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">
-          Repository Insights: microsoft/terminal-with-a-very-long-repository-name-that-might-overflow
-        </h1>
-        {mockPullRequestInsights({ 
-          owner: "microsoft", 
-          repo: "terminal-with-a-very-long-repository-name-that-might-overflow", 
-          dateRange: {} 
-        })}
-      </div>
-    </div>
-  )
+  args: {
+    owner: "microsoft",
+    repo: "terminal-with-a-very-long-repository-name-that-might-overflow"
+  }
 };
 
 // Organization with special characters
 export const SpecialCharacters: Story = {
-  render: () => (
-    <div className="max-w-4xl">
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">
-          Repository Insights: facebook/react-native
-        </h1>
-        {mockPullRequestInsights({ owner: "facebook", repo: "react-native", dateRange: {} })}
-      </div>
-    </div>
-  )
+  args: {
+    owner: "facebook",
+    repo: "react-native"
+  }
 };
 
 // Interactive testing
 export const Interactive: Story = {
-  render: (args) => (
-    <div className="max-w-4xl">
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">
-          Repository Insights: {args.owner}/{args.repo}
-        </h1>
-        {mockPullRequestInsights({ owner: args.owner, repo: args.repo, dateRange: {} })}
-      </div>
-    </div>
-  ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     
@@ -184,28 +146,19 @@ export const ResponsiveLayout: Story = {
       <div>
         <h3 className="text-lg font-semibold mb-4">Desktop (1200px+)</h3>
         <div className="w-full max-w-6xl border rounded-lg p-6 bg-background">
-          <div className="space-y-6">
-            <h1 className="text-2xl font-bold">Repository Insights: facebook/react</h1>
-            {mockPullRequestInsights({ owner: "facebook", repo: "react", dateRange: {} })}
-          </div>
+          <MockRepoInsightsContainer owner="facebook" repo="react" />
         </div>
       </div>
       <div>
         <h3 className="text-lg font-semibold mb-4">Tablet (768px)</h3>
         <div className="w-full max-w-3xl border rounded-lg p-4 bg-background">
-          <div className="space-y-6">
-            <h1 className="text-2xl font-bold">Repository Insights: microsoft/typescript</h1>
-            {mockPullRequestInsights({ owner: "microsoft", repo: "typescript", dateRange: {} })}
-          </div>
+          <MockRepoInsightsContainer owner="microsoft" repo="typescript" />
         </div>
       </div>
       <div>
         <h3 className="text-lg font-semibold mb-4">Mobile (375px)</h3>
         <div className="w-full max-w-sm border rounded-lg p-3 bg-background">
-          <div className="space-y-6">
-            <h1 className="text-xl font-bold">Repository Insights: vercel/next.js</h1>
-            {mockPullRequestInsights({ owner: "vercel", repo: "next.js", dateRange: {} })}
-          </div>
+          <MockRepoInsightsContainer owner="vercel" repo="next.js" />
         </div>
       </div>
     </div>
@@ -214,9 +167,8 @@ export const ResponsiveLayout: Story = {
 
 // With future date range controls (design preview)
 export const WithDateRangeControls: Story = {
-  render: () => {
-    // Enhanced mock that shows future date range functionality
-    const enhancedMockInsights = ({ owner, repo, dateRange }: any) => (
+  render: () => (
+    <div className="max-w-4xl">
       <div className="space-y-6">
         {/* Future date range controls preview */}
         <div className="p-4 border rounded-lg bg-muted/30">
@@ -252,30 +204,18 @@ export const WithDateRangeControls: Story = {
           </p>
         </div>
         
-        {/* Existing insights */}
-        {mockPullRequestInsights({ owner, repo, dateRange })}
+        <MockRepoInsightsContainer owner="facebook" repo="react" />
       </div>
-    );
-    
-    return (
-      <div className="max-w-4xl">
-        <div className="space-y-6">
-          <h1 className="text-2xl font-bold">Repository Insights: facebook/react</h1>
-          {enhancedMockInsights({ owner: "facebook", repo: "react", dateRange: {} })}
-        </div>
-      </div>
-    );
-  }
+    </div>
+  )
 };
 
 // Multiple insight components preview
 export const MultipleInsightTypes: Story = {
-  render: () => {
-    // Enhanced mock showing multiple future insight types
-    const multiInsightMock = ({ owner, repo, dateRange }: any) => (
+  render: () => (
+    <div className="max-w-4xl">
       <div className="space-y-6">
-        {/* PR Insights */}
-        {mockPullRequestInsights({ owner, repo, dateRange })}
+        <MockRepoInsightsContainer owner="facebook" repo="react" />
         
         {/* Future: Issue Insights */}
         <div className="p-6 border rounded-lg bg-card opacity-60">
@@ -315,15 +255,6 @@ export const MultipleInsightTypes: Story = {
           </div>
         </div>
       </div>
-    );
-    
-    return (
-      <div className="max-w-4xl">
-        <div className="space-y-6">
-          <h1 className="text-2xl font-bold">Repository Insights: facebook/react</h1>
-          {multiInsightMock({ owner: "facebook", repo: "react", dateRange: {} })}
-        </div>
-      </div>
-    );
-  }
+    </div>
+  )
 };
