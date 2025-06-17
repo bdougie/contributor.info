@@ -24,6 +24,16 @@ vi.mock('d3-interpolate', () => ({
   default: vi.fn()
 }));
 
+// Mock OpenAI service to avoid real API calls
+vi.mock('../lib/llm/openai-service', () => ({
+  openAIService: {
+    isAvailable: vi.fn(() => false), // Return false in tests to use fallbacks
+    generateHealthInsight: vi.fn(() => Promise.resolve(null)),
+    generateRecommendations: vi.fn(() => Promise.resolve(null)),
+    analyzePRPatterns: vi.fn(() => Promise.resolve(null))
+  }
+}));
+
 // Mock fetch globally to avoid network requests in tests
 import { setupGitHubApiMock } from './github-api';
 setupGitHubApiMock();
