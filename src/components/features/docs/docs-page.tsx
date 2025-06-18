@@ -129,7 +129,17 @@ export function DocsPage() {
     <>
       <DocsSEO />
       <div className="max-w-7xl mx-auto py-2">
+        {/* Mobile navigation - shows on top, full width */}
+        <div className="lg:hidden mb-6">
+          <DocsNavigation
+            entries={navigationEntries}
+            activeSection={activeSection}
+            onSectionSelect={setActiveSection}
+          />
+        </div>
+
         <div className="flex gap-8">
+          {/* Desktop navigation - shows on left side */}
           <aside className="hidden lg:block sticky top-8 h-fit">
             <DocsNavigation
               entries={navigationEntries}

@@ -1,5 +1,3 @@
-# PR Activity Insights
-
 The **PR Activity** insight provides real-time monitoring of your repository's pull request patterns, team velocity, and development workflow health.
 
 ## Overview

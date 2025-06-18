@@ -145,31 +145,29 @@ export function ChangelogPage() {
     <>
       <ChangelogSEO />
       <div className="max-w-7xl mx-auto py-2">
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
-          <aside className="lg:sticky lg:top-6 lg:h-fit lg:min-h-0 lg:shrink-0 order-2 lg:order-1">
-            <div className="space-y-4">
-              {/* RSS button for desktop - positioned above nav */}
-              <div className="hidden lg:block">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open("/changelog-rss.xml", "_blank")}
-                >
-                  <Rss className="h-4 w-4 mr-2" />
-                  Subscribe to RSS
-                </Button>
-              </div>
+        {/* Mobile navigation - shows on top, full width */}
+        <div className="lg:hidden mb-6">
+          <ChangelogNavigation
+            entries={navigationEntries}
+            activeVersion={activeVersion}
+            onVersionSelect={setActiveVersion}
+          />
+        </div>
 
-              <ChangelogNavigation
-                entries={navigationEntries}
-                activeVersion={activeVersion}
-                onVersionSelect={setActiveVersion}
-                className="lg:max-h-[calc(100vh-6rem)]"
-              />
-            </div>
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
+          {/* Desktop navigation - shows on left side */}
+          <aside className="hidden lg:block lg:sticky lg:top-6 lg:h-fit lg:min-h-0 lg:shrink-0">
+            <ChangelogNavigation
+              entries={navigationEntries}
+              activeVersion={activeVersion}
+              onVersionSelect={setActiveVersion}
+              className="lg:max-h-[calc(100vh-6rem)]"
+            />
           </aside>
 
-          <main className="flex-1 order-1 lg:order-2">
+          <main className="flex-1">
+            <div className="flex gap-8">
+              <div className="flex-1">
             <div className="space-y-6">
               {changelogEntries.map((entry, index) => {
                 const sections = entry.content.split("###").filter(Boolean);
@@ -234,19 +232,32 @@ export function ChangelogPage() {
                   </Card>
                 );
               })}
-            </div>
+              </div>
 
-            {changelogEntries.length === 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>No Changelog Entries</CardTitle>
-                  <CardDescription>
-                    No changelog entries are available yet. Check back soon for
-                    updates!
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            )}
+              {changelogEntries.length === 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>No Changelog Entries</CardTitle>
+                    <CardDescription>
+                      No changelog entries are available yet. Check back soon for
+                      updates!
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              )}
+            </div>
+            
+            <aside className="hidden xl:block sticky top-8 h-fit">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open("/changelog-rss.xml", "_blank")}
+              >
+                <Rss className="h-4 w-4 mr-2" />
+                Subscribe to RSS
+              </Button>
+            </aside>
+          </div>
           </main>
         </div>
       </div>

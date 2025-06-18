@@ -1,5 +1,3 @@
-# Lottery Factor
-
 The **Lottery Factor** is a critical metric for assessing the health and sustainability of your repository. It measures the risk associated with knowledge concentration among your contributors.
 
 ## What is the Lottery Factor?
