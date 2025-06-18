@@ -49,7 +49,7 @@ export default function PRActivity() {
   };
 
   return (
-    <Card>
+    <Card data-testid="pr-activity-section">
       <CardHeader>
         <CardTitle>Pull Request Activity Feed</CardTitle>
         <CardDescription>

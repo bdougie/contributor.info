@@ -5,15 +5,20 @@ import ContributionsWrapper from "../contributions-wrapper";
 import { TestRepoStatsProvider } from "../../../__tests__/test-utils";
 
 describe("ContributionsWrapper", () => {
-  it("renders the card with title and description", () => {
+  it("renders both contributions chart and PR activity feed", () => {
     render(
       <TestRepoStatsProvider>
         <ContributionsWrapper />
       </TestRepoStatsProvider>
     );
 
-    expect(screen.getByText("Pull Request Contributions")).toBeInTheDocument();
-    expect(screen.getByText("Visualize the size and frequency of contributions")).toBeInTheDocument();
+    // Check for PR Activity section
+    expect(screen.getByText("Recent PR Activity")).toBeInTheDocument();
+    expect(screen.getByText("Latest pull request actions")).toBeInTheDocument();
+    
+    // The contributions chart should be loading or showing mock
+    const loadingOrMock = screen.queryByText("Loading chart...") || screen.queryByTestId("mock-contributions-chart");
+    expect(loadingOrMock).toBeTruthy();
   });
 
   it("renders loading state initially", () => {
