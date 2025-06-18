@@ -6,6 +6,15 @@ interface MarkdownProps {
   className?: string;
 }
 
+// Helper function to generate heading IDs
+const generateHeadingId = (text: string): string => {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .trim();
+};
+
 export function Markdown({ children, className }: MarkdownProps) {
   return (
     <ReactMarkdown
@@ -17,6 +26,23 @@ export function Markdown({ children, className }: MarkdownProps) {
         'prose-code:px-1 prose-code:py-0.5 prose-code:rounded-md prose-code:bg-muted',
         className
       )}
+      components={{
+        h1: ({ children }) => {
+          const text = String(children);
+          const id = generateHeadingId(text);
+          return <h1 id={id}>{children}</h1>;
+        },
+        h2: ({ children }) => {
+          const text = String(children);
+          const id = generateHeadingId(text);
+          return <h2 id={id}>{children}</h2>;
+        },
+        h3: ({ children }) => {
+          const text = String(children);
+          const id = generateHeadingId(text);
+          return <h3 id={id}>{children}</h3>;
+        }
+      }}
     >
       {children}
     </ReactMarkdown>

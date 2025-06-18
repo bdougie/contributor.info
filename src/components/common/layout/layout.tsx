@@ -50,6 +50,12 @@ export default function Layout() {
             >
               Changelog
             </Link>
+            <Link
+              to="/docs"
+              className="text-sm font-medium hover:text-primary transition-colors"
+            >
+              Docs
+            </Link>
           </div>
           <div className="ml-auto flex items-center space-x-4">
             {isLoggedIn && (

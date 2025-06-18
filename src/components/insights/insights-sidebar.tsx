@@ -31,7 +31,7 @@ interface InsightsSidebarProps {
 export function InsightsSidebar({ className }: InsightsSidebarProps) {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const timeRange = useTimeRangeStore((state) => state.timeRange);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [criticalCount, setCriticalCount] = useState(0);
 

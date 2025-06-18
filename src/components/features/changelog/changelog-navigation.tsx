@@ -23,7 +23,13 @@ export function ChangelogNavigation({
   onVersionSelect,
   className 
 }: ChangelogNavigationProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  // Check if we're on mobile (screen width < 1024px) and default to closed on mobile
+  const [isOpen, setIsOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 1024; // lg breakpoint
+    }
+    return true; // Default to open for SSR
+  });
   const [currentActive, setCurrentActive] = useState(activeVersion);
 
   useEffect(() => {
@@ -31,6 +37,17 @@ export function ChangelogNavigation({
       setCurrentActive(activeVersion);
     }
   }, [activeVersion, currentActive]);
+
+  // Handle window resize to adjust open state based on screen size
+  useEffect(() => {
+    const handleResize = () => {
+      const isLargeScreen = window.innerWidth >= 1024;
+      setIsOpen(isLargeScreen);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleVersionClick = (version: string, anchor: string) => {
     const element = document.getElementById(anchor);
@@ -46,7 +63,7 @@ export function ChangelogNavigation({
   }
 
   return (
-    <div className={cn("w-64 bg-card border rounded-lg p-4", className)}>
+    <div className={cn("w-full lg:w-64 bg-card border rounded-lg p-4", className)}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <Button 

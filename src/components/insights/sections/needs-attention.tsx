@@ -89,7 +89,7 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
 
   if (error) {
     return (
-      <div className="text-center py-8">
+      <div className="text-center py-2">
         <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-3" />
         <p className="text-sm text-muted-foreground">
           Failed to load PR alerts
@@ -108,7 +108,7 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
 
   if (alerts.length === 0) {
     return (
-      <div className="text-center py-8">
+      <div className="text-center py-2">
         <AlertCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
         <p className="text-sm text-muted-foreground">
           All pull requests are being handled efficiently!
