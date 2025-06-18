@@ -67,7 +67,7 @@ export default function RepoView() {
   const repoUrl = `https://contributor.info/${owner}/${repo}`;
 
   return (
-    <div className="container mx-auto py-2 md:pr-20 lg:pr-80">
+    <div className="container mx-auto py-2">
       <SocialMetaTags
         title={repoTitle}
         description={repoDescription}
