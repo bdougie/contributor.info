@@ -45,7 +45,7 @@ export function PrActivity({ owner, repo, timeRange }: PrActivityProps) {
 
   if (!metrics) {
     return (
-      <div className="text-center py-8">
+      <div className="text-center py-2">
         <GitPullRequest className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
         <p className="text-sm text-muted-foreground">
           No activity data available

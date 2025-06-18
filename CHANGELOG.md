@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * add changelog navigation with anchors, RSS feed, and SEO ([#84](https://github.com/bdougie/contributor.info/issues/84)) ([16e96c6](https://github.com/bdougie/contributor.info/commit/16e96c65a7ea86263ae43839f35f8768e2ba6b76))
 
-## 1.0.0 (2025-06-17)
+## [1.0.0](https://github.com/bdougie/contributor.info/commit/16e96c65a7ea86263ae43839f35f8768e2ba6b76) (2025-06-17)
 
 
 ### 🚀 Features
