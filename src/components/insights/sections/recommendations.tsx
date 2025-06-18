@@ -248,7 +248,7 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
 
   if (visibleRecommendations.length === 0 && !llmInsight && !llmLoading) {
     return (
-      <div className="text-center py-8">
+      <div className="text-center py-2">
         <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
         <p className="text-sm text-muted-foreground">
           All recommendations completed!

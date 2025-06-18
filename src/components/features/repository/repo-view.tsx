@@ -47,7 +47,7 @@ export default function RepoView() {
 
   if (stats.error) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="container mx-auto py-2">
         <Card>
           <CardContent className="p-8">
             <div className="text-center">
@@ -67,7 +67,7 @@ export default function RepoView() {
   const repoUrl = `https://contributor.info/${owner}/${repo}`;
 
   return (
-    <div className="container mx-auto py-8 md:pr-20 lg:pr-80">
+    <div className="container mx-auto py-2 md:pr-20 lg:pr-80">
       <SocialMetaTags
         title={repoTitle}
         description={repoDescription}

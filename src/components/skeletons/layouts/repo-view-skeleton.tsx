@@ -8,7 +8,7 @@ interface RepoViewSkeletonProps {
 
 export function RepoViewSkeleton({ className }: RepoViewSkeletonProps) {
   return (
-    <div className={cn("container mx-auto py-8", className)}>
+    <div className={cn("container mx-auto py-2", className)}>
       {/* Search Bar Section */}
       <Card className="mb-8 animate-pulse">
         <CardContent className="pt-6">

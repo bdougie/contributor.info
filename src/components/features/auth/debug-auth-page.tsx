@@ -195,7 +195,7 @@ export default function DebugAuthPage() {
   }, []);
 
   return (
-    <div className="container max-w-4xl mx-auto py-8">
+    <div className="container max-w-4xl mx-auto py-2">
       <h1 className="text-3xl font-bold mb-8">Authentication Debugging</h1>
 
       <Tabs defaultValue="status">

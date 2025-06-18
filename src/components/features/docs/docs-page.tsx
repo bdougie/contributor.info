@@ -112,7 +112,7 @@ export function DocsPage() {
 
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto py-8">
+      <div className="max-w-4xl mx-auto py-2">
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle>Error Loading Documentation</CardTitle>
