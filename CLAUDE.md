@@ -144,3 +144,4 @@ npx supabase status
 ## Development Memories
 
 - Replaced all require() calls with proper ES module patterns in storybook
+- I've removed netlify deploys from the release yml. The github app deploys now

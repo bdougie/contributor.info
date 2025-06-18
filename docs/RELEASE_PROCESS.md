@@ -82,7 +82,6 @@ When code is merged to `main`:
 2. **Changelog generation**: From commit messages and PR data
 3. **Git tag creation**: Semantic version tag
 4. **GitHub release**: With generated changelog
-5. **Production deployment**: To Netlify
 
 ## Manual Release Process
 
@@ -172,7 +171,6 @@ Changelogs are automatically generated including:
 Automatically triggered on releases:
 1. **Build**: `npm run build` with optimizations
 2. **Tests**: Full test suite execution
-3. **Deploy**: To Netlify production environment
 4. **Verification**: Automatic health checks
 
 ### Environment Variables
