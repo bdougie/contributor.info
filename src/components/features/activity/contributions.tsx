@@ -22,7 +22,7 @@ function ContributionsChart() {
     typeof window !== "undefined" && window.innerWidth < 768
   );
   const effectiveTimeRangeNumber = parseInt(effectiveTimeRange, 10);
-  const mobileMaxDays = 7;
+  const mobileMaxDays = 7; // Aggressive filtering for mobile
 
   const functionTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -153,15 +153,15 @@ function ContributionsChart() {
         r={props.style.size.to((size: number) => size / 2) as unknown as number}
         y={
           props.style.y.to(
-            (yVal: number) => yVal - (isMobile ? 28 : 35) / 1
+            (yVal: number) => Math.max(0, yVal - (isMobile ? 28 : 35) / 1)
           ) as unknown as number
         }
         x={
           props.style.x.to(
-            (xVal: number) => xVal - (isMobile ? 28 : 35) / 2
+            (xVal: number) => Math.max((isMobile ? 14 : 17.5), xVal - (isMobile ? 28 : 35) / 2)
           ) as unknown as number
         }
-        style={{ pointerEvents: "auto" }} // This is crucial for hover to work
+        style={{ pointerEvents: "auto", overflow: "visible" }} // This is crucial for hover to work
       >
         <HoverCardPrimitive.Root openDelay={100} closeDelay={200}>
           <HoverCardPrimitive.Trigger asChild>
@@ -185,11 +185,12 @@ function ContributionsChart() {
           </HoverCardPrimitive.Trigger>
           <HoverCardPrimitive.Portal>
             <HoverCardPrimitive.Content
-              side="top"
-              align="center"
-              sideOffset={5}
+              side={isMobile ? "top" : "top"}
+              align={isMobile ? "center" : "center"}
+              sideOffset={isMobile ? 10 : 5}
+              collisionPadding={isMobile ? 20 : 10}
               className={`z-50 ${
-                isMobile ? "w-64" : "w-80"
+                isMobile ? "w-64 max-w-[calc(100vw-2rem)]" : "w-80"
               } rounded-md border bg-card p-4 text-card-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2`}
               avoidCollisions={true}
             >
@@ -291,7 +292,7 @@ function ContributionsChart() {
   const hasBots = botCount > 0;
 
   return (
-    <div className="space-y-4 w-full">
+    <div className="space-y-4 w-full overflow-hidden">
       <div
         className={`flex flex-col items-start justify-between pt-3 ${
           isMobile ? "px-2" : "md:flex-row md:px-7"
@@ -325,15 +326,15 @@ function ContributionsChart() {
           </div>
         </div>
       </div>
-      <div className={`${isMobile ? "h-[280px]" : "h-[400px]"} w-full`}>
+      <div className={`${isMobile ? "h-[280px]" : "h-[400px]"} w-full overflow-hidden relative`}>
         <ResponsiveScatterPlot
           nodeSize={isMobile ? 20 : 35}
           data={data}
           margin={{
             top: 20,
-            right: isMobile ? 5 : 60,
-            bottom: isMobile ? 50 : 70,
-            left: isMobile ? 30 : 90,
+            right: isMobile ? 10 : 60,
+            bottom: isMobile ? 45 : 70,
+            left: isMobile ? 35 : 90,
           }}
           xScale={{
             type: "linear",
