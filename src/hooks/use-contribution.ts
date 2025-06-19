@@ -10,7 +10,7 @@ export function useContribution(pullRequests: PullRequest[]) {
   const [distribution, setDistribution] = useState<QuadrantDistribution | null>(null);
   const [quadrantCounts, setQuadrantCounts] = useState<Record<string, number>>({
     refinement: 0,
-    newStuff: 0,
+    new: 0,
     refactoring: 0,
     maintenance: 0
   });

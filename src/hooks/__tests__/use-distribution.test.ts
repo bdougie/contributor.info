@@ -72,14 +72,14 @@ describe('useDistribution', () => {
     value: 100,
     percentage: 100,
     refinement: 25,
-    newStuff: 25,
+    new: 25,
     refactoring: 25,
     maintenance: 25
   };
 
   const mockCounts = {
     refinement: 1,
-    newStuff: 2,
+    new: 2,
     refactoring: 3,
     maintenance: 4
   };
@@ -120,7 +120,7 @@ describe('useDistribution', () => {
               description: 'Improving existing features with careful changes',
               color: '#4ade80'
             },
-            newStuff: {
+            new: {
               label: 'New Features',
               description: 'Adding new functionality and capabilities',
               color: '#60a5fa'

@@ -51,14 +51,14 @@ describe('useContribution', () => {
     value: 100,
     percentage: 100,
     refinement: 25,
-    newStuff: 25, 
+    new: 25, 
     refactoring: 25,
     maintenance: 25
   };
 
   const mockCounts = {
     refinement: 1,
-    newStuff: 1,
+    new: 1,
     refactoring: 1,
     maintenance: 1
   };
@@ -87,7 +87,7 @@ describe('useContribution', () => {
     expect(result.current.distribution).toBeNull();
     expect(result.current.quadrantCounts).toEqual({
       refinement: 0,
-      newStuff: 0,
+      new: 0,
       refactoring: 0,
       maintenance: 0
     });

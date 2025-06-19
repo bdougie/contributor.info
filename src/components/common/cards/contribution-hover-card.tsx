@@ -37,8 +37,8 @@ const getQuadrantDisplayName = (quadrant: string): string => {
   switch (quadrant) {
     case "refinement":
       return "Refinement";
-    case "newStuff":
-      return "New Stuff";
+    case "new":
+      return "New Features";
     case "maintenance":
       return "Maintenance";
     case "refactoring":
@@ -53,7 +53,7 @@ const getQuadrantBadgeStyle = (quadrant: string): string => {
   switch (quadrant) {
     case "refinement":
       return "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400";
-    case "newStuff":
+    case "new":
       return "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400";
     case "maintenance":
       return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400";
