@@ -14,7 +14,7 @@ import { SearchIcon } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import { LotteryFactor } from "../health";
-import { Contributions, PRActivity, MetricsRow, TrendsRow } from "../activity";
+import { Contributions, MetricsRow, TrendsRow } from "../activity";
 import { Distribution } from "../distribution";
 import { ContributorOfMonthWrapper } from "../contributor";
 import { ExampleRepos } from "./example-repos";
@@ -36,6 +36,7 @@ export default function RepoView() {
     const path = location.pathname;
     if (path.endsWith("/health")) return "lottery";
     if (path.endsWith("/distribution")) return "distribution";
+    if (path.endsWith("/feed")) return "feed";
     if (path.endsWith("/activity") || path.endsWith("/contributions"))
       return "contributions";
     return "contributions"; // default for root path
@@ -136,6 +137,7 @@ export default function RepoView() {
                 <TabsTrigger value="contributions">Activity</TabsTrigger>
                 <TabsTrigger value="lottery">Health</TabsTrigger>
                 <TabsTrigger value="distribution">Distribution</TabsTrigger>
+                <TabsTrigger value="feed">Feed</TabsTrigger>
               </TabsList>
             </Tabs>
 
@@ -179,7 +181,6 @@ export function ContributionsRoute() {
       <TrendsRow owner={owner} repo={repo} timeRange={timeRange} />
       <MetricsRow owner={owner} repo={repo} timeRange={timeRange} />
       <ContributorOfMonthWrapper />
-      <PRActivity />
     </div>
   );
 }

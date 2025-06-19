@@ -12,6 +12,7 @@ import { LoginPage, DebugAuthPage } from "@/components/features/auth";
 import TestInsights from "@/components/features/auth/test-insights";
 import { ChangelogPage } from "@/components/features/changelog";
 import { DocsPage } from "@/components/features/docs";
+import { FeedPage } from "@/components/features/feed";
 import CardLayout from "@/components/social-cards/card-layout";
 import HomeSocialCardWithData from "@/components/social-cards/home-card-with-data";
 import RepoCardWithData from "@/components/social-cards/repo-card-with-data";
@@ -47,6 +48,7 @@ function App() {
               <Route path="contributions" element={<ContributionsRoute />} />
               <Route path="health" element={<LotteryFactorRoute />} />
               <Route path="distribution" element={<DistributionRoute />} />
+              <Route path="feed" element={<FeedPage />} />
             </Route>
           </Route>
           <Route path="*" element={<NotFound />} />
