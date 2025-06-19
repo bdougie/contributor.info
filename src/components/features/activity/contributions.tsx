@@ -1,11 +1,4 @@
 import { useState, useContext, useEffect, useRef } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ResponsiveScatterPlot, ScatterPlotNodeProps } from "@nivo/scatterplot";
@@ -408,43 +401,5 @@ function ContributionsChart() {
   );
 }
 
-// Contributions Tab Component
-export default function Contributions() {
-  const { effectiveTimeRange } = useTimeRange();
-  const effectiveTimeRangeNumber = parseInt(effectiveTimeRange, 10);
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== "undefined" && window.innerWidth < 768
-  );
-
-  // Add resize listener to update isMobile state
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Pull Request Contributions</CardTitle>
-        <CardDescription>
-          Visualize the size and frequency of contributions over the past{" "}
-          {isMobile ? 7 : effectiveTimeRangeNumber} days
-          {isMobile && effectiveTimeRangeNumber > 7 && (
-            <span className="block text-xs mt-1 text-muted-foreground">
-              (Limited to 7 days on mobile devices)
-            </span>
-          )}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className={`${isMobile ? "p-2" : "p-6"}`}>
-        <ContributionsChart />
-      </CardContent>
-    </Card>
-  );
-}
+// Export ContributionsChart as default
+export default ContributionsChart;

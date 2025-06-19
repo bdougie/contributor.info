@@ -57,3 +57,38 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Performance optimizations for skeleton loaders */
+@layer utilities {
+  .skeleton-optimized {
+    /* Optimize for animation performance */
+    will-change: opacity;
+    transform: translateZ(0); /* Force hardware acceleration */
+    backface-visibility: hidden; /* Reduce paint complexity */
+  }
+  
+  .animate-pulse-optimized {
+    animation: pulse-optimized 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @keyframes pulse-optimized {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  
+  /* Reduce paint complexity for skeleton elements */
+  .skeleton-container {
+    contain: layout style paint;
+    isolation: isolate;
+  }
+  
+  /* Optimize for frequent DOM updates */
+  .skeleton-list-item {
+    contain: layout style;
+    will-change: contents;
+  }
+}

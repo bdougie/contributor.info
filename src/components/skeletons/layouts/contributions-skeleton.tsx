@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { SkeletonChart } from "../base/skeleton-chart";
@@ -8,9 +9,20 @@ interface ContributionsSkeletonProps {
   isMobile?: boolean;
 }
 
+/**
+ * ContributionsSkeleton component for displaying placeholder contributions chart
+ * 
+ * @param className - Additional CSS classes to apply
+ * @param isMobile - Whether to render mobile-optimized layout
+ * @returns A skeleton layout for contributions chart with accessibility features
+ */
 export function ContributionsSkeleton({ className, isMobile = false }: ContributionsSkeletonProps) {
   return (
-    <Card className={cn("animate-pulse", className)}>
+    <Card 
+      className={cn("animate-pulse skeleton-container skeleton-optimized", className)}
+      aria-label="Loading contributions chart..."
+      aria-busy="true"
+    >
       <CardHeader>
         <CardTitle>
           <Skeleton className="h-7 w-56" />
@@ -33,14 +45,26 @@ export function ContributionsSkeleton({ className, isMobile = false }: Contribut
   );
 }
 
+/**
+ * ContributionsChartSkeleton displays the chart area with optimized performance
+ */
 function ContributionsChartSkeleton({ isMobile }: { isMobile: boolean }) {
+  // Pre-generate avatar positions to avoid Math.random() calls during render
+  const avatarPositions = useMemo(() => 
+    Array.from({ length: 8 }, (_, i) => ({
+      left: Math.random() * 70 + 15,
+      top: Math.random() * 60 + 20,
+      key: `avatar-${i}`
+    })), []
+  );
+
   return (
-    <div className="space-y-4 w-full">
+    <div className="space-y-4 w-full skeleton-container">
       {/* Controls and stats section */}
       <div className={cn(
         "flex flex-col items-start justify-between pt-3",
         isMobile ? "px-6" : "md:flex-row md:px-7"
-      )}>
+      )} aria-label="Loading chart controls">
         {/* Stats display */}
         <Skeleton className="h-5 w-32" />
         
@@ -48,7 +72,7 @@ function ContributionsChartSkeleton({ isMobile }: { isMobile: boolean }) {
         <div className={cn(
           "flex flex-wrap gap-4 mt-3 md:mt-0",
           isMobile && "w-full"
-        )}>
+        )} aria-label="Loading chart toggles">
           {/* Show Bots Toggle */}
           <div className="flex items-center space-x-2">
             <Skeleton className="h-5 w-9 rounded-full" />
@@ -67,7 +91,7 @@ function ContributionsChartSkeleton({ isMobile }: { isMobile: boolean }) {
       <div className={cn(
         "w-full",
         isMobile ? "h-[300px]" : "h-[400px]"
-      )}>
+      )} aria-label="Loading contributions chart">
         <SkeletonChart
           height={isMobile ? "md" : "lg"}
           variant="scatter"
@@ -77,21 +101,21 @@ function ContributionsChartSkeleton({ isMobile }: { isMobile: boolean }) {
       </div>
 
       {/* Chart loading indicators - scattered avatar placeholders */}
-      <div className="relative -mt-80 pointer-events-none">
+      <div className="relative -mt-80 pointer-events-none" aria-label="Loading contributor avatars">
         <div className={cn(
           "absolute inset-0",
           isMobile ? "mx-6" : "mx-7"
         )}>
-          {Array.from({ length: 8 }).map((_, i) => (
+          {avatarPositions.map((pos) => (
             <Skeleton
-              key={i}
+              key={pos.key}
               className={cn(
-                "absolute rounded-full",
+                "absolute rounded-full skeleton-optimized",
                 isMobile ? "w-7 h-7" : "w-9 h-9"
               )}
               style={{
-                left: `${Math.random() * 70 + 15}%`,
-                top: `${Math.random() * 60 + 20}%`
+                left: `${pos.left}%`,
+                top: `${pos.top}%`
               }}
             />
           ))}
