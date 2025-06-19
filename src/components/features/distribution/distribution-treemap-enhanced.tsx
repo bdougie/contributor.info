@@ -17,7 +17,7 @@ interface DistributionTreemapEnhancedProps {
 
 const COLORS = {
   refinement: "#4ade80",
-  newStuff: "#60a5fa",
+  new: "#60a5fa",
   refactoring: "#f97316",
   maintenance: "#a78bfa",
 };
@@ -103,7 +103,7 @@ export function DistributionTreemapEnhanced({
         avatar_url,
         prs,
       } = props;
-      const isHovered = hoveredNode === id;
+      // const isHovered = hoveredNode === id;
       const isQuadrant = currentView === "overview";
       const isContributor = currentView === "quadrant";
       const isOthers = login === "others";
@@ -298,24 +298,28 @@ export function DistributionTreemapEnhanced({
       <style>{treemapStyles}</style>
 
       {/* Breadcrumb Navigation */}
-      {currentView === "quadrant" && selectedQuadrant && (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onDrillUp}
-            className="gap-1"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            All Contributions
-          </Button>
-          <span className="text-muted-foreground">/</span>
-          <span className="font-medium">
-            {QUADRANT_INFO[selectedQuadrant as keyof typeof QUADRANT_INFO]
-              ?.label || selectedQuadrant}
-          </span>
-        </div>
-      )}
+      <div className="flex items-center gap-2">
+        {currentView === "quadrant" && selectedQuadrant ? (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDrillUp}
+              className="gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              All Contributions
+            </Button>
+            <span className="text-muted-foreground">/</span>
+            <span className="font-medium">
+              {QUADRANT_INFO[selectedQuadrant as keyof typeof QUADRANT_INFO]
+                ?.label || selectedQuadrant}
+            </span>
+          </>
+        ) : (
+          <span className="font-medium">All Contributions</span>
+        )}
+      </div>
 
       <div
         className={`treemap-container ${
@@ -341,7 +345,7 @@ export function DistributionTreemapEnhanced({
 
 const QUADRANT_INFO = {
   refinement: { label: "Refinement" },
-  newStuff: { label: "New Features" },
+  new: { label: "New Features" },
   refactoring: { label: "Refactoring" },
   maintenance: { label: "Maintenance" },
 };

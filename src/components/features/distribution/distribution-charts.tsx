@@ -31,7 +31,7 @@ type ChartType = "donut" | "bar" | "treemap";
 
 const COLORS = {
   refinement: "#4ade80",
-  newStuff: "#60a5fa",
+  new: "#60a5fa",
   refactoring: "#f97316",
   maintenance: "#a78bfa",
 };
@@ -54,7 +54,7 @@ export function DistributionCharts({
     selectedQuadrant: drillDownQuadrant,
     drillDown,
     drillUp,
-  } = useHierarchicalDistribution(pullRequests);
+  } = useHierarchicalDistribution(pullRequests, selectedQuadrant);
 
   const totalContributions = data.reduce((sum, item) => sum + item.value, 0);
 
@@ -267,8 +267,20 @@ export function DistributionCharts({
         data={hierarchicalData}
         currentView={currentView}
         selectedQuadrant={drillDownQuadrant}
-        onDrillDown={drillDown}
-        onDrillUp={drillUp}
+        onDrillDown={(quadrantId) => {
+          // If treemap is drilling down and no external filter is set, sync with main filter
+          if (!selectedQuadrant) {
+            onSegmentClick?.(quadrantId);
+          }
+          drillDown(quadrantId);
+        }}
+        onDrillUp={() => {
+          // If treemap is drilling up and external filter matches, clear main filter
+          if (selectedQuadrant === drillDownQuadrant && selectedQuadrant) {
+            onSegmentClick?.(selectedQuadrant); // Toggle off
+          }
+          drillUp();
+        }}
         onNodeClick={(nodeId) => {
           // Handle contributor node clicks
           console.log('Contributor node clicked:', nodeId);
@@ -387,12 +399,13 @@ export function DistributionCharts({
         </div>
       </div>
 
-      {(chartType === "bar" || chartType === "donut") && selectedQuadrant ? (
+      {(chartType === "bar" || chartType === "donut" || chartType === "treemap") && selectedQuadrant ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
             <CardContent className="p-6">
               {chartType === "donut" && renderDonutChart()}
               {chartType === "bar" && renderBarChart()}
+              {chartType === "treemap" && renderTreemap()}
             </CardContent>
           </Card>
           {renderPRList()}
@@ -406,7 +419,7 @@ export function DistributionCharts({
               {chartType === "treemap" && renderTreemap()}
             </CardContent>
           </Card>
-          {selectedQuadrant && renderPRList()}
+          {selectedQuadrant && chartType !== "treemap" && renderPRList()}
         </>
       )}
 

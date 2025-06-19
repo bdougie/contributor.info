@@ -1,4 +1,5 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -20,7 +21,16 @@ export default function Distribution() {
   const { stats } = useContext(RepoStatsContext);
   const { timeRange } = useTimeRange();
   const timeRangeNumber = parseInt(timeRange, 10); // Parse string to number
-  const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>(
+    searchParams.get('filter') || null
+  );
+
+  // Sync selectedQuadrant with URL params
+  useEffect(() => {
+    const quadrantFromUrl = searchParams.get('filter');
+    setSelectedQuadrant(quadrantFromUrl);
+  }, [searchParams]);
 
   // Use our hook
   const {
@@ -66,7 +76,17 @@ export default function Distribution() {
   const dominantQuadrant = getDominantQuadrant();
 
   const handleSegmentClick = (quadrantId: string) => {
-    setSelectedQuadrant(selectedQuadrant === quadrantId ? null : quadrantId);
+    const newQuadrant = selectedQuadrant === quadrantId ? null : quadrantId;
+    setSelectedQuadrant(newQuadrant);
+    
+    // Update URL params
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (newQuadrant) {
+      newSearchParams.set('filter', newQuadrant);
+    } else {
+      newSearchParams.delete('filter');
+    }
+    setSearchParams(newSearchParams);
   };
 
 

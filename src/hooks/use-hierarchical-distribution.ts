@@ -38,7 +38,7 @@ const QUADRANT_INFO = {
     label: 'Refinement',
     color: '#4ade80',
   },
-  newStuff: {
+  new: {
     label: 'New Features',
     color: '#60a5fa',
   },
@@ -52,10 +52,21 @@ const QUADRANT_INFO = {
   },
 };
 
-export function useHierarchicalDistribution(pullRequests: PullRequest[]): UseHierarchicalDistributionReturn {
+export function useHierarchicalDistribution(
+  pullRequests: PullRequest[], 
+  externalSelectedQuadrant?: string | null
+): UseHierarchicalDistributionReturn {
   const [currentView, setCurrentView] = useState<'overview' | 'quadrant'>('overview');
   const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Sync with external selection
+  useEffect(() => {
+    if (externalSelectedQuadrant !== undefined) {
+      setSelectedQuadrant(externalSelectedQuadrant);
+      setCurrentView(externalSelectedQuadrant ? 'quadrant' : 'overview');
+    }
+  }, [externalSelectedQuadrant]);
 
   const hierarchicalData = useMemo(() => {
     if (!pullRequests || pullRequests.length === 0) {
@@ -65,7 +76,7 @@ export function useHierarchicalDistribution(pullRequests: PullRequest[]): UseHie
     // Group PRs by quadrant and then by contributor
     const quadrantMap: Record<string, Record<string, PullRequest[]>> = {
       refinement: {},
-      newStuff: {},
+      new: {},
       refactoring: {},
       maintenance: {},
     };
