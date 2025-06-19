@@ -8,7 +8,6 @@ import {
   ChevronLeft, 
   ChevronRight, 
   AlertCircle, 
-  TrendingUp,
   Heart,
   Sparkles
 } from "lucide-react";
@@ -17,7 +16,6 @@ import { useTimeRangeStore } from "@/lib/time-range-store";
 
 // Import section components
 import { NeedsAttention } from "./sections/needs-attention";
-import { Trends } from "./sections/trends";
 import { RepositoryHealth } from "./sections/repository-health";
 import { Recommendations } from "./sections/recommendations";
 import { getCriticalPrCount } from "@/lib/insights/pr-attention";
@@ -56,13 +54,6 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
       icon: AlertCircle,
       color: "text-red-500",
       count: criticalCount
-    },
-    {
-      id: "trends",
-      title: "Trends",
-      icon: TrendingUp,
-      color: "text-green-500",
-      count: null,
     },
     {
       id: "health",
@@ -164,9 +155,6 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                           {section.id === "attention" && (
                             <NeedsAttention owner={owner} repo={repo} timeRange={timeRange} />
                           )}
-                          {section.id === "trends" && (
-                            <Trends owner={owner} repo={repo} timeRange={timeRange} />
-                          )}
                           {section.id === "health" && (
                             <RepositoryHealth owner={owner} repo={repo} timeRange={timeRange} />
                           )}
@@ -227,9 +215,6 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                       <div className="mt-3">
                         {section.id === "attention" && (
                           <NeedsAttention owner={owner} repo={repo} timeRange={timeRange} />
-                        )}
-                        {section.id === "trends" && (
-                          <Trends owner={owner} repo={repo} timeRange={timeRange} />
                         )}
                         {section.id === "health" && (
                           <RepositoryHealth owner={owner} repo={repo} timeRange={timeRange} />

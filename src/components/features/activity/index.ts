@@ -3,6 +3,7 @@ export { default as PRActivity } from './pr-activity';
 export { ActivityItem } from './activity-item';
 export { PullRequestActivityFeed } from './pr-activity-feed';
 export { MetricsRow } from './metrics-row';
+export { TrendsRow } from './trends-row';
 export { PrCountCard } from './pr-count-card';
 export { AvgTimeCard } from './avg-time-card';
 export { VelocityCard } from './velocity-card';

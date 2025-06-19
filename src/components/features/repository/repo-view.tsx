@@ -14,7 +14,7 @@ import { SearchIcon } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import { LotteryFactor } from "../health";
-import { Contributions, PRActivity, MetricsRow } from "../activity";
+import { Contributions, PRActivity, MetricsRow, TrendsRow } from "../activity";
 import { Distribution } from "../distribution";
 import { ContributorOfMonthWrapper } from "../contributor";
 import { ExampleRepos } from "./example-repos";
@@ -34,10 +34,11 @@ export default function RepoView() {
   // Determine current tab based on URL
   const getCurrentTab = () => {
     const path = location.pathname;
-    if (path.endsWith('/health')) return 'lottery';
-    if (path.endsWith('/distribution')) return 'distribution';
-    if (path.endsWith('/activity') || path.endsWith('/contributions')) return 'contributions';
-    return 'contributions'; // default for root path
+    if (path.endsWith("/health")) return "lottery";
+    if (path.endsWith("/distribution")) return "distribution";
+    if (path.endsWith("/activity") || path.endsWith("/contributions"))
+      return "contributions";
+    return "contributions"; // default for root path
   };
 
   // Use our custom hooks
@@ -175,6 +176,7 @@ export function ContributionsRoute() {
   return (
     <div className="space-y-8">
       <Contributions />
+      <TrendsRow owner={owner} repo={repo} timeRange={timeRange} />
       <MetricsRow owner={owner} repo={repo} timeRange={timeRange} />
       <ContributorOfMonthWrapper />
       <PRActivity />
