@@ -23,32 +23,28 @@ export default function Distribution() {
   const timeRangeNumber = parseInt(timeRange, 10); // Parse string to number
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>(
-    searchParams.get('filter') || null
+    searchParams.get("filter") || null
   );
 
   // Sync selectedQuadrant with URL params
   useEffect(() => {
-    const quadrantFromUrl = searchParams.get('filter');
+    const quadrantFromUrl = searchParams.get("filter");
     setSelectedQuadrant(quadrantFromUrl);
   }, [searchParams]);
 
   // Use our hook
-  const {
-    chartData,
-    loading,
-    getDominantQuadrant,
-    getTotalContributions,
-  } = useDistribution(stats.pullRequests);
+  const { chartData, loading, getDominantQuadrant, getTotalContributions } =
+    useDistribution(stats.pullRequests);
 
   // Filter PRs based on selected quadrant
-  const filteredPRs = selectedQuadrant 
-    ? stats.pullRequests.filter(pr => {
+  const filteredPRs = selectedQuadrant
+    ? stats.pullRequests.filter((pr) => {
         try {
           // Use the analyzer to determine which quadrant this PR belongs to
           const metrics = ContributionAnalyzer.analyze(pr);
           return metrics.quadrant === selectedQuadrant;
         } catch (error) {
-          console.error('Error analyzing PR:', pr.number, error);
+          console.error("Error analyzing PR:", pr.number, error);
           return false;
         }
       })
@@ -78,17 +74,16 @@ export default function Distribution() {
   const handleSegmentClick = (quadrantId: string) => {
     const newQuadrant = selectedQuadrant === quadrantId ? null : quadrantId;
     setSelectedQuadrant(newQuadrant);
-    
+
     // Update URL params
     const newSearchParams = new URLSearchParams(searchParams);
     if (newQuadrant) {
-      newSearchParams.set('filter', newQuadrant);
+      newSearchParams.set("filter", newQuadrant);
     } else {
-      newSearchParams.delete('filter');
+      newSearchParams.delete("filter");
     }
     setSearchParams(newSearchParams);
   };
-
 
   if (loading || stats.loading) {
     return <DistributionSkeleton />;
@@ -101,18 +96,22 @@ export default function Distribution() {
         <CardDescription>
           Visualize contribution patterns across different categories over the
           past {timeRangeNumber} days
-          {selectedQuadrant && ` · Filtered by: ${chartData.find(q => q.id === selectedQuadrant)?.label}`}
+          {selectedQuadrant &&
+            ` · Filtered by: ${
+              chartData.find((q) => q.id === selectedQuadrant)?.label
+            }`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6 w-full overflow-hidden">
         <div className="text-sm text-muted-foreground">
-          {totalFiles.toLocaleString()} files touched · {selectedQuadrant ? filteredPRs.length : totalContributions}{" "}
-          pull requests {selectedQuadrant ? 'shown' : 'analyzed'}
+          {totalFiles.toLocaleString()} files touched ·{" "}
+          {selectedQuadrant ? filteredPRs.length : totalContributions} pull
+          requests {selectedQuadrant ? "shown" : "analyzed"}
           {dominantQuadrant && ` · Primary focus: ${dominantQuadrant.label}`}
         </div>
 
-        <DistributionCharts 
-          data={chartData} 
+        <DistributionCharts
+          data={chartData}
           onSegmentClick={handleSegmentClick}
           filteredPRs={filteredPRs}
           selectedQuadrant={selectedQuadrant}
@@ -120,36 +119,6 @@ export default function Distribution() {
         />
 
         <LanguageLegend languages={languageStats} />
-        
-        <div className="text-sm text-muted-foreground mt-4">
-          <p>
-            This chart categorizes pull requests into four categories based on
-            the nature of changes:
-          </p>
-          <ul className="list-disc pl-5 mt-2 space-y-1">
-            <li>
-              <span className="font-medium">Refinement</span>: Code cleanup and
-              removal (more deletions than additions)
-            </li>
-            <li>
-              <span className="font-medium">New Features</span>: New features
-              and additions (significantly more additions)
-            </li>
-            <li>
-              <span className="font-medium">Maintenance</span>: Configuration,
-              documentation, and dependencies
-            </li>
-            <li>
-              <span className="font-medium">Refactoring</span>: Code
-              improvements (balanced additions and deletions)
-            </li>
-          </ul>
-          {selectedQuadrant && (
-            <p className="mt-3 text-sm text-blue-600 dark:text-blue-400">
-              Click to unapply filter
-            </p>
-          )}
-        </div>
       </CardContent>
     </Card>
   );

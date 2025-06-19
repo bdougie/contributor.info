@@ -30,9 +30,7 @@ export function DistributionTreemapEnhanced({
   onDrillUp,
   onNodeClick,
 }: DistributionTreemapEnhancedProps) {
-  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [hoveredPRs, setHoveredPRs] = useState<PullRequest[]>([]);
-
   // Add CSS for smooth transitions
   const treemapStyles = `
     .distribution-treemap-rect {
@@ -103,7 +101,6 @@ export function DistributionTreemapEnhanced({
         avatar_url,
         prs,
       } = props;
-      // const isHovered = hoveredNode === id;
       const isQuadrant = currentView === "overview";
       const isContributor = currentView === "quadrant";
       const isOthers = login === "others";
@@ -117,14 +114,12 @@ export function DistributionTreemapEnhanced({
       };
 
       const handleMouseEnter = () => {
-        setHoveredNode(id);
         if (isContributor && prs) {
           setHoveredPRs(prs.slice(0, 5));
         }
       };
 
       const handleMouseLeave = () => {
-        setHoveredNode(null);
         setHoveredPRs([]);
       };
 
@@ -232,7 +227,7 @@ export function DistributionTreemapEnhanced({
         </g>
       );
     },
-    [currentView, selectedQuadrant, hoveredNode, onDrillDown, onNodeClick]
+    [currentView, selectedQuadrant, onDrillDown, onNodeClick]
   );
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -335,7 +330,9 @@ export function DistributionTreemapEnhanced({
             animationBegin={0}
             animationDuration={100}
           >
-            {currentView === 'quadrant' && <Tooltip content={<CustomTooltip />} />}
+            {currentView === "quadrant" && (
+              <Tooltip content={<CustomTooltip />} />
+            )}
           </Treemap>
         </ResponsiveContainer>
       </div>
