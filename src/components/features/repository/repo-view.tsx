@@ -14,7 +14,7 @@ import { SearchIcon } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import { LotteryFactor } from "../health";
-import { Contributions, PRActivity } from "../activity";
+import { Contributions, PRActivity, MetricsRow } from "../activity";
 import { Distribution } from "../distribution";
 import { ContributorOfMonthWrapper } from "../contributor";
 import { ExampleRepos } from "./example-repos";
@@ -165,9 +165,17 @@ export function LotteryFactorRoute() {
 }
 
 export function ContributionsRoute() {
+  const { owner, repo } = useParams<{ owner: string; repo: string }>();
+  const timeRange = useTimeRangeStore((state) => state.timeRange);
+
+  if (!owner || !repo) {
+    return null;
+  }
+
   return (
     <div className="space-y-8">
       <Contributions />
+      <MetricsRow owner={owner} repo={repo} timeRange={timeRange} />
       <ContributorOfMonthWrapper />
       <PRActivity />
     </div>
