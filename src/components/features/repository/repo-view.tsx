@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchIcon } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
-import { LotteryFactor } from "../health";
+import { LotteryFactorCard, RepositoryHealthCard } from "../health";
 import { Contributions, MetricsRow, TrendsRow } from "../activity";
 import { Distribution } from "../distribution";
 import { ContributorOfMonthWrapper } from "../contributor";
@@ -164,7 +164,12 @@ export default function RepoView() {
 
 // Route components
 export function LotteryFactorRoute() {
-  return <LotteryFactor />;
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <LotteryFactorCard />
+      <RepositoryHealthCard />
+    </div>
+  );
 }
 
 export function ContributionsRoute() {

@@ -16,7 +16,7 @@ import { useTimeRangeStore } from "@/lib/time-range-store";
 
 // Import section components
 import { NeedsAttention } from "./sections/needs-attention";
-import { RepositoryHealth } from "./sections/repository-health";
+import { InsightsHealth } from "./sections/repository-health-insights";
 import { Recommendations } from "./sections/recommendations";
 import { getCriticalPrCount } from "@/lib/insights/pr-attention";
 
@@ -156,7 +156,7 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                             <NeedsAttention owner={owner} repo={repo} timeRange={timeRange} />
                           )}
                           {section.id === "health" && (
-                            <RepositoryHealth owner={owner} repo={repo} timeRange={timeRange} />
+                            <InsightsHealth owner={owner} repo={repo} timeRange={timeRange} />
                           )}
                           {section.id === "recommendations" && (
                             <Recommendations owner={owner} repo={repo} timeRange={timeRange} />
@@ -217,7 +217,7 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                           <NeedsAttention owner={owner} repo={repo} timeRange={timeRange} />
                         )}
                         {section.id === "health" && (
-                          <RepositoryHealth owner={owner} repo={repo} timeRange={timeRange} />
+                          <InsightsHealth owner={owner} repo={repo} timeRange={timeRange} />
                         )}
                         {section.id === "recommendations" && (
                           <Recommendations owner={owner} repo={repo} timeRange={timeRange} />
