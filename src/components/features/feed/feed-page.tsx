@@ -10,7 +10,7 @@ import {
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import { PRActivity } from "../activity";
 import { useTimeRangeStore } from "@/lib/time-range-store";
-import { useRepoData } from "@/hooks/use-repo-data";
+import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
 import { FeedSkeleton } from "@/components/skeletons";
 import { SocialMetaTags } from "@/components/common/layout";
 
@@ -20,7 +20,7 @@ export default function FeedPage() {
   const [includeBots, setIncludeBots] = useState(false);
 
   // Use our custom hooks
-  const { stats, lotteryFactor, directCommitsData } = useRepoData(
+  const { stats, lotteryFactor, directCommitsData } = useCachedRepoData(
     owner,
     repo,
     timeRange,

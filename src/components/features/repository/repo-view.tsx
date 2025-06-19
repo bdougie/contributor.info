@@ -18,7 +18,7 @@ import { Contributions, MetricsRow, TrendsRow } from "../activity";
 import { Distribution } from "../distribution";
 import { ContributorOfMonthWrapper } from "../contributor";
 import { ExampleRepos } from "./example-repos";
-import { useRepoData } from "@/hooks/use-repo-data";
+import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
 import { useRepoSearch } from "@/hooks/use-repo-search";
 import { InsightsSidebar } from "@/components/insights/insights-sidebar";
 import { RepoViewSkeleton } from "@/components/skeletons";
@@ -43,7 +43,7 @@ export default function RepoView() {
   };
 
   // Use our custom hooks
-  const { stats, lotteryFactor, directCommitsData } = useRepoData(
+  const { stats, lotteryFactor, directCommitsData } = useCachedRepoData(
     owner,
     repo,
     timeRange,

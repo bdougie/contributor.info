@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { PullRequestActivityFeed } from "./pr-activity-feed";
-import { usePRActivity } from "@/hooks/use-pr-activity";
+import { useCachedPRActivity } from "@/hooks/use-cached-pr-activity";
 import { usePRActivityStore } from "@/lib/pr-activity-store";
 
 export default function PRActivity() {
@@ -24,7 +24,7 @@ export default function PRActivity() {
     activities: allActivities,
     loading,
     error,
-  } = usePRActivity(stats.pullRequests);
+  } = useCachedPRActivity(stats.pullRequests);
 
   // Check if there are any bot activities
   useEffect(() => {
