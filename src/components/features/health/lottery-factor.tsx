@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -82,15 +82,37 @@ export function LotteryFactorContent({
   stats,
   lotteryFactor,
   showYoloButton,
+  includeBots = true,
 }: {
   stats?: RepoStats;
   lotteryFactor?: LotteryFactorType | null;
   showYoloButton?: boolean;
+  includeBots?: boolean;
 }) {
   const { timeRange } = useTimeRange();
   const timeRangeNumber = parseInt(timeRange, 10); // Parse the string to a number
-  const safeStats = stats || { pullRequests: [], loading: false, error: null };
-  const safeLotteryFactor = lotteryFactor || null;
+  const rawStats = stats || { pullRequests: [], loading: false, error: null };
+  const rawLotteryFactor = lotteryFactor || null;
+
+  // Apply client-side filtering based on includeBots
+  const safeStats = {
+    ...rawStats,
+    pullRequests: includeBots 
+      ? rawStats.pullRequests 
+      : rawStats.pullRequests.filter(pr => pr.user.type !== "Bot")
+  };
+
+  // Filter lottery factor contributors based on includeBots
+  const safeLotteryFactor = rawLotteryFactor && !includeBots
+    ? {
+        ...rawLotteryFactor,
+        contributors: rawLotteryFactor.contributors.filter(contributor => {
+          // Find the corresponding PR to check if user is a bot
+          const userPRs = rawStats.pullRequests.filter(pr => pr.user.login === contributor.login);
+          return userPRs.length === 0 || userPRs[0].user.type !== "Bot";
+        })
+      }
+    : rawLotteryFactor;
   const [showYoloCoders, setShowYoloCoders] = useState(false);
   const { directCommitsData } = useContext(RepoStatsContext);
 
@@ -432,8 +454,16 @@ export default function LotteryFactor() {
     lotteryFactor,
     directCommitsData,
     includeBots,
-    setIncludeBots,
   } = useContext(RepoStatsContext);
+
+  // Local state for bot toggle to avoid page refresh
+  const [localIncludeBots, setLocalIncludeBots] = useState(includeBots);
+  const functionTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync local state with context when it changes
+  useEffect(() => {
+    setLocalIncludeBots(includeBots);
+  }, [includeBots]);
 
   const botCount = stats.pullRequests.filter(
     (pr) => pr.user.type === "Bot"
@@ -441,6 +471,16 @@ export default function LotteryFactor() {
   const hasBots = botCount > 0;
   // YOLO Coders button should only be visible if there are YOLO pushes
   const showYoloButton = directCommitsData?.hasYoloCoders === true;
+
+  const handleToggleIncludeBots = () => {
+    if (functionTimeout.current) {
+      clearTimeout(functionTimeout.current);
+    }
+    functionTimeout.current = setTimeout(() => {
+      setLocalIncludeBots(!localIncludeBots);
+      // We're not calling setIncludeBots anymore to avoid triggering a global state update
+    }, 50);
+  };
 
   return (
     <Card>
@@ -455,14 +495,15 @@ export default function LotteryFactor() {
           stats={stats}
           lotteryFactor={lotteryFactor}
           showYoloButton={showYoloButton}
+          includeBots={localIncludeBots}
         />
 
         {hasBots && (
           <div className="flex items-center space-x-2 mt-6 pt-4 border-t">
             <Switch
               id="show-bots"
-              checked={includeBots}
-              onCheckedChange={setIncludeBots}
+              checked={localIncludeBots}
+              onCheckedChange={handleToggleIncludeBots}
             />
             <Label
               htmlFor="show-bots"

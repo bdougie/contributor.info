@@ -100,20 +100,25 @@ export async function calculatePrActivityMetrics(
     }
     
     // Calculate top contributors
-    const contributorMap = new Map<string, number>();
+    const contributorMap = new Map<string, { count: number; avatar: string }>();
     
     allPRs.forEach(pr => {
       const author = pr.user?.login || 'unknown';
-      contributorMap.set(author, (contributorMap.get(author) || 0) + 1);
+      const avatar = pr.user?.avatar_url || '';
+      const current = contributorMap.get(author) || { count: 0, avatar: '' };
+      contributorMap.set(author, { 
+        count: current.count + 1, 
+        avatar: avatar || current.avatar // Keep first non-empty avatar found
+      });
     });
     
     const topContributors = Array.from(contributorMap.entries())
-      .sort((a, b) => b[1] - a[1])
+      .sort((a, b) => b[1].count - a[1].count)
       .slice(0, 5)
-      .map(([name, prCount]) => ({
+      .map(([name, data]) => ({
         name,
-        avatar: '', // Would need user API for avatars
-        prCount
+        avatar: data.avatar,
+        prCount: data.count
       }));
     
     // Calculate velocity
