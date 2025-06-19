@@ -10,19 +10,21 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Treemap,
 } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PieChartIcon, BarChart3Icon, TreePineIcon } from "lucide-react";
 import type { QuadrantData } from "@/hooks/use-distribution";
 import type { PullRequest } from "@/lib/types";
+import { useHierarchicalDistribution } from "@/hooks/use-hierarchical-distribution";
+import { DistributionTreemapEnhanced } from "./distribution-treemap-enhanced";
 
 interface DistributionChartsProps {
   data: QuadrantData[];
   onSegmentClick?: (quadrantId: string) => void;
   filteredPRs?: PullRequest[];
   selectedQuadrant?: string | null;
+  pullRequests?: PullRequest[];
 }
 
 type ChartType = "donut" | "bar" | "treemap";
@@ -39,10 +41,20 @@ export function DistributionCharts({
   onSegmentClick,
   filteredPRs = [],
   selectedQuadrant,
+  pullRequests = [],
 }: DistributionChartsProps) {
   const [chartType, setChartType] = useState<ChartType>("treemap");
   const [activeSegment, setActiveSegment] = useState<string | null>(selectedQuadrant || null);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Add hierarchical distribution for enhanced treemap
+  const {
+    hierarchicalData,
+    currentView,
+    selectedQuadrant: drillDownQuadrant,
+    drillDown,
+    drillUp,
+  } = useHierarchicalDistribution(pullRequests);
 
   const totalContributions = data.reduce((sum, item) => sum + item.value, 0);
 
@@ -54,7 +66,7 @@ export function DistributionCharts({
   }, []);
 
   useEffect(() => {
-    setActiveSegment(selectedQuadrant);
+    setActiveSegment(selectedQuadrant || null);
   }, [selectedQuadrant]);
 
   const handleSegmentClick = (entry: any) => {
@@ -242,34 +254,26 @@ export function DistributionCharts({
   );
 
   const renderTreemap = () => {
-    const treemapData = data.map((item) => ({
-      name: item.label,
-      size: item.value,
-      ...item,
-    }));
+    if (!hierarchicalData) {
+      return (
+        <div className="flex items-center justify-center h-[400px]">
+          <p className="text-muted-foreground">Loading treemap data...</p>
+        </div>
+      );
+    }
 
     return (
-      <ResponsiveContainer width="100%" height={400}>
-        <Treemap
-          data={treemapData}
-          dataKey="size"
-          aspectRatio={4 / 3}
-          stroke="#fff"
-          fill="#8884d8"
-          onClick={handleSegmentClick}
-          className="cursor-pointer"
-        >
-          {data.map((entry) => (
-            <Cell
-              key={`cell-${entry.id}`}
-              fill={COLORS[entry.id as keyof typeof COLORS]}
-              stroke={activeSegment === entry.id ? "#000" : "#fff"}
-              strokeWidth={activeSegment === entry.id ? 3 : 1}
-            />
-          ))}
-          <Tooltip content={<CustomTooltip />} />
-        </Treemap>
-      </ResponsiveContainer>
+      <DistributionTreemapEnhanced
+        data={hierarchicalData}
+        currentView={currentView}
+        selectedQuadrant={drillDownQuadrant}
+        onDrillDown={drillDown}
+        onDrillUp={drillUp}
+        onNodeClick={(nodeId) => {
+          // Handle contributor node clicks
+          console.log('Contributor node clicked:', nodeId);
+        }}
+      />
     );
   };
 
@@ -355,6 +359,15 @@ export function DistributionCharts({
         <div className="flex gap-1 p-1 bg-muted rounded-lg self-start sm:self-auto">
           <Button
             size="sm"
+            variant={chartType === "treemap" ? "default" : "ghost"}
+            onClick={() => setChartType("treemap")}
+            className="h-8 px-2 sm:px-3"
+          >
+            <TreePineIcon className="h-4 w-4" />
+            <span className="sr-only sm:not-sr-only sm:ml-1">Treemap</span>
+          </Button>
+          <Button
+            size="sm"
             variant={chartType === "donut" ? "default" : "ghost"}
             onClick={() => setChartType("donut")}
             className="h-8 px-2 sm:px-3"
@@ -370,15 +383,6 @@ export function DistributionCharts({
           >
             <BarChart3Icon className="h-4 w-4" />
             <span className="sr-only sm:not-sr-only sm:ml-1">Bar</span>
-          </Button>
-          <Button
-            size="sm"
-            variant={chartType === "treemap" ? "default" : "ghost"}
-            onClick={() => setChartType("treemap")}
-            className="h-8 px-2 sm:px-3"
-          >
-            <TreePineIcon className="h-4 w-4" />
-            <span className="sr-only sm:not-sr-only sm:ml-1">Treemap</span>
           </Button>
         </div>
       </div>

@@ -14,6 +14,7 @@ import { DistributionSkeleton } from "@/components/skeletons";
 import { getLanguageStats } from "@/lib/language-stats";
 import type { PullRequest } from "@/lib/types";
 import { useDistribution } from "@/hooks/use-distribution";
+import { ContributionAnalyzer } from "@/lib/contribution-analyzer";
 
 export default function Distribution() {
   const { stats } = useContext(RepoStatsContext);
@@ -32,9 +33,14 @@ export default function Distribution() {
   // Filter PRs based on selected quadrant
   const filteredPRs = selectedQuadrant 
     ? stats.pullRequests.filter(pr => {
-        // Use the analyzer to determine which quadrant this PR belongs to
-        const metrics = require("@/lib/contribution-analyzer").ContributionAnalyzer.analyze(pr);
-        return metrics.quadrant === selectedQuadrant;
+        try {
+          // Use the analyzer to determine which quadrant this PR belongs to
+          const metrics = ContributionAnalyzer.analyze(pr);
+          return metrics.quadrant === selectedQuadrant;
+        } catch (error) {
+          console.error('Error analyzing PR:', pr.number, error);
+          return false;
+        }
       })
     : stats.pullRequests;
 
@@ -90,6 +96,7 @@ export default function Distribution() {
           onSegmentClick={handleSegmentClick}
           filteredPRs={filteredPRs}
           selectedQuadrant={selectedQuadrant}
+          pullRequests={stats.pullRequests}
         />
 
         <LanguageLegend languages={languageStats} />
@@ -119,7 +126,7 @@ export default function Distribution() {
           </ul>
           {selectedQuadrant && (
             <p className="mt-3 text-sm text-blue-600 dark:text-blue-400">
-              Click the same segment again to show all contributions.
+              Click to unapply filter
             </p>
           )}
         </div>
