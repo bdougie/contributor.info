@@ -16,8 +16,43 @@ interface RepoDataCache {
 // Cache duration in milliseconds (5 minutes)
 const CACHE_DURATION = 5 * 60 * 1000;
 
+// Cache cleanup thresholds
+const MAX_CACHE_SIZE = 20;
+const CLEANUP_THRESHOLD = 25;
+const STALE_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes for complete cleanup
+
 // Global cache to persist across component re-mounts
 const repoDataCache: RepoDataCache = {};
+
+/**
+ * Enhanced cache cleanup with age-based expiration
+ */
+function cleanupCache() {
+  const now = Date.now();
+  const cacheKeys = Object.keys(repoDataCache);
+  
+  // First pass: Remove stale entries older than 30 minutes
+  cacheKeys.forEach(key => {
+    const entry = repoDataCache[key];
+    if (now - entry.timestamp > STALE_CACHE_DURATION) {
+      delete repoDataCache[key];
+    }
+  });
+  
+  // Second pass: If still over threshold, remove oldest entries
+  const remainingKeys = Object.keys(repoDataCache);
+  if (remainingKeys.length > MAX_CACHE_SIZE) {
+    const sortedKeys = remainingKeys.sort((a, b) => 
+      repoDataCache[a].timestamp - repoDataCache[b].timestamp
+    );
+    
+    // Remove oldest entries to get back to MAX_CACHE_SIZE
+    const keysToRemove = sortedKeys.slice(0, remainingKeys.length - MAX_CACHE_SIZE);
+    keysToRemove.forEach(key => {
+      delete repoDataCache[key];
+    });
+  }
+}
 
 /**
  * Cached hook for fetching and managing repository data
@@ -85,15 +120,9 @@ export function useCachedRepoData(
           timestamp: now,
         };
 
-        // Clean up old cache entries (keep only last 20)
-        const cacheKeys = Object.keys(repoDataCache);
-        if (cacheKeys.length > 20) {
-          const sortedKeys = cacheKeys.sort((a, b) => 
-            repoDataCache[b].timestamp - repoDataCache[a].timestamp
-          );
-          sortedKeys.slice(20).forEach(key => {
-            delete repoDataCache[key];
-          });
+        // Perform enhanced cache cleanup when threshold is reached
+        if (Object.keys(repoDataCache).length > CLEANUP_THRESHOLD) {
+          cleanupCache();
         }
 
         setStats(newStats);

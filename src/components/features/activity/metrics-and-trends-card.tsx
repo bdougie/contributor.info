@@ -26,12 +26,12 @@ interface MetricsAndTrendsCardProps {
 }
 
 interface TrendCardProps {
-  trend: TrendData;
+  trend?: TrendData;
   loading?: boolean;
 }
 
 function TrendCard({ trend, loading = false }: TrendCardProps) {
-  if (loading) {
+  if (loading || !trend) {
     return (
       <Card>
         <CardContent className="pt-6">
@@ -123,7 +123,10 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
       setTrends(trendData);
       setMetrics(metricsData);
     } catch (error) {
-      console.error("Failed to load data:", error);
+      // Log error to monitoring service in production
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Failed to load data:", error);
+      }
       setTrends([]);
       setMetrics(null);
     } finally {
@@ -179,7 +182,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <TrendCard key={i} trend={{} as TrendData} loading={true} />
+                <TrendCard key={i} loading={true} />
               ))}
             </div>
           ) : trends.length === 0 ? (
