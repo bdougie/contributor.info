@@ -14,8 +14,12 @@ import {
   calculateTrendMetrics,
   type TrendData,
 } from "@/lib/insights/trends-metrics";
+import { PrCountCard } from "./pr-count-card";
+import { AvgTimeCard } from "./avg-time-card";
+import { VelocityCard } from "./velocity-card";
+import { calculatePrActivityMetrics, type ActivityMetrics } from "@/lib/insights/pr-activity-metrics";
 
-interface TrendsRowProps {
+interface MetricsAndTrendsCardProps {
   owner: string;
   repo: string;
   timeRange: string;
@@ -100,22 +104,28 @@ function TrendCard({ trend, loading = false }: TrendCardProps) {
   );
 }
 
-export function TrendsRow({ owner, repo, timeRange }: TrendsRowProps) {
+export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrendsCardProps) {
   const [loading, setLoading] = useState(true);
   const [trends, setTrends] = useState<TrendData[]>([]);
+  const [metrics, setMetrics] = useState<ActivityMetrics | null>(null);
 
   useEffect(() => {
-    loadTrends();
+    loadData();
   }, [owner, repo, timeRange]);
 
-  const loadTrends = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const trendData = await calculateTrendMetrics(owner, repo, timeRange);
+      const [trendData, metricsData] = await Promise.all([
+        calculateTrendMetrics(owner, repo, timeRange),
+        calculatePrActivityMetrics(owner, repo, timeRange)
+      ]);
       setTrends(trendData);
+      setMetrics(metricsData);
     } catch (error) {
-      console.error("Failed to load trends:", error);
+      console.error("Failed to load data:", error);
       setTrends([]);
+      setMetrics(null);
     } finally {
       setLoading(false);
     }
@@ -124,32 +134,69 @@ export function TrendsRow({ owner, repo, timeRange }: TrendsRowProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Trends</CardTitle>
+        <CardTitle>Metrics and Trends</CardTitle>
         <CardDescription>
-          Comparing to previous {timeRange} day period
+          Snapshot comparing the previous 30 days (limited to 100 prs)
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <TrendCard key={i} trend={{} as TrendData} loading={true} />
-            ))}
-          </div>
-        ) : trends.length === 0 ? (
-          <div className="text-center py-8">
-            <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">
-              Not enough data to show trends
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {trends.slice(0, 4).map((trend, index) => (
-              <TrendCard key={index} trend={trend} loading={loading} />
-            ))}
-          </div>
-        )}
+      <CardContent className="space-y-6">
+        {/* Metrics Section */}
+        <div>
+          <h3 className="text-sm font-medium mb-3">Activity Metrics</h3>
+          {loading || !metrics ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <PrCountCard openPRs={0} totalPRs={0} loading={true} />
+              <AvgTimeCard averageMergeTime={0} loading={true} />
+              <div className="md:col-span-2">
+                <VelocityCard velocity={{ current: 0, previous: 0, change: 0 }} loading={true} />
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <PrCountCard 
+                openPRs={metrics.openPRs} 
+                totalPRs={metrics.totalPRs}
+                loading={loading}
+              />
+              <AvgTimeCard 
+                averageMergeTime={metrics.averageMergeTime}
+                averageMergeTimeTrend={metrics.averageMergeTimeTrend}
+                loading={loading}
+              />
+              <div className="md:col-span-2">
+                <VelocityCard 
+                  velocity={metrics.velocity}
+                  loading={loading}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Trends Section */}
+        <div>
+          <h3 className="text-sm font-medium mb-3">Trends</h3>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <TrendCard key={i} trend={{} as TrendData} loading={true} />
+              ))}
+            </div>
+          ) : trends.length === 0 ? (
+            <div className="text-center py-8">
+              <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">
+                Not enough data to show trends
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {trends.slice(0, 4).map((trend, index) => (
+                <TrendCard key={index} trend={trend} loading={loading} />
+              ))}
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

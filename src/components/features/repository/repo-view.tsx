@@ -14,7 +14,7 @@ import { SearchIcon } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import { RepositoryHealthCard } from "../health";
-import { Contributions, MetricsRow, TrendsRow } from "../activity";
+import { Contributions, MetricsAndTrendsCard } from "../activity";
 import { Distribution } from "../distribution";
 import { ContributorOfMonthWrapper } from "../contributor";
 import { ExampleRepos } from "./example-repos";
@@ -178,8 +178,7 @@ export function ContributionsRoute() {
   return (
     <div className="space-y-8">
       <Contributions />
-      <TrendsRow owner={owner} repo={repo} timeRange={timeRange} />
-      <MetricsRow owner={owner} repo={repo} timeRange={timeRange} />
+      <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
       <ContributorOfMonthWrapper />
     </div>
   );
