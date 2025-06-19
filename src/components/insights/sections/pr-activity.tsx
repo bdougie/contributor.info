@@ -3,6 +3,7 @@ import { GitPullRequest, Clock, Users, TrendingUp, TrendingDown } from "lucide-r
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { calculatePrActivityMetrics, type ActivityMetrics } from "@/lib/insights/pr-activity-metrics";
 
@@ -132,9 +133,15 @@ export function PrActivity({ owner, repo, timeRange }: PrActivityProps) {
             metrics.topContributors.map((contributor) => (
               <div key={contributor.name} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="h-6 w-6 rounded-full bg-secondary flex items-center justify-center text-xs font-medium">
-                    {contributor.name[0].toUpperCase()}
-                  </div>
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage 
+                      src={contributor.avatar} 
+                      alt={contributor.name}
+                    />
+                    <AvatarFallback className="text-xs font-medium">
+                      {contributor.name[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                   <span className="text-sm">{contributor.name}</span>
                 </div>
                 <span className="text-sm text-muted-foreground">
