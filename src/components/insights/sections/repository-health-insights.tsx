@@ -1,15 +1,11 @@
 import { useState, useEffect } from "react";
 import {
   Heart,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   AlertTriangle,
   Sparkles,
   Brain,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -75,35 +71,6 @@ export function InsightsHealth({
     }
   };
 
-  const getTrendIcon = (trend: HealthMetrics["trend"]) => {
-    switch (trend) {
-      case "improving":
-        return <TrendingUp className="h-4 w-4 text-green-500" />;
-      case "declining":
-        return <TrendingDown className="h-4 w-4 text-red-500" />;
-      case "stable":
-        return <Minus className="h-4 w-4 text-yellow-500" />;
-    }
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-500";
-    if (score >= 60) return "text-yellow-500";
-    return "text-red-500";
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "good":
-        return "bg-green-500";
-      case "warning":
-        return "bg-yellow-500";
-      case "critical":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 0.8) return "text-green-600";
