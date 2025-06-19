@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate, Outlet } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Outlet } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -27,8 +27,18 @@ import { SocialMetaTags } from "@/components/common/layout";
 export default function RepoView() {
   const { owner, repo } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const timeRange = useTimeRangeStore((state) => state.timeRange);
   const [includeBots, setIncludeBots] = useState(false);
+
+  // Determine current tab based on URL
+  const getCurrentTab = () => {
+    const path = location.pathname;
+    if (path.endsWith('/health')) return 'lottery';
+    if (path.endsWith('/distribution')) return 'distribution';
+    if (path.endsWith('/activity') || path.endsWith('/contributions')) return 'contributions';
+    return 'contributions'; // default for root path
+  };
 
   // Use our custom hooks
   const { stats, lotteryFactor, directCommitsData } = useRepoData(
@@ -109,17 +119,21 @@ export default function RepoView() {
           </CardHeader>
           <CardContent>
             <Tabs
-              defaultValue="lottery"
+              value={getCurrentTab()}
               className="space-y-4"
               onValueChange={(value) => {
-                navigate(
-                  `/${owner}/${repo}${value === "lottery" ? "" : `/${value}`}`
-                );
+                if (value === "contributions") {
+                  navigate(`/${owner}/${repo}`);
+                } else if (value === "lottery") {
+                  navigate(`/${owner}/${repo}/health`);
+                } else {
+                  navigate(`/${owner}/${repo}/${value}`);
+                }
               }}
             >
               <TabsList>
-                <TabsTrigger value="lottery">Health</TabsTrigger>
                 <TabsTrigger value="contributions">Activity</TabsTrigger>
+                <TabsTrigger value="lottery">Health</TabsTrigger>
                 <TabsTrigger value="distribution">Distribution</TabsTrigger>
               </TabsList>
             </Tabs>

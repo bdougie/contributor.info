@@ -144,3 +144,4 @@ npx supabase status
 ## Development Memories
 
 - Replaced all require() calls with proper ES module patterns in storybook
+- remember to mock external dependencies in tests

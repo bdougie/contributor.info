@@ -42,8 +42,10 @@ function App() {
             <Route path="/changelog" element={<ChangelogPage />} />
             <Route path="/docs" element={<DocsPage />} />
             <Route path="/:owner/:repo" element={<RepoView />}>
-              <Route path="" element={<LotteryFactorRoute />} />
+              <Route path="" element={<ContributionsRoute />} />
+              <Route path="activity" element={<ContributionsRoute />} />
               <Route path="contributions" element={<ContributionsRoute />} />
+              <Route path="health" element={<LotteryFactorRoute />} />
               <Route path="distribution" element={<DistributionRoute />} />
             </Route>
           </Route>
