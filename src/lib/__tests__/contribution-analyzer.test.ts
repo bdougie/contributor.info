@@ -34,11 +34,11 @@ describe('ContributionAnalyzer', () => {
     vi.spyOn(Math, 'random').mockRestore();
   });
 
-  it('should analyze PR with mostly additions as newStuff', () => {
+  it('should analyze PR with mostly additions as new', () => {
     const pr = createMockPR(100, 20);
     const result = ContributionAnalyzer.analyze(pr);
     
-    expect(result.quadrant).toBe('newStuff');
+    expect(result.quadrant).toBe('new');
     expect(result.x).toBeGreaterThan(50); // More additions should result in higher x
     expect(result.y).toBeLessThan(50);    // Fewer deletions should result in lower y
   });
@@ -86,7 +86,7 @@ describe('ContributionAnalyzer', () => {
     
     const result = ContributionAnalyzer.analyze(pr);
     
-    expect(result.quadrant).toBe('newStuff');
+    expect(result.quadrant).toBe('new');
     expect(result.x).toBeGreaterThan(50);
     expect(result.y).toBeLessThan(50);
   });
@@ -108,14 +108,14 @@ describe('ContributionAnalyzer', () => {
     expect(distribution.value).toBe(0);
     expect(distribution.percentage).toBe(0);
     expect(distribution.refinement).toBe(25);
-    expect(distribution.newStuff).toBe(25);
+    expect(distribution.new).toBe(25);
     expect(distribution.maintenance).toBe(25);
     expect(distribution.refactoring).toBe(25);
   });
   
   it('should reset counts when resetCounts is called', () => {
     // First analyze some PRs
-    ContributionAnalyzer.analyze(createMockPR(100, 20)); // newStuff
+    ContributionAnalyzer.analyze(createMockPR(100, 20)); // new
     ContributionAnalyzer.analyze(createMockPR(20, 100)); // refinement
     
     // Then reset counts
@@ -125,15 +125,15 @@ describe('ContributionAnalyzer', () => {
     const counts = ContributionAnalyzer.getCounts();
     
     expect(counts.refinement).toBe(0);
-    expect(counts.newStuff).toBe(0);
+    expect(counts.new).toBe(0);
     expect(counts.maintenance).toBe(0);
     expect(counts.refactoring).toBe(0);
   });
   
   it('should track counts for each quadrant correctly', () => {
     // Analyze multiple PRs covering different quadrants
-    ContributionAnalyzer.analyze(createMockPR(100, 20)); // newStuff
-    ContributionAnalyzer.analyze(createMockPR(100, 20)); // newStuff
+    ContributionAnalyzer.analyze(createMockPR(100, 20)); // new
+    ContributionAnalyzer.analyze(createMockPR(100, 20)); // new
     ContributionAnalyzer.analyze(createMockPR(20, 100)); // refinement
     ContributionAnalyzer.analyze(createMockPR(50, 50));  // refactoring
     ContributionAnalyzer.analyze(createMockPR(0, 0, [{ language: 'json', additions: 50, deletions: 20 }])); // maintenance
@@ -142,7 +142,7 @@ describe('ContributionAnalyzer', () => {
     const counts = ContributionAnalyzer.getCounts();
     
     // Verify counts
-    expect(counts.newStuff).toBe(2);
+    expect(counts.new).toBe(2);
     expect(counts.refinement).toBe(1);
     expect(counts.refactoring).toBe(1);
     expect(counts.maintenance).toBe(1);
@@ -150,10 +150,10 @@ describe('ContributionAnalyzer', () => {
   
   it('should calculate distribution percentages correctly', () => {
     // Analyze multiple PRs with known distribution
-    ContributionAnalyzer.analyze(createMockPR(100, 20)); // newStuff
-    ContributionAnalyzer.analyze(createMockPR(100, 20)); // newStuff
-    ContributionAnalyzer.analyze(createMockPR(100, 20)); // newStuff
-    ContributionAnalyzer.analyze(createMockPR(100, 20)); // newStuff (4 total)
+    ContributionAnalyzer.analyze(createMockPR(100, 20)); // new
+    ContributionAnalyzer.analyze(createMockPR(100, 20)); // new
+    ContributionAnalyzer.analyze(createMockPR(100, 20)); // new
+    ContributionAnalyzer.analyze(createMockPR(100, 20)); // new (4 total)
     
     ContributionAnalyzer.analyze(createMockPR(20, 100)); // refinement
     ContributionAnalyzer.analyze(createMockPR(20, 100)); // refinement (2 total)
@@ -164,7 +164,7 @@ describe('ContributionAnalyzer', () => {
     ContributionAnalyzer.analyze(createMockPR(0, 0, [{ language: 'json', additions: 50, deletions: 20 }])); // maintenance
     ContributionAnalyzer.analyze(createMockPR(0, 0, [{ language: 'json', additions: 50, deletions: 20 }])); // maintenance (2 total)
     
-    // Total: 10 PRs - 40% newStuff, 20% refinement, 20% refactoring, 20% maintenance
+    // Total: 10 PRs - 40% new, 20% refinement, 20% refactoring, 20% maintenance
     
     // Get the distribution
     const distribution = ContributionAnalyzer.getDistribution();
@@ -173,7 +173,7 @@ describe('ContributionAnalyzer', () => {
     expect(distribution.label).toBe("Contribution Distribution");
     expect(distribution.value).toBe(10); // 10 total PRs
     expect(distribution.percentage).toBe(100);
-    expect(distribution.newStuff).toBe(40);
+    expect(distribution.new).toBe(40);
     expect(distribution.refinement).toBe(20);
     expect(distribution.refactoring).toBe(20);
     expect(distribution.maintenance).toBe(20);
@@ -204,7 +204,7 @@ describe('ContributionAnalyzer', () => {
     
     // All PRs should be counted as maintenance
     expect(counts.maintenance).toBe(nonCodeExtensions.length);
-    expect(counts.newStuff).toBe(0);
+    expect(counts.new).toBe(0);
     expect(counts.refinement).toBe(0);
     expect(counts.refactoring).toBe(0);
   });
@@ -237,7 +237,7 @@ describe('ContributionAnalyzer', () => {
     ]);
     
     // Analyze the PRs
-    ContributionAnalyzer.analyze(mixedPR1); // Should be newStuff due to typescript
+    ContributionAnalyzer.analyze(mixedPR1); // Should be new due to typescript
     ContributionAnalyzer.analyze(mixedPR2); // Should be refinement due to typescript
     ContributionAnalyzer.analyze(mixedPR3); // Should be refactoring due to typescript
     ContributionAnalyzer.analyze(nonCodePR); // Should be maintenance
@@ -246,7 +246,7 @@ describe('ContributionAnalyzer', () => {
     const counts = ContributionAnalyzer.getCounts();
     
     // Verify each PR is categorized correctly
-    expect(counts.newStuff).toBe(1);      // mixedPR1
+    expect(counts.new).toBe(1);      // mixedPR1
     expect(counts.refinement).toBe(1);    // mixedPR2
     expect(counts.refactoring).toBe(1);   // mixedPR3
     expect(counts.maintenance).toBe(1);   // nonCodePR

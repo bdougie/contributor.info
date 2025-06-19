@@ -3,7 +3,7 @@ import { PullRequest, QuadrantDistribution } from './types';
 export interface ContributionMetrics {
   x: number;
   y: number;
-  quadrant: 'refinement' | 'newStuff' | 'refactoring' | 'maintenance';
+  quadrant: 'refinement' | 'new' | 'refactoring' | 'maintenance';
 }
 
 const NON_CODE_EXTENSIONS = new Set([
@@ -17,7 +17,7 @@ export class ContributionAnalyzer {
   // Track counts of each quadrant type for distribution calculation
   private static quadrantCounts = {
     refinement: 0,
-    newStuff: 0,
+    new: 0,
     refactoring: 0,
     maintenance: 0
   };
@@ -42,8 +42,8 @@ export class ContributionAnalyzer {
     const deletionRatio = codeDeletions / total;
 
     if (additionRatio > 0.7) {
-      this.quadrantCounts.newStuff++;
-      return this.getNewStuffMetrics(additionRatio, deletionRatio);
+      this.quadrantCounts.new++;
+      return this.getNewMetrics(additionRatio, deletionRatio);
     } else if (deletionRatio > 0.7) {
       this.quadrantCounts.refinement++;
       return this.getRefinementMetrics(additionRatio, deletionRatio);
@@ -57,7 +57,7 @@ export class ContributionAnalyzer {
   static resetCounts(): void {
     this.quadrantCounts = {
       refinement: 0,
-      newStuff: 0,
+      new: 0,
       refactoring: 0,
       maintenance: 0
     };
@@ -66,7 +66,7 @@ export class ContributionAnalyzer {
   // Get the distribution percentages for each quadrant
   static getDistribution(): QuadrantDistribution {
     const total = this.quadrantCounts.refinement + 
-                  this.quadrantCounts.newStuff + 
+                  this.quadrantCounts.new + 
                   this.quadrantCounts.refactoring + 
                   this.quadrantCounts.maintenance;
     
@@ -76,7 +76,7 @@ export class ContributionAnalyzer {
         value: 0,
         percentage: 0,
         refinement: 25,
-        newStuff: 25,
+        new: 25,
         refactoring: 25,
         maintenance: 25
       };
@@ -88,7 +88,7 @@ export class ContributionAnalyzer {
       value: total,
       percentage: 100,
       refinement: (this.quadrantCounts.refinement / total) * 100,
-      newStuff: (this.quadrantCounts.newStuff / total) * 100,
+      new: (this.quadrantCounts.new / total) * 100,
       refactoring: (this.quadrantCounts.refactoring / total) * 100,
       maintenance: (this.quadrantCounts.maintenance / total) * 100
     };
@@ -180,13 +180,13 @@ export class ContributionAnalyzer {
     };
   }
 
-  private static getNewStuffMetrics(additionRatio: number, deletionRatio: number): ContributionMetrics {
+  private static getNewMetrics(additionRatio: number, deletionRatio: number): ContributionMetrics {
     return {
       // Higher x (more additions) with some variance
       x: Math.min(95, additionRatio * 100 + Math.random() * 10),
       // Lower y (fewer deletions) with some variance
       y: Math.max(5, (1 - deletionRatio) * 50 - Math.random() * 10),
-      quadrant: 'newStuff'
+      quadrant: 'new'
     };
   }
 
