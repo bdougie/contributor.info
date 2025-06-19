@@ -159,7 +159,7 @@ export default function Distribution() {
   }
 
   return (
-    <Card className="overflow-visible">
+    <Card className="overflow-hidden">
       <CardHeader>
         <CardTitle>Pull Request Distribution Analysis</CardTitle>
         <CardDescription>
@@ -167,7 +167,7 @@ export default function Distribution() {
           past {timeRangeNumber} days
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6 w-full overflow-visible">
+      <CardContent className="space-y-6 w-full overflow-hidden">
         <div className="text-sm text-muted-foreground">
           {totalFiles.toLocaleString()} files touched · {totalContributions}{" "}
           pull requests analyzed
@@ -175,7 +175,7 @@ export default function Distribution() {
         </div>
 
         <LanguageLegend languages={languageStats} />
-        <div className="overflow-visible">
+        <div className="overflow-hidden">
           <QuadrantChart
             data={prepareDataForQuadrantChart(stats.pullRequests)}
             quadrants={quadrantData}

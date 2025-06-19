@@ -111,7 +111,7 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
       </div>
 
       {/* Desktop chart - hidden on small screens, shown on medium and up */}
-      <div className="hidden md:block relative w-full aspect-[16/9] bg-background border rounded-lg mx-auto overflow-visible">
+      <div className="hidden md:block relative w-full aspect-[16/9] bg-background border rounded-lg mx-auto overflow-hidden">
         {/* Grid lines */}
         <div className="absolute inset-0 border-dashed border-muted">
           <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-muted" />
