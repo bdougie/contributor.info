@@ -223,7 +223,11 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
       )}
       
       {alerts.length >= 10 && (
-        <Button variant="ghost" className="w-full text-sm">
+        <Button 
+          variant="ghost" 
+          className="w-full text-sm"
+          onClick={() => window.open(`https://github.com/${owner}/${repo}/pulls?q=is%3Apr+is%3Aopen+sort%3Acreated-asc`, "_blank")}
+        >
           View all alerts on GitHub
         </Button>
       )}
