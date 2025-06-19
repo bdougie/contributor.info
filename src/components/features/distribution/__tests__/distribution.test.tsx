@@ -240,7 +240,7 @@ describe("Distribution", () => {
       await import("@/lib/contribution-analyzer")
     );
     
-    ContributionAnalyzer.analyze.mockImplementationOnce(() => {
+    (ContributionAnalyzer.analyze as any).mockImplementationOnce(() => {
       throw new Error("Analysis failed");
     });
 
@@ -262,7 +262,6 @@ describe("Distribution", () => {
 
   it("syncs with URL params on mount", () => {
     // Mock URLSearchParams for the test
-    const mockSearchParams = new URLSearchParams("?filter=maintenance");
     
     renderDistribution();
 

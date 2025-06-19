@@ -13,8 +13,7 @@ vi.mock("@/lib/contribution-analyzer", () => ({
 
 const createMockPR = (
   id: number,
-  login: string,
-  quadrant: string
+  login: string
 ): PullRequest => ({
   id,
   number: id,
@@ -57,14 +56,14 @@ describe("useHierarchicalDistribution", () => {
     );
 
     const mockPRs = [
-      createMockPR(1, "user1", "new"),
-      createMockPR(2, "user1", "new"),
-      createMockPR(3, "user2", "new"),
-      createMockPR(4, "user3", "maintenance"),
-      createMockPR(5, "user1", "refactoring"),
+      createMockPR(1, "user1"),
+      createMockPR(2, "user1"),
+      createMockPR(3, "user2"),
+      createMockPR(4, "user3"),
+      createMockPR(5, "user1"),
     ];
 
-    ContributionAnalyzer.analyze.mockImplementation((pr) => ({
+    (ContributionAnalyzer.analyze as any).mockImplementation((pr: any) => ({
       quadrant:
         pr.id === 1 || pr.id === 2 || pr.id === 3
           ? "new"
@@ -97,11 +96,11 @@ describe("useHierarchicalDistribution", () => {
   });
 
   it("handles drill down and drill up navigation", async () => {
-    const mockPRs = [createMockPR(1, "user1", "new")];
+    const mockPRs = [createMockPR(1, "user1")];
     const { ContributionAnalyzer } = vi.mocked(
       await import("@/lib/contribution-analyzer")
     );
-    ContributionAnalyzer.analyze.mockReturnValue({ quadrant: "new" });
+    (ContributionAnalyzer.analyze as any).mockReturnValue({ quadrant: "new" });
 
     const { result } = renderHook(() => useHierarchicalDistribution(mockPRs));
 
@@ -126,17 +125,17 @@ describe("useHierarchicalDistribution", () => {
   });
 
   it("syncs with external selected quadrant", async () => {
-    const mockPRs = [createMockPR(1, "user1", "new")];
+    const mockPRs = [createMockPR(1, "user1")];
     const { ContributionAnalyzer } = vi.mocked(
       await import("@/lib/contribution-analyzer")
     );
-    ContributionAnalyzer.analyze.mockReturnValue({ quadrant: "new" });
+    (ContributionAnalyzer.analyze as any).mockReturnValue({ quadrant: "new" });
 
     const { result, rerender } = renderHook(
-      ({ externalQuadrant }) =>
+      ({ externalQuadrant }: { externalQuadrant: string | null }) =>
         useHierarchicalDistribution(mockPRs, externalQuadrant),
       {
-        initialProps: { externalQuadrant: null },
+        initialProps: { externalQuadrant: null as string | null },
       }
     );
 
@@ -163,10 +162,10 @@ describe("useHierarchicalDistribution", () => {
 
     // Create 25 users with PRs in the same quadrant
     const mockPRs = Array.from({ length: 25 }, (_, i) =>
-      createMockPR(i + 1, `user${i + 1}`, "new")
+      createMockPR(i + 1, `user${i + 1}`)
     );
 
-    ContributionAnalyzer.analyze.mockReturnValue({ quadrant: "new" });
+    (ContributionAnalyzer.analyze as any).mockReturnValue({ quadrant: "new" });
 
     const { result } = renderHook(() => useHierarchicalDistribution(mockPRs));
 
@@ -189,15 +188,15 @@ describe("useHierarchicalDistribution", () => {
     );
 
     const mockPRs = [
-      createMockPR(1, "user1", "new"),
-      createMockPR(2, "user2", "new"),
-      createMockPR(3, "user2", "new"),
-      createMockPR(4, "user2", "new"),
-      createMockPR(5, "user3", "new"),
-      createMockPR(6, "user3", "new"),
+      createMockPR(1, "user1"),
+      createMockPR(2, "user2"),
+      createMockPR(3, "user2"),
+      createMockPR(4, "user2"),
+      createMockPR(5, "user3"),
+      createMockPR(6, "user3"),
     ];
 
-    ContributionAnalyzer.analyze.mockReturnValue({ quadrant: "new" });
+    (ContributionAnalyzer.analyze as any).mockReturnValue({ quadrant: "new" });
 
     const { result } = renderHook(() => useHierarchicalDistribution(mockPRs));
 
@@ -218,11 +217,11 @@ describe("useHierarchicalDistribution", () => {
     );
 
     const mockPRs = [
-      createMockPR(1, "user1", "new"),
-      createMockPR(2, "user2", "new"),
+      createMockPR(1, "user1"),
+      createMockPR(2, "user2"),
     ];
 
-    ContributionAnalyzer.analyze
+    (ContributionAnalyzer.analyze as any)
       .mockReturnValueOnce({ quadrant: "new" })
       .mockImplementationOnce(() => {
         throw new Error("Analysis failed");
@@ -246,11 +245,11 @@ describe("useHierarchicalDistribution", () => {
   });
 
   it("uses correct colors for quadrants", async () => {
-    const mockPRs = [createMockPR(1, "user1", "new")];
+    const mockPRs = [createMockPR(1, "user1")];
     const { ContributionAnalyzer } = vi.mocked(
       await import("@/lib/contribution-analyzer")
     );
-    ContributionAnalyzer.analyze.mockReturnValue({ quadrant: "new" });
+    (ContributionAnalyzer.analyze as any).mockReturnValue({ quadrant: "new" });
 
     const { result } = renderHook(() => useHierarchicalDistribution(mockPRs));
 
@@ -263,11 +262,11 @@ describe("useHierarchicalDistribution", () => {
   });
 
   it("includes empty quadrants in the structure", async () => {
-    const mockPRs = [createMockPR(1, "user1", "new")];
+    const mockPRs = [createMockPR(1, "user1")];
     const { ContributionAnalyzer } = vi.mocked(
       await import("@/lib/contribution-analyzer")
     );
-    ContributionAnalyzer.analyze.mockReturnValue({ quadrant: "new" });
+    (ContributionAnalyzer.analyze as any).mockReturnValue({ quadrant: "new" });
 
     const { result } = renderHook(() => useHierarchicalDistribution(mockPRs));
 

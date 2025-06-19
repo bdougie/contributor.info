@@ -169,11 +169,17 @@ const InteractiveWrapper = ({
 };
 
 export const Default: Story = {
-  render: () => <InteractiveWrapper data={balancedData} />,
+  args: {
+    data: balancedData,
+  },
+  render: (args) => <InteractiveWrapper {...args} />,
 };
 
 export const BalancedDistribution: Story = {
-  render: () => <InteractiveWrapper data={balancedData} />,
+  args: {
+    data: balancedData,
+  },
+  render: (args) => <InteractiveWrapper {...args} />,
   parameters: {
     docs: {
       description: {
@@ -184,7 +190,10 @@ export const BalancedDistribution: Story = {
 };
 
 export const FeatureHeavy: Story = {
-  render: () => <InteractiveWrapper data={featureHeavyData} />,
+  args: {
+    data: featureHeavyData,
+  },
+  render: (args) => <InteractiveWrapper {...args} />,
   parameters: {
     docs: {
       description: {
@@ -195,6 +204,9 @@ export const FeatureHeavy: Story = {
 };
 
 export const WithSelectedQuadrant: Story = {
+  args: {
+    data: balancedData,
+  },
   render: () => {
     const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>("new");
     
@@ -224,7 +236,10 @@ export const WithSelectedQuadrant: Story = {
 };
 
 export const MobileView: Story = {
-  render: () => <InteractiveWrapper data={balancedData} />,
+  args: {
+    data: balancedData,
+  },
+  render: (args) => <InteractiveWrapper {...args} />,
   parameters: {
     viewport: {
       defaultViewport: "mobile1",
@@ -238,6 +253,9 @@ export const MobileView: Story = {
 };
 
 export const EmptyData: Story = {
+  args: {
+    data: [],
+  },
   render: () => (
     <div className="w-full max-w-4xl mx-auto">
       <DistributionCharts
@@ -259,6 +277,9 @@ export const EmptyData: Story = {
 };
 
 export const SingleQuadrant: Story = {
+  args: {
+    data: [],
+  },
   render: () => {
     const singleData: QuadrantData[] = [
       {
@@ -283,6 +304,9 @@ export const SingleQuadrant: Story = {
 };
 
 export const LargePRList: Story = {
+  args: {
+    data: balancedData,
+  },
   render: () => {
     const manyPRs = Array.from({ length: 100 }, (_, i) =>
       createMockPR(
@@ -307,6 +331,9 @@ export const LargePRList: Story = {
 };
 
 export const MultiLanguageDistribution: Story = {
+  args: {
+    data: balancedData,
+  },
   render: () => {
     const multiLangPRs: PullRequest[] = [
       createMockPR(1, "polyglot", 200, 50, "TypeScript", "TypeScript feature"),
@@ -329,6 +356,9 @@ export const MultiLanguageDistribution: Story = {
 };
 
 export const TreemapFocused: Story = {
+  args: {
+    data: balancedData,
+  },
   render: () => {
     const [selectedQuadrant] = useState<string | null>(null);
     

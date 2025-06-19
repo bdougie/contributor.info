@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { DistributionTreemapEnhanced } from "./distribution-treemap-enhanced";
 import { useState } from "react";
-import type { QuadrantNode } from "@/hooks/use-hierarchical-distribution";
 
 // Mock hierarchical data structures
 const createContributorNode = (id: string, login: string, prCount: number) => ({
@@ -149,6 +148,13 @@ const InteractiveWrapper = ({
 };
 
 export const Overview: Story = {
+  args: {
+    data: mockOverviewData,
+    currentView: "overview",
+    selectedQuadrant: null,
+    onDrillDown: () => {},
+    onDrillUp: () => {},
+  },
   render: () => <InteractiveWrapper />,
   parameters: {
     docs: {
@@ -160,9 +166,16 @@ export const Overview: Story = {
 };
 
 export const QuadrantView: Story = {
+  args: {
+    data: mockOverviewData,
+    currentView: "overview",
+    selectedQuadrant: null,
+    onDrillDown: () => {},
+    onDrillUp: () => {},
+  },
   render: () => (
     <InteractiveWrapper 
-      initialView="quadrant" 
+      initialView="overview" 
       initialQuadrant="new" 
     />
   ),
@@ -176,10 +189,17 @@ export const QuadrantView: Story = {
 };
 
 export const WithOthersNode: Story = {
+  args: {
+    data: mockDataWithOthers,
+    currentView: "overview",
+    selectedQuadrant: null,
+    onDrillDown: () => {},
+    onDrillUp: () => {},
+  },
   render: () => (
     <InteractiveWrapper 
       initialData={mockDataWithOthers}
-      initialView="quadrant"
+      initialView="overview"
       initialQuadrant="new"
     />
   ),
@@ -193,6 +213,13 @@ export const WithOthersNode: Story = {
 };
 
 export const BalancedDistribution: Story = {
+  args: {
+    data: mockOverviewData,
+    currentView: "overview",
+    selectedQuadrant: null,
+    onDrillDown: () => {},
+    onDrillUp: () => {},
+  },
   render: () => {
     const balancedData = {
       name: "Distribution",
@@ -240,6 +267,13 @@ export const BalancedDistribution: Story = {
 };
 
 export const SingleDominantQuadrant: Story = {
+  args: {
+    data: mockOverviewData,
+    currentView: "overview",
+    selectedQuadrant: null,
+    onDrillDown: () => {},
+    onDrillUp: () => {},
+  },
   render: () => {
     const dominantData = {
       name: "Distribution",
@@ -287,6 +321,13 @@ export const SingleDominantQuadrant: Story = {
 };
 
 export const ManyContributors: Story = {
+  args: {
+    data: mockOverviewData,
+    currentView: "overview",
+    selectedQuadrant: null,
+    onDrillDown: () => {},
+    onDrillUp: () => {},
+  },
   render: () => {
     const manyContributorsData = {
       name: "Distribution",
@@ -306,7 +347,7 @@ export const ManyContributors: Story = {
     return (
       <InteractiveWrapper 
         initialData={manyContributorsData}
-        initialView="quadrant"
+        initialView="overview"
         initialQuadrant="new"
       />
     );
@@ -321,6 +362,13 @@ export const ManyContributors: Story = {
 };
 
 export const EmptyQuadrants: Story = {
+  args: {
+    data: mockOverviewData,
+    currentView: "overview",
+    selectedQuadrant: null,
+    onDrillDown: () => {},
+    onDrillUp: () => {},
+  },
   render: () => {
     const sparseData = {
       name: "Distribution",
@@ -368,6 +416,13 @@ export const EmptyQuadrants: Story = {
 };
 
 export const NavigationDemo: Story = {
+  args: {
+    data: mockOverviewData,
+    currentView: "overview",
+    selectedQuadrant: null,
+    onDrillDown: () => {},
+    onDrillUp: () => {},
+  },
   render: () => {
     const [log, setLog] = useState<string[]>([]);
     
@@ -433,6 +488,13 @@ export const NavigationDemo: Story = {
 };
 
 export const MobileView: Story = {
+  args: {
+    data: mockOverviewData,
+    currentView: "overview",
+    selectedQuadrant: null,
+    onDrillDown: () => {},
+    onDrillUp: () => {},
+  },
   render: () => <InteractiveWrapper />,
   parameters: {
     viewport: {
