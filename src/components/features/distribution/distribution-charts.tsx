@@ -387,11 +387,12 @@ export function DistributionCharts({
         </div>
       </div>
 
-      {chartType === "bar" && selectedQuadrant ? (
+      {(chartType === "bar" || chartType === "donut") && selectedQuadrant ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
             <CardContent className="p-6">
-              {renderBarChart()}
+              {chartType === "donut" && renderDonutChart()}
+              {chartType === "bar" && renderBarChart()}
             </CardContent>
           </Card>
           {renderPRList()}
