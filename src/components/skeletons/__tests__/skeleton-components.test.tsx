@@ -43,12 +43,12 @@ describe("Skeleton Components", () => {
   describe("DistributionSkeleton", () => {
     it("renders without crashing", () => {
       render(<DistributionSkeleton />);
-      expect(document.querySelector(".overflow-visible")).toBeInTheDocument();
+      expect(document.querySelector(".overflow-hidden")).toBeInTheDocument();
     });
 
     it("shows mobile placeholder when isMobile is true", () => {
       render(<DistributionSkeleton isMobile={true} />);
-      expect(document.querySelector(".overflow-visible")).toBeInTheDocument();
+      expect(document.querySelector(".overflow-hidden")).toBeInTheDocument();
     });
   });
 

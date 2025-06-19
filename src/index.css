@@ -56,6 +56,18 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Prevent horizontal scroll on mobile */
+  html {
+    overflow-x: hidden;
+  }
+  
+  @media (max-width: 768px) {
+    body {
+      overflow-x: hidden;
+      position: relative;
+    }
+  }
 }
 
 /* Performance optimizations for skeleton loaders */
