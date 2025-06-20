@@ -3,10 +3,16 @@ import { waitFor } from '@testing-library/react';
 
 const config: TestRunnerConfig = {
   // Setup for interaction tests
-  setup() {
+  async setup() {
     // Global test setup
-    // Increase timeout for portal rendering
-    jest.setTimeout(30000);
+    // Note: Storybook test-runner uses Playwright/Jest internally,
+    // but our component tests use Vitest
+    
+    // Set up environment variables
+    if (typeof process !== 'undefined' && process.env) {
+      process.env.VITE_SUPABASE_URL = 'http://localhost:54321';
+      process.env.VITE_SUPABASE_ANON_KEY = 'mock-anon-key';
+    }
   },
   
   // Tags to include/exclude  
@@ -17,6 +23,15 @@ const config: TestRunnerConfig = {
 
   // Custom page setup for better portal handling
   async preVisit(page) {
+    // Set environment variables in the browser context
+    await page.addInitScript(() => {
+      // Mock environment variables for Supabase
+      if (typeof import !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env) {
+        (import.meta.env as any).VITE_SUPABASE_URL = 'http://localhost:54321';
+        (import.meta.env as any).VITE_SUPABASE_ANON_KEY = 'mock-anon-key';
+      }
+    });
+    
     // Add custom test utilities to the page
     await page.addInitScript(() => {
       // Helper function to wait for elements outside the canvas
