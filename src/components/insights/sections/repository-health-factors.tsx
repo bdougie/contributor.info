@@ -92,7 +92,7 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
   );
   const reviewCoverage = totalPRs > 0 ? (reviewedPRs.length / totalPRs) * 100 : 0;
   
-  let reviewScore = Math.max(0, reviewCoverage);
+  let reviewScore = Math.round(Math.max(0, reviewCoverage));
   let reviewStatus: "good" | "warning" | "critical" = "good";
   
   if (reviewCoverage >= 80) {
@@ -117,7 +117,7 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
   const timeRangeNum = parseInt(timeRange) || 30;
   const dailyActivity = totalPRs / timeRangeNum;
   
-  let activityScore = Math.min(100, dailyActivity * 20); // Scale based on activity
+  let activityScore = Math.round(Math.min(100, dailyActivity * 20)); // Scale based on activity
   let activityStatus: "good" | "warning" | "critical" = "good";
   
   if (dailyActivity >= 2) {
@@ -262,7 +262,7 @@ export function RepositoryHealthFactors({
                   getScoreColor(factor.score)
                 )}
               >
-                {factor.score}
+                {Math.round(factor.score)}
               </span>
             </div>
             <p className="text-xs text-muted-foreground pl-4">

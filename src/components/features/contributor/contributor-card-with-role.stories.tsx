@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { ContributorCardWithRole } from './contributor-card-with-role'
+// import { ContributorCardWithRole } from './contributor-card-with-role' // Not used directly in stories
 import { RepoStatsContext } from '@/lib/repo-stats-context'
 import { MonthlyContributor } from '@/lib/types'
 
@@ -8,9 +8,10 @@ const mockStats = {
   pullRequests: [
     {
       id: 1,
-      user: { login: 'alice-maintainer', avatar_url: 'https://github.com/alice-maintainer.png' },
+      user: { id: 1, login: 'alice-maintainer', avatar_url: 'https://github.com/alice-maintainer.png' },
       title: 'Add new feature',
       created_at: '2024-01-15T10:00:00Z',
+      updated_at: '2024-01-15T11:00:00Z',
       merged_at: '2024-01-15T12:00:00Z',
       state: 'closed' as const,
       merged: true,
@@ -23,7 +24,11 @@ const mockStats = {
       milestone: null,
       requested_reviewers: [],
       head: { sha: 'abc123' },
-      base: { sha: 'def456' }
+      base: { sha: 'def456' },
+      additions: 100,
+      deletions: 50,
+      repository_owner: 'testorg',
+      repository_name: 'testrepo'
     }
   ],
   reviews: [],
@@ -40,7 +45,8 @@ const mockContributors: MonthlyContributor[] = [
       pullRequests: 15,
       reviews: 8,
       comments: 25,
-      totalScore: 48
+      totalScore: 48,
+      firstContributionDate: '2024-01-01T00:00:00Z'
     }
   },
   {
@@ -51,7 +57,8 @@ const mockContributors: MonthlyContributor[] = [
       pullRequests: 12,
       reviews: 20,
       comments: 30,
-      totalScore: 62
+      totalScore: 62,
+      firstContributionDate: '2024-01-02T00:00:00Z'
     }
   },
   {
@@ -62,7 +69,8 @@ const mockContributors: MonthlyContributor[] = [
       pullRequests: 5,
       reviews: 2,
       comments: 8,
-      totalScore: 15
+      totalScore: 15,
+      firstContributionDate: '2024-01-10T00:00:00Z'
     }
   },
   {
@@ -73,7 +81,8 @@ const mockContributors: MonthlyContributor[] = [
       pullRequests: 20,
       reviews: 0,
       comments: 0,
-      totalScore: 20
+      totalScore: 20,
+      firstContributionDate: '2024-01-01T00:00:00Z'
     }
   }
 ]
@@ -142,15 +151,7 @@ const mockRoles = {
   }
 }
 
-// Mock the hook
-const mockUseContributorRole = (owner: string, repo: string, userId: string) => {
-  const role = mockRoles[userId as keyof typeof mockRoles]
-  return {
-    role: role || null,
-    loading: false,
-    error: null
-  }
-}
+// Mock the hook - removed unused function
 
 // Create a simplified version for stories that accepts mock role data
 import { cn } from "@/lib/utils";
@@ -158,7 +159,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { ContributorHoverCard } from "./contributor-hover-card";
-import { useMemo, useContext } from "react";
+import { useMemo } from "react";
 import { GitPullRequest, MessageSquare, GitPullRequestDraft, Trophy, Shield, User, Bot } from "lucide-react";
 
 const ContributorCardStory = ({ 
@@ -171,7 +172,7 @@ const ContributorCardStory = ({
   className 
 }: any) => {
   const { login, avatar_url, activity, rank } = contributor;
-  const { stats } = useContext(RepoStatsContext);
+  // const { stats } = useContext(RepoStatsContext); // Not used in story component
   
   // Use mock data instead of hook
   const role = mockRole;
@@ -183,9 +184,10 @@ const ContributorCardStory = ({
       login,
       avatar_url,
       id: login,
-      pullRequests: [],
+      pullRequests: 0,
       reviews: [],
-      comments: []
+      comments: [],
+      percentage: 0
     };
   }, [login, avatar_url]);
 
@@ -385,7 +387,13 @@ const meta: Meta<typeof ContributorCardStory> = {
   },
   decorators: [
     (Story) => (
-      <RepoStatsContext.Provider value={{ stats: mockStats }}>
+      <RepoStatsContext.Provider value={{ 
+        stats: { ...mockStats, loading: false, error: null },
+        lotteryFactor: null,
+        directCommitsData: null,
+        includeBots: false,
+        setIncludeBots: () => {}
+      }}>
         <div className="w-80">
           <Story />
         </div>
@@ -467,7 +475,13 @@ export const Loading: Story = {
 
 export const ComparisonGrid: Story = {
   render: () => (
-    <RepoStatsContext.Provider value={{ stats: mockStats }}>
+    <RepoStatsContext.Provider value={{ 
+      stats: { ...mockStats, loading: false, error: null },
+      lotteryFactor: null,
+      directCommitsData: null,
+      includeBots: false,
+      setIncludeBots: () => {}
+    }}>
       <div className="grid grid-cols-2 gap-4 w-[700px]">
         <ContributorCardStory
           contributor={mockContributors[1]}
