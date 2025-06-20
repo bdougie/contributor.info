@@ -10,7 +10,7 @@ interface DistributionSkeletonProps {
 
 export function DistributionSkeleton({ className, isMobile = false }: DistributionSkeletonProps) {
   return (
-    <Card className={cn("overflow-visible animate-pulse", className)}>
+    <Card className={cn("overflow-hidden animate-pulse", className)}>
       <CardHeader>
         <CardTitle>
           <Skeleton className="h-7 w-80" />
@@ -24,7 +24,7 @@ export function DistributionSkeleton({ className, isMobile = false }: Distributi
           </CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6 w-full overflow-visible">
+      <CardContent className="space-y-6 w-full overflow-hidden">
         {/* Stats summary */}
         <div className="text-sm text-muted-foreground">
           <Skeleton className="h-4 w-64" />
@@ -34,7 +34,7 @@ export function DistributionSkeleton({ className, isMobile = false }: Distributi
         <LanguageLegendSkeleton isMobile={isMobile} />
 
         {/* QuadrantChart skeleton */}
-        <div className="overflow-visible">
+        <div className="overflow-hidden">
           <QuadrantChartSkeleton isMobile={isMobile} />
         </div>
 

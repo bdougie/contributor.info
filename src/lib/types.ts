@@ -148,7 +148,7 @@ export interface QuadrantDistribution {
   value: number;
   percentage: number;
   refinement?: number;
-  newStuff?: number;
+  new?: number;
   refactoring?: number;
   maintenance?: number;
 }

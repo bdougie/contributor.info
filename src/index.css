@@ -4,24 +4,24 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 0 0% 97%;
     --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
+    --card: 0 0% 99%;
     --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
+    --popover: 0 0% 99%;
     --popover-foreground: 0 0% 3.9%;
     --primary: 0 0% 9%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
+    --secondary: 0 0% 94%;
     --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
+    --muted: 0 0% 94%;
     --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
+    --accent: 0 0% 94%;
     --accent-foreground: 0 0% 9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
+    --border: 0 0% 87%;
+    --input: 0 0% 95%;
     --ring: 0 0% 3.9%;
     --radius: 0.5rem;
   }
@@ -55,5 +55,52 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Prevent horizontal scroll on mobile */
+  html {
+    overflow-x: hidden;
+  }
+  
+  @media (max-width: 768px) {
+    body {
+      overflow-x: hidden;
+      position: relative;
+    }
+  }
+}
+
+/* Performance optimizations for skeleton loaders */
+@layer utilities {
+  .skeleton-optimized {
+    /* Optimize for animation performance */
+    will-change: opacity;
+    transform: translateZ(0); /* Force hardware acceleration */
+    backface-visibility: hidden; /* Reduce paint complexity */
+  }
+  
+  .animate-pulse-optimized {
+    animation: pulse-optimized 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @keyframes pulse-optimized {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  
+  /* Reduce paint complexity for skeleton elements */
+  .skeleton-container {
+    contain: layout style paint;
+    isolation: isolate;
+  }
+  
+  /* Optimize for frequent DOM updates */
+  .skeleton-list-item {
+    contain: layout style;
+    will-change: contents;
   }
 }

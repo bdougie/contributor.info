@@ -8,8 +8,6 @@ import {
   ChevronLeft, 
   ChevronRight, 
   AlertCircle, 
-  GitPullRequest,
-  TrendingUp,
   Heart,
   Sparkles
 } from "lucide-react";
@@ -18,9 +16,7 @@ import { useTimeRangeStore } from "@/lib/time-range-store";
 
 // Import section components
 import { NeedsAttention } from "./sections/needs-attention";
-import { PrActivity } from "./sections/pr-activity";
-import { Trends } from "./sections/trends";
-import { RepositoryHealth } from "./sections/repository-health";
+import { InsightsHealth } from "./sections/repository-health-insights";
 import { Recommendations } from "./sections/recommendations";
 import { getCriticalPrCount } from "@/lib/insights/pr-attention";
 
@@ -31,7 +27,7 @@ interface InsightsSidebarProps {
 export function InsightsSidebar({ className }: InsightsSidebarProps) {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const timeRange = useTimeRangeStore((state) => state.timeRange);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [criticalCount, setCriticalCount] = useState(0);
 
@@ -58,20 +54,6 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
       icon: AlertCircle,
       color: "text-red-500",
       count: criticalCount
-    },
-    {
-      id: "activity",
-      title: "PR Activity",
-      icon: GitPullRequest,
-      color: "text-blue-500",
-      count: 12,
-    },
-    {
-      id: "trends",
-      title: "Trends",
-      icon: TrendingUp,
-      color: "text-green-500",
-      count: null,
     },
     {
       id: "health",
@@ -173,14 +155,8 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                           {section.id === "attention" && (
                             <NeedsAttention owner={owner} repo={repo} timeRange={timeRange} />
                           )}
-                          {section.id === "activity" && (
-                            <PrActivity owner={owner} repo={repo} timeRange={timeRange} />
-                          )}
-                          {section.id === "trends" && (
-                            <Trends owner={owner} repo={repo} timeRange={timeRange} />
-                          )}
                           {section.id === "health" && (
-                            <RepositoryHealth owner={owner} repo={repo} timeRange={timeRange} />
+                            <InsightsHealth owner={owner} repo={repo} timeRange={timeRange} />
                           )}
                           {section.id === "recommendations" && (
                             <Recommendations owner={owner} repo={repo} timeRange={timeRange} />
@@ -240,14 +216,8 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                         {section.id === "attention" && (
                           <NeedsAttention owner={owner} repo={repo} timeRange={timeRange} />
                         )}
-                        {section.id === "activity" && (
-                          <PrActivity owner={owner} repo={repo} timeRange={timeRange} />
-                        )}
-                        {section.id === "trends" && (
-                          <Trends owner={owner} repo={repo} timeRange={timeRange} />
-                        )}
                         {section.id === "health" && (
-                          <RepositoryHealth owner={owner} repo={repo} timeRange={timeRange} />
+                          <InsightsHealth owner={owner} repo={repo} timeRange={timeRange} />
                         )}
                         {section.id === "recommendations" && (
                           <Recommendations owner={owner} repo={repo} timeRange={timeRange} />

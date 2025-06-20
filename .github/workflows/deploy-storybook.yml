@@ -30,8 +30,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
         
+      - name: Cache Storybook build
+        uses: actions/cache@v4
+        id: storybook-cache
+        with:
+          path: storybook-static
+          key: storybook-deploy-${{ runner.os }}-${{ hashFiles('**/*.stories.*', '.storybook/**/*', 'src/**/*.tsx', 'src/**/*.ts', 'package-lock.json') }}
+        
       - name: Build Storybook
+        if: steps.storybook-cache.outputs.cache-hit != 'true'
         run: npm run build-storybook
+        env:
+          VITE_SUPABASE_URL: http://localhost:54321
+          VITE_SUPABASE_ANON_KEY: mock-anon-key
         
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3.0

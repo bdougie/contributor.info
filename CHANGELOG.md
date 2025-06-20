@@ -5,7 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 1.0.0 (2025-06-17)
+## [1.2.0](https://github.com/bdougie/contributor.info/compare/v1.1.0...v1.2.0) (2025-06-20)
+
+
+### 🚀 Features
+
+* Distribution Chart updates ([#92](https://github.com/bdougie/contributor.info/issues/92)) ([5967dc0](https://github.com/bdougie/contributor.info/commit/5967dc0c2d31242a39daba74a0fdf9a9b761a0f9))
+* implement user guide documentation structure ([#86](https://github.com/bdougie/contributor.info/issues/86)) ([ff0c03e](https://github.com/bdougie/contributor.info/commit/ff0c03e3bf86049a4585f1dda8d35e4a2189f724)), closes [#81](https://github.com/bdougie/contributor.info/issues/81)
+* Missing feature ([#93](https://github.com/bdougie/contributor.info/issues/93)) ([b7f559d](https://github.com/bdougie/contributor.info/commit/b7f559db1a4c2a3087b72cc8d04e4ba3c353af21))
+* optimize skeleton loaders for performance and accessibility ([#89](https://github.com/bdougie/contributor.info/issues/89)) ([0870114](https://github.com/bdougie/contributor.info/commit/0870114af467c4e5fa8cc12ca0045e0c9a11c566))
+
+
+### 🐛 Bug Fixes
+
+* build ([#85](https://github.com/bdougie/contributor.info/issues/85)) ([a8eff02](https://github.com/bdougie/contributor.info/commit/a8eff0273a1bdebec6954435a6c656b8c711364d))
+* favicon ([#88](https://github.com/bdougie/contributor.info/issues/88)) ([4dd945e](https://github.com/bdougie/contributor.info/commit/4dd945e83fcd48d76d50adcb0b3951833a5df245))
+* release on release ([adf2e21](https://github.com/bdougie/contributor.info/commit/adf2e21cc434a81c18ba87408a352fdc52dd899f))
+* release.yml ([aea4bd8](https://github.com/bdougie/contributor.info/commit/aea4bd8e72b3506c63b4ac6bf63ab6af0c7d51d4))
+* small ui and build fixes ([#87](https://github.com/bdougie/contributor.info/issues/87)) ([a5c90e8](https://github.com/bdougie/contributor.info/commit/a5c90e85d5fff56075496fe23ad2049760df1a66))
+
+## [1.1.0](https://github.com/bdougie/contributor.info/compare/v1.0.0...v1.1.0) (2025-06-17)
+
+
+### 🚀 Features
+
+* add changelog navigation with anchors, RSS feed, and SEO ([#84](https://github.com/bdougie/contributor.info/issues/84)) ([16e96c6](https://github.com/bdougie/contributor.info/commit/16e96c65a7ea86263ae43839f35f8768e2ba6b76))
+
+## [1.0.0](https://github.com/bdougie/contributor.info/commit/16e96c65a7ea86263ae43839f35f8768e2ba6b76) (2025-06-17)
 
 
 ### 🚀 Features

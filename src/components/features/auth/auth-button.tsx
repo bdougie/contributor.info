@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { GithubIcon, LogOut } from "lucide-react";
+import { GithubIcon, LogOut, MessageSquare } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
 export function AuthButton() {
@@ -119,6 +119,16 @@ export function AuthButton() {
       <DropdownMenuContent align="end">
         <DropdownMenuItem className="font-medium">
           {user.user_metadata.user_name}
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a
+            href="https://github.com/bdougie/contributor.info/discussions"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Give Feedback
+          </a>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />

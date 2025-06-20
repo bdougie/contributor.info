@@ -73,8 +73,8 @@ export function calculateLotteryFactor(
     }))
     .sort((a, b) => b.pullRequests - a.pullRequests);
 
-  // Take only the top 6 contributors
-  const topContributors = contributors.slice(0, 6);
+  // Take only the top 7 contributors
+  const topContributors = contributors.slice(0, 7);
 
   // Calculate top 2 contributors' percentage (for risk level)
   const topTwoPercentage = contributors
