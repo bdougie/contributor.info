@@ -31,6 +31,9 @@ jobs:
       
     - name: Build Storybook for interaction testing
       run: npm run build-storybook --quiet
+      env:
+        VITE_SUPABASE_URL: http://localhost:54321
+        VITE_SUPABASE_ANON_KEY: mock-anon-key
       
     - name: Install Playwright browsers
       run: npx playwright install --with-deps
@@ -74,6 +77,9 @@ jobs:
       
     - name: Build Storybook for accessibility testing
       run: npm run build-storybook --quiet
+      env:
+        VITE_SUPABASE_URL: http://localhost:54321
+        VITE_SUPABASE_ANON_KEY: mock-anon-key
       
     - name: Install Playwright browsers
       run: npx playwright install --with-deps

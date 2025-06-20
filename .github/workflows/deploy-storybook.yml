@@ -32,6 +32,9 @@ jobs:
         
       - name: Build Storybook
         run: npm run build-storybook
+        env:
+          VITE_SUPABASE_URL: http://localhost:54321
+          VITE_SUPABASE_ANON_KEY: mock-anon-key
         
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3.0
