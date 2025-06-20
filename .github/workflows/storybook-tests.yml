@@ -10,7 +10,7 @@ jobs:
   check-visual:
     uses: ./.github/workflows/check-visual-changes.yml
 
-  interaction-tests:
+  build-storybook:
     runs-on: ubuntu-latest
     needs: check-visual
     # Only run if there are visual changes
@@ -29,14 +29,68 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
-    - name: Build Storybook for interaction testing
+    - name: Cache Storybook build
+      uses: actions/cache@v4
+      id: storybook-cache
+      with:
+        path: storybook-static
+        key: storybook-${{ runner.os }}-${{ hashFiles('**/*.stories.*', '.storybook/**/*', 'src/**/*.tsx', 'src/**/*.ts', 'package-lock.json') }}
+        
+    - name: Build Storybook
+      if: steps.storybook-cache.outputs.cache-hit != 'true'
       run: npm run build-storybook --quiet
       env:
         VITE_SUPABASE_URL: http://localhost:54321
         VITE_SUPABASE_ANON_KEY: mock-anon-key
+        
+    - name: Upload Storybook build
+      uses: actions/upload-artifact@v4
+      with:
+        name: storybook-static
+        path: storybook-static/
+        retention-days: 1
+
+  interaction-tests:
+    runs-on: ubuntu-latest
+    needs: build-storybook
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
       
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Download Storybook build
+      uses: actions/download-artifact@v4
+      with:
+        name: storybook-static
+        path: storybook-static
+      
+    - name: Get Playwright version
+      id: playwright-version
+      run: echo "version=$(npx playwright --version | sed 's/Version //')" >> $GITHUB_OUTPUT
+      
+    - name: Cache Playwright browsers
+      uses: actions/cache@v4
+      id: playwright-cache
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-browsers-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+        
     - name: Install Playwright browsers
       run: npx playwright install --with-deps
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
+      
+    - name: Install Playwright system dependencies
+      run: npx playwright install-deps
+      if: steps.playwright-cache.outputs.cache-hit == 'true'
       
     - name: Run Storybook interaction tests
       run: |
@@ -58,9 +112,7 @@ jobs:
 
   accessibility-tests:
     runs-on: ubuntu-latest
-    needs: check-visual
-    # Only run if there are visual changes
-    if: needs.check-visual.outputs.has-visual-changes == 'true'
+    needs: build-storybook
     
     steps:
     - name: Checkout repository
@@ -75,14 +127,30 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
-    - name: Build Storybook for accessibility testing
-      run: npm run build-storybook --quiet
-      env:
-        VITE_SUPABASE_URL: http://localhost:54321
-        VITE_SUPABASE_ANON_KEY: mock-anon-key
+    - name: Download Storybook build
+      uses: actions/download-artifact@v4
+      with:
+        name: storybook-static
+        path: storybook-static
       
+    - name: Get Playwright version
+      id: playwright-version-a11y
+      run: echo "version=$(npx playwright --version | sed 's/Version //')" >> $GITHUB_OUTPUT
+      
+    - name: Cache Playwright browsers
+      uses: actions/cache@v4
+      id: playwright-cache-a11y
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-browsers-${{ runner.os }}-${{ steps.playwright-version-a11y.outputs.version }}
+        
     - name: Install Playwright browsers
       run: npx playwright install --with-deps
+      if: steps.playwright-cache-a11y.outputs.cache-hit != 'true'
+      
+    - name: Install Playwright system dependencies
+      run: npx playwright install-deps
+      if: steps.playwright-cache-a11y.outputs.cache-hit == 'true'
       
     - name: Run accessibility tests via test-runner
       run: |
