@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0](https://github.com/bdougie/contributor.info/compare/v1.2.0...v1.3.0) (2025-06-20)
+
+
+### 🚀 Features
+
+* Events feed and features with events ([#99](https://github.com/bdougie/contributor.info/issues/99)) ([c4abb3f](https://github.com/bdougie/contributor.info/commit/c4abb3fd27d4a5e4f6d07af778ff0dd43014b911))
+
+
+### 🐛 Bug Fixes
+
+* changelog updates ([#100](https://github.com/bdougie/contributor.info/issues/100)) ([5621553](https://github.com/bdougie/contributor.info/commit/562155352aea19d1d6fce5a7896b6a7d16519252))
+* package-lock ([e89fd68](https://github.com/bdougie/contributor.info/commit/e89fd6873b98cb4b97901a2aea9d6371b91e527f))
+
+
+### 📚 Documentation
+
+* create confidence.md ([0f85cf2](https://github.com/bdougie/contributor.info/commit/0f85cf21fc71743b856a1ca397e53ab807f327d2))
+
+
+### 🔧 Maintenance
+
+* **release:** 1.0.0 [skip ci] ([0b69c07](https://github.com/bdougie/contributor.info/commit/0b69c077da7b27fd24497a0ef992736d18b2ded5)), closes [#59](https://github.com/bdougie/contributor.info/issues/59) [#40](https://github.com/bdougie/contributor.info/issues/40) [#60](https://github.com/bdougie/contributor.info/issues/60) [#62](https://github.com/bdougie/contributor.info/issues/62) [#67](https://github.com/bdougie/contributor.info/issues/67) [#61](https://github.com/bdougie/contributor.info/issues/61) [#79](https://github.com/bdougie/contributor.info/issues/79) [#28](https://github.com/bdougie/contributor.info/issues/28) [#82](https://github.com/bdougie/contributor.info/issues/82) [#44](https://github.com/bdougie/contributor.info/issues/44) [#69](https://github.com/bdougie/contributor.info/issues/69) [#36](https://github.com/bdougie/contributor.info/issues/36) [#65](https://github.com/bdougie/contributor.info/issues/65) [#63](https://github.com/bdougie/contributor.info/issues/63) [#83](https://github.com/bdougie/contributor.info/issues/83) [#53](https://github.com/bdougie/contributor.info/issues/53) [#48](https://github.com/bdougie/contributor.info/issues/48) [#51](https://github.com/bdougie/contributor.info/issues/51) [#75](https://github.com/bdougie/contributor.info/issues/75) [#74](https://github.com/bdougie/contributor.info/issues/74)
+
 ## [1.2.0](https://github.com/bdougie/contributor.info/compare/v1.1.0...v1.2.0) (2025-06-20)
 
 
