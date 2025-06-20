@@ -12,15 +12,25 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Bot } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
-import { RepositoryHealthCore } from "@/components/insights/sections/repository-health-core";
+import { RepositoryHealthOverall } from "@/components/insights/sections/repository-health-overall";
+import { RepositoryHealthFactors } from "@/components/insights/sections/repository-health-factors";
 import { LotteryFactorContent } from "./lottery-factor";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
+import { SelfSelectionRate } from "@/components/features/contributor/self-selection-rate";
+import { useAutoTrackRepository } from "@/hooks/use-auto-track-repository";
 
 export function RepositoryHealthCard() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const timeRange = useTimeRangeStore((state) => state.timeRange);
   const { stats, lotteryFactor, directCommitsData, includeBots } =
     useContext(RepoStatsContext);
+
+  // Auto-track repository when user visits it
+  useAutoTrackRepository({
+    owner: owner || '',
+    repo: repo || '',
+    enabled: !!(owner && repo)
+  });
 
   // Local state for bot toggle to avoid page refresh
   const [localIncludeBots, setLocalIncludeBots] = useState(includeBots);
@@ -57,48 +67,62 @@ export function RepositoryHealthCard() {
       <CardHeader>
         <CardTitle>Repository Health</CardTitle>
         <CardDescription>
-          Analyze the distribution of contributions and maintainer activity
+          Analyze the distribution of contributions, self-selection rates, and maintainer activity
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Lottery Factor Content - Left Side */}
-          <Card>
-            <CardContent className="p-6">
-              <LotteryFactorContent
-                stats={stats}
-                lotteryFactor={lotteryFactor}
-                showYoloButton={showYoloButton}
-                includeBots={localIncludeBots}
+        <div className="space-y-6">
+          {/* Top Row - Overall Health Score (full width) */}
+          <RepositoryHealthOverall stats={stats} timeRange={timeRange} />
+
+          {/* Bottom Row - Two columns */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column - Lottery Factor */}
+            <Card>
+              <CardContent className="p-6">
+                <LotteryFactorContent
+                  stats={stats}
+                  lotteryFactor={lotteryFactor}
+                  showYoloButton={showYoloButton}
+                  includeBots={localIncludeBots}
+                />
+
+                {hasBots && (
+                  <div className="flex items-center space-x-2 mt-6 pt-4 border-t">
+                    <Switch
+                      id="show-bots"
+                      checked={localIncludeBots}
+                      onCheckedChange={handleToggleIncludeBots}
+                    />
+                    <Label
+                      htmlFor="show-bots"
+                      className="flex items-center gap-1 cursor-pointer"
+                    >
+                      <Bot className="h-4 w-4" />
+                      Show bots
+                      {botCount > 0 && (
+                        <Badge variant="outline" className="ml-1">
+                          {botCount}
+                        </Badge>
+                      )}
+                    </Label>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Right Column - Health Factors (top) and Self-Selection Rate (bottom) */}
+            <div className="space-y-6">
+              {/* Health Factors - Top */}
+              <RepositoryHealthFactors stats={stats} timeRange={timeRange} />
+              
+              {/* Self-Selection Rate - Bottom */}
+              <SelfSelectionRate 
+                owner={owner} 
+                repo={repo}
+                daysBack={Number(timeRange)}
               />
-
-              {hasBots && (
-                <div className="flex items-center space-x-2 mt-6 pt-4 border-t">
-                  <Switch
-                    id="show-bots"
-                    checked={localIncludeBots}
-                    onCheckedChange={handleToggleIncludeBots}
-                  />
-                  <Label
-                    htmlFor="show-bots"
-                    className="flex items-center gap-1 cursor-pointer"
-                  >
-                    <Bot className="h-4 w-4" />
-                    Show bots
-                    {botCount > 0 && (
-                      <Badge variant="outline" className="ml-1">
-                        {botCount}
-                      </Badge>
-                    )}
-                  </Label>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Repository Health Score and Factors - Right Side */}
-          <div>
-            <RepositoryHealthCore stats={stats} timeRange={timeRange} />
+            </div>
           </div>
         </div>
       </CardContent>

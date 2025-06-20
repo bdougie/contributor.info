@@ -7,13 +7,16 @@ import { humanizeNumber } from "@/lib/utils";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
 import type { PullRequest, ContributorStats } from "@/lib/types";
+import { ContributorHoverCard } from "../contributor";
+import { useContributorRole } from "@/hooks/useContributorRoles";
+import { useParams } from "react-router-dom";
 
 function ContributionsChart() {
   const { stats, includeBots: contextIncludeBots } =
     useContext(RepoStatsContext);
   const { effectiveTimeRange } = useTimeRange();
+  const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const [isLogarithmic, setIsLogarithmic] = useState(false);
   const [maxFilesModified, setMaxFilesModified] = useState(10);
   const [localIncludeBots, setLocalIncludeBots] = useState(contextIncludeBots);
@@ -145,6 +148,9 @@ function ContributionsChart() {
       props.node.data.contributor,
       props.node.data._pr
     );
+    
+    // Get the contributor's role
+    const { role } = useContributorRole(owner || '', repo || '', props.node.data.contributor);
 
     return (
       <animated.foreignObject
@@ -163,105 +169,26 @@ function ContributionsChart() {
         }
         style={{ pointerEvents: "auto", overflow: "visible" }} // This is crucial for hover to work
       >
-        <HoverCardPrimitive.Root openDelay={100} closeDelay={200}>
-          <HoverCardPrimitive.Trigger asChild>
-            <div className="inline-block" style={{ pointerEvents: "auto" }}>
-              <Avatar
-                className={`${
-                  isMobile ? "w-6 h-6" : "w-8 h-8"
-                } border-2 border-background cursor-pointer`}
-              >
-                <AvatarImage
-                  src={props.node.data.image}
-                  alt={props.node.data.contributor}
-                />
-                <AvatarFallback>
-                  {props.node.data.contributor
-                    ? props.node.data.contributor[0].toUpperCase()
-                    : "?"}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-          </HoverCardPrimitive.Trigger>
-          <HoverCardPrimitive.Portal>
-            <HoverCardPrimitive.Content
-              side={isMobile ? "top" : "top"}
-              align={isMobile ? "center" : "center"}
-              sideOffset={isMobile ? 10 : 5}
-              collisionPadding={isMobile ? 20 : 10}
-              className={`z-50 ${
-                isMobile ? "w-64 max-w-[calc(100vw-2rem)]" : "w-80"
-              } rounded-md border bg-card p-4 text-card-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2`}
-              avoidCollisions={true}
-            >
-              <div className="flex justify-between space-x-4">
-                <a
-                  href={`https://github.com/${contributorStats.login}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Avatar className="cursor-pointer hover:opacity-80 transition-opacity">
-                    <AvatarImage src={contributorStats.avatar_url} />
-                    <AvatarFallback>
-                      {contributorStats.login[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </a>
-                <div className="space-y-1">
-                  <a
-                    href={`https://github.com/${contributorStats.login}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block hover:underline"
-                  >
-                    <h4 className="text-sm font-semibold">
-                      {contributorStats.login}
-                    </h4>
-                  </a>
-                  {props.node.data._pr.user.type === "Bot" && (
-                    <p className="text-sm text-muted-foreground">Bot</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
-                <span>{contributorStats.pullRequests} pull requests</span>
-                <span className="text-muted-foreground/50">•</span>
-                <span>{Math.round(contributorStats.percentage)}% of total</span>
-              </div>
-
-              {contributorStats.recentPRs &&
-                contributorStats.recentPRs.length > 0 && (
-                  <>
-                    <div className="border-t my-4" />
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium">
-                        Recent Pull Requests
-                      </div>
-                      <div className="space-y-2">
-                        {contributorStats.recentPRs.map((pr) => (
-                          <a
-                            key={pr.id}
-                            href={pr.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="inline-block px-2 py-0.5 text-xs bg-secondary text-secondary-foreground rounded-full">
-                                #{pr.number}
-                              </span>
-                              <span className="truncate">{pr.title}</span>
-                            </div>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-            </HoverCardPrimitive.Content>
-          </HoverCardPrimitive.Portal>
-        </HoverCardPrimitive.Root>
+        <ContributorHoverCard
+          contributor={contributorStats}
+          role={role?.role || (props.node.data._pr.user.type === "Bot" ? "Bot" : "Contributor")}
+        >
+          <Avatar
+            className={`${
+              isMobile ? "w-6 h-6" : "w-8 h-8"
+            } border-2 border-background cursor-pointer`}
+          >
+            <AvatarImage
+              src={props.node.data.image}
+              alt={props.node.data.contributor}
+            />
+            <AvatarFallback>
+              {props.node.data.contributor
+                ? props.node.data.contributor[0].toUpperCase()
+                : "?"}
+            </AvatarFallback>
+          </Avatar>
+        </ContributorHoverCard>
       </animated.foreignObject>
     );
   };

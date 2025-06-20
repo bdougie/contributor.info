@@ -8,9 +8,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ContributorHoverCard } from "../contributor";
-import { useContext, useMemo } from "react";
+import { useContext, useMemo, useState, useEffect } from "react";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
-import { createContributorStats } from "@/lib/contributor-utils";
+import { createContributorStats, createContributorStatsWithOrgs } from "@/lib/contributor-utils";
+import { useContributorRole } from "@/hooks/useContributorRoles";
+import type { ContributorStats } from "@/lib/types";
 
 interface ActivityItemProps {
   activity: PullRequestActivity;
@@ -19,9 +21,13 @@ interface ActivityItemProps {
 export function ActivityItem({ activity }: ActivityItemProps) {
   const { type, user, pullRequest, repository, timestamp } = activity;
   const { stats } = useContext(RepoStatsContext);
+  const [contributorData, setContributorData] = useState<ContributorStats | null>(null);
+  
+  // Get the contributor's role
+  const { role } = useContributorRole(repository.owner, repository.name, user.id);
 
-  // Create contributor data with memoization to avoid recalculations
-  const contributorData = useMemo(() => {
+  // Create initial contributor data
+  const initialContributorData = useMemo(() => {
     return createContributorStats(
       stats.pullRequests,
       user.name,
@@ -29,6 +35,41 @@ export function ActivityItem({ activity }: ActivityItemProps) {
       user.id
     );
   }, [user, stats.pullRequests]);
+
+  // Fetch organizations data
+  useEffect(() => {
+    const fetchContributorData = async () => {
+      const dataWithOrgs = await createContributorStatsWithOrgs(
+        stats.pullRequests,
+        user.name,
+        user.avatar,
+        user.id
+      );
+      setContributorData(dataWithOrgs);
+    };
+
+    fetchContributorData();
+  }, [user, stats.pullRequests]);
+
+  // Use initial data if async data not ready yet
+  const displayData = contributorData || initialContributorData;
+
+  // Calculate reviews and comments count for this user
+  const activityCounts = useMemo(() => {
+    let reviews = 0;
+    let comments = 0;
+    
+    stats.pullRequests.forEach(pr => {
+      if (pr.reviews) {
+        reviews += pr.reviews.filter(review => review.user.login === user.name).length;
+      }
+      if (pr.comments) {
+        comments += pr.comments.filter(comment => comment.user.login === user.name).length;
+      }
+    });
+    
+    return { reviews, comments };
+  }, [stats.pullRequests, user.name]);
 
   const getActivityColor = () => {
     switch (type) {
@@ -68,8 +109,12 @@ export function ActivityItem({ activity }: ActivityItemProps) {
     <div className="flex items-start space-x-3 p-3 rounded-md hover:bg-muted/50 transition-colors">
       <div className="relative flex-shrink-0">
         <ContributorHoverCard
-          contributor={contributorData}
-          role={user.isBot ? "Bot" : undefined}
+          contributor={displayData}
+          role={role?.role || (user.isBot ? "Bot" : "Contributor")}
+          showReviews={true}
+          showComments={true}
+          reviewsCount={activityCounts.reviews}
+          commentsCount={activityCounts.comments}
         >
           <Avatar className="h-8 w-8 cursor-pointer">
             <AvatarImage src={user.avatar} alt={user.name} />

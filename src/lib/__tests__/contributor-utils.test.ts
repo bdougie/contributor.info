@@ -186,7 +186,8 @@ describe('Contributor Utilities', () => {
         recentPRs: mockPullRequests.filter(pr => 
           pr.user?.login === 'user1' || 
           (pr.author && pr.author.login === 'user1')
-        ).slice(0, 5)
+        ).slice(0, 5),
+        organizations: []
       });
     });
 
@@ -202,7 +203,8 @@ describe('Contributor Utilities', () => {
         avatar_url: 'https://example.com/avatar2.png',
         pullRequests: 1, // user2 has 1 PR
         percentage: 20, // 1 out of 5 PRs = 20%
-        recentPRs: [mockPullRequests[2]] // Only PR with id 3
+        recentPRs: [mockPullRequests[2]], // Only PR with id 3
+        organizations: []
       });
     });
 
@@ -218,7 +220,8 @@ describe('Contributor Utilities', () => {
         avatar_url: 'https://example.com/avatar-none.png',
         pullRequests: 0,
         percentage: 0,
-        recentPRs: []
+        recentPRs: [],
+        organizations: []
       });
     });
 
@@ -234,7 +237,8 @@ describe('Contributor Utilities', () => {
         avatar_url: 'https://example.com/avatar1.png',
         pullRequests: 0,
         percentage: 0,
-        recentPRs: []
+        recentPRs: [],
+        organizations: []
       });
     });
 
