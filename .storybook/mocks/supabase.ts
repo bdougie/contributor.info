@@ -1,12 +1,15 @@
 // Mock Supabase client for Storybook
 // This prevents the need for real Supabase credentials in CI/testing environments
 
-// Set mock environment variables to prevent errors
-if (typeof import.meta.env.VITE_SUPABASE_URL === 'undefined') {
-  (import.meta.env as any).VITE_SUPABASE_URL = 'http://localhost:54321';
-}
-if (typeof import.meta.env.VITE_SUPABASE_ANON_KEY === 'undefined') {
-  (import.meta.env as any).VITE_SUPABASE_ANON_KEY = 'mock-anon-key';
+// Ensure import.meta.env exists
+if (typeof import !== 'undefined' && typeof import.meta !== 'undefined' && typeof import.meta.env !== 'undefined') {
+  // Set mock environment variables to prevent errors
+  if (!import.meta.env.VITE_SUPABASE_URL) {
+    (import.meta.env as any).VITE_SUPABASE_URL = 'http://localhost:54321';
+  }
+  if (!import.meta.env.VITE_SUPABASE_ANON_KEY) {
+    (import.meta.env as any).VITE_SUPABASE_ANON_KEY = 'mock-anon-key';
+  }
 }
 
 const mockClient = {
