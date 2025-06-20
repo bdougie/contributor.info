@@ -2,7 +2,7 @@ name: Release Automation
 
 on:
   push:
-    branches: [release]
+    branches: [release, workflow_dispatch]
   workflow_dispatch:
     inputs:
       release_type:
