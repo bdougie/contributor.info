@@ -26,10 +26,17 @@ const config: TestRunnerConfig = {
     // Set environment variables in the browser context
     await page.addInitScript(() => {
       // Mock environment variables for Supabase
-      if (typeof import !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env) {
-        (import.meta.env as any).VITE_SUPABASE_URL = 'http://localhost:54321';
-        (import.meta.env as any).VITE_SUPABASE_ANON_KEY = 'mock-anon-key';
-      }
+      // Create a polyfill for import.meta.env
+      (window as any).import = (window as any).import || {};
+      (window as any).import.meta = (window as any).import.meta || {};
+      (window as any).import.meta.env = {
+        VITE_SUPABASE_URL: 'http://localhost:54321',
+        VITE_SUPABASE_ANON_KEY: 'mock-anon-key',
+        MODE: 'test',
+        DEV: false,
+        PROD: false,
+        SSR: false
+      };
     });
     
     // Add custom test utilities to the page

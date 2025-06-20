@@ -8,10 +8,18 @@ if (typeof process !== 'undefined' && process.env) {
   process.env.VITE_SUPABASE_ANON_KEY = 'mock-anon-key';
 }
 
-// Also set them on import.meta.env for Vite
-if (typeof import.meta !== 'undefined' && import.meta.env) {
-  (import.meta.env as any).VITE_SUPABASE_URL = 'http://localhost:54321';
-  (import.meta.env as any).VITE_SUPABASE_ANON_KEY = 'mock-anon-key';
+// Also set them on global window object for browser context
+if (typeof window !== 'undefined') {
+  (window as any).import = (window as any).import || {};
+  (window as any).import.meta = (window as any).import.meta || {};
+  (window as any).import.meta.env = {
+    VITE_SUPABASE_URL: 'http://localhost:54321',
+    VITE_SUPABASE_ANON_KEY: 'mock-anon-key',
+    MODE: 'test',
+    DEV: false,
+    PROD: false,
+    SSR: false
+  };
 }
 
 // Export empty object to make this a module
