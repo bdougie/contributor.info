@@ -24,11 +24,13 @@ interface Repository {
 async function fetchGitHubEvents(
   owner: string, 
   repo: string, 
-  since?: string
+  since?: string,
+  userToken?: string
 ): Promise<GitHubEvent[]> {
-  const token = Deno.env.get('GITHUB_TOKEN')
+  // Use user token if provided, otherwise fall back to system token
+  const token = userToken || Deno.env.get('GITHUB_TOKEN')
   if (!token) {
-    throw new Error('GitHub token not configured')
+    throw new Error('GitHub token not configured. Please log in with GitHub to analyze repositories.')
   }
 
   const headers = {
@@ -164,7 +166,7 @@ serve(async (req) => {
 
     // Parse request body
     const body = await req.json().catch(() => ({}))
-    const { repository, owner } = body
+    const { repository, owner, github_token } = body
 
     let repositories: Repository[] = []
 
@@ -204,7 +206,8 @@ serve(async (req) => {
         const events = await fetchGitHubEvents(
           repo.owner, 
           repo.name, 
-          syncStatus?.last_event_at
+          syncStatus?.last_event_at,
+          github_token
         )
 
         // Process events
