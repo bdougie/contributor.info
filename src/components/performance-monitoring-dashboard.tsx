@@ -361,7 +361,7 @@ export function PerformanceMonitoringDashboard() {
             </div>
           ) : (
             <Card>
-              <CardContent className="flex items-center justify-center py-8">
+              <CardContent className="flex items-center justify-center py-2">
                 <div className="text-center">
                   <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
                   <h3 className="text-lg font-medium">No Active Alerts</h3>

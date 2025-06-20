@@ -1,7 +1,7 @@
 {
   "name": "contributor-info",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.2.0",
   "type": "module",
   "engines": {
     "node": ">=20.0.0",
@@ -10,8 +10,8 @@
   "scripts": {
     "dev": "vite",
     "build": "npm test && tsc -b && vite build",
+    "build:production": "tsc -b && vite build",
     "build:prod": "tsc -b && vite build",
-    "build:netlify": "node scripts/netlify-build.js",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",

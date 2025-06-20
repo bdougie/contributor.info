@@ -42,7 +42,7 @@ export function PullRequestActivityFeed({
 
   if (filteredActivities.length === 0) {
     return (
-      <div className="py-8 text-center text-muted-foreground">
+      <div className="py-2 text-center text-muted-foreground">
         <p>No PR activity found</p>
       </div>
     );

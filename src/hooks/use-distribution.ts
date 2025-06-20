@@ -23,7 +23,7 @@ export function useDistribution(pullRequests: PullRequest[]) {
   const [distribution, setDistribution] = useState<QuadrantDistribution | null>(null);
   const [quadrantCounts, setQuadrantCounts] = useState<Record<string, number>>({
     refinement: 0,
-    newStuff: 0,
+    new: 0,
     refactoring: 0,
     maintenance: 0
   });
@@ -34,7 +34,7 @@ export function useDistribution(pullRequests: PullRequest[]) {
   // Debug information storage
   const [debugInfo, setDebugInfo] = useState<Record<string, Array<{title: string, number: number, extensions: string[]}>>>({
     refinement: [],
-    newStuff: [],
+    new: [],
     refactoring: [],
     maintenance: []
   });
@@ -46,7 +46,7 @@ export function useDistribution(pullRequests: PullRequest[]) {
       description: 'Improving existing features with careful changes',
       color: '#4ade80' // green
     },
-    newStuff: {
+    new: {
       label: 'New Features',
       description: 'Adding new functionality and capabilities',
       color: '#60a5fa' // blue
@@ -79,7 +79,7 @@ export function useDistribution(pullRequests: PullRequest[]) {
       // Debug tracking for PRs in each quadrant
       const debugQuadrantPRs: Record<string, Array<{title: string, number: number, extensions: string[]}>> = {
         refinement: [],
-        newStuff: [],
+        new: [],
         refactoring: [],
         maintenance: []
       };

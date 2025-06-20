@@ -2,7 +2,7 @@ name: Release Automation
 
 on:
   push:
-    branches: [main]
+    branches: [release, workflow_dispatch]
   workflow_dispatch:
     inputs:
       release_type:
@@ -66,26 +66,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  deploy:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: release
-    if: needs.release.outputs.released == 'true'
-    environment: production
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.release.outputs.tag }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
+      - name: Copy CHANGELOG to public directory
+        if: steps.release.outputs.released == 'true'
+        run: cp CHANGELOG.md public/CHANGELOG.md
 
       - name: Build for production
         run: npm run build
@@ -106,7 +89,7 @@ jobs:
   notify:
     name: Release Notification
     runs-on: ubuntu-latest
-    needs: [release, deploy]
+    needs: [release]
     if: needs.release.outputs.released == 'true'
     steps:
       - name: Create release summary

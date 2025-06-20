@@ -7,6 +7,7 @@ export { SkeletonChart } from "./base/skeleton-chart";
 export { RepoViewSkeleton } from "./layouts/repo-view-skeleton";
 export { ContributionsSkeleton } from "./layouts/contributions-skeleton";
 export { DistributionSkeleton } from "./layouts/distribution-skeleton";
+export { FeedSkeleton } from "./layouts/feed-skeleton";
 
 // Feature skeletons (Phase 2)
 export { ContributorOfMonthSkeleton } from "./features/contributor-of-month-skeleton";

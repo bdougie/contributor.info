@@ -1,11 +1,4 @@
 import { useState, useContext, useEffect, useRef } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ResponsiveScatterPlot, ScatterPlotNodeProps } from "@nivo/scatterplot";
@@ -14,13 +7,16 @@ import { humanizeNumber } from "@/lib/utils";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
 import type { PullRequest, ContributorStats } from "@/lib/types";
+import { ContributorHoverCard } from "../contributor";
+import { useContributorRole } from "@/hooks/useContributorRoles";
+import { useParams } from "react-router-dom";
 
 function ContributionsChart() {
   const { stats, includeBots: contextIncludeBots } =
     useContext(RepoStatsContext);
   const { effectiveTimeRange } = useTimeRange();
+  const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const [isLogarithmic, setIsLogarithmic] = useState(false);
   const [maxFilesModified, setMaxFilesModified] = useState(10);
   const [localIncludeBots, setLocalIncludeBots] = useState(contextIncludeBots);
@@ -29,7 +25,7 @@ function ContributionsChart() {
     typeof window !== "undefined" && window.innerWidth < 768
   );
   const effectiveTimeRangeNumber = parseInt(effectiveTimeRange, 10);
-  const mobileMaxDays = 7;
+  const mobileMaxDays = 7; // Aggressive filtering for mobile
 
   const functionTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -152,6 +148,9 @@ function ContributionsChart() {
       props.node.data.contributor,
       props.node.data._pr
     );
+    
+    // Get the contributor's role
+    const { role } = useContributorRole(owner || '', repo || '', props.node.data.contributor);
 
     return (
       <animated.foreignObject
@@ -160,114 +159,36 @@ function ContributionsChart() {
         r={props.style.size.to((size: number) => size / 2) as unknown as number}
         y={
           props.style.y.to(
-            (yVal: number) => yVal - (isMobile ? 28 : 35) / 1
+            (yVal: number) => Math.max(0, yVal - (isMobile ? 28 : 35) / 1)
           ) as unknown as number
         }
         x={
           props.style.x.to(
-            (xVal: number) => xVal - (isMobile ? 28 : 35) / 2
+            (xVal: number) => Math.max((isMobile ? 14 : 17.5), xVal - (isMobile ? 28 : 35) / 2)
           ) as unknown as number
         }
-        style={{ pointerEvents: "auto" }} // This is crucial for hover to work
+        style={{ pointerEvents: "auto", overflow: "visible" }} // This is crucial for hover to work
       >
-        <HoverCardPrimitive.Root openDelay={100} closeDelay={200}>
-          <HoverCardPrimitive.Trigger asChild>
-            <div className="inline-block" style={{ pointerEvents: "auto" }}>
-              <Avatar
-                className={`${
-                  isMobile ? "w-6 h-6" : "w-8 h-8"
-                } border-2 border-background cursor-pointer`}
-              >
-                <AvatarImage
-                  src={props.node.data.image}
-                  alt={props.node.data.contributor}
-                />
-                <AvatarFallback>
-                  {props.node.data.contributor
-                    ? props.node.data.contributor[0].toUpperCase()
-                    : "?"}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-          </HoverCardPrimitive.Trigger>
-          <HoverCardPrimitive.Portal>
-            <HoverCardPrimitive.Content
-              side="top"
-              align="center"
-              sideOffset={5}
-              className={`z-50 ${
-                isMobile ? "w-64" : "w-80"
-              } rounded-md border bg-card p-4 text-card-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2`}
-              avoidCollisions={true}
-            >
-              <div className="flex justify-between space-x-4">
-                <a
-                  href={`https://github.com/${contributorStats.login}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Avatar className="cursor-pointer hover:opacity-80 transition-opacity">
-                    <AvatarImage src={contributorStats.avatar_url} />
-                    <AvatarFallback>
-                      {contributorStats.login[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </a>
-                <div className="space-y-1">
-                  <a
-                    href={`https://github.com/${contributorStats.login}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block hover:underline"
-                  >
-                    <h4 className="text-sm font-semibold">
-                      {contributorStats.login}
-                    </h4>
-                  </a>
-                  {props.node.data._pr.user.type === "Bot" && (
-                    <p className="text-sm text-muted-foreground">Bot</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
-                <span>{contributorStats.pullRequests} pull requests</span>
-                <span className="text-muted-foreground/50">•</span>
-                <span>{Math.round(contributorStats.percentage)}% of total</span>
-              </div>
-
-              {contributorStats.recentPRs &&
-                contributorStats.recentPRs.length > 0 && (
-                  <>
-                    <div className="border-t my-4" />
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium">
-                        Recent Pull Requests
-                      </div>
-                      <div className="space-y-2">
-                        {contributorStats.recentPRs.map((pr) => (
-                          <a
-                            key={pr.id}
-                            href={pr.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="inline-block px-2 py-0.5 text-xs bg-secondary text-secondary-foreground rounded-full">
-                                #{pr.number}
-                              </span>
-                              <span className="truncate">{pr.title}</span>
-                            </div>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-            </HoverCardPrimitive.Content>
-          </HoverCardPrimitive.Portal>
-        </HoverCardPrimitive.Root>
+        <ContributorHoverCard
+          contributor={contributorStats}
+          role={role?.role || (props.node.data._pr.user.type === "Bot" ? "Bot" : "Contributor")}
+        >
+          <Avatar
+            className={`${
+              isMobile ? "w-6 h-6" : "w-8 h-8"
+            } border-2 border-background cursor-pointer`}
+          >
+            <AvatarImage
+              src={props.node.data.image}
+              alt={props.node.data.contributor}
+            />
+            <AvatarFallback>
+              {props.node.data.contributor
+                ? props.node.data.contributor[0].toUpperCase()
+                : "?"}
+            </AvatarFallback>
+          </Avatar>
+        </ContributorHoverCard>
       </animated.foreignObject>
     );
   };
@@ -298,7 +219,7 @@ function ContributionsChart() {
   const hasBots = botCount > 0;
 
   return (
-    <div className="space-y-4 w-full">
+    <div className="space-y-4 w-full overflow-hidden">
       <div
         className={`flex flex-col items-start justify-between pt-3 ${
           isMobile ? "px-2" : "md:flex-row md:px-7"
@@ -332,15 +253,15 @@ function ContributionsChart() {
           </div>
         </div>
       </div>
-      <div className={`${isMobile ? "h-[280px]" : "h-[400px]"} w-full`}>
+      <div className={`${isMobile ? "h-[280px]" : "h-[400px]"} w-full overflow-hidden relative`}>
         <ResponsiveScatterPlot
           nodeSize={isMobile ? 20 : 35}
           data={data}
           margin={{
             top: 20,
-            right: isMobile ? 5 : 60,
-            bottom: isMobile ? 50 : 70,
-            left: isMobile ? 30 : 90,
+            right: isMobile ? 10 : 60,
+            bottom: isMobile ? 45 : 70,
+            left: isMobile ? 35 : 90,
           }}
           xScale={{
             type: "linear",
@@ -408,43 +329,5 @@ function ContributionsChart() {
   );
 }
 
-// Contributions Tab Component
-export default function Contributions() {
-  const { effectiveTimeRange } = useTimeRange();
-  const effectiveTimeRangeNumber = parseInt(effectiveTimeRange, 10);
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== "undefined" && window.innerWidth < 768
-  );
-
-  // Add resize listener to update isMobile state
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Pull Request Contributions</CardTitle>
-        <CardDescription>
-          Visualize the size and frequency of contributions over the past{" "}
-          {isMobile ? 7 : effectiveTimeRangeNumber} days
-          {isMobile && effectiveTimeRangeNumber > 7 && (
-            <span className="block text-xs mt-1 text-muted-foreground">
-              (Limited to 7 days on mobile devices)
-            </span>
-          )}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className={`${isMobile ? "p-2" : "p-6"}`}>
-        <ContributionsChart />
-      </CardContent>
-    </Card>
-  );
-}
+// Export ContributionsChart as default
+export default ContributionsChart;

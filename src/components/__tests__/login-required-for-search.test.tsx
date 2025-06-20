@@ -45,8 +45,8 @@ vi.mock("@/hooks/use-github-auth", () => ({
   useGitHubAuth: vi.fn(),
 }));
 
-vi.mock("@/hooks/use-repo-data", () => ({
-  useRepoData: vi.fn(() => ({
+vi.mock("@/hooks/use-cached-repo-data", () => ({
+  useCachedRepoData: vi.fn(() => ({
     stats: {
       pullRequests: [],
       loading: false,
@@ -72,9 +72,15 @@ vi.mock("react-router-dom", async () => {
     ...actual,
     useParams: vi.fn(() => ({ owner: "testowner", repo: "testrepo" })),
     useNavigate: vi.fn(() => mockNavigate),
+    useLocation: vi.fn(() => ({ pathname: "/testowner/testrepo" })),
     Outlet: () => <div data-testid="outlet-mock" />,
   };
 });
+
+// Mock the time range store
+vi.mock("@/lib/time-range-store", () => ({
+  useTimeRangeStore: vi.fn(() => ({ timeRange: "30d" })),
+}));
 
 describe("Login behavior for repository search", () => {
   beforeEach(() => {

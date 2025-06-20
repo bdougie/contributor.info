@@ -21,7 +21,7 @@ export default function SocialCardPreview() {
   const baseUrl = window.location.origin;
 
   return (
-    <div className="container mx-auto py-8 max-w-6xl">
+    <div className="container mx-auto py-2 max-w-6xl">
       <h1 className="text-3xl font-bold mb-8">Social Card Preview</h1>
       
       <div className="mb-4 text-sm text-muted-foreground">

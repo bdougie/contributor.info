@@ -2,6 +2,21 @@ import type { Preview } from '@storybook/react-vite'
 import '../src/index.css'
 import { theme } from './theme'
 
+// Mock environment variables for Storybook
+if (!import.meta.env.VITE_SUPABASE_URL) {
+  (globalThis as any).import = (globalThis as any).import || {};
+  (globalThis as any).import.meta = (globalThis as any).import.meta || {};
+  (globalThis as any).import.meta.env = {
+    ...(globalThis as any).import.meta.env,
+    VITE_SUPABASE_URL: 'http://localhost:54321',
+    VITE_SUPABASE_ANON_KEY: 'mock-anon-key',
+    MODE: 'test',
+    DEV: false,
+    PROD: false,
+    SSR: false
+  };
+}
+
 const preview: Preview = {
   parameters: {
     controls: {
@@ -135,6 +150,28 @@ const preview: Preview = {
           root.style.setProperty('--focus-ring-width', '2px');
           root.style.setProperty('--focus-ring-color', '#0066cc');
         }
+      }
+      
+      // Setup window mock for Zustand stores and other window-dependent code
+      if (typeof window !== 'undefined') {
+        // Ensure window.innerWidth is available for responsive Zustand stores
+        if (!window.innerWidth) {
+          Object.defineProperty(window, 'innerWidth', {
+            writable: true,
+            configurable: true,
+            value: 1200, // Default desktop width for Storybook
+          });
+        }
+        
+        // Mock window.addEventListener if needed for stores
+        const originalAddEventListener = window.addEventListener;
+        window.addEventListener = function(type, listener, options) {
+          // Only add listeners we care about, ignore others to prevent issues
+          if (type === 'resize' || type === 'load') {
+            return originalAddEventListener.call(this, type, listener, options);
+          }
+          return originalAddEventListener.call(this, type, listener, options);
+        };
       }
       
       return Story();

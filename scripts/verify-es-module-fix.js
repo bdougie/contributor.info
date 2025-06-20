@@ -120,7 +120,7 @@ async function main() {
   results.typeCheck = typeResult.success;
 
   // Production build
-  const buildResult = await runCommand('npm', ['run', 'build:prod'], 'Production build');
+  const buildResult = await runCommand('npm', ['run', 'build:production'], 'Production build');
   results.build = buildResult.success;
 
   // CI environment simulation
