@@ -1,6 +1,15 @@
 import type { TestRunnerConfig } from '@storybook/test-runner';
 import { waitFor } from '@testing-library/react';
 
+// Extend Window interface for test utilities
+declare global {
+  interface Window {
+    waitForPortalElement?: (role: string, options?: { timeout?: number }) => Promise<Element>;
+    waitForModalOpen?: (timeout?: number) => Promise<Element>;
+    cleanupTestEnvironment?: () => void;
+  }
+}
+
 const config: TestRunnerConfig = {
   // Setup for interaction tests
   async setup() {
@@ -27,9 +36,10 @@ const config: TestRunnerConfig = {
     await page.addInitScript(() => {
       // Mock environment variables for Supabase
       // Create a polyfill for import.meta.env
-      (window as any).import = (window as any).import || {};
-      (window as any).import.meta = (window as any).import.meta || {};
-      (window as any).import.meta.env = {
+      const win = window as any;
+      if (!win.import) win.import = {};
+      if (!win.import.meta) win.import.meta = {};
+      win.import.meta.env = {
         VITE_SUPABASE_URL: 'http://localhost:54321',
         VITE_SUPABASE_ANON_KEY: 'mock-anon-key',
         MODE: 'test',
