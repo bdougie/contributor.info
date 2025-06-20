@@ -1,4 +1,4 @@
-import { GitPullRequest, UserIcon } from "lucide-react";
+import { GitPullRequest, UserIcon, MessageSquare, GitPullRequestDraft } from "lucide-react";
 import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -26,12 +26,20 @@ interface ContributorHoverCardProps {
   contributor: ContributorStats;
   role?: string;
   children: React.ReactNode;
+  showReviews?: boolean;
+  showComments?: boolean;
+  reviewsCount?: number;
+  commentsCount?: number;
 }
 
 export function ContributorHoverCard({
   contributor,
   role,
   children,
+  showReviews = false,
+  showComments = false,
+  reviewsCount = 0,
+  commentsCount = 0,
 }: ContributorHoverCardProps) {
   return (
     <HoverCardPrimitive.Root openDelay={0} closeDelay={100}>
@@ -43,7 +51,7 @@ export function ContributorHoverCard({
       <HoverCardPrimitive.Portal>
         <HoverCardPrimitive.Content
           className={cn(
-            "z-[100] w-80 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none",
+            "relative z-[100] w-80 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -60,13 +68,26 @@ export function ContributorHoverCard({
           onPointerDownOutside={(e) => e.preventDefault()}
           forceMount
         >
-          <div className="flex justify-between space-x-4">
+          {role && (
+            <Badge 
+              className={cn(
+                "absolute top-4 right-4 border-0",
+                role.toLowerCase() === "contributor" 
+                  ? "bg-blue-500 text-white hover:bg-blue-600" 
+                  : "bg-gray-500 text-white hover:bg-gray-600"
+              )}
+              variant="default"
+            >
+              {role}
+            </Badge>
+          )}
+          <div className="flex gap-3">
             <a
               href={`https://github.com/${contributor.login}`}
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Avatar className="cursor-pointer hover:opacity-80 transition-opacity">
+              <Avatar className="h-12 w-12 cursor-pointer hover:opacity-80 transition-opacity">
                 <AvatarImage src={contributor.avatar_url} />
                 <AvatarFallback>
                   {contributor.login ? (
@@ -77,7 +98,7 @@ export function ContributorHoverCard({
                 </AvatarFallback>
               </Avatar>
             </a>
-            <div className="space-y-1">
+            <div className="flex-1 min-w-0">
               <a
                 href={`https://github.com/${contributor.login}`}
                 target="_blank"
@@ -86,47 +107,32 @@ export function ContributorHoverCard({
               >
                 <h4 className="text-sm font-semibold">{contributor.login}</h4>
               </a>
-              {role && <p className="text-sm text-muted-foreground">{role}</p>}
+              <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                <GitPullRequest className="h-4 w-4" />
+                <span>{contributor.pullRequests}</span>
+                {showReviews && (
+                  <>
+                    <span className="text-muted-foreground/50">•</span>
+                    <GitPullRequestDraft className="h-4 w-4" />
+                    <span>{reviewsCount}</span>
+                  </>
+                )}
+                {showComments && (
+                  <>
+                    <span className="text-muted-foreground/50">•</span>
+                    <MessageSquare className="h-4 w-4" />
+                    <span>{commentsCount}</span>
+                  </>
+                )}
+                {!showReviews && !showComments && contributor.percentage > 0 && (
+                  <>
+                    <span className="text-muted-foreground/50">•</span>
+                    <span>{Math.round(contributor.percentage)}%</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-
-          <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
-            <GitPullRequest className="h-4 w-4" />
-            <span>{contributor.pullRequests} pull requests</span>
-            {contributor.percentage > 0 && (
-              <>
-                <span className="text-muted-foreground/50">•</span>
-                <span>{Math.round(contributor.percentage)}% of total</span>
-              </>
-            )}
-          </div>
-
-          {contributor.organizations &&
-            contributor.organizations.length > 0 && (
-              <>
-                <Separator className="my-4" />
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">Organizations</div>
-                  <div className="flex gap-2">
-                    {contributor.organizations.map((org) => (
-                      <a
-                        key={org.login}
-                        href={`https://github.com/${org.login}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Avatar className="h-6 w-6 cursor-pointer hover:opacity-80 transition-opacity">
-                          <AvatarImage src={org.avatar_url} alt={org.login} />
-                          <AvatarFallback>
-                            {org.login[0].toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
 
           {contributor.recentPRs && contributor.recentPRs.length > 0 && (
             <>
@@ -160,6 +166,36 @@ export function ContributorHoverCard({
                     </a>
                   ))}
                 </div>
+              </div>
+            </>
+          )}
+
+          {contributor.organizations && contributor.organizations.length > 0 && (
+            <>
+              <Separator className="my-3" />
+              <div className="flex flex-wrap gap-2">
+                {contributor.organizations.slice(0, 4).map((org) => (
+                  <a
+                    key={org.login}
+                    href={`https://github.com/${org.login}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 px-2 py-1 rounded-md border bg-muted/30 hover:bg-muted/50 transition-colors"
+                  >
+                    <Avatar className="h-4 w-4">
+                      <AvatarImage src={org.avatar_url} alt={org.login} />
+                      <AvatarFallback className="text-xs">
+                        {org.login[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs">{org.login}</span>
+                  </a>
+                ))}
+                {contributor.organizations.length > 4 && (
+                  <span className="flex items-center px-2 py-1 text-xs text-muted-foreground">
+                    +{contributor.organizations.length - 4}
+                  </span>
+                )}
               </div>
             </>
           )}

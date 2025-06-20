@@ -150,7 +150,7 @@ describe('calculateLotteryFactor function', () => {
     expect(result.topContributorsPercentage).toBe(20);
   });
 
-  it('should limit top contributors to 6', () => {
+  it('should limit top contributors to 7', () => {
     const prs: PullRequest[] = [
       createMockPR('user1', getRecentDate()),
       createMockPR('user2', getRecentDate()),
@@ -164,7 +164,7 @@ describe('calculateLotteryFactor function', () => {
 
     const result = calculateLotteryFactor(prs);
     
-    expect(result.contributors.length).toBe(6);
+    expect(result.contributors.length).toBe(7);
   });
 
   it('should preserve organization information for contributors', () => {

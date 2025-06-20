@@ -2,6 +2,21 @@ import type { Preview } from '@storybook/react-vite'
 import '../src/index.css'
 import { theme } from './theme'
 
+// Mock environment variables for Storybook
+if (!import.meta.env.VITE_SUPABASE_URL) {
+  (globalThis as any).import = (globalThis as any).import || {};
+  (globalThis as any).import.meta = (globalThis as any).import.meta || {};
+  (globalThis as any).import.meta.env = {
+    ...(globalThis as any).import.meta.env,
+    VITE_SUPABASE_URL: 'http://localhost:54321',
+    VITE_SUPABASE_ANON_KEY: 'mock-anon-key',
+    MODE: 'test',
+    DEV: false,
+    PROD: false,
+    SSR: false
+  };
+}
+
 const preview: Preview = {
   parameters: {
     controls: {
