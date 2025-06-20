@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Users, UserCheck, TrendingUp, TrendingDown } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface SelfSelectionStats {
   external_contribution_rate: number
@@ -62,8 +61,8 @@ export function SelfSelectionRate({
           })
           .single()
 
-        setStats(currentData)
-        setPreviousStats(previousData)
+        setStats(currentData as SelfSelectionStats)
+        setPreviousStats(previousData as SelfSelectionStats)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch statistics')
         console.error('Error fetching self-selection stats:', err)
@@ -99,12 +98,31 @@ export function SelfSelectionRate({
             {error || 'Unable to calculate statistics'}
           </CardDescription>
         </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="text-center">
+            <div className="text-4xl font-bold">0.0%</div>
+            <p className="text-sm text-muted-foreground mt-1">
+              of contributions from external contributors
+            </p>
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>External</span>
+              <span>Internal</span>
+            </div>
+            <Progress value={0} className="h-3" />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>0 PRs</span>
+              <span>0 PRs</span>
+            </div>
+          </div>
+        </CardContent>
       </Card>
     )
   }
 
   // Calculate trend
-  const trend = previousStats 
+  const trend = previousStats && stats.external_contribution_rate !== null && previousStats.external_contribution_rate !== null
     ? stats.external_contribution_rate - 
       (previousStats.external_contribution_rate - stats.external_contribution_rate)
     : null
@@ -138,7 +156,7 @@ export function SelfSelectionRate({
         {/* Main metric */}
         <div className="text-center">
           <div className="text-4xl font-bold">
-            {stats.external_contribution_rate.toFixed(1)}%
+            {stats.external_contribution_rate !== null ? stats.external_contribution_rate.toFixed(1) : '0.0'}%
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             of contributions from external contributors
@@ -152,12 +170,12 @@ export function SelfSelectionRate({
             <span>Internal</span>
           </div>
           <Progress 
-            value={stats.external_contribution_rate} 
+            value={stats.external_contribution_rate || 0} 
             className="h-3"
           />
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{stats.external_prs} PRs</span>
-            <span>{stats.internal_prs} PRs</span>
+            <span>{stats.external_prs || 0} PRs</span>
+            <span>{stats.internal_prs || 0} PRs</span>
           </div>
         </div>
 
@@ -169,7 +187,7 @@ export function SelfSelectionRate({
               <span className="text-sm font-medium">External</span>
             </div>
             <div className="text-2xl font-semibold">
-              {stats.external_contributors}
+              {stats.external_contributors || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               contributors
@@ -182,7 +200,7 @@ export function SelfSelectionRate({
               <span className="text-sm font-medium">Internal</span>
             </div>
             <div className="text-2xl font-semibold">
-              {stats.internal_contributors}
+              {stats.internal_contributors || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               maintainers/owners
@@ -194,11 +212,11 @@ export function SelfSelectionRate({
         <div className="pt-4 border-t">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Total PRs</span>
-            <span className="font-medium">{stats.total_prs}</span>
+            <span className="font-medium">{stats.total_prs || 0}</span>
           </div>
           <div className="flex justify-between text-sm mt-1">
             <span className="text-muted-foreground">Total Contributors</span>
-            <span className="font-medium">{stats.total_contributors}</span>
+            <span className="font-medium">{stats.total_contributors || 0}</span>
           </div>
         </div>
       </CardContent>
@@ -225,7 +243,7 @@ export function useSelfSelectionRate(owner: string, repo: string, daysBack: numb
           .single()
 
         if (err) throw err
-        setStats(data)
+        setStats(data as SelfSelectionStats)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch statistics')
       } finally {

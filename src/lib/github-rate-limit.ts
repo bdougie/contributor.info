@@ -1,5 +1,3 @@
-import { supabase } from '@/lib/supabase'
-
 export interface RateLimitInfo {
   limit: number
   remaining: number
