@@ -5,8 +5,8 @@
  * optimization recommendations for better development experience.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 class StorybookPerformanceMonitor {
   constructor() {
@@ -273,10 +273,10 @@ class StorybookPerformanceMonitor {
 }
 
 // Export for use in other scripts
-module.exports = StorybookPerformanceMonitor;
+export default StorybookPerformanceMonitor;
 
-// Run if called directly
-if (require.main === module) {
+// Run if called directly (ES module equivalent)
+if (import.meta.url === `file://${process.argv[1]}`) {
   const monitor = new StorybookPerformanceMonitor();
   monitor.run();
 }
