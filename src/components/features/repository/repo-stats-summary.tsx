@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
 import { useRepoStats } from "@/hooks/use-repo-stats";
 import { useTimeFormatter } from "@/hooks/use-time-formatter";
 import { LotteryFactor } from "@/lib/types";
@@ -149,10 +150,13 @@ export function RepoStatsSummary() {
               className="block hover:bg-muted p-2 -m-2 rounded-md transition-colors"
             >
               <div className="flex items-center gap-2">
-                <img
+                <OptimizedAvatar
                   src={mostRecentPR.user.avatar_url}
                   alt={mostRecentPR.user.login}
-                  className="w-6 h-6 rounded-full"
+                  size={24}
+                  lazy={false}
+                  fallback={mostRecentPR.user.login[0]?.toUpperCase() || '?'}
+                  className="w-6 h-6"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">

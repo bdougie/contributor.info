@@ -117,7 +117,13 @@ export function ActivityItem({ activity }: ActivityItemProps) {
           commentsCount={activityCounts.comments}
         >
           <Avatar className="h-8 w-8 cursor-pointer">
-            <AvatarImage src={user.avatar} alt={user.name} />
+            <AvatarImage 
+              src={`${user.avatar}?s=64`}
+              alt={user.name}
+              loading="lazy"
+              width={32}
+              height={32}
+            />
             <AvatarFallback>
               {user.name ? user.name.charAt(0).toUpperCase() : "?"}
             </AvatarFallback>
