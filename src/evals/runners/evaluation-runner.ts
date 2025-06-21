@@ -97,7 +97,6 @@ export class EvaluationRunner {
     console.log(`📊 Dataset Statistics:`);
     console.log(`  Total samples: ${stats.total_samples}`);
     console.log(`  Class distribution:`);
-    console.log(`    - Owner: ${stats.class_distribution.owner} (${(stats.class_distribution.owner / stats.total_samples * 100).toFixed(1)}%)`);
     console.log(`    - Maintainer: ${stats.class_distribution.maintainer} (${(stats.class_distribution.maintainer / stats.total_samples * 100).toFixed(1)}%)`);
     console.log(`    - Contributor: ${stats.class_distribution.contributor} (${(stats.class_distribution.contributor / stats.total_samples * 100).toFixed(1)}%)`);
     console.log(`  Quality metrics:`);

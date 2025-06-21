@@ -162,7 +162,7 @@ export class GroundTruthExtractor {
           created_at: role.repositories?.created_at || ''
         }
       },
-      ideal: role.role as 'owner' | 'maintainer' | 'contributor',
+      ideal: role.role === 'owner' ? 'maintainer' : role.role as 'maintainer' | 'contributor',
       metadata: {
         verified_by: 'automated_high_confidence',
         verification_date: new Date().toISOString(),
@@ -182,7 +182,6 @@ export class GroundTruthExtractor {
     const stats: DatasetStats = {
       total_samples: samples.length,
       class_distribution: {
-        owner: samples.filter(s => s.ideal === 'owner').length,
         maintainer: samples.filter(s => s.ideal === 'maintainer').length,
         contributor: samples.filter(s => s.ideal === 'contributor').length
       },
