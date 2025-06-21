@@ -22,14 +22,14 @@ interface DebugRoute {
 
 const debugRoutes: DebugRoute[] = [
   {
-    path: "/debug-auth",
+    path: "/dev/debug-auth",
     title: "Authentication Debug",
     description: "Debug authentication issues, view session details, and test OAuth flow",
     icon: <Key className="h-4 w-4" />,
     category: "auth"
   },
   {
-    path: "/test-insights",
+    path: "/dev/test-insights",
     title: "Test Insights",
     description: "Test insights functionality and data processing",
     icon: <TestTube className="h-4 w-4" />,

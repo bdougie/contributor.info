@@ -22,7 +22,7 @@ import CardLayout from "@/components/social-cards/card-layout";
 import HomeSocialCardWithData from "@/components/social-cards/home-card-with-data";
 import RepoCardWithData from "@/components/social-cards/repo-card-with-data";
 import SocialCardPreview from "@/components/social-cards/preview";
-import SyncTestPage from "@/pages/debug/sync-test";
+import { GitHubSyncDebug } from "@/components/debug/github-sync-debug";
 
 function App() {
   return (
@@ -31,7 +31,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route
-            path="/debug"
+            path="/dev"
             element={
               <ProtectedRoute>
                 <DebugMenu />
@@ -39,7 +39,7 @@ function App() {
             }
           />
           <Route
-            path="/test-insights"
+            path="/dev/test-insights"
             element={
               <ProtectedRoute>
                 <TestInsights />
@@ -47,7 +47,7 @@ function App() {
             }
           />
           <Route
-            path="/debug-auth"
+            path="/dev/debug-auth"
             element={
               <ProtectedRoute>
                 <DebugAuthPage />
@@ -62,7 +62,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/debug/sync-test" element={<SyncTestPage />} />
+          <Route
+            path="/dev/sync-test"
+            element={
+              <ProtectedRoute>
+                <GitHubSyncDebug />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Social card routes */}
           <Route
