@@ -106,9 +106,8 @@ const preview: Preview = {
       depth: 3,
       clearOnStoryChange: true,
     },
-    // Accessibility testing configuration
+    // Enhanced accessibility testing configuration
     a11y: {
-      // Enhanced accessibility testing
       element: '#storybook-root',
       config: {
         rules: [
@@ -121,16 +120,34 @@ const preview: Preview = {
             id: 'focus-order-semantics',
             enabled: false,
           },
+          // Custom rules for our component library
+          {
+            id: 'color-contrast',
+            enabled: true,
+          },
+          {
+            id: 'keyboard-navigation',
+            enabled: true,
+          },
+          {
+            id: 'aria-labels',
+            enabled: true,
+          },
         ],
       },
-      // Options for better test environment
       options: {
         runOnly: {
           type: 'tag',
-          values: ['wcag2a', 'wcag2aa'],
+          values: ['wcag2a', 'wcag2aa', 'wcag21aa'],
         },
         restoreScroll: true,
+        // Enhanced reporting
+        reporter: 'v2',
+        // Include incomplete results for better debugging
+        resultTypes: ['violations', 'incomplete', 'inapplicable', 'passes'],
       },
+      // Manual accessibility testing mode
+      manual: true,
     },
   },
   // Global decorators for test environment

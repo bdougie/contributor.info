@@ -16,11 +16,27 @@ const config: StorybookConfig = {
               remarkPlugins: [],
             },
           },
+          // Enhanced documentation generation
+          autodocs: 'tag',
+          defaultName: 'Documentation',
+        },
+        // Enhanced controls for better prop detection
+        controls: {
+          matchers: {
+            color: /(background|color)$/i,
+            date: /Date$/i,
+          },
+        },
+        // Enhanced actions for better interaction testing
+        actions: {
+          argTypesRegex: '^on[A-Z].*',
         },
       },
     },
     "@storybook/addon-onboarding",
-    "@storybook/addon-interactions"
+    "@storybook/addon-interactions",
+    // Enhanced accessibility testing
+    "@storybook/addon-a11y"
   ],
   framework: {
     name: "@storybook/react-vite",
@@ -37,12 +53,37 @@ const config: StorybookConfig = {
     <title>Contributor.info - Storybook</title>
     <meta name="description" content="Component library and design system for Contributor.info" />
   `,
+  // Enhanced TypeScript configuration for better prop detection
+  typescript: {
+    check: false,
+    reactDocgen: 'react-docgen-typescript',
+    reactDocgenTypescriptOptions: {
+      shouldExtractLiteralValuesFromEnum: true,
+      shouldRemoveUndefinedFromOptional: true,
+      propFilter: (prop) => {
+        // Include props from external libraries
+        if (prop.declarations !== undefined && prop.declarations.length > 0) {
+          const hasPropAdditionalDescription = prop.declarations.find((declaration) => {
+            return !declaration.fileName.includes('node_modules');
+          });
+          return Boolean(hasPropAdditionalDescription);
+        }
+        return true;
+      },
+    },
+  },
   async viteFinal(config) {
     // Merge custom configuration into the default config
     return mergeConfig(config, {
-      // Add dependencies to pre-optimization
+      // Enhanced optimization for better build performance
       optimizeDeps: {
-        include: ['@mdx-js/react'],
+        include: [
+          '@mdx-js/react',
+          '@storybook/addon-docs',
+          'react-docgen-typescript',
+          '@radix-ui/react-slot',
+          'lucide-react',
+        ],
       },
       resolve: {
         alias: {
@@ -50,6 +91,24 @@ const config: StorybookConfig = {
           '@/lib/supabase': new URL('./mocks/supabase.ts', import.meta.url).pathname,
           // Mock react-router-dom for Storybook to avoid router-related errors
           'react-router-dom': new URL('./mocks/react-router-dom.ts', import.meta.url).pathname,
+        },
+      },
+      // Performance optimizations for faster builds
+      build: {
+        rollupOptions: {
+          external: ['react', 'react-dom'],
+          output: {
+            globals: {
+              react: 'React',
+              'react-dom': 'ReactDOM',
+            },
+          },
+        },
+      },
+      // Enhanced server configuration for development
+      server: {
+        fs: {
+          strict: false,
         },
       },
     });
