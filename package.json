@@ -42,7 +42,11 @@
     "test-visual-regression": "./scripts/test-visual-regression.sh",
     "install-browsers": "playwright install chromium --with-deps || echo 'Playwright browser installation skipped'",
     "test:ci-env": "node scripts/test-ci-environment.js",
-    "verify:es-module-fix": "node scripts/verify-es-module-fix.js"
+    "verify:es-module-fix": "node scripts/verify-es-module-fix.js",
+    "eval:maintainer": "tsx scripts/run-maintainer-eval.ts",
+    "eval:benchmark": "tsx scripts/run-maintainer-eval.ts --benchmark",
+    "eval:conservative": "tsx scripts/run-maintainer-eval.ts --config conservative",
+    "eval:aggressive": "tsx scripts/run-maintainer-eval.ts --config aggressive"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -127,6 +131,8 @@
     "autoprefixer": "^10.4.20",
     "chromatic": "^12.2.0",
     "concurrently": "^9.1.2",
+    "dotenv": "^16.4.7",
+    "tsx": "^4.19.2",
     "eslint": "^9.11.1",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.12",
