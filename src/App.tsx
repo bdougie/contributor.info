@@ -8,8 +8,9 @@ import {
   ContributionsRoute,
   DistributionRoute,
 } from "@/components/features/repository";
-import { LoginPage, DebugAuthPage } from "@/components/features/auth";
+import { LoginPage, DebugAuthPage, ProtectedRoute } from "@/components/features/auth";
 import TestInsights from "@/components/features/auth/test-insights";
+import { DebugMenu } from "@/components/features/debug/debug-menu";
 import { ChangelogPage } from "@/components/features/changelog";
 import { DocsPage } from "@/components/features/docs";
 import { FeedPage } from "@/components/features/feed";
@@ -25,9 +26,10 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/test-insights" element={<TestInsights />} />
-          <Route path="/debug-auth" element={<DebugAuthPage />} />
-          <Route path="/dev/social-cards" element={<SocialCardPreview />} />
+          <Route path="/debug" element={<ProtectedRoute><DebugMenu /></ProtectedRoute>} />
+          <Route path="/test-insights" element={<ProtectedRoute><TestInsights /></ProtectedRoute>} />
+          <Route path="/debug-auth" element={<ProtectedRoute><DebugAuthPage /></ProtectedRoute>} />
+          <Route path="/dev/social-cards" element={<ProtectedRoute><SocialCardPreview /></ProtectedRoute>} />
           
           {/* Social card routes */}
           <Route path="/social-cards" element={<CardLayout><HomeSocialCardWithData /></CardLayout>} />
