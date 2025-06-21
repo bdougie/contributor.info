@@ -151,6 +151,10 @@ export { GroundTruthExtractor } from './datasets/ground-truth-extractor';
 export { EvaluationMetricsCalculator } from './metrics/evaluation-metrics';
 
 // Run CLI if this file is executed directly
-if (require.main === module) {
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+
+if (process.argv[1] === __filename) {
   main().catch(console.error);
 }

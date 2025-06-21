@@ -210,6 +210,10 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-if (require.main === module) {
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+
+if (process.argv[1] === __filename) {
   main();
 }

@@ -3,11 +3,20 @@
  * Extracts verified contributor classifications from Supabase for evaluation
  */
 
+import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import type { EvaluationSample, GitHubEvent, ContributorMetrics, DatasetStats } from '../types';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_TOKEN!;
+// Load environment variables
+dotenv.config();
+
+// Load environment variables with fallbacks
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
+const supabaseKey = process.env.SUPABASE_TOKEN || process.env.SUPABASE_SERVICE_ROLE;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error(`Missing Supabase configuration: URL=${!!supabaseUrl}, Key=${!!supabaseKey}`);
+}
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
