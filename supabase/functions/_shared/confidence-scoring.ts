@@ -1,4 +1,5 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { isBotAccount } from './event-detection.ts'
 
 export interface ConfidenceFactors {
   privilegedEventsWeight: number
@@ -186,6 +187,11 @@ export function determineRole(
   confidenceScore: number,
   metrics: ContributorMetrics
 ): 'owner' | 'maintainer' | 'contributor' {
+  // Bot accounts are always contributors, regardless of confidence
+  if (isBotAccount(metrics.userId)) {
+    return 'contributor'
+  }
+
   // Owner detection (very high confidence + specific patterns)
   if (confidenceScore >= 0.95 && 
       metrics.detectionMethods.includes('admin_action')) {
