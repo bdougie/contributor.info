@@ -41,9 +41,17 @@ export function OptimizedAvatar({
   const imgRef = useRef<HTMLImageElement>(null);
 
   // Optimize GitHub avatar URLs with size parameters
-  const optimizedSrc = src && src.includes('avatars.githubusercontent.com') 
-    ? `${src.split('?')[0]}?s=${size}&v=4`
-    : src;
+  const optimizedSrc = (() => {
+    try {
+      const url = new URL(src || '');
+      if (url.hostname === 'avatars.githubusercontent.com') {
+        return `${url.origin}${url.pathname}?s=${size}&v=4`;
+      }
+    } catch {
+      // Invalid URL, fallback to original src
+    }
+    return src;
+  })();
 
   // Intersection Observer for lazy loading
   useEffect(() => {
