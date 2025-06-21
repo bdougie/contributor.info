@@ -45,6 +45,10 @@ export function useOnDemandSync({
       // Check authentication status
       const { data: { session } } = await supabase.auth.getSession()
       setIsAuthenticated(!!session)
+      
+      console.log(`[OnDemandSync] Checking data for ${owner}/${repo}`)
+      console.log(`[OnDemandSync] User authenticated: ${!!session}`)
+      console.log(`[OnDemandSync] Has provider token: ${!!session?.provider_token}`)
 
       // Check for contributor roles data
       const { data: roles, error: rolesError } = await supabase
@@ -55,7 +59,7 @@ export function useOnDemandSync({
         .limit(1)
 
       if (rolesError) {
-        console.error('Error checking contributor roles:', rolesError)
+        console.error('[OnDemandSync] Error checking contributor roles:', rolesError)
         return
       }
 
@@ -94,8 +98,16 @@ export function useOnDemandSync({
 
       // Auto-trigger sync if no data exists, user is authenticated, and not already triggered
       if (autoTriggerOnEmpty && !hasExistingData && !syncTriggeredRef.current && !syncData?.sync_status && session) {
-        console.log(`No data found for ${owner}/${repo}, triggering automatic sync...`)
+        console.log(`[OnDemandSync] No data found for ${owner}/${repo}, triggering automatic sync...`)
         triggerSync()
+      } else {
+        console.log(`[OnDemandSync] Auto-trigger conditions:`, {
+          autoTriggerOnEmpty,
+          hasExistingData,
+          syncTriggeredRef: syncTriggeredRef.current,
+          syncStatus: syncData?.sync_status,
+          hasSession: !!session
+        })
       }
 
     } catch (error) {
@@ -120,6 +132,23 @@ export function useOnDemandSync({
       // Get user's GitHub token from session
       const { data: { session } } = await supabase.auth.getSession()
       const userToken = session?.provider_token
+      
+      console.log(`[OnDemandSync] Triggering sync for ${owner}/${repo}`)
+      console.log(`[OnDemandSync] User token available: ${!!userToken}`)
+      console.log(`[OnDemandSync] Session details:`, {
+        hasSession: !!session,
+        hasProviderToken: !!session?.provider_token,
+        provider: session?.user?.app_metadata?.provider
+      })
+
+      const requestBody = {
+        owner,
+        repository: repo,
+        github_token: userToken // Pass user's token to Edge Function
+      }
+
+      console.log(`[OnDemandSync] Edge Function URL: ${import.meta.env.VITE_SUPABASE_URL}/functions/v1/github-sync`)
+      console.log(`[OnDemandSync] Request body:`, { ...requestBody, github_token: requestBody.github_token ? '[REDACTED]' : null })
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/github-sync`, {
         method: 'POST',
@@ -127,16 +156,16 @@ export function useOnDemandSync({
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          owner,
-          repository: repo,
-          github_token: userToken // Pass user's token to Edge Function
-        })
+        body: JSON.stringify(requestBody)
       })
 
       const result = await response.json()
+      
+      console.log(`[OnDemandSync] Response status: ${response.status}`)
+      console.log(`[OnDemandSync] Response data:`, result)
 
       if (!response.ok) {
+        console.error(`[OnDemandSync] Sync failed:`, result)
         throw new Error(result.error || `HTTP ${response.status}`)
       }
 

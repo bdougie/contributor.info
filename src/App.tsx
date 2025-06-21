@@ -17,6 +17,7 @@ import CardLayout from "@/components/social-cards/card-layout";
 import HomeSocialCardWithData from "@/components/social-cards/home-card-with-data";
 import RepoCardWithData from "@/components/social-cards/repo-card-with-data";
 import SocialCardPreview from "@/components/social-cards/preview";
+import SyncTestPage from "@/pages/debug/sync-test";
 
 function App() {
 
@@ -27,6 +28,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/test-insights" element={<TestInsights />} />
           <Route path="/debug-auth" element={<DebugAuthPage />} />
+          <Route path="/debug/sync-test" element={<SyncTestPage />} />
           <Route path="/dev/social-cards" element={<SocialCardPreview />} />
           
           {/* Social card routes */}
