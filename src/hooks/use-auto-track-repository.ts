@@ -21,7 +21,6 @@ export function useAutoTrackRepository({
 
     const trackRepository = async () => {
       try {
-        console.log(`[AutoTrack] Attempting to track repository: ${owner}/${repo}`)
         
         // Check if repository is already being tracked
         const { data: existing, error: checkError } = await supabase
@@ -32,15 +31,13 @@ export function useAutoTrackRepository({
           .single()
 
         if (checkError && checkError.code !== 'PGRST116') {
-          console.error('[AutoTrack] Error checking tracked repository:', checkError)
           return
         }
 
         // If repository is not tracked, add it
         if (!existing) {
-          console.log(`[AutoTrack] Repository not tracked yet, adding: ${owner}/${repo}`)
           
-          const { data, error: insertError } = await supabase
+          const { error: insertError } = await supabase
             .from('tracked_repositories')
             .insert({
               organization_name: owner,
@@ -53,18 +50,13 @@ export function useAutoTrackRepository({
             .single()
 
           if (insertError) {
-            console.error('[AutoTrack] Error tracking repository:', insertError)
-            console.error('[AutoTrack] Insert details:', { owner, repo, error: insertError })
           } else {
-            console.log(`[AutoTrack] Successfully tracked repository: ${owner}/${repo}`, data)
             hasTrackedRef.current = true
           }
         } else {
-          console.log(`[AutoTrack] Repository already tracked: ${owner}/${repo}`)
           hasTrackedRef.current = true
         }
       } catch (error) {
-        console.error('[AutoTrack] Unexpected error in auto-track repository:', error)
       }
     }
 
