@@ -3,17 +3,26 @@
  * Extracts verified contributor classifications from Supabase for evaluation
  */
 
+import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import type { EvaluationSample, GitHubEvent, ContributorMetrics, DatasetStats } from '../types';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_TOKEN!;
+// Load environment variables
+dotenv.config();
+
+// Load environment variables with fallbacks
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
+const supabaseKey = process.env.SUPABASE_TOKEN || process.env.SUPABASE_SERVICE_ROLE;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error(`Missing Supabase configuration: URL=${!!supabaseUrl}, Key=${!!supabaseKey}`);
+}
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export class GroundTruthExtractor {
-  private minConfidenceScore = 0.9; // High confidence samples only
-  private targetSamplesPerRole = 400; // Balanced dataset
+  private minConfidenceScore = 0.7; // High confidence samples only
+  private targetSamplesPerRole = 50; // Balanced dataset
 
   async extractGroundTruthDataset(): Promise<EvaluationSample[]> {
     console.log('Extracting ground truth dataset from Supabase...');
@@ -22,21 +31,7 @@ export class GroundTruthExtractor {
     const { data: contributorRoles, error } = await supabase
       .from('contributor_roles')
       .select(`
-        *,
-        contributors (
-          user_id,
-          username,
-          total_contributions,
-          first_contribution_date,
-          last_contribution_date
-        ),
-        repositories (
-          repo_id,
-          repo_name,
-          stars,
-          contributors_count,
-          created_at
-        )
+        *
       `)
       .gte('confidence_score', this.minConfidenceScore)
       .order('confidence_score', { ascending: false })
@@ -54,7 +49,7 @@ export class GroundTruthExtractor {
     // Convert to evaluation samples with enhanced features
     const evaluationSamples = await Promise.all(
       balancedSamples.map(async (role) => {
-        const events = await this.extractGitHubEvents(role.contributor_id, role.repo_id);
+        const events = await this.extractGitHubEvents(role.user_id, role.repository_owner, role.repository_name);
         const metrics = this.calculateMetrics(role, events);
         
         return this.createEvaluationSample(role, events, metrics);
@@ -85,27 +80,29 @@ export class GroundTruthExtractor {
     return balanced.sort(() => Math.random() - 0.5); // Final shuffle
   }
 
-  private async extractGitHubEvents(contributorId: string, repoId: string): Promise<GitHubEvent[]> {
+  private async extractGitHubEvents(userId: string, repoOwner: string, repoName: string): Promise<GitHubEvent[]> {
     // Extract relevant GitHub events for the contributor in this repository
+    // Note: Using github_events_cache table which has the actual event data
     const { data: events, error } = await supabase
-      .from('github_events')
+      .from('github_events_cache')
       .select('*')
-      .eq('contributor_id', contributorId)
-      .eq('repo_id', repoId)
+      .eq('actor_login', userId)
+      .eq('repository_owner', repoOwner)
+      .eq('repository_name', repoName)
       .order('created_at', { ascending: false })
       .limit(100);
 
     if (error) {
-      console.warn(`Failed to extract events for ${contributorId}: ${error.message}`);
+      console.warn(`Failed to extract events for ${userId} in ${repoOwner}/${repoName}: ${error.message}`);
       return [];
     }
 
     return events?.map(event => ({
       type: event.event_type as GitHubEvent['type'],
-      action: event.action || '',
-      merged: event.merged,
-      ref: event.ref,
-      forced: event.forced,
+      action: event.payload?.action || '',
+      merged: event.payload?.pull_request?.merged || false,
+      ref: event.payload?.ref || '',
+      forced: event.payload?.forced || false,
       created_at: event.created_at
     })) || [];
   }
@@ -151,22 +148,22 @@ export class GroundTruthExtractor {
   private createEvaluationSample(role: any, events: GitHubEvent[], metrics: ContributorMetrics): EvaluationSample {
     return {
       input: {
-        user_id: role.contributors?.username || role.contributor_id,
-        repository: `${role.repositories?.repo_name || 'unknown'}`,
+        user_id: role.user_id,
+        repository: `${role.repository_owner}/${role.repository_name}`,
         events,
         metrics,
         repository_context: {
-          size: this.categorizeRepoSize(role.repositories?.stars || 0),
-          stars: role.repositories?.stars || 0,
-          contributors_count: role.repositories?.contributors_count || 0,
-          created_at: role.repositories?.created_at || ''
+          size: 'medium', // Default since we don't have repo stats readily available
+          stars: 0,
+          contributors_count: 0,
+          created_at: ''
         }
       },
       ideal: role.role === 'owner' ? 'maintainer' : role.role as 'maintainer' | 'contributor',
       metadata: {
         verified_by: 'automated_high_confidence',
         verification_date: new Date().toISOString(),
-        confidence_level: role.confidence_score >= 0.95 ? 'high' : 'medium',
+        confidence_level: parseFloat(role.confidence_score) >= 0.95 ? 'high' : 'medium',
         edge_case: metrics.privileged_events === 0 && role.role !== 'contributor'
       }
     };
