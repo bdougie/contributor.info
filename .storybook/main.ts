@@ -73,34 +73,12 @@ const config: StorybookConfig = {
   async viteFinal(config) {
     // Merge custom configuration into the default config
     return mergeConfig(config, {
-      // Enhanced optimization for better build performance
-      optimizeDeps: {
-        include: [
-          '@mdx-js/react',
-          '@storybook/addon-docs',
-          'react-docgen-typescript',
-          '@radix-ui/react-slot',
-          'lucide-react',
-        ],
-      },
       resolve: {
         alias: {
           // Mock Supabase for Storybook to avoid needing real credentials
           '@/lib/supabase': new URL('./mocks/supabase.ts', import.meta.url).pathname,
           // Mock react-router-dom for Storybook to avoid router-related errors
           'react-router-dom': new URL('./mocks/react-router-dom.ts', import.meta.url).pathname,
-        },
-      },
-      // Performance optimizations for faster builds
-      build: {
-        rollupOptions: {
-          external: ['react', 'react-dom'],
-          output: {
-            globals: {
-              react: 'React',
-              'react-dom': 'ReactDOM',
-            },
-          },
         },
       },
       // Enhanced server configuration for development
