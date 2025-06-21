@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Layout, Home, NotFound } from "@/components/common/layout";
 import { ProtectedRoute } from "@/components/features/auth";
 
-// Lazy load route components
+// Lazy load route components for better performance
 const RepoView = lazy(() => import("@/components/features/repository/repo-view"));
 const LotteryFactorRoute = lazy(() => import("@/components/features/repository/repo-view").then(m => ({ default: m.LotteryFactorRoute })));
 const ContributionsRoute = lazy(() => import("@/components/features/repository/repo-view").then(m => ({ default: m.ContributionsRoute })));
@@ -30,7 +30,6 @@ const PageSkeleton = () => (
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
   </div>
 );
-
 
 function App() {
   return (
@@ -118,8 +117,8 @@ function App() {
                 <Route path="distribution" element={<DistributionRoute />} />
                 <Route path="feed" element={<FeedPage />} />
               </Route>
+              <Route path="*" element={<NotFound />} />
             </Route>
-            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </Router>
