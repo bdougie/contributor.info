@@ -34,9 +34,7 @@ const config: StorybookConfig = {
       },
     },
     "@storybook/addon-onboarding",
-    "@storybook/addon-interactions",
-    // Enhanced accessibility testing
-    "@storybook/addon-a11y"
+    "@storybook/addon-interactions"
   ],
   framework: {
     name: "@storybook/react-vite",

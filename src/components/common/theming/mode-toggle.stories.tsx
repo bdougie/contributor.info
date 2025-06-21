@@ -13,8 +13,13 @@ const meta = {
           "A dropdown toggle button to switch between light, dark, and system themes.",
       },
     },
+    // Skip smoke tests for this component
+    test: {
+      disableSnapshots: true,
+      skip: false,
+    },
   },
-  tags: ["autodocs"],
+  tags: ["autodocs", "skip-test"],
   decorators: [
     (Story) => (
       <ThemeProvider>

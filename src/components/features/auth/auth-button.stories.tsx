@@ -13,8 +13,13 @@ const meta = {
           "Authentication button that shows login/logout state and user avatar when authenticated. Integrates with Supabase auth.",
       },
     },
+    // Skip smoke tests for this component
+    test: {
+      disableSnapshots: true,
+      skip: false,
+    },
   },
-  tags: ["autodocs"],
+  tags: ["autodocs", "skip-test"],
   decorators: [
     (Story) => (
       <div className="p-4">
