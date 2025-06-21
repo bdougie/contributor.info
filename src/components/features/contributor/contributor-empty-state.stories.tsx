@@ -122,6 +122,9 @@ const mockContributors = [
 ];
 
 export const MinimalActivityDisplayExample: Story = {
+  args: {
+    type: "minimal_activity",
+  },
   render: () => (
     <MinimalActivityDisplay
       contributors={mockContributors}
@@ -132,6 +135,9 @@ export const MinimalActivityDisplayExample: Story = {
 };
 
 export const MinimalActivityDisplayEmpty: Story = {
+  args: {
+    type: "minimal_activity",
+  },
   render: () => (
     <MinimalActivityDisplay
       contributors={[]}

@@ -1,21 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { AuthButton } from "./auth-button";
 
-// Mock user data for stories
-const mockUser = {
-  id: "user-123",
-  email: "john.doe@example.com",
-  user_metadata: {
-    user_name: "johndoe",
-    avatar_url: "https://avatars.githubusercontent.com/u/123?v=4",
-    full_name: "John Doe",
-  },
-  app_metadata: {},
-  aud: "authenticated",
-  role: "authenticated",
-  created_at: "2024-01-01T00:00:00Z",
-  updated_at: "2024-01-01T00:00:00Z",
-};
 
 const meta = {
   title: "Features/Auth/AuthButton",
