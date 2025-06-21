@@ -82,8 +82,37 @@ When visiting any repository health page, check browser console for:
 2. Look for rate limit issues in Edge Function logs
 3. Verify repository is public and accessible
 
+## Issues Discovered and Fixed (June 21, 2025)
+
+### 4. Self-Selection Rate "Failed to fetch statistics" Error
+**Problem**: Self-selection card showed "Failed to fetch statistics" error instead of displaying contribution data.
+
+**Root Causes**:
+1. **Missing Database Migrations**: The `calculate_self_selection_rate` function migrations from January 21st were not applied to the production database
+2. **TypeScript Errors**: Debug component had compilation errors preventing proper builds
+3. **Function Column Ambiguity**: The database function had ambiguous column references causing SQL errors
+
+**Fixes Applied**:
+1. **Applied Missing Migrations**:
+   - `fix_tracked_repositories` - Fixed tracked_repositories table structure
+   - `fix_self_selection_function_v2` - Updated the calculate_self_selection_rate function
+   - `fix_self_selection_function_v3` - Resolved column ambiguity by renaming columns in CTE
+
+2. **Fixed TypeScript Errors** in `src/components/debug/github-sync-debug.tsx`:
+   - Removed non-existent `user` property from `useGitHubAuth()` hook
+   - Added proper error type handling for unknown error types
+
+3. **Verified Function Works**: Tested `calculate_self_selection_rate('continuedev', 'continue', 30)` which now correctly returns:
+   - 100% external contribution rate
+   - 38 external contributors
+   - 226 external PRs
+   - 0 internal contributors/PRs
+
+**Result**: Self-selection card now displays proper statistics instead of error message.
+
 ## Success Indicators
 - Tracked repository appears in tracked_repositories table
 - Sync status shows "completed" in github_sync_status
 - Contributor roles are populated in contributor_roles table
-- Self-selection rate displays actual data instead of 0%
+- Self-selection rate displays actual data instead of "Failed to fetch statistics" error
+- TypeScript build completes without errors

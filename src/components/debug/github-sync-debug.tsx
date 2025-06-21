@@ -17,7 +17,7 @@ export function GitHubSyncDebug() {
   const [isLoading, setIsLoading] = useState(false)
   const [logs, setLogs] = useState<string[]>([])
   
-  const { isLoggedIn, user, login } = useGitHubAuth()
+  const { isLoggedIn, login } = useGitHubAuth()
 
   const addLog = (message: string) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`])
@@ -56,7 +56,7 @@ export function GitHubSyncDebug() {
       }
     } catch (error) {
       addLog(`Error checking tokens: ${error}`)
-      return { userToken: false, systemToken: false, error: error.message }
+      return { userToken: false, systemToken: false, error: error instanceof Error ? error.message : String(error) }
     }
   }
 
@@ -248,7 +248,7 @@ export function GitHubSyncDebug() {
                     <XCircle className="h-4 w-4 text-red-600" />
                   )}
                   <span>
-                    Authentication: {isLoggedIn ? `Logged in as ${user?.email}` : 'Not logged in'}
+                    Authentication: {isLoggedIn ? 'Logged in' : 'Not logged in'}
                   </span>
                 </div>
                 {!isLoggedIn && (
