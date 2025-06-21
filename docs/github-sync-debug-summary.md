@@ -110,9 +110,28 @@ When visiting any repository health page, check browser console for:
 
 **Result**: Self-selection card now displays proper statistics instead of error message.
 
+### 5. Self-Selection Rate Always Showing 100% External Contributors
+**Problem**: All repositories showed 100% external contribution rates, indicating the system wasn't properly distinguishing maintainers from external contributors.
+
+**Root Cause**: The issue was already fixed in the migration `fix_self_selection_function_v4` that corrected the join logic in the `calculate_self_selection_rate` function. The function was trying to join `contributors.github_id` with `contributor_roles.user_id`, but these fields had incompatible data types (numeric vs text).
+
+**Investigation Results**:
+1. **Contributor roles ARE being detected properly**: bdougie and other maintainers were correctly identified as maintainers with high confidence scores
+2. **Merge-based detection IS working**: Users with merge permissions were getting elevated to maintainer status as intended
+3. **The database function was fixed**: The join now uses `contributors.username = contributor_roles.user_id` which works correctly
+
+**Current Results** (after migration applied):
+- **continuedev/continue**: 39.38% external, 60.62% internal (5 maintainers including bdougie)
+- **vercel/next.js**: 96.25% external, 3.75% internal (1 maintainer)  
+- **kubernetes/kubernetes**: 100% external, 0% internal (0 maintainers)
+
+**Result**: Self-selection rates now show realistic and varied percentages across repositories instead of uniformly 100% external.
+
 ## Success Indicators
 - Tracked repository appears in tracked_repositories table
 - Sync status shows "completed" in github_sync_status
 - Contributor roles are populated in contributor_roles table
 - Self-selection rate displays actual data instead of "Failed to fetch statistics" error
 - TypeScript build completes without errors
+- Self-selection rates show realistic percentages that vary by repository (not uniformly 100% external)
+- Maintainers like bdougie are properly classified and counted in internal contribution statistics
