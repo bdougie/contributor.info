@@ -13,7 +13,6 @@ export const DEFAULT_CONFIGS: Record<string, EvaluationConfig> = {
     description: 'Standard maintainer classification evaluation with balanced thresholds',
     dataset_path: 'evals/datasets/maintainer_ground_truth.jsonl',
     confidence_thresholds: {
-      owner: 0.95,
       maintainer: 0.8
     },
     evaluation_criteria: {
@@ -34,7 +33,6 @@ export const DEFAULT_CONFIGS: Record<string, EvaluationConfig> = {
     description: 'Conservative classification with higher thresholds for precision',
     dataset_path: 'evals/datasets/maintainer_ground_truth.jsonl',
     confidence_thresholds: {
-      owner: 0.98,
       maintainer: 0.9
     },
     evaluation_criteria: {
@@ -55,7 +53,6 @@ export const DEFAULT_CONFIGS: Record<string, EvaluationConfig> = {
     description: 'Aggressive classification with lower thresholds for recall',
     dataset_path: 'evals/datasets/maintainer_ground_truth.jsonl',
     confidence_thresholds: {
-      owner: 0.9,
       maintainer: 0.7
     },
     evaluation_criteria: {

@@ -15,7 +15,7 @@ export class MaintainerClassifier {
   async evaluateSample(
     input: EvaluationInput,
     sampleId: string,
-    expected: 'owner' | 'maintainer' | 'contributor'
+    expected: 'maintainer' | 'contributor'
   ): Promise<EvaluationResult> {
     const startTime = Date.now();
 
@@ -45,14 +45,12 @@ export class MaintainerClassifier {
     }
   }
 
-  private classifyContributor(input: EvaluationInput): 'owner' | 'maintainer' | 'contributor' {
-    const features = this.extractFeatures(input);
-    const score = this.calculateClassificationScore(features);
+  private classifyContributor(input: EvaluationInput): 'maintainer' | 'contributor' {
+    // Use the pre-calculated confidence score from input metrics
+    const score = input.metrics.confidence_score;
 
-    // Apply confidence thresholds
-    if (score >= this.config.confidence_thresholds.owner) {
-      return 'owner';
-    } else if (score >= this.config.confidence_thresholds.maintainer) {
+    // Apply confidence threshold - only maintainer vs contributor
+    if (score >= this.config.confidence_thresholds.maintainer) {
       return 'maintainer';
     } else {
       return 'contributor';
@@ -184,23 +182,20 @@ export class MaintainerClassifier {
     }
   }
 
-  private calculateConfidence(input: EvaluationInput, prediction: 'owner' | 'maintainer' | 'contributor'): number {
-    const features = this.extractFeatures(input);
-    const score = this.calculateClassificationScore(features);
+  private calculateConfidence(input: EvaluationInput, prediction: 'maintainer' | 'contributor'): number {
+    // Use the pre-calculated confidence score from input metrics
+    const score = input.metrics.confidence_score;
 
     // Confidence based on how far the score is from decision boundaries
-    const { owner: ownerThreshold, maintainer: maintainerThreshold } = this.config.confidence_thresholds;
+    const { maintainer: maintainerThreshold } = this.config.confidence_thresholds;
 
-    if (prediction === 'owner') {
-      return Math.min(score / ownerThreshold, 1.0);
-    } else if (prediction === 'maintainer') {
-      const distanceFromMaintainer = Math.abs(score - maintainerThreshold);
-      const distanceFromOwner = Math.abs(score - ownerThreshold);
-      const minDistance = Math.min(distanceFromMaintainer, distanceFromOwner);
-      return Math.min(0.5 + minDistance, 1.0);
+    if (prediction === 'maintainer') {
+      // For maintainer: confidence increases with score above threshold
+      return Math.min(score / maintainerThreshold, 1.0);
     } else {
-      // Contributor confidence inversely related to score
-      return Math.min(1.0 - score, 1.0);
+      // For contributor: confidence decreases as score approaches maintainer threshold
+      const distanceFromThreshold = maintainerThreshold - score;
+      return Math.min(0.5 + (distanceFromThreshold / maintainerThreshold), 1.0);
     }
   }
 

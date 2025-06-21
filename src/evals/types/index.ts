@@ -39,7 +39,7 @@ export interface EvaluationInput {
 
 export interface EvaluationSample {
   input: EvaluationInput;
-  ideal: 'owner' | 'maintainer' | 'contributor';
+  ideal: 'maintainer' | 'contributor';
   metadata?: {
     verified_by: string;
     verification_date: string;
@@ -50,9 +50,9 @@ export interface EvaluationSample {
 
 export interface EvaluationResult {
   sample_id: string;
-  prediction: 'owner' | 'maintainer' | 'contributor';
+  prediction: 'maintainer' | 'contributor';
   confidence: number;
-  expected: 'owner' | 'maintainer' | 'contributor';
+  expected: 'maintainer' | 'contributor';
   correct: boolean;
   execution_time_ms: number;
   error?: string;
@@ -61,7 +61,7 @@ export interface EvaluationResult {
 export interface EvaluationMetrics {
   overall_accuracy: number;
   per_class_metrics: {
-    [key in 'owner' | 'maintainer' | 'contributor']: {
+    [key in 'maintainer' | 'contributor']: {
       precision: number;
       recall: number;
       f1_score: number;
@@ -87,7 +87,6 @@ export interface EvaluationConfig {
   description: string;
   dataset_path: string;
   confidence_thresholds: {
-    owner: number;
     maintainer: number;
   };
   evaluation_criteria: {
@@ -106,7 +105,6 @@ export interface EvaluationConfig {
 export interface DatasetStats {
   total_samples: number;
   class_distribution: {
-    owner: number;
     maintainer: number;
     contributor: number;
   };
@@ -125,9 +123,9 @@ export interface DatasetStats {
 
 export interface GroundTruthValidation {
   sample_id: string;
-  original_label: 'owner' | 'maintainer' | 'contributor';
-  reviewer_labels: ('owner' | 'maintainer' | 'contributor')[];
-  consensus_label: 'owner' | 'maintainer' | 'contributor';
+  original_label: 'maintainer' | 'contributor';
+  reviewer_labels: ('maintainer' | 'contributor')[];
+  consensus_label: 'maintainer' | 'contributor';
   agreement_score: number;
   requires_review: boolean;
   notes?: string;

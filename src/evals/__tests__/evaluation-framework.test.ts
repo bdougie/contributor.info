@@ -31,7 +31,6 @@ describe('MaintainerClassifier', () => {
       description: 'Test configuration',
       dataset_path: 'test.jsonl',
       confidence_thresholds: {
-        owner: 0.95,
         maintainer: 0.8
       },
       evaluation_criteria: {
@@ -47,38 +46,6 @@ describe('MaintainerClassifier', () => {
       }
     };
     classifier = new MaintainerClassifier(config);
-  });
-
-  describe('Owner Classification', () => {
-    it('should classify high-privilege contributor as owner', async () => {
-      const input: EvaluationInput = {
-        user_id: 'test-owner',
-        repository: 'test/repo',
-        events: [
-          { type: 'PullRequestEvent', action: 'closed', merged: true, created_at: '2024-01-01T00:00:00Z' },
-          { type: 'PushEvent', action: 'push', ref: 'refs/heads/main', created_at: '2024-01-02T00:00:00Z' },
-          { type: 'ReleaseEvent', action: 'published', created_at: '2024-01-03T00:00:00Z' }
-        ],
-        metrics: {
-          privileged_events: 15,
-          total_events: 20,
-          days_active: 365,
-          detection_methods: ['merge_event', 'push_to_protected', 'admin_action', 'release_event'],
-          confidence_score: 0.98,
-          merge_events: 8,
-          push_to_protected: 5,
-          admin_actions: 2,
-          release_events: 3
-        }
-      };
-
-      const result = await classifier.evaluateSample(input, 'test-1', 'owner');
-
-      expect(result.prediction).toBe('owner');
-      expect(result.confidence).toBeGreaterThan(0.9);
-      expect(result.correct).toBe(true);
-      expect(result.execution_time_ms).toBeLessThan(1000);
-    });
   });
 
   describe('Maintainer Classification', () => {
@@ -206,9 +173,9 @@ describe('EvaluationMetricsCalculator', () => {
   describe('Overall Accuracy', () => {
     it('should calculate correct overall accuracy', () => {
       const results: EvaluationResult[] = [
-        { sample_id: '1', prediction: 'owner', expected: 'owner', confidence: 0.9, correct: true, execution_time_ms: 100 },
+        { sample_id: '1', prediction: 'maintainer', expected: 'maintainer', confidence: 0.9, correct: true, execution_time_ms: 100 },
         { sample_id: '2', prediction: 'maintainer', expected: 'maintainer', confidence: 0.8, correct: true, execution_time_ms: 150 },
-        { sample_id: '3', prediction: 'contributor', expected: 'owner', confidence: 0.3, correct: false, execution_time_ms: 80 },
+        { sample_id: '3', prediction: 'contributor', expected: 'maintainer', confidence: 0.3, correct: false, execution_time_ms: 80 },
         { sample_id: '4', prediction: 'contributor', expected: 'contributor', confidence: 0.7, correct: true, execution_time_ms: 120 }
       ];
 
@@ -224,77 +191,62 @@ describe('EvaluationMetricsCalculator', () => {
   describe('Per-Class Metrics', () => {
     it('should calculate precision, recall, and F1 scores correctly', () => {
       const results: EvaluationResult[] = [
-        // Owner: 2 predicted, 1 correct (TP=1, FP=1, FN=1)
-        { sample_id: '1', prediction: 'owner', expected: 'owner', confidence: 0.9, correct: true, execution_time_ms: 100 },
-        { sample_id: '2', prediction: 'owner', expected: 'maintainer', confidence: 0.85, correct: false, execution_time_ms: 110 },
-        { sample_id: '3', prediction: 'contributor', expected: 'owner', confidence: 0.75, correct: false, execution_time_ms: 90 },
-        
-        // Maintainer: 1 predicted, 1 correct (TP=1, FP=0, FN=1)
-        { sample_id: '4', prediction: 'maintainer', expected: 'maintainer', confidence: 0.8, correct: true, execution_time_ms: 105 },
-        { sample_id: '5', prediction: 'contributor', expected: 'maintainer', confidence: 0.4, correct: false, execution_time_ms: 95 },
+        // Maintainer: 2 predicted, 1 correct (TP=1, FP=1, FN=1)
+        { sample_id: '1', prediction: 'maintainer', expected: 'maintainer', confidence: 0.9, correct: true, execution_time_ms: 100 },
+        { sample_id: '2', prediction: 'maintainer', expected: 'contributor', confidence: 0.85, correct: false, execution_time_ms: 110 },
+        { sample_id: '3', prediction: 'contributor', expected: 'maintainer', confidence: 0.75, correct: false, execution_time_ms: 90 },
         
         // Contributor: 2 predicted, 2 correct (TP=2, FP=0, FN=0)
-        { sample_id: '6', prediction: 'contributor', expected: 'contributor', confidence: 0.6, correct: true, execution_time_ms: 85 },
-        { sample_id: '7', prediction: 'contributor', expected: 'contributor', confidence: 0.5, correct: true, execution_time_ms: 80 }
+        { sample_id: '4', prediction: 'contributor', expected: 'contributor', confidence: 0.6, correct: true, execution_time_ms: 85 },
+        { sample_id: '5', prediction: 'contributor', expected: 'contributor', confidence: 0.5, correct: true, execution_time_ms: 80 }
       ];
 
       const metrics = calculator.calculateMetrics(results);
 
-      // Owner metrics: TP=1, FP=1, FN=1
-      expect(metrics.per_class_metrics.owner.precision).toBe(0.5); // 1/(1+1)
-      expect(metrics.per_class_metrics.owner.recall).toBe(0.5); // 1/(1+1)
-      expect(metrics.per_class_metrics.owner.f1_score).toBe(0.5); // 2*(0.5*0.5)/(0.5+0.5)
+      // Maintainer metrics: TP=1, FP=1, FN=1
+      expect(metrics.per_class_metrics.maintainer.precision).toBe(0.5); // 1/(1+1)
+      expect(metrics.per_class_metrics.maintainer.recall).toBe(0.5); // 1/(1+1)
+      expect(metrics.per_class_metrics.maintainer.f1_score).toBe(0.5); // 2*(0.5*0.5)/(0.5+0.5)
 
-      // Maintainer metrics: TP=1, FP=0, FN=2
-      expect(metrics.per_class_metrics.maintainer.precision).toBe(1.0); // 1/(1+0)
-      expect(metrics.per_class_metrics.maintainer.recall).toBeCloseTo(0.333, 2); // 1/(1+2)
-      expect(metrics.per_class_metrics.maintainer.f1_score).toBe(0.5); // 2*(1*0.333)/(1+0.333)
-
-      // Contributor metrics: TP=2, FP=2, FN=0
-      expect(metrics.per_class_metrics.contributor.precision).toBe(0.5); // 2/(2+2)
-      expect(metrics.per_class_metrics.contributor.recall).toBe(1.0); // 2/(2+0)
-      expect(metrics.per_class_metrics.contributor.f1_score).toBeCloseTo(0.667, 2); // 2*(0.5*1)/(0.5+1)
+      // Contributor metrics: TP=2, FP=1, FN=1
+      expect(metrics.per_class_metrics.contributor.precision).toBeCloseTo(0.667, 2); // 2/(2+1)
+      expect(metrics.per_class_metrics.contributor.recall).toBeCloseTo(0.667, 2); // 2/(2+1)
+      expect(metrics.per_class_metrics.contributor.f1_score).toBeCloseTo(0.667, 2); // 2*(0.667*0.667)/(0.667+0.667)
     });
   });
 
   describe('Confusion Matrix', () => {
     it('should generate correct confusion matrix', () => {
       const results: EvaluationResult[] = [
-        { sample_id: '1', prediction: 'owner', expected: 'owner', confidence: 0.9, correct: true, execution_time_ms: 100 },
-        { sample_id: '2', prediction: 'maintainer', expected: 'owner', confidence: 0.8, correct: false, execution_time_ms: 110 },
-        { sample_id: '3', prediction: 'maintainer', expected: 'maintainer', confidence: 0.85, correct: true, execution_time_ms: 90 },
+        { sample_id: '1', prediction: 'maintainer', expected: 'maintainer', confidence: 0.9, correct: true, execution_time_ms: 100 },
+        { sample_id: '2', prediction: 'maintainer', expected: 'contributor', confidence: 0.8, correct: false, execution_time_ms: 110 },
+        { sample_id: '3', prediction: 'contributor', expected: 'maintainer', confidence: 0.85, correct: false, execution_time_ms: 90 },
         { sample_id: '4', prediction: 'contributor', expected: 'contributor', confidence: 0.7, correct: true, execution_time_ms: 80 }
       ];
 
       const metrics = calculator.calculateMetrics(results);
       const matrix = metrics.confusion_matrix;
 
-      // Matrix should be 3x3 (owner, maintainer, contributor)
-      expect(matrix).toHaveLength(3);
-      expect(matrix[0]).toHaveLength(3);
+      // Matrix should be 2x2 (maintainer, contributor)
+      expect(matrix).toHaveLength(2);
+      expect(matrix[0]).toHaveLength(2);
 
-      // Row 0 (Owner actual): [1, 0, 0] - 1 correctly predicted as owner, 1 incorrectly as maintainer
-      expect(matrix[0][0]).toBe(1); // owner->owner
-      expect(matrix[0][1]).toBe(1); // owner->maintainer
-      expect(matrix[0][2]).toBe(0); // owner->contributor
+      // Row 0 (Maintainer actual): [1, 1] - 1 correctly predicted as maintainer, 1 incorrectly as contributor
+      expect(matrix[0][0]).toBe(1); // maintainer->maintainer
+      expect(matrix[0][1]).toBe(1); // maintainer->contributor
 
-      // Row 1 (Maintainer actual): [0, 1, 0]
-      expect(matrix[1][0]).toBe(0); // maintainer->owner
-      expect(matrix[1][1]).toBe(1); // maintainer->maintainer
-      expect(matrix[1][2]).toBe(0); // maintainer->contributor
+      // Row 1 (Contributor actual): [1, 1] - 1 incorrectly as maintainer, 1 correctly as contributor
+      expect(matrix[1][0]).toBe(1); // contributor->maintainer
+      expect(matrix[1][1]).toBe(1); // contributor->contributor
 
-      // Row 2 (Contributor actual): [0, 0, 1]
-      expect(matrix[2][0]).toBe(0); // contributor->owner
-      expect(matrix[2][1]).toBe(0); // contributor->maintainer
-      expect(matrix[2][2]).toBe(1); // contributor->contributor
     });
   });
 
   describe('Confidence Calibration', () => {
     it('should calculate calibration metrics', () => {
       const results: EvaluationResult[] = [
-        { sample_id: '1', prediction: 'owner', expected: 'owner', confidence: 0.9, correct: true, execution_time_ms: 100 },
-        { sample_id: '2', prediction: 'owner', expected: 'owner', confidence: 0.8, correct: true, execution_time_ms: 110 },
+        { sample_id: '1', prediction: 'maintainer', expected: 'maintainer', confidence: 0.9, correct: true, execution_time_ms: 100 },
+        { sample_id: '2', prediction: 'maintainer', expected: 'maintainer', confidence: 0.8, correct: true, execution_time_ms: 110 },
         { sample_id: '3', prediction: 'maintainer', expected: 'contributor', confidence: 0.7, correct: false, execution_time_ms: 90 },
         { sample_id: '4', prediction: 'contributor', expected: 'contributor', confidence: 0.6, correct: true, execution_time_ms: 80 }
       ];
@@ -310,7 +262,7 @@ describe('EvaluationMetricsCalculator', () => {
   describe('Report Generation', () => {
     it('should generate comprehensive report', () => {
       const results: EvaluationResult[] = [
-        { sample_id: '1', prediction: 'owner', expected: 'owner', confidence: 0.9, correct: true, execution_time_ms: 100 },
+        { sample_id: '1', prediction: 'maintainer', expected: 'maintainer', confidence: 0.9, correct: true, execution_time_ms: 100 },
         { sample_id: '2', prediction: 'maintainer', expected: 'maintainer', confidence: 0.8, correct: true, execution_time_ms: 110 },
         { sample_id: '3', prediction: 'contributor', expected: 'contributor', confidence: 0.7, correct: true, execution_time_ms: 90 }
       ];
@@ -337,7 +289,7 @@ describe('Feature Extraction', () => {
       name: 'test-config',
       description: 'Test configuration',
       dataset_path: 'test.jsonl',
-      confidence_thresholds: { owner: 0.95, maintainer: 0.8 },
+      confidence_thresholds: { maintainer: 0.8 },
       evaluation_criteria: { min_accuracy: 0.85, min_samples: 100, max_execution_time_ms: 1000 }
     };
     classifier = new MaintainerClassifier(config);

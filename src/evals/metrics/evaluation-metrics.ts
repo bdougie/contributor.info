@@ -6,7 +6,7 @@
 import type { EvaluationResult, EvaluationMetrics } from '../types';
 
 export class EvaluationMetricsCalculator {
-  private readonly roleLabels: ('owner' | 'maintainer' | 'contributor')[] = ['owner', 'maintainer', 'contributor'];
+  private readonly roleLabels: ('maintainer' | 'contributor')[] = ['maintainer', 'contributor'];
 
   calculateMetrics(results: EvaluationResult[]): EvaluationMetrics {
     const validResults = results.filter(r => !r.error);
@@ -29,7 +29,6 @@ export class EvaluationMetricsCalculator {
 
   private calculatePerClassMetrics(results: EvaluationResult[]) {
     const metrics: EvaluationMetrics['per_class_metrics'] = {
-      owner: { precision: 0, recall: 0, f1_score: 0, support: 0 },
       maintainer: { precision: 0, recall: 0, f1_score: 0, support: 0 },
       contributor: { precision: 0, recall: 0, f1_score: 0, support: 0 }
     };
@@ -39,6 +38,7 @@ export class EvaluationMetricsCalculator {
       const falsePositives = results.filter(r => r.prediction === role && r.expected !== role).length;
       const falseNegatives = results.filter(r => r.prediction !== role && r.expected === role).length;
       const support = results.filter(r => r.expected === role).length;
+
 
       const precision = truePositives + falsePositives > 0 ? truePositives / (truePositives + falsePositives) : 0;
       const recall = truePositives + falseNegatives > 0 ? truePositives / (truePositives + falseNegatives) : 0;
@@ -56,8 +56,8 @@ export class EvaluationMetricsCalculator {
   }
 
   private calculateConfusionMatrix(results: EvaluationResult[]): number[][] {
-    const matrix: number[][] = Array(3).fill(null).map(() => Array(3).fill(0));
-    const labelToIndex = { owner: 0, maintainer: 1, contributor: 2 };
+    const matrix: number[][] = Array(2).fill(null).map(() => Array(2).fill(0));
+    const labelToIndex = { maintainer: 0, contributor: 1 };
 
     results.forEach(result => {
       const actualIndex = labelToIndex[result.expected];
@@ -148,12 +148,6 @@ export class EvaluationMetricsCalculator {
 
 ## Per-Class Performance
 
-### Owner Classification
-- **Precision**: ${(metrics.per_class_metrics.owner.precision * 100).toFixed(2)}%
-- **Recall**: ${(metrics.per_class_metrics.owner.recall * 100).toFixed(2)}%
-- **F1-Score**: ${(metrics.per_class_metrics.owner.f1_score * 100).toFixed(2)}%
-- **Support**: ${metrics.per_class_metrics.owner.support} samples
-
 ### Maintainer Classification
 - **Precision**: ${(metrics.per_class_metrics.maintainer.precision * 100).toFixed(2)}%
 - **Recall**: ${(metrics.per_class_metrics.maintainer.recall * 100).toFixed(2)}%
@@ -174,10 +168,9 @@ export class EvaluationMetricsCalculator {
 ## Confusion Matrix
 \`\`\`
               Predicted
-Actual    Own  Main  Contrib
-Owner     ${metrics.confusion_matrix[0][0].toString().padStart(3)}  ${metrics.confusion_matrix[0][1].toString().padStart(4)}  ${metrics.confusion_matrix[0][2].toString().padStart(7)}
-Maintainer ${metrics.confusion_matrix[1][0].toString().padStart(3)}  ${metrics.confusion_matrix[1][1].toString().padStart(4)}  ${metrics.confusion_matrix[1][2].toString().padStart(7)}
-Contributor ${metrics.confusion_matrix[2][0].toString().padStart(2)}  ${metrics.confusion_matrix[2][1].toString().padStart(4)}  ${metrics.confusion_matrix[2][2].toString().padStart(7)}
+Actual      Main  Contrib
+Maintainer  ${metrics.confusion_matrix[0][0].toString().padStart(4)}  ${metrics.confusion_matrix[0][1].toString().padStart(7)}
+Contributor ${metrics.confusion_matrix[1][0].toString().padStart(4)}  ${metrics.confusion_matrix[1][1].toString().padStart(7)}
 \`\`\`
 
 ## Performance Statistics
