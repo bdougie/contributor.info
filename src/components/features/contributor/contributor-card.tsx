@@ -87,7 +87,13 @@ export function ContributorCard({
       <div className="flex items-start gap-3">
         <ContributorHoverCard contributor={contributorData}>
           <Avatar className="h-10 w-10 cursor-pointer">
-            <AvatarImage src={avatar_url} alt={login} />
+            <AvatarImage 
+              src={`${avatar_url}?s=80`}
+              alt={login}
+              loading="lazy"
+              width={40}
+              height={40}
+            />
             <AvatarFallback>
               {login.charAt(0).toUpperCase()}
             </AvatarFallback>

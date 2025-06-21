@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "npm test && tsc -b && vite build",
+    "optimize-images": "node scripts/convert-images.js",
     "build:production": "tsc -b && vite build",
     "build:prod": "tsc -b && vite build",
     "lint": "eslint .",
@@ -135,11 +136,13 @@
     "jsdom": "^26.1.0",
     "nock": "^14.0.4",
     "postcss": "^8.4.47",
+    "sharp": "^0.34.2",
     "storybook": "^8.6.14",
     "tailwindcss": "^3.4.13",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.7.0",
     "vite": "^6.3.5",
+    "vite-imagetools": "^7.1.0",
     "vitest": "^3.1.1",
     "wait-on": "^8.0.3"
   }

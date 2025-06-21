@@ -18,6 +18,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
 import { ContributorHoverCard } from "../contributor";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
@@ -183,10 +184,12 @@ export function LotteryFactorContent({
               className="flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
-                <img
+                <OptimizedAvatar
                   src={coder.avatar_url}
                   alt={coder.login}
-                  className="w-8 h-8 rounded-full"
+                  size={32}
+                  lazy={false}
+                  fallback={coder.login[0]?.toUpperCase() || '?'}
                 />
                 <div>
                   <p className="font-medium">{coder.login}</p>
@@ -330,10 +333,13 @@ export function LotteryFactorContent({
                       <div className="flex items-center gap-2">
                         {segment.contributor ? (
                           <>
-                            <img
+                            <OptimizedAvatar
                               src={segment.contributor.avatar_url}
                               alt={segment.contributor.login}
-                              className="w-4 h-4 rounded-full"
+                              size={32}
+                              lazy={false}
+                              fallback={segment.contributor.login[0]?.toUpperCase() || '?'}
+                              className="w-4 h-4"
                             />
                             <span>{segment.contributor.login}</span>
                             <span className="text-muted-foreground">
@@ -381,10 +387,13 @@ export function LotteryFactorContent({
                       : "contributor"
                   }
                 >
-                  <img
+                  <OptimizedAvatar
                     src={contributor.avatar_url}
                     alt={contributor.login}
-                    className="h-8 w-8 rounded-full cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                    size={32}
+                    lazy={false}
+                    fallback={contributor.login[0]?.toUpperCase() || '?'}
+                    className="cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
                   />
                 </ContributorHoverCard>
                 <div>
