@@ -186,10 +186,10 @@ export function calculateConfidenceScore(
 export function determineRole(
   confidenceScore: number,
   metrics: ContributorMetrics
-): 'owner' | 'maintainer' | 'contributor' {
-  // Bot accounts are always contributors, regardless of confidence
+): 'owner' | 'maintainer' | 'contributor' | 'bot' {
+  // Bot accounts get dedicated bot role, regardless of confidence
   if (isBotAccount(metrics.userId)) {
-    return 'contributor'
+    return 'bot'
   }
 
   // Owner detection (very high confidence + specific patterns)
