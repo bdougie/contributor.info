@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as Sentry from "@sentry/react";
-import App from './App.tsx';
+import App from './App';
 import './index.css';
 import { PHProvider } from './lib/posthog';
 import { MetaTagsProvider } from './components/common/layout';
