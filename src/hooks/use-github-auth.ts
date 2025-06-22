@@ -32,17 +32,11 @@ export function useGitHubAuth() {
             });
             
             if (error) {
-              console.error('Error setting session:', error);
-              console.error('Error details:', {
-                message: error.message,
-                status: error.status
-              });
-              
-            
+              // Silently handle session setting errors
             };
           }
         } catch (err) {
-          console.error('Error processing auth tokens:', err);
+          // Silently handle auth token processing errors
         }
         
         // Clear the URL hash after processing
@@ -105,7 +99,6 @@ export function useGitHubAuth() {
         }
       };
     } catch (error) {
-      console.error('Error setting up auth state change listener:', error);
       return () => {}; // Empty cleanup function
     }
   }, [showLoginDialog, navigate]);
@@ -132,7 +125,7 @@ export function useGitHubAuth() {
         throw error;
       }
     } catch (err) {
-      console.error('Login error:', err);
+      // Silently handle login errors
     }
   };
 

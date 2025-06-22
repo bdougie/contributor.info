@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, memo } from "react";
 import {
   PieChart,
   Pie,
@@ -367,9 +367,8 @@ export function DistributionCharts({
           }
           drillUp();
         }}
-        onNodeClick={(nodeId) => {
+        onNodeClick={() => {
           // Handle contributor node clicks
-          console.log('Contributor node clicked:', nodeId);
         }}
       />
     );
@@ -683,3 +682,5 @@ export function DistributionCharts({
     </div>
   );
 }
+
+export default memo(DistributionCharts);

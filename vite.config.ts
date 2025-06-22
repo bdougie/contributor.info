@@ -31,7 +31,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'],
+    include: ['react', 'react-dom', '@radix-ui/react-slot', 'zustand', 'date-fns'],
     exclude: ['lucide-react'], // Keep icons separate for better tree-shaking
   },
   build: {
