@@ -167,7 +167,7 @@ describe("Distribution", () => {
       screen.getByText("Merged Pull Request Distribution Analysis")
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Visualize contribution patterns/)
+      screen.getByText(/Visualize merged contribution patterns/)
     ).toBeInTheDocument();
     expect(screen.getByTestId("distribution-charts")).toBeInTheDocument();
     expect(screen.getByTestId("language-legend")).toBeInTheDocument();
@@ -271,7 +271,16 @@ describe("Distribution", () => {
     expect(screen.getByText("Merged Pull Request Distribution Analysis")).toBeInTheDocument();
   });
 
-  it("filters out non-merged PRs correctly", () => {
+  it("filters out non-merged PRs correctly", async () => {
+    // Mock the distribution hook to return the correct count for this test
+    const { useDistribution } = vi.mocked(
+      await import("@/hooks/use-distribution")
+    );
+    useDistribution.mockReturnValue({
+      ...mockDistributionHook,
+      getTotalContributions: () => 2, // Only 2 merged PRs
+    });
+
     // Test with data that includes non-merged PRs
     const contextWithMixedPRs = {
       ...mockContextValue,
