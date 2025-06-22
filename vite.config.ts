@@ -6,6 +6,32 @@ import { imagetools } from 'vite-imagetools';
 export default defineConfig({
   plugins: [
     react(),
+    {
+      name: 'html-transform',
+      transformIndexHtml(html) {
+        // Extract all modulepreload links
+        const modulePreloads: string[] = [];
+        const reactCorePreload: string[] = [];
+        const reactDepsPreload: string[] = [];
+        
+        html = html.replace(/<link rel="modulepreload"[^>]*>/g, (match) => {
+          if (match.includes('/react-') && !match.includes('react-deps')) {
+            // This is the core React bundle
+            reactCorePreload.push(match);
+          } else if (match.includes('react-deps')) {
+            // This is React-dependent libraries
+            reactDepsPreload.push(match);
+          } else {
+            modulePreloads.push(match);
+          }
+          return '';
+        });
+        
+        // Re-insert with correct order: React core first, then deps, then others
+        const allPreloads = [...reactCorePreload, ...reactDepsPreload, ...modulePreloads].join('\n    ');
+        return html.replace('</head>', `    ${allPreloads}\n  </head>`);
+      },
+    },
     imagetools({
       defaultDirectives: (url) => {
         // Only process images with query parameters
@@ -31,6 +57,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
+    include: ['react', 'react-dom'],
     exclude: ['lucide-react'],
   },
   build: {
@@ -38,64 +65,26 @@ export default defineConfig({
     cssCodeSplit: true,
     rollupOptions: {
       output: {
-        // Split vendor chunks for better caching
+        // Ensure proper module initialization order
         manualChunks: (id) => {
-          // Bundle React and React-DOM together to avoid initialization issues
+          // React MUST be in its own chunk
           if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
             return 'react';
           }
-          if (id.includes('react-router')) {
-            return 'routing';
+          // All React-dependent libraries should be in a separate chunk that loads after React
+          if (id.includes('node_modules') && (
+            id.includes('@radix-ui') || 
+            id.includes('react-router') ||
+            id.includes('@sentry/react') ||
+            id.includes('react-')
+          )) {
+            return 'react-deps';
           }
-          
-          // UI components library (Radix UI)
-          if (id.includes('@radix-ui') || id.includes('class-variance-authority') || 
-              id.includes('clsx') || id.includes('tailwind-merge')) {
-            return 'ui';
-          }
-          
-          // Heavy visualization libraries
-          if (id.includes('@nivo') || id.includes('recharts') || id.includes('@react-spring')) {
-            return 'charts';
-          }
-          
-          // Data and utility libraries
-          if (id.includes('date-fns') || id.includes('zod') || 
-              id.includes('zustand') || id.includes('@supabase/supabase-js')) {
-            return 'utils';
-          }
-          
-          // Form handling
-          if (id.includes('react-hook-form') || id.includes('@hookform/resolvers')) {
-            return 'forms';
-          }
-          
-          // Content and markdown
-          if (id.includes('react-markdown') || id.includes('react-helmet-async')) {
-            return 'content';
-          }
-          
-          // Analytics and monitoring
-          if (id.includes('posthog-js') || id.includes('@sentry/react')) {
-            return 'analytics';
-          }
-          
-          // Icons (split separately to enable tree-shaking)
-          if (id.includes('lucide-react') || id.includes('react-icons') || 
-              id.includes('@radix-ui/react-icons')) {
-            return 'icons';
-          }
-          
-          // Other frequently used node_modules
+          // Other vendor modules
           if (id.includes('node_modules')) {
             return 'vendor';
           }
         },
-      },
-      // Tree shake unused code more aggressively  
-      treeshake: {
-        preset: 'recommended',
-        moduleSideEffects: 'no-external',
       },
     },
     // Optimize CSS minification
