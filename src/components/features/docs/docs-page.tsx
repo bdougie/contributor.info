@@ -33,35 +33,134 @@ export function DocsPage() {
 
   const loadDocsContent = async () => {
     try {
-      // Load the markdown files for the two initial sections
-      const [lotteryFactorResponse, prActivityResponse] = await Promise.all([
-        fetch("/docs/feature-lottery-factor.md"),
-        fetch("/docs/insight-pr-activity.md"),
-      ]);
-
-      if (!lotteryFactorResponse.ok || !prActivityResponse.ok) {
-        throw new Error("Failed to load documentation files");
-      }
-
-      const [lotteryFactorText, prActivityText] = await Promise.all([
-        lotteryFactorResponse.text(),
-        prActivityResponse.text(),
-      ]);
-
-      const sections: DocsSection[] = [
+      // Define all available documentation files with metadata
+      const docFiles = [
+        // Features
         {
+          file: "feature-lottery-factor.md",
           title: "Lottery Factor",
           description: "Understanding repository health and contribution risk",
-          content: lotteryFactorText,
-          category: "feature",
+          category: "feature" as const,
         },
         {
+          file: "feature-activity-feed.md",
+          title: "Activity Feed",
+          description: "Real-time tracking of repository and contributor activity",
+          category: "feature" as const,
+        },
+        {
+          file: "feature-authentication.md",
+          title: "Authentication",
+          description: "User authentication and GitHub integration",
+          category: "feature" as const,
+        },
+        {
+          file: "feature-contribution-analytics.md",
+          title: "Contribution Analytics",
+          description: "Advanced analytics for measuring contributor impact",
+          category: "feature" as const,
+        },
+        {
+          file: "feature-contributor-of-month.md",
+          title: "Contributor of the Month",
+          description: "Recognition system for outstanding contributors",
+          category: "feature" as const,
+        },
+        {
+          file: "feature-contributor-profiles.md",
+          title: "Contributor Profiles",
+          description: "Detailed profiles showcasing contributor achievements",
+          category: "feature" as const,
+        },
+        {
+          file: "feature-distribution-charts.md",
+          title: "Distribution Charts",
+          description: "Visual analysis of contribution patterns and trends",
+          category: "feature" as const,
+        },
+        {
+          file: "feature-repository-health.md",
+          title: "Repository Health",
+          description: "Comprehensive health metrics for repositories",
+          category: "feature" as const,
+        },
+        {
+          file: "feature-repository-search.md",
+          title: "Repository Search",
+          description: "Advanced search and filtering capabilities",
+          category: "feature" as const,
+        },
+        {
+          file: "feature-social-cards.md",
+          title: "Social Cards",
+          description: "Dynamic social media card generation",
+          category: "feature" as const,
+        },
+        {
+          file: "feature-time-range-analysis.md",
+          title: "Time Range Analysis",
+          description: "Historical analysis and trend identification",
+          category: "feature" as const,
+        },
+        // Insights
+        {
+          file: "insight-pr-activity.md",
           title: "PR Activity",
           description: "Monitoring pull request patterns and team velocity",
-          content: prActivityText,
-          category: "insight",
+          category: "insight" as const,
+        },
+        {
+          file: "insight-needs-attention.md",
+          title: "Needs Attention",
+          description: "Identifying pull requests requiring immediate action",
+          category: "insight" as const,
+        },
+        {
+          file: "insight-recommendations.md",
+          title: "Recommendations",
+          description: "Actionable suggestions for repository improvement",
+          category: "insight" as const,
+        },
+        {
+          file: "insight-repository-health.md",
+          title: "Repository Health",
+          description: "Comprehensive analysis of repository wellness",
+          category: "insight" as const,
         },
       ];
+
+      // Load all documentation files
+      const responses = await Promise.all(
+        docFiles.map(doc => fetch(`/docs/${doc.file}`))
+      );
+
+      // Check if any requests failed
+      const failedFiles = responses
+        .map((response, index) => ({ response, file: docFiles[index].file }))
+        .filter(({ response }) => !response.ok)
+        .map(({ file }) => file);
+
+      if (failedFiles.length > 0) {
+        console.warn(`Failed to load documentation files: ${failedFiles.join(", ")}`);
+      }
+
+      // Get content for successfully loaded files
+      const contents = await Promise.all(
+        responses.map(async (response, index) => {
+          if (response.ok) {
+            return {
+              ...docFiles[index],
+              content: await response.text(),
+            };
+          }
+          return null;
+        })
+      );
+
+      // Filter out failed loads and create sections
+      const sections: DocsSection[] = contents
+        .filter((content): content is NonNullable<typeof content> => content !== null)
+        .map(({ file, ...doc }) => doc);
 
       setDocsContent(sections);
       setLoading(false);

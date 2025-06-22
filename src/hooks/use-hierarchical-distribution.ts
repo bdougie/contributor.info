@@ -58,7 +58,6 @@ export function useHierarchicalDistribution(
 ): UseHierarchicalDistributionReturn {
   const [currentView, setCurrentView] = useState<'overview' | 'quadrant'>('overview');
   const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
   // Sync with external selection
   useEffect(() => {
@@ -96,7 +95,7 @@ export function useHierarchicalDistribution(
         }
         quadrantMap[quadrant][contributor].push(pr);
       } catch (error) {
-        console.error('Error analyzing PR:', pr.number, error);
+        // Silently handle PR analysis errors
       }
     });
 
@@ -149,9 +148,8 @@ export function useHierarchicalDistribution(
     };
   }, [pullRequests]);
 
-  useEffect(() => {
-    setLoading(false);
-  }, [hierarchicalData]);
+  // Compute loading state directly based on data availability
+  const loading = pullRequests.length > 0 && !hierarchicalData;
 
   const drillDown = (quadrantId: string) => {
     setSelectedQuadrant(quadrantId);

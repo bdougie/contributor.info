@@ -22,14 +22,12 @@ export function AuthButton() {
       .getSession()
       .then(({ data: { session }, error: sessionError }) => {
         if (sessionError) {
-          console.error("Session error:", sessionError);
           setError(sessionError.message);
         }
         setUser(session?.user ?? null);
         setLoading(false);
       })
-      .catch((err) => {
-        console.error("Failed to get session:", err);
+      .catch(() => {
         setError("Failed to get session");
         setLoading(false);
       });
@@ -56,11 +54,9 @@ export function AuthButton() {
       });
 
       if (signInError) {
-        console.error("Sign in error:", signInError);
         setError(signInError.message);
       }
     } catch (err) {
-      console.error("Login error:", err);
       setError("Failed to initiate login");
     }
   };
@@ -71,11 +67,9 @@ export function AuthButton() {
       const { error: signOutError } = await supabase.auth.signOut();
 
       if (signOutError) {
-        console.error("Sign out error:", signOutError);
         setError(signOutError.message);
       }
     } catch (err) {
-      console.error("Logout error:", err);
       setError("Failed to log out");
     }
   };
@@ -89,7 +83,7 @@ export function AuthButton() {
   }
 
   if (error) {
-    console.error("Auth error:", error);
+    // Error is already displayed in UI state
   }
 
   if (!user) {

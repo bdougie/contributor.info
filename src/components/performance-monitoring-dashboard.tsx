@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, AlertTriangle, CheckCircle, Clock, Database, Globe, Zap } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CheckCircle, Clock, Database, Globe, Zap, Activity, Heart } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { githubAPIMonitoring } from '@/lib/github-api-monitoring';
 
@@ -29,9 +29,21 @@ interface PerformanceAlert {
   details?: any;
 }
 
+interface HealthEndpointData {
+  success: boolean;
+  status: string;
+  timestamp: string;
+  [key: string]: any;
+}
+
 export function PerformanceMonitoringDashboard() {
   const [databaseMetrics, setDatabaseMetrics] = useState<DatabaseMetrics | null>(null);
   const [alerts, setAlerts] = useState<PerformanceAlert[]>([]);
+  const [healthData, setHealthData] = useState<{
+    main: HealthEndpointData | null;
+    database: HealthEndpointData | null;
+    github: HealthEndpointData | null;
+  }>({ main: null, database: null, github: null });
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
@@ -41,9 +53,45 @@ export function PerformanceMonitoringDashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  const fetchHealthEndpoints = async () => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !anonKey) {
+      console.warn('Missing Supabase configuration for health endpoints');
+      return { main: null, database: null, github: null };
+    }
+
+    const headers = {
+      'Authorization': `Bearer ${anonKey}`,
+      'Content-Type': 'application/json'
+    };
+
+    try {
+      const [mainHealth, databaseHealth, githubHealth] = await Promise.allSettled([
+        fetch(`${supabaseUrl}/functions/v1/health`, { headers }).then(r => r.json()),
+        fetch(`${supabaseUrl}/functions/v1/health-database`, { headers }).then(r => r.json()),
+        fetch(`${supabaseUrl}/functions/v1/health-github`, { headers }).then(r => r.json())
+      ]);
+
+      return {
+        main: mainHealth.status === 'fulfilled' ? mainHealth.value : null,
+        database: databaseHealth.status === 'fulfilled' ? databaseHealth.value : null,
+        github: githubHealth.status === 'fulfilled' ? githubHealth.value : null
+      };
+    } catch (error) {
+      console.error('Error fetching health endpoints:', error);
+      return { main: null, database: null, github: null };
+    }
+  };
+
   const loadMetrics = async () => {
     try {
       setLoading(true);
+      
+      // Load health endpoint data
+      const healthEndpoints = await fetchHealthEndpoints();
+      setHealthData(healthEndpoints);
       
       // Load database metrics
       const [
@@ -113,6 +161,8 @@ export function PerformanceMonitoringDashboard() {
   };
 
   const getDatabaseStatus = (): 'good' | 'warning' | 'critical' => {
+    if (healthData.database?.status === 'unhealthy') return 'critical';
+    if (healthData.database?.status === 'degraded') return 'warning';
     if (!databaseMetrics) return 'warning';
     if (databaseMetrics.slowQueries > 10 || databaseMetrics.connectionUtilization > 80) {
       return 'critical';
@@ -121,6 +171,36 @@ export function PerformanceMonitoringDashboard() {
       return 'warning';
     }
     return 'good';
+  };
+
+  const getOverallHealthStatus = (): 'good' | 'warning' | 'critical' => {
+    const dbStatus = getDatabaseStatus();
+    const githubStatus = healthData.github?.status === 'healthy' ? 'good' : 
+                         healthData.github?.status === 'degraded' ? 'warning' : 'critical';
+    const mainStatus = healthData.main?.status === 'healthy' ? 'good' : 
+                       healthData.main?.status === 'degraded' ? 'warning' : 'critical';
+    
+    if (dbStatus === 'critical' || githubStatus === 'critical' || mainStatus === 'critical') {
+      return 'critical';
+    }
+    if (dbStatus === 'warning' || githubStatus === 'warning' || mainStatus === 'warning') {
+      return 'warning';
+    }
+    return 'good';
+  };
+
+  const getHealthSummary = (): string => {
+    const issues = [];
+    if (healthData.database && healthData.database.status !== 'healthy') {
+      issues.push('database');
+    }
+    if (healthData.github && healthData.github.status !== 'healthy') {
+      issues.push('GitHub API');
+    }
+    if (issues.length === 0) {
+      return 'All systems operational';
+    }
+    return `Issues: ${issues.join(', ')}`;
   };
 
   const githubStats = githubAPIMonitoring.getPerformanceStats(60);
@@ -143,7 +223,22 @@ export function PerformanceMonitoringDashboard() {
       </div>
 
       {/* Quick Status Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">System Health</CardTitle>
+            {getStatusIcon(getOverallHealthStatus())}
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {getOverallHealthStatus().toUpperCase()}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {getHealthSummary()}
+            </p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Database Status</CardTitle>
@@ -154,7 +249,7 @@ export function PerformanceMonitoringDashboard() {
               {databaseMetrics ? getDatabaseStatus().toUpperCase() : 'Loading...'}
             </div>
             <p className="text-xs text-muted-foreground">
-              {databaseMetrics?.slowQueries || 0} slow queries detected
+              {healthData.database?.connectivity?.latency ? `${healthData.database.connectivity.latency}ms` : 'N/A'} latency
             </p>
           </CardContent>
         </Card>
@@ -206,12 +301,128 @@ export function PerformanceMonitoringDashboard() {
       </div>
 
       {/* Detailed Metrics */}
-      <Tabs defaultValue="database" className="space-y-4">
+      <Tabs defaultValue="health" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="health">Health Endpoints</TabsTrigger>
           <TabsTrigger value="database">Database</TabsTrigger>
           <TabsTrigger value="api">GitHub API</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="health" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Heart className="h-4 w-4" />
+                  Main Health
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {healthData.main ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Status</span>
+                      <Badge variant={healthData.main.status === 'healthy' ? 'default' : 'destructive'}>
+                        {healthData.main.status}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      DB: {healthData.main.checks?.database?.latency || 'N/A'}ms | 
+                      System: {healthData.main.checks?.system?.latency || 'N/A'}ms
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Updated: {new Date(healthData.main.timestamp).toLocaleTimeString()}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">No data available</div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  Database Health
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {healthData.database ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Status</span>
+                      <Badge variant={healthData.database.status === 'healthy' ? 'default' : 'destructive'}>
+                        {healthData.database.status}
+                      </Badge>
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <div>Connectivity: {healthData.database.connectivity?.latency || 'N/A'}ms</div>
+                      <div>Slow queries: {healthData.database.performance?.slow_queries_5min || 0}</div>
+                      <div>Active alerts: {healthData.database.alerts?.count || 0}</div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Updated: {new Date(healthData.database.timestamp).toLocaleTimeString()}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">No data available</div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  GitHub API Health
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {healthData.github ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Status</span>
+                      <Badge variant={healthData.github.status === 'healthy' ? 'default' : 'destructive'}>
+                        {healthData.github.status}
+                      </Badge>
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <div>Connectivity: {healthData.github.connectivity?.latency || 'N/A'}ms</div>
+                      <div>Auth: {healthData.github.authentication?.status || 'N/A'}</div>
+                      <div>Rate limits: {healthData.github.rate_limits?.status || 'N/A'}</div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Updated: {new Date(healthData.github.timestamp).toLocaleTimeString()}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">No data available</div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Health Recommendations */}
+          {healthData.github?.recommendations && healthData.github.recommendations.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Health Recommendations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {healthData.github.recommendations.map((rec: string, index: number) => (
+                    <Alert key={index} variant="default">
+                      <Activity className="h-4 w-4" />
+                      <AlertDescription>{rec}</AlertDescription>
+                    </Alert>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
         <TabsContent value="database" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">

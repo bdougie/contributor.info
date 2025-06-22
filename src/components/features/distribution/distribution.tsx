@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Card,
@@ -8,7 +8,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { LanguageLegend } from "./language-legend";
-import { DistributionCharts } from "./distribution-charts";
+import { LazyDistributionCharts } from "./distribution-charts-lazy";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
 import { DistributionSkeleton } from "@/components/skeletons";
@@ -32,23 +32,31 @@ export default function Distribution() {
     setSelectedQuadrant(quadrantFromUrl);
   }, [searchParams]);
 
-  // Use our hook
-  const { chartData, loading, getDominantQuadrant, getTotalContributions } =
-    useDistribution(stats.pullRequests);
+  // Filter to only include merged PRs and memoize to prevent infinite re-renders
+  const mergedPullRequests = useMemo(() => 
+    stats.pullRequests.filter(pr => pr.merged_at !== null), 
+    [stats.pullRequests]
+  );
 
-  // Filter PRs based on selected quadrant
-  const filteredPRs = selectedQuadrant
-    ? stats.pullRequests.filter((pr) => {
-        try {
-          // Use the analyzer to determine which quadrant this PR belongs to
-          const metrics = ContributionAnalyzer.analyze(pr);
-          return metrics.quadrant === selectedQuadrant;
-        } catch (error) {
-          console.error("Error analyzing PR:", pr.number, error);
-          return false;
-        }
-      })
-    : stats.pullRequests;
+  // Use our hook with merged PRs only
+  const { chartData, loading, getDominantQuadrant, getTotalContributions } =
+    useDistribution(mergedPullRequests);
+
+  // Filter PRs based on selected quadrant - memoized
+  const filteredPRs = useMemo(() => {
+    if (!selectedQuadrant) return mergedPullRequests;
+    
+    return mergedPullRequests.filter((pr) => {
+      try {
+        // Use the analyzer to determine which quadrant this PR belongs to
+        const metrics = ContributionAnalyzer.analyze(pr);
+        return metrics.quadrant === selectedQuadrant;
+      } catch (error) {
+        console.error("Error analyzing PR:", pr.number, error);
+        return false;
+      }
+    });
+  }, [mergedPullRequests, selectedQuadrant]);
 
   // Calculate total files touched (approximate based on additions/deletions)
   const calculateTotalFiles = (prs: PullRequest[]): number => {
@@ -92,9 +100,9 @@ export default function Distribution() {
   return (
     <Card className="overflow-hidden">
       <CardHeader>
-        <CardTitle>Pull Request Distribution Analysis</CardTitle>
+        <CardTitle>Merged Pull Request Distribution Analysis</CardTitle>
         <CardDescription>
-          Visualize contribution patterns across different categories over the
+          Visualize merged contribution patterns across different categories over the
           past {timeRangeNumber} days
           {selectedQuadrant &&
             ` · Filtered by: ${
@@ -105,18 +113,20 @@ export default function Distribution() {
       <CardContent className="space-y-6 w-full overflow-hidden">
         <div className="text-sm text-muted-foreground">
           {totalFiles.toLocaleString()} files touched ·{" "}
-          {selectedQuadrant ? filteredPRs.length : totalContributions} pull
+          {selectedQuadrant ? filteredPRs.length : totalContributions} merged pull
           requests {selectedQuadrant ? "shown" : "analyzed"}
           {dominantQuadrant && ` · Primary focus: ${dominantQuadrant.label}`}
         </div>
 
-        <DistributionCharts
-          data={chartData}
-          onSegmentClick={handleSegmentClick}
-          filteredPRs={filteredPRs}
-          selectedQuadrant={selectedQuadrant}
-          pullRequests={stats.pullRequests}
-        />
+        <Suspense fallback={<DistributionSkeleton />}>
+          <LazyDistributionCharts
+            data={chartData}
+            onSegmentClick={handleSegmentClick}
+            filteredPRs={filteredPRs}
+            selectedQuadrant={selectedQuadrant}
+            pullRequests={mergedPullRequests}
+          />
+        </Suspense>
 
         <LanguageLegend languages={languageStats} />
       </CardContent>

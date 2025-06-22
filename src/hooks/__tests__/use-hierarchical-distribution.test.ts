@@ -229,11 +229,8 @@ describe("useHierarchicalDistribution", () => {
 
     const { result } = renderHook(() => useHierarchicalDistribution(mockPRs));
 
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "Error analyzing PR:",
-      2,
-      expect.any(Error)
-    );
+    // Error handling should be silent in production
+    expect(consoleSpy).not.toHaveBeenCalled();
 
     // Should still process the successful PR
     const newQuadrant = result.current.hierarchicalData?.children.find(

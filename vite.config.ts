@@ -31,34 +31,61 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'],
-    exclude: ['lucide-react'],
+    include: [
+      'react', 
+      'react-dom',
+      'react-router-dom',
+      '@radix-ui/react-slot',
+      'class-variance-authority',
+      'clsx',
+      'tailwind-merge'
+    ],
+    exclude: ['lucide-react'], // Keep icons separate for better tree-shaking
+    force: true, // Force re-optimization for performance
   },
   build: {
-    // Improve CSS optimization
-    cssCodeSplit: true,
+    // Disable CSS code splitting to prevent FOUC
+    cssCodeSplit: false,
     rollupOptions: {
       output: {
-        // Simple, reliable chunking strategy
+        // Performance-optimized chunking strategy that maintains reliability
         manualChunks: {
-          // Bundle React with all React-related libraries to avoid initialization issues
-          'react-vendor': [
+          // Critical React core - bundle together to prevent initialization issues
+          'react-core': [
             'react', 
-            'react-dom', 
+            'react-dom',
+            '@radix-ui/react-slot' // Essential for UI components
+          ],
+          // React ecosystem - can load after core is initialized
+          'react-ecosystem': [
             'react-router-dom',
-            '@radix-ui/react-slot',
             'class-variance-authority',
             'clsx',
             'tailwind-merge'
           ],
-          // Heavy chart libraries
-          'charts': ['@nivo/scatterplot', 'recharts'],
-          // Other dependencies
-          'vendor': [
-            'date-fns',
-            'zod',
+          // Heavy chart libraries - lazy loaded, separate for better caching
+          'charts-nivo': ['@nivo/scatterplot', '@nivo/core'],
+          'charts-recharts': ['recharts'],
+          // UI component library - used throughout app
+          'ui-radix': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-tooltip'
+          ],
+          // Icons - separate for optimal tree-shaking
+          'icons': ['lucide-react'],
+          // Utilities - frequently used, good for caching
+          'utils': ['date-fns', 'zod'],
+          // State management and data
+          'data': [
             'zustand',
-            '@supabase/supabase-js',
+            '@supabase/supabase-js'
+          ],
+          // Analytics - non-critical, can load later
+          'analytics': [
             'posthog-js',
             '@sentry/react'
           ]
@@ -69,12 +96,17 @@ export default defineConfig({
     cssMinify: 'esbuild',
     // Disable sourcemaps for production to reduce bundle size
     sourcemap: false,
-    // Optimize minification
+    // Optimize minification and target
     minify: 'esbuild',
-    // Optimize chunk size warnings
-    chunkSizeWarningLimit: 500,
+    target: 'es2020', // Modern target for better optimization while maintaining compatibility
+    // Optimize chunk size warnings  
+    chunkSizeWarningLimit: 600, // Slightly more lenient given postmortem learnings
     // Enable compression reporting
     reportCompressedSize: true,
+    // Module preload optimization for better loading performance
+    modulePreload: {
+      polyfill: true,
+    },
   },
   css: {
     devSourcemap: true,

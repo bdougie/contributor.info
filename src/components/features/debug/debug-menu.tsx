@@ -9,7 +9,8 @@ import {
   Palette, 
   Activity,
   FileText,
-  Globe
+  Globe,
+  Monitor
 } from "lucide-react";
 
 interface DebugRoute {
@@ -17,10 +18,17 @@ interface DebugRoute {
   title: string;
   description: string;
   icon: React.ReactNode;
-  category: "auth" | "testing" | "dev" | "insights" | "docs";
+  category: "auth" | "testing" | "dev" | "insights" | "docs" | "monitoring";
 }
 
 const debugRoutes: DebugRoute[] = [
+  {
+    path: "/dev/performance-monitoring",
+    title: "Performance Monitoring",
+    description: "Real-time database performance, GitHub API metrics, and system health monitoring",
+    icon: <Monitor className="h-4 w-4" />,
+    category: "monitoring"
+  },
   {
     path: "/dev/debug-auth",
     title: "Authentication Debug",
@@ -63,7 +71,8 @@ const categoryColors = {
   testing: "bg-green-100 text-green-800",
   dev: "bg-purple-100 text-purple-800",
   insights: "bg-orange-100 text-orange-800",
-  docs: "bg-gray-100 text-gray-800"
+  docs: "bg-gray-100 text-gray-800",
+  monitoring: "bg-red-100 text-red-800"
 };
 
 export function DebugMenu() {
