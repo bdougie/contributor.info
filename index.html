@@ -16,6 +16,8 @@
     <link rel="dns-prefetch" href="https://github.com">
     
     <!-- Preload critical resources for LCP optimization -->
+    <link rel="modulepreload" href="/src/main.tsx" />
+    <link rel="modulepreload" href="/src/App.tsx" />
     <link rel="preload" as="style" href="/src/index.css" />
     
     <!-- Critical CSS for above-the-fold content -->
@@ -47,51 +49,6 @@
       .loading-skeleton{background:linear-gradient(90deg,hsl(var(--muted)) 25%,hsl(var(--muted)/.5) 50%,hsl(var(--muted)) 75%);background-size:200% 100%;animation:loading 1.5s infinite}
       @keyframes loading{0%{background-position:200% 0}100%{background-position:-200% 0}}
     </style>
-    
-    <!-- Load non-critical CSS asynchronously -->
-    <script>
-      // Enhanced async CSS loading with fallback
-      function loadCSS(href, onload) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = href;
-        link.media = 'print';
-        link.onload = function() { 
-          this.media = 'all'; 
-          if (onload) onload();
-        };
-        link.onerror = function() {
-          // Fallback: force load even if there's an error
-          this.media = 'all';
-        };
-        document.head.appendChild(link);
-        
-        // Fallback timeout in case onload doesn't fire
-        setTimeout(function() {
-          if (link.media !== 'all') {
-            link.media = 'all';
-          }
-        }, 100);
-      }
-      
-      // Load main CSS after critical rendering path
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initAsyncCSS);
-      } else {
-        initAsyncCSS();
-      }
-      
-      function initAsyncCSS() {
-        // Handle existing stylesheet elements injected by Vite
-        const existingCSS = document.querySelectorAll('link[rel="stylesheet"]');
-        existingCSS.forEach(function(link) {
-          if (link.href && !link.href.includes('critical')) {
-            link.media = 'print';
-            link.onload = function() { this.media = 'all'; };
-          }
-        });
-      }
-    </script>
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
