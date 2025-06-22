@@ -6,32 +6,6 @@ import { imagetools } from 'vite-imagetools';
 export default defineConfig({
   plugins: [
     react(),
-    {
-      name: 'html-transform',
-      transformIndexHtml(html) {
-        // Extract all modulepreload links
-        const modulePreloads: string[] = [];
-        const reactCorePreload: string[] = [];
-        const reactDepsPreload: string[] = [];
-        
-        html = html.replace(/<link rel="modulepreload"[^>]*>/g, (match) => {
-          if (match.includes('/react-') && !match.includes('react-deps')) {
-            // This is the core React bundle
-            reactCorePreload.push(match);
-          } else if (match.includes('react-deps')) {
-            // This is React-dependent libraries
-            reactDepsPreload.push(match);
-          } else {
-            modulePreloads.push(match);
-          }
-          return '';
-        });
-        
-        // Re-insert with correct order: React core first, then deps, then others
-        const allPreloads = [...reactCorePreload, ...reactDepsPreload, ...modulePreloads].join('\n    ');
-        return html.replace('</head>', `    ${allPreloads}\n  </head>`);
-      },
-    },
     imagetools({
       defaultDirectives: (url) => {
         // Only process images with query parameters
@@ -65,25 +39,29 @@ export default defineConfig({
     cssCodeSplit: true,
     rollupOptions: {
       output: {
-        // Ensure proper module initialization order
-        manualChunks: (id) => {
-          // React MUST be in its own chunk
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
-            return 'react';
-          }
-          // All React-dependent libraries should be in a separate chunk that loads after React
-          if (id.includes('node_modules') && (
-            id.includes('@radix-ui') || 
-            id.includes('react-router') ||
-            id.includes('@sentry/react') ||
-            id.includes('react-')
-          )) {
-            return 'react-deps';
-          }
-          // Other vendor modules
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
+        // Simple, reliable chunking strategy
+        manualChunks: {
+          // Bundle React with all React-related libraries to avoid initialization issues
+          'react-vendor': [
+            'react', 
+            'react-dom', 
+            'react-router-dom',
+            '@radix-ui/react-slot',
+            'class-variance-authority',
+            'clsx',
+            'tailwind-merge'
+          ],
+          // Heavy chart libraries
+          'charts': ['@nivo/scatterplot', 'recharts'],
+          // Other dependencies
+          'vendor': [
+            'date-fns',
+            'zod',
+            'zustand',
+            '@supabase/supabase-js',
+            'posthog-js',
+            '@sentry/react'
+          ]
         },
       },
     },
