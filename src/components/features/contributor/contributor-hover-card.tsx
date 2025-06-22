@@ -1,6 +1,6 @@
-import { GitPullRequest, UserIcon, MessageSquare, GitPullRequestDraft } from "lucide-react";
+import { GitPullRequest, MessageSquare, GitPullRequestDraft } from "lucide-react";
 import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -87,16 +87,14 @@ export function ContributorHoverCard({
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Avatar className="h-12 w-12 cursor-pointer hover:opacity-80 transition-opacity">
-                <AvatarImage src={contributor.avatar_url} />
-                <AvatarFallback>
-                  {contributor.login ? (
-                    contributor.login[0].toUpperCase()
-                  ) : (
-                    <UserIcon className="h-4 w-4" />
-                  )}
-                </AvatarFallback>
-              </Avatar>
+              <OptimizedAvatar
+                src={contributor.avatar_url}
+                alt={contributor.login}
+                size={48}
+                priority={true}
+                fallback={contributor.login ? contributor.login[0].toUpperCase() : '?'}
+                className="cursor-pointer hover:opacity-80 transition-opacity"
+              />
             </a>
             <div className="flex-1 min-w-0">
               <a
@@ -182,12 +180,14 @@ export function ContributorHoverCard({
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 px-2 py-1 rounded-md border bg-muted/30 hover:bg-muted/50 transition-colors"
                   >
-                    <Avatar className="h-4 w-4">
-                      <AvatarImage src={org.avatar_url} alt={org.login} />
-                      <AvatarFallback className="text-xs">
-                        {org.login[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <OptimizedAvatar
+                      src={org.avatar_url}
+                      alt={org.login}
+                      size={32}
+                      lazy={false}
+                      fallback={org.login[0].toUpperCase()}
+                      className="h-4 w-4"
+                    />
                     <span className="text-xs">{org.login}</span>
                   </a>
                 ))}
