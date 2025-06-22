@@ -97,7 +97,7 @@ const getPrimaryLanguage = (pr: PullRequest): { name: string; color: string } =>
   };
 };
 
-export function DistributionCharts({
+function DistributionCharts({
   data,
   onSegmentClick,
   filteredPRs = [],
@@ -683,4 +683,5 @@ export function DistributionCharts({
   );
 }
 
-// Export removed to improve performance
+export default DistributionCharts;
+export { DistributionCharts };

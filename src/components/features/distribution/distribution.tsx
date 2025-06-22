@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Card,
@@ -8,7 +8,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { LanguageLegend } from "./language-legend";
-import { DistributionCharts } from "./distribution-charts";
+import { LazyDistributionCharts } from "./distribution-charts-lazy";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
 import { DistributionSkeleton } from "@/components/skeletons";
@@ -32,23 +32,28 @@ export default function Distribution() {
     setSelectedQuadrant(quadrantFromUrl);
   }, [searchParams]);
 
-  // Use our hook
-  const { chartData, loading, getDominantQuadrant, getTotalContributions } =
-    useDistribution(stats.pullRequests);
+  // Memoize pull requests to prevent infinite re-renders
+  const memoizedPullRequests = useMemo(() => stats.pullRequests, [stats.pullRequests]);
 
-  // Filter PRs based on selected quadrant
-  const filteredPRs = selectedQuadrant
-    ? stats.pullRequests.filter((pr) => {
-        try {
-          // Use the analyzer to determine which quadrant this PR belongs to
-          const metrics = ContributionAnalyzer.analyze(pr);
-          return metrics.quadrant === selectedQuadrant;
-        } catch (error) {
-          console.error("Error analyzing PR:", pr.number, error);
-          return false;
-        }
-      })
-    : stats.pullRequests;
+  // Use our hook with memoized data
+  const { chartData, loading, getDominantQuadrant, getTotalContributions } =
+    useDistribution(memoizedPullRequests);
+
+  // Filter PRs based on selected quadrant - memoized
+  const filteredPRs = useMemo(() => {
+    if (!selectedQuadrant) return memoizedPullRequests;
+    
+    return memoizedPullRequests.filter((pr) => {
+      try {
+        // Use the analyzer to determine which quadrant this PR belongs to
+        const metrics = ContributionAnalyzer.analyze(pr);
+        return metrics.quadrant === selectedQuadrant;
+      } catch (error) {
+        console.error("Error analyzing PR:", pr.number, error);
+        return false;
+      }
+    });
+  }, [memoizedPullRequests, selectedQuadrant]);
 
   // Calculate total files touched (approximate based on additions/deletions)
   const calculateTotalFiles = (prs: PullRequest[]): number => {
@@ -110,13 +115,15 @@ export default function Distribution() {
           {dominantQuadrant && ` · Primary focus: ${dominantQuadrant.label}`}
         </div>
 
-        <DistributionCharts
-          data={chartData}
-          onSegmentClick={handleSegmentClick}
-          filteredPRs={filteredPRs}
-          selectedQuadrant={selectedQuadrant}
-          pullRequests={stats.pullRequests}
-        />
+        <Suspense fallback={<DistributionSkeleton />}>
+          <LazyDistributionCharts
+            data={chartData}
+            onSegmentClick={handleSegmentClick}
+            filteredPRs={filteredPRs}
+            selectedQuadrant={selectedQuadrant}
+            pullRequests={memoizedPullRequests}
+          />
+        </Suspense>
 
         <LanguageLegend languages={languageStats} />
       </CardContent>
