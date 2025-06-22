@@ -33,6 +33,7 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom'],
     exclude: ['lucide-react'], // Keep icons separate for better tree-shaking
+    force: true, // Force re-optimization for performance
   },
   build: {
     // Disable CSS code splitting to prevent FOUC
@@ -51,16 +52,20 @@ export default defineConfig({
             'clsx',
             'tailwind-merge'
           ],
-          // Heavy chart libraries - only split these as they're clearly isolatable
-          'charts': ['@nivo/scatterplot', 'recharts'],
+          // Split chart libraries for better caching
+          'charts-nivo': ['@nivo/scatterplot', '@nivo/core'],
+          'charts-recharts': ['recharts'],
           // Separate Lucide icons for better tree-shaking
           'icons': ['lucide-react'],
-          // Other dependencies - keep conservative grouping
+          // Split heavy utilities
+          'utils': ['date-fns', 'zod'],
+          // Core vendor dependencies
           'vendor': [
-            'date-fns',
-            'zod',
             'zustand',
-            '@supabase/supabase-js',
+            '@supabase/supabase-js'
+          ],
+          // Analytics/monitoring (non-critical)
+          'analytics': [
             'posthog-js',
             '@sentry/react'
           ]
