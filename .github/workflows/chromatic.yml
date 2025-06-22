@@ -45,6 +45,12 @@ jobs:
           VITE_SUPABASE_URL: http://localhost:54321
           VITE_SUPABASE_ANON_KEY: mock-anon-key
 
+      - name: Run Storybook Tests
+        run: npm run test-storybook
+        env:
+          VITE_SUPABASE_URL: http://localhost:54321
+          VITE_SUPABASE_ANON_KEY: mock-anon-key
+
       - name: Publish to Chromatic
         uses: chromaui/action@latest
         with:
