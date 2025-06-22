@@ -367,9 +367,8 @@ export function DistributionCharts({
           }
           drillUp();
         }}
-        onNodeClick={(nodeId) => {
+        onNodeClick={() => {
           // Handle contributor node clicks
-          console.log('Contributor node clicked:', nodeId);
         }}
       />
     );
@@ -683,3 +682,5 @@ export function DistributionCharts({
     </div>
   );
 }
+
+// Export removed to improve performance

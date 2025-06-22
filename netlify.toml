@@ -44,13 +44,8 @@
   status = 200
   force = false
 
-# Explicit MIME type headers to prevent module loading issues
+# Font and image optimizations
 [[headers]]
-  for = "/*.js"
+  for = "/*.woff2"
   [headers.values]
-    Content-Type = "text/javascript"
-
-[[headers]]
-  for = "/*.css"
-  [headers.values]
-    Content-Type = "text/css"
+    Content-Type = "font/woff2"

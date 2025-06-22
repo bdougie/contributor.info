@@ -178,14 +178,10 @@ describe("useContributorData", () => {
 
     // Wait for the effect to run and verify organizations is empty
     await vi.waitFor(() => {
-      expect(console.error).toHaveBeenCalledWith(
-        "Error fetching organizations:",
-        expect.any(Error)
-      );
+      expect(result.current.organizations).toEqual([]);
     });
 
-    // Should still have PR data but empty organizations
-    expect(result.current.organizations).toEqual([]);
+    // Should still have PR data but empty organizations due to error handling
   });
 
   it("should handle users with no PRs", async () => {

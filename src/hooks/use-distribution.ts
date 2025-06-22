@@ -120,8 +120,7 @@ export function useDistribution(pullRequests: PullRequest[]) {
       const newDistribution = ContributionAnalyzer.getDistribution();
       const newCounts = ContributionAnalyzer.getCounts();
       
-      // Log for debugging
-      console.log("Quadrant counts from analyzer:", newCounts);
+      // Analysis complete
       
       // Update state with counts and distribution
       setDistribution(newDistribution);
@@ -146,7 +145,6 @@ export function useDistribution(pullRequests: PullRequest[]) {
       setChartData(data);
       setError(null);
     } catch (err) {
-      console.error('Error analyzing distribution:', err);
       setError(err instanceof Error ? err : new Error('Failed to analyze distribution'));
     } finally {
       setLoading(false);

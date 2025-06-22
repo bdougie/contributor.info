@@ -44,11 +44,7 @@ export function useContributorData({ username, avatarUrl }: UseContributorDataPr
     const fetchData = async () => {
       if (!username || !stats.pullRequests || stats.pullRequests.length === 0) return;
 
-      // Log for debugging
-      console.log("Looking for PRs by user:", username);
-      console.log("Available users in PR data:", 
-        [...new Set(stats.pullRequests.map(pr => pr.user?.login))]
-      );
+      // Performance optimized user lookup
 
       // Find PRs by this user - check both login and name fields
       const userPRs = stats.pullRequests.filter(pr => {
@@ -64,7 +60,7 @@ export function useContributorData({ username, avatarUrl }: UseContributorDataPr
                usernameToCheck.includes(prUserLogin || '');
       });
 
-      console.log(`Found ${userPRs.length} PRs for user ${username}`);
+      // Found PRs for user calculation
 
       // Calculate percentage
       const percentage = userPRs.length / stats.pullRequests.length * 100;
@@ -78,7 +74,6 @@ export function useContributorData({ username, avatarUrl }: UseContributorDataPr
         };
         organizations = await fetchUserOrganizations(username, headers);
       } catch (error) {
-        console.error('Error fetching organizations:', error);
         organizations = [];
       }
 

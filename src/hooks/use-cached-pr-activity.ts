@@ -260,7 +260,6 @@ export function useCachedPRActivity(pullRequests: PullRequest[]) {
       setActivities(processedActivities);
       setError(null);
     } catch (err) {
-      console.error("Error processing PR activity:", err);
       setError(
         err instanceof Error ? err : new Error("Failed to process PR activity")
       );

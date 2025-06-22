@@ -46,9 +46,7 @@ export function useOnDemandSync({
       const { data: { session } } = await supabase.auth.getSession()
       setIsAuthenticated(!!session)
       
-      console.log(`[OnDemandSync] Checking data for ${owner}/${repo}`)
-      console.log(`[OnDemandSync] User authenticated: ${!!session}`)
-      console.log(`[OnDemandSync] Has provider token: ${!!session?.provider_token}`)
+      // Check data for repository
 
       // Check for contributor roles data
       const { data: roles, error: rolesError } = await supabase
@@ -59,7 +57,6 @@ export function useOnDemandSync({
         .limit(1)
 
       if (rolesError) {
-        console.error('[OnDemandSync] Error checking contributor roles:', rolesError)
         return
       }
 
@@ -72,7 +69,6 @@ export function useOnDemandSync({
         .single()
 
       if (syncError && syncError.code !== 'PGRST116') {
-        console.error('Error checking sync status:', syncError)
         return
       }
 
@@ -98,20 +94,11 @@ export function useOnDemandSync({
 
       // Auto-trigger sync if no data exists, user is authenticated, and not already triggered
       if (autoTriggerOnEmpty && !hasExistingData && !syncTriggeredRef.current && !syncData?.sync_status && session) {
-        console.log(`[OnDemandSync] No data found for ${owner}/${repo}, triggering automatic sync...`)
         triggerSync()
-      } else {
-        console.log(`[OnDemandSync] Auto-trigger conditions:`, {
-          autoTriggerOnEmpty,
-          hasExistingData,
-          syncTriggeredRef: syncTriggeredRef.current,
-          syncStatus: syncData?.sync_status,
-          hasSession: !!session
-        })
       }
 
     } catch (error) {
-      console.error('Error checking for existing data:', error)
+      // Silently handle data check errors
     }
   }, [owner, repo, enabled, autoTriggerOnEmpty])
 
@@ -133,13 +120,7 @@ export function useOnDemandSync({
       const { data: { session } } = await supabase.auth.getSession()
       const userToken = session?.provider_token
       
-      console.log(`[OnDemandSync] Triggering sync for ${owner}/${repo}`)
-      console.log(`[OnDemandSync] User token available: ${!!userToken}`)
-      console.log(`[OnDemandSync] Session details:`, {
-        hasSession: !!session,
-        hasProviderToken: !!session?.provider_token,
-        provider: session?.user?.app_metadata?.provider
-      })
+      // Trigger sync for repository
 
       const requestBody = {
         owner,
@@ -147,8 +128,7 @@ export function useOnDemandSync({
         github_token: userToken // Pass user's token to Edge Function
       }
 
-      console.log(`[OnDemandSync] Edge Function URL: ${import.meta.env.VITE_SUPABASE_URL}/functions/v1/github-sync`)
-      console.log(`[OnDemandSync] Request body:`, { ...requestBody, github_token: requestBody.github_token ? '[REDACTED]' : null })
+      // Call Edge Function
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/github-sync`, {
         method: 'POST',
@@ -161,11 +141,9 @@ export function useOnDemandSync({
 
       const result = await response.json()
       
-      console.log(`[OnDemandSync] Response status: ${response.status}`)
-      console.log(`[OnDemandSync] Response data:`, result)
+      // Process response
 
       if (!response.ok) {
-        console.error(`[OnDemandSync] Sync failed:`, result)
         throw new Error(result.error || `HTTP ${response.status}`)
       }
 
@@ -183,7 +161,6 @@ export function useOnDemandSync({
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sync failed'
-      console.error('Error triggering sync:', errorMessage)
       
       setSyncStatus(prev => ({
         ...prev,
@@ -212,7 +189,6 @@ export function useOnDemandSync({
           .single()
 
         if (error) {
-          console.error('Error polling sync status:', error)
           return
         }
 
@@ -242,7 +218,7 @@ export function useOnDemandSync({
           }
         }
       } catch (error) {
-        console.error('Error during polling:', error)
+        // Silently handle polling errors
       }
     }, 2000) // Poll every 2 seconds
   }, [owner, repo, checkForExistingData])
