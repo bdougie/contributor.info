@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, memo } from "react";
+import { useState, useEffect, Suspense } from "react";
 import {
   PieChart,
   Pie,
@@ -683,4 +683,4 @@ export function DistributionCharts({
   );
 }
 
-export default memo(DistributionCharts);
+// Export removed to improve performance

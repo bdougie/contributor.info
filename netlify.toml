@@ -1,12 +1,11 @@
 [build]
   publish = "dist"
 
-# Headers for proper MIME types and performance
+# Headers for proper MIME types
 [[headers]]
   for = "/*.js"
   [headers.values]
     Content-Type = "text/javascript"
-    Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
   for = "/*.mjs"
@@ -45,24 +44,8 @@
   status = 200
   force = false
 
-# Additional performance headers
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
+# Font and image optimizations
 [[headers]]
   for = "/*.woff2"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
     Content-Type = "font/woff2"
-
-[[headers]]
-  for = "/*.webp"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.avif"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
