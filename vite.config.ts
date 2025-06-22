@@ -31,7 +31,15 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'],
+    include: [
+      'react', 
+      'react-dom',
+      'react-router-dom',
+      '@radix-ui/react-slot',
+      'class-variance-authority',
+      'clsx',
+      'tailwind-merge'
+    ],
     exclude: ['lucide-react'], // Keep icons separate for better tree-shaking
     force: true, // Force re-optimization for performance
   },
@@ -40,31 +48,43 @@ export default defineConfig({
     cssCodeSplit: false,
     rollupOptions: {
       output: {
-        // Simple, reliable chunking strategy
+        // Performance-optimized chunking strategy that maintains reliability
         manualChunks: {
-          // Bundle React with all React-related libraries to avoid initialization issues
-          'react-vendor': [
+          // Critical React core - bundle together to prevent initialization issues
+          'react-core': [
             'react', 
-            'react-dom', 
+            'react-dom',
+            '@radix-ui/react-slot' // Essential for UI components
+          ],
+          // React ecosystem - can load after core is initialized
+          'react-ecosystem': [
             'react-router-dom',
-            '@radix-ui/react-slot',
             'class-variance-authority',
             'clsx',
             'tailwind-merge'
           ],
-          // Split chart libraries for better caching
+          // Heavy chart libraries - lazy loaded, separate for better caching
           'charts-nivo': ['@nivo/scatterplot', '@nivo/core'],
           'charts-recharts': ['recharts'],
-          // Separate Lucide icons for better tree-shaking
+          // UI component library - used throughout app
+          'ui-radix': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-tooltip'
+          ],
+          // Icons - separate for optimal tree-shaking
           'icons': ['lucide-react'],
-          // Split heavy utilities
+          // Utilities - frequently used, good for caching
           'utils': ['date-fns', 'zod'],
-          // Core vendor dependencies
-          'vendor': [
+          // State management and data
+          'data': [
             'zustand',
             '@supabase/supabase-js'
           ],
-          // Analytics/monitoring (non-critical)
+          // Analytics - non-critical, can load later
           'analytics': [
             'posthog-js',
             '@sentry/react'
@@ -83,6 +103,10 @@ export default defineConfig({
     chunkSizeWarningLimit: 600, // Slightly more lenient given postmortem learnings
     // Enable compression reporting
     reportCompressedSize: true,
+    // Module preload optimization for better loading performance
+    modulePreload: {
+      polyfill: true,
+    },
   },
   css: {
     devSourcemap: true,

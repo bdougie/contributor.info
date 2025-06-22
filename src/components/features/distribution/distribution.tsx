@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Card,
@@ -8,7 +8,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { LanguageLegend } from "./language-legend";
-import { DistributionCharts } from "./distribution-charts";
+import { LazyDistributionCharts } from "./distribution-charts-lazy";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
 import { DistributionSkeleton } from "@/components/skeletons";
@@ -32,26 +32,31 @@ export default function Distribution() {
     setSelectedQuadrant(quadrantFromUrl);
   }, [searchParams]);
 
-  // Filter to only include merged PRs
-  const mergedPullRequests = stats.pullRequests.filter(pr => pr.merged_at !== null);
+  // Filter to only include merged PRs and memoize to prevent infinite re-renders
+  const mergedPullRequests = useMemo(() => 
+    stats.pullRequests.filter(pr => pr.merged_at !== null), 
+    [stats.pullRequests]
+  );
 
   // Use our hook with merged PRs only
   const { chartData, loading, getDominantQuadrant, getTotalContributions } =
     useDistribution(mergedPullRequests);
 
-  // Filter PRs based on selected quadrant (from merged PRs only)
-  const filteredPRs = selectedQuadrant
-    ? mergedPullRequests.filter((pr) => {
-        try {
-          // Use the analyzer to determine which quadrant this PR belongs to
-          const metrics = ContributionAnalyzer.analyze(pr);
-          return metrics.quadrant === selectedQuadrant;
-        } catch (error) {
-          console.error("Error analyzing PR:", pr.number, error);
-          return false;
-        }
-      })
-    : mergedPullRequests;
+  // Filter PRs based on selected quadrant - memoized
+  const filteredPRs = useMemo(() => {
+    if (!selectedQuadrant) return mergedPullRequests;
+    
+    return mergedPullRequests.filter((pr) => {
+      try {
+        // Use the analyzer to determine which quadrant this PR belongs to
+        const metrics = ContributionAnalyzer.analyze(pr);
+        return metrics.quadrant === selectedQuadrant;
+      } catch (error) {
+        console.error("Error analyzing PR:", pr.number, error);
+        return false;
+      }
+    });
+  }, [mergedPullRequests, selectedQuadrant]);
 
   // Calculate total files touched (approximate based on additions/deletions)
   const calculateTotalFiles = (prs: PullRequest[]): number => {
@@ -113,13 +118,15 @@ export default function Distribution() {
           {dominantQuadrant && ` · Primary focus: ${dominantQuadrant.label}`}
         </div>
 
-        <DistributionCharts
-          data={chartData}
-          onSegmentClick={handleSegmentClick}
-          filteredPRs={filteredPRs}
-          selectedQuadrant={selectedQuadrant}
-          pullRequests={mergedPullRequests}
-        />
+        <Suspense fallback={<DistributionSkeleton />}>
+          <LazyDistributionCharts
+            data={chartData}
+            onSegmentClick={handleSegmentClick}
+            filteredPRs={filteredPRs}
+            selectedQuadrant={selectedQuadrant}
+            pullRequests={mergedPullRequests}
+          />
+        </Suspense>
 
         <LanguageLegend languages={languageStats} />
       </CardContent>
