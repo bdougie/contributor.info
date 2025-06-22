@@ -27,7 +27,32 @@ vi.mock("@/lib/contribution-analyzer", () => ({
 
 // Mock child components
 vi.mock("../distribution-charts", () => ({
+  default: vi.fn(({ onSegmentClick, selectedQuadrant }) => (
+    <div data-testid="distribution-charts">
+      <button onClick={() => onSegmentClick("new-feature")}>
+        New Feature
+      </button>
+      <button onClick={() => onSegmentClick("maintenance")}>
+        Maintenance
+      </button>
+      <div>Selected: {selectedQuadrant || "none"}</div>
+    </div>
+  )),
   DistributionCharts: vi.fn(({ onSegmentClick, selectedQuadrant }) => (
+    <div data-testid="distribution-charts">
+      <button onClick={() => onSegmentClick("new-feature")}>
+        New Feature
+      </button>
+      <button onClick={() => onSegmentClick("maintenance")}>
+        Maintenance
+      </button>
+      <div>Selected: {selectedQuadrant || "none"}</div>
+    </div>
+  )),
+}));
+
+vi.mock("../distribution-charts-lazy", () => ({
+  LazyDistributionCharts: vi.fn(({ onSegmentClick, selectedQuadrant }) => (
     <div data-testid="distribution-charts">
       <button onClick={() => onSegmentClick("new-feature")}>
         New Feature

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Outlet } from "react-router-dom";
 import {
   Card,
@@ -53,7 +53,15 @@ export default function RepoView() {
   const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
     useRepoSearch({ isHomeView: false });
 
-  if (stats.loading) {
+  // Update document title when owner/repo changes
+  useEffect(() => {
+    if (owner && repo) {
+      document.title = `${owner}/${repo} - Contributor Analysis`;
+    }
+  }, [owner, repo]);
+
+  // Only show full skeleton if we don't have owner/repo params yet
+  if (stats.loading && (!owner || !repo)) {
     return <RepoViewSkeleton />;
   }
 
@@ -151,7 +159,33 @@ export default function RepoView() {
                   setIncludeBots,
                 }}
               >
-                <Outlet />
+                {stats.loading ? (
+                  <div className="space-y-4">
+                    <div className="text-center text-muted-foreground">
+                      Loading repository data...
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Card>
+                        <CardContent className="p-6">
+                          <div className="animate-pulse space-y-3">
+                            <div className="h-4 bg-muted rounded w-1/2"></div>
+                            <div className="h-32 bg-muted rounded"></div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-6">
+                          <div className="animate-pulse space-y-3">
+                            <div className="h-4 bg-muted rounded w-1/2"></div>
+                            <div className="h-32 bg-muted rounded"></div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                ) : (
+                  <Outlet />
+                )}
               </RepoStatsProvider>
             </div>
           </CardContent>
@@ -164,7 +198,11 @@ export default function RepoView() {
 
 // Route components
 export function LotteryFactorRoute() {
-  return <RepositoryHealthCard />;
+  return (
+    <ProgressiveChartWrapper>
+      <RepositoryHealthCard />
+    </ProgressiveChartWrapper>
+  );
 }
 
 export function ContributionsRoute() {
@@ -177,13 +215,50 @@ export function ContributionsRoute() {
 
   return (
     <div className="space-y-8">
-      <Contributions />
-      <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
-      <ContributorOfMonthWrapper />
+      {/* Progressive loading: Charts load independently */}
+      <ProgressiveChartWrapper>
+        <Contributions />
+      </ProgressiveChartWrapper>
+      
+      <ProgressiveChartWrapper>
+        <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
+      </ProgressiveChartWrapper>
+      
+      <ProgressiveChartWrapper>
+        <ContributorOfMonthWrapper />
+      </ProgressiveChartWrapper>
     </div>
   );
 }
 
 export function DistributionRoute() {
-  return <Distribution />;
+  return (
+    <ProgressiveChartWrapper>
+      <Distribution />
+    </ProgressiveChartWrapper>
+  );
+}
+
+// Progressive Chart Wrapper - loads individual components with their own loading states
+function ProgressiveChartWrapper({ children }: { children: React.ReactNode }) {
+  const ChartSkeleton = () => (
+    <Card>
+      <CardContent className="p-6">
+        <div className="animate-pulse space-y-3">
+          <div className="h-4 bg-muted rounded w-1/3"></div>
+          <div className="h-48 bg-muted rounded"></div>
+          <div className="flex gap-4">
+            <div className="h-8 bg-muted rounded w-16"></div>
+            <div className="h-8 bg-muted rounded w-16"></div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <Suspense fallback={<ChartSkeleton />}>
+      {children}
+    </Suspense>
+  );
 }
