@@ -134,10 +134,10 @@ export function ActivityItem({ activity }: ActivityItemProps) {
         ></div>
       </div>
 
-      <div className="flex-1 space-y-1">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-1 text-sm">
+      <div className="flex-1 space-y-1 min-w-0">
+        <div className="flex flex-col space-y-1 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1 min-w-0 flex-1">
+            <div className="flex items-center space-x-1 text-sm flex-wrap">
               <span className="font-medium">{user.name}</span>
               {user.isBot && (
                 <TooltipProvider>
@@ -163,16 +163,17 @@ export function ActivityItem({ activity }: ActivityItemProps) {
               <span className="text-muted-foreground">in</span>
               <a
                 href={repository.url}
-                className="text-primary hover:underline"
+                className="text-primary hover:underline truncate max-w-[200px] sm:max-w-none"
                 target="_blank"
                 rel="noopener noreferrer"
+                title={`${repository.owner}/${repository.name}`}
               >
                 {repository.owner}/{repository.name}
               </a>
             </div>
-            <p className="text-sm line-clamp-1">{pullRequest.title}</p>
+            <p className="text-sm line-clamp-1 pr-2">{pullRequest.title}</p>
           </div>
-          <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
+          <span className="text-xs text-muted-foreground whitespace-nowrap sm:ml-2">
             {timestamp}
           </span>
         </div>
