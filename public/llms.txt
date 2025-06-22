@@ -1,0 +1,23 @@
+# Contributor.info
+
+> A web application that analyzes GitHub repositories to provide insights about contributors, pull requests, and team dynamics. Users can sign in with GitHub, search any public repository, and discover contributor patterns, activity trends, and project health metrics.
+
+This application helps repository maintainers, team leads, and open source contributors understand project collaboration patterns. Key insights include contributor distribution analysis, pull request activity monitoring, lottery factor assessment for project sustainability, and team velocity tracking.
+
+The app provides real-time GitHub data visualization, contributor rankings and profiles, PR workflow analytics, and actionable recommendations for improving project health and contributor engagement.
+
+## User Experience & Features
+
+- [Lottery Factor Insights](docs/feature-lottery-factor.md): Understanding project sustainability and contributor distribution risk assessment
+- [PR Activity Analytics](docs/insight-pr-activity.md): Real-time pull request monitoring, team velocity, and workflow health metrics
+- [Quick Start Guide](README.md): How to use the application - sign in, search repositories, and explore insights
+
+## Getting Started
+
+- [Project Overview](README.md): Features overview, live application access, and basic usage instructions
+- [Contributing Guide](CONTRIBUTING.md): For developers who want to contribute to the project
+
+## Optional
+
+- [Development Documentation](CLAUDE.md): Technical guidelines and build commands for contributors
+- [Architecture Documentation](CONTRIBUTING.md): Database schema and technical implementation details
