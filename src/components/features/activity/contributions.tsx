@@ -38,15 +38,23 @@ function ContributionsChart() {
 
   const functionTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  // Add resize listener to update isMobile state
+  // Add resize listener to update isMobile state with throttling
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+      if (functionTimeout.current) {
+        clearTimeout(functionTimeout.current);
+      }
+      functionTimeout.current = setTimeout(() => {
+        setIsMobile(window.innerWidth < 768);
+      }, 150); // Throttle resize events
     };
 
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", handleResize, { passive: true });
     return () => {
       window.removeEventListener("resize", handleResize);
+      if (functionTimeout.current) {
+        clearTimeout(functionTimeout.current);
+      }
     };
   }, []);
 
