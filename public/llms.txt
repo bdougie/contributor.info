@@ -10,6 +10,16 @@ The app provides real-time GitHub data visualization, contributor rankings and p
 
 - [Lottery Factor Insights](docs/feature-lottery-factor.md): Understanding project sustainability and contributor distribution risk assessment
 - [PR Activity Analytics](docs/insight-pr-activity.md): Real-time pull request monitoring, team velocity, and workflow health metrics
+- [Distribution Charts](docs/feature-distribution-charts.md): Language distribution analysis and contribution pattern visualization across programming languages and contributor quadrants
+- [Contributor of the Month](docs/feature-contributor-of-month.md): Monthly contributor recognition system with rankings, leaderboards, and achievement tracking
+- [Repository Activity Feed](docs/feature-activity-feed.md): Real-time chronological stream of pull request activity, contributor interactions, and project developments
+- [Contribution Analytics](docs/feature-contribution-analytics.md): Advanced contribution classification using quadrant analysis for impact and effort assessment
+- [Repository Search & Tracking](docs/feature-repository-search.md): Comprehensive repository discovery, analysis, and monitoring capabilities with search and tracking features
+- [Social Cards](docs/feature-social-cards.md): Automated generation of shareable visual summaries for social media and project promotion
+- [Contributor Profiles](docs/feature-contributor-profiles.md): Detailed individual contributor analysis including expertise areas, work patterns, and impact metrics
+- [Repository Health Dashboard](docs/feature-repository-health.md): Comprehensive project health assessment with sustainability metrics and actionable recommendations
+- [Time Range Analysis](docs/feature-time-range-analysis.md): Flexible temporal analysis across 30, 60, and 90-day periods for trend identification and planning
+- [Authentication & Protected Features](docs/feature-authentication.md): Secure GitHub OAuth integration with progressive enhancement and advanced analytics access
 - [Quick Start Guide](README.md): How to use the application - sign in, search repositories, and explore insights
 
 ## Getting Started
