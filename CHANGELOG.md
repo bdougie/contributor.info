@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0](https://github.com/bdougie/contributor.info/compare/v1.3.0...v1.4.0) (2025-06-22)
+
+
+### 🚀 Features
+
+* Data cleanup & new bot role ([#106](https://github.com/bdougie/contributor.info/issues/106)) ([164e4f3](https://github.com/bdougie/contributor.info/commit/164e4f38c4c0fa6268ccf920e696f1949d4bcba8))
+* Enhanced Storybook with Advanced Features ([#110](https://github.com/bdougie/contributor.info/issues/110)) ([75e50dc](https://github.com/bdougie/contributor.info/commit/75e50dc8034e5c730b461508526fdc846fda5289)), closes [#64](https://github.com/bdougie/contributor.info/issues/64)
+* Performance imp ([#104](https://github.com/bdougie/contributor.info/issues/104)) ([810bb4c](https://github.com/bdougie/contributor.info/commit/810bb4c8c3ad06fbcb78b8617d5c3887cc545b39))
+* Self selection debug ([#102](https://github.com/bdougie/contributor.info/issues/102)) ([1464815](https://github.com/bdougie/contributor.info/commit/1464815a17aba5a91dc0fe5976a4122e494c1fd0))
+* Set up evals ([#107](https://github.com/bdougie/contributor.info/issues/107)) ([fb079f2](https://github.com/bdougie/contributor.info/commit/fb079f2a6ac3115e07cb6794e727086faf2569f1))
+
+
+### 🐛 Bug Fixes
+
+* Fixed critical production deployment issues causing white screen and JavaScript module loading errors. ([#112](https://github.com/bdougie/contributor.info/issues/112)) ([720b687](https://github.com/bdougie/contributor.info/commit/720b68749c120e898edcc3b744b7876f1b884e5a))
+* Missed some eval updates ([#108](https://github.com/bdougie/contributor.info/issues/108)) ([4569575](https://github.com/bdougie/contributor.info/commit/4569575db92d3caad175defad4a7528c64894201))
+* protect the debug page ([#103](https://github.com/bdougie/contributor.info/issues/103)) ([8843d12](https://github.com/bdougie/contributor.info/commit/8843d12da2dcb85299e3aefc7beb39e5681de0d1))
+
 ## [1.3.0](https://github.com/bdougie/contributor.info/compare/v1.2.0...v1.3.0) (2025-06-20)
 
 

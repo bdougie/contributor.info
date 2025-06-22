@@ -31,6 +31,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
+    include: ['react', 'react-dom'],
     exclude: ['lucide-react'],
   },
   build: {
@@ -38,67 +39,30 @@ export default defineConfig({
     cssCodeSplit: false,
     rollupOptions: {
       output: {
-        // Split vendor chunks for better caching
-        manualChunks: (id) => {
-          // Core React and routing
-          if (id.includes('react') && !id.includes('react-dom') && !id.includes('react-router')) {
-            return 'react';
-          }
-          if (id.includes('react-dom')) {
-            return 'react-dom';
-          }
-          if (id.includes('react-router')) {
-            return 'routing';
-          }
-          
-          // UI components library (Radix UI)
-          if (id.includes('@radix-ui') || id.includes('class-variance-authority') || 
-              id.includes('clsx') || id.includes('tailwind-merge')) {
-            return 'ui';
-          }
-          
-          // Heavy visualization libraries
-          if (id.includes('@nivo') || id.includes('recharts') || id.includes('@react-spring')) {
-            return 'charts';
-          }
-          
-          // Data and utility libraries
-          if (id.includes('date-fns') || id.includes('zod') || 
-              id.includes('zustand') || id.includes('@supabase/supabase-js')) {
-            return 'utils';
-          }
-          
-          // Form handling
-          if (id.includes('react-hook-form') || id.includes('@hookform/resolvers')) {
-            return 'forms';
-          }
-          
-          // Content and markdown
-          if (id.includes('react-markdown') || id.includes('react-helmet-async')) {
-            return 'content';
-          }
-          
-          // Analytics and monitoring
-          if (id.includes('posthog-js') || id.includes('@sentry/react')) {
-            return 'analytics';
-          }
-          
-          // Icons (split separately to enable tree-shaking)
-          if (id.includes('lucide-react') || id.includes('react-icons') || 
-              id.includes('@radix-ui/react-icons')) {
-            return 'icons';
-          }
-          
-          // Other frequently used node_modules
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
+        // Simple, reliable chunking strategy
+        manualChunks: {
+          // Bundle React with all React-related libraries to avoid initialization issues
+          'react-vendor': [
+            'react', 
+            'react-dom', 
+            'react-router-dom',
+            '@radix-ui/react-slot',
+            'class-variance-authority',
+            'clsx',
+            'tailwind-merge'
+          ],
+          // Heavy chart libraries
+          'charts': ['@nivo/scatterplot', 'recharts'],
+          // Other dependencies
+          'vendor': [
+            'date-fns',
+            'zod',
+            'zustand',
+            '@supabase/supabase-js',
+            'posthog-js',
+            '@sentry/react'
+          ]
         },
-      },
-      // Tree shake unused code more aggressively  
-      treeshake: {
-        preset: 'recommended',
-        moduleSideEffects: false,
       },
     },
     // Optimize CSS minification
