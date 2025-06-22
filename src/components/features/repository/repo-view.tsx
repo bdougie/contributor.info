@@ -1,4 +1,4 @@
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Outlet } from "react-router-dom";
 import {
   Card,
@@ -52,6 +52,13 @@ export default function RepoView() {
 
   const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
     useRepoSearch({ isHomeView: false });
+
+  // Update document title when owner/repo changes
+  useEffect(() => {
+    if (owner && repo) {
+      document.title = `${owner}/${repo} - Contributor Analysis`;
+    }
+  }, [owner, repo]);
 
   // Only show full skeleton if we don't have owner/repo params yet
   if (stats.loading && (!owner || !repo)) {
