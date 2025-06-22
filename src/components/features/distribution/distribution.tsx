@@ -32,18 +32,21 @@ export default function Distribution() {
     setSelectedQuadrant(quadrantFromUrl);
   }, [searchParams]);
 
-  // Memoize pull requests to prevent infinite re-renders
-  const memoizedPullRequests = useMemo(() => stats.pullRequests, [stats.pullRequests]);
+  // Filter to only include merged PRs and memoize to prevent infinite re-renders
+  const mergedPullRequests = useMemo(() => 
+    stats.pullRequests.filter(pr => pr.merged_at !== null), 
+    [stats.pullRequests]
+  );
 
-  // Use our hook with memoized data
+  // Use our hook with merged PRs only
   const { chartData, loading, getDominantQuadrant, getTotalContributions } =
-    useDistribution(memoizedPullRequests);
+    useDistribution(mergedPullRequests);
 
   // Filter PRs based on selected quadrant - memoized
   const filteredPRs = useMemo(() => {
-    if (!selectedQuadrant) return memoizedPullRequests;
+    if (!selectedQuadrant) return mergedPullRequests;
     
-    return memoizedPullRequests.filter((pr) => {
+    return mergedPullRequests.filter((pr) => {
       try {
         // Use the analyzer to determine which quadrant this PR belongs to
         const metrics = ContributionAnalyzer.analyze(pr);
@@ -53,7 +56,7 @@ export default function Distribution() {
         return false;
       }
     });
-  }, [memoizedPullRequests, selectedQuadrant]);
+  }, [mergedPullRequests, selectedQuadrant]);
 
   // Calculate total files touched (approximate based on additions/deletions)
   const calculateTotalFiles = (prs: PullRequest[]): number => {
@@ -97,9 +100,9 @@ export default function Distribution() {
   return (
     <Card className="overflow-hidden">
       <CardHeader>
-        <CardTitle>Pull Request Distribution Analysis</CardTitle>
+        <CardTitle>Merged Pull Request Distribution Analysis</CardTitle>
         <CardDescription>
-          Visualize contribution patterns across different categories over the
+          Visualize merged contribution patterns across different categories over the
           past {timeRangeNumber} days
           {selectedQuadrant &&
             ` · Filtered by: ${
@@ -110,7 +113,7 @@ export default function Distribution() {
       <CardContent className="space-y-6 w-full overflow-hidden">
         <div className="text-sm text-muted-foreground">
           {totalFiles.toLocaleString()} files touched ·{" "}
-          {selectedQuadrant ? filteredPRs.length : totalContributions} pull
+          {selectedQuadrant ? filteredPRs.length : totalContributions} merged pull
           requests {selectedQuadrant ? "shown" : "analyzed"}
           {dominantQuadrant && ` · Primary focus: ${dominantQuadrant.label}`}
         </div>
@@ -121,7 +124,7 @@ export default function Distribution() {
             onSegmentClick={handleSegmentClick}
             filteredPRs={filteredPRs}
             selectedQuadrant={selectedQuadrant}
-            pullRequests={memoizedPullRequests}
+            pullRequests={mergedPullRequests}
           />
         </Suspense>
 

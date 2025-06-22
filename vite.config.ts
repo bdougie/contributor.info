@@ -40,49 +40,35 @@ export default defineConfig({
     cssCodeSplit: false,
     rollupOptions: {
       output: {
-        // Optimized chunking strategy for better performance
-        manualChunks: (id) => {
-          // Bundle React with essential libraries to avoid initialization issues
-          if (id.includes('react') || 
-              id.includes('@radix-ui/react-slot') || 
-              id.includes('class-variance-authority') ||
-              id.includes('clsx') ||
-              id.includes('tailwind-merge')) {
-            return 'react-vendor';
-          }
-          
-          // Chart libraries - lazy load as separate chunks since they're heavy
-          if (id.includes('@nivo') || id.includes('recharts')) {
-            return 'charts';
-          }
-          
-          // UI components - bundle Radix UI together
-          if (id.includes('@radix-ui/')) {
-            return 'ui-components';
-          }
-          
-          // Icons - separate for better tree-shaking
-          if (id.includes('lucide-react') || id.includes('react-icons')) {
-            return 'icons';
-          }
-          
-          // Analytics - lazy load since non-critical
-          if (id.includes('posthog') || id.includes('@sentry')) {
-            return 'analytics';
-          }
-          
-          // Core utilities and data libs
-          if (id.includes('date-fns') || 
-              id.includes('zod') || 
-              id.includes('zustand') ||
-              id.includes('@supabase/supabase-js')) {
-            return 'vendor';
-          }
-          
-          // All other node_modules
-          if (id.includes('node_modules')) {
-            return 'vendor-misc';
-          }
+        // Simple, reliable chunking strategy
+        manualChunks: {
+          // Bundle React with all React-related libraries to avoid initialization issues
+          'react-vendor': [
+            'react', 
+            'react-dom', 
+            'react-router-dom',
+            '@radix-ui/react-slot',
+            'class-variance-authority',
+            'clsx',
+            'tailwind-merge'
+          ],
+          // Split chart libraries for better caching
+          'charts-nivo': ['@nivo/scatterplot', '@nivo/core'],
+          'charts-recharts': ['recharts'],
+          // Separate Lucide icons for better tree-shaking
+          'icons': ['lucide-react'],
+          // Split heavy utilities
+          'utils': ['date-fns', 'zod'],
+          // Core vendor dependencies
+          'vendor': [
+            'zustand',
+            '@supabase/supabase-js'
+          ],
+          // Analytics/monitoring (non-critical)
+          'analytics': [
+            'posthog-js',
+            '@sentry/react'
+          ]
         },
       },
     },
