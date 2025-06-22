@@ -437,8 +437,6 @@ export class ResilienceService {
     this.config = { ...this.config, ...newConfig }
     
     // Note: This would require recreating components with new config
-    // For now, log that config update was requested
-    console.log('Resilience config updated:', newConfig)
   }
 
   /**

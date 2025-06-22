@@ -129,8 +129,8 @@ const InteractiveWrapper = ({
     setCurrentView("overview");
   };
 
-  const handleNodeClick = (nodeId: string) => {
-    console.log("Contributor clicked:", nodeId);
+  const handleNodeClick = (_nodeId: string) => {
+    // Node click handler
   };
 
   return (

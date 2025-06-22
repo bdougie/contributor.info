@@ -27,7 +27,6 @@ export default function LoginPage() {
   // If already logged in, redirect to the intended destination
   useEffect(() => {
     if (isLoggedIn) {
-      console.log("User is logged in, redirecting to:", redirectTo);
       navigate(redirectTo, { replace: true });
     }
   }, [isLoggedIn, navigate, redirectTo]);
@@ -42,8 +41,6 @@ export default function LoginPage() {
 
       await login();
     } catch (err) {
-      console.error("Login error:", err);
-
       setError(
         err instanceof Error ? err.message : "Login failed. Please try again."
       );

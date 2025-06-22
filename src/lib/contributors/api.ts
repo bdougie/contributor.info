@@ -326,7 +326,7 @@ export async function fetchRepositoryActivity(
           }
         }
       } catch (error) {
-        console.warn(`Failed to fetch reviews for PR ${pr.number}:`, error);
+        // Failed to fetch reviews for PR
       }
 
       // Fetch and process comments for this PR
@@ -368,7 +368,7 @@ export async function fetchRepositoryActivity(
           }
         }
       } catch (error) {
-        console.warn(`Failed to fetch comments for PR ${pr.number}:`, error);
+        // Failed to fetch comments for PR
       }
     }
 
@@ -408,7 +408,7 @@ export async function fetchRepositoryActivity(
         }
       }
     } catch (error) {
-      console.warn(`Failed to fetch issue comments:`, error);
+      // Failed to fetch issue comments
     }
 
   } catch (error) {
@@ -450,7 +450,6 @@ export async function fetchContributorActivity(
     for (const repoString of filteredRepos) {
       const [owner, repo] = repoString.split('/');
       if (!owner || !repo) {
-        console.warn(`Invalid repository format: ${repoString}`);
         continue;
       }
 
@@ -492,7 +491,6 @@ export async function fetchContributorActivity(
           }
         }
       } catch (error) {
-        console.error(`Failed to fetch activity for ${repoString}:`, error);
         // Continue with other repositories
       }
     }

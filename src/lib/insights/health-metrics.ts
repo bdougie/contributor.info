@@ -240,8 +240,6 @@ export async function calculateHealthMetrics(
     };
     
   } catch (error) {
-    console.error('Error calculating health metrics:', error);
-    
     // Return default metrics on error
     return {
       score: 0,

@@ -178,7 +178,6 @@ export async function calculateTrendMetrics(
     return trends;
     
   } catch (error) {
-    console.error('Error calculating trend metrics:', error);
     return [];
   }
 }

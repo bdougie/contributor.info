@@ -33,7 +33,6 @@ export default function RepoCardWithData() {
         const processedStats = processPullRequestData(pullRequests);
         setStats(processedStats);
       } catch (err) {
-        console.error("Error fetching repo data:", err);
         
         // Use mock data as fallback for popular repos
         const mockStats = getMockDataForRepo(owner, repo);

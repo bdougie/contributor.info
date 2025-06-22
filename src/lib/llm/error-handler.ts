@@ -132,13 +132,6 @@ class LLMErrorHandler {
    * Log error for debugging and monitoring
    */
   private logError(error: LLMError): void {
-    console.error('LLM Error:', {
-      type: error.type,
-      message: error.message,
-      code: error.code,
-      timestamp: error.timestamp,
-      retryable: error.retryable
-    });
 
     // Keep last 50 errors for debugging
     this.errorLog.push(error);
@@ -250,12 +243,11 @@ export const withErrorHandling = <T extends any[], R>(
           try {
             return fallbackFn(...args);
           } catch (fallbackError) {
-            console.error('Fallback also failed:', fallbackError);
+            // Fallback also failed
           }
         }
 
         // Log final failure
-        console.error('LLM operation failed after retries:', llmError.userMessage);
         return null;
       }
     }

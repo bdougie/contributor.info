@@ -44,7 +44,7 @@ export default function LoginDialogTest() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-center pt-4">
-            <Button onClick={() => console.log("Login clicked")}>
+            <Button onClick={() => {}}>
               <GithubIcon className="mr-2 h-4 w-4" />
               Login with GitHub
             </Button>

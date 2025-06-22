@@ -124,9 +124,6 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
       setMetrics(metricsData);
     } catch (error) {
       // Log error to monitoring service in production
-      if (process.env.NODE_ENV === 'development') {
-        console.error("Failed to load data:", error);
-      }
       setTrends([]);
       setMetrics(null);
     } finally {

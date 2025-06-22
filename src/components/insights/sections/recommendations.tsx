@@ -65,7 +65,6 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
       }
       
     } catch (error) {
-      console.error("Failed to load recommendations:", error);
       
       // Fallback recommendations
       setRecommendations(getFallbackRecommendations());
@@ -86,7 +85,6 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
       const insight = await llmService.generateRecommendations(combinedData, { owner, repo });
       setLlmInsight(insight);
     } catch (error) {
-      console.error("Failed to load LLM recommendations:", error);
       setLlmInsight(null);
     } finally {
       setLlmLoading(false);
@@ -109,7 +107,7 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
           impact: "Increase repository health score",
           actionable: true,
           actions: [
-            { label: "View health details", onClick: () => console.log("Navigate to health") }
+            { label: "View health details", onClick: () => {} }
           ]
         });
       }

@@ -8,13 +8,8 @@ import { waitFor, screen } from '@storybook/test';
 /**
  * Enhanced error logging for test debugging
  */
-const logTestError = (context: string, error: Error, additionalInfo?: any) => {
-  console.error(`[Test Utils] ${context}:`, {
-    error: error.message,
-    stack: error.stack,
-    additionalInfo,
-    timestamp: new Date().toISOString(),
-  });
+const logTestError = (_context: string, _error: Error, _additionalInfo?: any) => {
+  // Error logging removed
 };
 
 /**
@@ -285,7 +280,6 @@ export const withRetry = async <T>(
       lastError = error as Error;
       
       if (attempt < maxRetries) {
-        console.warn(`[Test Utils] Operation failed (attempt ${attempt + 1}/${maxRetries + 1}): ${lastError.message}`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }

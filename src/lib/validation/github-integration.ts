@@ -346,8 +346,6 @@ export function safeValidateGitHubResponse<T>(
         errors: result.errors,
         receivedData: data,
       });
-    } else {
-      console.warn(errorMessage, result.errors);
     }
     
     return null;

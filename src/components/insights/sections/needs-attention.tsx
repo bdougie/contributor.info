@@ -31,7 +31,6 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
       setAlerts(result.alerts);
       setMetrics(result.metrics);
     } catch (err) {
-      console.error("Failed to load PR alerts:", err);
       setError(err instanceof Error ? err.message : "Failed to load alerts");
     } finally {
       setLoading(false);

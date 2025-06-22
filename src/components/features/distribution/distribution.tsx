@@ -52,7 +52,6 @@ export default function Distribution() {
         const metrics = ContributionAnalyzer.analyze(pr);
         return metrics.quadrant === selectedQuadrant;
       } catch (error) {
-        console.error("Error analyzing PR:", pr.number, error);
         return false;
       }
     });

@@ -48,7 +48,6 @@ export function InsightsHealth({
         loadLLMInsight(metrics);
       }
     } catch (error) {
-      console.error("Failed to load health metrics:", error);
       setHealth(null);
     } finally {
       setLoading(false);
@@ -64,7 +63,6 @@ export function InsightsHealth({
       });
       setLlmInsight(insight);
     } catch (error) {
-      console.error("Failed to load LLM insight:", error);
       setLlmInsight(null);
     } finally {
       setLlmLoading(false);

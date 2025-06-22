@@ -95,7 +95,6 @@ class OpenAIService {
         timestamp: new Date()
       };
     } catch (error) {
-      console.error('Failed to generate health insight:', error);
       return null;
     }
   }
@@ -125,7 +124,6 @@ class OpenAIService {
         timestamp: new Date()
       };
     } catch (error) {
-      console.error('Failed to generate recommendations:', error);
       return null;
     }
   }
@@ -151,7 +149,6 @@ class OpenAIService {
         timestamp: new Date()
       };
     } catch (error) {
-      console.error('Failed to analyze PR patterns:', error);
       return null;
     }
   }

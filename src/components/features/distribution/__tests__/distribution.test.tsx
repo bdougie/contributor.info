@@ -262,7 +262,6 @@ describe("Distribution", () => {
   });
 
   it("handles error in ContributionAnalyzer", async () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const { ContributionAnalyzer } = vi.mocked(
       await import("@/lib/contribution-analyzer")
     );
@@ -276,15 +275,10 @@ describe("Distribution", () => {
     const newFeatureButton = screen.getByText("New Feature");
     fireEvent.click(newFeatureButton);
 
+    // Component should still render even when analyzer throws errors
     await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Error analyzing PR:",
-        expect.any(Number),
-        expect.any(Error)
-      );
+      expect(screen.getByTestId("distribution-charts")).toBeInTheDocument();
     });
-
-    consoleSpy.mockRestore();
   });
 
   it("syncs with URL params on mount", () => {

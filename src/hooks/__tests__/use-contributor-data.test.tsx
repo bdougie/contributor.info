@@ -86,9 +86,8 @@ describe("useContributorData", () => {
   beforeEach(() => {
     vi.mocked(fetchUserOrganizations).mockResolvedValue(mockOrgs);
 
-    // Clear the console.log/error mocks
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    // Clear mocks
+    vi.clearAllMocks();
   });
 
   afterEach(() => {

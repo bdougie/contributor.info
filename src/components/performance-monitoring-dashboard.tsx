@@ -58,7 +58,6 @@ export function PerformanceMonitoringDashboard() {
     const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     
     if (!supabaseUrl || !anonKey) {
-      console.warn('Missing Supabase configuration for health endpoints');
       return { main: null, database: null, github: null };
     }
 
@@ -80,7 +79,6 @@ export function PerformanceMonitoringDashboard() {
         github: githubHealth.status === 'fulfilled' ? githubHealth.value : null
       };
     } catch (error) {
-      console.error('Error fetching health endpoints:', error);
       return { main: null, database: null, github: null };
     }
   };
@@ -127,7 +125,6 @@ export function PerformanceMonitoringDashboard() {
       setAlerts(alertsResult.data || []);
       setLastRefresh(new Date());
     } catch (error) {
-      console.error('Error loading performance metrics:', error);
     } finally {
       setLoading(false);
     }
@@ -138,7 +135,6 @@ export function PerformanceMonitoringDashboard() {
       await supabase.rpc('create_performance_snapshot');
       await loadMetrics();
     } catch (error) {
-      console.error('Error creating performance snapshot:', error);
     }
   };
 

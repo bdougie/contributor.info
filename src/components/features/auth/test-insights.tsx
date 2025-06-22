@@ -73,7 +73,6 @@ export default function TestInsights() {
         },
         data: data,
       };
-      console.log("Request details:", requestInfo);
       setRequestDetails(requestInfo);
 
       // Add timeout to the fetch request
@@ -93,14 +92,7 @@ export default function TestInsights() {
       clearTimeout(timeout);
 
       // Log response details
-      console.log("Response status:", response.status);
-      console.log(
-        "Response headers:",
-        Object.fromEntries(response.headers.entries())
-      );
-
       const result = await response.json();
-      console.log("Response data:", result);
 
       if (!response.ok) {
         // Handle specific error cases
@@ -135,8 +127,7 @@ export default function TestInsights() {
           err instanceof Error ? err.message : "An unknown error occurred";
       }
 
-      setError(`${errorMessage}\n\nPlease check the console for more details.`);
-      console.error("Test function error:", err);
+      setError(`${errorMessage}\n\nPlease check the browser console for more details.`);
     } finally {
       setLoading(false);
     }
@@ -154,15 +145,12 @@ export default function TestInsights() {
     setLocalResponse(null);
 
     try {
-      console.log(`Testing local implementation with: ${owner}/${repo}`);
       const result = await analyzePullRequests(owner, repo);
-      console.log("Local analysis result:", result);
       setLocalResponse(result);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "An unknown error occurred";
       setLocalError(errorMessage);
-      console.error("Local analysis error:", err);
     } finally {
       setLocalLoading(false);
     }

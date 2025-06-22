@@ -31,11 +31,9 @@ export function InsightsDrawer() {
         );
       }
 
-      console.log(`Analyzing repository: ${owner}/${repo}`);
 
       // Use the local analysis function
       const analysisResult = await analyzePullRequests(owner, repo);
-      console.log("Analysis result:", analysisResult);
 
       if (analysisResult.totalPRs === 0) {
         throw new Error("No pull requests available for analysis");
@@ -51,7 +49,6 @@ export function InsightsDrawer() {
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to generate insights";
-      console.error("Error generating insights:", err);
       setError(errorMessage);
     } finally {
       setLoading(false);

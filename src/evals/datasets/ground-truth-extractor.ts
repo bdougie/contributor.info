@@ -25,8 +25,6 @@ export class GroundTruthExtractor {
   private targetSamplesPerRole = 400; // Balanced dataset
 
   async extractGroundTruthDataset(): Promise<EvaluationSample[]> {
-    console.log('Extracting ground truth dataset from Supabase...');
-
     // Get high-confidence contributor classifications
     const { data: contributorRoles, error } = await supabase
       .from('contributor_roles')
@@ -55,8 +53,6 @@ export class GroundTruthExtractor {
       throw new Error(`Failed to extract contributor roles: ${error.message}`);
     }
 
-    console.log(`Found ${contributorRoles?.length} high-confidence contributor roles`);
-
     // Balance the dataset across role types
     const balancedSamples = this.balanceDataset(contributorRoles);
     
@@ -70,7 +66,6 @@ export class GroundTruthExtractor {
       })
     );
 
-    console.log(`Generated ${evaluationSamples.length} evaluation samples`);
     return evaluationSamples.filter(sample => sample !== null) as EvaluationSample[];
   }
 
@@ -84,11 +79,11 @@ export class GroundTruthExtractor {
     const balanced: any[] = [];
     
     // Take equal samples from each role type
-    Object.entries(roleGroups).forEach(([role, samples]) => {
+    Object.entries(roleGroups).forEach(([, samples]) => {
       const shuffled = samples.sort(() => Math.random() - 0.5);
       const selected = shuffled.slice(0, Math.min(this.targetSamplesPerRole, samples.length));
       balanced.push(...selected);
-      console.log(`Selected ${selected.length} ${role} samples`);
+      // Selected samples for role
     });
 
     return balanced.sort(() => Math.random() - 0.5); // Final shuffle
@@ -105,7 +100,6 @@ export class GroundTruthExtractor {
       .limit(100);
 
     if (error) {
-      console.warn(`Failed to extract events for ${contributorId}: ${error.message}`);
       return [];
     }
 
@@ -225,6 +219,5 @@ export class GroundTruthExtractor {
     const jsonlContent = samples.map(sample => JSON.stringify(sample)).join('\n');
     
     fs.writeFileSync(outputPath, jsonlContent, 'utf-8');
-    console.log(`Exported ${samples.length} samples to ${outputPath}`);
   }
 }

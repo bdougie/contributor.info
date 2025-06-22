@@ -166,10 +166,6 @@ describe('fetchContributorActivity', () => {
     const month = 5;
     const year = 2024;
 
-    // Mock console.warn to suppress expected warning
-    const originalWarn = console.warn;
-    console.warn = vi.fn();
-
     mockFetch.mockResolvedValue({ ok: true, json: async () => [] } as Response);
 
     const result = await fetchContributorActivity(repositories, month, year, 'test-token');
@@ -177,23 +173,14 @@ describe('fetchContributorActivity', () => {
     // Should still succeed, just skip invalid repository
     expect(result.success).toBe(true);
     
-    // Verify warning was called
-    expect(console.warn).toHaveBeenCalledWith('Invalid repository format: invalid-format');
-    
-    // Restore console.warn
-    console.warn = originalWarn;
+    // Should have empty data since invalid repository was skipped
+    expect(result.data).toEqual([]);
   });
 
   it('should handle API errors and continue with other repositories', async () => {
     const repositories = ['owner/repo'];
     const month = 5;
     const year = 2024;
-
-    // Mock console methods to suppress expected error logs
-    const originalError = console.error;
-    const originalLog = console.log;
-    console.error = vi.fn();
-    console.log = vi.fn();
 
     // Mock all API calls to fail
     mockFetch.mockRejectedValue(new Error('Network error'));
@@ -203,9 +190,5 @@ describe('fetchContributorActivity', () => {
     // Should still succeed but with empty data since repo processing continues
     expect(result.success).toBe(true);
     expect(result.data).toEqual([]);
-    
-    // Restore console methods
-    console.error = originalError;
-    console.log = originalLog;
   });
 });

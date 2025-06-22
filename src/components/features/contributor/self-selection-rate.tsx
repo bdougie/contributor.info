@@ -89,7 +89,6 @@ export function SelfSelectionRate({
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch statistics')
-      console.error('Error fetching self-selection stats:', err)
     } finally {
       setLoading(false)
     }

@@ -106,15 +106,12 @@ export async function fetchPullRequestsWithValidation(
     const rawPullRequests = await response.json();
     
     // Validate the array of pull requests
-    const arrayValidationResult = safeValidateGitHubResponse(
+    safeValidateGitHubResponse(
       githubPullRequestsArraySchema,
       rawPullRequests,
       'GitHub pull requests array'
     );
 
-    if (!arrayValidationResult) {
-      console.warn('Failed to validate pull requests array, processing individually');
-    }
 
     // Filter PRs by the time range
     const filteredPRs = rawPullRequests.filter((pr: any) => {
@@ -144,7 +141,6 @@ export async function fetchPullRequestsWithValidation(
           );
 
           if (!detailsResponse.ok) {
-            console.warn(`Failed to fetch details for PR #${pr.number}`);
             // Use basic data without detailed stats
             return {
               id: validatedPR.id,
@@ -382,7 +378,6 @@ export async function fetchUserOrganizationsWithValidation(
       validationErrors,
     };
   } catch (error) {
-    console.error('Error fetching user organizations:', error);
     return {
       organizations: [],
       validationErrors: [{ error: String(error), rawData: null }],
@@ -439,7 +434,6 @@ export async function fetchRepositoryWithValidation(
       validationErrors,
     };
   } catch (error) {
-    console.error('Error fetching repository:', error);
     return {
       repository: null,
       validationErrors: [{ error: String(error), rawData: null }],
@@ -463,8 +457,6 @@ export function withValidation<TInput, TOutput>(
       
       if (onValidationError) {
         onValidationError(error, input, output);
-      } else {
-        console.warn(error, { input, output });
       }
     }
     

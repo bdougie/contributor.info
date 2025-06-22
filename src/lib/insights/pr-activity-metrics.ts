@@ -143,7 +143,6 @@ export async function calculatePrActivityMetrics(
     };
     
   } catch (error) {
-    console.error('Error calculating PR activity metrics:', error);
     // Return default metrics on error
     return {
       totalPRs: 0,

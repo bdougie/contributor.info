@@ -198,15 +198,7 @@ global.fetch = vi.fn(() =>
   } as Response)
 );
 
-// Suppress console methods in tests to reduce noise
-const originalConsole = { ...console };
-beforeEach(() => {
-  console.warn = vi.fn();
-  console.error = vi.fn();
-  console.log = vi.fn();
-});
-
+// Clean up after each test
 afterEach(() => {
-  Object.assign(console, originalConsole);
   vi.clearAllMocks();
 });

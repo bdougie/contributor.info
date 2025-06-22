@@ -141,7 +141,6 @@ export function DocsPage() {
         .map(({ file }) => file);
 
       if (failedFiles.length > 0) {
-        console.warn(`Failed to load documentation files: ${failedFiles.join(", ")}`);
       }
 
       // Get content for successfully loaded files

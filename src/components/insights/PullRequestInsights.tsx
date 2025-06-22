@@ -30,7 +30,6 @@ export function PullRequestInsights({
         const analysis = await analyzePullRequests(owner, repo, dateRange);
         setPrAnalysis(analysis.totalPRs > 0 ? analysis : null);
       } catch (err) {
-        console.error('Error fetching PR analysis:', err);
         setError('Failed to analyze pull requests. Please try again.');
       } finally {
         setLoading(false);

@@ -89,7 +89,6 @@ export async function runEvaluation(configName: keyof typeof DEFAULT_CONFIGS = '
     
     return results;
   } catch (error) {
-    console.error(`Evaluation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     throw error;
   }
 }
@@ -107,38 +106,27 @@ async function main() {
   const command = args[0] || 'run';
   const configName = (args[1] as keyof typeof DEFAULT_CONFIGS) || 'standard';
 
-  console.log('🚀 Maintainer Classification Evaluation Suite');
-  console.log('=' .repeat(50));
-
   try {
     switch (command) {
       case 'run':
-        console.log(`Running evaluation with config: ${configName}`);
         await runEvaluation(configName);
         break;
         
       case 'benchmark':
-        console.log('Running benchmark across all configurations');
         await runBenchmark();
         break;
         
       case 'list':
-        console.log('Available configurations:');
-        Object.entries(DEFAULT_CONFIGS).forEach(([name, config]) => {
-          console.log(`  ${name}: ${config.description}`);
+        Object.entries(DEFAULT_CONFIGS).forEach(([,]) => {
+          // Configuration available
         });
         break;
         
       default:
-        console.log('Usage:');
-        console.log('  npm run eval              # Run standard evaluation');
-        console.log('  npm run eval run conservative  # Run with conservative config');
-        console.log('  npm run eval benchmark    # Run benchmark comparison');
-        console.log('  npm run eval list         # List available configurations');
+        // Usage help available
         break;
     }
   } catch (error) {
-    console.error('❌ Evaluation failed:', error instanceof Error ? error.message : 'Unknown error');
     process.exit(1);
   }
 }
@@ -156,5 +144,5 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 
 if (process.argv[1] === __filename) {
-  main().catch(console.error);
+  main().catch(() => process.exit(1));
 }
