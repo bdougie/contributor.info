@@ -97,7 +97,7 @@ const getPrimaryLanguage = (pr: PullRequest): { name: string; color: string } =>
   };
 };
 
-export function DistributionCharts({
+function DistributionCharts({
   data,
   onSegmentClick,
   filteredPRs = [],
@@ -367,9 +367,8 @@ export function DistributionCharts({
           }
           drillUp();
         }}
-        onNodeClick={(nodeId) => {
+        onNodeClick={() => {
           // Handle contributor node clicks
-          console.log('Contributor node clicked:', nodeId);
         }}
       />
     );
@@ -683,3 +682,6 @@ export function DistributionCharts({
     </div>
   );
 }
+
+export default DistributionCharts;
+export { DistributionCharts };

@@ -40,7 +40,7 @@ export function storeRateLimitInfo(headers: Headers): RateLimitInfo | null {
     current.lastUpdated = Date.now()
     localStorage.setItem(RATE_LIMIT_STORAGE_KEY, JSON.stringify(current))
   } catch (e) {
-    console.error('Failed to store rate limit info:', e)
+    // Silently handle storage errors
   }
 
   return rateLimitInfo
@@ -60,7 +60,6 @@ export function getRateLimitInfo(): Partial<RateLimitStatus> | null {
     
     return data
   } catch (e) {
-    console.error('Failed to get rate limit info:', e)
     return null
   }
 }
@@ -130,7 +129,7 @@ export class ExponentialBackoff {
         }
 
         const delay = this.calculateDelay()
-        console.log(`Retry attempt ${this.attempt}/${this.maxAttempts} after ${delay}ms`)
+        // Retry attempt silently
         await this.sleep(delay)
       }
     }
@@ -221,7 +220,7 @@ export function useRateLimitStatus() {
       try {
         await githubApiRequest('https://api.github.com/rate_limit')
       } catch (e) {
-        console.error('Failed to refresh rate limit info:', e)
+        // Silently handle refresh errors
       }
     }
   }

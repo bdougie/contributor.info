@@ -49,7 +49,6 @@ export function useGitHubOrganizations(username: string, token?: string) {
           avatar_url: org.avatar_url,
         })));
       } catch (err) {
-        console.error('Error fetching user organizations:', err);
         setError(err instanceof Error ? err : new Error('Failed to fetch organizations'));
       } finally {
         setLoading(false);
