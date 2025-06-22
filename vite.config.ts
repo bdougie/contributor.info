@@ -34,8 +34,8 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   build: {
-    // Improve CSS optimization
-    cssCodeSplit: true,
+    // Disable CSS code splitting to prevent FOUC
+    cssCodeSplit: false,
     rollupOptions: {
       output: {
         // Split vendor chunks for better caching
