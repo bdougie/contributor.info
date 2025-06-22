@@ -40,12 +40,9 @@ export default defineConfig({
       output: {
         // Split vendor chunks for better caching
         manualChunks: (id) => {
-          // Core React and routing
-          if (id.includes('react') && !id.includes('react-dom') && !id.includes('react-router')) {
+          // Bundle React and React-DOM together to avoid initialization issues
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
             return 'react';
-          }
-          if (id.includes('react-dom')) {
-            return 'react-dom';
           }
           if (id.includes('react-router')) {
             return 'routing';
@@ -98,7 +95,7 @@ export default defineConfig({
       // Tree shake unused code more aggressively  
       treeshake: {
         preset: 'recommended',
-        moduleSideEffects: false,
+        moduleSideEffects: 'no-external',
       },
     },
     // Optimize CSS minification
