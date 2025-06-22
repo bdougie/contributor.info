@@ -32,7 +32,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['react', 'react-dom'],
-    exclude: ['lucide-react'],
+    exclude: ['lucide-react'], // Keep icons separate for better tree-shaking
   },
   build: {
     // Disable CSS code splitting to prevent FOUC
@@ -51,9 +51,11 @@ export default defineConfig({
             'clsx',
             'tailwind-merge'
           ],
-          // Heavy chart libraries
+          // Heavy chart libraries - only split these as they're clearly isolatable
           'charts': ['@nivo/scatterplot', 'recharts'],
-          // Other dependencies
+          // Separate Lucide icons for better tree-shaking
+          'icons': ['lucide-react'],
+          // Other dependencies - keep conservative grouping
           'vendor': [
             'date-fns',
             'zod',
@@ -69,10 +71,11 @@ export default defineConfig({
     cssMinify: 'esbuild',
     // Disable sourcemaps for production to reduce bundle size
     sourcemap: false,
-    // Optimize minification
+    // Optimize minification and target
     minify: 'esbuild',
-    // Optimize chunk size warnings
-    chunkSizeWarningLimit: 500,
+    target: 'es2020', // Modern target for better optimization while maintaining compatibility
+    // Optimize chunk size warnings  
+    chunkSizeWarningLimit: 600, // Slightly more lenient given postmortem learnings
     // Enable compression reporting
     reportCompressedSize: true,
   },
