@@ -54,6 +54,13 @@ jobs:
       - name: Run tests
         run: npm test -- --passWithNoTests
 
+      - name: Prepare changelog for public directory
+        run: |
+          mkdir -p public
+          if [ -f CHANGELOG.md ]; then
+            cp CHANGELOG.md public/CHANGELOG.md
+          fi
+
       - name: Create Release
         id: release
         uses: cycjimmy/semantic-release-action@v4
@@ -65,10 +72,6 @@ jobs:
             conventional-changelog-conventionalcommits@7.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Copy CHANGELOG to public directory
-        if: steps.release.outputs.released == 'true'
-        run: cp CHANGELOG.md public/CHANGELOG.md
 
       - name: Build for production
         run: npm run build
