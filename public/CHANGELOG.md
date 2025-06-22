@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0](https://github.com/bdougie/contributor.info/compare/v1.3.0...v1.4.0) (2025-06-22)
+
+
+### 🚀 Features
+
+* Data cleanup & new bot role ([#106](https://github.com/bdougie/contributor.info/issues/106)) ([164e4f3](https://github.com/bdougie/contributor.info/commit/164e4f38c4c0fa6268ccf920e696f1949d4bcba8))
+* Enhanced Storybook with Advanced Features ([#110](https://github.com/bdougie/contributor.info/issues/110)) ([75e50dc](https://github.com/bdougie/contributor.info/commit/75e50dc8034e5c730b461508526fdc846fda5289)), closes [#64](https://github.com/bdougie/contributor.info/issues/64)
+* Performance imp ([#104](https://github.com/bdougie/contributor.info/issues/104)) ([810bb4c](https://github.com/bdougie/contributor.info/commit/810bb4c8c3ad06fbcb78b8617d5c3887cc545b39))
+* Self selection debug ([#102](https://github.com/bdougie/contributor.info/issues/102)) ([1464815](https://github.com/bdougie/contributor.info/commit/1464815a17aba5a91dc0fe5976a4122e494c1fd0))
+* Set up evals ([#107](https://github.com/bdougie/contributor.info/issues/107)) ([fb079f2](https://github.com/bdougie/contributor.info/commit/fb079f2a6ac3115e07cb6794e727086faf2569f1))
+
+
+### 🐛 Bug Fixes
+
+* Fixed critical production deployment issues causing white screen and JavaScript module loading errors. ([#112](https://github.com/bdougie/contributor.info/issues/112)) ([720b687](https://github.com/bdougie/contributor.info/commit/720b68749c120e898edcc3b744b7876f1b884e5a))
+* Missed some eval updates ([#108](https://github.com/bdougie/contributor.info/issues/108)) ([4569575](https://github.com/bdougie/contributor.info/commit/4569575db92d3caad175defad4a7528c64894201))
+* protect the debug page ([#103](https://github.com/bdougie/contributor.info/issues/103)) ([8843d12](https://github.com/bdougie/contributor.info/commit/8843d12da2dcb85299e3aefc7beb39e5681de0d1))
+
+## [1.3.0](https://github.com/bdougie/contributor.info/compare/v1.2.0...v1.3.0) (2025-06-20)
+
+
+### 🚀 Features
+
+* Events feed and features with events ([#99](https://github.com/bdougie/contributor.info/issues/99)) ([c4abb3f](https://github.com/bdougie/contributor.info/commit/c4abb3fd27d4a5e4f6d07af778ff0dd43014b911))
+
+
+### 🐛 Bug Fixes
+
+* changelog updates ([#100](https://github.com/bdougie/contributor.info/issues/100)) ([5621553](https://github.com/bdougie/contributor.info/commit/562155352aea19d1d6fce5a7896b6a7d16519252))
+* package-lock ([e89fd68](https://github.com/bdougie/contributor.info/commit/e89fd6873b98cb4b97901a2aea9d6371b91e527f))
+
+
+### 📚 Documentation
+
+* create confidence.md ([0f85cf2](https://github.com/bdougie/contributor.info/commit/0f85cf21fc71743b856a1ca397e53ab807f327d2))
+
+
+### 🔧 Maintenance
+
+* **release:** 1.0.0 [skip ci] ([0b69c07](https://github.com/bdougie/contributor.info/commit/0b69c077da7b27fd24497a0ef992736d18b2ded5)), closes [#59](https://github.com/bdougie/contributor.info/issues/59) [#40](https://github.com/bdougie/contributor.info/issues/40) [#60](https://github.com/bdougie/contributor.info/issues/60) [#62](https://github.com/bdougie/contributor.info/issues/62) [#67](https://github.com/bdougie/contributor.info/issues/67) [#61](https://github.com/bdougie/contributor.info/issues/61) [#79](https://github.com/bdougie/contributor.info/issues/79) [#28](https://github.com/bdougie/contributor.info/issues/28) [#82](https://github.com/bdougie/contributor.info/issues/82) [#44](https://github.com/bdougie/contributor.info/issues/44) [#69](https://github.com/bdougie/contributor.info/issues/69) [#36](https://github.com/bdougie/contributor.info/issues/36) [#65](https://github.com/bdougie/contributor.info/issues/65) [#63](https://github.com/bdougie/contributor.info/issues/63) [#83](https://github.com/bdougie/contributor.info/issues/83) [#53](https://github.com/bdougie/contributor.info/issues/53) [#48](https://github.com/bdougie/contributor.info/issues/48) [#51](https://github.com/bdougie/contributor.info/issues/51) [#75](https://github.com/bdougie/contributor.info/issues/75) [#74](https://github.com/bdougie/contributor.info/issues/74)
+
+## [1.2.0](https://github.com/bdougie/contributor.info/compare/v1.1.0...v1.2.0) (2025-06-20)
+
+
+### 🚀 Features
+
+* Distribution Chart updates ([#92](https://github.com/bdougie/contributor.info/issues/92)) ([5967dc0](https://github.com/bdougie/contributor.info/commit/5967dc0c2d31242a39daba74a0fdf9a9b761a0f9))
+* implement user guide documentation structure ([#86](https://github.com/bdougie/contributor.info/issues/86)) ([ff0c03e](https://github.com/bdougie/contributor.info/commit/ff0c03e3bf86049a4585f1dda8d35e4a2189f724)), closes [#81](https://github.com/bdougie/contributor.info/issues/81)
+* Missing feature ([#93](https://github.com/bdougie/contributor.info/issues/93)) ([b7f559d](https://github.com/bdougie/contributor.info/commit/b7f559db1a4c2a3087b72cc8d04e4ba3c353af21))
+* optimize skeleton loaders for performance and accessibility ([#89](https://github.com/bdougie/contributor.info/issues/89)) ([0870114](https://github.com/bdougie/contributor.info/commit/0870114af467c4e5fa8cc12ca0045e0c9a11c566))
+
+
+### 🐛 Bug Fixes
+
+* build ([#85](https://github.com/bdougie/contributor.info/issues/85)) ([a8eff02](https://github.com/bdougie/contributor.info/commit/a8eff0273a1bdebec6954435a6c656b8c711364d))
+* favicon ([#88](https://github.com/bdougie/contributor.info/issues/88)) ([4dd945e](https://github.com/bdougie/contributor.info/commit/4dd945e83fcd48d76d50adcb0b3951833a5df245))
+* release on release ([adf2e21](https://github.com/bdougie/contributor.info/commit/adf2e21cc434a81c18ba87408a352fdc52dd899f))
+* release.yml ([aea4bd8](https://github.com/bdougie/contributor.info/commit/aea4bd8e72b3506c63b4ac6bf63ab6af0c7d51d4))
+* small ui and build fixes ([#87](https://github.com/bdougie/contributor.info/issues/87)) ([a5c90e8](https://github.com/bdougie/contributor.info/commit/a5c90e85d5fff56075496fe23ad2049760df1a66))
+
 ## [1.1.0](https://github.com/bdougie/contributor.info/compare/v1.0.0...v1.1.0) (2025-06-17)
 
 
