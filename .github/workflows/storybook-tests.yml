@@ -92,6 +92,12 @@ jobs:
       run: npx playwright install-deps
       if: steps.playwright-cache.outputs.cache-hit == 'true'
       
+    - name: Free up port 6006
+      run: |
+        if lsof -i:6006; then
+          lsof -ti:6006 | xargs kill -9
+        fi
+      
     - name: Run Storybook interaction tests
       run: |
         npx concurrently -k -s first -n "SB,TEST" -c "magenta,blue" \
@@ -151,6 +157,12 @@ jobs:
     - name: Install Playwright system dependencies
       run: npx playwright install-deps
       if: steps.playwright-cache-a11y.outputs.cache-hit == 'true'
+      
+    - name: Free up port 6006
+      run: |
+        if lsof -i:6006; then
+          lsof -ti:6006 | xargs kill -9
+        fi
       
     - name: Run accessibility tests via test-runner
       run: |
