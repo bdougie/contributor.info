@@ -94,7 +94,6 @@ export async function createContributorStatsWithOrgs(
       const orgs = await fetchUserOrganizations(username, headers);
       stats.organizations = orgs;
     } catch (error) {
-      console.error('Error fetching organizations for', username, error);
       // Keep empty organizations array on error
     }
   }

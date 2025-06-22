@@ -70,7 +70,6 @@ export function useContributorRoles(
         setRoles(enhancedRoles)
       } catch (err) {
         setError(err as Error)
-        console.error('Error fetching contributor roles:', err)
       } finally {
         setLoading(false)
       }

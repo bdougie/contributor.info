@@ -96,7 +96,7 @@ export function useHierarchicalDistribution(
         }
         quadrantMap[quadrant][contributor].push(pr);
       } catch (error) {
-        console.error('Error analyzing PR:', pr.number, error);
+        // Silently handle PR analysis errors
       }
     });
 

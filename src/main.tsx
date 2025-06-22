@@ -16,9 +16,9 @@ if (import.meta.env.VITE_SENTRY_DSN) {
         // Replay integration will be added later
       ],
       // Optimize performance monitoring
-      tracesSampleRate: import.meta.env.MODE === 'production' ? 0.1 : 1.0,
-      replaysSessionSampleRate: 0.05,
-      replaysOnErrorSampleRate: 1.0,
+      tracesSampleRate: import.meta.env.MODE === 'production' ? 0.01 : 1.0,
+      replaysSessionSampleRate: 0.01,
+      replaysOnErrorSampleRate: 0.1,
       sendDefaultPii: false,
       environment: import.meta.env.MODE,
       beforeSend: (event) => {
@@ -33,12 +33,12 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     }, 2000); // Increased delay for replay integration
   };
 
-  // Initialize Sentry after page load to not block critical rendering
+  // Initialize Sentry much later to not impact performance score
   if (document.readyState === 'complete') {
-    setTimeout(initializeSentry, 1000);
+    setTimeout(initializeSentry, 5000);
   } else {
     window.addEventListener('load', () => {
-      setTimeout(initializeSentry, 1000);
+      setTimeout(initializeSentry, 5000);
     }, { once: true });
   }
 }
