@@ -32,13 +32,16 @@ export default function Distribution() {
     setSelectedQuadrant(quadrantFromUrl);
   }, [searchParams]);
 
-  // Use our hook
-  const { chartData, loading, getDominantQuadrant, getTotalContributions } =
-    useDistribution(stats.pullRequests);
+  // Filter to only include merged PRs
+  const mergedPullRequests = stats.pullRequests.filter(pr => pr.merged_at !== null);
 
-  // Filter PRs based on selected quadrant
+  // Use our hook with merged PRs only
+  const { chartData, loading, getDominantQuadrant, getTotalContributions } =
+    useDistribution(mergedPullRequests);
+
+  // Filter PRs based on selected quadrant (from merged PRs only)
   const filteredPRs = selectedQuadrant
-    ? stats.pullRequests.filter((pr) => {
+    ? mergedPullRequests.filter((pr) => {
         try {
           // Use the analyzer to determine which quadrant this PR belongs to
           const metrics = ContributionAnalyzer.analyze(pr);
@@ -48,7 +51,7 @@ export default function Distribution() {
           return false;
         }
       })
-    : stats.pullRequests;
+    : mergedPullRequests;
 
   // Calculate total files touched (approximate based on additions/deletions)
   const calculateTotalFiles = (prs: PullRequest[]): number => {
@@ -92,9 +95,9 @@ export default function Distribution() {
   return (
     <Card className="overflow-hidden">
       <CardHeader>
-        <CardTitle>Pull Request Distribution Analysis</CardTitle>
+        <CardTitle>Merged Pull Request Distribution Analysis</CardTitle>
         <CardDescription>
-          Visualize contribution patterns across different categories over the
+          Visualize merged contribution patterns across different categories over the
           past {timeRangeNumber} days
           {selectedQuadrant &&
             ` · Filtered by: ${
@@ -105,7 +108,7 @@ export default function Distribution() {
       <CardContent className="space-y-6 w-full overflow-hidden">
         <div className="text-sm text-muted-foreground">
           {totalFiles.toLocaleString()} files touched ·{" "}
-          {selectedQuadrant ? filteredPRs.length : totalContributions} pull
+          {selectedQuadrant ? filteredPRs.length : totalContributions} merged pull
           requests {selectedQuadrant ? "shown" : "analyzed"}
           {dominantQuadrant && ` · Primary focus: ${dominantQuadrant.label}`}
         </div>
@@ -115,7 +118,7 @@ export default function Distribution() {
           onSegmentClick={handleSegmentClick}
           filteredPRs={filteredPRs}
           selectedQuadrant={selectedQuadrant}
-          pullRequests={stats.pullRequests}
+          pullRequests={mergedPullRequests}
         />
 
         <LanguageLegend languages={languageStats} />
