@@ -94,15 +94,14 @@ jobs:
       
     - name: Free up port 6006
       run: |
-        if lsof -i:6006; then
-          lsof -ti:6006 | xargs kill -9
-        fi
+        sudo lsof -ti:6006 | xargs -r sudo kill -9 || true
+        sleep 2
       
     - name: Run Storybook interaction tests
       run: |
         npx concurrently -k -s first -n "SB,TEST" -c "magenta,blue" \
           "npx http-server storybook-static --port 6006 --silent" \
-          "wait-on tcp:6006 && npm run test-storybook"
+          "npx wait-on tcp:6006 && npx test-storybook --url http://127.0.0.1:6006"
       env:
         NODE_ENV: test
         
@@ -160,15 +159,14 @@ jobs:
       
     - name: Free up port 6006
       run: |
-        if lsof -i:6006; then
-          lsof -ti:6006 | xargs kill -9
-        fi
+        sudo lsof -ti:6006 | xargs -r sudo kill -9 || true
+        sleep 2
       
     - name: Run accessibility tests via test-runner
       run: |
         npx concurrently -k -s first -n "SB,A11Y" -c "magenta,green" \
           "npx http-server storybook-static --port 6006 --silent" \
-          "wait-on tcp:6006 && npm run test-storybook -- --includeTags accessibility"
+          "npx wait-on tcp:6006 && npx test-storybook --url http://127.0.0.1:6006 --includeTags accessibility"
       env:
         NODE_ENV: test
         
