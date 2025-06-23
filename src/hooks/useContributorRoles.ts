@@ -7,7 +7,7 @@ export interface ContributorRole {
   user_id: string
   repository_owner: string
   repository_name: string
-  role: 'owner' | 'maintainer' | 'contributor'
+  role: 'owner' | 'maintainer' | 'contributor' | 'bot'
   confidence_score: number
   detected_at: string
   last_verified: string
@@ -70,7 +70,6 @@ export function useContributorRoles(
         setRoles(enhancedRoles)
       } catch (err) {
         setError(err as Error)
-        console.error('Error fetching contributor roles:', err)
       } finally {
         setLoading(false)
       }
@@ -180,8 +179,8 @@ export function useRoleStatistics(owner: string, repo: string) {
     owners: roles.filter(r => r.role === 'owner').length,
     maintainers: roles.filter(r => r.role === 'maintainer').length,
     contributors: roles.filter(r => r.role === 'contributor').length,
+    bots: roles.filter(r => r.role === 'bot').length,
     highConfidence: roles.filter(r => r.confidence_score >= 0.8).length,
-    bots: roles.filter(r => r.is_bot).length,
     activeInLast7Days: roles.filter(r => (r.days_since_last_active || 0) <= 7).length
   }
 

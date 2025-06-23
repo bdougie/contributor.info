@@ -18,6 +18,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
 import { ContributorHoverCard } from "../contributor";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
@@ -183,10 +184,12 @@ export function LotteryFactorContent({
               className="flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
-                <img
+                <OptimizedAvatar
                   src={coder.avatar_url}
                   alt={coder.login}
-                  className="w-8 h-8 rounded-full"
+                  size={32}
+                  lazy={false}
+                  fallback={coder.login[0]?.toUpperCase() || '?'}
                 />
                 <div>
                   <p className="font-medium">{coder.login}</p>
@@ -280,25 +283,26 @@ export function LotteryFactorContent({
         {showYoloButton && (
           <button
             onClick={() => setShowYoloCoders(true)}
-            className="flex items-center justify-between w-full text-slate-500 shadow-sm !border !border-slate-300 p-1 gap-2 text-sm rounded-full"
+            className="flex items-center justify-between w-full text-slate-500 shadow-sm !border !border-slate-300 p-2 sm:p-1 gap-2 text-sm rounded-full"
           >
-            <div className="flex gap-2 items-center">
-              <div className="flex items-center font-medium gap-1 px-2 py-0.5 rounded-2xl bg-light-red-4 text-light-red-11">
+            <div className="flex gap-2 items-center min-w-0 flex-1">
+              <div className="flex items-center font-medium gap-1 px-2 py-0.5 rounded-2xl bg-light-red-4 text-light-red-11 flex-shrink-0">
                 <YoloIcon className="h-4 w-4" />
-                YOLO Coders
+                <span className="hidden xs:inline">YOLO Coders</span>
+                <span className="xs:hidden">YOLO</span>
               </div>
-              <p className="block lg:hidden 2xl:block">
+              <p className="block lg:hidden 2xl:block truncate">
                 Pushing commits{" "}
-                <span className="xs:hidden sm:inline-block">directly</span> to
+                <span className="hidden sm:inline-block">directly</span> to
                 main
               </p>
             </div>
 
-            <div className="hidden xs:flex gap-2 items-center ml-auto mr-3">
+            <div className="flex gap-2 items-center ml-auto mr-1 sm:mr-3 flex-shrink-0">
               <p className="hidden sm:inline-block xl:hidden min-[1650px]:inline-block">
                 See more
               </p>
-              <ArrowRight className="hidden xs:inline-block h-4 w-4" />
+              <ArrowRight className="h-4 w-4" />
             </div>
           </button>
         )}
@@ -330,10 +334,13 @@ export function LotteryFactorContent({
                       <div className="flex items-center gap-2">
                         {segment.contributor ? (
                           <>
-                            <img
+                            <OptimizedAvatar
                               src={segment.contributor.avatar_url}
                               alt={segment.contributor.login}
-                              className="w-4 h-4 rounded-full"
+                              size={32}
+                              lazy={false}
+                              fallback={segment.contributor.login[0]?.toUpperCase() || '?'}
+                              className="w-4 h-4"
                             />
                             <span>{segment.contributor.login}</span>
                             <span className="text-muted-foreground">
@@ -359,7 +366,7 @@ export function LotteryFactorContent({
         </div>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-[1fr_100px_80px] gap-4 text-sm text-muted-foreground">
+          <div className="hidden sm:grid grid-cols-[1fr_100px_80px] gap-4 text-sm text-muted-foreground">
             <div>Contributor</div>
             <div className="text-right">Pull Requests</div>
             <div className="text-right">% of total</div>
@@ -368,7 +375,7 @@ export function LotteryFactorContent({
           {safeLotteryFactor.contributors.map((contributor, index) => (
             <div
               key={contributor.login}
-              className="grid grid-cols-[1fr_100px_80px] gap-4 items-center"
+              className="flex flex-col space-y-2 sm:grid sm:grid-cols-[1fr_100px_80px] sm:gap-4 sm:items-center sm:space-y-0"
             >
               <div className="flex items-center gap-2">
                 <ContributorHoverCard
@@ -381,14 +388,17 @@ export function LotteryFactorContent({
                       : "contributor"
                   }
                 >
-                  <img
+                  <OptimizedAvatar
                     src={contributor.avatar_url}
                     alt={contributor.login}
-                    className="h-8 w-8 rounded-full cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                    size={32}
+                    lazy={false}
+                    fallback={contributor.login[0]?.toUpperCase() || '?'}
+                    className="cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
                   />
                 </ContributorHoverCard>
-                <div>
-                  <div className="font-medium">{contributor.login}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{contributor.login}</div>
                   <div className="text-sm text-muted-foreground">
                     {index === 0
                       ? "maintainer"
@@ -398,22 +408,26 @@ export function LotteryFactorContent({
                   </div>
                 </div>
               </div>
-              <div className="text-right font-medium">
-                {contributor.pullRequests}
-              </div>
-              <div className="text-right font-medium">
-                {Math.round(contributor.percentage)}%
+              <div className="flex justify-between sm:contents">
+                <div className="sm:text-right font-medium">
+                  <span className="text-sm text-muted-foreground sm:hidden">Pull Requests: </span>
+                  {contributor.pullRequests}
+                </div>
+                <div className="sm:text-right font-medium">
+                  <span className="text-sm text-muted-foreground sm:hidden">% of total: </span>
+                  {Math.round(contributor.percentage)}%
+                </div>
               </div>
             </div>
           ))}
 
           <div className="border-t pt-4">
-            <div className="grid grid-cols-[1fr_100px_80px] gap-4 items-center">
+            <div className="flex flex-col space-y-2 sm:grid sm:grid-cols-[1fr_100px_80px] sm:gap-4 sm:items-center sm:space-y-0">
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <div className="font-medium">Other contributors</div>
                   <div className="text-sm text-muted-foreground">
                     {safeLotteryFactor.totalContributors -
@@ -422,22 +436,26 @@ export function LotteryFactorContent({
                   </div>
                 </div>
               </div>
-              <div className="text-right font-medium">
-                {safeStats.pullRequests.length -
-                  safeLotteryFactor.contributors.reduce(
-                    (sum, c) => sum + c.pullRequests,
-                    0
-                  )}
-              </div>
-              <div className="text-right font-medium">
-                {Math.round(
-                  100 -
+              <div className="flex justify-between sm:contents">
+                <div className="sm:text-right font-medium">
+                  <span className="text-sm text-muted-foreground sm:hidden">Pull Requests: </span>
+                  {safeStats.pullRequests.length -
                     safeLotteryFactor.contributors.reduce(
-                      (sum, c) => sum + c.percentage,
+                      (sum, c) => sum + c.pullRequests,
                       0
-                    )
-                )}
-                %
+                    )}
+                </div>
+                <div className="sm:text-right font-medium">
+                  <span className="text-sm text-muted-foreground sm:hidden">% of total: </span>
+                  {Math.round(
+                    100 -
+                      safeLotteryFactor.contributors.reduce(
+                        (sum, c) => sum + c.percentage,
+                        0
+                      )
+                  )}
+                  %
+                </div>
               </div>
             </div>
           </div>

@@ -27,7 +27,32 @@ vi.mock("@/lib/contribution-analyzer", () => ({
 
 // Mock child components
 vi.mock("../distribution-charts", () => ({
+  default: vi.fn(({ onSegmentClick, selectedQuadrant }) => (
+    <div data-testid="distribution-charts">
+      <button onClick={() => onSegmentClick("new-feature")}>
+        New Feature
+      </button>
+      <button onClick={() => onSegmentClick("maintenance")}>
+        Maintenance
+      </button>
+      <div>Selected: {selectedQuadrant || "none"}</div>
+    </div>
+  )),
   DistributionCharts: vi.fn(({ onSegmentClick, selectedQuadrant }) => (
+    <div data-testid="distribution-charts">
+      <button onClick={() => onSegmentClick("new-feature")}>
+        New Feature
+      </button>
+      <button onClick={() => onSegmentClick("maintenance")}>
+        Maintenance
+      </button>
+      <div>Selected: {selectedQuadrant || "none"}</div>
+    </div>
+  )),
+}));
+
+vi.mock("../distribution-charts-lazy", () => ({
+  LazyDistributionCharts: vi.fn(({ onSegmentClick, selectedQuadrant }) => (
     <div data-testid="distribution-charts">
       <button onClick={() => onSegmentClick("new-feature")}>
         New Feature
@@ -57,7 +82,8 @@ vi.mock("@/components/skeletons", () => ({
 const createMockPR = (
   id: number,
   additions: number,
-  deletions: number
+  deletions: number,
+  merged: boolean = true
 ): PullRequest => ({
   id,
   number: id,
@@ -65,7 +91,7 @@ const createMockPR = (
   state: "closed",
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
-  merged_at: new Date().toISOString(),
+  merged_at: merged ? new Date().toISOString() : null,
   additions,
   deletions,
   repository_owner: "test-org",
@@ -87,10 +113,11 @@ const createMockPR = (
 });
 
 const mockPullRequests: PullRequest[] = [
-  createMockPR(1, 200, 50), // new-feature
-  createMockPR(2, 50, 30), // maintenance
-  createMockPR(3, 150, 20), // new-feature
-  createMockPR(4, 30, 10), // maintenance
+  createMockPR(1, 200, 50, true), // merged new-feature
+  createMockPR(2, 50, 30, true), // merged maintenance
+  createMockPR(3, 150, 20, true), // merged new-feature
+  createMockPR(4, 30, 10, true), // merged maintenance
+  createMockPR(5, 100, 40, false), // not merged - should be filtered out
 ];
 
 const mockContextValue = {
@@ -162,10 +189,10 @@ describe("Distribution", () => {
     renderDistribution();
 
     expect(
-      screen.getByText("Pull Request Distribution Analysis")
+      screen.getByText("Merged Pull Request Distribution Analysis")
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Visualize contribution patterns/)
+      screen.getByText(/Visualize merged contribution patterns/)
     ).toBeInTheDocument();
     expect(screen.getByTestId("distribution-charts")).toBeInTheDocument();
     expect(screen.getByTestId("language-legend")).toBeInTheDocument();
@@ -176,7 +203,7 @@ describe("Distribution", () => {
 
     // Check for statistics text
     expect(screen.getByText(/files touched/)).toBeInTheDocument();
-    expect(screen.getByText(/4 pull requests analyzed/)).toBeInTheDocument();
+    expect(screen.getByText(/4 merged pull requests analyzed/)).toBeInTheDocument();
     expect(screen.getByText(/Primary focus: New Feature/)).toBeInTheDocument();
   });
 
@@ -189,7 +216,7 @@ describe("Distribution", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Filtered by: New Feature/)).toBeInTheDocument();
-      expect(screen.getByText(/2 pull requests shown/)).toBeInTheDocument();
+      expect(screen.getByText(/2 merged pull requests shown/)).toBeInTheDocument();
     });
   });
 
@@ -200,7 +227,7 @@ describe("Distribution", () => {
     fireEvent.click(newFeatureButton);
 
     // Just test that the component renders properly
-    expect(screen.getByText("Pull Request Distribution Analysis")).toBeInTheDocument();
+    expect(screen.getByText("Merged Pull Request Distribution Analysis")).toBeInTheDocument();
   });
 
   it("filters pull requests correctly", async () => {
@@ -229,7 +256,7 @@ describe("Distribution", () => {
     });
 
     expect(
-      screen.getByText("Pull Request Distribution Analysis")
+      screen.getByText("Merged Pull Request Distribution Analysis")
     ).toBeInTheDocument();
     // Just check that component renders without error
   });
@@ -266,6 +293,37 @@ describe("Distribution", () => {
     renderDistribution();
 
     // Basic test that component renders
-    expect(screen.getByText("Pull Request Distribution Analysis")).toBeInTheDocument();
+    expect(screen.getByText("Merged Pull Request Distribution Analysis")).toBeInTheDocument();
+  });
+
+  it("filters out non-merged PRs correctly", async () => {
+    // Mock the distribution hook to return the correct count for this test
+    const { useDistribution } = vi.mocked(
+      await import("@/hooks/use-distribution")
+    );
+    useDistribution.mockReturnValue({
+      ...mockDistributionHook,
+      getTotalContributions: () => 2, // Only 2 merged PRs
+    });
+
+    // Test with data that includes non-merged PRs
+    const contextWithMixedPRs = {
+      ...mockContextValue,
+      stats: {
+        ...mockContextValue.stats,
+        pullRequests: [
+          createMockPR(1, 200, 50, true), // merged
+          createMockPR(2, 50, 30, false), // not merged
+          createMockPR(3, 150, 20, true), // merged
+          createMockPR(4, 30, 10, false), // not merged
+        ],
+      },
+    };
+
+    renderDistribution(contextWithMixedPRs);
+
+    // Should only show merged PRs (2 out of 4)
+    expect(screen.getByText(/2 merged pull requests analyzed/)).toBeInTheDocument();
+    expect(screen.getByText("Merged Pull Request Distribution Analysis")).toBeInTheDocument();
   });
 });

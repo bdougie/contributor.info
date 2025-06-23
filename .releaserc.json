@@ -137,6 +137,7 @@
       {
         "assets": [
           "CHANGELOG.md",
+          "public/CHANGELOG.md",
           "package.json",
           "package-lock.json"
         ],

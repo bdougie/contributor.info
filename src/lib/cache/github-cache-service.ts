@@ -93,7 +93,6 @@ export class GitHubCacheService {
       this.recordMiss(performance.now() - startTime)
       return null
     } catch (error) {
-      console.warn(`Cache get error for key ${key}:`, error)
       this.recordMiss(performance.now() - startTime)
       return null
     }
@@ -119,7 +118,7 @@ export class GitHubCacheService {
 
       this.updateStats()
     } catch (error) {
-      console.warn(`Cache set error for key ${key}:`, error)
+      // Silently handle cache set errors
     }
   }
 
@@ -135,7 +134,7 @@ export class GitHubCacheService {
       try {
         localStorage.removeItem(this.getStorageKey(key))
       } catch (error) {
-        console.warn(`Failed to remove from localStorage:`, error)
+        // Silently handle localStorage removal errors
       }
     }
   }
@@ -157,7 +156,7 @@ export class GitHubCacheService {
           }
         })
       } catch (error) {
-        console.warn('Failed to clear localStorage cache:', error)
+        // Silently handle localStorage clearing errors
       }
     }
 
@@ -269,7 +268,6 @@ export class GitHubCacheService {
 
       return entry.data
     } catch (error) {
-      console.warn('Failed to get from storage cache:', error)
       return null
     }
   }
@@ -292,7 +290,6 @@ export class GitHubCacheService {
 
       localStorage.setItem(this.getStorageKey(key), JSON.stringify(entry))
     } catch (error) {
-      console.warn('Failed to set in storage cache:', error)
       // If storage is full, try to clear some space
       if (error instanceof DOMException && error.name === 'QuotaExceededError') {
         this.cleanupStorage()
@@ -348,7 +345,7 @@ export class GitHubCacheService {
         localStorage.removeItem(entries[i].key)
       }
     } catch (error) {
-      console.warn('Failed to cleanup storage:', error)
+      // Silently handle storage cleanup errors
     }
   }
 
@@ -391,7 +388,7 @@ export class GitHubCacheService {
           }
         })
       } catch (error) {
-        console.warn('Failed to cleanup expired storage entries:', error)
+        // Silently handle expired storage cleanup errors
       }
     }
   }

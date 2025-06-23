@@ -21,7 +21,6 @@ export async function fetchUserOrganizations(username: string, headers: HeadersI
       avatar_url: org.avatar_url,
     }));
   } catch (error) {
-    console.error('Error fetching user organizations:', error);
     return [];
   }
 }
@@ -48,7 +47,6 @@ async function fetchPRReviews(owner: string, repo: string, prNumber: number, hea
       submitted_at: review.submitted_at
     }));
   } catch (error) {
-    console.error(`Error fetching reviews for PR #${prNumber}:`, error);
     return [];
   }
 }
@@ -74,7 +72,6 @@ async function fetchPRComments(owner: string, repo: string, prNumber: number, he
       created_at: comment.created_at
     }));
   } catch (error) {
-    console.error(`Error fetching comments for PR #${prNumber}:`, error);
     return [];
   }
 }
@@ -137,7 +134,6 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
         );
 
         if (!detailsResponse.ok) {
-          console.warn(`Failed to fetch details for PR #${pr.number}`);
           return {
             ...pr,
             additions: 0,
@@ -273,7 +269,7 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
             }
           }
         } catch (error) {
-          console.warn(`Failed to fetch merge commit SHA for PR #${pr.number}:`, error);
+          // Silently handle merge commit SHA fetch errors
         }
       })
     );
@@ -320,7 +316,7 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
           avatar_url = userData.avatar_url;
         }
       } catch (error) {
-        console.warn(`Failed to fetch user details for ${push.actor.login}:`, error);
+        // Silently handle user details fetch errors
       }
 
       return {
@@ -374,7 +370,6 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
       yoloCoderStats,
     };
   } catch (error) {
-    console.error('Error fetching direct commits:', error);
     return {
       directCommits: [],
       hasYoloCoders: false,

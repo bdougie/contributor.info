@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import {
   PieChart,
   Pie,
@@ -97,7 +97,7 @@ const getPrimaryLanguage = (pr: PullRequest): { name: string; color: string } =>
   };
 };
 
-export function DistributionCharts({
+function DistributionCharts({
   data,
   onSegmentClick,
   filteredPRs = [],
@@ -179,152 +179,164 @@ export function DistributionCharts({
     return null;
   };
 
+  const ChartSkeleton = () => (
+    <div className="flex items-center justify-center h-full w-full">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
+    </div>
+  );
+
   const renderDonutChart = () => (
     <div className="w-full">
       {/* Mobile: Simplified view */}
       <div className="block sm:hidden">
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              label={false}
-              outerRadius={80}
-              innerRadius={40}
-              fill="#8884d8"
-              dataKey="value"
-              onClick={handleSegmentClick}
-              className="cursor-pointer"
-            >
-              {data.map((entry) => (
-                <Cell
-                  key={`cell-${entry.id}`}
-                  fill={COLORS[entry.id as keyof typeof COLORS]}
-                  stroke={activeSegment === entry.id ? "#000" : "none"}
-                  strokeWidth={activeSegment === entry.id ? 2 : 0}
-                />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} />
-            <text
-              x="50%"
-              y="50%"
-              textAnchor="middle"
-              dominantBaseline="middle"
-              className="text-lg font-bold fill-foreground"
-            >
-              {totalContributions}
-            </text>
-            <text
-              x="50%"
-              y="50%"
-              dy={16}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              className="text-xs fill-muted-foreground"
-            >
-              Total PRs
-            </text>
-          </PieChart>
-        </ResponsiveContainer>
+        <Suspense fallback={<ChartSkeleton />}>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={false}
+                outerRadius={80}
+                innerRadius={40}
+                fill="#8884d8"
+                dataKey="value"
+                onClick={handleSegmentClick}
+                className="cursor-pointer"
+              >
+                {data.map((entry) => (
+                  <Cell
+                    key={`cell-${entry.id}`}
+                    fill={COLORS[entry.id as keyof typeof COLORS]}
+                    stroke={activeSegment === entry.id ? "#000" : "none"}
+                    strokeWidth={activeSegment === entry.id ? 2 : 0}
+                  />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+              <text
+                x="50%"
+                y="50%"
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="text-lg font-bold fill-foreground"
+              >
+                {totalContributions}
+              </text>
+              <text
+                x="50%"
+                y="50%"
+                dy={16}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="text-xs fill-muted-foreground"
+              >
+                Total PRs
+              </text>
+            </PieChart>
+          </ResponsiveContainer>
+        </Suspense>
       </div>
 
       {/* Desktop: Full featured view */}
       <div className="hidden sm:block">
-        <ResponsiveContainer width="100%" height={400}>
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              label={({ percentage }) => `${percentage.toFixed(0)}%`}
-              outerRadius={120}
-              innerRadius={60}
-              fill="#8884d8"
-              dataKey="value"
-              onClick={handleSegmentClick}
-              className="cursor-pointer"
-              animationBegin={0}
-              animationDuration={800}
-            >
-              {data.map((entry) => (
-                <Cell
-                  key={`cell-${entry.id}`}
-                  fill={COLORS[entry.id as keyof typeof COLORS]}
-                  stroke={activeSegment === entry.id ? "#000" : "none"}
-                  strokeWidth={activeSegment === entry.id ? 2 : 0}
-                />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} />
-            <text
-              x="50%"
-              y="50%"
-              textAnchor="middle"
-              dominantBaseline="middle"
-              className="text-2xl font-bold fill-foreground"
-            >
-              {totalContributions}
-            </text>
-            <text
-              x="50%"
-              y="50%"
-              dy={20}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              className="text-sm fill-muted-foreground"
-            >
-              Total PRs
-            </text>
-          </PieChart>
-        </ResponsiveContainer>
+        <Suspense fallback={<ChartSkeleton />}>
+          <ResponsiveContainer width="100%" height={400}>
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ percentage }) => `${percentage.toFixed(0)}%`}
+                outerRadius={120}
+                innerRadius={60}
+                fill="#8884d8"
+                dataKey="value"
+                onClick={handleSegmentClick}
+                className="cursor-pointer"
+                animationBegin={0}
+                animationDuration={800}
+              >
+                {data.map((entry) => (
+                  <Cell
+                    key={`cell-${entry.id}`}
+                    fill={COLORS[entry.id as keyof typeof COLORS]}
+                    stroke={activeSegment === entry.id ? "#000" : "none"}
+                    strokeWidth={activeSegment === entry.id ? 2 : 0}
+                  />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+              <text
+                x="50%"
+                y="50%"
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="text-2xl font-bold fill-foreground"
+              >
+                {totalContributions}
+              </text>
+              <text
+                x="50%"
+                y="50%"
+                dy={20}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="text-sm fill-muted-foreground"
+              >
+                Total PRs
+              </text>
+            </PieChart>
+          </ResponsiveContainer>
+        </Suspense>
       </div>
     </div>
   );
 
   const renderBarChart = () => (
-    <ResponsiveContainer width="100%" height={isMobile ? 350 : 400}>
-      <BarChart 
-        data={data} 
-        margin={{ 
-          top: 20, 
-          right: 20, 
-          left: 10, 
-          bottom: isMobile ? 60 : 20 
-        }}
-      >
-        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-        <XAxis
-          dataKey="label"
-          className="text-xs"
-          tick={{ fill: "currentColor", fontSize: isMobile ? 10 : 12 }}
-          angle={isMobile ? -45 : 0}
-          textAnchor={isMobile ? "end" : "middle"}
-          height={isMobile ? 60 : 30}
-        />
-        <YAxis className="text-xs" tick={{ fill: "currentColor", fontSize: 10 }} />
-        <Tooltip content={<CustomTooltip />} />
-        <Bar
-          dataKey="value"
-          onClick={handleSegmentClick}
-          className="cursor-pointer"
-          radius={[4, 4, 0, 0]}
-          animationDuration={600}
+    <Suspense fallback={<ChartSkeleton />}>
+      <ResponsiveContainer width="100%" height={isMobile ? 350 : 400}>
+        <BarChart 
+          data={data} 
+          margin={{ 
+            top: 20, 
+            right: 20, 
+            left: 10, 
+            bottom: isMobile ? 60 : 20 
+          }}
         >
-          {data.map((entry) => (
-            <Cell
-              key={`cell-${entry.id}`}
-              fill={COLORS[entry.id as keyof typeof COLORS]}
-              stroke={activeSegment === entry.id ? "#000" : "none"}
-              strokeWidth={activeSegment === entry.id ? 2 : 0}
-            />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <XAxis
+            dataKey="label"
+            className="text-xs"
+            tick={{ fill: "currentColor", fontSize: isMobile ? 10 : 12 }}
+            angle={isMobile ? -45 : 0}
+            textAnchor={isMobile ? "end" : "middle"}
+            height={isMobile ? 60 : 30}
+          />
+          <YAxis className="text-xs" tick={{ fill: "currentColor", fontSize: 10 }} />
+          <Tooltip content={<CustomTooltip />} />
+          <Bar
+            dataKey="value"
+            onClick={handleSegmentClick}
+            className="cursor-pointer"
+            radius={[4, 4, 0, 0]}
+            animationDuration={600}
+          >
+            {data.map((entry) => (
+              <Cell
+                key={`cell-${entry.id}`}
+                fill={COLORS[entry.id as keyof typeof COLORS]}
+                stroke={activeSegment === entry.id ? "#000" : "none"}
+                strokeWidth={activeSegment === entry.id ? 2 : 0}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </Suspense>
   );
 
   const renderTreemap = () => {
@@ -355,9 +367,8 @@ export function DistributionCharts({
           }
           drillUp();
         }}
-        onNodeClick={(nodeId) => {
+        onNodeClick={() => {
           // Handle contributor node clicks
-          console.log('Contributor node clicked:', nodeId);
         }}
       />
     );
@@ -671,3 +682,6 @@ export function DistributionCharts({
     </div>
   );
 }
+
+export default DistributionCharts;
+export { DistributionCharts };

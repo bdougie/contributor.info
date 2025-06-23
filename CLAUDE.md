@@ -147,3 +147,4 @@ npx supabase status
 - remember to mock external dependencies in tests
 - never use jest. only vitest
 - mock supabase in tests always
+- jest is leveraged in the storybook only

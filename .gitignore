@@ -40,3 +40,6 @@ chromatic-diagnostics.json
 
 # Coverage reports
 coverage
+
+# eval
+eval-outputs/

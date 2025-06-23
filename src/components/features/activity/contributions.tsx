@@ -1,8 +1,17 @@
-import { useState, useContext, useEffect, useRef } from "react";
+import { useState, useContext, useEffect, useRef, Suspense, lazy } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ResponsiveScatterPlot, ScatterPlotNodeProps } from "@nivo/scatterplot";
 import { animated } from "@react-spring/web";
+
+// Lazy load the heavy visualization component
+const ResponsiveScatterPlot = lazy(() => 
+  import("@nivo/scatterplot").then(module => ({ 
+    default: module.ResponsiveScatterPlot 
+  }))
+);
+
+// Import types separately since they don't affect bundle size
+// import type { ScatterPlotNodeProps } from "@nivo/scatterplot";
 import { humanizeNumber } from "@/lib/utils";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
@@ -29,15 +38,23 @@ function ContributionsChart() {
 
   const functionTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  // Add resize listener to update isMobile state
+  // Add resize listener to update isMobile state with throttling
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+      if (functionTimeout.current) {
+        clearTimeout(functionTimeout.current);
+      }
+      functionTimeout.current = setTimeout(() => {
+        setIsMobile(window.innerWidth < 768);
+      }, 150); // Throttle resize events
     };
 
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", handleResize, { passive: true });
     return () => {
       window.removeEventListener("resize", handleResize);
+      if (functionTimeout.current) {
+        clearTimeout(functionTimeout.current);
+      }
     };
   }, []);
 
@@ -135,15 +152,7 @@ function ContributionsChart() {
   };
 
   // Custom Node for scatter plot points
-  const CustomNode = (
-    props: ScatterPlotNodeProps<{
-      x: number;
-      y: number;
-      contributor: string;
-      image: string;
-      _pr: PullRequest;
-    }>
-  ) => {
+  const CustomNode = (props: any) => {
     const contributorStats = getContributorStats(
       props.node.data.contributor,
       props.node.data._pr
@@ -254,76 +263,82 @@ function ContributionsChart() {
         </div>
       </div>
       <div className={`${isMobile ? "h-[280px]" : "h-[400px]"} w-full overflow-hidden relative`}>
-        <ResponsiveScatterPlot
-          nodeSize={isMobile ? 20 : 35}
-          data={data}
-          margin={{
-            top: 20,
-            right: isMobile ? 10 : 60,
-            bottom: isMobile ? 45 : 70,
-            left: isMobile ? 35 : 90,
-          }}
-          xScale={{
-            type: "linear",
-            min: 0,
-            max: isMobile ? mobileMaxDays : effectiveTimeRangeNumber,
-            reverse: true,
-          }}
-          yScale={{
-            type: isLogarithmic ? "symlog" : "linear",
-            min: 0,
-            max: Math.max(Math.round(maxFilesModified * 1.5), 10),
-          }}
-          blendMode="normal"
-          useMesh={false}
-          annotations={[]}
-          nodeComponent={CustomNode}
-          axisBottom={{
-            tickSize: 6,
-            tickPadding: 4,
-            tickRotation: 0,
-            tickValues: isMobile ? 3 : 7,
-            legend: isMobile ? "Days Ago" : "Date Created",
-            legendPosition: "middle",
-            legendOffset: isMobile ? 35 : 50,
-            format: (value) =>
-              value === 0
-                ? "Today"
-                : value > effectiveTimeRangeNumber
-                ? `${effectiveTimeRangeNumber}+`
-                : `${value}${isMobile ? "" : " days ago"}`,
-          }}
-          theme={{
-            axis: {},
-            grid: {
-              line: {
-                strokeDasharray: "4 4",
-                strokeWidth: 1,
-                strokeOpacity: 0.7,
+        <Suspense fallback={
+          <div className="flex items-center justify-center h-full w-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
+          </div>
+        }>
+          <ResponsiveScatterPlot
+            nodeSize={isMobile ? 20 : 35}
+            data={data}
+            margin={{
+              top: 20,
+              right: isMobile ? 10 : 60,
+              bottom: isMobile ? 45 : 70,
+              left: isMobile ? 35 : 90,
+            }}
+            xScale={{
+              type: "linear",
+              min: 0,
+              max: isMobile ? mobileMaxDays : effectiveTimeRangeNumber,
+              reverse: true,
+            }}
+            yScale={{
+              type: isLogarithmic ? "symlog" : "linear",
+              min: 0,
+              max: Math.max(Math.round(maxFilesModified * 1.5), 10),
+            }}
+            blendMode="normal"
+            useMesh={false}
+            annotations={[]}
+            nodeComponent={CustomNode}
+            axisBottom={{
+              tickSize: 6,
+              tickPadding: 4,
+              tickRotation: 0,
+              tickValues: isMobile ? 3 : 7,
+              legend: isMobile ? "Days Ago" : "Date Created",
+              legendPosition: "middle",
+              legendOffset: isMobile ? 35 : 50,
+              format: (value) =>
+                value === 0
+                  ? "Today"
+                  : value > effectiveTimeRangeNumber
+                  ? `${effectiveTimeRangeNumber}+`
+                  : `${value}${isMobile ? "" : " days ago"}`,
+            }}
+            theme={{
+              axis: {},
+              grid: {
+                line: {
+                  strokeDasharray: "4 4",
+                  strokeWidth: 1,
+                  strokeOpacity: 0.7,
+                },
               },
-            },
-          }}
-          isInteractive={true}
-          axisLeft={{
-            tickSize: 2,
-            tickPadding: 3,
-            tickRotation: 0,
-            tickValues: isMobile ? 3 : 5,
-            legend: isMobile ? "Lines" : "Lines Changed",
-            legendPosition: "middle",
-            legendOffset: isMobile ? -20 : -60,
-            format: (value: number) => {
-              if (isMobile) {
+            }}
+            isInteractive={true}
+            axisLeft={{
+              tickSize: 2,
+              tickPadding: 3,
+              tickRotation: 0,
+              tickValues: isMobile ? 3 : 5,
+              legend: isMobile ? "Lines" : "Lines Changed",
+              legendPosition: "middle",
+              legendOffset: isMobile ? -20 : -60,
+              format: (value: number) => {
+                if (isMobile) {
+                  return parseInt(`${value}`) >= 1000
+                    ? humanizeNumber(value)
+                    : `${value}`;
+                }
                 return parseInt(`${value}`) >= 1000
                   ? humanizeNumber(value)
                   : `${value}`;
-              }
-              return parseInt(`${value}`) >= 1000
-                ? humanizeNumber(value)
-                : `${value}`;
-            },
-          }}
-        />
+              },
+            }}
+          />
+        </Suspense>
       </div>
     </div>
   );

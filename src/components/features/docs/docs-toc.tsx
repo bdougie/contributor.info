@@ -20,22 +20,35 @@ export function DocsToc({ content, className }: DocsTocProps) {
   const tocItems = useMemo(() => {
     const headingRegex = /^(#{1,2})\s+(.+)$/gm;
     const items: TocItem[] = [];
+    const usedIds = new Set<string>();
     let match;
+    let counter = 0;
 
     while ((match = headingRegex.exec(content)) !== null) {
       const level = match[1].length;
       const title = match[2].trim();
-      const id = title
+      let baseId = title
         .toLowerCase()
         .replace(/[^\w\s-]/g, "") // Remove special characters
         .replace(/\s+/g, "-") // Replace spaces with hyphens
         .trim();
+
+      // Ensure unique IDs by adding a counter if needed
+      let id = baseId;
+      let suffix = 1;
+      while (usedIds.has(id)) {
+        id = `${baseId}-${suffix}`;
+        suffix++;
+      }
+      usedIds.add(id);
 
       items.push({
         id,
         title,
         level,
       });
+
+      counter++;
     }
 
     return items;

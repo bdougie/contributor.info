@@ -1,7 +1,7 @@
 {
   "name": "contributor-info",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.5.0",
   "type": "module",
   "engines": {
     "node": ">=20.0.0",
@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "npm test && tsc -b && vite build",
+    "optimize-images": "node scripts/convert-images.js",
     "build:production": "tsc -b && vite build",
     "build:prod": "tsc -b && vite build",
     "lint": "eslint .",
@@ -19,7 +20,9 @@
     "test:ui": "vitest --ui",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "test-storybook": "test-storybook",
+    "test-storybook": "npm run build-storybook && npx concurrently -k -s first -n \"SB,TEST\" -c \"magenta,blue\" \"npx http-server storybook-static --port 6006 --silent\" \"npx wait-on tcp:6006 && npx test-storybook --url http://127.0.0.1:6006\"",
+    "test-storybook-a11y": "npm run build-storybook && npx concurrently -k -s first -n \"SB,TEST\" -c \"magenta,blue\" \"npx http-server storybook-static --port 6006 --silent\" \"npx wait-on tcp:6006 && npx test-storybook --url http://127.0.0.1:6006 --includeTags accessibility\"",
+    "test-storybook-direct": "./.storybook/run-interaction-tests-direct.sh",
     "generate-social-cards": "node scripts/generate-social-cards.js",
     "setup-storage": "node scripts/setup-supabase-storage.js",
     "test-social-cards": "node scripts/test-social-cards.js",
@@ -41,7 +44,11 @@
     "test-visual-regression": "./scripts/test-visual-regression.sh",
     "install-browsers": "playwright install chromium --with-deps || echo 'Playwright browser installation skipped'",
     "test:ci-env": "node scripts/test-ci-environment.js",
-    "verify:es-module-fix": "node scripts/verify-es-module-fix.js"
+    "verify:es-module-fix": "node scripts/verify-es-module-fix.js",
+    "eval:maintainer": "tsx scripts/run-maintainer-eval.ts",
+    "eval:benchmark": "tsx scripts/run-maintainer-eval.ts --benchmark",
+    "eval:conservative": "tsx scripts/run-maintainer-eval.ts --config conservative",
+    "eval:aggressive": "tsx scripts/run-maintainer-eval.ts --config aggressive"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -107,6 +114,7 @@
   "devDependencies": {
     "@eslint/js": "^9.11.1",
     "@mdx-js/react": "^2.3.0",
+    "@storybook/addon-a11y": "^8.6.14",
     "@storybook/addon-docs": "^8.6.14",
     "@storybook/addon-essentials": "^8.6.14",
     "@storybook/addon-interactions": "^8.6.14",
@@ -126,6 +134,7 @@
     "autoprefixer": "^10.4.20",
     "chromatic": "^12.2.0",
     "concurrently": "^9.1.2",
+    "dotenv": "^16.4.7",
     "eslint": "^9.11.1",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.12",
@@ -135,11 +144,14 @@
     "jsdom": "^26.1.0",
     "nock": "^14.0.4",
     "postcss": "^8.4.47",
+    "sharp": "^0.34.2",
     "storybook": "^8.6.14",
     "tailwindcss": "^3.4.13",
+    "tsx": "^4.19.2",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.7.0",
     "vite": "^6.3.5",
+    "vite-imagetools": "^7.1.0",
     "vitest": "^3.1.1",
     "wait-on": "^8.0.3"
   }
