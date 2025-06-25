@@ -185,7 +185,12 @@ export function ShareableCard({
         contextInfo?.repository
       );
       
-      await navigator.clipboard.writeText(shortUrl);
+      // Create a descriptive share message
+      const shareText = contextInfo?.repository 
+        ? `Check out this ${contextInfo.metric || chartType} for ${contextInfo.repository}\n${shortUrl}`
+        : `Check out this ${chartType} chart\n${shortUrl}`;
+      
+      await navigator.clipboard.writeText(shareText);
       
       const domain = dubConfig.isDev ? "dub.co" : "oss.fyi";
       const isShortened = shortUrl !== currentUrl;
@@ -204,9 +209,12 @@ export function ShareableCard({
       });
     } catch (err) {
       console.error("Failed to create short URL:", err);
-      // Fallback to original URL
+      // Fallback to original URL with descriptive text
       try {
-        await navigator.clipboard.writeText(window.location.href);
+        const fallbackText = contextInfo?.repository 
+          ? `Check out this ${contextInfo.metric || chartType} for ${contextInfo.repository}\n${window.location.href}`
+          : `Check out this ${chartType} chart\n${window.location.href}`;
+        await navigator.clipboard.writeText(fallbackText);
         toast.success("Link copied to clipboard!");
       } catch (fallbackErr) {
         toast.error("Failed to copy link");
