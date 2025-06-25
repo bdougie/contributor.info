@@ -52,6 +52,9 @@ export function ShareableCard({
 
     setIsCapturing(true);
     
+    // Wait a moment for the buttons to be removed from DOM
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     try {
       // Add temporary styling for capture
       const element = cardRef.current;
@@ -276,13 +279,14 @@ export function ShareableCard({
     >
       {children}
       
-      {/* Floating action buttons on hover */}
-      <div
-        className={cn(
-          "absolute top-2 right-2 flex gap-2 transition-opacity duration-200",
-          isHovered && !isCapturing && !isGeneratingUrl ? "opacity-100" : "opacity-0 pointer-events-none"
-        )}
-      >
+      {/* Floating action buttons on hover - completely removed during capture */}
+      {!isCapturing && (
+        <div
+          className={cn(
+            "absolute top-2 right-2 flex gap-2 transition-opacity duration-200",
+            isHovered && !isGeneratingUrl ? "opacity-100" : "opacity-0 pointer-events-none"
+          )}
+        >
         <Button
           size="icon"
           variant="secondary"
@@ -327,7 +331,8 @@ export function ShareableCard({
         >
           <Share2 className="h-4 w-4" />
         </Button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
