@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SearchIcon, Share2 } from "lucide-react";
+import { SearchIcon, Link } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { toast } from "sonner";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
@@ -142,9 +142,9 @@ export default function RepoView() {
                 size="icon"
                 onClick={handleShare}
                 className="h-8 w-8"
-                title="Share this repository"
+                title="Copy repository link"
               >
-                <Share2 className="h-4 w-4" />
+                <Link className="h-4 w-4" />
               </Button>
             </div>
           </CardHeader>
