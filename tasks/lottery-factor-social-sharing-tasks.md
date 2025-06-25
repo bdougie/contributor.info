@@ -242,7 +242,7 @@ Based on PRD: `prd-lottery-factor-social-sharing.md`
 - [ ] Share button appears on lottery factor cards specifically
 - [ ] Short URL generation with analytics tracking
 - [ ] Share rate analytics (target: 5% of views)
-- [ ] Most shared repositories ranking
+- [ ] Most shared repositories ranking by chart.
 - [ ] Social platform integration (Twitter/X, LinkedIn)
 
 ### 📊 Next Priority Items:
