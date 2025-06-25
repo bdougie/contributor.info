@@ -48,10 +48,10 @@ export default function RepoCardWithData() {
 
   if (loading) {
     // Show card with loading state
-    return <RepoSocialCard owner={owner || ""} repo={repo || ""} />;
+    return <RepoSocialCard owner={owner || ""} repo={repo || ""} timeRange="Past 6 months" />;
   }
 
-  return <RepoSocialCard owner={owner || ""} repo={repo || ""} stats={stats || undefined} />;
+  return <RepoSocialCard owner={owner || ""} repo={repo || ""} timeRange="Past 6 months" stats={stats || undefined} />;
 }
 
 function processPullRequestData(pullRequests: PullRequest[]) {
