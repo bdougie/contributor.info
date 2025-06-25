@@ -1,12 +1,12 @@
 import { useContext, useState, useEffect, Suspense, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useParams } from "react-router-dom";
 import {
-  Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { ShareableCard } from "@/components/features/sharing/shareable-card";
 import { LanguageLegend } from "./language-legend";
 import { LazyDistributionCharts } from "./distribution-charts-lazy";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
@@ -18,6 +18,7 @@ import { useDistribution } from "@/hooks/use-distribution";
 import { ContributionAnalyzer } from "@/lib/contribution-analyzer";
 
 export default function Distribution() {
+  const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const { stats } = useContext(RepoStatsContext);
   const { timeRange } = useTimeRange();
   const timeRangeNumber = parseInt(timeRange, 10); // Parse string to number
@@ -98,7 +99,15 @@ export default function Distribution() {
   }
 
   return (
-    <Card className="overflow-hidden">
+    <ShareableCard
+      title="Merged Pull Request Distribution Analysis"
+      className="overflow-hidden"
+      contextInfo={{
+        repository: owner && repo ? `${owner}/${repo}` : undefined,
+        metric: "distribution analysis"
+      }}
+      chartType="distribution"
+    >
       <CardHeader>
         <CardTitle>Merged Pull Request Distribution Analysis</CardTitle>
         <CardDescription>
@@ -130,6 +139,6 @@ export default function Distribution() {
 
         <LanguageLegend languages={languageStats} />
       </CardContent>
-    </Card>
+    </ShareableCard>
   );
 }
