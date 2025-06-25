@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { fetchPullRequests } from "@/lib/github";
+import { calculateTrendMetrics } from "@/lib/insights/trends-metrics";
 import RepoSocialCard from "./repo-card";
 import type { PullRequest, TimeRange } from "@/lib/types";
 
@@ -8,9 +9,9 @@ export default function RepoCardWithData() {
   const { owner, repo } = useParams();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<{
-    totalContributors: number;
-    totalPRs: number;
-    mergedPRs: number;
+    weeklyPRVolume: number;
+    activeContributors: number;
+    avgReviewTimeHours: number;
     topContributors: Array<{
       login: string;
       avatar_url: string;
@@ -25,12 +26,15 @@ export default function RepoCardWithData() {
       try {
         setLoading(true);
 
-        // Fetch pull requests data for the last 6 months
-        const timeRange: TimeRange = "180"; // 6 months in days
-        const pullRequests = await fetchPullRequests(owner, repo, timeRange);
+        // Fetch both pull requests data and trend metrics
+        const timeRange: TimeRange = "30"; // 30 days for trends
+        const [pullRequests, trends] = await Promise.all([
+          fetchPullRequests(owner, repo, timeRange),
+          calculateTrendMetrics(owner, repo, timeRange)
+        ]);
 
         // Process the data to get stats
-        const processedStats = processPullRequestData(pullRequests);
+        const processedStats = processPullRequestData(pullRequests, trends);
         setStats(processedStats);
       } catch (err) {
         console.error("Error fetching repo data:", err);
@@ -54,7 +58,7 @@ export default function RepoCardWithData() {
   return <RepoSocialCard owner={owner || ""} repo={repo || ""} timeRange="Past 6 months" stats={stats || undefined} />;
 }
 
-function processPullRequestData(pullRequests: PullRequest[]) {
+function processPullRequestData(pullRequests: PullRequest[], trends: any[]) {
   // Filter out bots
   const filteredPRs = pullRequests.filter(pr => 
     pr.user.type !== 'Bot' && !pr.user.login.includes('[bot]')
@@ -85,13 +89,15 @@ function processPullRequestData(pullRequests: PullRequest[]) {
     .sort((a, b) => b.contributions - a.contributions)
     .slice(0, 5);
 
-  // Count merged PRs
-  const mergedPRs = filteredPRs.filter(pr => pr.merged_at !== null).length;
+  // Extract metrics from trends
+  const weeklyPRVolume = trends.find(t => t.metric.includes('Weekly'))?.current || filteredPRs.length;
+  const activeContributors = trends.find(t => t.metric.includes('Active Contributors'))?.current || contributorMap.size;
+  const avgReviewTimeHours = trends.find(t => t.metric.includes('Avg Review Time'))?.current || 0;
 
   return {
-    totalContributors: contributorMap.size,
-    totalPRs: filteredPRs.length,
-    mergedPRs,
+    weeklyPRVolume,
+    activeContributors,
+    avgReviewTimeHours,
     topContributors
   };
 }
@@ -100,9 +106,9 @@ function getMockDataForRepo(owner: string, repo: string) {
   // Mock data for popular repositories to make the preview look good
   const mockData: Record<string, any> = {
     'facebook/react': {
-      totalContributors: 1532,
-      totalPRs: 2847,
-      mergedPRs: 2156,
+      weeklyPRVolume: 42,
+      activeContributors: 28,
+      avgReviewTimeHours: 18,
       topContributors: [
         { login: 'gaearon', avatar_url: 'https://avatars.githubusercontent.com/u/810438?v=4', contributions: 234 },
         { login: 'acdlite', avatar_url: 'https://avatars.githubusercontent.com/u/3624098?v=4', contributions: 189 },
@@ -112,9 +118,9 @@ function getMockDataForRepo(owner: string, repo: string) {
       ]
     },
     'vuejs/vue': {
-      totalContributors: 892,
-      totalPRs: 1654,
-      mergedPRs: 1287,
+      weeklyPRVolume: 23,
+      activeContributors: 15,
+      avgReviewTimeHours: 12,
       topContributors: [
         { login: 'yyx990803', avatar_url: 'https://avatars.githubusercontent.com/u/499550?v=4', contributions: 456 },
         { login: 'sodatea', avatar_url: 'https://avatars.githubusercontent.com/u/2409758?v=4', contributions: 123 },
@@ -127,9 +133,9 @@ function getMockDataForRepo(owner: string, repo: string) {
 
   const key = `${owner}/${repo}`;
   return mockData[key] || {
-    totalContributors: Math.floor(Math.random() * 200) + 50,
-    totalPRs: Math.floor(Math.random() * 500) + 100,
-    mergedPRs: Math.floor(Math.random() * 400) + 80,
+    weeklyPRVolume: Math.floor(Math.random() * 30) + 5,
+    activeContributors: Math.floor(Math.random() * 20) + 5,
+    avgReviewTimeHours: Math.floor(Math.random() * 48) + 2,
     topContributors: Array.from({ length: 5 }, (_, i) => ({
       login: `contributor${i + 1}`,
       avatar_url: `https://avatars.githubusercontent.com/u/${Math.floor(Math.random() * 1000000)}?v=4`,

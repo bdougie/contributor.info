@@ -1,4 +1,4 @@
-import { GitPullRequest, GitMerge, Users } from "lucide-react";
+import { GitPullRequest, Users, Clock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface RepoSocialCardProps {
@@ -6,9 +6,9 @@ interface RepoSocialCardProps {
   repo: string;
   timeRange?: string;
   stats?: {
-    totalContributors: number;
-    totalPRs: number;
-    mergedPRs: number;
+    weeklyPRVolume: number;
+    activeContributors: number;
+    avgReviewTimeHours: number;
     topContributors?: Array<{
       login: string;
       avatar_url: string;
@@ -82,24 +82,30 @@ export default function RepoSocialCard({ owner: _owner, repo: _repo, timeRange, 
             <div className="flex items-center gap-3">
               <GitPullRequest className="w-8 h-8 text-orange-500" />
               <div>
-                <span className="text-4xl font-bold text-white">{stats?.totalPRs || 0}</span>
-                <span className="text-xl text-gray-300 ml-2">Pull Requests</span>
+                <span className="text-4xl font-bold text-white">{stats?.weeklyPRVolume || 0}</span>
+                <span className="text-xl text-gray-300 ml-2">PRs/week</span>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
-              <GitMerge className="w-8 h-8 text-orange-500" />
+              <Users className="w-8 h-8 text-orange-500" />
               <div>
-                <span className="text-4xl font-bold text-white">{stats?.mergedPRs || 0}</span>
-                <span className="text-xl text-gray-300 ml-2">Merged</span>
+                <span className="text-4xl font-bold text-white">{stats?.activeContributors || 0}</span>
+                <span className="text-xl text-gray-300 ml-2">Contributors</span>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <Users className="w-8 h-8 text-orange-500" />
+              <Clock className="w-8 h-8 text-orange-500" />
               <div>
-                <span className="text-4xl font-bold text-white">{stats?.totalContributors || 0}</span>
-                <span className="text-xl text-gray-300 ml-2">Contributors</span>
+                <span className="text-4xl font-bold text-white">
+                  {stats?.avgReviewTimeHours
+                    ? stats.avgReviewTimeHours >= 24
+                      ? `${Math.round(stats.avgReviewTimeHours / 24)}d`
+                      : `${Math.round(stats.avgReviewTimeHours)}h`
+                    : '0h'}
+                </span>
+                <span className="text-xl text-gray-300 ml-2">Avg Review</span>
               </div>
             </div>
           </div>

@@ -4,7 +4,7 @@
 
 **Objective**: Investigate and implement a robust chart sharing system that allows users to capture and share various charts from the contributor.info platform.
 
-**Background**: Initial attempts to add ShareableCard to PR contributions charts revealed technical challenges with dark mode theming and avatar rendering in Nivo charts. This PRD outlines a systematic approach to solve these issues and implement comprehensive chart sharing.
+**Background**: Initial attempts to add ShareableCard to PR contributions charts revealed technical challenges with dark mode theming and avatar rendering in Nivo charts (data visualization library). This PRD outlines a systematic approach to solve these issues and implement comprehensive chart sharing.
 
 **Success Metrics**:
 - Charts render correctly in both light and dark themes when shared
@@ -18,7 +18,7 @@
 ### ✅ What Works
 - **ShareableCard Component**: Exists and functional for other components
 - **Theme System**: Comprehensive theme provider with light/dark/system modes
-- **Nivo Chart Theming**: Basic Nivo theme implementation created (kept from investigation)
+- **Nivo Chart Theming**: Basic Nivo (data visualization library) theme implementation created (kept from investigation)
 - **Avatar Improvements**: Enhanced avatar rendering in SVG foreignObject context
 
 ### ❌ What's Broken/Missing
@@ -28,7 +28,7 @@
 - **Cross-Chart Consistency**: Different chart libraries (Recharts vs Nivo) have different theming approaches
 
 ### 🔍 Areas Needing Investigation
-1. **html2canvas Compatibility**: How well does it work with Nivo charts and foreignObject elements?
+1. **html2canvas Compatibility**: How well does it work with Nivo (data visualization library) charts and foreignObject elements?
 2. **Theme Synchronization**: Best approach for real-time theme updates across chart libraries
 3. **Image Loading**: CORS and crossOrigin handling for GitHub avatars in captures
 4. **Performance Impact**: Effect of sharing functionality on chart rendering performance
@@ -40,7 +40,7 @@
 **Goal**: Understand and document technical constraints and solutions
 
 **Tasks**:
-- [ ] Create test environment for html2canvas with Nivo charts
+- [ ] Create test environment for html2canvas with Nivo (data visualization library) charts
 - [ ] Document avatar loading issues and CORS requirements
 - [ ] Test different theme synchronization approaches
 - [ ] Evaluate alternative capture libraries (dom-to-image, etc.)
@@ -100,7 +100,7 @@
 ## Technical Guidelines
 
 ### Chart Library Considerations
-- **Nivo Charts**: Require manual theme objects, complex foreignObject handling
+- **Nivo Charts (data visualization library)**: Require manual theme objects, complex foreignObject handling
 - **Recharts**: Better theme integration via ChartContainer component
 - **Custom Charts**: Tailwind-based, simplest to theme and capture
 

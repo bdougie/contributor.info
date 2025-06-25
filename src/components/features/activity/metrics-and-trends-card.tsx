@@ -6,9 +6,11 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Link } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   calculateTrendMetrics,
@@ -109,6 +111,15 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
   const [trends, setTrends] = useState<TrendData[]>([]);
   const [metrics, setMetrics] = useState<ActivityMetrics | null>(null);
 
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copied to clipboard!");
+    } catch (error) {
+      toast.error("Failed to copy link");
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, [owner, repo, timeRange]);
@@ -137,10 +148,23 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Metrics and Trends</CardTitle>
-        <CardDescription>
-          Snapshot comparing the previous 30 days (limited to 100 prs)
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Metrics and Trends</CardTitle>
+            <CardDescription>
+              Snapshot comparing the previous 30 days (limited to 100 prs)
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleCopyLink}
+            className="h-8 w-8"
+            title="Copy page link"
+          >
+            <Link className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Metrics Section */}
