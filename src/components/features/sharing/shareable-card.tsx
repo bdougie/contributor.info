@@ -7,45 +7,41 @@ import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { createChartShareUrl, getDubConfig } from "@/lib/dub";
 import { trackShareEvent as trackAnalytics } from "@/lib/analytics";
-import { useTheme } from "@/components/common/theming/theme-provider";
 
 interface ShareableCardProps {
   children: ReactNode;
   title: string;
   className?: string;
-  watermark?: boolean;
   contextInfo?: {
     repository?: string;
     metric?: string;
   };
   chartType?: string; // For categorizing the type of chart/metric
+  bypassAnalytics?: boolean; // For testing purposes
 }
 
 export function ShareableCard({ 
   children, 
   title, 
   className,
-  watermark = true,
   contextInfo,
-  chartType = "chart"
+  chartType = "chart",
+  bypassAnalytics = false
 }: ShareableCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isGeneratingUrl, setIsGeneratingUrl] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   
-  const { theme } = useTheme();
-  
-  const location = useLocation();
+  // Safe router access for testing environment
+  let location;
+  try {
+    location = useLocation();
+  } catch {
+    location = { pathname: '/' };
+  }
   const dubConfig = getDubConfig();
 
-  // Helper function to get the actual theme (resolves 'system' to 'light' or 'dark')
-  const getActualTheme = () => {
-    if (theme === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    return theme;
-  };
 
   const handleCapture = async (action: 'download' | 'copy' | 'share') => {
     if (!cardRef.current) return;
@@ -56,56 +52,82 @@ export function ShareableCard({
     await new Promise(resolve => setTimeout(resolve, 100));
     
     try {
-      // Add temporary styling for capture
+      // Create a wrapper div for the entire capture with border and attribution
       const element = cardRef.current;
-      element.style.position = 'relative';
+      let wrapper: HTMLDivElement | null = null;
+      let attributionBar: HTMLDivElement | null = null;
+      let contentWrapper: HTMLDivElement | null = null;
       
-      // Ensure theme class is applied during capture
-      const actualTheme = getActualTheme();
+      // Store original parent and styles
+      const originalParent = element.parentNode;
+      const originalNextSibling = element.nextSibling;
       
-      // Add watermark if enabled
-      let watermarkEl: HTMLDivElement | null = null;
-      if (watermark) {
-        watermarkEl = document.createElement('div');
-        
-        // Adaptive watermark color based on theme
-        const isLightMode = actualTheme === 'light';
-        const watermarkColor = isLightMode ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.8)';
-        const backgroundColor = isLightMode ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)';
-        const borderColor = isLightMode ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.3)';
-        
-        watermarkEl.style.cssText = `
-          position: absolute;
-          bottom: 16px;
-          right: 8px;
-          font-size: 12px;
-          color: ${watermarkColor};
-          font-family: system-ui;
-          font-weight: 500;
-          z-index: 1000;
-          padding: 4px 8px 6px 8px;
-          border-radius: 6px;
-          backdrop-filter: blur(4px);
-          text-shadow: ${isLightMode ? `1px 1px 2px ${borderColor}` : `1px 1px 2px ${borderColor}`};
-          border: 1px solid ${borderColor};
-          background: ${backgroundColor};
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          white-space: nowrap;
-        `;
-        watermarkEl.textContent = `contributor.info${contextInfo?.repository ? ` • ${contextInfo.repository}` : ''}`;
-        element.appendChild(watermarkEl);
+      wrapper = document.createElement('div');
+      
+      // Wrapper styling with orange border and rounded corners
+      wrapper.style.cssText = `
+        border: 3px solid #f97316;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        background: inherit;
+        position: relative;
+      `;
+      
+      // Add attribution bar at the top
+      attributionBar = document.createElement('div');
+      attributionBar.style.cssText = `
+        height: 48px;
+        background-color: #000000;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        font-family: system-ui;
+        color: white;
+        position: relative;
+        z-index: 1000;
+      `;
+      
+      // Attribution content: repo on left, logo on right
+      attributionBar.innerHTML = `
+        <span style="color: rgba(255,255,255,0.7); font-size: 14px;">
+          ${contextInfo?.repository || ''}
+        </span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: white; font-size: 16px; font-weight: 500;">contributor.info</span>
+          <span style="font-size: 24px;">🌱</span>
+        </div>
+      `;
+      
+      // Content wrapper to ensure proper padding and no overlap
+      contentWrapper = document.createElement('div');
+      contentWrapper.style.cssText = `
+        padding: 16px;
+        background: inherit;
+        min-height: 200px;
+      `;
+      
+      // Build the structure: wrapper > attribution + contentWrapper > original element
+      wrapper.appendChild(attributionBar);
+      wrapper.appendChild(contentWrapper);
+      contentWrapper.appendChild(element);
+      
+      // Insert wrapper where the original element was
+      if (originalParent) {
+        originalParent.insertBefore(wrapper, originalNextSibling);
       }
 
-      const canvas = await html2canvas(element, {
+      const canvas = await html2canvas(wrapper!, {
         useCORS: true,
         allowTaint: true,
       });
 
-      // Remove watermark after capture
-      if (watermarkEl) {
-        element.removeChild(watermarkEl);
+      // Restore original DOM structure
+      if (originalParent && wrapper) {
+        originalParent.insertBefore(element, originalNextSibling);
+        if (wrapper.parentNode) {
+          wrapper.parentNode.removeChild(wrapper);
+        }
       }
 
       if (action === 'download') {
@@ -117,7 +139,9 @@ export function ShareableCard({
         toast.success("Chart downloaded!");
         
         // Track download event
-        await trackShareEvent('download', 'image');
+        if (!bypassAnalytics) {
+          await trackShareEvent('download', 'image');
+        }
       } else if (action === 'copy') {
         // Copy to clipboard
         canvas.toBlob(async (blob) => {
@@ -146,7 +170,9 @@ export function ShareableCard({
           }
           
           // Track copy event
-          await trackShareEvent('copy', 'image');
+          if (!bypassAnalytics) {
+            await trackShareEvent('copy', 'image');
+          }
         });
       } else if (action === 'share') {
         // Native share with image
@@ -173,11 +199,13 @@ export function ShareableCard({
               });
               
               // Track share event
-              await trackShareEvent('share', 'native', { 
-                shortUrl, 
-                withImage: true,
-                dubLinkId: shortUrl !== currentUrl ? shortUrl.split('/').pop() : undefined 
-              });
+              if (!bypassAnalytics) {
+                await trackShareEvent('share', 'native', { 
+                  shortUrl, 
+                  withImage: true,
+                  dubLinkId: shortUrl !== currentUrl ? shortUrl.split('/').pop() : undefined 
+                });
+              }
             } catch (err) {
               // User cancelled share
             }
@@ -224,11 +252,13 @@ export function ShareableCard({
       }
       
       // Track URL share event
-      await trackShareEvent('share', 'url', { 
-        shortUrl, 
-        isShortened,
-        dubLinkId: isShortened ? shortUrl.split('/').pop() : undefined 
-      });
+      if (!bypassAnalytics) {
+        await trackShareEvent('share', 'url', { 
+          shortUrl, 
+          isShortened,
+          dubLinkId: isShortened ? shortUrl.split('/').pop() : undefined 
+        });
+      }
     } catch (err) {
       console.error("Failed to create short URL:", err);
       // Fallback to original URL with descriptive text

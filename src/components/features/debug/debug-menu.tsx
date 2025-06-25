@@ -11,7 +11,8 @@ import {
   FileText,
   Globe,
   Monitor,
-  BarChart3
+  BarChart3,
+  Image
 } from "lucide-react";
 
 interface DebugRoute {
@@ -56,6 +57,13 @@ const debugRoutes: DebugRoute[] = [
     title: "Social Card Preview",
     description: "Preview and test social media card generation",
     icon: <Palette className="h-4 w-4" />,
+    category: "dev"
+  },
+  {
+    path: "/dev/shareable-charts",
+    title: "Shareable Charts Preview",
+    description: "Test shareable charts with different types and attribution bars",
+    icon: <Image className="h-4 w-4" />,
     category: "dev"
   },
   {

@@ -26,6 +26,7 @@ interface DistributionChartsProps {
   filteredPRs?: PullRequest[];
   selectedQuadrant?: string | null;
   pullRequests?: PullRequest[];
+  chartType?: ChartType;
 }
 
 type ChartType = "donut" | "bar" | "treemap";
@@ -104,8 +105,8 @@ function DistributionCharts({
   filteredPRs = [],
   selectedQuadrant,
   pullRequests = [],
+  chartType = "treemap",
 }: DistributionChartsProps) {
-  const [chartType, setChartType] = useState<ChartType>("treemap");
   const [activeSegment, setActiveSegment] = useState<string | null>(selectedQuadrant || null);
   const [isMobile, setIsMobile] = useState(false);
   const [isPRListCollapsed, setIsPRListCollapsed] = useState(true);
@@ -549,82 +550,41 @@ function DistributionCharts({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h3 className="text-lg font-semibold">Contribution Breakdown</h3>
-        <div className="flex gap-1 p-1 bg-muted rounded-lg self-start sm:self-auto">
-          <Button
-            size="sm"
-            variant={chartType === "treemap" ? "default" : "ghost"}
-            onClick={() => setChartType("treemap")}
-            className="h-8 px-2 sm:px-3"
-          >
-            <TreePineIcon className="h-4 w-4" />
-            <span className="sr-only sm:not-sr-only sm:ml-1">Treemap</span>
-          </Button>
-          <Button
-            size="sm"
-            variant={chartType === "donut" ? "default" : "ghost"}
-            onClick={() => setChartType("donut")}
-            className="h-8 px-2 sm:px-3"
-          >
-            <PieChartIcon className="h-4 w-4" />
-            <span className="sr-only sm:not-sr-only sm:ml-1">Donut</span>
-          </Button>
-          <Button
-            size="sm"
-            variant={chartType === "bar" ? "default" : "ghost"}
-            onClick={() => setChartType("bar")}
-            className="h-8 px-2 sm:px-3"
-          >
-            <BarChart3Icon className="h-4 w-4" />
-            <span className="sr-only sm:not-sr-only sm:ml-1">Bar</span>
-          </Button>
-        </div>
-      </div>
 
       {/* Treemap: Always use overlay drawer */}
       {chartType === "treemap" ? (
-        <ShareableCard 
-          title="Contribution Distribution Treemap"
-          chartType="treemap"
-          contextInfo={{ 
-            repository: pullRequests?.[0] ? `${pullRequests[0].repository_owner}/${pullRequests[0].repository_name}` : undefined,
-            metric: "Contribution Distribution" 
-          }}
-        >
-          <Card className="relative overflow-hidden">
-            <CardContent className="p-6">
-              {/* Chart Area - Always takes full space */}
-              <div className="h-[400px]">
-                {renderTreemap()}
-              </div>
-            
-            {/* PR Drawer - Overlay that slides in from right */}
-            {selectedQuadrant && renderPRDrawer()}
-            
-            {/* Drawer Toggle Button - Only visible when drawer is closed and for treemap */}
-            {selectedQuadrant && chartType === "treemap" && isPRListCollapsed && (
-              <div className="absolute top-4 right-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsPRListCollapsed(false)}
-                  className="flex items-center gap-2"
-                >
-                  <div
-                    className="w-3 h-3 rounded"
-                    style={{ backgroundColor: COLORS[selectedQuadrant as keyof typeof COLORS] }}
-                  />
-                  <span className="hidden sm:inline">
-                    {data.find(d => d.id === selectedQuadrant)?.label}
-                  </span>
-                  <ChevronRight className="h-4 w-4 rotate-180" />
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        </ShareableCard>
+        <Card className="relative overflow-hidden">
+          <CardContent className="p-6">
+            {/* Chart Area - Always takes full space */}
+            <div className="h-[400px]">
+              {renderTreemap()}
+            </div>
+          
+          {/* PR Drawer - Overlay that slides in from right */}
+          {selectedQuadrant && renderPRDrawer()}
+          
+          {/* Drawer Toggle Button - Only visible when drawer is closed and for treemap */}
+          {selectedQuadrant && chartType === "treemap" && isPRListCollapsed && (
+            <div className="absolute top-4 right-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsPRListCollapsed(false)}
+                className="flex items-center gap-2"
+              >
+                <div
+                  className="w-3 h-3 rounded"
+                  style={{ backgroundColor: COLORS[selectedQuadrant as keyof typeof COLORS] }}
+                />
+                <span className="hidden sm:inline">
+                  {data.find(d => d.id === selectedQuadrant)?.label}
+                </span>
+                <ChevronRight className="h-4 w-4 rotate-180" />
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
       ) : (
         /* Pie/Bar: Desktop grid layout, mobile overlay drawer */
         <>
@@ -632,85 +592,58 @@ function DistributionCharts({
           <div className="hidden md:block">
             {selectedQuadrant ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <ShareableCard 
-                  title={`Contribution Distribution ${chartType === "donut" ? "Donut" : "Bar"} Chart`}
-                  chartType={chartType}
-                  contextInfo={{ 
-                    repository: pullRequests?.[0] ? `${pullRequests[0].repository_owner}/${pullRequests[0].repository_name}` : undefined,
-                    metric: "Contribution Distribution" 
-                  }}
-                >
-                  <Card>
-                    <CardContent className="p-6">
-                      {chartType === "donut" && renderDonutChart()}
-                      {chartType === "bar" && renderBarChart()}
-                    </CardContent>
-                  </Card>
-                </ShareableCard>
-                {renderPRList()}
-              </div>
-            ) : (
-              <ShareableCard 
-                title={`Contribution Distribution ${chartType === "donut" ? "Donut" : "Bar"} Chart`}
-                chartType={chartType}
-                contextInfo={{ 
-                  repository: pullRequests?.[0] ? `${pullRequests[0].repository_owner}/${pullRequests[0].repository_name}` : undefined,
-                  metric: "Contribution Distribution" 
-                }}
-              >
                 <Card>
                   <CardContent className="p-6">
                     {chartType === "donut" && renderDonutChart()}
                     {chartType === "bar" && renderBarChart()}
                   </CardContent>
                 </Card>
-              </ShareableCard>
+                {renderPRList()}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-6">
+                  {chartType === "donut" && renderDonutChart()}
+                  {chartType === "bar" && renderBarChart()}
+                </CardContent>
+              </Card>
             )}
           </div>
 
           {/* Mobile: Overlay drawer */}
           <div className="block md:hidden">
-            <ShareableCard 
-              title={`Contribution Distribution ${chartType === "donut" ? "Donut" : "Bar"} Chart`}
-              chartType={chartType}
-              contextInfo={{ 
-                repository: pullRequests?.[0] ? `${pullRequests[0].repository_owner}/${pullRequests[0].repository_name}` : undefined,
-                metric: "Contribution Distribution" 
-              }}
-            >
-              <Card className="relative overflow-hidden">
-                <CardContent className="p-6">
-                  <div className="h-[400px]">
-                    {chartType === "donut" && renderDonutChart()}
-                    {chartType === "bar" && renderBarChart()}
-                  </div>
-                
-                {/* PR Drawer - Overlay that slides in from right */}
-                {selectedQuadrant && renderPRDrawer()}
-                
-                {/* Drawer Toggle Button - Only visible when drawer is closed on mobile */}
-                {selectedQuadrant && isPRListCollapsed && (
-                  <div className="absolute top-4 right-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsPRListCollapsed(false)}
-                      className="flex items-center gap-2"
-                    >
-                      <div
-                        className="w-3 h-3 rounded"
-                        style={{ backgroundColor: COLORS[selectedQuadrant as keyof typeof COLORS] }}
-                      />
-                      <span className="hidden sm:inline">
-                        {data.find(d => d.id === selectedQuadrant)?.label}
-                      </span>
-                      <ChevronRight className="h-4 w-4 rotate-180" />
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            </ShareableCard>
+            <Card className="relative overflow-hidden">
+              <CardContent className="p-6">
+                <div className="h-[400px]">
+                  {chartType === "donut" && renderDonutChart()}
+                  {chartType === "bar" && renderBarChart()}
+                </div>
+              
+              {/* PR Drawer - Overlay that slides in from right */}
+              {selectedQuadrant && renderPRDrawer()}
+              
+              {/* Drawer Toggle Button - Only visible when drawer is closed on mobile */}
+              {selectedQuadrant && isPRListCollapsed && (
+                <div className="absolute top-4 right-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsPRListCollapsed(false)}
+                    className="flex items-center gap-2"
+                  >
+                    <div
+                      className="w-3 h-3 rounded"
+                      style={{ backgroundColor: COLORS[selectedQuadrant as keyof typeof COLORS] }}
+                    />
+                    <span className="hidden sm:inline">
+                      {data.find(d => d.id === selectedQuadrant)?.label}
+                    </span>
+                    <ChevronRight className="h-4 w-4 rotate-180" />
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
           </div>
         </>
       )}

@@ -1,8 +1,9 @@
+import type { ReactNode } from "react";
 import { ThemeProvider } from "@/components/common/theming";
 import "@/index.css";
 
 interface CardLayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export default function CardLayout({ children }: CardLayoutProps) {

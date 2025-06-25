@@ -25,6 +25,7 @@ const SocialCardPreview = lazy(() => import("@/components/social-cards/preview")
 const GitHubSyncDebug = lazy(() => import("@/components/debug/github-sync-debug").then(m => ({ default: m.GitHubSyncDebug })));
 const PerformanceMonitoringDashboard = lazy(() => import("@/components/performance-monitoring-dashboard").then(m => ({ default: m.PerformanceMonitoringDashboard })));
 const AnalyticsDashboard = lazy(() => import("@/components/features/debug/analytics-dashboard").then(m => ({ default: m.AnalyticsDashboard })));
+const ShareableChartsPreview = lazy(() => import("@/components/features/debug/shareable-charts-preview").then(m => ({ default: m.ShareableChartsPreview })));
 
 // Loading fallback component
 const PageSkeleton = () => (
@@ -93,6 +94,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AnalyticsDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dev/shareable-charts"
+              element={
+                <ProtectedRoute>
+                  <ShareableChartsPreview />
                 </ProtectedRoute>
               }
             />
