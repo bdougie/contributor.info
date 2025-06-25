@@ -13,12 +13,11 @@ import {
 } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PieChartIcon, BarChart3Icon, TreePineIcon, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import type { QuadrantData } from "@/hooks/use-distribution";
 import type { PullRequest } from "@/lib/types";
 import { useHierarchicalDistribution } from "@/hooks/use-hierarchical-distribution";
 import { DistributionTreemapEnhanced } from "./distribution-treemap-enhanced";
-import { ShareableCard } from "@/components/features/sharing";
 
 interface DistributionChartsProps {
   data: QuadrantData[];

@@ -4,7 +4,7 @@ import html2canvas from "html2canvas";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useLocation } from "react-router-dom";
+import { useLocation as useRouterLocation } from "react-router-dom";
 import { createChartShareUrl, getDubConfig } from "@/lib/dub";
 import { trackShareEvent as trackAnalytics } from "@/lib/analytics";
 
@@ -34,12 +34,15 @@ export function ShareableCard({
   const cardRef = useRef<HTMLDivElement>(null);
   
   // Safe router access for testing environment
-  let location;
-  try {
-    location = useLocation();
-  } catch {
-    location = { pathname: '/' };
-  }
+  const useLocation = () => {
+    try {
+      return useRouterLocation();
+    } catch {
+      return { pathname: '/' };
+    }
+  };
+  
+  const location = useLocation();
   const dubConfig = getDubConfig();
 
 
