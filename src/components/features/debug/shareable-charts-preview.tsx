@@ -311,7 +311,7 @@ function MockSelfSelectionRate({ owner, repo, daysBack }: { owner: string; repo:
 }
 
 // Custom Stacked Contributor Leaderboard for better full-width display
-function StackedContributorLeaderboard({ ranking, repositoryName }: { ranking: ContributorRanking; repositoryName?: string }) {
+function StackedContributorLeaderboard({ ranking }: { ranking: ContributorRanking }) {
   return (
     <Card className="w-full">
       <CardHeader>
@@ -527,7 +527,6 @@ export function ShareableChartsPreview() {
               ranking={mockContributorRankingWinner}
               loading={false}
               error={null}
-              repositoryName={repository}
             />
           </ShareableCapturePreview>
         );
@@ -537,7 +536,6 @@ export function ShareableChartsPreview() {
           <ShareableCapturePreview repository={repository}>
             <StackedContributorLeaderboard
               ranking={mockContributorRankingLeaderboard}
-              repositoryName={repository}
             />
           </ShareableCapturePreview>
         );

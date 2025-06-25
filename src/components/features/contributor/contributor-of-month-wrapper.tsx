@@ -5,7 +5,6 @@ import { ContributorRanking, MonthlyContributor } from "@/lib/types";
 import { useParams } from "react-router-dom";
 
 export default function ContributorOfTheMonthWrapper() {
-  const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const rankings = useContributorOfMonth();
 
   if (!rankings || rankings.length === 0) {
@@ -43,7 +42,6 @@ export default function ContributorOfTheMonthWrapper() {
   return (
     <ContributorOfTheMonth 
       ranking={contributorRanking} 
-      repositoryName={owner && repo ? `${owner}/${repo}` : undefined}
     />
   );
 }

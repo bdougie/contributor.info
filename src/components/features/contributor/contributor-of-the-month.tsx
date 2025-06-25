@@ -9,14 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Trophy, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContributorOfMonthSkeleton } from "@/components/skeletons";
-import { ShareableCard } from "@/components/features/sharing/shareable-card";
 
 interface ContributorOfTheMonthProps {
   ranking: ContributorRanking | null;
   loading?: boolean;
   error?: string | null;
   className?: string;
-  repositoryName?: string;
 }
 
 export function ContributorOfTheMonth({
@@ -24,7 +22,6 @@ export function ContributorOfTheMonth({
   loading = false,
   error,
   className,
-  repositoryName,
 }: ContributorOfTheMonthProps) {
   if (loading) {
     return (
@@ -73,15 +70,7 @@ export function ContributorOfTheMonth({
   }
 
   return (
-    <ShareableCard
-      title={isWinnerPhase ? "Contributor of the Month" : "Monthly Leaderboard"}
-      contextInfo={{
-        repository: repositoryName,
-        metric: isWinnerPhase ? "contributor of the month" : "monthly leaderboard"
-      }}
-      chartType="contributor-leaderboard"
-    >
-      <Card className={cn("w-full", className)} role="region" aria-labelledby="contributor-heading">
+    <Card className={cn("w-full", className)} role="region" aria-labelledby="contributor-heading">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -178,7 +167,6 @@ export function ContributorOfTheMonth({
             </div>
           )}
         </CardContent>
-      </Card>
-    </ShareableCard>
+    </Card>
   );
 }
