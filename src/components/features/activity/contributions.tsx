@@ -20,12 +20,14 @@ import type { PullRequest, ContributorStats } from "@/lib/types";
 import { ContributorHoverCard } from "../contributor";
 import { useContributorRole } from "@/hooks/useContributorRoles";
 import { useParams } from "react-router-dom";
+import { useTheme } from "@/components/common/theming/theme-provider";
 
 function ContributionsChart() {
   const { stats, includeBots: contextIncludeBots } =
     useContext(RepoStatsContext);
   const { effectiveTimeRange } = useTimeRange();
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
+  const { theme } = useTheme();
   const [isLogarithmic, setIsLogarithmic] = useState(false);
   const [maxFilesModified, setMaxFilesModified] = useState(10);
   const [localIncludeBots, setLocalIncludeBots] = useState(contextIncludeBots);
@@ -37,6 +39,73 @@ function ContributionsChart() {
   const mobileMaxDays = 7; // Aggressive filtering for mobile
 
   const functionTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Get the actual theme (resolves 'system' to 'light' or 'dark')
+  const getActualTheme = () => {
+    if (theme === 'system') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return theme;
+  };
+
+  // Create Nivo theme object based on current theme
+  const getNivoTheme = () => {
+    const actualTheme = getActualTheme();
+    const isDark = actualTheme === 'dark';
+    
+    return {
+      background: 'transparent',
+      text: {
+        fontSize: 12,
+        fill: isDark ? 'hsl(0 0% 98%)' : 'hsl(0 0% 3.9%)', // foreground colors
+        outlineWidth: 0,
+        outlineColor: 'transparent',
+      },
+      axis: {
+        domain: {
+          line: {
+            stroke: isDark ? 'hsl(0 0% 14.9%)' : 'hsl(0 0% 87%)', // border colors
+            strokeWidth: 1,
+          },
+        },
+        legend: {
+          text: {
+            fontSize: 13,
+            fill: isDark ? 'hsl(0 0% 64.9%)' : 'hsl(0 0% 45.1%)', // muted foreground
+            outlineWidth: 0,
+            outlineColor: 'transparent',
+          },
+        },
+        ticks: {
+          line: {
+            stroke: isDark ? 'hsl(0 0% 14.9%)' : 'hsl(0 0% 87%)', // border colors
+            strokeWidth: 1,
+          },
+          text: {
+            fontSize: 11,
+            fill: isDark ? 'hsl(0 0% 64.9%)' : 'hsl(0 0% 45.1%)', // muted foreground
+            outlineWidth: 0,
+            outlineColor: 'transparent',
+          },
+        },
+      },
+      grid: {
+        line: {
+          stroke: isDark ? 'hsl(0 0% 14.9%)' : 'hsl(0 0% 87%)', // border colors
+          strokeWidth: 1,
+          strokeOpacity: 0.7,
+          strokeDasharray: '4 4',
+        },
+      },
+      crosshair: {
+        line: {
+          stroke: isDark ? 'hsl(0 0% 98%)' : 'hsl(0 0% 3.9%)', // foreground colors
+          strokeWidth: 1,
+          strokeOpacity: 0.75,
+        },
+      },
+    };
+  };
 
   // Add resize listener to update isMobile state with throttling
   useEffect(() => {
@@ -72,6 +141,9 @@ function ContributionsChart() {
   useEffect(() => {
     setLocalIncludeBots(contextIncludeBots);
   }, [contextIncludeBots]);
+
+  // Force re-render when theme changes to update Nivo theme
+  const nivoTheme = getNivoTheme();
 
   const getScatterData = () => {
     // Sort by created_at and filter based on preferences
@@ -160,44 +232,71 @@ function ContributionsChart() {
     
     // Get the contributor's role
     const { role } = useContributorRole(owner || '', repo || '', props.node.data.contributor);
-
+    
+    const size = isMobile ? 28 : 35;
+    
     return (
       <animated.foreignObject
-        width={isMobile ? 28 : 35}
-        height={isMobile ? 28 : 35}
+        width={size}
+        height={size}
         r={props.style.size.to((size: number) => size / 2) as unknown as number}
         y={
           props.style.y.to(
-            (yVal: number) => Math.max(0, yVal - (isMobile ? 28 : 35) / 1)
+            (yVal: number) => Math.max(0, yVal - size / 1)
           ) as unknown as number
         }
         x={
           props.style.x.to(
-            (xVal: number) => Math.max((isMobile ? 14 : 17.5), xVal - (isMobile ? 28 : 35) / 2)
+            (xVal: number) => Math.max(size / 2, xVal - size / 2)
           ) as unknown as number
         }
-        style={{ pointerEvents: "auto", overflow: "visible" }} // This is crucial for hover to work
+        style={{ 
+          pointerEvents: "auto", 
+          overflow: "visible",
+          // Ensure proper rendering in different contexts
+          isolation: "isolate"
+        }}
       >
-        <ContributorHoverCard
-          contributor={contributorStats}
-          role={role?.role || (props.node.data._pr.user.type === "Bot" ? "Bot" : "Contributor")}
-        >
-          <Avatar
-            className={`${
-              isMobile ? "w-6 h-6" : "w-8 h-8"
-            } border-2 border-background cursor-pointer`}
+        <div style={{ width: '100%', height: '100%' }}>
+          <ContributorHoverCard
+            contributor={contributorStats}
+            role={role?.role || (props.node.data._pr.user.type === "Bot" ? "Bot" : "Contributor")}
           >
-            <AvatarImage
-              src={props.node.data.image}
-              alt={props.node.data.contributor}
-            />
-            <AvatarFallback>
-              {props.node.data.contributor
-                ? props.node.data.contributor[0].toUpperCase()
-                : "?"}
-            </AvatarFallback>
-          </Avatar>
-        </ContributorHoverCard>
+            <Avatar
+              className={`${
+                isMobile ? "w-6 h-6" : "w-8 h-8"
+              } border-2 border-background cursor-pointer`}
+              style={{
+                // Ensure the avatar renders properly in foreignObject
+                backgroundColor: 'var(--muted)',
+                borderColor: 'var(--background)'
+              }}
+            >
+              <AvatarImage
+                src={props.node.data.image}
+                alt={props.node.data.contributor}
+                style={{
+                  // Ensure images load properly in SVG context
+                  objectFit: 'cover',
+                  width: '100%',
+                  height: '100%'
+                }}
+                crossOrigin="anonymous"
+              />
+              <AvatarFallback
+                style={{
+                  backgroundColor: 'var(--muted)',
+                  color: 'var(--muted-foreground)',
+                  fontSize: isMobile ? '10px' : '12px'
+                }}
+              >
+                {props.node.data.contributor
+                  ? props.node.data.contributor[0].toUpperCase()
+                  : "?"}
+              </AvatarFallback>
+            </Avatar>
+          </ContributorHoverCard>
+        </div>
       </animated.foreignObject>
     );
   };
@@ -229,117 +328,108 @@ function ContributionsChart() {
 
   return (
     <div className="space-y-4 w-full overflow-hidden">
-      <div
-        className={`flex flex-col items-start justify-between pt-3 ${
-          isMobile ? "px-2" : "md:flex-row md:px-7"
-        }`}
-      >
-        <div className="text-sm text-muted-foreground">
-          {data[0].data.length} pull requests shown
-        </div>
-        <div className={`flex flex-wrap gap-2 mt-3 md:mt-0 ${isMobile ? "w-full" : ""}`}>
-          {hasBots && (
+        <div
+          className={`flex flex-col items-start justify-between pt-3 ${
+            isMobile ? "px-2" : "md:flex-row md:px-7"
+          }`}
+        >
+          <div className="text-sm text-muted-foreground">
+            {data[0].data.length} pull requests shown
+          </div>
+          <div className={`flex flex-wrap gap-2 mt-3 md:mt-0 ${isMobile ? "w-full" : ""}`}>
+            {hasBots && (
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="include-bots"
+                  checked={localIncludeBots}
+                  onCheckedChange={handleToggleIncludeBots}
+                />
+                <Label htmlFor="include-bots" className="text-sm">
+                  Show Bots
+                </Label>
+              </div>
+            )}
             <div className="flex items-center space-x-2">
               <Switch
-                id="include-bots"
-                checked={localIncludeBots}
-                onCheckedChange={handleToggleIncludeBots}
+                id="logarithmic-scale"
+                checked={isLogarithmic}
+                onCheckedChange={handleSetLogarithmic}
               />
-              <Label htmlFor="include-bots" className="text-sm">
-                Show Bots
+              <Label htmlFor="logarithmic-scale" className="text-sm">
+                Enhance
               </Label>
             </div>
-          )}
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="logarithmic-scale"
-              checked={isLogarithmic}
-              onCheckedChange={handleSetLogarithmic}
-            />
-            <Label htmlFor="logarithmic-scale" className="text-sm">
-              Enhance
-            </Label>
           </div>
         </div>
-      </div>
-      <div className={`${isMobile ? "h-[280px]" : "h-[400px]"} w-full overflow-hidden relative`}>
-        <Suspense fallback={
-          <div className="flex items-center justify-center h-full w-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
-          </div>
-        }>
-          <ResponsiveScatterPlot
-            nodeSize={isMobile ? 20 : 35}
-            data={data}
-            margin={{
-              top: 20,
-              right: isMobile ? 10 : 60,
-              bottom: isMobile ? 45 : 70,
-              left: isMobile ? 35 : 90,
-            }}
-            xScale={{
-              type: "linear",
-              min: 0,
-              max: isMobile ? mobileMaxDays : effectiveTimeRangeNumber,
-              reverse: true,
-            }}
-            yScale={{
-              type: isLogarithmic ? "symlog" : "linear",
-              min: 0,
-              max: Math.max(Math.round(maxFilesModified * 1.5), 10),
-            }}
-            blendMode="normal"
-            useMesh={false}
-            annotations={[]}
-            nodeComponent={CustomNode}
-            axisBottom={{
-              tickSize: 6,
-              tickPadding: 4,
-              tickRotation: 0,
-              tickValues: isMobile ? 3 : 7,
-              legend: isMobile ? "Days Ago" : "Date Created",
-              legendPosition: "middle",
-              legendOffset: isMobile ? 35 : 50,
-              format: (value) =>
-                value === 0
-                  ? "Today"
-                  : value > effectiveTimeRangeNumber
-                  ? `${effectiveTimeRangeNumber}+`
-                  : `${value}${isMobile ? "" : " days ago"}`,
-            }}
-            theme={{
-              axis: {},
-              grid: {
-                line: {
-                  strokeDasharray: "4 4",
-                  strokeWidth: 1,
-                  strokeOpacity: 0.7,
-                },
-              },
-            }}
-            isInteractive={true}
-            axisLeft={{
-              tickSize: 2,
-              tickPadding: 3,
-              tickRotation: 0,
-              tickValues: isMobile ? 3 : 5,
-              legend: isMobile ? "Lines" : "Lines Changed",
-              legendPosition: "middle",
-              legendOffset: isMobile ? -20 : -60,
-              format: (value: number) => {
-                if (isMobile) {
+        <div className={`${isMobile ? "h-[280px]" : "h-[400px]"} w-full overflow-hidden relative`}>
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-full w-full">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
+            </div>
+          }>
+            <ResponsiveScatterPlot
+              nodeSize={isMobile ? 20 : 35}
+              data={data}
+              margin={{
+                top: 20,
+                right: isMobile ? 10 : 60,
+                bottom: isMobile ? 45 : 70,
+                left: isMobile ? 35 : 90,
+              }}
+              xScale={{
+                type: "linear",
+                min: 0,
+                max: isMobile ? mobileMaxDays : effectiveTimeRangeNumber,
+                reverse: true,
+              }}
+              yScale={{
+                type: isLogarithmic ? "symlog" : "linear",
+                min: 0,
+                max: Math.max(Math.round(maxFilesModified * 1.5), 10),
+              }}
+              blendMode="normal"
+              useMesh={false}
+              annotations={[]}
+              nodeComponent={CustomNode}
+              axisBottom={{
+                tickSize: 6,
+                tickPadding: 4,
+                tickRotation: 0,
+                tickValues: isMobile ? 3 : 7,
+                legend: isMobile ? "Days Ago" : "Date Created",
+                legendPosition: "middle",
+                legendOffset: isMobile ? 35 : 50,
+                format: (value) =>
+                  value === 0
+                    ? "Today"
+                    : value > effectiveTimeRangeNumber
+                    ? `${effectiveTimeRangeNumber}+`
+                    : `${value}${isMobile ? "" : " days ago"}`,
+              }}
+              theme={nivoTheme}
+              isInteractive={true}
+              axisLeft={{
+                tickSize: 2,
+                tickPadding: 3,
+                tickRotation: 0,
+                tickValues: isMobile ? 3 : 5,
+                legend: isMobile ? "Lines" : "Lines Changed",
+                legendPosition: "middle",
+                legendOffset: isMobile ? -20 : -60,
+                format: (value: number) => {
+                  if (isMobile) {
+                    return parseInt(`${value}`) >= 1000
+                      ? humanizeNumber(value)
+                      : `${value}`;
+                  }
                   return parseInt(`${value}`) >= 1000
                     ? humanizeNumber(value)
                     : `${value}`;
-                }
-                return parseInt(`${value}`) >= 1000
-                  ? humanizeNumber(value)
-                  : `${value}`;
-              },
-            }}
-          />
-        </Suspense>
-      </div>
+                },
+              }}
+            />
+          </Suspense>
+        </div>
     </div>
   );
 }
