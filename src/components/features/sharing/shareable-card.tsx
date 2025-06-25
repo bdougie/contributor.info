@@ -9,6 +9,7 @@ import { LoginDialog } from "@/components/features/auth/login-dialog";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { createChartShareUrl, getDubConfig } from "@/lib/dub";
 import { trackShareEvent as trackAnalytics } from "@/lib/analytics";
+import { useTheme } from "@/components/common/theming/theme-provider";
 
 interface ShareableCardProps {
   children: ReactNode;
@@ -36,9 +37,18 @@ export function ShareableCard({
   const cardRef = useRef<HTMLDivElement>(null);
   
   const { isLoggedIn, showLoginDialog, setShowLoginDialog } = useGitHubAuth();
+  const { theme } = useTheme();
   
   const location = useLocation();
   const dubConfig = getDubConfig();
+
+  // Helper function to get the actual theme (resolves 'system' to 'light' or 'dark')
+  const getActualTheme = () => {
+    if (theme === 'system') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return theme;
+  };
 
   const handleCapture = async (action: 'download' | 'copy' | 'share') => {
     if (!isLoggedIn) {
@@ -56,24 +66,48 @@ export function ShareableCard({
       const element = cardRef.current;
       element.style.position = 'relative';
       
+      // Ensure theme class is applied during capture
+      const actualTheme = getActualTheme();
+      
       // Add watermark if enabled
       let watermarkEl: HTMLDivElement | null = null;
       if (watermark) {
         watermarkEl = document.createElement('div');
+        
+        // Adaptive watermark color based on theme
+        const isLightMode = actualTheme === 'light';
+        const watermarkColor = isLightMode ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.8)';
+        const backgroundColor = isLightMode ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)';
+        const borderColor = isLightMode ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.3)';
+        
         watermarkEl.style.cssText = `
           position: absolute;
-          bottom: 8px;
+          bottom: 16px;
           right: 8px;
           font-size: 12px;
-          color: rgba(0,0,0,0.5);
+          color: ${watermarkColor};
           font-family: system-ui;
+          font-weight: 500;
           z-index: 1000;
+          padding: 4px 8px 6px 8px;
+          border-radius: 6px;
+          backdrop-filter: blur(4px);
+          text-shadow: ${isLightMode ? `1px 1px 2px ${borderColor}` : `1px 1px 2px ${borderColor}`};
+          border: 1px solid ${borderColor};
+          background: ${backgroundColor};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          white-space: nowrap;
         `;
         watermarkEl.textContent = `contributor.info${contextInfo?.repository ? ` • ${contextInfo.repository}` : ''}`;
         element.appendChild(watermarkEl);
       }
 
-      const canvas = await html2canvas(element);
+      const canvas = await html2canvas(element, {
+        useCORS: true,
+        allowTaint: true,
+      });
 
       // Remove watermark after capture
       if (watermarkEl) {
