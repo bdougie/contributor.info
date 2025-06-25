@@ -1,13 +1,34 @@
-# Task List: Lottery Factor Social Sharing Implementation
+# Task List: Enhanced Social Sharing Implementation
 
 Based on PRD: `prd-lottery-factor-social-sharing.md`
+**Updated**: Expanded to include image export, authentication, and analytics tracking
 
 ## Status: In Progress
-**Current Phase**: Phase 1 - Basic Social Sharing
+**Current Phase**: Phase 1 - Image Export and Authentication
 
 ---
 
-## Phase 1: Basic Social Sharing
+## Phase 0: Enhanced Requirements (NEW)
+
+### 0. Image Export and Authentication Features
+- [ ] **0.1 Install image capture dependencies**
+  - [ ] Add html2canvas or dom-to-image-more package
+  - [ ] Test browser compatibility
+  - [ ] Evaluate performance impact
+- [ ] **0.2 Design ShareableCard wrapper component**
+  - [ ] Create hover state detection system
+  - [ ] Design UI for share/download icons on hover
+  - [ ] Plan component API and props
+- [ ] **0.3 Authentication integration planning**
+  - [ ] Review existing auth flow
+  - [ ] Design login-required UX for sharing
+  - [ ] Plan auth state management
+- [ ] **0.4 Short URL system design**
+  - [ ] Evaluate dub.co vs custom Supabase solution
+  - [ ] Design URL structure and analytics schema
+  - [ ] Plan migration for existing share URLs
+
+## Phase 1: Basic Social Sharing with Authentication
 
 ### 1. Research & Analysis
 - [ ] **1.1 Analyze existing lottery factor component structure**
@@ -54,11 +75,21 @@ Based on PRD: `prd-lottery-factor-social-sharing.md`
 
 ### 4. Analytics Integration
 - [ ] **4.1 Implement share tracking**
-  - [ ] Implement dub.co for analytitcs
+  - [ ] Set up dub.co integration OR custom short URL system
+  - [ ] Create share_events table in Supabase
+  - [ ] Track user_id, repository, share type, platform
+  - [ ] Implement click tracking for shared URLs
 - [ ] **4.2 Setup success metrics tracking**
   - [ ] Implement share rate calculation (target: 5% of views)
+  - [ ] Track most shared repositories
+  - [ ] Monitor click-through rates
   - [ ] Track performance metrics (button response time)
   - [ ] Add error tracking for failed shares
+- [ ] **4.3 Create analytics dashboard**
+  - [ ] Design UI for share analytics
+  - [ ] Implement repository share rankings
+  - [ ] Show share trends over time
+  - [ ] Display platform distribution
 
 ### 5. Testing & Quality Assurance
 - [ ] **5.1 Unit testing**
@@ -76,6 +107,32 @@ Based on PRD: `prd-lottery-factor-social-sharing.md`
   - [ ] Verify shared URLs work correctly
   - [ ] Test accessibility features
   - [ ] Validate visual design and placement
+
+---
+
+## Phase 1.5: Image Export Features (NEW)
+
+### Image Capture Implementation
+- [ ] **1.5.1 Create ShareableCard component**
+  - [ ] Implement hover detection with useHover hook
+  - [ ] Add floating action buttons (share, download, copy)
+  - [ ] Support wrapping any chart/metric component
+  - [ ] Handle responsive behavior
+- [ ] **1.5.2 Implement image capture**
+  - [ ] Integrate html2canvas for DOM to image conversion
+  - [ ] Add watermark with contributor.info branding
+  - [ ] Include context (repo name, date, metric name)
+  - [ ] Support both PNG and clipboard formats
+- [ ] **1.5.3 Rich clipboard support**
+  - [ ] Copy image to clipboard using Canvas API
+  - [ ] Include URL with image for rich paste
+  - [ ] Show success toast: "Chart copied with link!"
+  - [ ] Handle browser compatibility
+- [ ] **1.5.4 Authentication gate**
+  - [ ] Require login for image export features
+  - [ ] Show "Login to Share" for unauthenticated users
+  - [ ] Preserve action after login redirect
+  - [ ] Track authenticated share events
 
 ---
 

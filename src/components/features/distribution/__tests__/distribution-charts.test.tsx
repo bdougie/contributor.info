@@ -27,6 +27,39 @@ vi.mock("recharts", () => ({
   Tooltip: () => <div data-testid="tooltip" />,
 }));
 
+// Mock React Router hooks
+vi.mock("react-router-dom", () => ({
+  useLocation: () => ({ pathname: "/test", search: "", hash: "" }),
+  useNavigate: () => vi.fn(),
+}));
+
+// Mock GitHub auth hook
+vi.mock("@/hooks/use-github-auth", () => ({
+  useGitHubAuth: () => ({
+    isLoggedIn: false,
+    showLoginDialog: false,
+    setShowLoginDialog: vi.fn(),
+    login: vi.fn(),
+    logout: vi.fn(),
+  }),
+}));
+
+// Mock Sonner toast
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+// Mock html2canvas
+vi.mock("html2canvas", () => ({
+  default: vi.fn(() => Promise.resolve({
+    toDataURL: () => "data:image/png;base64,test",
+    toBlob: (callback: (blob: Blob) => void) => callback(new Blob()),
+  })),
+}));
+
 // Mock the enhanced treemap component
 vi.mock("../distribution-treemap-enhanced", () => ({
   DistributionTreemapEnhanced: vi.fn(({ onDrillDown, onDrillUp, onNodeClick }) => (

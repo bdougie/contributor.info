@@ -1,0 +1,1 @@
+export { ShareableCard } from './shareable-card';

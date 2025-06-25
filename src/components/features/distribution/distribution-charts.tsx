@@ -18,6 +18,7 @@ import type { QuadrantData } from "@/hooks/use-distribution";
 import type { PullRequest } from "@/lib/types";
 import { useHierarchicalDistribution } from "@/hooks/use-hierarchical-distribution";
 import { DistributionTreemapEnhanced } from "./distribution-treemap-enhanced";
+import { ShareableCard } from "@/components/features/sharing";
 
 interface DistributionChartsProps {
   data: QuadrantData[];
@@ -583,12 +584,19 @@ function DistributionCharts({
 
       {/* Treemap: Always use overlay drawer */}
       {chartType === "treemap" ? (
-        <Card className="relative overflow-hidden">
-          <CardContent className="p-6">
-            {/* Chart Area - Always takes full space */}
-            <div className="h-[400px]">
-              {renderTreemap()}
-            </div>
+        <ShareableCard 
+          title="Contribution Distribution Treemap"
+          contextInfo={{ 
+            repository: pullRequests?.[0] ? `${pullRequests[0].repository_owner}/${pullRequests[0].repository_name}` : undefined,
+            metric: "Contribution Distribution" 
+          }}
+        >
+          <Card className="relative overflow-hidden">
+            <CardContent className="p-6">
+              {/* Chart Area - Always takes full space */}
+              <div className="h-[400px]">
+                {renderTreemap()}
+              </div>
             
             {/* PR Drawer - Overlay that slides in from right */}
             {selectedQuadrant && renderPRDrawer()}
@@ -615,6 +623,7 @@ function DistributionCharts({
             )}
           </CardContent>
         </Card>
+        </ShareableCard>
       ) : (
         /* Pie/Bar: Desktop grid layout, mobile overlay drawer */
         <>
@@ -622,32 +631,55 @@ function DistributionCharts({
           <div className="hidden md:block">
             {selectedQuadrant ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <ShareableCard 
+                  title={`Contribution Distribution ${chartType === "donut" ? "Donut" : "Bar"} Chart`}
+                  contextInfo={{ 
+                    repository: pullRequests?.[0] ? `${pullRequests[0].repository_owner}/${pullRequests[0].repository_name}` : undefined,
+                    metric: "Contribution Distribution" 
+                  }}
+                >
+                  <Card>
+                    <CardContent className="p-6">
+                      {chartType === "donut" && renderDonutChart()}
+                      {chartType === "bar" && renderBarChart()}
+                    </CardContent>
+                  </Card>
+                </ShareableCard>
+                {renderPRList()}
+              </div>
+            ) : (
+              <ShareableCard 
+                title={`Contribution Distribution ${chartType === "donut" ? "Donut" : "Bar"} Chart`}
+                contextInfo={{ 
+                  repository: pullRequests?.[0] ? `${pullRequests[0].repository_owner}/${pullRequests[0].repository_name}` : undefined,
+                  metric: "Contribution Distribution" 
+                }}
+              >
                 <Card>
                   <CardContent className="p-6">
                     {chartType === "donut" && renderDonutChart()}
                     {chartType === "bar" && renderBarChart()}
                   </CardContent>
                 </Card>
-                {renderPRList()}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="p-6">
-                  {chartType === "donut" && renderDonutChart()}
-                  {chartType === "bar" && renderBarChart()}
-                </CardContent>
-              </Card>
+              </ShareableCard>
             )}
           </div>
 
           {/* Mobile: Overlay drawer */}
           <div className="block md:hidden">
-            <Card className="relative overflow-hidden">
-              <CardContent className="p-6">
-                <div className="h-[400px]">
-                  {chartType === "donut" && renderDonutChart()}
-                  {chartType === "bar" && renderBarChart()}
-                </div>
+            <ShareableCard 
+              title={`Contribution Distribution ${chartType === "donut" ? "Donut" : "Bar"} Chart`}
+              contextInfo={{ 
+                repository: pullRequests?.[0] ? `${pullRequests[0].repository_owner}/${pullRequests[0].repository_name}` : undefined,
+                metric: "Contribution Distribution" 
+              }}
+            >
+              <Card className="relative overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="h-[400px]">
+                    {chartType === "donut" && renderDonutChart()}
+                    {chartType === "bar" && renderBarChart()}
+                  </div>
                 
                 {/* PR Drawer - Overlay that slides in from right */}
                 {selectedQuadrant && renderPRDrawer()}
@@ -674,6 +706,7 @@ function DistributionCharts({
                 )}
               </CardContent>
             </Card>
+            </ShareableCard>
           </div>
         </>
       )}
