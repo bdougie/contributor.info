@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShareableCard } from "@/components/features/sharing/shareable-card";
+import { ShareableCapturePreview } from "./shareable-capture-preview";
 import { LotteryFactorContent } from "@/components/features/health/lottery-factor";
 import { DistributionCharts } from "@/components/features/distribution/distribution-charts";
 import type { RepoStats, LotteryFactor } from "@/lib/types";
@@ -210,77 +210,53 @@ export function ShareableChartsPreview() {
   const [selectedChart, setSelectedChart] = useState("lottery-factor");
 
   const renderChart = () => {
-    const contextInfo = {
-      repository: "test-org/awesome-project",
-      metric: chartTypes.find(c => c.id === selectedChart)?.description || "chart"
-    };
+    const repository = "test-org/awesome-project";
 
     switch (selectedChart) {
       case "lottery-factor":
         return (
-          <ShareableCard 
-            title="Lottery Factor Analysis"
-            contextInfo={contextInfo}
-            chartType="lottery-factor"
-            bypassAnalytics={true}
-          >
+          <ShareableCapturePreview repository={repository}>
             <LotteryFactorContent
               stats={mockRepoStats}
               lotteryFactor={mockLotteryFactor}
               showYoloButton={false}
               includeBots={false}
             />
-          </ShareableCard>
+          </ShareableCapturePreview>
         );
 
       case "distribution-pie":
         return (
-          <ShareableCard
-            title="Contribution Distribution"
-            contextInfo={contextInfo}
-            chartType="distribution-pie"
-            bypassAnalytics={true}
-          >
+          <ShareableCapturePreview repository={repository}>
             <DistributionCharts
               data={mockQuadrantData}
               pullRequests={mockRepoStats.pullRequests}
               chartType="donut"
             />
-          </ShareableCard>
+          </ShareableCapturePreview>
         );
 
       case "distribution-bar":
         return (
-          <ShareableCard
-            title="Contribution Distribution"
-            contextInfo={contextInfo}
-            chartType="distribution-bar"
-            bypassAnalytics={true}
-          >
+          <ShareableCapturePreview repository={repository}>
             <DistributionCharts
               data={mockQuadrantData}
               pullRequests={mockRepoStats.pullRequests}
               chartType="bar"
             />
-          </ShareableCard>
+          </ShareableCapturePreview>
         );
 
       case "distribution-treemap":
         return (
-          <ShareableCard
-            title="Contribution Distribution"
-            contextInfo={contextInfo}
-            chartType="distribution-treemap"
-            bypassAnalytics={true}
-          >
+          <ShareableCapturePreview repository={repository}>
             <DistributionCharts
               data={mockQuadrantData}
               pullRequests={mockRepoStats.pullRequests}
               chartType="treemap"
             />
-          </ShareableCard>
+          </ShareableCapturePreview>
         );
-
 
       default:
         return <div>Chart not found</div>;
@@ -337,12 +313,12 @@ export function ShareableChartsPreview() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Chart Preview</CardTitle>
+          <CardTitle>Capture Preview</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Hover over the chart to see share, copy, and download options
+            This shows exactly what will be captured when sharing/downloading - white background with orange border and black attribution header
           </p>
         </CardHeader>
-        <CardContent className="min-h-[400px]">
+        <CardContent className="min-h-[400px] p-8 bg-muted/50">
           {renderChart()}
         </CardContent>
       </Card>

@@ -67,48 +67,96 @@ export function ShareableCard({
       
       wrapper = document.createElement('div');
       
-      // Wrapper styling with orange border and rounded corners
+      // Wrapper styling with thick orange border and rounded corners (matching lottery factory card)
       wrapper.style.cssText = `
-        border: 3px solid #f97316;
-        border-radius: 0.75rem;
+        border: 10px solid #f97316;
+        border-radius: 36px;
         overflow: hidden;
-        background: inherit;
+        background: white;
         position: relative;
+        max-width: 540px;
+        min-width: 540px;
+        width: 540px;
+        margin: 0 auto;
       `;
       
-      // Add attribution bar at the top
+      // Add attribution bar at the top (matching lottery factory card header)
       attributionBar = document.createElement('div');
       attributionBar.style.cssText = `
-        height: 48px;
-        background-color: #000000;
+        height: 60px;
+        background-color: #202020;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0 16px;
-        font-family: system-ui;
+        padding: 0 20px;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
         color: white;
         position: relative;
         z-index: 1000;
       `;
       
-      // Attribution content: repo on left, logo on right
+      // Attribution content: repo with icon on left, logo on right (adjusted for smaller width)
       attributionBar.innerHTML = `
-        <span style="color: rgba(255,255,255,0.7); font-size: 14px;">
-          ${contextInfo?.repository || ''}
-        </span>
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="color: white; font-size: 16px; font-weight: 500;">contributor.info</span>
-          <span style="font-size: 24px;">🌱</span>
+          <div style="width: 24px; height: 24px; background-color: #404040; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 12px;">📊</span>
+          </div>
+          <span style="color: white; font-size: 16px; font-weight: bold; font-family: 'Inter', system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px;">
+            ${contextInfo?.repository || 'Repository'}
+          </span>
+        </div>
+        <div style="display: flex; align-items: center; flex-shrink: 0;">
+          <span style="color: white; font-size: 14px; font-weight: 500; font-family: 'Inter', system-ui, sans-serif;">contributor.info</span>
+          <span style="font-size: 18px; margin-left: 4px;">🌱</span>
         </div>
       `;
       
-      // Content wrapper to ensure proper padding and no overlap
+      // Content wrapper to ensure proper padding and no overlap (adjusted for smaller width)
       contentWrapper = document.createElement('div');
       contentWrapper.style.cssText = `
-        padding: 16px;
-        background: inherit;
-        min-height: 200px;
+        padding: 20px;
+        background: white;
+        min-height: 300px;
+        color-scheme: light;
       `;
+      
+      // Add style element to force light mode
+      const styleElement = document.createElement('style');
+      styleElement.textContent = `
+        .shareable-capture-wrapper * {
+          color-scheme: light !important;
+        }
+        .shareable-capture-wrapper .bg-background,
+        .shareable-capture-wrapper .bg-card,
+        .shareable-capture-wrapper .dark\\:bg-background,
+        .shareable-capture-wrapper .dark\\:bg-card {
+          background-color: white !important;
+        }
+        .shareable-capture-wrapper .text-foreground,
+        .shareable-capture-wrapper .text-card-foreground,
+        .shareable-capture-wrapper .dark\\:text-foreground,
+        .shareable-capture-wrapper .dark\\:text-card-foreground {
+          color: #111827 !important;
+        }
+        .shareable-capture-wrapper .border,
+        .shareable-capture-wrapper .dark\\:border {
+          border-color: #e5e7eb !important;
+        }
+        .shareable-capture-wrapper .bg-muted,
+        .shareable-capture-wrapper .dark\\:bg-muted {
+          background-color: #f9fafb !important;
+        }
+        .shareable-capture-wrapper .text-muted-foreground,
+        .shareable-capture-wrapper .dark\\:text-muted-foreground {
+          color: #6b7280 !important;
+        }
+        .shareable-capture-wrapper .bg-accent,
+        .shareable-capture-wrapper .dark\\:bg-accent {
+          background-color: #f3f4f6 !important;
+        }
+      `;
+      contentWrapper.appendChild(styleElement);
+      contentWrapper.classList.add('shareable-capture-wrapper');
       
       // Build the structure: wrapper > attribution + contentWrapper > original element
       wrapper.appendChild(attributionBar);
