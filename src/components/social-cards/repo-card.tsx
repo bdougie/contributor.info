@@ -1,10 +1,10 @@
-import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { GitPullRequest, GitMerge, Users } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface RepoSocialCardProps {
   owner: string;
   repo: string;
+  timeRange?: string;
   stats?: {
     totalContributors: number;
     totalPRs: number;
@@ -17,86 +17,94 @@ interface RepoSocialCardProps {
   };
 }
 
-export default function RepoSocialCard({ owner, repo, stats }: RepoSocialCardProps) {
+export default function RepoSocialCard({ owner: _owner, repo: _repo, timeRange, stats }: RepoSocialCardProps) {
   return (
-    <div className="w-[1200px] h-[630px] bg-gradient-to-br from-background to-muted flex items-center justify-center p-12">
-      <Card className="w-full h-full flex relative overflow-hidden">
-        {/* Background pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }} />
+    <div className="w-[1200px] h-[630px] bg-black flex flex-col relative overflow-hidden">
+
+      {/* Header */}
+      <div className="flex justify-between items-start p-12 relative z-10">
+        {/* Logo/Brand with favicon */}
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="w-8 h-8">
+              <text y=".9em" fontSize="90" textAnchor="middle" x="50">🌱</text>
+            </svg>
+          </div>
+          <span className="text-white text-xl font-semibold">contributor.info</span>
         </div>
 
-        {/* Left side - Repository info */}
-        <div className="flex-1 p-16 flex flex-col justify-between relative z-10">
-          {/* Header */}
-          <div>
-            <h1 className="text-5xl font-bold mb-2">
-              {owner}/{repo}
-            </h1>
-            <p className="text-xl text-muted-foreground">
-              Open Source Contribution Analysis
-            </p>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 px-12 pb-20 flex flex-col justify-center relative z-10">
+        {/* Main title */}
+        <h1 className="text-6xl font-bold text-white mb-8">
+          Repository Insights
+        </h1>
+
+        {/* Time period */}
+        <p className="text-2xl text-gray-300 mb-16">
+          {timeRange || 'Past 6 months'}
+        </p>
+
+        {/* Bottom section with metrics and avatars */}
+        <div className="flex items-end justify-between">
+          {/* Left side - Contributor avatars */}
+          <div className="flex items-center gap-4">
+            {stats?.topContributors && stats.topContributors.length > 0 && (
+              <div className="flex items-center">
+                <div className="-space-x-2 flex hover:space-x-0 transition-all duration-300">
+                  {stats.topContributors.slice(0, 5).map((contributor) => (
+                    <div
+                      key={`contributor-avatar-${contributor.login}`}
+                      className="w-10 h-10 overflow-hidden rounded-full transition-all duration-300 border-2 border-white"
+                    >
+                      <Avatar className="w-full h-full">
+                        <AvatarImage src={contributor.avatar_url} alt={contributor.login} />
+                        <AvatarFallback className="text-xs bg-gray-700 text-white">
+                          {contributor.login[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                  ))}
+                </div>
+                {stats.totalContributors > 5 && (
+                  <span className="text-white text-sm ml-3">
+                    +{stats.totalContributors - 5}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Stats */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <Users className="w-8 h-8 text-primary" />
+          {/* Right side - Metrics */}
+          <div className="flex items-center gap-12">
+            <div className="flex items-center gap-3">
+              <GitPullRequest className="w-8 h-8 text-orange-500" />
               <div>
-                <div className="text-3xl font-bold">{stats?.totalContributors || 0}</div>
-                <div className="text-muted-foreground">Contributors</div>
+                <span className="text-4xl font-bold text-white">{stats?.totalPRs || 0}</span>
+                <span className="text-xl text-gray-300 ml-2">Pull Requests</span>
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
-              <GitPullRequest className="w-8 h-8 text-primary" />
+            <div className="flex items-center gap-3">
+              <GitMerge className="w-8 h-8 text-orange-500" />
               <div>
-                <div className="text-3xl font-bold">{stats?.totalPRs || 0}</div>
-                <div className="text-muted-foreground">Pull Requests</div>
+                <span className="text-4xl font-bold text-white">{stats?.mergedPRs || 0}</span>
+                <span className="text-xl text-gray-300 ml-2">Merged</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <GitMerge className="w-8 h-8 text-primary" />
+            <div className="flex items-center gap-3">
+              <Users className="w-8 h-8 text-orange-500" />
               <div>
-                <div className="text-3xl font-bold">{stats?.mergedPRs || 0}</div>
-                <div className="text-muted-foreground">Merged</div>
+                <span className="text-4xl font-bold text-white">{stats?.totalContributors || 0}</span>
+                <span className="text-xl text-gray-300 ml-2">Contributors</span>
               </div>
             </div>
           </div>
-
-          {/* Footer */}
-          <div className="text-lg text-muted-foreground">
-            contributor.info/{owner}/{repo}
-          </div>
         </div>
-
-        {/* Right side - Top contributors */}
-        <div className="w-[400px] bg-muted/30 p-12 flex flex-col justify-center relative z-10">
-          <h2 className="text-2xl font-semibold mb-8">Top Contributors</h2>
-          <div className="space-y-4">
-            {stats?.topContributors?.slice(0, 5).map((contributor, index) => (
-              <div key={contributor.login} className="flex items-center gap-4">
-                <span className="text-2xl font-bold text-muted-foreground w-8">
-                  {index + 1}
-                </span>
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={contributor.avatar_url} alt={contributor.login} />
-                  <AvatarFallback>{contributor.login[0].toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="font-medium">{contributor.login}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {contributor.contributions} contributions
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
+      </div>
     </div>
   );
 }
