@@ -1,0 +1,261 @@
+import { supabase } from "./supabase";
+import { getUrlAnalytics } from "./dub";
+
+export interface ShareEvent {
+  user_id?: string;
+  session_id?: string;
+  original_url: string;
+  short_url?: string;
+  dub_link_id?: string;
+  chart_type: string;
+  repository?: string;
+  page_path: string;
+  action: 'create' | 'share' | 'copy' | 'download';
+  share_type: 'url' | 'image' | 'native';
+  platform?: string;
+  domain?: string;
+  user_agent?: string;
+  referrer?: string;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Track a sharing event in Supabase
+ */
+export async function trackShareEvent(event: ShareEvent): Promise<void> {
+  try {
+    // Get current session info
+    const sessionId = getSessionId();
+    const userAgent = navigator.userAgent;
+    const referrer = document.referrer;
+
+    const { error } = await supabase
+      .from('share_events')
+      .insert([{
+        ...event,
+        session_id: event.session_id || sessionId,
+        user_agent: event.user_agent || userAgent,
+        referrer: event.referrer || referrer,
+        page_path: event.page_path || window.location.pathname
+      }]);
+
+    if (error) {
+      console.error('Failed to track share event:', error);
+    }
+  } catch (err) {
+    console.error('Error tracking share event:', err);
+  }
+}
+
+/**
+ * Get or create a session ID for anonymous tracking
+ */
+function getSessionId(): string {
+  const storageKey = 'contributor-info-session-id';
+  let sessionId = sessionStorage.getItem(storageKey);
+  
+  if (!sessionId) {
+    sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    sessionStorage.setItem(storageKey, sessionId);
+  }
+  
+  return sessionId;
+}
+
+/**
+ * Get share analytics for a repository
+ */
+export async function getRepositoryShareAnalytics(repository: string) {
+  try {
+    const { data, error } = await supabase
+      .from('share_analytics_summary')
+      .select('*')
+      .eq('repository', repository)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to get repository share analytics:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (err) {
+    console.error('Error getting repository share analytics:', err);
+    return [];
+  }
+}
+
+/**
+ * Get aggregated share metrics
+ */
+export async function getShareMetrics(filters: {
+  repository?: string;
+  chartType?: string;
+  dateRange?: { start: Date; end: Date };
+}) {
+  try {
+    let query = supabase
+      .from('share_events')
+      .select('action, share_type, chart_type, created_at');
+
+    if (filters.repository) {
+      query = query.eq('repository', filters.repository);
+    }
+
+    if (filters.chartType) {
+      query = query.eq('chart_type', filters.chartType);
+    }
+
+    if (filters.dateRange) {
+      query = query
+        .gte('created_at', filters.dateRange.start.toISOString())
+        .lte('created_at', filters.dateRange.end.toISOString());
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Failed to get share metrics:', error);
+      return null;
+    }
+
+    // Aggregate the data
+    const metrics = {
+      totalShares: data?.length || 0,
+      sharesByAction: {} as Record<string, number>,
+      sharesByType: {} as Record<string, number>,
+      sharesByChart: {} as Record<string, number>,
+      dailyShares: {} as Record<string, number>
+    };
+
+    data?.forEach(event => {
+      // Count by action
+      metrics.sharesByAction[event.action] = (metrics.sharesByAction[event.action] || 0) + 1;
+      
+      // Count by share type
+      metrics.sharesByType[event.share_type] = (metrics.sharesByType[event.share_type] || 0) + 1;
+      
+      // Count by chart type
+      metrics.sharesByChart[event.chart_type] = (metrics.sharesByChart[event.chart_type] || 0) + 1;
+      
+      // Count by day
+      const day = new Date(event.created_at).toISOString().split('T')[0];
+      metrics.dailyShares[day] = (metrics.dailyShares[day] || 0) + 1;
+    });
+
+    return metrics;
+  } catch (err) {
+    console.error('Error getting share metrics:', err);
+    return null;
+  }
+}
+
+/**
+ * Update click analytics from dub.co API
+ */
+export async function updateClickAnalytics(dubLinkId: string): Promise<void> {
+  try {
+    const analytics = await getUrlAnalytics(dubLinkId);
+    
+    if (!analytics) {
+      return;
+    }
+
+    // Handle different analytics response types
+    let clicks = 0;
+    let uniqueClicks = 0;
+
+    if (Array.isArray(analytics)) {
+      // Handle timeseries data
+      clicks = analytics.reduce((sum, item) => sum + (item.clicks || 0), 0);
+      uniqueClicks = analytics.reduce((sum, item) => sum + (item.clicks || 0), 0); // Approximate
+    } else if (typeof analytics === 'object' && 'clicks' in analytics) {
+      // Handle count data
+      clicks = (analytics as any).clicks || 0;
+      uniqueClicks = (analytics as any).uniqueClicks || clicks;
+    }
+
+    const { error } = await supabase
+      .from('share_click_analytics')
+      .upsert([{
+        dub_link_id: dubLinkId,
+        total_clicks: clicks,
+        unique_clicks: uniqueClicks,
+        click_data: analytics,
+        period_start: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 24h ago
+        period_end: new Date().toISOString()
+      }], {
+        onConflict: 'dub_link_id,period_start'
+      });
+
+    if (error) {
+      console.error('Failed to update click analytics:', error);
+    }
+  } catch (err) {
+    console.error('Error updating click analytics:', err);
+  }
+}
+
+/**
+ * Get top shared repositories
+ */
+export async function getTopSharedRepositories(limit: number = 10) {
+  try {
+    const { data, error } = await supabase
+      .from('share_events')
+      .select('repository')
+      .not('repository', 'is', null);
+
+    if (error) {
+      console.error('Failed to get top shared repositories:', error);
+      return [];
+    }
+
+    // Count shares by repository
+    const counts: Record<string, number> = {};
+    data?.forEach(event => {
+      if (event.repository) {
+        counts[event.repository] = (counts[event.repository] || 0) + 1;
+      }
+    });
+
+    // Sort by count and return top N
+    return Object.entries(counts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, limit)
+      .map(([repository, count]) => ({ repository, count }));
+  } catch (err) {
+    console.error('Error getting top shared repositories:', err);
+    return [];
+  }
+}
+
+/**
+ * Calculate share rate for a repository
+ */
+export async function getShareRate(repository: string, viewsCount?: number): Promise<number> {
+  try {
+    const { data, error } = await supabase
+      .from('share_events')
+      .select('id')
+      .eq('repository', repository)
+      .eq('action', 'share');
+
+    if (error) {
+      console.error('Failed to get share count:', error);
+      return 0;
+    }
+
+    const shareCount = data?.length || 0;
+    
+    // If we don't have views count, we can't calculate rate
+    if (!viewsCount) {
+      return shareCount;
+    }
+
+    return (shareCount / viewsCount) * 100;
+  } catch (err) {
+    console.error('Error calculating share rate:', err);
+    return 0;
+  }
+}

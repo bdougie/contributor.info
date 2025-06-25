@@ -586,6 +586,7 @@ function DistributionCharts({
       {chartType === "treemap" ? (
         <ShareableCard 
           title="Contribution Distribution Treemap"
+          chartType="treemap"
           contextInfo={{ 
             repository: pullRequests?.[0] ? `${pullRequests[0].repository_owner}/${pullRequests[0].repository_name}` : undefined,
             metric: "Contribution Distribution" 
@@ -633,6 +634,7 @@ function DistributionCharts({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <ShareableCard 
                   title={`Contribution Distribution ${chartType === "donut" ? "Donut" : "Bar"} Chart`}
+                  chartType={chartType}
                   contextInfo={{ 
                     repository: pullRequests?.[0] ? `${pullRequests[0].repository_owner}/${pullRequests[0].repository_name}` : undefined,
                     metric: "Contribution Distribution" 
@@ -650,6 +652,7 @@ function DistributionCharts({
             ) : (
               <ShareableCard 
                 title={`Contribution Distribution ${chartType === "donut" ? "Donut" : "Bar"} Chart`}
+                chartType={chartType}
                 contextInfo={{ 
                   repository: pullRequests?.[0] ? `${pullRequests[0].repository_owner}/${pullRequests[0].repository_name}` : undefined,
                   metric: "Contribution Distribution" 
@@ -669,6 +672,7 @@ function DistributionCharts({
           <div className="block md:hidden">
             <ShareableCard 
               title={`Contribution Distribution ${chartType === "donut" ? "Donut" : "Bar"} Chart`}
+              chartType={chartType}
               contextInfo={{ 
                 repository: pullRequests?.[0] ? `${pullRequests[0].repository_owner}/${pullRequests[0].repository_name}` : undefined,
                 metric: "Contribution Distribution" 

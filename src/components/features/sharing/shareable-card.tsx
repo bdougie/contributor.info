@@ -1,5 +1,5 @@
 import { useState, useRef, ReactNode } from "react";
-import { Download, Share2, Copy } from "lucide-react";
+import { Download, Share2, Copy, Link } from "lucide-react";
 import html2canvas from "html2canvas";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { LoginDialog } from "@/components/features/auth/login-dialog";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
+import { createChartShareUrl, getDubConfig } from "@/lib/dub";
+import { trackShareEvent as trackAnalytics } from "@/lib/analytics";
 
 interface ShareableCardProps {
   children: ReactNode;
@@ -17,6 +19,7 @@ interface ShareableCardProps {
     repository?: string;
     metric?: string;
   };
+  chartType?: string; // For categorizing the type of chart/metric
 }
 
 export function ShareableCard({ 
@@ -24,15 +27,18 @@ export function ShareableCard({
   title, 
   className,
   watermark = true,
-  contextInfo
+  contextInfo,
+  chartType = "chart"
 }: ShareableCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isGeneratingUrl, setIsGeneratingUrl] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   
   const { isLoggedIn, showLoginDialog, setShowLoginDialog } = useGitHubAuth();
   
   const location = useLocation();
+  const dubConfig = getDubConfig();
 
   const handleCapture = async (action: 'download' | 'copy' | 'share') => {
     if (!isLoggedIn) {
@@ -123,15 +129,27 @@ export function ShareableCard({
           
           if (navigator.share && navigator.canShare({ files: [file] })) {
             try {
+              // Generate short URL for native sharing
+              const currentUrl = window.location.href;
+              const shortUrl = await createChartShareUrl(
+                currentUrl,
+                chartType,
+                contextInfo?.repository
+              );
+              
               await navigator.share({
                 title: title,
                 text: `Check out this ${contextInfo?.metric || 'chart'} for ${contextInfo?.repository || 'this repository'}`,
-                url: window.location.href,
+                url: shortUrl,
                 files: [file]
               });
               
               // Track share event
-              await trackShareEvent('share', 'native');
+              await trackShareEvent('share', 'native', { 
+                shortUrl, 
+                withImage: true,
+                dubLinkId: shortUrl !== currentUrl ? shortUrl.split('/').pop() : undefined 
+              });
             } catch (err) {
               // User cancelled share
             }
@@ -156,21 +174,70 @@ export function ShareableCard({
       return;
     }
 
+    setIsGeneratingUrl(true);
+    
     try {
-      await navigator.clipboard.writeText(window.location.href);
-      toast.success("Link copied to clipboard!");
+      // Generate short URL for charts/metrics only
+      const currentUrl = window.location.href;
+      const shortUrl = await createChartShareUrl(
+        currentUrl,
+        chartType,
+        contextInfo?.repository
+      );
+      
+      await navigator.clipboard.writeText(shortUrl);
+      
+      const domain = dubConfig.isDev ? "dub.co" : "oss.fyi";
+      const isShortened = shortUrl !== currentUrl;
+      
+      if (isShortened) {
+        toast.success(`Short link copied! (${domain})`);
+      } else {
+        toast.success("Link copied to clipboard!");
+      }
       
       // Track URL share event
-      await trackShareEvent('share', 'url');
+      await trackShareEvent('share', 'url', { 
+        shortUrl, 
+        isShortened,
+        dubLinkId: isShortened ? shortUrl.split('/').pop() : undefined 
+      });
     } catch (err) {
-      toast.error("Failed to copy link");
+      console.error("Failed to create short URL:", err);
+      // Fallback to original URL
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copied to clipboard!");
+      } catch (fallbackErr) {
+        toast.error("Failed to copy link");
+      }
+    } finally {
+      setIsGeneratingUrl(false);
     }
   };
 
-  const trackShareEvent = async (action: string, type: string) => {
-    // TODO: Implement analytics tracking
-    // This will send events to Supabase or dub.co
-    console.log('Track share event:', { action, type, isLoggedIn, url: location.pathname });
+  const trackShareEvent = async (action: string, type: string, metadata?: Record<string, any>) => {
+    try {
+      await trackAnalytics({
+        original_url: window.location.href,
+        short_url: metadata?.shortUrl,
+        dub_link_id: metadata?.dubLinkId,
+        chart_type: chartType,
+        repository: contextInfo?.repository,
+        page_path: location.pathname,
+        action: action as any,
+        share_type: type as any,
+        domain: dubConfig.isDev ? 'dub.co' : 'oss.fyi',
+        metadata: {
+          isLoggedIn,
+          title,
+          isShortened: metadata?.isShortened,
+          ...metadata
+        }
+      });
+    } catch (error) {
+      console.error('Failed to track share event:', error);
+    }
   };
 
   return (
@@ -186,7 +253,7 @@ export function ShareableCard({
       <div
         className={cn(
           "absolute top-2 right-2 flex gap-2 transition-opacity duration-200",
-          isHovered && !isCapturing ? "opacity-100" : "opacity-0 pointer-events-none"
+          isHovered && !isCapturing && !isGeneratingUrl ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
       >
         <Button
@@ -195,6 +262,7 @@ export function ShareableCard({
           className="h-8 w-8 bg-background/80 backdrop-blur-sm"
           onClick={() => handleCapture('copy')}
           title="Copy chart as image"
+          disabled={isCapturing || isGeneratingUrl}
         >
           <Copy className="h-4 w-4" />
         </Button>
@@ -204,6 +272,7 @@ export function ShareableCard({
           className="h-8 w-8 bg-background/80 backdrop-blur-sm"
           onClick={() => handleCapture('download')}
           title="Download chart"
+          disabled={isCapturing || isGeneratingUrl}
         >
           <Download className="h-4 w-4" />
         </Button>
@@ -211,8 +280,23 @@ export function ShareableCard({
           size="icon"
           variant="secondary"
           className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+          onClick={handleShareUrl}
+          title={`Copy short link (${dubConfig.isDev ? 'dub.co' : 'oss.fyi'})`}
+          disabled={isCapturing || isGeneratingUrl}
+        >
+          {isGeneratingUrl ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          ) : (
+            <Link className="h-4 w-4" />
+          )}
+        </Button>
+        <Button
+          size="icon"
+          variant="secondary"
+          className="h-8 w-8 bg-background/80 backdrop-blur-sm"
           onClick={() => handleCapture('share')}
           title="Share chart"
+          disabled={isCapturing || isGeneratingUrl}
         >
           <Share2 className="h-4 w-4" />
         </Button>
