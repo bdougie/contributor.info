@@ -117,6 +117,9 @@ export function ShareableCapturePreview({ children, repository = "test-org/aweso
             <style dangerouslySetInnerHTML={{ __html: `
               .light-theme-override * {
                 color-scheme: light !important;
+                -webkit-font-smoothing: antialiased !important;
+                -moz-osx-font-smoothing: grayscale !important;
+                text-rendering: optimizeLegibility !important;
               }
               .light-theme-override .bg-background,
               .light-theme-override .bg-card,
@@ -148,6 +151,31 @@ export function ShareableCapturePreview({ children, repository = "test-org/aweso
               }
               .light-theme-override svg {
                 color: currentColor !important;
+              }
+              /* Fix badge colors for light mode */
+              .light-theme-override .bg-red-100,
+              .light-theme-override .dark\\:bg-red-900\\/20 {
+                background-color: #fee2e2 !important;
+              }
+              .light-theme-override .text-red-700,
+              .light-theme-override .dark\\:text-red-400 {
+                color: #b91c1c !important;
+              }
+              .light-theme-override .bg-yellow-100,
+              .light-theme-override .dark\\:bg-yellow-900\\/20 {
+                background-color: #fef3c7 !important;
+              }
+              .light-theme-override .text-yellow-700,
+              .light-theme-override .dark\\:text-yellow-400 {
+                color: #b45309 !important;
+              }
+              .light-theme-override .bg-green-100,
+              .light-theme-override .dark\\:bg-green-900\\/20 {
+                background-color: #d1fae5 !important;
+              }
+              .light-theme-override .text-green-700,
+              .light-theme-override .dark\\:text-green-400 {
+                color: #15803d !important;
               }
             ` }} />
             {children}

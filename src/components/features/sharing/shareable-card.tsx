@@ -106,8 +106,8 @@ export function ShareableCard({
           </span>
         </div>
         <div style="display: flex; align-items: center; flex-shrink: 0;">
+          <span style="font-size: 18px; margin-right: 4px;">🌱</span>
           <span style="color: white; font-size: 14px; font-weight: 500; font-family: 'Inter', system-ui, sans-serif;">contributor.info</span>
-          <span style="font-size: 18px; margin-left: 4px;">🌱</span>
         </div>
       `;
       
@@ -120,11 +120,14 @@ export function ShareableCard({
         color-scheme: light;
       `;
       
-      // Add style element to force light mode
+      // Add style element to force light mode and fix text rendering
       const styleElement = document.createElement('style');
       styleElement.textContent = `
         .shareable-capture-wrapper * {
           color-scheme: light !important;
+          -webkit-font-smoothing: antialiased !important;
+          -moz-osx-font-smoothing: grayscale !important;
+          text-rendering: optimizeLegibility !important;
         }
         .shareable-capture-wrapper .bg-background,
         .shareable-capture-wrapper .bg-card,
@@ -154,6 +157,37 @@ export function ShareableCard({
         .shareable-capture-wrapper .dark\\:bg-accent {
           background-color: #f3f4f6 !important;
         }
+        /* Fix text overflow and truncation */
+        .shareable-capture-wrapper .truncate {
+          overflow: visible !important;
+          text-overflow: clip !important;
+          white-space: normal !important;
+        }
+        /* Ensure badges are properly rendered */
+        .shareable-capture-wrapper .bg-red-100,
+        .shareable-capture-wrapper .dark\\:bg-red-900\\/20 {
+          background-color: #fee2e2 !important;
+        }
+        .shareable-capture-wrapper .text-red-700,
+        .shareable-capture-wrapper .dark\\:text-red-400 {
+          color: #b91c1c !important;
+        }
+        .shareable-capture-wrapper .bg-yellow-100,
+        .shareable-capture-wrapper .dark\\:bg-yellow-900\\/20 {
+          background-color: #fef3c7 !important;
+        }
+        .shareable-capture-wrapper .text-yellow-700,
+        .shareable-capture-wrapper .dark\\:text-yellow-400 {
+          color: #b45309 !important;
+        }
+        .shareable-capture-wrapper .bg-green-100,
+        .shareable-capture-wrapper .dark\\:bg-green-900\\/20 {
+          background-color: #d1fae5 !important;
+        }
+        .shareable-capture-wrapper .text-green-700,
+        .shareable-capture-wrapper .dark\\:text-green-400 {
+          color: #15803d !important;
+        }
       `;
       contentWrapper.appendChild(styleElement);
       contentWrapper.classList.add('shareable-capture-wrapper');
@@ -171,6 +205,8 @@ export function ShareableCard({
       const canvas = await html2canvas(wrapper!, {
         useCORS: true,
         allowTaint: true,
+        logging: false,
+        width: 540
       });
 
       // Restore original DOM structure

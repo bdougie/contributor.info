@@ -1,11 +1,17 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Users, UserCheck, TrendingUp } from "lucide-react";
 import { ShareableCapturePreview } from "./shareable-capture-preview";
 import { LotteryFactorContent } from "@/components/features/health/lottery-factor";
 import { DistributionCharts } from "@/components/features/distribution/distribution-charts";
-import type { RepoStats, LotteryFactor } from "@/lib/types";
+import { RepositoryHealthFactors } from "@/components/insights/sections/repository-health-factors";
+import { ShareableCard } from "@/components/features/sharing/shareable-card";
+import { ContributorOfTheMonth } from "@/components/features/contributor/contributor-of-the-month";
+import { ContributorCard } from "@/components/features/contributor/contributor-card";
+import type { RepoStats, LotteryFactor, ContributorRanking, MonthlyContributor } from "@/lib/types";
 import type { QuadrantData } from "@/hooks/use-distribution";
 
 // Mock data for testing
@@ -198,9 +204,275 @@ const mockQuadrantData: QuadrantData[] = [
   }
 ];
 
+// Mock self-selection data
+const mockSelfSelectionStats = {
+  external_contribution_rate: 35.7,
+  internal_contribution_rate: 64.3,
+  external_contributors: 8,
+  internal_contributors: 3,
+  total_contributors: 11,
+  external_prs: 15,
+  internal_prs: 27,
+  total_prs: 42,
+  analysis_period_days: 30
+};
+
+// Mock Self-Selection Rate component for testing
+function MockSelfSelectionRate({ owner, repo, daysBack }: { owner: string; repo: string; daysBack: number }) {
+  const stats = mockSelfSelectionStats;
+  
+  return (
+    <ShareableCard
+      title="Self-Selection Rate"
+      contextInfo={{
+        repository: `${owner}/${repo}`,
+        metric: "self-selection rate"
+      }}
+      chartType="self-selection"
+    >
+      <Card>
+        <CardHeader>
+          <CardTitle>Self-Selection Rate</CardTitle>
+          <CardDescription>
+            External vs internal contributions over the last {daysBack} days
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Main metric */}
+          <div className="text-center">
+            <div className="text-4xl font-bold">
+              {stats.external_contribution_rate.toFixed(1)}%
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              of contributions from external contributors
+            </p>
+          </div>
+
+          {/* Progress bar */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>External</span>
+              <span>Internal</span>
+            </div>
+            <Progress 
+              value={stats.external_contribution_rate} 
+              className="h-3"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{stats.external_prs} PRs</span>
+              <span>{stats.internal_prs} PRs</span>
+            </div>
+          </div>
+
+          {/* Contributor breakdown */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">External</span>
+              </div>
+              <div className="text-2xl font-semibold">
+                {stats.external_contributors}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                contributors
+              </p>
+            </div>
+            
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Internal</span>
+              </div>
+              <div className="text-2xl font-semibold">
+                {stats.internal_contributors}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                maintainers/owners
+              </p>
+            </div>
+          </div>
+
+          {/* Summary stats */}
+          <div className="pt-4 border-t">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Total PRs</span>
+              <span className="font-medium">{stats.total_prs}</span>
+            </div>
+            <div className="flex justify-between text-sm mt-1">
+              <span className="text-muted-foreground">Total Contributors</span>
+              <span className="font-medium">{stats.total_contributors}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </ShareableCard>
+  );
+}
+
+// Custom Stacked Contributor Leaderboard for better full-width display
+function StackedContributorLeaderboard({ ranking, repositoryName }: { ranking: ContributorRanking; repositoryName?: string }) {
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Monthly Leaderboard</CardTitle>
+            <CardDescription>
+              Top contributors for {ranking.month} {ranking.year}
+            </CardDescription>
+          </div>
+          <Badge variant="secondary">Current</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
+              {ranking.contributors.length} active contributor{ranking.contributors.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+        </div>
+
+        {/* Stacked contributor cards - full width */}
+        <div className="space-y-3">
+          {ranking.contributors.map((contributor) => (
+            <ContributorCard 
+              key={contributor.login}
+              contributor={contributor} 
+              showRank={true}
+              className="w-full"
+            />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Mock contributor of the month data
+const mockMonthlyContributors: MonthlyContributor[] = [
+  {
+    login: "alice-dev",
+    avatar_url: "https://avatars.githubusercontent.com/u/1?v=4",
+    activity: {
+      pullRequests: 8,
+      reviews: 12,
+      comments: 15,
+      totalScore: 47,
+      firstContributionDate: "2024-01-03T00:00:00Z"
+    },
+    rank: 1,
+    isWinner: true
+  },
+  {
+    login: "bob-maintainer",
+    avatar_url: "https://avatars.githubusercontent.com/u/2?v=4",
+    activity: {
+      pullRequests: 5,
+      reviews: 8,
+      comments: 12,
+      totalScore: 41,
+      firstContributionDate: "2024-01-01T00:00:00Z"
+    },
+    rank: 2
+  },
+  {
+    login: "charlie-qa",
+    avatar_url: "https://avatars.githubusercontent.com/u/3?v=4",
+    activity: {
+      pullRequests: 6,
+      reviews: 4,
+      comments: 8,
+      totalScore: 30,
+      firstContributionDate: "2024-01-05T00:00:00Z"
+    },
+    rank: 3
+  },
+  {
+    login: "diana-docs",
+    avatar_url: "https://avatars.githubusercontent.com/u/4?v=4",
+    activity: {
+      pullRequests: 3,
+      reviews: 6,
+      comments: 5,
+      totalScore: 36,
+      firstContributionDate: "2024-01-07T00:00:00Z"
+    },
+    rank: 4
+  },
+  {
+    login: "eve-backend",
+    avatar_url: "https://avatars.githubusercontent.com/u/5?v=4",
+    activity: {
+      pullRequests: 4,
+      reviews: 3,
+      comments: 7,
+      totalScore: 34,
+      firstContributionDate: "2024-01-12T00:00:00Z"
+    },
+    rank: 5
+  },
+  {
+    login: "frank-frontend",
+    avatar_url: "https://avatars.githubusercontent.com/u/6?v=4",
+    activity: {
+      pullRequests: 2,
+      reviews: 5,
+      comments: 6,
+      totalScore: 33,
+      firstContributionDate: "2024-01-08T00:00:00Z"
+    },
+    rank: 6
+  },
+  {
+    login: "grace-designer",
+    avatar_url: "https://avatars.githubusercontent.com/u/7?v=4",
+    activity: {
+      pullRequests: 3,
+      reviews: 2,
+      comments: 8,
+      totalScore: 29,
+      firstContributionDate: "2024-01-15T00:00:00Z"
+    },
+    rank: 7
+  },
+  {
+    login: "henry-intern",
+    avatar_url: "https://avatars.githubusercontent.com/u/8?v=4",
+    activity: {
+      pullRequests: 1,
+      reviews: 3,
+      comments: 4,
+      totalScore: 22,
+      firstContributionDate: "2024-01-20T00:00:00Z"
+    },
+    rank: 8
+  }
+];
+
+const mockContributorRankingWinner: ContributorRanking = {
+  month: "January",
+  year: 2024,
+  contributors: mockMonthlyContributors,
+  winner: mockMonthlyContributors[0],
+  phase: "winner_announcement"
+};
+
+const mockContributorRankingLeaderboard: ContributorRanking = {
+  month: "February",
+  year: 2024,
+  contributors: mockMonthlyContributors.map(c => ({ ...c, isWinner: false })),
+  phase: "running_leaderboard"
+};
 
 const chartTypes = [
   { id: "lottery-factor", label: "Lottery Factor", description: "Repository risk analysis" },
+  { id: "self-selection", label: "Self-Selection Rate", description: "External vs internal contribution rate" },
+  { id: "health-factors", label: "Health Factors", description: "Repository health metrics" },
+  { id: "contributor-winner", label: "Contributor Winner", description: "Monthly contributor winner announcement" },
+  { id: "contributor-leaderboard", label: "Contributor Leaderboard", description: "Current monthly contributor leaderboard" },
   { id: "distribution-pie", label: "Distribution Pie Chart", description: "Contribution distribution" },
   { id: "distribution-bar", label: "Distribution Bar Chart", description: "Contribution metrics" },
   { id: "distribution-treemap", label: "Distribution Treemap", description: "Hierarchical view" }
@@ -211,6 +483,7 @@ export function ShareableChartsPreview() {
 
   const renderChart = () => {
     const repository = "test-org/awesome-project";
+    const [owner, repo] = repository.split("/");
 
     switch (selectedChart) {
       case "lottery-factor":
@@ -221,6 +494,50 @@ export function ShareableChartsPreview() {
               lotteryFactor={mockLotteryFactor}
               showYoloButton={false}
               includeBots={false}
+            />
+          </ShareableCapturePreview>
+        );
+
+      case "self-selection":
+        return (
+          <ShareableCapturePreview repository={repository}>
+            <MockSelfSelectionRate
+              owner={owner}
+              repo={repo}
+              daysBack={30}
+            />
+          </ShareableCapturePreview>
+        );
+
+      case "health-factors":
+        return (
+          <ShareableCapturePreview repository={repository}>
+            <RepositoryHealthFactors
+              stats={mockRepoStats}
+              timeRange="30"
+              repositoryName={repository}
+            />
+          </ShareableCapturePreview>
+        );
+
+      case "contributor-winner":
+        return (
+          <ShareableCapturePreview repository={repository}>
+            <ContributorOfTheMonth
+              ranking={mockContributorRankingWinner}
+              loading={false}
+              error={null}
+              repositoryName={repository}
+            />
+          </ShareableCapturePreview>
+        );
+
+      case "contributor-leaderboard":
+        return (
+          <ShareableCapturePreview repository={repository}>
+            <StackedContributorLeaderboard
+              ranking={mockContributorRankingLeaderboard}
+              repositoryName={repository}
             />
           </ShareableCapturePreview>
         );
@@ -280,7 +597,9 @@ export function ShareableChartsPreview() {
               </label>
               <Select value={selectedChart} onValueChange={setSelectedChart}>
                 <SelectTrigger className="w-full max-w-sm">
-                  <SelectValue placeholder="Choose a chart type" />
+                  <SelectValue placeholder="Choose a chart type">
+                    {chartTypes.find(c => c.id === selectedChart)?.label}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {chartTypes.map((chart) => (

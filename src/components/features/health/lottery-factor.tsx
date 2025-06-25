@@ -321,7 +321,7 @@ export function LotteryFactorContent({
                   <span className="hidden xs:inline">YOLO Coders</span>
                   <span className="xs:hidden">YOLO</span>
                 </div>
-                <p className="block lg:hidden 2xl:block truncate">
+                <p className="block lg:hidden 2xl:block" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   Pushing commits{" "}
                   <span className="hidden sm:inline-block">directly</span> to
                   main
@@ -428,7 +428,7 @@ export function LotteryFactorContent({
                   />
                 </ContributorHoverCard>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{contributor.login}</div>
+                  <div className="font-medium" style={{ wordBreak: 'break-word' }}>{contributor.login}</div>
                   <div className="text-sm text-muted-foreground">
                     {index === 0
                       ? "maintainer"
