@@ -2,8 +2,10 @@ import { ContributorOfTheMonth } from "./contributor-of-the-month";
 import { useContributorOfMonth } from "@/hooks/use-contributor-of-month";
 import { ContributorRanking as LibContributorRanking } from "@/lib/contributors/types";
 import { ContributorRanking, MonthlyContributor } from "@/lib/types";
+import { useParams } from "react-router-dom";
 
 export default function ContributorOfTheMonthWrapper() {
+  const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const rankings = useContributorOfMonth();
 
   if (!rankings || rankings.length === 0) {
@@ -38,5 +40,10 @@ export default function ContributorOfTheMonthWrapper() {
     phase: isWinnerPhase ? 'winner_announcement' : 'running_leaderboard',
   };
 
-  return <ContributorOfTheMonth ranking={contributorRanking} />;
+  return (
+    <ContributorOfTheMonth 
+      ranking={contributorRanking} 
+      repositoryName={owner && repo ? `${owner}/${repo}` : undefined}
+    />
+  );
 }
