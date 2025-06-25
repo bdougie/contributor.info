@@ -2,7 +2,6 @@ import { ContributorOfTheMonth } from "./contributor-of-the-month";
 import { useContributorOfMonth } from "@/hooks/use-contributor-of-month";
 import { ContributorRanking as LibContributorRanking } from "@/lib/contributors/types";
 import { ContributorRanking, MonthlyContributor } from "@/lib/types";
-import { useParams } from "react-router-dom";
 
 export default function ContributorOfTheMonthWrapper() {
   const rankings = useContributorOfMonth();

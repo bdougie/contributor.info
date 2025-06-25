@@ -9,9 +9,9 @@ export default function RepoCardWithData() {
   const { owner, repo } = useParams();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<{
-    weeklyPRVolume: number;
-    activeContributors: number;
-    avgReviewTimeHours: number;
+    totalContributors: number;
+    totalPRs: number;
+    mergedPRs: number;
     topContributors: Array<{
       login: string;
       avatar_url: string;
@@ -58,7 +58,7 @@ export default function RepoCardWithData() {
   return <RepoSocialCard owner={owner || ""} repo={repo || ""} timeRange="Past 6 months" stats={stats || undefined} />;
 }
 
-function processPullRequestData(pullRequests: PullRequest[], trends: any[]) {
+function processPullRequestData(pullRequests: PullRequest[], _trends: any[]) {
   // Filter out bots
   const filteredPRs = pullRequests.filter(pr => 
     pr.user.type !== 'Bot' && !pr.user.login.includes('[bot]')
@@ -89,15 +89,15 @@ function processPullRequestData(pullRequests: PullRequest[], trends: any[]) {
     .sort((a, b) => b.contributions - a.contributions)
     .slice(0, 5);
 
-  // Extract metrics from trends
-  const weeklyPRVolume = trends.find(t => t.metric.includes('Weekly'))?.current || filteredPRs.length;
-  const activeContributors = trends.find(t => t.metric.includes('Active Contributors'))?.current || contributorMap.size;
-  const avgReviewTimeHours = trends.find(t => t.metric.includes('Avg Review Time'))?.current || 0;
+  // Calculate metrics from the data
+  const totalPRs = filteredPRs.length;
+  const mergedPRs = filteredPRs.filter(pr => pr.merged_at).length;
+  const totalContributors = contributorMap.size;
 
   return {
-    weeklyPRVolume,
-    activeContributors,
-    avgReviewTimeHours,
+    totalContributors,
+    totalPRs,
+    mergedPRs,
     topContributors
   };
 }
@@ -106,9 +106,9 @@ function getMockDataForRepo(owner: string, repo: string) {
   // Mock data for popular repositories to make the preview look good
   const mockData: Record<string, any> = {
     'facebook/react': {
-      weeklyPRVolume: 42,
-      activeContributors: 28,
-      avgReviewTimeHours: 18,
+      totalContributors: 1247,
+      totalPRs: 8934,
+      mergedPRs: 7823,
       topContributors: [
         { login: 'gaearon', avatar_url: 'https://avatars.githubusercontent.com/u/810438?v=4', contributions: 234 },
         { login: 'acdlite', avatar_url: 'https://avatars.githubusercontent.com/u/3624098?v=4', contributions: 189 },
@@ -118,9 +118,9 @@ function getMockDataForRepo(owner: string, repo: string) {
       ]
     },
     'vuejs/vue': {
-      weeklyPRVolume: 23,
-      activeContributors: 15,
-      avgReviewTimeHours: 12,
+      totalContributors: 456,
+      totalPRs: 2134,
+      mergedPRs: 1923,
       topContributors: [
         { login: 'yyx990803', avatar_url: 'https://avatars.githubusercontent.com/u/499550?v=4', contributions: 456 },
         { login: 'sodatea', avatar_url: 'https://avatars.githubusercontent.com/u/2409758?v=4', contributions: 123 },
@@ -133,9 +133,9 @@ function getMockDataForRepo(owner: string, repo: string) {
 
   const key = `${owner}/${repo}`;
   return mockData[key] || {
-    weeklyPRVolume: Math.floor(Math.random() * 30) + 5,
-    activeContributors: Math.floor(Math.random() * 20) + 5,
-    avgReviewTimeHours: Math.floor(Math.random() * 48) + 2,
+    totalContributors: Math.floor(Math.random() * 100) + 20,
+    totalPRs: Math.floor(Math.random() * 500) + 50,
+    mergedPRs: Math.floor(Math.random() * 400) + 40,
     topContributors: Array.from({ length: 5 }, (_, i) => ({
       login: `contributor${i + 1}`,
       avatar_url: `https://avatars.githubusercontent.com/u/${Math.floor(Math.random() * 1000000)}?v=4`,

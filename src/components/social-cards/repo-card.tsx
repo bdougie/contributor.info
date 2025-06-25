@@ -6,9 +6,9 @@ interface RepoSocialCardProps {
   repo: string;
   timeRange?: string;
   stats?: {
-    weeklyPRVolume: number;
-    activeContributors: number;
-    avgReviewTimeHours: number;
+    totalContributors: number;
+    totalPRs: number;
+    mergedPRs: number;
     topContributors?: Array<{
       login: string;
       avatar_url: string;
@@ -82,15 +82,15 @@ export default function RepoSocialCard({ owner: _owner, repo: _repo, timeRange, 
             <div className="flex items-center gap-3">
               <GitPullRequest className="w-8 h-8 text-orange-500" />
               <div>
-                <span className="text-4xl font-bold text-white">{stats?.weeklyPRVolume || 0}</span>
-                <span className="text-xl text-gray-300 ml-2">PRs/week</span>
+                <span className="text-4xl font-bold text-white">{stats?.totalPRs || 0}</span>
+                <span className="text-xl text-gray-300 ml-2">Total PRs</span>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
               <Users className="w-8 h-8 text-orange-500" />
               <div>
-                <span className="text-4xl font-bold text-white">{stats?.activeContributors || 0}</span>
+                <span className="text-4xl font-bold text-white">{stats?.totalContributors || 0}</span>
                 <span className="text-xl text-gray-300 ml-2">Contributors</span>
               </div>
             </div>
@@ -99,13 +99,9 @@ export default function RepoSocialCard({ owner: _owner, repo: _repo, timeRange, 
               <Clock className="w-8 h-8 text-orange-500" />
               <div>
                 <span className="text-4xl font-bold text-white">
-                  {stats?.avgReviewTimeHours
-                    ? stats.avgReviewTimeHours >= 24
-                      ? `${Math.round(stats.avgReviewTimeHours / 24)}d`
-                      : `${Math.round(stats.avgReviewTimeHours)}h`
-                    : '0h'}
+                  {stats?.mergedPRs ? `${Math.round((stats.mergedPRs / stats.totalPRs) * 100)}%` : '0%'}
                 </span>
-                <span className="text-xl text-gray-300 ml-2">Avg Review</span>
+                <span className="text-xl text-gray-300 ml-2">Merge Rate</span>
               </div>
             </div>
           </div>
