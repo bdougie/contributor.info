@@ -10,7 +10,8 @@ import {
   Activity,
   FileText,
   Globe,
-  Monitor
+  Monitor,
+  BarChart3
 } from "lucide-react";
 
 interface DebugRoute {
@@ -22,6 +23,13 @@ interface DebugRoute {
 }
 
 const debugRoutes: DebugRoute[] = [
+  {
+    path: "/dev/analytics",
+    title: "Share Analytics",
+    description: "View social sharing metrics, popular repositories, and user engagement data",
+    icon: <BarChart3 className="h-4 w-4" />,
+    category: "monitoring"
+  },
   {
     path: "/dev/performance-monitoring",
     title: "Performance Monitoring",

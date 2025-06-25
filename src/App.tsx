@@ -24,6 +24,7 @@ const RepoCardWithData = lazy(() => import("@/components/social-cards/repo-card-
 const SocialCardPreview = lazy(() => import("@/components/social-cards/preview"));
 const GitHubSyncDebug = lazy(() => import("@/components/debug/github-sync-debug").then(m => ({ default: m.GitHubSyncDebug })));
 const PerformanceMonitoringDashboard = lazy(() => import("@/components/performance-monitoring-dashboard").then(m => ({ default: m.PerformanceMonitoringDashboard })));
+const AnalyticsDashboard = lazy(() => import("@/components/features/debug/analytics-dashboard").then(m => ({ default: m.AnalyticsDashboard })));
 
 // Loading fallback component
 const PageSkeleton = () => (
@@ -84,6 +85,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PerformanceMonitoringDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dev/analytics"
+              element={
+                <ProtectedRoute>
+                  <AnalyticsDashboard />
                 </ProtectedRoute>
               }
             />
