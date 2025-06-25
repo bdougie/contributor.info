@@ -103,4 +103,13 @@
     contain: layout style;
     will-change: contents;
   }
+
+  /* Hide all sharing elements when in social card layout */
+  .social-card-layout [data-shareable-card],
+  .social-card-layout .shareable-card,
+  .social-card-layout button[title*="Copy"],
+  .social-card-layout button[title*="Share"],
+  .social-card-layout button[title*="Download"] {
+    display: none !important;
+  }
 }

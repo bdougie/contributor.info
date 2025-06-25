@@ -8,7 +8,7 @@ interface CardLayoutProps {
 export default function CardLayout({ children }: CardLayoutProps) {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
-      <div className="min-h-screen bg-background antialiased">
+      <div className="min-h-screen bg-background antialiased social-card-layout">
         {children}
       </div>
     </ThemeProvider>

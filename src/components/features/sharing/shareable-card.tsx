@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
-import { LoginDialog } from "@/components/features/auth/login-dialog";
-import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { createChartShareUrl, getDubConfig } from "@/lib/dub";
 import { trackShareEvent as trackAnalytics } from "@/lib/analytics";
 import { useTheme } from "@/components/common/theming/theme-provider";
@@ -36,7 +34,6 @@ export function ShareableCard({
   const [isGeneratingUrl, setIsGeneratingUrl] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   
-  const { isLoggedIn, showLoginDialog, setShowLoginDialog } = useGitHubAuth();
   const { theme } = useTheme();
   
   const location = useLocation();
@@ -51,12 +48,6 @@ export function ShareableCard({
   };
 
   const handleCapture = async (action: 'download' | 'copy' | 'share') => {
-    if (!isLoggedIn) {
-      toast.error("Please login to share content");
-      setShowLoginDialog(true);
-      return;
-    }
-
     if (!cardRef.current) return;
 
     setIsCapturing(true);
@@ -202,12 +193,6 @@ export function ShareableCard({
   };
 
   const handleShareUrl = async () => {
-    if (!isLoggedIn) {
-      toast.error("Please login to share content");
-      setShowLoginDialog(true);
-      return;
-    }
-
     setIsGeneratingUrl(true);
     
     try {
@@ -271,7 +256,6 @@ export function ShareableCard({
         share_type: type as any,
         domain: dubConfig.isDev ? 'dub.co' : 'oss.fyi',
         metadata: {
-          isLoggedIn,
           title,
           isShortened: metadata?.isShortened,
           ...metadata
@@ -285,7 +269,8 @@ export function ShareableCard({
   return (
     <div
       ref={cardRef}
-      className={cn("relative group", className)}
+      className={cn("relative group shareable-card", className)}
+      data-shareable-card
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -343,12 +328,6 @@ export function ShareableCard({
           <Share2 className="h-4 w-4" />
         </Button>
       </div>
-      
-      {/* Login dialog */}
-      <LoginDialog 
-        open={showLoginDialog} 
-        onOpenChange={setShowLoginDialog} 
-      />
     </div>
   );
 }
