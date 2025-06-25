@@ -10,8 +10,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SearchIcon } from "lucide-react";
+import { SearchIcon, Share2 } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
+import { toast } from "sonner";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import { RepositoryHealthCard } from "../health";
 import { Contributions, MetricsAndTrendsCard } from "../activity";
@@ -59,6 +60,17 @@ export default function RepoView() {
       document.title = `${owner}/${repo} - Contributor Analysis`;
     }
   }, [owner, repo]);
+
+  // Handle share button click
+  const handleShare = async () => {
+    try {
+      const url = window.location.href;
+      await navigator.clipboard.writeText(url);
+      toast.success("URL copied to clipboard!");
+    } catch (err) {
+      toast.error("Failed to copy URL");
+    }
+  };
 
   // Only show full skeleton if we don't have owner/repo params yet
   if (stats.loading && (!owner || !repo)) {
@@ -125,6 +137,15 @@ export default function RepoView() {
                   Contribution analysis of recent pull requests
                 </CardDescription>
               </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleShare}
+                className="h-8 w-8"
+                title="Share this repository"
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
