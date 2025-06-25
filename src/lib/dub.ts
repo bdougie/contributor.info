@@ -2,7 +2,7 @@ import { Dub } from "dub";
 
 // Environment-specific configuration
 const isDev = import.meta.env.DEV;
-const DOMAIN = isDev ? "dub.co" : "oss.fyi";
+const DOMAIN = isDev ? "dub.sh" : "oss.fyi";
 const API_KEY = import.meta.env.VITE_DUB_CO_KEY;
 
 if (!API_KEY) {
