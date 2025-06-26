@@ -5,9 +5,6 @@ const isDev = import.meta.env.DEV;
 const DOMAIN = isDev ? "dub.sh" : "oss.fyi";
 const API_KEY = import.meta.env.VITE_DUB_CO_KEY;
 
-// Use proxy in development and Netlify function in production to avoid CORS issues
-const API_BASE_URL = isDev ? "/api/dub" : "/.netlify/functions/dub-proxy";
-
 // Enhanced debugging for API key issues
 if (!API_KEY) {
   console.warn("DUB_CO_KEY not found in environment variables");
@@ -17,101 +14,25 @@ if (!API_KEY) {
   console.log("API Key format valid:", API_KEY.startsWith('dub_'));
 }
 
-console.log("Dub API Base URL:", API_BASE_URL);
-console.log("Environment:", isDev ? "Development (using proxy)" : "Production");
+console.log("Environment:", isDev ? "Development (API mocked)" : "Production (using Netlify function)");
 
-// Custom fetcher that rewrites URLs for proxy
-const customFetcher = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-  let url: string;
-  let finalInput: RequestInfo | URL = input;
-  
-  // Extract URL from various input types
-  if (typeof input === 'string') {
-    url = input;
-  } else if (input instanceof URL) {
-    url = input.toString();
-  } else if (input instanceof Request) {
-    url = input.url;
-  } else {
-    url = String(input);
-  }
-  
-  const originalUrl = url;
-  
-  // In development, use Vite proxy; in production, use Netlify function
-  if (url.startsWith('https://api.dub.co')) {
-    if (isDev) {
-      const newUrl = url.replace('https://api.dub.co', '/api/dub');
-      console.log(`Dub fetch: ${originalUrl} → ${newUrl} (using Vite proxy)`);
-      
-      // Create appropriate input based on original type (same as before)
-      if (input instanceof Request) {
-        const cloneOptions: RequestInit = {
-          method: input.method,
-          headers: input.headers,
-          mode: input.mode,
-          credentials: input.credentials,
-          cache: input.cache,
-          redirect: input.redirect,
-          referrer: input.referrer,
-          referrerPolicy: input.referrerPolicy,
-          integrity: input.integrity,
-          signal: input.signal,
-        };
-        
-        if (input.body) {
-          cloneOptions.body = input.body;
-          if (input.body instanceof ReadableStream) {
-            (cloneOptions as any).duplex = 'half';
-          }
-        }
-        
-        finalInput = new Request(newUrl, cloneOptions);
-      } else {
-        finalInput = newUrl;
-      }
-    } else {
-      // In production, use Netlify function
-      const newUrl = '/.netlify/functions/dub-proxy';
-      console.log(`Dub fetch: ${originalUrl} → ${newUrl} (using Netlify function)`);
-      
-      if (input instanceof Request) {
-        // For Netlify function, we need to pass the body directly without auth headers
-        // since the function will add the auth header
-        const headers = new Headers(input.headers);
-        headers.delete('authorization'); // Remove auth header, function will add it
-        
-        finalInput = new Request(newUrl, {
-          method: input.method,
-          headers: headers,
-          body: input.body,
-          mode: input.mode,
-          credentials: input.credentials,
-          cache: input.cache,
-          redirect: input.redirect,
-          referrer: input.referrer,
-          referrerPolicy: input.referrerPolicy,
-          integrity: input.integrity,
-          signal: input.signal,
-        });
-      } else {
-        finalInput = newUrl;
-      }
-    }
-  } else {
-    console.log(`Dub fetch: ${originalUrl} (direct)`);
-    // No URL rewriting needed for direct requests
-    finalInput = input;
-  }
-  
-  return fetch(finalInput, init);
-};
-
-// Create a minimal HTTPClient implementation that matches the SDK's expectations
+// Custom fetcher for production (uses Netlify function)
 const createHTTPClient = () => {
   return {
     request: async (request: Request): Promise<Response> => {
-      return customFetcher(request);
+      // In production, route through Netlify function
+      const newUrl = '/.netlify/functions/dub-proxy';
+      console.log(`Dub fetch: ${request.url} → ${newUrl} (using Netlify function)`);
+      
+      // Remove auth header since Netlify function will add it
+      const headers = new Headers(request.headers);
+      headers.delete('authorization');
+      
+      return fetch(newUrl, {
+        method: request.method,
+        headers: headers,
+        body: request.body,
+      });
     },
     addHook: function() { return this; },
     removeHook: function() { return this; },
@@ -119,10 +40,10 @@ const createHTTPClient = () => {
   };
 };
 
-// Initialize Dub client
+// Initialize Dub client (only used in production)
 export const dub = new Dub({
   token: API_KEY,
-  httpClient: createHTTPClient() as any,
+  ...(isDev ? {} : { httpClient: createHTTPClient() as any }),
 });
 
 interface CreateShortUrlOptions {
@@ -130,7 +51,6 @@ interface CreateShortUrlOptions {
   key?: string;
   title?: string;
   description?: string;
-  // tags?: string[]; // Not supported in current dub API
   expiresAt?: string;
   rewrite?: boolean;
 }
@@ -152,7 +72,6 @@ interface ShortUrlResponse {
   updatedAt: string;
   expiresAt?: string | null;
   clicks: number;
-  // tags?: string[]; // Not supported in current dub API
   title?: string | null;
   description?: string | null;
   image?: string | null;
@@ -173,6 +92,24 @@ export async function createShortUrl({
   if (!API_KEY) {
     console.error("Dub.co API key not configured");
     return null;
+  }
+
+  // In development, skip API call and return original URL due to CORS/proxy issues
+  if (isDev) {
+    console.warn("Development mode: Skipping dub.co API call, returning original URL");
+    return {
+      id: 'dev-mock',
+      domain: 'localhost',
+      key: key || 'dev-key',
+      url: url,
+      shortLink: url, // Return original URL in development
+      qrCode: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      clicks: 0,
+      title: title || null,
+      description: description || null,
+    };
   }
 
   try {
@@ -251,6 +188,11 @@ export async function createShortUrl({
 export async function getUrlAnalytics(linkId: string) {
   if (!API_KEY) {
     console.error("Dub.co API key not configured");
+    return null;
+  }
+
+  if (isDev) {
+    console.warn("Development mode: Skipping analytics request");
     return null;
   }
 
