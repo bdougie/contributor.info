@@ -71,6 +71,11 @@ The contributing guide includes:
 - ESLint (code quality)
 - GitHub Actions (CI/CD)
 
+**Infrastructure**
+- Performance Monitoring ([see guide](./docs/dev/performance-monitoring.md))
+- Edge Functions
+- CDN Analytics
+
 ## License
 
 [MIT License](LICENSE)

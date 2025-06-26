@@ -2,6 +2,35 @@
 
 This document describes the comprehensive performance monitoring system implemented for the contributor.info application.
 
+## Quick Start
+
+### Dashboard Access
+
+**For authorized users**: Access the performance monitoring dashboard at `/dev/performance-monitoring`
+
+The dashboard provides real-time insights into:
+- **System Health** - Overall application status
+- **Database Performance** - Query metrics, connection pool usage
+- **GitHub API Usage** - Rate limits and request performance
+- **CDN Performance** - Social card delivery metrics
+- **Active Alerts** - Performance issues requiring attention
+
+### Health Endpoints
+
+The application exposes health check endpoints for monitoring:
+
+- `/api/health` - Main health check endpoint
+- `/api/health/database` - Database-specific metrics
+- `/api/health/github` - GitHub API status and rate limits
+
+### Key Features
+
+- **Real-time Metrics** - Auto-refreshing dashboards
+- **Performance Alerts** - Automatic detection of issues
+- **Historical Snapshots** - Track performance over time
+- **CDN Analytics** - Monitor social card performance
+- **Database Insights** - Slow query detection and optimization
+
 ## Overview
 
 The performance monitoring system provides real-time visibility into:
