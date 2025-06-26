@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Users, UserCheck, TrendingUp } from "lucide-react";
 import { ShareableCapturePreview } from "./shareable-capture-preview";
 import { LotteryFactorContent } from "@/components/features/health/lottery-factor";
-import { DistributionCharts } from "@/components/features/distribution/distribution-charts";
+import { LazyDistributionCharts } from "@/components/features/distribution/distribution-charts-lazy";
 import { RepositoryHealthFactors } from "@/components/insights/sections/repository-health-factors";
 import { ShareableCard } from "@/components/features/sharing/shareable-card";
 import { ContributorOfTheMonth } from "@/components/features/contributor/contributor-of-the-month";
@@ -242,7 +242,7 @@ export function ShareableChartsPreview() {
       case "distribution-pie":
         return (
           <ShareableCapturePreview repository={repository}>
-            <DistributionCharts
+            <LazyDistributionCharts
               data={mockQuadrantData}
               pullRequests={mockRepoStats.pullRequests}
               chartType="donut"
@@ -253,7 +253,7 @@ export function ShareableChartsPreview() {
       case "distribution-bar":
         return (
           <ShareableCapturePreview repository={repository}>
-            <DistributionCharts
+            <LazyDistributionCharts
               data={mockQuadrantData}
               pullRequests={mockRepoStats.pullRequests}
               chartType="bar"
@@ -264,7 +264,7 @@ export function ShareableChartsPreview() {
       case "distribution-treemap":
         return (
           <ShareableCapturePreview repository={repository}>
-            <DistributionCharts
+            <LazyDistributionCharts
               data={mockQuadrantData}
               pullRequests={mockRepoStats.pullRequests}
               chartType="treemap"
