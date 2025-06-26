@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -218,7 +218,7 @@ const mockSelfSelectionStats = {
 };
 
 // Mock Self-Selection Rate component for testing
-function MockSelfSelectionRate({ owner, repo, daysBack }: { owner: string; repo: string; daysBack: number }) {
+const MockSelfSelectionRate = memo(function MockSelfSelectionRate({ owner, repo, daysBack }: { owner: string; repo: string; daysBack: number }) {
   const stats = mockSelfSelectionStats;
   
   return (
@@ -308,10 +308,10 @@ function MockSelfSelectionRate({ owner, repo, daysBack }: { owner: string; repo:
       </Card>
     </ShareableCard>
   );
-}
+});
 
 // Custom Stacked Contributor Leaderboard for better full-width display
-function StackedContributorLeaderboard({ ranking }: { ranking: ContributorRanking }) {
+const StackedContributorLeaderboard = memo(function StackedContributorLeaderboard({ ranking }: { ranking: ContributorRanking }) {
   return (
     <Card className="w-full">
       <CardHeader>
@@ -349,7 +349,7 @@ function StackedContributorLeaderboard({ ranking }: { ranking: ContributorRankin
       </CardContent>
     </Card>
   );
-}
+});
 
 // Mock contributor of the month data
 const mockMonthlyContributors: MonthlyContributor[] = [

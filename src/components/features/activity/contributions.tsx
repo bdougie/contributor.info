@@ -275,6 +275,7 @@ function ContributionsChart() {
               <AvatarImage
                 src={props.node.data.image}
                 alt={props.node.data.contributor}
+                loading="lazy"
                 style={{
                   // Ensure images load properly in SVG context
                   objectFit: 'cover',
