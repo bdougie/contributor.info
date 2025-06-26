@@ -24,6 +24,7 @@ import { useRepoSearch } from "@/hooks/use-repo-search";
 import { InsightsSidebar } from "@/components/insights/insights-sidebar";
 import { RepoViewSkeleton } from "@/components/skeletons";
 import { SocialMetaTags } from "@/components/common/layout";
+import RepoNotFound from "./repo-not-found";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -78,6 +79,16 @@ export default function RepoView() {
   }
 
   if (stats.error) {
+    // Check if this is a 404 repository error
+    const isRepoNotFound = stats.error.includes('not found') || 
+                           stats.error.includes('does not exist') ||
+                           stats.error.includes('404');
+    
+    if (isRepoNotFound) {
+      return <RepoNotFound />;
+    }
+
+    // For other errors, show the generic error card
     return (
       <div className="container mx-auto py-2">
         <Card>

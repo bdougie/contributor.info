@@ -48,6 +48,10 @@ export default defineConfig({
     cssCodeSplit: false,
     rollupOptions: {
       output: {
+        // Ensure proper file extensions for module recognition
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
         // Performance-optimized chunking strategy that maintains reliability
         manualChunks: {
           // Critical React core - bundle together to prevent initialization issues
@@ -84,7 +88,7 @@ export default defineConfig({
             'zustand',
             '@supabase/supabase-js'
           ],
-          // Analytics - non-critical, can load later
+          // Analytics - non-critical, lazy loaded, exclude from main bundle
           'analytics': [
             'posthog-js',
             '@sentry/react'
@@ -106,9 +110,18 @@ export default defineConfig({
     // Module preload optimization for better loading performance
     modulePreload: {
       polyfill: true,
+      resolveDependencies: (_, deps) => {
+        // Don't preload analytics chunks to avoid blocking critical path
+        return deps.filter(dep => !dep.includes('analytics') && !dep.includes('posthog') && !dep.includes('sentry'));
+      }
     },
   },
   css: {
     devSourcemap: true,
+  },
+  server: {
+    headers: {
+      'Content-Type': 'text/javascript; charset=utf-8',
+    },
   },
 });
