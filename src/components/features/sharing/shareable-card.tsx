@@ -1,6 +1,5 @@
 import { useState, useRef, ReactNode } from "react";
 import { Download, Share2, Copy, Link } from "lucide-react";
-import html2canvas from "html2canvas";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -51,8 +50,11 @@ export function ShareableCard({
 
     setIsCapturing(true);
     
-    // Wait a moment for the buttons to be removed from DOM
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Lazy load html2canvas to reduce initial bundle size
+    const { default: html2canvas } = await import('html2canvas');
+    
+    // Use requestAnimationFrame to ensure DOM operations are batched and buttons are hidden
+    await new Promise(resolve => requestAnimationFrame(resolve));
     
     try {
       // Create a wrapper div for the entire capture with border and attribution
@@ -61,11 +63,26 @@ export function ShareableCard({
       let attributionBar: HTMLDivElement | null = null;
       let contentWrapper: HTMLDivElement | null = null;
       
-      // Store original parent and styles
+      // Store original parent and styles for cleanup
       const originalParent = element.parentNode;
       const originalNextSibling = element.nextSibling;
       
+      // Cleanup function to ensure DOM is always restored
+      const cleanup = () => {
+        try {
+          if (originalParent && element) {
+            originalParent.insertBefore(element, originalNextSibling);
+          }
+          if (wrapper?.parentNode) {
+            wrapper.parentNode.removeChild(wrapper);
+          }
+        } catch (cleanupError) {
+          console.warn('Cleanup error:', cleanupError);
+        }
+      };
+      
       wrapper = document.createElement('div');
+      wrapper.setAttribute('data-capture-wrapper', 'true');
       
       // Wrapper styling with thick orange border and rounded corners (matching lottery factory card)
       wrapper.style.cssText = `
@@ -209,13 +226,8 @@ export function ShareableCard({
         width: 540
       });
 
-      // Restore original DOM structure
-      if (originalParent && wrapper) {
-        originalParent.insertBefore(element, originalNextSibling);
-        if (wrapper.parentNode) {
-          wrapper.parentNode.removeChild(wrapper);
-        }
-      }
+      // Restore original DOM structure using cleanup function
+      cleanup();
 
       if (action === 'download') {
         // Download as PNG
@@ -305,6 +317,18 @@ export function ShareableCard({
     } catch (error) {
       console.error('Error capturing element:', error);
       toast.error("Failed to capture chart");
+      // Ensure cleanup runs even on error
+      try {
+        const element = cardRef.current;
+        if (element) {
+          const wrapper = element.closest('[data-capture-wrapper]');
+          if (wrapper?.parentNode) {
+            wrapper.parentNode.removeChild(wrapper);
+          }
+        }
+      } catch (cleanupError) {
+        console.warn('Error cleanup failed:', cleanupError);
+      }
     } finally {
       setIsCapturing(false);
     }
