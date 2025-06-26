@@ -36,7 +36,33 @@ export default async (request, context) => {
     }
 
     // Get the request body
-    const body = await request.text();
+    const requestBody = await request.json();
+    
+    // Validate the URL for security (following your working pattern)
+    try {
+      const urlObj = new URL(requestBody.url);
+      if (
+        !urlObj.host.endsWith("contributor.info") &&
+        !urlObj.host.includes("localhost") &&
+        !urlObj.host.endsWith("netlify.app")
+      ) {
+        return new Response(JSON.stringify({ error: 'Invalid URL' }), {
+          status: 400,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        });
+      }
+    } catch (e) {
+      return new Response(JSON.stringify({ error: 'Invalid URL format' }), {
+        status: 400,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
     
     // Forward the request to dub.co API
     const response = await fetch('https://api.dub.co/links', {
@@ -45,7 +71,7 @@ export default async (request, context) => {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: body,
+      body: JSON.stringify(requestBody),
     });
 
     // Get the response data

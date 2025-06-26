@@ -121,7 +121,8 @@ export async function createShortUrl({
       apiKeyPrefix: API_KEY?.substring(0, 8)
     });
     
-    const result = await dub.links.create({
+    // Use upsert to prevent duplicate key errors (following your working pattern)
+    const result = await dub.links.upsert({
       url,
       domain: DOMAIN,
       key,
@@ -209,6 +210,49 @@ export async function getUrlAnalytics(linkId: string) {
 }
 
 /**
+ * Generate a custom key from URL (following your working pattern)
+ */
+function getCustomKey(url: string): string | undefined {
+  try {
+    const urlPath = new URL(url).pathname;
+    
+    // ex: /owner/repo (repository pages)
+    const repoMatch = urlPath.match(/^\/([^\/]+)\/([^\/]+)(?:\/.*)?$/);
+    if (repoMatch) {
+      return `${repoMatch[1]}/${repoMatch[2]}`;
+    }
+    
+    // ex: /u/username or /user/username 
+    const userMatch = urlPath.match(/^\/(u|user)\/(.+)$/);
+    if (userMatch) {
+      return userMatch[2];
+    }
+    
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Validate URL for security (following your working pattern)
+ */
+function validateUrl(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    
+    // Allow contributor.info domains and localhost for development
+    return (
+      urlObj.host.endsWith("contributor.info") ||
+      urlObj.host.includes("localhost") ||
+      urlObj.host.endsWith("netlify.app") // Allow Netlify preview deployments
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Generate a short URL for a chart/metric page
  */
 export async function createChartShareUrl(
@@ -220,21 +264,19 @@ export async function createChartShareUrl(
   if (!API_KEY) {
     return fullUrl;
   }
-
-  // Generate a meaningful key based on the content
   
-  // Create a descriptive key: repo-owner-charttype-timestamp
-  const timestamp = Date.now().toString(36); // Base36 for shorter strings
-  const repoKey = repository ? repository.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase() : '';
-  const chartKey = chartType.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-  
-  const key = repoKey 
-    ? `${repoKey}-${chartKey}-${timestamp}`
-    : `${chartKey}-${timestamp}`;
+  // Validate URL for security
+  if (!validateUrl(fullUrl)) {
+    console.warn("Invalid URL for shortening:", fullUrl);
+    return fullUrl;
+  }
 
+  // Generate custom key based on URL pattern
+  const customKey = getCustomKey(fullUrl);
+  
   const shortUrl = await createShortUrl({
     url: fullUrl,
-    key: key.substring(0, 50), // Limit key length
+    key: customKey,
     title: repository 
       ? `${chartType} for ${repository}`
       : `${chartType} Chart`,
