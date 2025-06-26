@@ -111,4 +111,16 @@ export default defineConfig({
   css: {
     devSourcemap: true,
   },
+  server: {
+    proxy: {
+      '/api/dub': {
+        target: 'https://api.dub.co',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/dub/, ''),
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        },
+      },
+    },
+  },
 });

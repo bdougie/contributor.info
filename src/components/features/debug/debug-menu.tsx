@@ -12,7 +12,8 @@ import {
   Globe,
   Monitor,
   BarChart3,
-  Image
+  Image,
+  Link
 } from "lucide-react";
 
 interface DebugRoute {
@@ -65,6 +66,13 @@ const debugRoutes: DebugRoute[] = [
     description: "Test shareable charts with different types and attribution bars",
     icon: <Image className="h-4 w-4" />,
     category: "dev"
+  },
+  {
+    path: "/dev/dub-test",
+    title: "Dub.co API Test",
+    description: "Test dub.co API integration and debug authorization issues",
+    icon: <Link className="h-4 w-4" />,
+    category: "testing"
   },
   {
     path: "/changelog",

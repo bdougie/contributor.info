@@ -5,13 +5,96 @@ const isDev = import.meta.env.DEV;
 const DOMAIN = isDev ? "dub.sh" : "oss.fyi";
 const API_KEY = import.meta.env.VITE_DUB_CO_KEY;
 
+// Use proxy in development to avoid CORS issues
+const API_BASE_URL = isDev ? "/api/dub" : "https://api.dub.co";
+
+// Enhanced debugging for API key issues
 if (!API_KEY) {
   console.warn("DUB_CO_KEY not found in environment variables");
+  console.warn("Available env vars:", Object.keys(import.meta.env));
+} else {
+  console.log("Dub API Key loaded:", API_KEY.substring(0, 8) + "...");
+  console.log("API Key format valid:", API_KEY.startsWith('dub_'));
 }
+
+console.log("Dub API Base URL:", API_BASE_URL);
+console.log("Environment:", isDev ? "Development (using proxy)" : "Production");
+
+// Custom fetcher that rewrites URLs for proxy
+const customFetcher = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  let url: string;
+  let finalInput: RequestInfo | URL = input;
+  
+  // Extract URL from various input types
+  if (typeof input === 'string') {
+    url = input;
+  } else if (input instanceof URL) {
+    url = input.toString();
+  } else if (input instanceof Request) {
+    url = input.url;
+  } else {
+    url = String(input);
+  }
+  
+  const originalUrl = url;
+  
+  // In development, replace the base URL to use our proxy
+  if (isDev && url.startsWith('https://api.dub.co')) {
+    const newUrl = url.replace('https://api.dub.co', '/api/dub');
+    console.log(`Dub fetch: ${originalUrl} → ${newUrl} (using proxy)`);
+    
+    // Create appropriate input based on original type
+    if (input instanceof Request) {
+      // Clone the request with new URL
+      const cloneOptions: RequestInit = {
+        method: input.method,
+        headers: input.headers,
+        mode: input.mode,
+        credentials: input.credentials,
+        cache: input.cache,
+        redirect: input.redirect,
+        referrer: input.referrer,
+        referrerPolicy: input.referrerPolicy,
+        integrity: input.integrity,
+        signal: input.signal,
+      };
+      
+      // Handle body and duplex for streaming requests
+      if (input.body) {
+        cloneOptions.body = input.body;
+        // Add duplex for streaming bodies
+        if (input.body instanceof ReadableStream) {
+          (cloneOptions as any).duplex = 'half';
+        }
+      }
+      
+      finalInput = new Request(newUrl, cloneOptions);
+    } else {
+      finalInput = newUrl;
+    }
+  } else {
+    console.log(`Dub fetch: ${originalUrl} (direct)`);
+  }
+  
+  return fetch(finalInput, init);
+};
+
+// Create a minimal HTTPClient implementation that matches the SDK's expectations
+const createHTTPClient = () => {
+  return {
+    request: async (request: Request): Promise<Response> => {
+      return customFetcher(request);
+    },
+    addHook: function() { return this; },
+    removeHook: function() { return this; },
+    clone: function() { return this; }
+  };
+};
 
 // Initialize Dub client
 export const dub = new Dub({
   token: API_KEY,
+  httpClient: createHTTPClient() as any,
 });
 
 interface CreateShortUrlOptions {
@@ -65,6 +148,14 @@ export async function createShortUrl({
   }
 
   try {
+    console.log("Creating short URL with Dub.co:", {
+      url,
+      domain: DOMAIN,
+      key,
+      hasApiKey: !!API_KEY,
+      apiKeyPrefix: API_KEY?.substring(0, 8)
+    });
+    
     const result = await dub.links.create({
       url,
       domain: DOMAIN,
@@ -78,6 +169,8 @@ export async function createShortUrl({
       utmMedium: "chart-share",
       utmCampaign: "social-sharing"
     });
+    
+    console.log("Dub.co API success:", result.shortLink);
 
     // Map the response to our interface
     return {
@@ -101,8 +194,25 @@ export async function createShortUrl({
       description: result.description,
       image: result.image
     };
-  } catch (error) {
-    console.error("Failed to create short URL:", error);
+  } catch (error: any) {
+    console.error("Failed to create short URL - Full error:", error);
+    console.error("Error type:", typeof error);
+    console.error("Error message:", error?.message);
+    console.error("Error status:", error?.status);
+    console.error("Error response:", error?.response?.data || error?.response);
+    
+    // Check for specific authorization errors
+    if (error?.message?.includes('Missing Authorization header') || 
+        error?.message?.includes('Authorization') ||
+        error?.status === 401) {
+      console.error("Authorization error detected. API Key status:", {
+        hasKey: !!API_KEY,
+        keyLength: API_KEY?.length,
+        keyPrefix: API_KEY?.substring(0, 8),
+        keyFormat: API_KEY?.startsWith('dub_')
+      });
+    }
+    
     return null;
   }
 }
@@ -122,7 +232,7 @@ export async function getUrlAnalytics(linkId: string) {
       interval: "24h"
     });
     return analytics;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to get URL analytics:", error);
     return null;
   }

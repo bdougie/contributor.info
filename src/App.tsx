@@ -26,6 +26,7 @@ const GitHubSyncDebug = lazy(() => import("@/components/debug/github-sync-debug"
 const PerformanceMonitoringDashboard = lazy(() => import("@/components/performance-monitoring-dashboard").then(m => ({ default: m.PerformanceMonitoringDashboard })));
 const AnalyticsDashboard = lazy(() => import("@/components/features/debug/analytics-dashboard").then(m => ({ default: m.AnalyticsDashboard })));
 const ShareableChartsPreview = lazy(() => import("@/components/features/debug/shareable-charts-preview").then(m => ({ default: m.ShareableChartsPreview })));
+const DubTest = lazy(() => import("@/components/features/debug/dub-test").then(m => ({ default: m.DubTest })));
 
 // Loading fallback component
 const PageSkeleton = () => (
@@ -102,6 +103,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ShareableChartsPreview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dev/dub-test"
+              element={
+                <ProtectedRoute>
+                  <DubTest />
                 </ProtectedRoute>
               }
             />
