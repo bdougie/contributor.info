@@ -113,20 +113,40 @@ export function ShareableCard({
       `;
       
       // Attribution content: repo with icon on left, logo on right (adjusted for smaller width)
-      attributionBar.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <div style="width: 24px; height: 24px; background-color: #404040; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
-            <span style="font-size: 12px;">📊</span>
-          </div>
-          <span style="color: white; font-size: 16px; font-weight: bold; font-family: 'Inter', system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px;">
-            ${contextInfo?.repository || 'Repository'}
-          </span>
-        </div>
-        <div style="display: flex; align-items: center; flex-shrink: 0;">
-          <span style="font-size: 18px; margin-right: 4px;">🌱</span>
-          <span style="color: white; font-size: 14px; font-weight: 500; font-family: 'Inter', system-ui, sans-serif;">contributor.info</span>
-        </div>
-      `;
+      // Create elements programmatically to avoid XSS vulnerabilities
+      const leftContainer = document.createElement('div');
+      leftContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+      
+      const iconContainer = document.createElement('div');
+      iconContainer.style.cssText = 'width: 24px; height: 24px; background-color: #404040; border-radius: 4px; display: flex; align-items: center; justify-content: center;';
+      const iconSpan = document.createElement('span');
+      iconSpan.style.cssText = 'font-size: 12px;';
+      iconSpan.textContent = '📊';
+      iconContainer.appendChild(iconSpan);
+      
+      const repoName = document.createElement('span');
+      repoName.style.cssText = 'color: white; font-size: 16px; font-weight: bold; font-family: "Inter", system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px;';
+      repoName.textContent = contextInfo?.repository || 'Repository'; // Safe: using textContent instead of innerHTML
+      
+      leftContainer.appendChild(iconContainer);
+      leftContainer.appendChild(repoName);
+      
+      const rightContainer = document.createElement('div');
+      rightContainer.style.cssText = 'display: flex; align-items: center; flex-shrink: 0;';
+      
+      const logoIcon = document.createElement('span');
+      logoIcon.style.cssText = 'font-size: 18px; margin-right: 4px;';
+      logoIcon.textContent = '🌱';
+      
+      const logoText = document.createElement('span');
+      logoText.style.cssText = 'color: white; font-size: 14px; font-weight: 500; font-family: "Inter", system-ui, sans-serif;';
+      logoText.textContent = 'contributor.info';
+      
+      rightContainer.appendChild(logoIcon);
+      rightContainer.appendChild(logoText);
+      
+      attributionBar.appendChild(leftContainer);
+      attributionBar.appendChild(rightContainer);
       
       // Content wrapper to ensure proper padding and no overlap (adjusted for smaller width)
       contentWrapper = document.createElement('div');

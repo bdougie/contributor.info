@@ -54,7 +54,10 @@ function getSessionId(): string {
   let sessionId = sessionStorage.getItem(storageKey);
   
   if (!sessionId) {
-    sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const randomBytes = new Uint8Array(16);
+    window.crypto.getRandomValues(randomBytes);
+    const randomString = Array.from(randomBytes, byte => byte.toString(36)).join('').substr(0, 9);
+    sessionId = `session_${Date.now()}_${randomString}`;
     sessionStorage.setItem(storageKey, sessionId);
   }
   
