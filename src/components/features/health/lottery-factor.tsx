@@ -1,4 +1,5 @@
 import { useContext, useState, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -24,6 +25,7 @@ import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
 import { YoloIcon } from "@/components/icons/YoloIcon";
 import { LotteryIcon } from "@/components/icons/LotteryIcon";
+import { ShareableCard } from "@/components/features/sharing/shareable-card";
 import type {
   RepoStats,
   LotteryFactor as LotteryFactorType,
@@ -90,10 +92,12 @@ export function LotteryFactorContent({
   showYoloButton?: boolean;
   includeBots?: boolean;
 }) {
+  const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const { timeRange } = useTimeRange();
   const timeRangeNumber = parseInt(timeRange, 10); // Parse the string to a number
   const rawStats = stats || { pullRequests: [], loading: false, error: null };
   const rawLotteryFactor = lotteryFactor || null;
+  const repositoryName = owner && repo ? `${owner}/${repo}` : undefined;
 
   // Apply client-side filtering based on includeBots
   const safeStats = {
@@ -130,6 +134,48 @@ export function LotteryFactorContent({
     // Check if we have YOLO coders data
     if (!directCommitsData || directCommitsData.yoloCoderStats.length === 0) {
       return (
+        <ShareableCard
+          title="YOLO Coders"
+          contextInfo={{
+            repository: repositoryName,
+            metric: "direct commits"
+          }}
+          chartType="yolo-coders"
+        >
+          <div className="space-y-6">
+            <div className="flex items-center mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowYoloCoders(false)}
+                className="text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                back
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <YoloIcon className="w-4 h-5 text-muted-foreground" />
+              <h2 className="text-xl font-semibold">YOLO Coders</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              No direct commits to the main branch detected in the last{" "}
+              {timeRangeNumber} days.
+            </p>
+          </div>
+        </ShareableCard>
+      );
+    }
+
+    return (
+      <ShareableCard
+        title="YOLO Coders"
+        contextInfo={{
+          repository: repositoryName,
+          metric: "direct commits"
+        }}
+        chartType="yolo-coders"
+      >
         <div className="space-y-6">
           <div className="flex items-center mb-4">
             <Button
@@ -147,67 +193,43 @@ export function LotteryFactorContent({
             <h2 className="text-xl font-semibold">YOLO Coders</h2>
           </div>
           <p className="text-sm text-muted-foreground">
-            No direct commits to the main branch detected in the last{" "}
-            {timeRangeNumber} days.
+            {directCommitsData.yoloCoderStats.length} contributor
+            {directCommitsData.yoloCoderStats.length !== 1 ? "s" : ""} have pushed
+            directly to the main branch of this repository in the last{" "}
+            {timeRangeNumber} days without pull requests
           </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center mb-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowYoloCoders(false)}
-            className="text-muted-foreground hover:text-foreground flex items-center gap-1"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            back
-          </Button>
-        </div>
-        <div className="flex items-center gap-2">
-          <YoloIcon className="w-4 h-5 text-muted-foreground" />
-          <h2 className="text-xl font-semibold">YOLO Coders</h2>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {directCommitsData.yoloCoderStats.length} contributor
-          {directCommitsData.yoloCoderStats.length !== 1 ? "s" : ""} have pushed
-          directly to the main branch of this repository in the last{" "}
-          {timeRangeNumber} days without pull requests
-        </p>
-        <div className="space-y-4 mt-2">
-          {directCommitsData.yoloCoderStats.map((coder) => (
-            <div
-              key={coder.login}
-              className="flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <OptimizedAvatar
-                  src={coder.avatar_url}
-                  alt={coder.login}
-                  size={32}
-                  lazy={false}
-                  fallback={coder.login[0]?.toUpperCase() || '?'}
-                />
-                <div>
-                  <p className="font-medium">{coder.login}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {coder.type === "Bot" ? "bot" : "contributor"}
-                  </p>
+          <div className="space-y-4 mt-2">
+            {directCommitsData.yoloCoderStats.map((coder) => (
+              <div
+                key={coder.login}
+                className="flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <OptimizedAvatar
+                    src={coder.avatar_url}
+                    alt={coder.login}
+                    size={32}
+                    lazy={false}
+                    fallback={coder.login[0]?.toUpperCase() || '?'}
+                  />
+                  <div>
+                    <p className="font-medium">{coder.login}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {coder.type === "Bot" ? "bot" : "contributor"}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium">{coder.directCommits}</span> push
+                  {coder.directCommits !== 1 ? "es" : ""} with{" "}
+                  <span className="font-medium">{coder.totalPushedCommits}</span>{" "}
+                  commit{coder.totalPushedCommits !== 1 ? "s" : ""}
                 </div>
               </div>
-              <div className="text-sm text-muted-foreground">
-                <span className="font-medium">{coder.directCommits}</span> push
-                {coder.directCommits !== 1 ? "es" : ""} with{" "}
-                <span className="font-medium">{coder.totalPushedCommits}</span>{" "}
-                commit{coder.totalPushedCommits !== 1 ? "s" : ""}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      </ShareableCard>
     );
   }
 
@@ -249,64 +271,72 @@ export function LotteryFactorContent({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-start gap-2">
-          <div className="text-xl font-semibold flex items-center gap-2">
-            <LotteryIcon className="h-5 w-5" />
-            Lottery Factor
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs">
-                    The Lottery Factor measures the distribution of
-                    contributions across maintainers. A high percentage
-                    indicates increased risk due to concentrated knowledge.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+    <ShareableCard
+      title="Lottery Factor"
+      contextInfo={{
+        repository: repositoryName,
+        metric: "lottery factor"
+      }}
+      chartType="lottery-factor"
+    >
+      <div className="space-y-6">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-start gap-2">
+            <div className="text-xl font-semibold flex items-center gap-2">
+              <LotteryIcon className="h-5 w-5" />
+              Lottery Factor
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      The Lottery Factor measures the distribution of
+                      contributions across maintainers. A high percentage
+                      indicates increased risk due to concentrated knowledge.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Badge
+              variant="secondary"
+              className={`ml-auto ${getRiskLevelColor(
+                safeLotteryFactor.riskLevel
+              )}`}
+            >
+              {safeLotteryFactor.riskLevel}
+            </Badge>
           </div>
-          <Badge
-            variant="secondary"
-            className={`ml-auto ${getRiskLevelColor(
-              safeLotteryFactor.riskLevel
-            )}`}
-          >
-            {safeLotteryFactor.riskLevel}
-          </Badge>
-        </div>
 
-        {showYoloButton && (
-          <button
-            onClick={() => setShowYoloCoders(true)}
-            className="flex items-center justify-between w-full text-slate-500 shadow-sm !border !border-slate-300 p-2 sm:p-1 gap-2 text-sm rounded-full"
-          >
-            <div className="flex gap-2 items-center min-w-0 flex-1">
-              <div className="flex items-center font-medium gap-1 px-2 py-0.5 rounded-2xl bg-light-red-4 text-light-red-11 flex-shrink-0">
-                <YoloIcon className="h-4 w-4" />
-                <span className="hidden xs:inline">YOLO Coders</span>
-                <span className="xs:hidden">YOLO</span>
+          {showYoloButton && (
+            <button
+              onClick={() => setShowYoloCoders(true)}
+              className="flex items-center justify-between w-full text-slate-500 shadow-sm !border !border-slate-300 p-2 sm:p-1 gap-2 text-sm rounded-full"
+            >
+              <div className="flex gap-2 items-center min-w-0 flex-1">
+                <div className="flex items-center font-medium gap-1 px-2 py-0.5 rounded-2xl bg-light-red-4 text-light-red-11 flex-shrink-0">
+                  <YoloIcon className="h-4 w-4" />
+                  <span className="hidden xs:inline">YOLO Coders</span>
+                  <span className="xs:hidden">YOLO</span>
+                </div>
+                <p className="block lg:hidden 2xl:block" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Pushing commits{" "}
+                  <span className="hidden sm:inline-block">directly</span> to
+                  main
+                </p>
               </div>
-              <p className="block lg:hidden 2xl:block truncate">
-                Pushing commits{" "}
-                <span className="hidden sm:inline-block">directly</span> to
-                main
-              </p>
-            </div>
 
-            <div className="flex gap-2 items-center ml-auto mr-1 sm:mr-3 flex-shrink-0">
-              <p className="hidden sm:inline-block xl:hidden min-[1650px]:inline-block">
-                See more
-              </p>
-              <ArrowRight className="h-4 w-4" />
-            </div>
-          </button>
-        )}
-      </div>
+              <div className="flex gap-2 items-center ml-auto mr-1 sm:mr-3 flex-shrink-0">
+                <p className="hidden sm:inline-block xl:hidden min-[1650px]:inline-block">
+                  See more
+                </p>
+                <ArrowRight className="h-4 w-4" />
+              </div>
+            </button>
+          )}
+        </div>
 
       <div className="space-y-4">
         <div className="space-y-2">
@@ -398,7 +428,7 @@ export function LotteryFactorContent({
                   />
                 </ContributorHoverCard>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{contributor.login}</div>
+                  <div className="font-medium" style={{ wordBreak: 'break-word' }}>{contributor.login}</div>
                   <div className="text-sm text-muted-foreground">
                     {index === 0
                       ? "maintainer"
@@ -462,6 +492,7 @@ export function LotteryFactorContent({
         </div>
       </div>
     </div>
+    </ShareableCard>
   );
 }
 

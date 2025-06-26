@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { BrowserRouter as Router } from "react-router-dom";
 import { describe, it, expect } from "vitest";
 import "@testing-library/jest-dom";
 import { ContributorOfTheMonth, ContributorCard, ContributorEmptyState } from "../features/contributor";
@@ -29,7 +30,11 @@ describe("Contributor Feature Integration", () => {
   };
 
   it("renders complete contributor of the month feature", () => {
-    render(<ContributorOfTheMonth ranking={mockRanking} />);
+    render(
+      <Router>
+        <ContributorOfTheMonth ranking={mockRanking} />
+      </Router>
+    );
 
     // Check main component
     expect(screen.getByText("Contributor of the Month")).toBeInTheDocument();
@@ -67,7 +72,11 @@ describe("Contributor Feature Integration", () => {
   });
 
   it("maintains accessibility standards", () => {
-    render(<ContributorOfTheMonth ranking={mockRanking} />);
+    render(
+      <Router>
+        <ContributorOfTheMonth ranking={mockRanking} />
+      </Router>
+    );
 
     const mainRegion = screen.getByRole("region", {
       name: /contributor of the month/i,
@@ -105,7 +114,9 @@ describe("Contributor Feature Integration", () => {
     };
     
     const { container } = render(
-      <ContributorOfTheMonth ranking={leaderboardRanking} />
+      <Router>
+        <ContributorOfTheMonth ranking={leaderboardRanking} />
+      </Router>
     );
 
     // Check that grid layout classes are present

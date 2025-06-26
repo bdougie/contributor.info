@@ -60,7 +60,7 @@ export default function RepoSocialCard({ owner: _owner, repo: _repo, timeRange, 
                       className="w-10 h-10 overflow-hidden rounded-full transition-all duration-300 border-2 border-white"
                     >
                       <Avatar className="w-full h-full">
-                        <AvatarImage src={contributor.avatar_url} alt={contributor.login} />
+                        <AvatarImage src={contributor.avatar_url} alt={contributor.login} loading="lazy" />
                         <AvatarFallback className="text-xs bg-gray-700 text-white">
                           {contributor.login[0].toUpperCase()}
                         </AvatarFallback>

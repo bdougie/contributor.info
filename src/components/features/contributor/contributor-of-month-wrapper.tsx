@@ -38,5 +38,9 @@ export default function ContributorOfTheMonthWrapper() {
     phase: isWinnerPhase ? 'winner_announcement' : 'running_leaderboard',
   };
 
-  return <ContributorOfTheMonth ranking={contributorRanking} />;
+  return (
+    <ContributorOfTheMonth 
+      ranking={contributorRanking} 
+    />
+  );
 }
