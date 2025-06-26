@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -58,7 +58,6 @@ export function PerformanceMonitoringDashboard() {
   const [cdnMetrics, setCdnMetrics] = useState<CDNMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const [activeTab, setActiveTab] = useState('health'); // Track active tab
 
   const fetchHealthEndpoints = useCallback(async () => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -149,10 +148,8 @@ export function PerformanceMonitoringDashboard() {
           .limit(10)
       ]);
       
-      // Load CDN metrics only if CDN tab is active
-      if (activeTab === 'cdn') {
-        loadCDNMetrics();
-      }
+      // Load CDN metrics
+      await loadCDNMetrics();
       
       const [
         slowQueriesResult,
@@ -182,7 +179,7 @@ export function PerformanceMonitoringDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [fetchHealthEndpoints, loadCDNMetrics, activeTab]);
+  }, [fetchHealthEndpoints, loadCDNMetrics]);
 
   const createPerformanceSnapshot = useCallback(async () => {
     try {
@@ -254,35 +251,15 @@ export function PerformanceMonitoringDashboard() {
     return `Issues: ${issues.join(', ')}`;
   }, [healthData.database, healthData.github]);
 
-  // Memoize expensive calculations
-  const githubStats = useMemo(() => githubAPIMonitoring.getPerformanceStats(60), [lastRefresh]);
-  const rateLimits = useMemo(() => githubAPIMonitoring.getRateLimitStatus(), [lastRefresh]);
-  
-  // Memoize status values to avoid recalculating on every render
-  const databaseStatus = useMemo(() => getDatabaseStatus(), [getDatabaseStatus]);
-  const overallHealthStatus = useMemo(() => getOverallHealthStatus(), [getOverallHealthStatus]);
-  const healthSummary = useMemo(() => getHealthSummary(), [getHealthSummary]);
+  // Simple computed values without over-memoization
+  const githubStats = githubAPIMonitoring.getPerformanceStats(60);
+  const rateLimits = githubAPIMonitoring.getRateLimitStatus();
 
-  // Load CDN metrics only when CDN tab is active
+  // Simple useEffect for metrics loading
   useEffect(() => {
-    if (activeTab === 'cdn' && !cdnMetrics && !loading) {
-      loadCDNMetrics();
-    }
-  }, [activeTab, cdnMetrics, loading, loadCDNMetrics]);
-
-  // Load metrics when component mounts
-  useEffect(() => {
-    // Delay initial load slightly to prioritize critical content
-    const loadTimer = setTimeout(() => {
-      loadMetrics();
-    }, 100);
-    
+    loadMetrics();
     const interval = setInterval(loadMetrics, AUTO_REFRESH_INTERVAL);
-    
-    return () => {
-      clearTimeout(loadTimer);
-      clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [loadMetrics, AUTO_REFRESH_INTERVAL]);
 
   return (
@@ -306,14 +283,14 @@ export function PerformanceMonitoringDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">System Health</CardTitle>
-            {getStatusIcon(overallHealthStatus)}
+            {getStatusIcon(getOverallHealthStatus())}
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {overallHealthStatus.toUpperCase()}
+              {getOverallHealthStatus().toUpperCase()}
             </div>
             <p className="text-xs text-muted-foreground">
-              {healthSummary}
+              {getHealthSummary()}
             </p>
           </CardContent>
         </Card>
@@ -321,11 +298,11 @@ export function PerformanceMonitoringDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Database Status</CardTitle>
-            {getStatusIcon(databaseStatus)}
+            {getStatusIcon(getDatabaseStatus())}
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {databaseMetrics ? databaseStatus.toUpperCase() : 'Loading...'}
+              {databaseMetrics ? getDatabaseStatus().toUpperCase() : 'Loading...'}
             </div>
             <p className="text-xs text-muted-foreground">
               {healthData.database?.connectivity?.latency ? `${healthData.database.connectivity.latency}ms` : 'N/A'} latency
@@ -395,7 +372,7 @@ export function PerformanceMonitoringDashboard() {
       </div>
 
       {/* Detailed Metrics */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <Tabs defaultValue="health" className="space-y-4">
         <TabsList>
           <TabsTrigger value="health">Health Endpoints</TabsTrigger>
           <TabsTrigger value="database">Database</TabsTrigger>
