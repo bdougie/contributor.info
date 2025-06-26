@@ -22,17 +22,28 @@ const createHTTPClient = () => {
     request: async (request: Request): Promise<Response> => {
       // In production, route through Netlify function
       const newUrl = '/.netlify/functions/dub-proxy';
-      console.log(`Dub fetch: ${request.url} → ${newUrl} (using Netlify function)`);
+      console.log(`🔗 Dub HTTP Client: ${request.url} → ${newUrl}`);
+      console.log(`🔗 Request method: ${request.method}`);
+      
+      // Get the request body for logging
+      const body = await request.text();
+      console.log(`🔗 Request body:`, body);
       
       // Remove auth header since Netlify function will add it
       const headers = new Headers(request.headers);
       headers.delete('authorization');
       
-      return fetch(newUrl, {
+      console.log(`🔗 Making request to Netlify function...`);
+      
+      const response = await fetch(newUrl, {
         method: request.method,
         headers: headers,
-        body: request.body,
+        body: body,
       });
+      
+      console.log(`🔗 Netlify function response status:`, response.status);
+      
+      return response;
     },
     addHook: function() { return this; },
     removeHook: function() { return this; },
@@ -40,10 +51,10 @@ const createHTTPClient = () => {
   };
 };
 
-// Initialize Dub client (only used in production)
+// Initialize Dub client with custom HTTP client for production
 export const dub = new Dub({
   token: API_KEY,
-  ...(isDev ? {} : { httpClient: createHTTPClient() as any }),
+  httpClient: isDev ? undefined : createHTTPClient() as any,
 });
 
 interface CreateShortUrlOptions {

@@ -44,7 +44,13 @@ export function DubTest() {
           API Key format: {import.meta.env.VITE_DUB_CO_KEY?.startsWith('dub_') ? "✅ Valid" : "❌ Invalid"}
         </div>
         <div>
-          API Base URL: {import.meta.env.DEV ? "/api/dub (proxy)" : "https://api.dub.co (direct)"}
+          API Mode: {import.meta.env.DEV ? "Development (mocked)" : "Production (Netlify function)"}
+        </div>
+        <div>
+          Environment DEV: {import.meta.env.DEV ? "true" : "false"}
+        </div>
+        <div>
+          Environment MODE: {import.meta.env.MODE}
         </div>
       </div>
       
