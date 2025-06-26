@@ -5,8 +5,8 @@ const isDev = import.meta.env.DEV;
 const DOMAIN = isDev ? "dub.sh" : "oss.fyi";
 const API_KEY = import.meta.env.VITE_DUB_CO_KEY;
 
-// Use proxy in development to avoid CORS issues
-const API_BASE_URL = isDev ? "/api/dub" : "https://api.dub.co";
+// Use proxy in development and Netlify function in production to avoid CORS issues
+const API_BASE_URL = isDev ? "/api/dub" : "/.netlify/functions/dub-proxy";
 
 // Enhanced debugging for API key issues
 if (!API_KEY) {
@@ -38,42 +38,70 @@ const customFetcher = async (input: RequestInfo | URL, init?: RequestInit): Prom
   
   const originalUrl = url;
   
-  // In development, replace the base URL to use our proxy
-  if (isDev && url.startsWith('https://api.dub.co')) {
-    const newUrl = url.replace('https://api.dub.co', '/api/dub');
-    console.log(`Dub fetch: ${originalUrl} → ${newUrl} (using proxy)`);
-    
-    // Create appropriate input based on original type
-    if (input instanceof Request) {
-      // Clone the request with new URL
-      const cloneOptions: RequestInit = {
-        method: input.method,
-        headers: input.headers,
-        mode: input.mode,
-        credentials: input.credentials,
-        cache: input.cache,
-        redirect: input.redirect,
-        referrer: input.referrer,
-        referrerPolicy: input.referrerPolicy,
-        integrity: input.integrity,
-        signal: input.signal,
-      };
+  // In development, use Vite proxy; in production, use Netlify function
+  if (url.startsWith('https://api.dub.co')) {
+    if (isDev) {
+      const newUrl = url.replace('https://api.dub.co', '/api/dub');
+      console.log(`Dub fetch: ${originalUrl} → ${newUrl} (using Vite proxy)`);
       
-      // Handle body and duplex for streaming requests
-      if (input.body) {
-        cloneOptions.body = input.body;
-        // Add duplex for streaming bodies
-        if (input.body instanceof ReadableStream) {
-          (cloneOptions as any).duplex = 'half';
+      // Create appropriate input based on original type (same as before)
+      if (input instanceof Request) {
+        const cloneOptions: RequestInit = {
+          method: input.method,
+          headers: input.headers,
+          mode: input.mode,
+          credentials: input.credentials,
+          cache: input.cache,
+          redirect: input.redirect,
+          referrer: input.referrer,
+          referrerPolicy: input.referrerPolicy,
+          integrity: input.integrity,
+          signal: input.signal,
+        };
+        
+        if (input.body) {
+          cloneOptions.body = input.body;
+          if (input.body instanceof ReadableStream) {
+            (cloneOptions as any).duplex = 'half';
+          }
         }
+        
+        finalInput = new Request(newUrl, cloneOptions);
+      } else {
+        finalInput = newUrl;
       }
-      
-      finalInput = new Request(newUrl, cloneOptions);
     } else {
-      finalInput = newUrl;
+      // In production, use Netlify function
+      const newUrl = '/.netlify/functions/dub-proxy';
+      console.log(`Dub fetch: ${originalUrl} → ${newUrl} (using Netlify function)`);
+      
+      if (input instanceof Request) {
+        // For Netlify function, we need to pass the body directly without auth headers
+        // since the function will add the auth header
+        const headers = new Headers(input.headers);
+        headers.delete('authorization'); // Remove auth header, function will add it
+        
+        finalInput = new Request(newUrl, {
+          method: input.method,
+          headers: headers,
+          body: input.body,
+          mode: input.mode,
+          credentials: input.credentials,
+          cache: input.cache,
+          redirect: input.redirect,
+          referrer: input.referrer,
+          referrerPolicy: input.referrerPolicy,
+          integrity: input.integrity,
+          signal: input.signal,
+        });
+      } else {
+        finalInput = newUrl;
+      }
     }
   } else {
     console.log(`Dub fetch: ${originalUrl} (direct)`);
+    // No URL rewriting needed for direct requests
+    finalInput = input;
   }
   
   return fetch(finalInput, init);
