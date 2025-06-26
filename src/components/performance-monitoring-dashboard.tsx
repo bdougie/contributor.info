@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -46,6 +46,8 @@ interface CDNMetrics {
 }
 
 export function PerformanceMonitoringDashboard() {
+  const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes instead of 1 minute
+  
   const [databaseMetrics, setDatabaseMetrics] = useState<DatabaseMetrics | null>(null);
   const [alerts, setAlerts] = useState<PerformanceAlert[]>([]);
   const [healthData, setHealthData] = useState<{
@@ -56,14 +58,9 @@ export function PerformanceMonitoringDashboard() {
   const [cdnMetrics, setCdnMetrics] = useState<CDNMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [activeTab, setActiveTab] = useState('health'); // Track active tab
 
-  useEffect(() => {
-    loadMetrics();
-    const interval = setInterval(loadMetrics, 60000); // Refresh every minute
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchHealthEndpoints = async () => {
+  const fetchHealthEndpoints = useCallback(async () => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     
@@ -93,9 +90,9 @@ export function PerformanceMonitoringDashboard() {
       console.error('Error fetching health endpoints:', error);
       return { main: null, database: null, github: null };
     }
-  };
+  }, []);
 
-  const loadCDNMetrics = async () => {
+  const loadCDNMetrics = useCallback(async () => {
     try {
       // Get social cards storage metrics
       const { data: files, error } = await supabase.storage
@@ -130,23 +127,18 @@ export function PerformanceMonitoringDashboard() {
     } catch (error) {
       console.error('Error loading CDN metrics:', error);
     }
-  };
+  }, []);
 
-  const loadMetrics = async () => {
+  const loadMetrics = useCallback(async () => {
     try {
       setLoading(true);
       
-      // Load health endpoint data
+      // Load health endpoint data first (critical)
       const healthEndpoints = await fetchHealthEndpoints();
       setHealthData(healthEndpoints);
       
-      // Load database metrics
-      const [
-        slowQueriesResult,
-        connectionStatusResult,
-        databaseSizeResult,
-        alertsResult
-      ] = await Promise.all([
+      // Load other metrics in parallel but don't block on them
+      const metricsPromise = Promise.all([
         supabase.from('slow_queries').select('*'),
         supabase.rpc('get_connection_pool_status'),
         supabase.rpc('get_database_size_stats'),
@@ -157,8 +149,17 @@ export function PerformanceMonitoringDashboard() {
           .limit(10)
       ]);
       
-      // Load CDN metrics
-      await loadCDNMetrics();
+      // Load CDN metrics only if CDN tab is active
+      if (activeTab === 'cdn') {
+        loadCDNMetrics();
+      }
+      
+      const [
+        slowQueriesResult,
+        connectionStatusResult,
+        databaseSizeResult,
+        alertsResult
+      ] = await metricsPromise;
 
       // Process database metrics
       const connectionStatus = connectionStatusResult.data?.[0];
@@ -181,25 +182,25 @@ export function PerformanceMonitoringDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchHealthEndpoints, loadCDNMetrics, activeTab]);
 
-  const createPerformanceSnapshot = async () => {
+  const createPerformanceSnapshot = useCallback(async () => {
     try {
       await supabase.rpc('create_performance_snapshot');
       await loadMetrics();
     } catch (error) {
       console.error('Error creating performance snapshot:', error);
     }
-  };
+  }, [loadMetrics]);
 
-  const getStatusColor = (value: number, threshold: number, inverted: boolean = false) => {
+  const getStatusColor = useCallback((value: number, threshold: number, inverted: boolean = false) => {
     if (inverted) {
       return value < threshold ? 'destructive' : 'default';
     }
     return value > threshold ? 'destructive' : 'default';
-  };
+  }, []);
 
-  const getStatusIcon = (status: 'good' | 'warning' | 'critical') => {
+  const getStatusIcon = useCallback((status: 'good' | 'warning' | 'critical') => {
     switch (status) {
       case 'good':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -208,9 +209,9 @@ export function PerformanceMonitoringDashboard() {
       case 'critical':
         return <AlertTriangle className="h-4 w-4 text-red-500" />;
     }
-  };
+  }, []);
 
-  const getDatabaseStatus = (): 'good' | 'warning' | 'critical' => {
+  const getDatabaseStatus = useCallback((): 'good' | 'warning' | 'critical' => {
     if (healthData.database?.status === 'unhealthy') return 'critical';
     if (healthData.database?.status === 'degraded') return 'warning';
     if (!databaseMetrics) return 'warning';
@@ -221,9 +222,9 @@ export function PerformanceMonitoringDashboard() {
       return 'warning';
     }
     return 'good';
-  };
+  }, [healthData.database, databaseMetrics]);
 
-  const getOverallHealthStatus = (): 'good' | 'warning' | 'critical' => {
+  const getOverallHealthStatus = useCallback((): 'good' | 'warning' | 'critical' => {
     const dbStatus = getDatabaseStatus();
     const githubStatus = healthData.github?.status === 'healthy' ? 'good' : 
                          healthData.github?.status === 'degraded' ? 'warning' : 'critical';
@@ -237,9 +238,9 @@ export function PerformanceMonitoringDashboard() {
       return 'warning';
     }
     return 'good';
-  };
+  }, [getDatabaseStatus, healthData.github, healthData.main]);
 
-  const getHealthSummary = (): string => {
+  const getHealthSummary = useCallback((): string => {
     const issues = [];
     if (healthData.database && healthData.database.status !== 'healthy') {
       issues.push('database');
@@ -251,10 +252,38 @@ export function PerformanceMonitoringDashboard() {
       return 'All systems operational';
     }
     return `Issues: ${issues.join(', ')}`;
-  };
+  }, [healthData.database, healthData.github]);
 
-  const githubStats = githubAPIMonitoring.getPerformanceStats(60);
-  const rateLimits = githubAPIMonitoring.getRateLimitStatus();
+  // Memoize expensive calculations
+  const githubStats = useMemo(() => githubAPIMonitoring.getPerformanceStats(60), [lastRefresh]);
+  const rateLimits = useMemo(() => githubAPIMonitoring.getRateLimitStatus(), [lastRefresh]);
+  
+  // Memoize status values to avoid recalculating on every render
+  const databaseStatus = useMemo(() => getDatabaseStatus(), [getDatabaseStatus]);
+  const overallHealthStatus = useMemo(() => getOverallHealthStatus(), [getOverallHealthStatus]);
+  const healthSummary = useMemo(() => getHealthSummary(), [getHealthSummary]);
+
+  // Load CDN metrics only when CDN tab is active
+  useEffect(() => {
+    if (activeTab === 'cdn' && !cdnMetrics && !loading) {
+      loadCDNMetrics();
+    }
+  }, [activeTab, cdnMetrics, loading, loadCDNMetrics]);
+
+  // Load metrics when component mounts
+  useEffect(() => {
+    // Delay initial load slightly to prioritize critical content
+    const loadTimer = setTimeout(() => {
+      loadMetrics();
+    }, 100);
+    
+    const interval = setInterval(loadMetrics, AUTO_REFRESH_INTERVAL);
+    
+    return () => {
+      clearTimeout(loadTimer);
+      clearInterval(interval);
+    };
+  }, [loadMetrics, AUTO_REFRESH_INTERVAL]);
 
   return (
     <div className="space-y-6">
@@ -277,14 +306,14 @@ export function PerformanceMonitoringDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">System Health</CardTitle>
-            {getStatusIcon(getOverallHealthStatus())}
+            {getStatusIcon(overallHealthStatus)}
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {getOverallHealthStatus().toUpperCase()}
+              {overallHealthStatus.toUpperCase()}
             </div>
             <p className="text-xs text-muted-foreground">
-              {getHealthSummary()}
+              {healthSummary}
             </p>
           </CardContent>
         </Card>
@@ -292,11 +321,11 @@ export function PerformanceMonitoringDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Database Status</CardTitle>
-            {getStatusIcon(getDatabaseStatus())}
+            {getStatusIcon(databaseStatus)}
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {databaseMetrics ? getDatabaseStatus().toUpperCase() : 'Loading...'}
+              {databaseMetrics ? databaseStatus.toUpperCase() : 'Loading...'}
             </div>
             <p className="text-xs text-muted-foreground">
               {healthData.database?.connectivity?.latency ? `${healthData.database.connectivity.latency}ms` : 'N/A'} latency
@@ -366,7 +395,7 @@ export function PerformanceMonitoringDashboard() {
       </div>
 
       {/* Detailed Metrics */}
-      <Tabs defaultValue="health" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="health">Health Endpoints</TabsTrigger>
           <TabsTrigger value="database">Database</TabsTrigger>
