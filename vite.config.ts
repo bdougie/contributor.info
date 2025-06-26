@@ -119,9 +119,4 @@ export default defineConfig({
   css: {
     devSourcemap: true,
   },
-  server: {
-    headers: {
-      'Content-Type': 'text/javascript; charset=utf-8',
-    },
-  },
 });
