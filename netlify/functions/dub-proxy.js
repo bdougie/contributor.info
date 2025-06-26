@@ -1,15 +1,32 @@
 export default async (request, context) => {
-  // Only allow POST requests
+  // Handle preflight OPTIONS requests
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400',
+      },
+    });
+  }
+
+  // Only allow POST requests after OPTIONS
   if (request.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
     });
   }
 
   try {
     // Get the API key from environment variables
-    const apiKey = process.env.VITE_DUB_CO_KEY;
+    // In Netlify functions, use DUB_CO_KEY (without VITE_ prefix)
+    const apiKey = process.env.DUB_CO_KEY || process.env.VITE_DUB_CO_KEY;
     
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'API key not configured' }), {
