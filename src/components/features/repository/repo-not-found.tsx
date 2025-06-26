@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,46 +11,41 @@ import { useRepoSearch } from "@/hooks/use-repo-search";
 
 export default function RepoNotFound() {
   const { owner, repo } = useParams();
-  const [showCursor, setShowCursor] = useState(true);
   const [showPrompt, setShowPrompt] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
     useRepoSearch({ isHomeView: false });
 
-  // Set focus to the container when component mounts
+  // Memoize computed values to prevent recalculation
+  const repoPath = useMemo(() => `${owner}/${repo}`, [owner, repo]);
+  const loginTime = useMemo(() => new Date().toLocaleString(), []);
+  const metaData = useMemo(() => ({
+    title: `Repository Not Found: ${repoPath} | contributor.info`,
+    description: `The repository ${repoPath} was not found. It may not exist, be private, or you may have mistyped the name. Search for another repository on contributor.info.`
+  }), [repoPath]);
+
+  // Minimal effect for initialization
   useEffect(() => {
+    // Set focus to the container when component mounts
     if (containerRef.current) {
       containerRef.current.focus();
     }
-  }, []);
 
-  // Blinking cursor effect
-  useEffect(() => {
-    const cursorInterval = setInterval(() => {
-      setShowCursor((prev) => !prev);
-    }, 530);
-
-    return () => clearInterval(cursorInterval);
-  }, []);
-
-  // Show prompt after a delay
-  useEffect(() => {
+    // Show prompt after a delay
     const promptTimer = setTimeout(() => {
       setShowPrompt(true);
     }, 1500);
 
-    return () => clearTimeout(promptTimer);
+    return () => {
+      clearTimeout(promptTimer);
+    };
   }, []);
 
 
-  const repoPath = `${owner}/${repo}`;
-  const title = `Repository Not Found: ${repoPath} | contributor.info`;
-  const description = `The repository ${repoPath} was not found. It may not exist, be private, or you may have mistyped the name. Search for another repository on contributor.info.`;
-
   return (
     <div className="container mx-auto py-2">
-      <SocialMetaTags title={title} description={description} />
+      <SocialMetaTags title={metaData.title} description={metaData.description} />
 
       {/* Search Section */}
       <Card className="mb-8">
@@ -95,22 +90,20 @@ export default function RepoNotFound() {
         >
           <div
             className={cn(
-              "font-mono text-sm sm:text-base p-4 sm:p-6 bg-card text-card-foreground min-h-[400px]",
+              "font-mono text-sm sm:text-base p-4 sm:p-6 bg-card text-card-foreground h-[400px]",
               "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-opacity-50",
-              "transition-all duration-200"
+              "will-change-auto"
             )}
           >
             <div className="mb-2 text-muted-foreground">
-              Last login: {new Date().toLocaleString()}
+              Last login: {loginTime}
             </div>
 
             <div className="flex items-start mb-4">
               <span className="text-primary mr-2">$</span>
               <div className="flex-1">
                 <span>git clone https://github.com/{repoPath}.git</span>
-                {showCursor && (
-                  <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse-subtle"></span>
-                )}
+                <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse"></span>
               </div>
             </div>
 
@@ -128,12 +121,13 @@ export default function RepoNotFound() {
               </ul>
             </div>
 
-            {showPrompt && (
-              <div className="text-muted-foreground">
-                Try searching for the repository above, or explore some other
-                examples.
-              </div>
-            )}
+            <div className={cn(
+              "text-muted-foreground transition-opacity duration-300",
+              showPrompt ? "opacity-100" : "opacity-0"
+            )}>
+              Try searching for the repository above, or explore some other
+              examples.
+            </div>
           </div>
         </CardContent>
       </Card>
