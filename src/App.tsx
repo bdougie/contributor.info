@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { ThemeProvider } from "@/components/common/theming";
 import { Toaster } from "@/components/ui/sonner";
 import { Layout, Home, NotFound } from "@/components/common/layout";
@@ -24,6 +24,9 @@ const RepoCardWithData = lazy(() => import("@/components/social-cards/repo-card-
 const SocialCardPreview = lazy(() => import("@/components/social-cards/preview"));
 const GitHubSyncDebug = lazy(() => import("@/components/debug/github-sync-debug").then(m => ({ default: m.GitHubSyncDebug })));
 const PerformanceMonitoringDashboard = lazy(() => import("@/components/performance-monitoring-dashboard").then(m => ({ default: m.PerformanceMonitoringDashboard })));
+const AnalyticsDashboard = lazy(() => import("@/components/features/debug/analytics-dashboard").then(m => ({ default: m.AnalyticsDashboard })));
+const ShareableChartsPreview = lazy(() => import("@/components/features/debug/shareable-charts-preview").then(m => ({ default: m.ShareableChartsPreview })));
+const DubTest = lazy(() => import("@/components/features/debug/dub-test").then(m => ({ default: m.DubTest })));
 
 // Loading fallback component
 const PageSkeleton = () => (
@@ -33,6 +36,23 @@ const PageSkeleton = () => (
 );
 
 function App() {
+  // Preload critical routes on app mount
+  useEffect(() => {
+    // Preload the most commonly used routes after initial load
+    const preloadRoutes = async () => {
+      // Only preload after a short delay to not block initial render
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Preload repo view (most common destination)
+      import("@/components/features/repository/repo-view");
+      
+      // Preload login page (high probability next navigation)
+      import("@/components/features/auth/login-page");
+    };
+    
+    preloadRoutes();
+  }, []);
+
   return (
     <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
       <Router>
@@ -84,6 +104,30 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PerformanceMonitoringDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dev/analytics"
+              element={
+                <ProtectedRoute>
+                  <AnalyticsDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dev/shareable-charts"
+              element={
+                <ProtectedRoute>
+                  <ShareableChartsPreview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dev/dub-test"
+              element={
+                <ProtectedRoute>
+                  <DubTest />
                 </ProtectedRoute>
               }
             />

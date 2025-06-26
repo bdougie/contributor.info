@@ -5,6 +5,7 @@ import App from './App';
 import './index.css';
 import { PHProvider } from './lib/posthog';
 import { MetaTagsProvider } from './components/common/layout';
+import { trackWebVitals, trackCustomMetrics } from './lib/web-vitals';
 
 // Defer Sentry initialization to minimize impact on critical rendering path
 if (import.meta.env.VITE_SENTRY_DSN) {
@@ -42,6 +43,23 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     }, { once: true });
   }
 }
+
+// Register service worker for performance optimization
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('SW registered: ', registration);
+      })
+      .catch(registrationError => {
+        console.log('SW registration failed: ', registrationError);
+      });
+  });
+}
+
+// Initialize performance tracking
+trackWebVitals();
+trackCustomMetrics();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

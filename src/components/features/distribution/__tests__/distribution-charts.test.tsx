@@ -27,6 +27,39 @@ vi.mock("recharts", () => ({
   Tooltip: () => <div data-testid="tooltip" />,
 }));
 
+// Mock React Router hooks
+vi.mock("react-router-dom", () => ({
+  useLocation: () => ({ pathname: "/test", search: "", hash: "" }),
+  useNavigate: () => vi.fn(),
+}));
+
+// Mock GitHub auth hook
+vi.mock("@/hooks/use-github-auth", () => ({
+  useGitHubAuth: () => ({
+    isLoggedIn: false,
+    showLoginDialog: false,
+    setShowLoginDialog: vi.fn(),
+    login: vi.fn(),
+    logout: vi.fn(),
+  }),
+}));
+
+// Mock Sonner toast
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+// Mock html2canvas
+vi.mock("html2canvas", () => ({
+  default: vi.fn(() => Promise.resolve({
+    toDataURL: () => "data:image/png;base64,test",
+    toBlob: (callback: (blob: Blob) => void) => callback(new Blob()),
+  })),
+}));
+
 // Mock the enhanced treemap component
 vi.mock("../distribution-treemap-enhanced", () => ({
   DistributionTreemapEnhanced: vi.fn(({ onDrillDown, onDrillUp, onNodeClick }) => (
@@ -153,34 +186,39 @@ describe("DistributionCharts", () => {
   it("renders with default treemap view", () => {
     renderCharts();
     
-    expect(screen.getByText("Contribution Breakdown")).toBeInTheDocument();
     expect(screen.getByTestId("treemap-enhanced")).toBeInTheDocument();
     
-    // Check chart type buttons
-    expect(screen.getByRole("button", { name: /treemap/i })).toHaveClass("bg-primary");
-    expect(screen.getByRole("button", { name: /donut/i })).not.toHaveClass("bg-primary");
-    expect(screen.getByRole("button", { name: /bar/i })).not.toHaveClass("bg-primary");
+    // Verify quadrant buttons are rendered in the legend area
+    expect(screen.getByText("New Feature")).toBeInTheDocument();
+    expect(screen.getByText("Maintenance")).toBeInTheDocument();
+    expect(screen.getByText("Refactoring")).toBeInTheDocument();
+    expect(screen.getByText("Refinement")).toBeInTheDocument();
   });
 
-  it("switches between chart types", async () => {
-    renderCharts();
-    
-    // Switch to donut chart
-    const donutButton = screen.getByRole("button", { name: /donut/i });
-    fireEvent.click(donutButton);
+  it("renders different chart types via props", async () => {
+    // Test donut chart
+    const { rerender } = renderCharts({ chartType: "donut" });
     
     await waitFor(() => {
       expect(screen.getAllByTestId("pie-chart")[0]).toBeInTheDocument();
       expect(screen.queryByTestId("treemap-enhanced")).not.toBeInTheDocument();
     });
     
-    // Switch to bar chart
-    const barButton = screen.getByRole("button", { name: /bar/i });
-    fireEvent.click(barButton);
+    // Test bar chart
+    rerender(
+      <DistributionCharts
+        data={mockData}
+        onSegmentClick={mockOnSegmentClick}
+        filteredPRs={[]}
+        pullRequests={mockPullRequests}
+        chartType="bar"
+      />
+    );
     
     await waitFor(() => {
       expect(screen.getAllByTestId("bar-chart")[0]).toBeInTheDocument();
       expect(screen.queryAllByTestId("pie-chart")).toHaveLength(0);
+      expect(screen.queryByTestId("treemap-enhanced")).not.toBeInTheDocument();
     });
   });
 
@@ -204,10 +242,7 @@ describe("DistributionCharts", () => {
   });
 
   it("handles segment click in pie chart", async () => {
-    renderCharts();
-    
-    // Switch to donut chart
-    fireEvent.click(screen.getByRole("button", { name: /donut/i }));
+    renderCharts({ chartType: "donut" });
     
     await waitFor(() => {
       const pies = screen.getAllByTestId("pie");
@@ -217,10 +252,7 @@ describe("DistributionCharts", () => {
   });
 
   it("handles segment click in bar chart", async () => {
-    renderCharts();
-    
-    // Switch to bar chart
-    fireEvent.click(screen.getByRole("button", { name: /bar/i }));
+    renderCharts({ chartType: "bar" });
     
     await waitFor(() => {
       const bars = screen.getAllByTestId("bar");
@@ -237,10 +269,7 @@ describe("DistributionCharts", () => {
   });
 
   it("shows PR list on desktop for non-treemap views", async () => {
-    renderCharts({ selectedQuadrant: "new-feature" });
-    
-    // Switch to donut chart
-    fireEvent.click(screen.getByRole("button", { name: /donut/i }));
+    renderCharts({ selectedQuadrant: "new-feature", chartType: "donut" });
     
     await waitFor(() => {
       // Should show donut chart
@@ -258,8 +287,12 @@ describe("DistributionCharts", () => {
     
     renderCharts();
     
-    // Should render mobile view
-    expect(screen.getByText("Contribution Breakdown")).toBeInTheDocument();
+    // Should render mobile view with treemap by default
+    expect(screen.getByTestId("treemap-enhanced")).toBeInTheDocument();
+    
+    // Verify quadrant legends are still visible
+    expect(screen.getByText("New Feature")).toBeInTheDocument();
+    expect(screen.getByText("Maintenance")).toBeInTheDocument();
   });
 
   it("handles treemap drill down and drill up", async () => {

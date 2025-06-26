@@ -114,7 +114,11 @@ export function RepositoryHealthCard() {
             {/* Right Column - Health Factors (top) and Self-Selection Rate (bottom) */}
             <div className="space-y-6">
               {/* Health Factors - Top */}
-              <RepositoryHealthFactors stats={stats} timeRange={timeRange} />
+              <RepositoryHealthFactors 
+                stats={stats} 
+                timeRange={timeRange} 
+                repositoryName={`${owner}/${repo}`}
+              />
               
               {/* Self-Selection Rate - Bottom */}
               <SelfSelectionRate 

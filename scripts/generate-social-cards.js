@@ -61,6 +61,21 @@ async function generateCard(browser, cardConfig) {
     // Wait a bit for any animations or async content
     await page.waitForTimeout(2000);
     
+    // Hide any potential sharing elements that might appear
+    await page.addStyleTag({
+      content: `
+        [data-shareable-card] { display: none !important; }
+        .shareable-card { display: none !important; }
+        button[title*="Copy"] { display: none !important; }
+        button[title*="Share"] { display: none !important; }
+        button[title*="Download"] { display: none !important; }
+        .lucide-copy, .lucide-share-2, .lucide-download, .lucide-link { display: none !important; }
+      `
+    });
+    
+    // Wait a bit more to ensure styles are applied
+    await page.waitForTimeout(500);
+    
     // Take screenshot
     const screenshotPath = path.join(config.outputDir, cardConfig.fileName);
     await page.screenshot({ 
