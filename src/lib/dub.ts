@@ -1,61 +1,10 @@
-import { Dub } from "dub";
+import { supabase } from './supabase';
 
 // Environment-specific configuration
 const isDev = import.meta.env.DEV;
 const DOMAIN = isDev ? "dub.sh" : "oss.fyi";
-const API_KEY = import.meta.env.VITE_DUB_CO_KEY;
 
-// Enhanced debugging for API key issues
-if (!API_KEY) {
-  console.warn("DUB_CO_KEY not found in environment variables");
-  console.warn("Available env vars:", Object.keys(import.meta.env));
-} else {
-  console.log("Dub API Key loaded:", API_KEY.substring(0, 8) + "...");
-  console.log("API Key format valid:", API_KEY.startsWith('dub_'));
-}
-
-console.log("Environment:", isDev ? "Development (API mocked)" : "Production (using Netlify function)");
-
-// Custom fetcher for production (uses Netlify function)
-const createHTTPClient = () => {
-  return {
-    request: async (request: Request): Promise<Response> => {
-      // In production, route through Netlify function
-      const newUrl = '/.netlify/functions/dub-proxy';
-      console.log(`🔗 Dub HTTP Client: ${request.url} → ${newUrl}`);
-      console.log(`🔗 Request method: ${request.method}`);
-      
-      // Get the request body for logging
-      const body = await request.text();
-      console.log(`🔗 Request body:`, body);
-      
-      // Remove auth header since Netlify function will add it
-      const headers = new Headers(request.headers);
-      headers.delete('authorization');
-      
-      console.log(`🔗 Making request to Netlify function...`);
-      
-      const response = await fetch(newUrl, {
-        method: request.method,
-        headers: headers,
-        body: body,
-      });
-      
-      console.log(`🔗 Netlify function response status:`, response.status);
-      
-      return response;
-    },
-    addHook: function() { return this; },
-    removeHook: function() { return this; },
-    clone: function() { return this; }
-  };
-};
-
-// Initialize Dub client with custom HTTP client for production
-export const dub = new Dub({
-  token: API_KEY,
-  httpClient: isDev ? undefined : createHTTPClient() as any,
-});
+console.log("Environment:", isDev ? "Development" : "Production", "- Using Supabase Edge Function for URL shortening");
 
 interface CreateShortUrlOptions {
   url: string;
@@ -90,7 +39,7 @@ interface ShortUrlResponse {
 
 /**
  * Create a short URL for chart/metric sharing
- * Uses dub.co for dev, oss.fyi for production
+ * Uses Supabase Edge Function to call Dub API
  */
 export async function createShortUrl({
   url,
@@ -100,14 +49,9 @@ export async function createShortUrl({
   expiresAt,
   rewrite = false
 }: CreateShortUrlOptions): Promise<ShortUrlResponse | null> {
-  if (!API_KEY) {
-    console.error("Dub.co API key not configured");
-    return null;
-  }
-
-  // In development, skip API call and return original URL due to CORS/proxy issues
+  // In development, skip API call and return original URL for faster development
   if (isDev) {
-    console.warn("Development mode: Skipping dub.co API call, returning original URL");
+    console.warn("Development mode: Skipping URL shortening, returning original URL");
     return {
       id: 'dev-mock',
       domain: 'localhost',
@@ -124,72 +68,45 @@ export async function createShortUrl({
   }
 
   try {
-    console.log("Creating short URL with Dub.co:", {
-      url,
-      domain: DOMAIN,
-      key,
-      hasApiKey: !!API_KEY,
-      apiKeyPrefix: API_KEY?.substring(0, 8)
-    });
-    
-    // Use upsert to prevent duplicate key errors (following your working pattern)
-    const result = await dub.links.upsert({
+    console.log("Creating short URL via Supabase Edge Function:", {
       url,
       domain: DOMAIN,
       key,
       title,
-      description,
-      expiresAt,
-      rewrite,
-      // Add UTM parameters for tracking
-      utmSource: "contributor-info",
-      utmMedium: "chart-share",
-      utmCampaign: "social-sharing"
+      description
     });
     
-    console.log("Dub.co API success:", result.shortLink);
+    // Call Supabase Edge Function
+    const { data, error } = await supabase.functions.invoke('url-shortener', {
+      body: {
+        url,
+        domain: DOMAIN,
+        key,
+        title,
+        description,
+        expiresAt,
+        rewrite,
+        utmSource: "contributor-info",
+        utmMedium: "chart-share",
+        utmCampaign: "social-sharing"
+      }
+    });
 
-    // Map the response to our interface
-    return {
-      id: result.id,
-      domain: result.domain,
-      key: result.key,
-      url: result.url,
-      shortLink: result.shortLink,
-      qrCode: result.qrCode,
-      utmSource: result.utmSource,
-      utmMedium: result.utmMedium,
-      utmCampaign: result.utmCampaign,
-      utmTerm: result.utmTerm,
-      utmContent: result.utmContent,
-      userId: result.userId,
-      createdAt: result.createdAt,
-      updatedAt: result.updatedAt,
-      expiresAt: result.expiresAt,
-      clicks: result.clicks || 0,
-      title: result.title,
-      description: result.description,
-      image: result.image
-    };
-  } catch (error: any) {
-    console.error("Failed to create short URL - Full error:", error);
-    console.error("Error type:", typeof error);
-    console.error("Error message:", error?.message);
-    console.error("Error status:", error?.status);
-    console.error("Error response:", error?.response?.data || error?.response);
-    
-    // Check for specific authorization errors
-    if (error?.message?.includes('Missing Authorization header') || 
-        error?.message?.includes('Authorization') ||
-        error?.status === 401) {
-      console.error("Authorization error detected. API Key status:", {
-        hasKey: !!API_KEY,
-        keyLength: API_KEY?.length,
-        keyPrefix: API_KEY?.substring(0, 8),
-        keyFormat: API_KEY?.startsWith('dub_')
-      });
+    if (error) {
+      console.error("Supabase function error:", error);
+      return null;
+    }
+
+    if (data?.error) {
+      console.error("URL shortening service error:", data.error);
+      return null;
     }
     
+    console.log("URL shortening success:", data.shortLink);
+    return data;
+    
+  } catch (error: any) {
+    console.error("Failed to create short URL:", error);
     return null;
   }
 }
@@ -198,22 +115,16 @@ export async function createShortUrl({
  * Generate analytics URL for tracking
  */
 export async function getUrlAnalytics(linkId: string) {
-  if (!API_KEY) {
-    console.error("Dub.co API key not configured");
-    return null;
-  }
-
   if (isDev) {
     console.warn("Development mode: Skipping analytics request");
     return null;
   }
 
   try {
-    const analytics = await dub.analytics.retrieve({
-      linkId,
-      interval: "24h"
-    });
-    return analytics;
+    // This could be extended to call a Supabase function for analytics
+    // For now, analytics are tracked via Dub's automatic click tracking
+    console.log("Analytics tracking for link:", linkId);
+    return null;
   } catch (error: any) {
     console.error("Failed to get URL analytics:", error);
     return null;
@@ -271,11 +182,6 @@ export async function createChartShareUrl(
   chartType: string,
   repository?: string
 ): Promise<string> {
-  // If no API key, return original URL
-  if (!API_KEY) {
-    return fullUrl;
-  }
-  
   // Validate URL for security
   if (!validateUrl(fullUrl)) {
     console.warn("Invalid URL for shortening:", fullUrl);
@@ -315,6 +221,6 @@ export function getDubConfig() {
   return {
     domain: DOMAIN,
     isDev,
-    hasApiKey: !!API_KEY
+    hasApiKey: true // Always true now since we use Supabase function
   };
 }

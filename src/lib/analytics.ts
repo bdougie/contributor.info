@@ -1,5 +1,4 @@
 import { supabase } from "./supabase";
-import { getUrlAnalytics } from "./dub";
 
 export interface ShareEvent {
   user_id?: string;
@@ -155,42 +154,13 @@ export async function getShareMetrics(filters: {
  */
 export async function updateClickAnalytics(dubLinkId: string): Promise<void> {
   try {
-    const analytics = await getUrlAnalytics(dubLinkId);
+    // Since getUrlAnalytics now returns null, we'll skip the complex analytics processing
+    // Click analytics are tracked automatically by Dub when users click links
+    console.log('Click analytics are tracked automatically by Dub for link:', dubLinkId);
     
-    if (!analytics) {
-      return;
-    }
-
-    // Handle different analytics response types
-    let clicks = 0;
-    let uniqueClicks = 0;
-
-    if (Array.isArray(analytics)) {
-      // Handle timeseries data
-      clicks = analytics.reduce((sum, item) => sum + (item.clicks || 0), 0);
-      uniqueClicks = analytics.reduce((sum, item) => sum + (item.clicks || 0), 0); // Approximate
-    } else if (typeof analytics === 'object' && 'clicks' in analytics) {
-      // Handle count data
-      clicks = (analytics as any).clicks || 0;
-      uniqueClicks = (analytics as any).uniqueClicks || clicks;
-    }
-
-    const { error } = await supabase
-      .from('share_click_analytics')
-      .upsert([{
-        dub_link_id: dubLinkId,
-        total_clicks: clicks,
-        unique_clicks: uniqueClicks,
-        click_data: analytics,
-        period_start: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 24h ago
-        period_end: new Date().toISOString()
-      }], {
-        onConflict: 'dub_link_id,period_start'
-      });
-
-    if (error) {
-      console.error('Failed to update click analytics:', error);
-    }
+    // Future enhancement: Could call a Supabase function to fetch analytics from Dub API
+    // For now, we rely on Dub's built-in analytics dashboard
+    
   } catch (err) {
     console.error('Error updating click analytics:', err);
   }
