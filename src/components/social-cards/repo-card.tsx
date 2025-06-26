@@ -1,4 +1,4 @@
-import { GitPullRequest, Users, Clock } from "lucide-react";
+import { GitPullRequest, GitMerge, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface RepoSocialCardProps {
@@ -83,25 +83,23 @@ export default function RepoSocialCard({ owner: _owner, repo: _repo, timeRange, 
               <GitPullRequest className="w-8 h-8 text-orange-500" />
               <div>
                 <span className="text-4xl font-bold text-white">{stats?.totalPRs || 0}</span>
-                <span className="text-xl text-gray-300 ml-2">Total PRs</span>
+                <span className="text-xl text-gray-300 ml-2">Pull Requests</span>
               </div>
             </div>
             
+            <div className="flex items-center gap-3">
+              <GitMerge className="w-8 h-8 text-orange-500" />
+              <div>
+                <span className="text-4xl font-bold text-white">{stats?.mergedPRs || 0}</span>
+                <span className="text-xl text-gray-300 ml-2">Merged</span>
+              </div>
+            </div>
+
             <div className="flex items-center gap-3">
               <Users className="w-8 h-8 text-orange-500" />
               <div>
                 <span className="text-4xl font-bold text-white">{stats?.totalContributors || 0}</span>
                 <span className="text-xl text-gray-300 ml-2">Contributors</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Clock className="w-8 h-8 text-orange-500" />
-              <div>
-                <span className="text-4xl font-bold text-white">
-                  {stats?.mergedPRs ? `${Math.round((stats.mergedPRs / stats.totalPRs) * 100)}%` : '0%'}
-                </span>
-                <span className="text-xl text-gray-300 ml-2">Merge Rate</span>
               </div>
             </div>
           </div>
