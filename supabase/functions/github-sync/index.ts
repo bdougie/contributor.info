@@ -554,6 +554,9 @@ serve(async (req) => {
         
         // Update confidence scores for all contributors
         await batchUpdateConfidenceScores(supabase, repo.owner, repo.name)
+        
+        // Invalidate confidence cache since we have new data
+        await invalidateRepositoryConfidenceCache(supabase, repo.owner, repo.name)
 
         // Update sync status
         const lastEventAt = events.length > 0 
@@ -628,3 +631,26 @@ serve(async (req) => {
     )
   }
 })
+
+// Invalidate confidence cache when new data is synced
+async function invalidateRepositoryConfidenceCache(
+  supabase: any,
+  owner: string,
+  repo: string
+) {
+  try {
+    const { error } = await supabase
+      .from('repository_confidence_cache')
+      .delete()
+      .eq('repository_owner', owner)
+      .eq('repository_name', repo)
+    
+    if (error) {
+      console.warn(`[GitHub Sync] Error invalidating confidence cache for ${owner}/${repo}:`, error)
+    } else {
+      console.log(`[GitHub Sync] Invalidated confidence cache for ${owner}/${repo}`)
+    }
+  } catch (error) {
+    console.warn('[GitHub Sync] Error invalidating confidence cache:', error)
+  }
+}

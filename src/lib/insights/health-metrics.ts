@@ -257,16 +257,57 @@ export async function calculateHealthMetrics(
  * Calculate repository contributor confidence using enhanced algorithm
  * Combines star/fork conversion with engagement quality metrics
  */
+export interface ConfidenceResult {
+  score: number;
+  cached: boolean;
+  calculatedAt: Date;
+  calculationTimeMs?: number;
+}
+
 export async function calculateRepositoryConfidence(
   owner: string,
   repo: string,
-  timeRange: string = '30'
-): Promise<number> {
+  timeRange?: string,
+  forceRecalculate?: boolean
+): Promise<number>;
+export async function calculateRepositoryConfidence(
+  owner: string,
+  repo: string,
+  timeRange: string,
+  forceRecalculate: boolean,
+  returnMetadata: true
+): Promise<ConfidenceResult>;
+export async function calculateRepositoryConfidence(
+  owner: string,
+  repo: string,
+  timeRange: string = '30',
+  forceRecalculate: boolean = false,
+  returnMetadata: boolean = false
+): Promise<number | ConfidenceResult> {
+  const startTime = Date.now();
+  
   try {
     const daysBack = parseInt(timeRange);
     
     // Import supabase here to avoid circular dependencies
     const { supabase } = await import('../supabase');
+
+    // Check cache first (unless forced recalculation)
+    if (!forceRecalculate) {
+      const cachedResult = await getCachedConfidenceScore(supabase, owner, repo, daysBack);
+      if (cachedResult !== null) {
+        console.log(`[Confidence] Using cached score for ${owner}/${repo}: ${cachedResult.score}%`);
+        if (returnMetadata) {
+          return {
+            score: cachedResult.score,
+            cached: true,
+            calculatedAt: cachedResult.calculatedAt,
+            calculationTimeMs: cachedResult.calculationTimeMs
+          };
+        }
+        return cachedResult.score;
+      }
+    }
 
     // Get repository info
     const { data: repoData } = await supabase
@@ -286,7 +327,8 @@ export async function calculateRepositoryConfidence(
       repoId: repoData.id,
       stars: repoData.stargazers_count,
       forks: repoData.forks_count,
-      timeRange: daysBack
+      timeRange: daysBack,
+      cached: false
     });
 
     // Calculate multiple confidence factors
@@ -325,7 +367,23 @@ export async function calculateRepositoryConfidence(
       daysBack
     );
 
-    return Math.min(100, Math.round(adjustedConfidence));
+    const finalScore = Math.min(100, Math.round(adjustedConfidence));
+    const calculationTime = Date.now() - startTime;
+
+    // Cache the result for future use
+    await cacheConfidenceScore(supabase, owner, repo, daysBack, finalScore, calculationTime);
+
+    console.log(`[Confidence] Calculated confidence for ${owner}/${repo}: ${finalScore}% (${calculationTime}ms)`);
+    
+    if (returnMetadata) {
+      return {
+        score: finalScore,
+        cached: false,
+        calculatedAt: new Date(),
+        calculationTimeMs: calculationTime
+      };
+    }
+    return finalScore;
 
   } catch (error) {
     console.error('Error calculating repository confidence:', error);
@@ -623,4 +681,140 @@ function calculateFallbackConfidence(
   }
   
   return Math.min(100, Math.round(cappedConfidence));
+}
+
+/**
+ * Get cached confidence score if available and not expired
+ */
+async function getCachedConfidenceScore(
+  supabase: any,
+  owner: string,
+  repo: string,
+  timeRangeDays: number
+): Promise<{ score: number; calculatedAt: Date; calculationTimeMs?: number } | null> {
+  try {
+    const { data, error } = await supabase
+      .from('repository_confidence_cache')
+      .select('confidence_score, expires_at, calculated_at, calculation_time_ms')
+      .eq('repository_owner', owner)
+      .eq('repository_name', repo)
+      .eq('time_range_days', timeRangeDays)
+      .gt('expires_at', new Date().toISOString())
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    const age = Date.now() - new Date(data.calculated_at).getTime();
+    console.log(`[Confidence Cache] Found cached score: ${data.confidence_score}% (${Math.round(age / 1000)}s old)`);
+    
+    return {
+      score: data.confidence_score,
+      calculatedAt: new Date(data.calculated_at),
+      calculationTimeMs: data.calculation_time_ms
+    };
+  } catch (error) {
+    console.warn('[Confidence Cache] Error reading cache:', error);
+    return null;
+  }
+}
+
+/**
+ * Cache confidence score with appropriate TTL
+ */
+async function cacheConfidenceScore(
+  supabase: any,
+  owner: string,
+  repo: string,
+  timeRangeDays: number,
+  score: number,
+  calculationTimeMs: number
+): Promise<void> {
+  try {
+    // Get last sync time for this repository
+    const { data: syncData } = await supabase
+      .from('github_sync_status')
+      .select('last_sync_at')
+      .eq('repository_owner', owner)
+      .eq('repository_name', repo)
+      .single();
+
+    // Determine cache TTL based on repository activity
+    const baseTTL = getConfidenceCacheTTL(owner, repo);
+    const expiresAt = new Date(Date.now() + baseTTL * 1000);
+
+    const cacheEntry = {
+      repository_owner: owner,
+      repository_name: repo,
+      time_range_days: timeRangeDays,
+      confidence_score: score,
+      expires_at: expiresAt.toISOString(),
+      last_sync_at: syncData?.last_sync_at || null,
+      calculation_time_ms: calculationTimeMs,
+      data_version: 1 // Current algorithm version
+    };
+
+    const { error } = await supabase
+      .from('repository_confidence_cache')
+      .upsert(cacheEntry, {
+        onConflict: 'repository_owner,repository_name,time_range_days'
+      });
+
+    if (error) {
+      console.warn('[Confidence Cache] Error storing cache:', error);
+    } else {
+      console.log(`[Confidence Cache] Stored score for ${owner}/${repo} (expires in ${Math.round(baseTTL / 3600)}h)`);
+    }
+  } catch (error) {
+    console.warn('[Confidence Cache] Error caching score:', error);
+  }
+}
+
+/**
+ * Determine cache TTL based on repository characteristics
+ */
+function getConfidenceCacheTTL(owner: string, repo: string): number {
+  // More active/popular repositories get shorter cache times
+  const isPopularRepo = ['microsoft', 'google', 'facebook', 'vercel', 'supabase'].includes(owner.toLowerCase());
+  const isLargeRepo = ['linux', 'kubernetes', 'tensorflow', 'react', 'angular', 'vue'].includes(repo.toLowerCase());
+  
+  if (isPopularRepo || isLargeRepo) {
+    return 1800; // 30 minutes for very active repos
+  }
+  
+  return 3600; // 1 hour default cache time
+}
+
+/**
+ * Invalidate confidence cache for a repository
+ */
+export async function invalidateConfidenceCache(
+  owner: string,
+  repo: string,
+  timeRangeDays?: number
+): Promise<void> {
+  try {
+    const { supabase } = await import('../supabase');
+    
+    let query = supabase
+      .from('repository_confidence_cache')
+      .delete()
+      .eq('repository_owner', owner)
+      .eq('repository_name', repo);
+    
+    if (timeRangeDays) {
+      query = query.eq('time_range_days', timeRangeDays);
+    }
+    
+    const { error } = await query;
+    
+    if (error) {
+      console.warn(`[Confidence Cache] Error invalidating cache for ${owner}/${repo}:`, error);
+    } else {
+      console.log(`[Confidence Cache] Invalidated cache for ${owner}/${repo}`);
+    }
+  } catch (error) {
+    console.warn('[Confidence Cache] Error invalidating cache:', error);
+  }
 }

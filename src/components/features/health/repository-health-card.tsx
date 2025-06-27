@@ -58,14 +58,14 @@ export function RepositoryHealthCard() {
   }, [includeBots]);
 
   // Calculate contributor confidence
-  const calculateConfidence = async () => {
+  const calculateConfidence = async (forceRecalculate: boolean = false) => {
     if (!owner || !repo) return;
     
     setConfidenceLoading(true);
     setConfidenceError(null);
     
     try {
-      const score = await calculateRepositoryConfidence(owner, repo, timeRange);
+      const score = await calculateRepositoryConfidence(owner, repo, timeRange, forceRecalculate);
       setConfidenceScore(score);
     } catch (error) {
       console.error('Failed to calculate contributor confidence:', error);
@@ -173,7 +173,7 @@ export function RepositoryHealthCard() {
                 className="w-full"
                 owner={owner}
                 repo={repo}
-                onRefresh={calculateConfidence}
+                onRefresh={() => calculateConfidence(true)}
                 onLearnMoreClick={() => {
                   // TODO: Implement learn more functionality
                   console.log("Learn more clicked");
