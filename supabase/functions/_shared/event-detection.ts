@@ -176,6 +176,44 @@ export function detectPrivilegedEvent(event: GitHubEvent): PrivilegedEventDetect
     detectionMethod = 'branch_protection'
   }
 
+  // 7. User Engagement Events (NON-privileged but important for confidence)
+  if (event.type === 'WatchEvent') {
+    if (event.payload.action === 'started') {
+      signals.push('starred_repository')
+      if (detectionMethod === 'none') detectionMethod = 'user_engagement'
+      // Note: Not setting totalConfidence as this is NOT a privileged action
+    }
+  }
+
+  if (event.type === 'ForkEvent') {
+    signals.push('forked_repository')
+    if (detectionMethod === 'none') detectionMethod = 'user_engagement'
+    // Note: Not setting totalConfidence as this is NOT a privileged action
+  }
+
+  // Comment Events (NON-privileged engagement indicators)
+  if (event.type === 'IssueCommentEvent') {
+    if (event.payload.action === 'created') {
+      signals.push('commented_on_issue')
+      if (detectionMethod === 'none') detectionMethod = 'user_engagement'
+      // Note: Not setting totalConfidence as this is NOT a privileged action
+    }
+  }
+
+  if (event.type === 'PullRequestReviewCommentEvent') {
+    if (event.payload.action === 'created') {
+      signals.push('commented_on_pr_review')
+      if (detectionMethod === 'none') detectionMethod = 'user_engagement'
+      // Note: Not setting totalConfidence as this is NOT a privileged action
+    }
+  }
+
+  if (event.type === 'CommitCommentEvent') {
+    signals.push('commented_on_commit')
+    if (detectionMethod === 'none') detectionMethod = 'user_engagement'
+    // Note: Not setting totalConfidence as this is NOT a privileged action
+  }
+
   // Apply bot penalty (reduce confidence for bot accounts)
   if (isBot && totalConfidence < 0.9) {
     totalConfidence *= 0.5

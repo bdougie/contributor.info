@@ -55,6 +55,12 @@ export function DocsPage() {
           category: "feature" as const,
         },
         {
+          file: "contributor-confidence-guide.md",
+          title: "Contributor Confidence",
+          description: "Understanding how welcoming your repository is to new contributors",
+          category: "feature" as const,
+        },
+        {
           file: "feature-contribution-analytics.md",
           title: "Contribution Analytics",
           description: "Advanced analytics for measuring contributor impact",

@@ -1,6 +1,7 @@
 // Test setup file for mocking problematic dependencies
 import { vi, beforeEach, afterEach } from 'vitest';
 import { createElement } from 'react';
+import '@testing-library/jest-dom';
 
 // Create mock components
 const createMockComponent = (name: string) => 
