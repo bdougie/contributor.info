@@ -168,7 +168,7 @@ export function calculateConfidenceScore(
   )
 
   return {
-    overall: Math.min(1, overall),
+    overall: Math.min(0.5, overall),
     components: {
       privilegedEvents: privilegedEventsScore,
       activityPatterns: activityPatternsScore,

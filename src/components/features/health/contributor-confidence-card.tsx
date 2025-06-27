@@ -11,13 +11,15 @@ import { ConfidenceSkeleton } from "./confidence-skeleton";
 
 // Semicircle progress component that grows from left to right
 const SemicircleProgress = memo(function SemicircleProgress({ value }: { value: number }) {
-  const normalizedValue = Math.min(Math.max(value, 0), 100);
+  // Scale the 0-50% score to 0-100% for semicircle display
+  const scaledValue = (value / 50) * 100;
+  const normalizedValue = Math.min(Math.max(scaledValue, 0), 100);
   
   // Color based on confidence level  
   const getProgressColor = (value: number) => {
-    if (value <= 30) return "#FB3748"; // Red
-    if (value <= 50) return "#FFA500"; // Orange
-    if (value <= 70) return "#0EA5E9"; // Blue
+    if (value <= 5) return "#FB3748"; // Red
+    if (value <= 15) return "#FFA500"; // Orange
+    if (value <= 35) return "#0EA5E9"; // Blue
     return "#00C851"; // Green
   };
 
@@ -94,21 +96,21 @@ interface ConfidenceLevel {
 }
 
 function getConfidenceLevel(score: number): ConfidenceLevel {
-  if (score <= 30) {
+  if (score <= 5) {
     return {
       level: 'low',
       title: 'Your project can be Intimidating',
       description: 'Almost no stargazers and forkers come back later on to make a meaningful contribution',
       color: 'text-red-600'
     };
-  } else if (score <= 50) {
+  } else if (score <= 15) {
     return {
       level: 'medium', 
       title: 'Your project is challenging',
       description: 'Few stargazers and forkers come back later on to make a meaningful contribution',
       color: 'text-orange-600'
     };
-  } else if (score <= 70) {
+  } else if (score <= 35) {
     return {
       level: 'medium', 
       title: 'Your project is approachable!',
@@ -155,6 +157,9 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
     }
     triggerSync();
   }, [onRefresh, triggerSync]);
+
+  // Move useMemo to top level to ensure it's called on every render
+  const confidence = useMemo(() => getConfidenceLevel(confidenceScore ?? 0), [confidenceScore]);
   // Show skeleton loading state when calculating or when sync is in progress
   if (loading || syncStatus.isTriggering || syncStatus.isInProgress) {
     const message = syncStatus.isTriggering || syncStatus.isInProgress ? 'Syncing data...' : 'Calculating...';
@@ -273,8 +278,6 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
       </Card>
     );
   }
-
-  const confidence = useMemo(() => getConfidenceLevel(confidenceScore ?? 0), [confidenceScore]);
 
   return (
     <Card className={cn("w-full overflow-hidden", className)}>

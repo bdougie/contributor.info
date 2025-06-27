@@ -50,53 +50,51 @@ describe('ContributorConfidenceCard', () => {
   });
 
   describe('confidence levels', () => {
-    it('renders intimidating level (0-30%)', () => {
-      renderWithRouter(<ContributorConfidenceCard confidenceScore={15} />);
+    it('renders intimidating level (0-5%)', () => {
+      renderWithRouter(<ContributorConfidenceCard confidenceScore={3} />);
       
       expect(screen.getByText('Contributor Confidence')).toBeInTheDocument();
       expect(screen.getByText('Your project can be Intimidating')).toBeInTheDocument();
       expect(screen.getByText(/Almost no stargazers and forkers/)).toBeInTheDocument();
-      expect(screen.getByText('15')).toBeInTheDocument();
+      expect(screen.getByText('3')).toBeInTheDocument();
     });
 
-    it('renders challenging level (31-50%)', () => {
-      renderWithRouter(<ContributorConfidenceCard confidenceScore={40} />);
+    it('renders challenging level (6-15%)', () => {
+      renderWithRouter(<ContributorConfidenceCard confidenceScore={10} />);
       
       expect(screen.getByText('Your project is challenging')).toBeInTheDocument();
       expect(screen.getByText(/Few stargazers and forkers/)).toBeInTheDocument();
-      expect(screen.getByText('40')).toBeInTheDocument();
+      expect(screen.getByText('10')).toBeInTheDocument();
     });
 
-    it('renders approachable level (51-70%)', () => {
-      renderWithRouter(<ContributorConfidenceCard confidenceScore={60} />);
+    it('renders approachable level (16-35%)', () => {
+      renderWithRouter(<ContributorConfidenceCard confidenceScore={25} />);
       
       expect(screen.getByText('Your project is approachable!')).toBeInTheDocument();
       expect(screen.getByText(/Some stargazers and forkers/)).toBeInTheDocument();
-      expect(screen.getByText('60')).toBeInTheDocument();
+      expect(screen.getByText('25')).toBeInTheDocument();
     });
 
-    it('renders welcoming level (71-100%)', () => {
-      renderWithRouter(<ContributorConfidenceCard confidenceScore={85} />);
+    it('renders welcoming level (36-50%)', () => {
+      renderWithRouter(<ContributorConfidenceCard confidenceScore={45} />);
       
       expect(screen.getByText('Your project is welcoming!')).toBeInTheDocument();
       expect(screen.getByText(/Many stargazers and forkers/)).toBeInTheDocument();
-      expect(screen.getByText('85')).toBeInTheDocument();
+      expect(screen.getByText('45')).toBeInTheDocument();
     });
   });
 
   it('displays confidence percentage correctly', () => {
-    renderWithRouter(<ContributorConfidenceCard confidenceScore={75} />);
+    renderWithRouter(<ContributorConfidenceCard confidenceScore={25} />);
     
-    expect(screen.getByText('75')).toBeInTheDocument();
+    expect(screen.getByText('25')).toBeInTheDocument();
     expect(screen.getByText('%')).toBeInTheDocument();
   });
 
   it('renders header with icon and title', () => {
-    const onLearnMoreClick = vi.fn();
     renderWithRouter(
       <ContributorConfidenceCard 
-        confidenceScore={50} 
-        onLearnMoreClick={onLearnMoreClick}
+        confidenceScore={25} 
       />
     );
     
@@ -108,7 +106,7 @@ describe('ContributorConfidenceCard', () => {
   });
 
   it('applies custom className', () => {
-    renderWithRouter(<ContributorConfidenceCard confidenceScore={50} className="custom-class" />);
+    renderWithRouter(<ContributorConfidenceCard confidenceScore={25} className="custom-class" />);
     
     const card = screen.getByText('Contributor Confidence').closest('.custom-class');
     expect(card).toBeInTheDocument();
@@ -120,49 +118,49 @@ describe('ContributorConfidenceCard', () => {
 
     rerender(
       <MemoryRouter>
-        <ContributorConfidenceCard confidenceScore={30} />
+        <ContributorConfidenceCard confidenceScore={5} />
       </MemoryRouter>
     );
     expect(screen.getByText('Your project can be Intimidating')).toBeInTheDocument();
 
     rerender(
       <MemoryRouter>
-        <ContributorConfidenceCard confidenceScore={31} />
+        <ContributorConfidenceCard confidenceScore={6} />
       </MemoryRouter>
     );
     expect(screen.getByText('Your project is challenging')).toBeInTheDocument();
 
     rerender(
       <MemoryRouter>
-        <ContributorConfidenceCard confidenceScore={50} />
+        <ContributorConfidenceCard confidenceScore={15} />
       </MemoryRouter>
     );
     expect(screen.getByText('Your project is challenging')).toBeInTheDocument();
 
     rerender(
       <MemoryRouter>
-        <ContributorConfidenceCard confidenceScore={51} />
+        <ContributorConfidenceCard confidenceScore={16} />
       </MemoryRouter>
     );
     expect(screen.getByText('Your project is approachable!')).toBeInTheDocument();
 
     rerender(
       <MemoryRouter>
-        <ContributorConfidenceCard confidenceScore={70} />
+        <ContributorConfidenceCard confidenceScore={35} />
       </MemoryRouter>
     );
     expect(screen.getByText('Your project is approachable!')).toBeInTheDocument();
 
     rerender(
       <MemoryRouter>
-        <ContributorConfidenceCard confidenceScore={71} />
+        <ContributorConfidenceCard confidenceScore={36} />
       </MemoryRouter>
     );
     expect(screen.getByText('Your project is welcoming!')).toBeInTheDocument();
 
     rerender(
       <MemoryRouter>
-        <ContributorConfidenceCard confidenceScore={100} />
+        <ContributorConfidenceCard confidenceScore={50} />
       </MemoryRouter>
     );
     expect(screen.getByText('Your project is welcoming!')).toBeInTheDocument();
@@ -178,19 +176,19 @@ describe('ContributorConfidenceCard', () => {
   it('renders correct description for each confidence level', () => {
     const testCases = [
       {
-        confidenceScore: 10,
+        confidenceScore: 3,
         expectedText: 'Almost no stargazers and forkers come back later on to make a meaningful contribution'
       },
       {
-        confidenceScore: 40,
+        confidenceScore: 10,
         expectedText: 'Few stargazers and forkers come back later on to make a meaningful contribution'
       },
       {
-        confidenceScore: 60,
+        confidenceScore: 25,
         expectedText: 'Some stargazers and forkers come back later on to make a meaningful contribution'
       },
       {
-        confidenceScore: 80,
+        confidenceScore: 45,
         expectedText: 'Many stargazers and forkers come back later on to make a meaningful contribution'
       }
     ];
@@ -203,14 +201,14 @@ describe('ContributorConfidenceCard', () => {
   });
 
   it('maintains consistent card structure', () => {
-    renderWithRouter(<ContributorConfidenceCard confidenceScore={50} />);
+    renderWithRouter(<ContributorConfidenceCard confidenceScore={25} />);
     
     // Check card structure
     const card = screen.getByText('Contributor Confidence').closest('.w-full');
     expect(card).toBeInTheDocument();
     
     // Check that percentage is displayed
-    expect(screen.getByText('50')).toBeInTheDocument();
+    expect(screen.getByText('25')).toBeInTheDocument();
     expect(screen.getByText('%')).toBeInTheDocument();
   });
 
@@ -218,7 +216,7 @@ describe('ContributorConfidenceCard', () => {
     const onRefresh = vi.fn();
     renderWithRouter(
       <ContributorConfidenceCard 
-        confidenceScore={50} 
+        confidenceScore={25} 
         owner="test-owner"
         repo="test-repo"
         onRefresh={onRefresh}

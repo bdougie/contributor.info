@@ -359,7 +359,8 @@ export async function calculateRepositoryConfidence(
     if (!forceRecalculate) {
       const memoryResult = getFromCache(cacheKey);
       if (memoryResult !== null) {
-        console.log(`[Confidence] Using in-memory cached result for ${owner}/${repo}: ${memoryResult.score}%`);
+        const scoreForLogging = typeof memoryResult === 'number' ? memoryResult : memoryResult.score;
+        console.log(`[Confidence] Using in-memory cached result for ${owner}/${repo}: ${scoreForLogging}%`);
         return memoryResult;
       }
 
@@ -452,7 +453,7 @@ export async function calculateRepositoryConfidence(
       daysBack
     );
 
-    const finalScore = Math.min(100, Math.round(adjustedConfidence));
+    const finalScore = Math.min(50, Math.round(adjustedConfidence));
     const calculationTime = Date.now() - startTime;
 
     // Cache the result for future use (both database and memory)
@@ -881,7 +882,7 @@ function calculateFallbackConfidence(
     cappedConfidence = Math.min(baseConfidence, 60); // Medium repos
   }
   
-  return Math.min(100, Math.round(cappedConfidence));
+  return Math.min(50, Math.round(cappedConfidence));
 }
 
 /**
