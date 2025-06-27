@@ -405,7 +405,7 @@ export async function calculateRepositoryConfidence(
       return 0;
     }
 
-    console.log(`[Confidence] Calculating for ${owner}/${repo}:`, {
+    console.log("[Confidence] Calculating for %s/%s:", owner, repo, {
       repoId: repoData.id,
       stars: repoData.stargazers_count,
       forks: repoData.forks_count,
