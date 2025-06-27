@@ -11,7 +11,7 @@
     --card-foreground: 215 25% 27%;   /* #11181C - slate-12 */
     --popover: 0 0% 100%;             /* #FFFFFF */
     --popover-foreground: 215 25% 27%; /* #11181C - slate-12 */
-    --primary: 14 100% 37%;           /* #BD4B00 - Dark Orange for buttons/links */
+    --primary: 14 100% 50%;           /* #FF5402 - Bright Orange for buttons/links */
     --primary-foreground: 0 0% 100%;  /* White text on bright orange */
     --secondary: 210 20% 94%;         /* #ECEEF0 - slate-04 darker slate */
     --secondary-foreground: 215 25% 27%; /* #11181C - slate-12 */
@@ -23,7 +23,7 @@
     --destructive-foreground: 0 0% 100%;
     --border: 220 13% 91%;            /* #ECEEF0 - slate-04 */
     --input: 210 20% 96%;             /* #F1F3F5 - slate-03 */
-    --ring: 14 100% 37%;              /* #BD4B00 - Dark Orange for light mode focus */
+    --ring: 14 100% 50%;              /* #FF5402 - Bright Orange for light mode focus */
     --radius: 0.5rem;
     
     /* Content area backgrounds */
@@ -38,7 +38,7 @@
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
     --primary: 14 100% 50%;           /* #FF5402 - Bright Orange for dark mode */
-    --primary-foreground: 0 0% 9%;
+    --primary-foreground: 0 0% 100%;  /* White text on orange background */
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;
@@ -136,5 +136,94 @@
   .light .main-content,
   .light [role="main"] {
     @apply bg-content;
+  }
+  
+  /* Ensure proper text color in dark mode for search and input components */
+  .dark input[type="text"],
+  .dark input[type="search"],
+  .dark input[placeholder] {
+    @apply text-foreground;
+  }
+  
+  /* Ensure bright orange for primary elements in both modes */
+  .bg-primary,
+  button.bg-primary {
+    background-color: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+  }
+  
+  /* Ensure all primary buttons have white text */
+  .dark button[class*="bg-primary"],
+  .dark .bg-primary {
+    color: hsl(0 0% 100%) !important;
+  }
+  
+  /* Fix switch component visibility */
+  /* Switch background uses primary color when checked */
+  [data-state="checked"] {
+    background-color: hsl(var(--primary)) !important;
+  }
+  
+  /* Switch thumb should be white/contrasting when checked for visibility */
+  [data-state="checked"] .pointer-events-none {
+    background-color: hsl(var(--background)) !important;
+    border: 1px solid hsl(var(--border));
+  }
+  
+  /* Ensure switch thumb has proper contrast in dark mode */
+  .dark [data-state="checked"] .pointer-events-none {
+    background-color: hsl(0 0% 0%) !important;
+    border: 1px solid hsl(0 0% 10%);
+  }
+  
+  /* SPECIFIC: Search button on home page should be white with black text in dark mode ONLY */
+  /* Override Tailwind classes with high specificity */
+  .dark form button[type="submit"][aria-label="Analyze"] {
+    background-color: hsl(0 0% 100%) !important;
+    color: hsl(0 0% 0%) !important;
+    border: 1px solid hsl(0 0% 80%) !important;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+  }
+  
+  .dark form button[type="submit"][aria-label="Analyze"].bg-primary {
+    background-color: hsl(0 0% 100%) !important;
+    color: hsl(0 0% 0%) !important;
+  }
+  
+  .dark form button[type="submit"][aria-label="Analyze"]:hover {
+    background-color: hsl(0 0% 95%) !important;
+    color: hsl(0 0% 0%) !important;
+  }
+  
+  .dark form button[type="submit"][aria-label="Analyze"]:focus-visible {
+    background-color: hsl(0 0% 100%) !important;
+    color: hsl(0 0% 0%) !important;
+    outline: 2px solid hsl(0 0% 60%) !important;
+    outline-offset: 2px !important;
+  }
+  
+  /* SPECIFIC: Search button in repo-view should be white with black text in dark mode ONLY */
+  .dark form button[type="submit"][aria-label="Search"] {
+    background-color: hsl(0 0% 100%) !important;
+    color: hsl(0 0% 0%) !important;
+    border: 1px solid hsl(0 0% 80%) !important;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+  }
+  
+  .dark form button[type="submit"][aria-label="Search"].bg-primary {
+    background-color: hsl(0 0% 100%) !important;
+    color: hsl(0 0% 0%) !important;
+  }
+  
+  .dark form button[type="submit"][aria-label="Search"]:hover {
+    background-color: hsl(0 0% 95%) !important;
+    color: hsl(0 0% 0%) !important;
+  }
+  
+  .dark form button[type="submit"][aria-label="Search"]:focus-visible {
+    background-color: hsl(0 0% 100%) !important;
+    color: hsl(0 0% 0%) !important;
+    outline: 2px solid hsl(0 0% 60%) !important;
+    outline-offset: 2px !important;
   }
 }
