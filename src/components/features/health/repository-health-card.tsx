@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useContext, useState, useEffect, useRef } from "react";
 import {
   Card,
@@ -19,11 +19,12 @@ import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { SelfSelectionRate } from "@/components/features/contributor/self-selection-rate";
 import { useAutoTrackRepository } from "@/hooks/use-auto-track-repository";
 import { ContributorConfidenceCard } from "./contributor-confidence-card";
-import { calculateRepositoryConfidence } from "@/lib/insights/health-metrics";
+import { calculateRepositoryConfidence, ConfidenceBreakdown } from "@/lib/insights/health-metrics";
 import { useOnDemandSync } from "@/hooks/use-on-demand-sync";
 
 export function RepositoryHealthCard() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
+  const navigate = useNavigate();
   const timeRange = useTimeRangeStore((state) => state.timeRange);
   const { stats, lotteryFactor, directCommitsData, includeBots } =
     useContext(RepoStatsContext);
@@ -43,6 +44,7 @@ export function RepositoryHealthCard() {
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
   const [confidenceLoading, setConfidenceLoading] = useState(false);
   const [confidenceError, setConfidenceError] = useState<string | null>(null);
+  const [confidenceBreakdown, setConfidenceBreakdown] = useState<ConfidenceBreakdown['breakdown'] | undefined>(undefined);
 
   // Sync status for confidence calculation
   const { syncStatus: confidenceSyncStatus } = useOnDemandSync({
@@ -65,12 +67,23 @@ export function RepositoryHealthCard() {
     setConfidenceError(null);
     
     try {
-      const score = await calculateRepositoryConfidence(owner, repo, timeRange, forceRecalculate);
-      setConfidenceScore(score);
+      // Get detailed breakdown for tooltip
+      const result = await calculateRepositoryConfidence(
+        owner, 
+        repo, 
+        timeRange, 
+        forceRecalculate, 
+        false, // returnMetadata
+        true   // returnBreakdown
+      ) as ConfidenceBreakdown;
+      
+      setConfidenceScore(result.score);
+      setConfidenceBreakdown(result.breakdown);
     } catch (error) {
       console.error('Failed to calculate contributor confidence:', error);
       setConfidenceError('Repository data not available. This repository may need to be synced first.');
       setConfidenceScore(null);
+      setConfidenceBreakdown(undefined);
     } finally {
       setConfidenceLoading(false);
     }
@@ -173,11 +186,8 @@ export function RepositoryHealthCard() {
                 className="w-full"
                 owner={owner}
                 repo={repo}
+                breakdown={confidenceBreakdown}
                 onRefresh={() => calculateConfidence(true)}
-                onLearnMoreClick={() => {
-                  // TODO: Implement learn more functionality
-                  console.log("Learn more clicked");
-                }}
               />
               
               {/* Health Factors - Middle */}

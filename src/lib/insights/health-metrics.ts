@@ -253,6 +253,42 @@ export async function calculateHealthMetrics(
   }
 }
 
+// Simple in-memory cache for confidence calculations (expires after 5 minutes)
+const confidenceCache = new Map<string, { result: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCacheKey(owner: string, repo: string, timeRange: string, returnBreakdown: boolean): string {
+  return `${owner}/${repo}:${timeRange}:${returnBreakdown}`;
+}
+
+function getFromCache(cacheKey: string): any | null {
+  const cached = confidenceCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+    return cached.result;
+  }
+  if (cached) {
+    confidenceCache.delete(cacheKey); // Remove expired
+  }
+  return null;
+}
+
+function setCache(cacheKey: string, result: any): void {
+  confidenceCache.set(cacheKey, {
+    result,
+    timestamp: Date.now()
+  });
+  
+  // Clean up old entries periodically
+  if (confidenceCache.size > 100) {
+    const now = Date.now();
+    for (const [key, value] of confidenceCache.entries()) {
+      if ((now - value.timestamp) > CACHE_TTL) {
+        confidenceCache.delete(key);
+      }
+    }
+  }
+}
+
 /**
  * Calculate repository contributor confidence using enhanced algorithm
  * Combines star/fork conversion with engagement quality metrics
@@ -262,6 +298,23 @@ export interface ConfidenceResult {
   cached: boolean;
   calculatedAt: Date;
   calculationTimeMs?: number;
+}
+
+export interface ConfidenceBreakdown {
+  score: number;
+  cached: boolean;
+  calculatedAt: Date;
+  calculationTimeMs?: number;
+  breakdown: {
+    starForkConfidence: number;
+    engagementConfidence: number;
+    retentionConfidence: number;
+    qualityConfidence: number;
+    totalStargazers: number;
+    totalForkers: number;
+    contributorCount: number;
+    conversionRate: number;
+  };
 }
 
 export async function calculateRepositoryConfidence(
@@ -280,23 +333,51 @@ export async function calculateRepositoryConfidence(
 export async function calculateRepositoryConfidence(
   owner: string,
   repo: string,
+  timeRange: string,
+  forceRecalculate: boolean,
+  returnMetadata: false,
+  returnBreakdown: true
+): Promise<ConfidenceBreakdown>;
+export async function calculateRepositoryConfidence(
+  owner: string,
+  repo: string,
   timeRange: string = '30',
   forceRecalculate: boolean = false,
-  returnMetadata: boolean = false
-): Promise<number | ConfidenceResult> {
+  returnMetadata: boolean = false,
+  returnBreakdown: boolean = false
+): Promise<number | ConfidenceResult | ConfidenceBreakdown> {
   const startTime = Date.now();
   
   try {
     const daysBack = parseInt(timeRange);
+    const cacheKey = getCacheKey(owner, repo, timeRange, returnBreakdown);
     
     // Import supabase here to avoid circular dependencies
     const { supabase } = await import('../supabase');
 
-    // Check cache first (unless forced recalculation)
+    // Check in-memory cache first (unless forced recalculation)
     if (!forceRecalculate) {
+      const memoryResult = getFromCache(cacheKey);
+      if (memoryResult !== null) {
+        console.log(`[Confidence] Using in-memory cached result for ${owner}/${repo}: ${memoryResult.score}%`);
+        return memoryResult;
+      }
+
+      // Check database cache if in-memory miss
       const cachedResult = await getCachedConfidenceScore(supabase, owner, repo, daysBack);
       if (cachedResult !== null) {
-        console.log(`[Confidence] Using cached score for ${owner}/${repo}: ${cachedResult.score}%`);
+        console.log(`[Confidence] Using database cached score for ${owner}/${repo}: ${cachedResult.score}%`);
+        
+        // Store in memory cache for faster future access
+        const cacheValue = returnMetadata ? {
+          score: cachedResult.score,
+          cached: true,
+          calculatedAt: cachedResult.calculatedAt,
+          calculationTimeMs: cachedResult.calculationTimeMs
+        } : cachedResult.score;
+        
+        setCache(cacheKey, cacheValue);
+        
         if (returnMetadata) {
           return {
             score: cachedResult.score,
@@ -331,18 +412,22 @@ export async function calculateRepositoryConfidence(
       cached: false
     });
 
-    // Calculate multiple confidence factors
+    // Calculate multiple confidence factors and collect breakdown data if needed
     const [
-      starForkConfidence,
+      starForkResult,
       engagementConfidence,
       retentionConfidence,
       qualityConfidence
     ] = await Promise.all([
-      calculateStarForkConfidence(supabase, owner, repo, repoData.id, daysBack),
+      returnBreakdown 
+        ? calculateStarForkConfidenceWithBreakdown(supabase, owner, repo, repoData.id, daysBack)
+        : { confidence: await calculateStarForkConfidence(supabase, owner, repo, repoData.id, daysBack) },
       calculateEngagementConfidence(supabase, owner, repo, repoData.id, daysBack),
       calculateRetentionConfidence(supabase, owner, repo, repoData.id, daysBack),
       calculateQualityConfidence(supabase, owner, repo, repoData.id, daysBack)
     ]);
+
+    const starForkConfidence = typeof starForkResult === 'number' ? starForkResult : starForkResult.confidence;
 
     // Weighted combination of confidence factors
     const weights = {
@@ -370,19 +455,57 @@ export async function calculateRepositoryConfidence(
     const finalScore = Math.min(100, Math.round(adjustedConfidence));
     const calculationTime = Date.now() - startTime;
 
-    // Cache the result for future use
+    // Cache the result for future use (both database and memory)
     await cacheConfidenceScore(supabase, owner, repo, daysBack, finalScore, calculationTime);
 
     console.log(`[Confidence] Calculated confidence for ${owner}/${repo}: ${finalScore}% (${calculationTime}ms)`);
     
+    if (returnBreakdown) {
+      const breakdownData = typeof starForkResult === 'object' ? starForkResult : {
+        confidence: starForkConfidence,
+        totalStargazers: repoData.stargazers_count,
+        totalForkers: repoData.forks_count,
+        contributorCount: 0,
+        conversionRate: 0
+      };
+
+      const result = {
+        score: finalScore,
+        cached: false,
+        calculatedAt: new Date(),
+        calculationTimeMs: calculationTime,
+        breakdown: {
+          starForkConfidence,
+          engagementConfidence,
+          retentionConfidence,
+          qualityConfidence,
+          totalStargazers: breakdownData.totalStargazers || repoData.stargazers_count,
+          totalForkers: breakdownData.totalForkers || repoData.forks_count,
+          contributorCount: breakdownData.contributorCount || 0,
+          conversionRate: breakdownData.conversionRate || 0
+        }
+      };
+
+      // Store in memory cache
+      setCache(cacheKey, result);
+      return result;
+    }
+    
     if (returnMetadata) {
-      return {
+      const result = {
         score: finalScore,
         cached: false,
         calculatedAt: new Date(),
         calculationTimeMs: calculationTime
       };
+
+      // Store in memory cache
+      setCache(cacheKey, result);
+      return result;
     }
+
+    // Store simple score in memory cache
+    setCache(cacheKey, finalScore);
     return finalScore;
 
   } catch (error) {
@@ -452,6 +575,84 @@ async function calculateStarForkConfidence(
   const contributedWeighted = (stargazersWhoContributed * 0.3) + (forkersWhoContributed * 0.7);
 
   return totalWeighted > 0 ? (contributedWeighted / totalWeighted) * 100 : 0;
+}
+
+/**
+ * Core star/fork to contribution conversion rate with breakdown data
+ */
+async function calculateStarForkConfidenceWithBreakdown(
+  supabase: any,
+  owner: string,
+  repo: string,
+  repositoryId: string,
+  daysBack: number
+): Promise<{
+  confidence: number;
+  totalStargazers: number;
+  totalForkers: number;
+  contributorCount: number;
+  conversionRate: number;
+}> {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+  
+  // Get star/fork events
+  const { data: starForkEvents } = await supabase
+    .from('github_events_cache')
+    .select('actor_login, event_type, created_at')
+    .eq('repository_owner', owner)
+    .eq('repository_name', repo)
+    .in('event_type', ['WatchEvent', 'ForkEvent'])
+    .gte('created_at', cutoffDate.toISOString());
+
+  // Get contributors
+  const { data: contributorData } = await supabase
+    .from('pull_requests')
+    .select('contributors!inner(username)')
+    .eq('repository_id', repositoryId)
+    .gte('created_at', cutoffDate.toISOString());
+
+  const contributors = new Set(
+    contributorData?.map((c: any) => c.contributors?.username).filter(Boolean) || []
+  );
+
+  if (!starForkEvents?.length) {
+    return {
+      confidence: 0,
+      totalStargazers: 0,
+      totalForkers: 0,
+      contributorCount: contributors.size,
+      conversionRate: 0
+    };
+  }
+
+  // Separate and weight differently
+  const stargazers = new Set(
+    starForkEvents.filter((e: any) => e.event_type === 'WatchEvent').map((e: any) => e.actor_login)
+  );
+  const forkers = new Set(
+    starForkEvents.filter((e: any) => e.event_type === 'ForkEvent').map((e: any) => e.actor_login)
+  );
+
+  const stargazersWhoContributed = Array.from(stargazers).filter(u => contributors.has(u)).length;
+  const forkersWhoContributed = Array.from(forkers).filter(u => contributors.has(u)).length;
+
+  // Weighted calculation (forks = stronger intent)
+  const totalWeighted = (stargazers.size * 0.3) + (forkers.size * 0.7);
+  const contributedWeighted = (stargazersWhoContributed * 0.3) + (forkersWhoContributed * 0.7);
+  
+  const confidence = totalWeighted > 0 ? (contributedWeighted / totalWeighted) * 100 : 0;
+  const totalEngagement = stargazers.size + forkers.size;
+  const totalContributors = stargazersWhoContributed + forkersWhoContributed;
+  const conversionRate = totalEngagement > 0 ? (totalContributors / totalEngagement) * 100 : 0;
+
+  return {
+    confidence,
+    totalStargazers: stargazers.size,
+    totalForkers: forkers.size,
+    contributorCount: contributors.size,
+    conversionRate
+  };
 }
 
 /**
