@@ -171,15 +171,15 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
         <div>
           <h3 className="text-sm font-medium mb-3">Activity Metrics</h3>
           {loading || !metrics ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <PrCountCard openPRs={0} totalPRs={0} loading={true} />
               <AvgTimeCard averageMergeTime={0} loading={true} />
-              <div className="md:col-span-2">
+              <div className="sm:col-span-2 md:col-span-2">
                 <VelocityCard velocity={{ current: 0, previous: 0, change: 0 }} loading={true} />
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <PrCountCard 
                 openPRs={metrics.openPRs} 
                 totalPRs={metrics.totalPRs}
@@ -190,7 +190,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                 averageMergeTimeTrend={metrics.averageMergeTimeTrend}
                 loading={loading}
               />
-              <div className="md:col-span-2">
+              <div className="sm:col-span-2 md:col-span-2">
                 <VelocityCard 
                   velocity={metrics.velocity}
                   loading={loading}
@@ -204,7 +204,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
         <div>
           <h3 className="text-sm font-medium mb-3">Trends</h3>
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
                 <TrendCard key={i} loading={true} />
               ))}
@@ -217,7 +217,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {trends.slice(0, 4).map((trend, index) => (
                 <TrendCard key={index} trend={trend} loading={loading} />
               ))}
