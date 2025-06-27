@@ -13,7 +13,8 @@ import {
   Monitor,
   BarChart3,
   Image,
-  Link
+  Link,
+  Database
 } from "lucide-react";
 
 interface DebugRoute {
@@ -73,6 +74,13 @@ const debugRoutes: DebugRoute[] = [
     description: "Test dub.co API integration and debug authorization issues",
     icon: <Link className="h-4 w-4" />,
     category: "testing"
+  },
+  {
+    path: "/dev/bulk-add-repos",
+    title: "Bulk Add Repositories",
+    description: "Add multiple repositories to tracking list for demos and testing",
+    icon: <Database className="h-4 w-4" />,
+    category: "dev"
   },
   {
     path: "/changelog",
