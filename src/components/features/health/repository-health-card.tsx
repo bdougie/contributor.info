@@ -18,6 +18,7 @@ import { LotteryFactorContent } from "./lottery-factor";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { SelfSelectionRate } from "@/components/features/contributor/self-selection-rate";
 import { useAutoTrackRepository } from "@/hooks/use-auto-track-repository";
+import { ContributorConfidenceCard } from "./contributor-confidence-card";
 
 export function RepositoryHealthCard() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -111,9 +112,19 @@ export function RepositoryHealthCard() {
               </CardContent>
             </Card>
 
-            {/* Right Column - Health Factors (top) and Self-Selection Rate (bottom) */}
+            {/* Right Column - Contributor Confidence (top), Health Factors (middle), Self-Selection Rate (bottom) */}
             <div className="space-y-6">
-              {/* Health Factors - Top */}
+              {/* Contributor Confidence - Top */}
+              <ContributorConfidenceCard
+                confidenceScore={75} // TODO: Replace with actual calculation
+                className="w-full"
+                onLearnMoreClick={() => {
+                  // TODO: Implement learn more functionality
+                  console.log("Learn more clicked");
+                }}
+              />
+              
+              {/* Health Factors - Middle */}
               <RepositoryHealthFactors 
                 stats={stats} 
                 timeRange={timeRange} 

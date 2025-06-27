@@ -115,7 +115,7 @@ export function ContributorConfidenceCard({
 }: ContributorConfidenceCardProps) {
   if (loading) {
     return (
-      <Card className={cn("w-[404px] overflow-hidden border border-[#e1e3e9]", className)}>
+      <Card className={cn("w-full overflow-hidden", className)}>
         <CardContent className="p-4 flex flex-col gap-4">
           <div className="flex items-center gap-2 w-full">
             <div className="flex items-center gap-2 py-1 flex-1">
@@ -138,18 +138,18 @@ export function ContributorConfidenceCard({
 
   if (error) {
     return (
-      <Card className={cn("w-[404px] overflow-hidden border border-[#e1e3e9]", className)}>
+      <Card className={cn("w-full overflow-hidden", className)}>
         <CardContent className="p-4 flex flex-col gap-4">
           <div className="flex items-center gap-2 w-full">
             <div className="flex items-center gap-2 py-1 flex-1">
               <UserPlus className="w-[18px] h-[18px]" />
-              <div className="font-['Inter',Helvetica] font-semibold text-[#0d111b] text-sm tracking-[-0.15px] leading-6 whitespace-nowrap">
+              <div className="font-semibold text-foreground text-sm whitespace-nowrap">
                 Contributor Confidence
               </div>
               {onLearnMoreClick && (
                 <button
                   onClick={onLearnMoreClick}
-                  className="ml-auto font-['Inter',Helvetica] font-medium text-opensauced-orange text-xs leading-4 whitespace-nowrap hover:underline"
+                  className="ml-auto font-medium text-opensauced-orange text-xs whitespace-nowrap hover:underline"
                 >
                   Learn More
                 </button>
@@ -167,18 +167,18 @@ export function ContributorConfidenceCard({
   const confidence = getConfidenceLevel(confidenceScore);
 
   return (
-    <Card className={cn("w-[404px] overflow-hidden border border-[#e1e3e9]", className)}>
+    <Card className={cn("w-full overflow-hidden", className)}>
       <CardContent className="p-4 flex flex-col gap-4">
         <div className="flex items-center gap-2 w-full">
           <div className="flex items-center gap-2 py-1 flex-1">
             <UserPlus className="w-[18px] h-[18px]" />
-            <div className="font-['Inter',Helvetica] font-semibold text-[#0d111b] text-sm tracking-[-0.15px] leading-6 whitespace-nowrap">
+            <div className="font-semibold text-foreground text-sm whitespace-nowrap">
               Contributor Confidence
             </div>
             {onLearnMoreClick && (
               <button
                 onClick={onLearnMoreClick}
-                className="ml-auto font-['Inter',Helvetica] font-medium text-opensauced-orange text-xs leading-4 whitespace-nowrap hover:underline"
+                className="ml-auto font-medium text-opensauced-orange text-xs whitespace-nowrap hover:underline"
               >
                 Learn More
               </button>
@@ -200,7 +200,7 @@ export function ContributorConfidenceCard({
                   >
                     <path
                       d="M98 49C98 36.0044 92.8375 23.5411 83.6482 14.3518C74.459 5.16249 61.9956 9.81141e-07 49 0C36.0044 -9.81141e-07 23.5411 5.16248 14.3518 14.3518C5.16249 23.541 1.96228e-06 36.0044 0 49H7.84C7.84 38.0837 12.1765 27.6145 19.8955 19.8955C27.6145 12.1765 38.0837 7.84 49 7.84C59.9163 7.84 70.3855 12.1765 78.1045 19.8955C85.8235 27.6145 90.16 38.0837 90.16 49H98Z"
-                      fill="#E1E4EA"
+                      className="fill-muted"
                     />
                   </svg>
                   
@@ -216,7 +216,7 @@ export function ContributorConfidenceCard({
                 </div>
               </div>
 
-              <div className="absolute w-14 top-7 left-[21px] font-['Inter',Helvetica] font-normal text-[#0d111b] text-[28px] text-center tracking-[-0.17px] leading-5">
+              <div className="absolute w-14 top-7 left-[21px] font-normal text-foreground text-[28px] text-center leading-5">
                 <span className="font-bold tracking-[-0.05px]">{Math.round(confidenceScore)}</span>
                 <span className="font-bold text-xs tracking-[-0.01px]">%</span>
               </div>
@@ -224,10 +224,10 @@ export function ContributorConfidenceCard({
           </div>
 
           <div className="flex flex-col items-start gap-1 flex-1">
-            <div className="font-['Inter',Helvetica] font-semibold text-[#374151] text-xs tracking-[0] leading-4 whitespace-nowrap">
+            <div className="font-semibold text-muted-foreground text-xs leading-4 whitespace-nowrap">
               {confidence.title}
             </div>
-            <div className="font-paragraph-x-small font-[number:var(--paragraph-x-small-font-weight)] text-[#525866] text-[length:var(--paragraph-x-small-font-size)] tracking-[var(--paragraph-x-small-letter-spacing)] leading-[var(--paragraph-x-small-line-height)] [font-style:var(--paragraph-x-small-font-style)]">
+            <div className="text-sm text-muted-foreground leading-relaxed">
               {confidence.description}
             </div>
           </div>
