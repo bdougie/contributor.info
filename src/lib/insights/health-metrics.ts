@@ -549,14 +549,14 @@ async function calculateStarForkConfidence(
     contributorData?.map((c: any) => c.contributors?.username).filter(Boolean) || []
   );
 
-  console.log(`[Confidence] Star/Fork data for ${owner}/${repo}:`, {
+  console.log(`[Confidence] Star/Fork data for %s/%s:`, owner, repo, {
     starForkEvents: starForkEvents?.length || 0,
     contributors: contributors.size,
     cutoffDate: cutoffDate.toISOString()
   });
 
   if (!starForkEvents?.length) {
-    console.log(`[Confidence] No star/fork events found for ${owner}/${repo} - may need GitHub sync`);
+    console.log(`[Confidence] No star/fork events found for %s/%s - may need GitHub sync`, owner, repo);
     return 0; // No star/fork event data available
   }
 
