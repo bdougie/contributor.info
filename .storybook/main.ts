@@ -79,6 +79,9 @@ const config: StorybookConfig = {
           '@/lib/supabase': new URL('./mocks/supabase.ts', import.meta.url).pathname,
           // Mock react-router-dom for Storybook to avoid router-related errors
           'react-router-dom': new URL('./mocks/react-router-dom.ts', import.meta.url).pathname,
+          // Mock hooks for Storybook to avoid dependency issues
+          '@/hooks/use-on-demand-sync': new URL('./mocks/use-on-demand-sync.ts', import.meta.url).pathname,
+          '@/hooks/use-github-auth': new URL('./mocks/use-github-auth.ts', import.meta.url).pathname,
         },
       },
       // Enhanced server configuration for development
