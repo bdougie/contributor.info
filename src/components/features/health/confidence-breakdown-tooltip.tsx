@@ -1,4 +1,4 @@
-import { HelpCircle, Star, GitFork, MessageSquare, RotateCcw, CheckCircle } from "lucide-react";
+import { HelpCircle, Star, MessageSquare, RotateCcw, CheckCircle } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,

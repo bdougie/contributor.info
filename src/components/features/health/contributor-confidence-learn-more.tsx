@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Star, GitFork, MessageSquare, RotateCcw, CheckCircle, TrendingUp, Users, Target } from "lucide-react";
+import { Star, MessageSquare, RotateCcw, CheckCircle, TrendingUp, Users, Target } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 
 interface ContributorConfidenceLearnMoreProps {
   open: boolean;
@@ -139,8 +138,7 @@ export function ContributorConfidenceLearnMore({
     }
   ];
 
-  const TabButton = ({ id, label, isActive, onClick }: { 
-    id: string; 
+  const TabButton = ({ label, isActive, onClick }: { 
     label: string; 
     isActive: boolean; 
     onClick: () => void;
@@ -170,25 +168,21 @@ export function ContributorConfidenceLearnMore({
         {/* Tab Navigation */}
         <div className="flex space-x-1 bg-muted p-1 rounded-lg">
           <TabButton 
-            id="overview" 
             label="Overview" 
             isActive={activeTab === 'overview'} 
             onClick={() => setActiveTab('overview')} 
           />
           <TabButton 
-            id="factors" 
             label="Confidence Factors" 
             isActive={activeTab === 'factors'} 
             onClick={() => setActiveTab('factors')} 
           />
           <TabButton 
-            id="interpretation" 
             label="Score Interpretation" 
             isActive={activeTab === 'interpretation'} 
             onClick={() => setActiveTab('interpretation')} 
           />
           <TabButton 
-            id="tips" 
             label="Improvement Tips" 
             isActive={activeTab === 'tips'} 
             onClick={() => setActiveTab('tips')} 

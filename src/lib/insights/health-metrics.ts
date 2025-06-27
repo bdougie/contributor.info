@@ -480,10 +480,10 @@ export async function calculateRepositoryConfidence(
           engagementConfidence,
           retentionConfidence,
           qualityConfidence,
-          totalStargazers: breakdownData.totalStargazers || repoData.stargazers_count,
-          totalForkers: breakdownData.totalForkers || repoData.forks_count,
-          contributorCount: breakdownData.contributorCount || 0,
-          conversionRate: breakdownData.conversionRate || 0
+          totalStargazers: 'totalStargazers' in breakdownData ? breakdownData.totalStargazers : repoData.stargazers_count,
+          totalForkers: 'totalForkers' in breakdownData ? breakdownData.totalForkers : repoData.forks_count,
+          contributorCount: 'contributorCount' in breakdownData ? breakdownData.contributorCount : 0,
+          conversionRate: 'conversionRate' in breakdownData ? breakdownData.conversionRate : 0
         }
       };
 

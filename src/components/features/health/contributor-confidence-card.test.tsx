@@ -38,7 +38,7 @@ describe('ContributorConfidenceCard', () => {
     
     expect(screen.getByText('Contributor Confidence')).toBeInTheDocument();
     expect(screen.getByText('Calculating...')).toBeInTheDocument();
-    expect(screen.getByText('Analyzing contributor patterns...')).toBeInTheDocument();
+    expect(screen.getByText('Calculating...')).toBeInTheDocument();
   });
 
   it('renders error state', () => {

@@ -95,8 +95,7 @@ export function ConfidenceSkeleton({
 
 // Compact version for smaller spaces
 export function ConfidenceSkeletonCompact({ 
-  className, 
-  message = "Loading..." 
+  className 
 }: ConfidenceSkeletonProps) {
   return (
     <div className={cn("flex items-center gap-3 p-4 rounded-lg border bg-card", className)}>

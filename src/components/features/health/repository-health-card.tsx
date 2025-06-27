@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useContext, useState, useEffect, useRef } from "react";
 import {
   Card,
@@ -24,7 +24,6 @@ import { useOnDemandSync } from "@/hooks/use-on-demand-sync";
 
 export function RepositoryHealthCard() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
-  const navigate = useNavigate();
   const timeRange = useTimeRangeStore((state) => state.timeRange);
   const { stats, lotteryFactor, directCommitsData, includeBots } =
     useContext(RepoStatsContext);
