@@ -193,6 +193,193 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
   }
 }
 
+export async function fetchRepositoryInfo(owner: string, repo: string): Promise<{
+  id: number;
+  name: string;
+  full_name: string;
+  stargazers_count: number;
+  forks_count: number;
+  watchers_count: number;
+  open_issues_count: number;
+  created_at: string;
+  updated_at: string;
+  pushed_at: string;
+  size: number;
+  language: string | null;
+  fork: boolean;
+  archived: boolean;
+  disabled: boolean;
+  private: boolean;
+} | null> {
+  const headers: HeadersInit = {
+    'Accept': 'application/vnd.github.v3+json',
+  };
+
+  // Try to get user's GitHub token from Supabase session
+  const { data: { session } } = await supabase.auth.getSession();
+  const userToken = session?.provider_token;
+
+  // Use user's token if available, otherwise fall back to env token
+  const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  if (token) {
+    headers.Authorization = `token ${token}`;
+  }
+
+  try {
+    const response = await fetch(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}`,
+      { headers }
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null; // Repository not found or not accessible
+      }
+      throw new Error(`GitHub API error: ${response.statusText}`);
+    }
+
+    const repoData = await response.json();
+    return {
+      id: repoData.id,
+      name: repoData.name,
+      full_name: repoData.full_name,
+      stargazers_count: repoData.stargazers_count,
+      forks_count: repoData.forks_count,
+      watchers_count: repoData.watchers_count,
+      open_issues_count: repoData.open_issues_count,
+      created_at: repoData.created_at,
+      updated_at: repoData.updated_at,
+      pushed_at: repoData.pushed_at,
+      size: repoData.size,
+      language: repoData.language,
+      fork: repoData.fork,
+      archived: repoData.archived,
+      disabled: repoData.disabled,
+      private: repoData.private,
+    };
+  } catch (error) {
+    console.error('Error fetching repository info:', error);
+    return null;
+  }
+}
+
+export async function fetchRepositoryStargazers(owner: string, repo: string, limit: number = 100): Promise<{
+  login: string;
+  avatar_url: string;
+  starred_at: string;
+}[]> {
+  const headers: HeadersInit = {
+    'Accept': 'application/vnd.github.v3.star+json', // This gives us starred_at timestamps
+  };
+
+  const { data: { session } } = await supabase.auth.getSession();
+  const userToken = session?.provider_token;
+  const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  if (token) {
+    headers.Authorization = `token ${token}`;
+  }
+
+  try {
+    const response = await fetch(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/stargazers?per_page=${Math.min(limit, 100)}&sort=created&direction=desc`,
+      { headers }
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const stargazers = await response.json();
+    return stargazers.map((star: any) => ({
+      login: star.user?.login || star.login,
+      avatar_url: star.user?.avatar_url || star.avatar_url,
+      starred_at: star.starred_at || new Date().toISOString(), // Fallback if no timestamp
+    }));
+  } catch (error) {
+    console.error('Error fetching stargazers:', error);
+    return [];
+  }
+}
+
+export async function fetchRepositoryCommitActivity(owner: string, repo: string, timeRange: string = '30'): Promise<{
+  totalCommits: number;
+  commitFrequency: number; // commits per day
+  uniqueCommitters: number;
+  recentCommits: Array<{
+    sha: string;
+    author: {
+      login: string;
+      avatar_url: string;
+    };
+    commit: {
+      message: string;
+      author: {
+        date: string;
+      };
+    };
+  }>;
+}> {
+  const headers: HeadersInit = {
+    'Accept': 'application/vnd.github.v3+json',
+  };
+
+  const { data: { session } } = await supabase.auth.getSession();
+  const userToken = session?.provider_token;
+  const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  if (token) {
+    headers.Authorization = `token ${token}`;
+  }
+
+  try {
+    // Calculate date range
+    const since = new Date();
+    since.setDate(since.getDate() - parseInt(timeRange));
+    
+    const response = await fetch(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/commits?since=${since.toISOString()}&per_page=100`,
+      { headers }
+    );
+
+    if (!response.ok) {
+      return { totalCommits: 0, commitFrequency: 0, uniqueCommitters: 0, recentCommits: [] };
+    }
+
+    const commits = await response.json();
+    const uniqueCommitters = new Set();
+    const recentCommits = commits.slice(0, 10).map((commit: any) => {
+      if (commit.author?.login) {
+        uniqueCommitters.add(commit.author.login);
+      }
+      return {
+        sha: commit.sha,
+        author: {
+          login: commit.author?.login || 'unknown',
+          avatar_url: commit.author?.avatar_url || '',
+        },
+        commit: {
+          message: commit.commit.message,
+          author: {
+            date: commit.commit.author.date,
+          },
+        },
+      };
+    });
+
+    const totalCommits = commits.length;
+    const commitFrequency = totalCommits / parseInt(timeRange);
+
+    return {
+      totalCommits,
+      commitFrequency,
+      uniqueCommitters: uniqueCommitters.size,
+      recentCommits,
+    };
+  } catch (error) {
+    console.error('Error fetching commit activity:', error);
+    return { totalCommits: 0, commitFrequency: 0, uniqueCommitters: 0, recentCommits: [] };
+  }
+}
+
 export async function fetchDirectCommits(owner: string, repo: string, timeRange: string = '30'): Promise<{
   directCommits: Array<{
     sha: string;

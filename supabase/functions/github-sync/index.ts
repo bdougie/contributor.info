@@ -332,7 +332,12 @@ async function processEvents(
     'PushEvent',
     'ReleaseEvent',
     'IssuesEvent',
-    'PullRequestReviewEvent'
+    'PullRequestReviewEvent',
+    'WatchEvent',                 // Star events - for contributor confidence
+    'ForkEvent',                  // Fork events - for contributor confidence
+    'IssueCommentEvent',          // Issue comments - for engagement confidence
+    'PullRequestReviewCommentEvent', // PR review comments - for engagement confidence
+    'CommitCommentEvent'          // Commit comments - for engagement confidence
   ]
   
   console.log(`[GitHub Sync] Processing ${events.length} events for ${owner}/${repo}`)

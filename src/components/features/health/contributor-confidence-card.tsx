@@ -1,6 +1,9 @@
-import { UserPlus } from "lucide-react";
+import { UserPlus, RefreshCw, Database, LogIn } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useOnDemandSync } from "@/hooks/use-on-demand-sync";
+import { useGitHubAuth } from "@/hooks/use-github-auth";
 
 // Semicircle progress component that grows from left to right
 function SemicircleProgress({ value }: { value: number }) {
@@ -60,11 +63,14 @@ function SemicircleProgress({ value }: { value: number }) {
 }
 
 export interface ContributorConfidenceCardProps {
-  confidenceScore: number; // 0-100
+  confidenceScore: number | null; // 0-100 or null when no data
   loading?: boolean;
   error?: string | null;
   className?: string;
   onLearnMoreClick?: () => void;
+  owner?: string;
+  repo?: string;
+  onRefresh?: () => void;
 }
 
 interface ConfidenceLevel {
@@ -112,23 +118,81 @@ export function ContributorConfidenceCard({
   error = null,
   className,
   onLearnMoreClick,
+  owner,
+  repo,
+  onRefresh,
 }: ContributorConfidenceCardProps) {
-  if (loading) {
+  // Authentication hook
+  const { isLoggedIn, login } = useGitHubAuth();
+
+  // On-demand sync hook
+  const { hasData, syncStatus, triggerSync } = useOnDemandSync({
+    owner: owner || '',
+    repo: repo || '',
+    enabled: !!(owner && repo),
+    autoTriggerOnEmpty: false // Don't auto-trigger, let user decide
+  });
+
+  const handleRefresh = () => {
+    if (onRefresh) {
+      onRefresh();
+    }
+    triggerSync();
+  };
+  // Show skeleton loading state when calculating or when sync is in progress
+  if (loading || syncStatus.isTriggering || syncStatus.isInProgress) {
     return (
       <Card className={cn("w-full overflow-hidden", className)}>
         <CardContent className="p-4 flex flex-col gap-4">
           <div className="flex items-center gap-2 w-full">
             <div className="flex items-center gap-2 py-1 flex-1">
-              <div className="w-[18px] h-[18px] bg-muted animate-pulse rounded" />
-              <div className="h-5 w-32 bg-muted animate-pulse rounded" />
-              <div className="ml-auto h-4 w-16 bg-muted animate-pulse rounded" />
+              <UserPlus className="w-[18px] h-[18px]" />
+              <div className="font-semibold text-foreground text-sm whitespace-nowrap">
+                Contributor Confidence
+              </div>
+              <div className="ml-auto flex items-center gap-1">
+                <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs text-muted-foreground">
+                  {syncStatus.isTriggering || syncStatus.isInProgress ? 'Syncing data...' : 'Calculating...'}
+                </span>
+              </div>
             </div>
           </div>
           <div className="flex items-start gap-4 w-full">
-            <div className="w-[98px] h-[98px] bg-muted animate-pulse rounded-full" />
-            <div className="flex flex-col gap-2 flex-1">
-              <div className="h-4 w-48 bg-muted animate-pulse rounded" />
-              <div className="h-12 w-full bg-muted animate-pulse rounded" />
+            <div className="relative w-[98px] h-[52px]">
+              <div className="relative h-[98px] mb-[46px]">
+                <div className="absolute w-[98px] h-[98px] top-0 left-0">
+                  <div className="relative h-[49px]">
+                    {/* Background semicircle */}
+                    <svg
+                      width="98"
+                      height="49"
+                      viewBox="0 0 98 49"
+                      className="absolute top-0 left-0"
+                    >
+                      <path
+                        d="M98 49C98 36.0044 92.8375 23.5411 83.6482 14.3518C74.459 5.16249 61.9956 9.81141e-07 49 0C36.0044 -9.81141e-07 23.5411 5.16248 14.3518 14.3518C5.16249 23.541 1.96228e-06 36.0044 0 49H7.84C7.84 38.0837 12.1765 27.6145 19.8955 19.8955C27.6145 12.1765 38.0837 7.84 49 7.84C59.9163 7.84 70.3855 12.1765 78.1045 19.8955C85.8235 27.6145 90.16 38.0837 90.16 49H98Z"
+                        className="fill-muted"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div className="absolute w-14 top-7 left-[21px] font-normal text-muted-foreground text-[28px] text-center leading-5">
+                  <span className="font-bold tracking-[-0.05px]">--</span>
+                  <span className="font-bold text-xs tracking-[-0.01px]">%</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col items-start gap-1 flex-1">
+              <div className="font-semibold text-muted-foreground text-xs leading-4">
+                {syncStatus.isTriggering || syncStatus.isInProgress ? 'Syncing repository data...' : 'Analyzing contributor patterns...'}
+              </div>
+              <div className="text-sm text-muted-foreground leading-relaxed">
+                {syncStatus.isTriggering || syncStatus.isInProgress 
+                  ? 'Fetching GitHub events and contributor data from the repository'
+                  : 'Calculating how many stargazers and forkers return to make meaningful contributions'
+                }
+              </div>
             </div>
           </div>
         </CardContent>
@@ -136,7 +200,7 @@ export function ContributorConfidenceCard({
     );
   }
 
-  if (error) {
+  if (error || (confidenceScore === null && !loading && !syncStatus.isTriggering && !syncStatus.isInProgress)) {
     return (
       <Card className={cn("w-full overflow-hidden", className)}>
         <CardContent className="p-4 flex flex-col gap-4">
@@ -156,15 +220,102 @@ export function ContributorConfidenceCard({
               )}
             </div>
           </div>
-          <div className="text-center text-muted-foreground py-8">
-            {error}
+          <div className="flex items-start gap-4 w-full">
+            <div className="relative w-[98px] h-[52px]">
+              <div className="relative h-[98px] mb-[46px]">
+                <div className="absolute w-[98px] h-[98px] top-0 left-0">
+                  <div className="relative h-[49px]">
+                    {/* Background semicircle */}
+                    <svg
+                      width="98"
+                      height="49"
+                      viewBox="0 0 98 49"
+                      className="absolute top-0 left-0"
+                    >
+                      <path
+                        d="M98 49C98 36.0044 92.8375 23.5411 83.6482 14.3518C74.459 5.16249 61.9956 9.81141e-07 49 0C36.0044 -9.81141e-07 23.5411 5.16248 14.3518 14.3518C5.16249 23.541 1.96228e-06 36.0044 0 49H7.84C7.84 38.0837 12.1765 27.6145 19.8955 19.8955C27.6145 12.1765 38.0837 7.84 49 7.84C59.9163 7.84 70.3855 12.1765 78.1045 19.8955C85.8235 27.6145 90.16 38.0837 90.16 49H98Z"
+                        className="fill-muted"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div className="absolute w-14 top-7 left-[21px] font-normal text-muted-foreground text-[28px] text-center leading-5">
+                  <span className="font-bold tracking-[-0.05px]">--</span>
+                  <span className="font-bold text-xs tracking-[-0.01px]">%</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col items-start gap-1 flex-1">
+              <div className="font-semibold text-muted-foreground text-xs leading-4">
+                Data not available
+              </div>
+              <div className="text-sm text-muted-foreground leading-relaxed">
+                {error}
+              </div>
+              
+              {/* Authentication and sync trigger */}
+              {hasData === false && !syncStatus.error && (
+                <div className="flex flex-col items-start gap-2 pt-2 mt-2 border-t w-full">
+                  {!isLoggedIn ? (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        Log in with GitHub to analyze this repository's contributor data.
+                      </p>
+                      <Button 
+                        onClick={login}
+                        variant="outline" 
+                        size="sm"
+                        className="flex items-center gap-1 h-7 px-2 text-xs"
+                      >
+                        <LogIn className="h-3 w-3" />
+                        Log in
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        This repository hasn't been analyzed yet.
+                      </p>
+                      <Button 
+                        onClick={triggerSync}
+                        variant="outline" 
+                        size="sm"
+                        disabled={syncStatus.isTriggering || syncStatus.isInProgress}
+                        className="flex items-center gap-1 h-7 px-2 text-xs"
+                      >
+                        <Database className="h-3 w-3" />
+                        Analyze Repository
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Sync error state */}
+              {syncStatus.error && (
+                <div className="flex flex-col items-start gap-2 pt-2 mt-2 border-t w-full">
+                  <p className="text-xs text-red-500">
+                    {syncStatus.error}
+                  </p>
+                  <Button 
+                    onClick={triggerSync}
+                    variant="outline" 
+                    size="sm"
+                    className="flex items-center gap-1 h-7 px-2 text-xs"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Retry Analysis
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  const confidence = getConfidenceLevel(confidenceScore);
+  const confidence = getConfidenceLevel(confidenceScore ?? 0);
 
   return (
     <Card className={cn("w-full overflow-hidden", className)}>
@@ -175,14 +326,26 @@ export function ContributorConfidenceCard({
             <div className="font-semibold text-foreground text-sm whitespace-nowrap">
               Contributor Confidence
             </div>
-            {onLearnMoreClick && (
-              <button
-                onClick={onLearnMoreClick}
-                className="ml-auto font-medium text-opensauced-orange text-xs whitespace-nowrap hover:underline"
+            <div className="ml-auto flex items-center gap-2">
+              {onLearnMoreClick && (
+                <button
+                  onClick={onLearnMoreClick}
+                  className="font-medium text-opensauced-orange text-xs whitespace-nowrap hover:underline"
+                >
+                  Learn More
+                </button>
+              )}
+              <Button
+                onClick={handleRefresh}
+                variant="ghost"
+                size="sm"
+                disabled={syncStatus.isTriggering || syncStatus.isInProgress || loading}
+                className="h-8 w-8 p-0"
+                title="Refresh data"
               >
-                Learn More
-              </button>
-            )}
+                <RefreshCw className={`h-4 w-4 ${(syncStatus.isTriggering || syncStatus.isInProgress || loading) ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -211,13 +374,13 @@ export function ContributorConfidenceCard({
                     viewBox="0 0 98 49"
                     className="absolute top-0 left-0"
                   >
-                    <SemicircleProgress value={confidenceScore} />
+                    <SemicircleProgress value={confidenceScore ?? 0} />
                   </svg>
                 </div>
               </div>
 
               <div className="absolute w-14 top-7 left-[21px] font-normal text-foreground text-[28px] text-center leading-5">
-                <span className="font-bold tracking-[-0.05px]">{Math.round(confidenceScore)}</span>
+                <span className="font-bold tracking-[-0.05px]">{Math.round(confidenceScore ?? 0)}</span>
                 <span className="font-bold text-xs tracking-[-0.01px]">%</span>
               </div>
             </div>
