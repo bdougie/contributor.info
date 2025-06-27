@@ -210,7 +210,7 @@ function DistributionCharts({
                   <Cell
                     key={`cell-${entry.id}`}
                     fill={COLORS[entry.id as keyof typeof COLORS]}
-                    stroke={activeSegment === entry.id ? "#000" : "none"}
+                    stroke={activeSegment === entry.id ? "currentColor" : "none"}
                     strokeWidth={activeSegment === entry.id ? 2 : 0}
                   />
                 ))}
@@ -264,7 +264,7 @@ function DistributionCharts({
                   <Cell
                     key={`cell-${entry.id}`}
                     fill={COLORS[entry.id as keyof typeof COLORS]}
-                    stroke={activeSegment === entry.id ? "#000" : "none"}
+                    stroke={activeSegment === entry.id ? "currentColor" : "none"}
                     strokeWidth={activeSegment === entry.id ? 2 : 0}
                   />
                 ))}
@@ -330,7 +330,7 @@ function DistributionCharts({
               <Cell
                 key={`cell-${entry.id}`}
                 fill={COLORS[entry.id as keyof typeof COLORS]}
-                stroke={activeSegment === entry.id ? "#000" : "none"}
+                stroke={activeSegment === entry.id ? "currentColor" : "none"}
                 strokeWidth={activeSegment === entry.id ? 2 : 0}
               />
             ))}
