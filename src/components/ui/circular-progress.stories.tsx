@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react';
 import { Button } from './button';
 
 const meta = {
-  title: 'UI/Feedback/CircularProgress',
+  title: 'UI/Feedback/SemicircleProgress',
   component: CircularProgress,
   parameters: {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A circular progress indicator with customizable appearance and animations.',
+        component: 'A semicircle progress indicator that grows from left to right, matching the exact design from project 8 reference.',
       },
     },
   },
@@ -22,11 +22,7 @@ const meta = {
     },
     size: {
       control: 'number',
-      description: 'The size of the circular progress',
-    },
-    strokeWidth: {
-      control: 'number',
-      description: 'The width of the progress stroke',
+      description: 'The size of the semicircle progress',
     },
   },
 } satisfies Meta<typeof CircularProgress>;
@@ -34,62 +30,71 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
+export const Intimidating: Story = {
   args: {
-    value: 65,
+    value: 9,
     children: (
-      <div className="text-center">
-        <span className="font-bold text-2xl">65</span>
-        <span className="font-bold text-xs">%</span>
-      </div>
+      <>
+        <span className="font-bold tracking-[-0.05px]">9</span>
+        <span className="font-bold text-xs tracking-[-0.01px]">%</span>
+      </>
     ),
   },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Low confidence (9%) - Red progress indicator showing intimidating project.'
+      }
+    }
+  }
 };
 
-export const Low: Story = {
+export const Approachable: Story = {
   args: {
-    value: 15,
+    value: 40,
     children: (
-      <div className="text-center">
-        <span className="font-bold text-2xl">15</span>
-        <span className="font-bold text-xs">%</span>
-      </div>
+      <>
+        <span className="font-bold tracking-[-0.05px]">40</span>
+        <span className="font-bold text-xs tracking-[-0.01px]">%</span>
+      </>
     ),
   },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Medium confidence (40%) - Orange progress indicator showing approachable project.'
+      }
+    }
+  }
 };
 
-export const Medium: Story = {
-  args: {
-    value: 50,
-    children: (
-      <div className="text-center">
-        <span className="font-bold text-2xl">50</span>
-        <span className="font-bold text-xs">%</span>
-      </div>
-    ),
-  },
-};
-
-export const High: Story = {
+export const Welcoming: Story = {
   args: {
     value: 85,
     children: (
-      <div className="text-center">
-        <span className="font-bold text-2xl">85</span>
-        <span className="font-bold text-xs">%</span>
-      </div>
+      <>
+        <span className="font-bold tracking-[-0.05px]">85</span>
+        <span className="font-bold text-xs tracking-[-0.01px]">%</span>
+      </>
     ),
   },
+  parameters: {
+    docs: {
+      description: {
+        story: 'High confidence (85%) - Green progress indicator showing welcoming project.'
+      }
+    }
+  }
 };
 
 export const Complete: Story = {
   args: {
     value: 100,
     children: (
-      <div className="text-center">
-        <span className="font-bold text-2xl">100</span>
-        <span className="font-bold text-xs">%</span>
-      </div>
+      <>
+        <span className="font-bold tracking-[-0.05px]">100</span>
+        <span className="font-bold text-xs tracking-[-0.01px]">%</span>
+      </>
     ),
   },
 };
@@ -98,138 +103,12 @@ export const Empty: Story = {
   args: {
     value: 0,
     children: (
-      <div className="text-center">
-        <span className="font-bold text-2xl">0</span>
-        <span className="font-bold text-xs">%</span>
-      </div>
+      <>
+        <span className="font-bold tracking-[-0.05px]">0</span>
+        <span className="font-bold text-xs tracking-[-0.01px]">%</span>
+      </>
     ),
   },
-};
-
-export const DifferentSizes: Story = {
-  args: { value: 75 },
-  render: () => (
-    <div className="flex items-center gap-8">
-      <div className="text-center">
-        <p className="text-sm mb-2">Small (60px)</p>
-        <CircularProgress value={75} size={60} strokeWidth={3}>
-          <div className="text-center">
-            <span className="font-bold text-lg">75</span>
-            <span className="font-bold text-xs">%</span>
-          </div>
-        </CircularProgress>
-      </div>
-      
-      <div className="text-center">
-        <p className="text-sm mb-2">Default (98px)</p>
-        <CircularProgress value={75}>
-          <div className="text-center">
-            <span className="font-bold text-2xl">75</span>
-            <span className="font-bold text-xs">%</span>
-          </div>
-        </CircularProgress>
-      </div>
-      
-      <div className="text-center">
-        <p className="text-sm mb-2">Large (120px)</p>
-        <CircularProgress value={75} size={120} strokeWidth={6}>
-          <div className="text-center">
-            <span className="font-bold text-3xl">75</span>
-            <span className="font-bold text-sm">%</span>
-          </div>
-        </CircularProgress>
-      </div>
-    </div>
-  ),
-};
-
-export const CustomColors: Story = {
-  args: { value: 50 },
-  render: () => (
-    <div className="flex items-center gap-8">
-      <div className="text-center">
-        <p className="text-sm mb-2">Custom Red</p>
-        <CircularProgress 
-          value={25} 
-          progressClassName="text-red-600"
-        >
-          <div className="text-center">
-            <span className="font-bold text-2xl">25</span>
-            <span className="font-bold text-xs">%</span>
-          </div>
-        </CircularProgress>
-      </div>
-      
-      <div className="text-center">
-        <p className="text-sm mb-2">Custom Blue</p>
-        <CircularProgress 
-          value={50} 
-          progressClassName="text-blue-600"
-        >
-          <div className="text-center">
-            <span className="font-bold text-2xl">50</span>
-            <span className="font-bold text-xs">%</span>
-          </div>
-        </CircularProgress>
-      </div>
-      
-      <div className="text-center">
-        <p className="text-sm mb-2">Custom Purple</p>
-        <CircularProgress 
-          value={75} 
-          progressClassName="text-purple-600"
-        >
-          <div className="text-center">
-            <span className="font-bold text-2xl">75</span>
-            <span className="font-bold text-xs">%</span>
-          </div>
-        </CircularProgress>
-      </div>
-    </div>
-  ),
-};
-
-export const WithoutCenterContent: Story = {
-  args: {
-    value: 60,
-  },
-};
-
-export const DifferentStrokeWidths: Story = {
-  args: { value: 60 },
-  render: () => (
-    <div className="flex items-center gap-8">
-      <div className="text-center">
-        <p className="text-sm mb-2">Thin (2px)</p>
-        <CircularProgress value={60} strokeWidth={2}>
-          <div className="text-center">
-            <span className="font-bold text-2xl">60</span>
-            <span className="font-bold text-xs">%</span>
-          </div>
-        </CircularProgress>
-      </div>
-      
-      <div className="text-center">
-        <p className="text-sm mb-2">Default (4px)</p>
-        <CircularProgress value={60}>
-          <div className="text-center">
-            <span className="font-bold text-2xl">60</span>
-            <span className="font-bold text-xs">%</span>
-          </div>
-        </CircularProgress>
-      </div>
-      
-      <div className="text-center">
-        <p className="text-sm mb-2">Thick (8px)</p>
-        <CircularProgress value={60} strokeWidth={8}>
-          <div className="text-center">
-            <span className="font-bold text-2xl">60</span>
-            <span className="font-bold text-xs">%</span>
-          </div>
-        </CircularProgress>
-      </div>
-    </div>
-  ),
 };
 
 export const Animated: Story = {
@@ -244,21 +123,19 @@ export const Animated: Story = {
             if (prev >= 100) {
               return 0;
             }
-            return prev + 1;
+            return prev + 2;
           });
-        }, 50);
+        }, 100);
         
         return () => clearInterval(timer);
       }, []);
       
       return (
         <div className="text-center">
-          <p className="text-sm mb-4">Animated Progress</p>
+          <p className="text-sm mb-4">Animated Semicircle Progress</p>
           <CircularProgress value={progress}>
-            <div className="text-center">
-              <span className="font-bold text-2xl">{progress}</span>
-              <span className="font-bold text-xs">%</span>
-            </div>
+            <span className="font-bold tracking-[-0.05px]">{progress}</span>
+            <span className="font-bold text-xs tracking-[-0.01px]">%</span>
           </CircularProgress>
         </div>
       );
@@ -272,16 +149,14 @@ export const Interactive: Story = {
   args: { value: 33 },
   render: () => {
     const InteractiveProgress = () => {
-      const [progress, setProgress] = useState(33);
+      const [progress, setProgress] = useState(40);
       
       return (
         <div className="text-center space-y-4">
-          <p className="text-sm">Interactive Progress</p>
+          <p className="text-sm">Interactive Semicircle Progress</p>
           <CircularProgress value={progress}>
-            <div className="text-center">
-              <span className="font-bold text-2xl">{progress}</span>
-              <span className="font-bold text-xs">%</span>
-            </div>
+            <span className="font-bold tracking-[-0.05px]">{progress}</span>
+            <span className="font-bold text-xs tracking-[-0.01px]">%</span>
           </CircularProgress>
           
           <div className="flex gap-2 justify-center">
@@ -304,9 +179,23 @@ export const Interactive: Story = {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => setProgress(0)}
+              onClick={() => setProgress(9)}
             >
-              Reset
+              Intimidating
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setProgress(40)}
+            >
+              Approachable
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setProgress(85)}
+            >
+              Welcoming
             </Button>
           </div>
         </div>
@@ -322,34 +211,99 @@ export const ConfidenceLevels: Story = {
   render: () => (
     <div className="flex items-center gap-8">
       <div className="text-center">
-        <p className="text-sm mb-2 text-red-600">Intimidating</p>
+        <p className="text-sm mb-2 text-red-600">Intimidating (0-30%)</p>
         <CircularProgress value={9}>
-          <div className="text-center">
-            <span className="font-bold text-2xl">9</span>
-            <span className="font-bold text-xs">%</span>
-          </div>
+          <span className="font-bold tracking-[-0.05px]">9</span>
+          <span className="font-bold text-xs tracking-[-0.01px]">%</span>
         </CircularProgress>
       </div>
       
       <div className="text-center">
-        <p className="text-sm mb-2 text-yellow-600">Approachable</p>
+        <p className="text-sm mb-2 text-orange-600">Challenging (31-50%)</p>
         <CircularProgress value={40}>
-          <div className="text-center">
-            <span className="font-bold text-2xl">40</span>
-            <span className="font-bold text-xs">%</span>
-          </div>
+          <span className="font-bold tracking-[-0.05px]">40</span>
+          <span className="font-bold text-xs tracking-[-0.01px]">%</span>
         </CircularProgress>
       </div>
       
       <div className="text-center">
-        <p className="text-sm mb-2 text-green-600">Welcoming</p>
-        <CircularProgress value={85}>
-          <div className="text-center">
-            <span className="font-bold text-2xl">85</span>
-            <span className="font-bold text-xs">%</span>
-          </div>
+        <p className="text-sm mb-2 text-blue-600">Approachable (51-70%)</p>
+        <CircularProgress value={60}>
+          <span className="font-bold tracking-[-0.05px]">60</span>
+          <span className="font-bold text-xs tracking-[-0.01px]">%</span>
         </CircularProgress>
       </div>
+      
+      <div className="text-center">
+        <p className="text-sm mb-2 text-green-600">Welcoming (71-100%)</p>
+        <CircularProgress value={85}>
+          <span className="font-bold tracking-[-0.05px]">85</span>
+          <span className="font-bold text-xs tracking-[-0.01px]">%</span>
+        </CircularProgress>
+      </div>
+    </div>
+  ),
+};
+
+export const BoundaryValues: Story = {
+  args: { value: 50 },
+  render: () => (
+    <div className="flex items-center gap-8">
+      <div className="text-center">
+        <p className="text-sm mb-2">30% (Red/Orange boundary)</p>
+        <CircularProgress value={30}>
+          <span className="font-bold tracking-[-0.05px]">30</span>
+          <span className="font-bold text-xs tracking-[-0.01px]">%</span>
+        </CircularProgress>
+      </div>
+      
+      <div className="text-center">
+        <p className="text-sm mb-2">50% (Orange/Blue boundary)</p>
+        <CircularProgress value={50}>
+          <span className="font-bold tracking-[-0.05px]">50</span>
+          <span className="font-bold text-xs tracking-[-0.01px]">%</span>
+        </CircularProgress>
+      </div>
+      
+      <div className="text-center">
+        <p className="text-sm mb-2">70% (Blue/Green boundary)</p>
+        <CircularProgress value={70}>
+          <span className="font-bold tracking-[-0.05px]">70</span>
+          <span className="font-bold text-xs tracking-[-0.01px]">%</span>
+        </CircularProgress>
+      </div>
+    </div>
+  ),
+};
+
+export const WithoutContent: Story = {
+  args: {
+    value: 60,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Semicircle progress without center content.'
+      }
+    }
+  }
+};
+
+export const AllPercentages: Story = {
+  args: { value: 50 },
+  render: () => (
+    <div className="grid grid-cols-5 gap-8">
+      {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((value) => (
+        <div key={value} className="flex flex-col items-center">
+          <CircularProgress value={value}>
+            <span className="font-bold tracking-[-0.05px]">{value}</span>
+            <span className="font-bold text-xs tracking-[-0.01px]">%</span>
+          </CircularProgress>
+          <span className="mt-2 text-sm text-muted-foreground">
+            {value <= 30 ? "Red" : value <= 50 ? "Orange" : value <= 70 ? "Blue" : "Green"}
+          </span>
+        </div>
+      ))}
     </div>
   ),
 };
