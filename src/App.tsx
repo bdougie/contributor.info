@@ -27,6 +27,7 @@ const PerformanceMonitoringDashboard = lazy(() => import("@/components/performan
 const AnalyticsDashboard = lazy(() => import("@/components/features/debug/analytics-dashboard").then(m => ({ default: m.AnalyticsDashboard })));
 const ShareableChartsPreview = lazy(() => import("@/components/features/debug/shareable-charts-preview").then(m => ({ default: m.ShareableChartsPreview })));
 const DubTest = lazy(() => import("@/components/features/debug/dub-test").then(m => ({ default: m.DubTest })));
+const BulkAddRepos = lazy(() => import("@/components/features/debug/bulk-add-repos").then(m => ({ default: m.BulkAddRepos })));
 
 // Loading fallback component
 const PageSkeleton = () => (
@@ -128,6 +129,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DubTest />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dev/bulk-add-repos"
+              element={
+                <ProtectedRoute>
+                  <BulkAddRepos />
                 </ProtectedRoute>
               }
             />
