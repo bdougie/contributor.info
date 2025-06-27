@@ -12,7 +12,7 @@
     --popover: 0 0% 100%;             /* #FFFFFF */
     --popover-foreground: 215 25% 27%; /* #11181C - slate-12 */
     --primary: 14 100% 37%;           /* #BD4B00 - Dark Orange for buttons/links */
-    --primary-foreground: 0 0% 100%;  /* White text on dark orange */
+    --primary-foreground: 0 0% 100%;  /* White text on bright orange */
     --secondary: 210 20% 94%;         /* #ECEEF0 - slate-04 darker slate */
     --secondary-foreground: 215 25% 27%; /* #11181C - slate-12 */
     --muted: 210 20% 94%;             /* #ECEEF0 - slate-04 darker slate */
@@ -23,7 +23,7 @@
     --destructive-foreground: 0 0% 100%;
     --border: 220 13% 91%;            /* #ECEEF0 - slate-04 */
     --input: 210 20% 96%;             /* #F1F3F5 - slate-03 */
-    --ring: 14 100% 37%;              /* #BD4B00 - Dark Orange for focus */
+    --ring: 14 100% 37%;              /* #BD4B00 - Dark Orange for light mode focus */
     --radius: 0.5rem;
     
     /* Content area backgrounds */
@@ -37,7 +37,7 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
+    --primary: 14 100% 50%;           /* #FF5402 - Bright Orange for dark mode */
     --primary-foreground: 0 0% 9%;
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
@@ -49,7 +49,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --ring: 14 100% 50%;              /* #FF5402 - Bright Orange for dark mode focus */
   }
 }
 
