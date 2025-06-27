@@ -4,27 +4,30 @@
 
 @layer base {
   :root {
-    /* Light mode - Enhanced with design system colors */
-    --background: 251 252 253;        /* #FBFCFD - slate-01 */
-    --foreground: 17 24 28;           /* #11181C - slate-12 */
-    --card: 255 255 255;              /* #FFFFFF - pure white for cards */
-    --card-foreground: 17 24 28;      /* #11181C - slate-12 */
-    --popover: 255 255 255;           /* #FFFFFF */
-    --popover-foreground: 17 24 28;   /* #11181C - slate-12 */
-    --primary: 255 84 2;              /* #FF5402 - OpenSauced Orange */
-    --primary-foreground: 255 255 255; /* White text on orange */
-    --secondary: 248 249 250;         /* #F8F9FA - slate-02 */
-    --secondary-foreground: 17 24 28; /* #11181C - slate-12 */
-    --muted: 241 243 245;             /* #F1F3F5 - slate-03 */
-    --muted-foreground: 136 144 150;  /* #889096 - slate-09 */
-    --accent: 248 249 250;            /* #F8F9FA - slate-02 */
-    --accent-foreground: 17 24 28;    /* #11181C - slate-12 */
+    /* Light mode - Enhanced with design system colors (HSL format) */
+    --background: 210 20% 98%;        /* #F8F9FA - slate-02 light background */
+    --foreground: 215 25% 27%;        /* #11181C - slate-12 */
+    --card: 0 0% 100%;                /* #FFFFFF - pure white for cards */
+    --card-foreground: 215 25% 27%;   /* #11181C - slate-12 */
+    --popover: 0 0% 100%;             /* #FFFFFF */
+    --popover-foreground: 215 25% 27%; /* #11181C - slate-12 */
+    --primary: 14 100% 37%;           /* #BD4B00 - Dark Orange for buttons/links */
+    --primary-foreground: 0 0% 100%;  /* White text on dark orange */
+    --secondary: 210 20% 94%;         /* #ECEEF0 - slate-04 darker slate */
+    --secondary-foreground: 215 25% 27%; /* #11181C - slate-12 */
+    --muted: 210 20% 94%;             /* #ECEEF0 - slate-04 darker slate */
+    --muted-foreground: 215 16% 47%;  /* #889096 - slate-09 */
+    --accent: 210 20% 94%;            /* #ECEEF0 - slate-04 darker slate */
+    --accent-foreground: 215 25% 27%; /* #11181C - slate-12 */
     --destructive: 0 84.2% 60.2%;     /* Keep existing red */
-    --destructive-foreground: 255 255 255;
-    --border: 236 238 240;            /* #ECEEF0 - slate-04 */
-    --input: 241 243 245;             /* #F1F3F5 - slate-03 */
-    --ring: 255 84 2;                 /* #FF5402 - OpenSauced Orange for focus */
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;            /* #ECEEF0 - slate-04 */
+    --input: 210 20% 96%;             /* #F1F3F5 - slate-03 */
+    --ring: 14 100% 37%;              /* #BD4B00 - Dark Orange for focus */
     --radius: 0.5rem;
+    
+    /* Content area backgrounds */
+    --content-background: 210 20% 94%; /* #ECEEF0 - darker slate for main content */
   }
 
   .dark {
@@ -119,12 +122,19 @@
     @apply shadow-card;
   }
   
-  .light .bg-card:hover {
-    @apply shadow-card-hover;
-  }
-  
   /* Enhanced focus states for light mode */
   .light *:focus-visible {
     @apply ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+  
+  /* Content area backgrounds in light mode - target the main container */
+  .light main.container {
+    @apply bg-content;
+  }
+  
+  /* Ensure specific layout areas get the darker slate background */
+  .light .main-content,
+  .light [role="main"] {
+    @apply bg-content;
   }
 }
