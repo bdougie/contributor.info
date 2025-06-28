@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { ActivityItem } from '../activity-item'
 import { RepoStatsContext } from '@/lib/repo-stats-context'
@@ -29,37 +29,60 @@ vi.mock('@/lib/contributor-utils', () => ({
 }))
 
 const mockActivity: PullRequestActivity = {
+  id: 'activity-123',
   type: 'opened',
   user: {
     name: 'test-user',
     avatar: 'https://github.com/test-user.png',
-    id: 123,
+    id: '123',
     isBot: false
   },
   pullRequest: {
+    id: 'pr-123',
     number: 123,
     title: 'Test Pull Request',
     url: 'https://github.com/facebook/react/pull/123'
   },
   repository: {
+    id: 'repo-facebook-react',
     owner: 'facebook',
     name: 'react',
     url: 'https://github.com/facebook/react'
   },
-  timestamp: '2 days ago'
+  timestamp: '2 days ago',
+  createdAt: new Date()
 }
 
-const mockRepoStats = {
-  pullRequests: [],
-  contributors: [],
-  reviews: [],
-  comments: []
+const mockRepoStatsContext = {
+  stats: {
+    loading: false,
+    error: null,
+    pullRequests: [],
+    contributors: [],
+    reviews: [],
+    comments: []
+  },
+  lotteryFactor: {
+    score: 0,
+    factors: [],
+    topContributorsCount: 0,
+    totalContributors: 0,
+    topContributorsPercentage: 0,
+    contributors: [],
+    riskLevel: 'Low' as const
+  },
+  directCommitsData: {
+    hasYoloCoders: false,
+    yoloCoderStats: []
+  },
+  includeBots: false,
+  setIncludeBots: vi.fn()
 }
 
 describe('ActivityItem Link Styling', () => {
   it('should render pull request link with orange color', () => {
     render(
-      <RepoStatsContext.Provider value={{ stats: mockRepoStats }}>
+      <RepoStatsContext.Provider value={mockRepoStatsContext}>
         <ActivityItem activity={mockActivity} />
       </RepoStatsContext.Provider>
     )
@@ -73,7 +96,7 @@ describe('ActivityItem Link Styling', () => {
 
   it('should render repository link with orange color', () => {
     render(
-      <RepoStatsContext.Provider value={{ stats: mockRepoStats }}>
+      <RepoStatsContext.Provider value={mockRepoStatsContext}>
         <ActivityItem activity={mockActivity} />
       </RepoStatsContext.Provider>
     )
@@ -87,7 +110,7 @@ describe('ActivityItem Link Styling', () => {
 
   it('should verify both links have consistent orange styling', () => {
     render(
-      <RepoStatsContext.Provider value={{ stats: mockRepoStats }}>
+      <RepoStatsContext.Provider value={mockRepoStatsContext}>
         <ActivityItem activity={mockActivity} />
       </RepoStatsContext.Provider>
     )
@@ -113,7 +136,7 @@ describe('ActivityItem Link Styling', () => {
 
   it('should verify repository link has additional styling classes', () => {
     render(
-      <RepoStatsContext.Provider value={{ stats: mockRepoStats }}>
+      <RepoStatsContext.Provider value={mockRepoStatsContext}>
         <ActivityItem activity={mockActivity} />
       </RepoStatsContext.Provider>
     )
@@ -131,7 +154,7 @@ describe('ActivityItem Link Styling', () => {
 
   it('should verify the orange color is specifically text-orange-500', () => {
     const { container } = render(
-      <RepoStatsContext.Provider value={{ stats: mockRepoStats }}>
+      <RepoStatsContext.Provider value={mockRepoStatsContext}>
         <ActivityItem activity={mockActivity} />
       </RepoStatsContext.Provider>
     )
