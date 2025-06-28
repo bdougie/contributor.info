@@ -25,6 +25,7 @@ import { InsightsSidebar } from "@/components/insights/insights-sidebar";
 import { RepoViewSkeleton } from "@/components/skeletons";
 import { SocialMetaTags } from "@/components/common/layout";
 import RepoNotFound from "./repo-not-found";
+import { createChartShareUrl, getDubConfig } from "@/lib/dub";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -32,6 +33,8 @@ export default function RepoView() {
   const location = useLocation();
   const timeRange = useTimeRangeStore((state) => state.timeRange);
   const [includeBots, setIncludeBots] = useState(false);
+  const [isGeneratingUrl, setIsGeneratingUrl] = useState(false);
+  const dubConfig = getDubConfig();
 
   // Determine current tab based on URL
   const getCurrentTab = () => {
@@ -62,14 +65,47 @@ export default function RepoView() {
     }
   }, [owner, repo]);
 
-  // Handle share button click
+  // Handle share button click - create oss.fyi short link
   const handleShare = async () => {
+    setIsGeneratingUrl(true);
+    
     try {
-      const url = window.location.href;
-      await navigator.clipboard.writeText(url);
-      toast.success("URL copied to clipboard!");
+      // Generate short URL for repository page
+      const currentUrl = window.location.href;
+      const chartType = getCurrentTab(); // Get current tab as chart type
+      const repository = `${owner}/${repo}`;
+      
+      const shortUrl = await createChartShareUrl(
+        currentUrl,
+        `repository-${chartType}`,
+        repository
+      );
+      
+      // Create a descriptive share message
+      const shareText = `Check out the ${chartType} analysis for ${repository}\n${shortUrl}`;
+      
+      await navigator.clipboard.writeText(shareText);
+      
+      const domain = dubConfig.isDev ? "dub.sh" : "oss.fyi";
+      const isShortened = shortUrl !== currentUrl;
+      
+      if (isShortened) {
+        toast.success(`Short link copied! (${domain})`);
+      } else {
+        toast.success("Repository link copied to clipboard!");
+      }
     } catch (err) {
-      toast.error("Failed to copy URL");
+      console.error("Failed to create short URL:", err);
+      // Fallback to original URL with descriptive text
+      try {
+        const fallbackText = `Check out the analysis for ${owner}/${repo}\n${window.location.href}`;
+        await navigator.clipboard.writeText(fallbackText);
+        toast.success("Repository link copied to clipboard!");
+      } catch (fallbackErr) {
+        toast.error("Failed to copy link");
+      }
+    } finally {
+      setIsGeneratingUrl(false);
     }
   };
 
@@ -152,10 +188,11 @@ export default function RepoView() {
                 variant="outline"
                 size="icon"
                 onClick={handleShare}
+                disabled={isGeneratingUrl}
                 className="h-8 w-8"
-                title="Copy repository link"
+                title={isGeneratingUrl ? "Generating short link..." : "Copy repository link"}
               >
-                <Link className="h-4 w-4" />
+                <Link className={`h-4 w-4 ${isGeneratingUrl ? 'animate-pulse' : ''}`} />
               </Button>
             </div>
           </CardHeader>

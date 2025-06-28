@@ -267,15 +267,32 @@ export function ShareableCard({
           if (!blob) return;
           
           try {
+            // Generate short URL for copy with image
+            const currentUrl = window.location.href;
+            const shortUrl = await createChartShareUrl(
+              currentUrl,
+              chartType,
+              contextInfo?.repository
+            );
+            
             // Try to copy both image and URL (rich clipboard)
             const clipboardItems = [
               new ClipboardItem({
                 'image/png': blob,
-                'text/plain': new Blob([window.location.href], { type: 'text/plain' })
+                'text/plain': new Blob([shortUrl], { type: 'text/plain' })
               })
             ];
             await navigator.clipboard.write(clipboardItems);
             toast.success("Chart copied to clipboard with link!");
+            
+            // Track copy event
+            if (!bypassAnalytics) {
+              await trackShareEvent('copy', 'image', { 
+                shortUrl, 
+                isShortened: shortUrl !== currentUrl,
+                dubLinkId: shortUrl !== currentUrl ? shortUrl.split('/').pop() : undefined 
+              });
+            }
           } catch (err) {
             // Fallback to just copying the image
             try {
@@ -283,14 +300,14 @@ export function ShareableCard({
                 new ClipboardItem({ 'image/png': blob })
               ]);
               toast.success("Chart copied to clipboard!");
+              
+              // Track copy event (image only)
+              if (!bypassAnalytics) {
+                await trackShareEvent('copy', 'image');
+              }
             } catch (err2) {
               toast.error("Failed to copy to clipboard");
             }
-          }
-          
-          // Track copy event
-          if (!bypassAnalytics) {
-            await trackShareEvent('copy', 'image');
           }
         });
       } else if (action === 'share') {
@@ -366,12 +383,8 @@ export function ShareableCard({
         contextInfo?.repository
       );
       
-      // Create a descriptive share message
-      const shareText = contextInfo?.repository 
-        ? `Check out this ${contextInfo.metric || chartType} for ${contextInfo.repository}\n${shortUrl}`
-        : `Check out this ${chartType} chart\n${shortUrl}`;
-      
-      await navigator.clipboard.writeText(shareText);
+      // Copy only the URL (no descriptive text for link capture)
+      await navigator.clipboard.writeText(shortUrl);
       
       const domain = dubConfig.isDev ? "dub.co" : "oss.fyi";
       const isShortened = shortUrl !== currentUrl;
@@ -392,12 +405,9 @@ export function ShareableCard({
       }
     } catch (err) {
       console.error("Failed to create short URL:", err);
-      // Fallback to original URL with descriptive text
+      // Fallback to original URL only (no descriptive text)
       try {
-        const fallbackText = contextInfo?.repository 
-          ? `Check out this ${contextInfo.metric || chartType} for ${contextInfo.repository}\n${window.location.href}`
-          : `Check out this ${chartType} chart\n${window.location.href}`;
-        await navigator.clipboard.writeText(fallbackText);
+        await navigator.clipboard.writeText(window.location.href);
         toast.success("Link copied to clipboard!");
       } catch (fallbackErr) {
         toast.error("Failed to copy link");

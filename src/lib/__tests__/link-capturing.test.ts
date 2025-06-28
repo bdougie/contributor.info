@@ -22,9 +22,9 @@ Object.defineProperty(navigator, 'clipboard', {
   writable: true
 })
 
-// Get access to mocked supabase for testing
+// Import supabase for mocking (used implicitly by dub.ts)
 import { supabase } from '../supabase'
-const mockSupabase = vi.mocked(supabase)
+vi.mocked(supabase)
 
 describe('Link Capturing Functionality', () => {
   beforeEach(() => {
@@ -185,12 +185,8 @@ describe('Link Capturing Functionality', () => {
   })
 
   describe('Error Handling', () => {
-    it('should handle Supabase function errors', async () => {
-      mockSupabase.functions.invoke.mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Function invocation failed' }
-      })
-
+    it('should handle function errors gracefully', async () => {
+      // Since we're in development mode, errors don't affect the result
       const result = await createShortUrl({ url: 'https://contributor.info/test' })
       
       // In development mode, should still return dev mock even with errors
@@ -198,11 +194,7 @@ describe('Link Capturing Functionality', () => {
     })
 
     it('should handle service errors in response', async () => {
-      mockSupabase.functions.invoke.mockResolvedValueOnce({
-        data: { error: 'Rate limit exceeded' },
-        error: null
-      })
-
+      // Development mode bypasses all API calls
       const result = await createShortUrl({ url: 'https://contributor.info/test' })
       
       // In development mode, should still return dev mock
@@ -210,8 +202,7 @@ describe('Link Capturing Functionality', () => {
     })
 
     it('should handle network/connection errors', async () => {
-      mockSupabase.functions.invoke.mockRejectedValueOnce(new Error('Network error'))
-
+      // Development mode doesn't make network calls
       const result = await createShortUrl({ url: 'https://contributor.info/test' })
       
       // In development mode, should still return dev mock
@@ -249,22 +240,20 @@ describe('Link Capturing Functionality', () => {
 
   describe('Integration Test Scenarios', () => {
     it('should demonstrate dub.sh link capture in development', async () => {
-      const testUrl = 'https://contributor.info/repo/facebook/react'
+      const repoUrl = 'https://contributor.info/repo/facebook/react'
       
       // Copy URL to clipboard (simulating user action)
-      await navigator.clipboard.writeText(testUrl)
+      await navigator.clipboard.writeText(repoUrl)
       
       // Create short URL
-      const result = await createShortUrl({ url: testUrl })
+      const result = await createShortUrl({ url: repoUrl })
       
       // Verify the link structure
-      expect(result?.shortLink).toBe(testUrl) // Dev mode returns original
-      expect(mockClipboard.writeText).toHaveBeenCalledWith(testUrl)
+      expect(result?.shortLink).toBe(repoUrl) // Dev mode returns original
+      expect(mockClipboard.writeText).toHaveBeenCalledWith(repoUrl)
     })
 
     it('should demonstrate oss.fyi link would be captured in production', async () => {
-      const testUrl = 'https://contributor.info/repo/microsoft/vscode'
-      
       // This test shows the expected production behavior
       // In production, the shortLink would be something like: https://oss.fyi/microsoft/vscode
       const expectedProductionDomain = 'oss.fyi'
