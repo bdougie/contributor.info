@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HelpCircle, Users, Bot, ArrowLeft, ArrowRight } from "lucide-react";
+import { HelpCircle, Users, Bot, ArrowLeft, ArrowRight, GitPullRequest, Percent } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -283,7 +283,7 @@ export function LotteryFactorContent({
         <div className="flex flex-col gap-2">
           <div className="flex items-start gap-2">
             <div className="text-xl font-semibold flex items-center gap-2">
-              <LotteryIcon className="h-5 w-5" />
+              <LotteryIcon className="h-5 w-5 hidden sm:block" />
               Lottery Factor
               <TooltipProvider>
                 <Tooltip>
@@ -429,23 +429,33 @@ export function LotteryFactorContent({
                 </ContributorHoverCard>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium" style={{ wordBreak: 'break-word' }}>{contributor.login}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {index === 0
-                      ? "maintainer"
-                      : index === 1
-                      ? "member"
-                      : "contributor"}
+                  <div className="text-sm text-muted-foreground flex items-center justify-between">
+                    <span>
+                      {index === 0
+                        ? "maintainer"
+                        : index === 1
+                        ? "member"
+                        : "contributor"}
+                    </span>
+                    <div className="flex items-center gap-2 sm:hidden">
+                      <span className="flex items-center gap-1">
+                        <span className="text-xs">{contributor.pullRequests}</span>
+                        <GitPullRequest className="h-3 w-3" />
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="text-xs">{Math.round(contributor.percentage)}</span>
+                        <Percent className="h-3 w-3" />
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="flex justify-between sm:contents">
-                <div className="sm:text-right font-medium">
-                  <span className="text-sm text-muted-foreground sm:hidden">Pull Requests: </span>
-                  {contributor.pullRequests}
+              <div className="hidden sm:flex sm:justify-between sm:contents">
+                <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
+                  <span className="text-base">{contributor.pullRequests}</span>
                 </div>
-                <div className="sm:text-right font-medium">
-                  <span className="text-sm text-muted-foreground sm:hidden">% of total: </span>
-                  {Math.round(contributor.percentage)}%
+                <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
+                  <span className="text-base">{Math.round(contributor.percentage)}%</span>
                 </div>
               </div>
             </div>
@@ -459,32 +469,59 @@ export function LotteryFactorContent({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">Other contributors</div>
-                  <div className="text-sm text-muted-foreground">
-                    {safeLotteryFactor.totalContributors -
-                      safeLotteryFactor.contributors.length}{" "}
-                    contributors
+                  <div className="text-sm text-muted-foreground flex items-center justify-between">
+                    <span>
+                      {safeLotteryFactor.totalContributors -
+                        safeLotteryFactor.contributors.length}{" "}
+                      contributors
+                    </span>
+                    <div className="flex items-center gap-2 sm:hidden">
+                      <span className="flex items-center gap-1">
+                        <span className="text-xs">
+                          {safeStats.pullRequests.length -
+                            safeLotteryFactor.contributors.reduce(
+                              (sum, c) => sum + c.pullRequests,
+                              0
+                            )}
+                        </span>
+                        <GitPullRequest className="h-3 w-3" />
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="text-xs">
+                          {Math.round(
+                            100 -
+                              safeLotteryFactor.contributors.reduce(
+                                (sum, c) => sum + c.percentage,
+                                0
+                              )
+                          )}
+                        </span>
+                        <Percent className="h-3 w-3" />
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="flex justify-between sm:contents">
-                <div className="sm:text-right font-medium">
-                  <span className="text-sm text-muted-foreground sm:hidden">Pull Requests: </span>
-                  {safeStats.pullRequests.length -
-                    safeLotteryFactor.contributors.reduce(
-                      (sum, c) => sum + c.pullRequests,
-                      0
-                    )}
-                </div>
-                <div className="sm:text-right font-medium">
-                  <span className="text-sm text-muted-foreground sm:hidden">% of total: </span>
-                  {Math.round(
-                    100 -
+              <div className="hidden sm:flex sm:justify-between sm:contents">
+                <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
+                  <span className="text-base">
+                    {safeStats.pullRequests.length -
                       safeLotteryFactor.contributors.reduce(
-                        (sum, c) => sum + c.percentage,
+                        (sum, c) => sum + c.pullRequests,
                         0
-                      )
-                  )}
-                  %
+                      )}
+                  </span>
+                </div>
+                <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
+                  <span className="text-base">
+                    {Math.round(
+                      100 -
+                        safeLotteryFactor.contributors.reduce(
+                          (sum, c) => sum + c.percentage,
+                          0
+                        )
+                    )}%
+                  </span>
                 </div>
               </div>
             </div>

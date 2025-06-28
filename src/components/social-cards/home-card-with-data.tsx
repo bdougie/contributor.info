@@ -19,7 +19,7 @@ export default function HomeSocialCardWithData() {
     <div className="w-[1200px] h-[630px] bg-black flex items-center justify-center p-16">
       <Card className="w-full h-full bg-black border-0 flex flex-col items-center justify-center relative overflow-hidden">
         {/* Logo */}
-        <div className="w-32 h-32 bg-primary rounded-full flex items-center justify-center mb-8 relative z-10">
+        <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center mb-8 relative z-10">
           <span className="text-6xl">🌱</span>
         </div>
 
@@ -36,19 +36,19 @@ export default function HomeSocialCardWithData() {
         {/* Stats */}
         <div className="flex gap-12 relative z-10">
           <div className="text-center">
-            <div className="text-4xl font-bold text-primary">
+            <div className="text-4xl font-bold text-white">
               {isLoading ? "..." : formatNumber(totalRepositories)}
             </div>
             <div className="text-lg text-muted-foreground">Repositories</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold text-primary">
+            <div className="text-4xl font-bold text-white">
               {isLoading ? "..." : formatNumber(totalContributors)}
             </div>
             <div className="text-lg text-muted-foreground">Contributors</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold text-primary">
+            <div className="text-4xl font-bold text-white">
               {isLoading ? "..." : formatNumber(totalPullRequests)}
             </div>
             <div className="text-lg text-muted-foreground">Pull Requests</div>
