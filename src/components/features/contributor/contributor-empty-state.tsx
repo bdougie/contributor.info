@@ -160,7 +160,7 @@ export function ContributorEmptyState({
             <div
               className={cn(
                 "relative z-10 p-4 rounded-full",
-                "bg-white/50 dark:bg-gray-800/50",
+                "bg-primary-white-glass dark:bg-primary-white-glass-dark",
                 "backdrop-blur-sm border border-white/20 dark:border-gray-700/20",
                 "shadow-lg"
               )}
@@ -191,7 +191,7 @@ export function ContributorEmptyState({
             <div
               className={cn(
                 "max-w-md mx-auto p-4 rounded-lg",
-                "bg-white/60 dark:bg-gray-800/60",
+                "bg-primary-white-glass dark:bg-primary-white-glass-dark",
                 "backdrop-blur-sm border border-white/30 dark:border-gray-700/30",
                 "shadow-sm"
               )}

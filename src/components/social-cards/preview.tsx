@@ -66,7 +66,7 @@ export default function SocialCardPreview() {
           <CardContent>
             <div className="relative border rounded-lg overflow-hidden bg-muted/20" style={{ height: "315px" }}>
               {loading.home && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+                <div className="absolute inset-0 flex items-center justify-center bg-primary-white-overlay z-10">
                   <Loader2 className="w-8 h-8 animate-spin" />
                 </div>
               )}
@@ -110,7 +110,7 @@ export default function SocialCardPreview() {
           <CardContent>
             <div className="relative border rounded-lg overflow-hidden bg-muted/20" style={{ height: "315px" }}>
               {loading.repo && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+                <div className="absolute inset-0 flex items-center justify-center bg-primary-white-overlay z-10">
                   <Loader2 className="w-8 h-8 animate-spin" />
                 </div>
               )}

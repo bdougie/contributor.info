@@ -451,7 +451,7 @@ export function ShareableCard({
         <Button
           size="icon"
           variant="secondary"
-          className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+          className="h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
           onClick={() => handleCapture('copy')}
           title="Copy chart as image"
           disabled={isCapturing || isGeneratingUrl}
@@ -461,7 +461,7 @@ export function ShareableCard({
         <Button
           size="icon"
           variant="secondary"
-          className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+          className="h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
           onClick={() => handleCapture('download')}
           title="Download chart"
           disabled={isCapturing || isGeneratingUrl}
@@ -471,7 +471,7 @@ export function ShareableCard({
         <Button
           size="icon"
           variant="secondary"
-          className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+          className="h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
           onClick={handleShareUrl}
           title={`Copy short link (${dubConfig.isDev ? 'dub.co' : 'oss.fyi'})`}
           disabled={isCapturing || isGeneratingUrl}
@@ -485,7 +485,7 @@ export function ShareableCard({
         <Button
           size="icon"
           variant="secondary"
-          className="h-8 w-8 bg-background/80 backdrop-blur-sm"
+          className="h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
           onClick={() => handleCapture('share')}
           title="Share chart"
           disabled={isCapturing || isGeneratingUrl}
