@@ -84,6 +84,7 @@
     "@sentry/react": "^9.29.0",
     "@supabase/supabase-js": "^2.39.8",
     "@tailwindcss/typography": "^0.5.16",
+    "@zumer/snapdom": "^1.7.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
