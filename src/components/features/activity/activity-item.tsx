@@ -160,10 +160,10 @@ export function ActivityItem({ activity }: ActivityItemProps) {
               >
                 #{pullRequest.number}
               </a>
-              <span className="text-muted-foreground">in</span>
+              <span className="text-muted-foreground hidden sm:inline">in</span>
               <a
                 href={repository.url}
-                className="text-orange-500 hover:underline truncate max-w-[200px] sm:max-w-none"
+                className="text-orange-500 hover:underline truncate max-w-[200px] sm:max-w-none hidden sm:inline"
                 target="_blank"
                 rel="noopener noreferrer"
                 title={`${repository.owner}/${repository.name}`}
