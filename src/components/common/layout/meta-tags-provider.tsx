@@ -58,15 +58,26 @@ export function SocialMetaTags({
 }: SocialMetaTagsProps) {
   const currentUrl = url || (typeof window !== "undefined" ? window.location.href : "https://contributor.info");
   
-  // Handle Supabase Storage URLs and prefer WebP format
+  // Handle Supabase Storage URLs and create proper fallbacks
   let imageUrl = image;
-  let fallbackImageUrl = image.replace('.webp', '.png');
+  let fallbackImageUrl = image;
   
   if (!image.startsWith("http")) {
     // Check if it's a social card path
     if (image.includes("social-cards/")) {
       imageUrl = `https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/${image}`;
-      fallbackImageUrl = `https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/${image.replace('.webp', '.png')}`;
+      
+      // Create intelligent fallbacks
+      if (image.endsWith('.webp')) {
+        // For webp, fallback to png
+        fallbackImageUrl = `https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/${image.replace('.webp', '.png')}`;
+      } else if (image.includes('repo-')) {
+        // For repo cards, fallback to home card if specific repo image doesn't exist
+        fallbackImageUrl = `https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/social-cards/home-card.png`;
+      } else {
+        // For other cases, try webp version
+        fallbackImageUrl = `https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/${image.replace('.png', '.webp')}`;
+      }
     } else {
       imageUrl = `https://contributor.info${image}`;
       fallbackImageUrl = `https://contributor.info${image.replace('.webp', '.png')}`;
@@ -83,6 +94,10 @@ export function SocialMetaTags({
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={imageUrl} />
+      {/* Fallback image for Open Graph */}
+      {fallbackImageUrl !== imageUrl && (
+        <meta property="og:image" content={fallbackImageUrl} />
+      )}
       <meta property="og:url" content={currentUrl} />
       <meta property="og:type" content={type} />
       <meta property="og:site_name" content={siteName} />
@@ -94,6 +109,10 @@ export function SocialMetaTags({
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={imageUrl} />
+      {/* Fallback image for Twitter */}
+      {fallbackImageUrl !== imageUrl && (
+        <meta name="twitter:image" content={fallbackImageUrl} />
+      )}
       
       {/* Fallback image for older browsers */}
       <link rel="preload" as="image" href={imageUrl} />

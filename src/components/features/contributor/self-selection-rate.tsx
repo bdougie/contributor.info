@@ -114,7 +114,8 @@ export function SelfSelectionRate({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="h-5 w-5" />
-            Self-Selection Rate
+            <span className="hidden sm:inline">Self-Selection Rate</span>
+            <span className="sm:hidden">Self-Selection</span>
             <RefreshCw className="h-4 w-4 animate-spin" />
           </CardTitle>
           <CardDescription>
@@ -169,7 +170,10 @@ export function SelfSelectionRate({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Self-Selection Rate</CardTitle>
+          <CardTitle>
+            <span className="hidden sm:inline">Self-Selection Rate</span>
+            <span className="sm:hidden">Self-Selection</span>
+          </CardTitle>
           <CardDescription>
             {error || hasData === false 
               ? 'No contributor data available for this repository'
@@ -278,7 +282,8 @@ export function SelfSelectionRate({
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">
-              Self-Selection Rate
+              <span className="hidden sm:inline">Self-Selection Rate</span>
+              <span className="sm:hidden">Self-Selection</span>
               {(syncStatus.isTriggering || syncStatus.isInProgress) && (
                 <RefreshCw className="h-4 w-4 animate-spin" />
               )}

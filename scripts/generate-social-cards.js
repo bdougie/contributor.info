@@ -42,6 +42,11 @@ const popularRepos = [
   { owner: 'microsoft', repo: 'vscode' },
   { owner: 'torvalds', repo: 'linux' },
   { owner: 'nodejs', repo: 'node' },
+  // Additional popular/demo repos
+  { owner: 'continuedev', repo: 'continue' },
+  { owner: 'supabase', repo: 'supabase' },
+  { owner: 'tailwindlabs', repo: 'tailwindcss' },
+  { owner: 'anthropics', repo: 'anthropic-sdk-typescript' },
 ];
 
 async function generateCard(browser, cardConfig) {
@@ -90,7 +95,7 @@ async function generateCard(browser, cardConfig) {
       .from('social-cards')
       .upload(cardConfig.fileName, fileBuffer, {
         contentType: 'image/png',
-        cacheControl: '31536000', // 1 year cache
+        cacheControl: '86400', // 1 day cache (reduced from 1 year for easier updates)
         upsert: true
       });
       
@@ -138,7 +143,7 @@ async function main() {
       await generateCard(browser, config.cards[0]);
       
       // Generate repo cards (configurable count via REPO_COUNT env var)
-      const repoCount = parseInt(process.env.REPO_COUNT) || 1;
+      const repoCount = parseInt(process.env.REPO_COUNT) || 5; // Increased default to include continuedev/continue
       const limitedRepos = popularRepos.slice(0, repoCount);
       console.log(`Generating cards for ${limitedRepos.length} repositories`);
       for (const { owner, repo } of limitedRepos) {

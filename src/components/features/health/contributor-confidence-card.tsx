@@ -178,13 +178,13 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
               </div>
               <button
                 onClick={() => setShowLearnMore(true)}
-                className="ml-auto font-medium text-opensauced-orange text-xs whitespace-nowrap hover:underline"
+                className="ml-auto font-medium text-opensauced-orange text-xs whitespace-nowrap hover:underline hidden sm:block"
               >
                 Learn More
               </button>
             </div>
           </div>
-          <div className="flex items-start gap-4 w-full">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 w-full">
             <div className="relative w-[98px] h-[52px]">
               <div className="relative h-[98px] mb-[46px]">
                 <div className="absolute w-[98px] h-[98px] top-0 left-0">
@@ -209,71 +209,71 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
                 </div>
               </div>
             </div>
-            <div className="flex flex-col items-start gap-1 flex-1">
+            <div className="flex flex-col items-center sm:items-start gap-1 flex-1 text-center sm:text-left">
               <div className="font-semibold text-muted-foreground text-xs leading-4">
                 Data not available
               </div>
               <div className="text-sm text-muted-foreground leading-relaxed">
                 {error}
               </div>
-              
-              {/* Authentication and sync trigger */}
-              {hasData === false && !syncStatus.error && (
-                <div className="flex flex-col items-start gap-2 pt-2 mt-2 border-t w-full">
-                  {!isLoggedIn ? (
-                    <>
-                      <p className="text-xs text-muted-foreground">
-                        Log in with GitHub to analyze this repository's contributor data.
-                      </p>
-                      <Button 
-                        onClick={login}
-                        variant="outline" 
-                        size="sm"
-                        className="flex items-center gap-1 h-7 px-2 text-xs"
-                      >
-                        <LogIn className="h-3 w-3" />
-                        Log in
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-xs text-muted-foreground">
-                        This repository hasn't been analyzed yet.
-                      </p>
-                      <Button 
-                        onClick={triggerSync}
-                        variant="outline" 
-                        size="sm"
-                        disabled={syncStatus.isTriggering || syncStatus.isInProgress}
-                        className="flex items-center gap-1 h-7 px-2 text-xs"
-                      >
-                        <Database className="h-3 w-3" />
-                        Analyze Repository
-                      </Button>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Sync error state */}
-              {syncStatus.error && (
-                <div className="flex flex-col items-start gap-2 pt-2 mt-2 border-t w-full">
-                  <p className="text-xs text-red-500">
-                    {syncStatus.error}
+            </div>
+          </div>
+          
+          {/* Authentication and sync trigger - always visible */}
+          {hasData === false && !syncStatus.error && (
+            <div className="flex flex-col items-center sm:items-start gap-2 pt-2 mt-2 border-t w-full">
+              {!isLoggedIn ? (
+                <>
+                  <p className="text-xs text-muted-foreground hidden sm:block">
+                    Log in with GitHub to analyze this repository's contributor data.
+                  </p>
+                  <Button 
+                    onClick={login}
+                    variant="outline" 
+                    size="sm"
+                    className="flex items-center gap-1 h-7 px-2 text-xs"
+                  >
+                    <LogIn className="h-3 w-3" />
+                    Log in
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-muted-foreground hidden sm:block">
+                    This repository hasn't been analyzed yet.
                   </p>
                   <Button 
                     onClick={triggerSync}
                     variant="outline" 
                     size="sm"
+                    disabled={syncStatus.isTriggering || syncStatus.isInProgress}
                     className="flex items-center gap-1 h-7 px-2 text-xs"
                   >
-                    <RefreshCw className="h-3 w-3" />
-                    Retry Analysis
+                    <Database className="h-3 w-3" />
+                    Analyze Repository
                   </Button>
-                </div>
+                </>
               )}
             </div>
-          </div>
+          )}
+
+          {/* Sync error state - always visible */}
+          {syncStatus.error && (
+            <div className="flex flex-col items-center sm:items-start gap-2 pt-2 mt-2 border-t w-full">
+              <p className="text-xs text-red-500 hidden sm:block">
+                {syncStatus.error}
+              </p>
+              <Button 
+                onClick={triggerSync}
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-1 h-7 px-2 text-xs"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Retry Analysis
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -296,7 +296,7 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
             <div className="ml-auto flex items-center gap-2">
               <button
                 onClick={() => setShowLearnMore(true)}
-                className="font-medium text-opensauced-orange text-xs whitespace-nowrap hover:underline"
+                className="font-medium text-opensauced-orange text-xs whitespace-nowrap hover:underline hidden sm:block"
               >
                 Learn More
               </button>
@@ -314,7 +314,7 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
           </div>
         </div>
 
-        <div className="flex items-start gap-4 w-full">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 w-full">
           <div className="relative w-[98px] h-[52px]">
             <div className="relative h-[98px] mb-[46px]">
               <div className="absolute w-[98px] h-[98px] top-0 left-0">
@@ -353,7 +353,7 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
             </div>
           </div>
 
-          <div className="flex flex-col items-start gap-1 flex-1">
+          <div className="flex flex-col items-center sm:items-start gap-1 flex-1 text-center sm:text-left">
             <div className="font-semibold text-muted-foreground text-xs leading-4 whitespace-nowrap">
               {confidence.title}
             </div>

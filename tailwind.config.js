@@ -31,6 +31,10 @@ export default {
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
+          white: 'hsl(0 0% 100%)',
+          'white-overlay': 'hsl(var(--background) / 0.8)',
+          'white-glass': 'hsl(0 0% 100% / 0.5)',
+          'white-glass-dark': 'hsl(220 13% 18% / 0.5)',
         },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
