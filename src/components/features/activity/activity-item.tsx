@@ -154,7 +154,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
               <span className="text-muted-foreground">{getActivityText()}</span>
               <a
                 href={pullRequest.url}
-                className="text-primary hover:underline"
+                className="text-orange-500 hover:underline"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -163,7 +163,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
               <span className="text-muted-foreground">in</span>
               <a
                 href={repository.url}
-                className="text-primary hover:underline truncate max-w-[200px] sm:max-w-none"
+                className="text-orange-500 hover:underline truncate max-w-[200px] sm:max-w-none"
                 target="_blank"
                 rel="noopener noreferrer"
                 title={`${repository.owner}/${repository.name}`}
