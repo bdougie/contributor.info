@@ -242,33 +242,63 @@ export function ShareableChartsPreview() {
       case "distribution-pie":
         return (
           <ShareableCapturePreview repository={repository}>
-            <LazyDistributionCharts
-              data={mockQuadrantData}
-              pullRequests={mockRepoStats.pullRequests}
-              chartType="donut"
-            />
+            <ShareableCard
+              title="Distribution Pie Chart"
+              contextInfo={{
+                repository: repository,
+                metric: "distribution pie chart"
+              }}
+              chartType="distribution-pie"
+              bypassAnalytics={true}
+            >
+              <LazyDistributionCharts
+                data={mockQuadrantData}
+                pullRequests={mockRepoStats.pullRequests}
+                chartType="donut"
+              />
+            </ShareableCard>
           </ShareableCapturePreview>
         );
 
       case "distribution-bar":
         return (
           <ShareableCapturePreview repository={repository}>
-            <LazyDistributionCharts
-              data={mockQuadrantData}
-              pullRequests={mockRepoStats.pullRequests}
-              chartType="bar"
-            />
+            <ShareableCard
+              title="Distribution Bar Chart"
+              contextInfo={{
+                repository: repository,
+                metric: "distribution bar chart"
+              }}
+              chartType="distribution-bar"
+              bypassAnalytics={true}
+            >
+              <LazyDistributionCharts
+                data={mockQuadrantData}
+                pullRequests={mockRepoStats.pullRequests}
+                chartType="bar"
+              />
+            </ShareableCard>
           </ShareableCapturePreview>
         );
 
       case "distribution-treemap":
         return (
           <ShareableCapturePreview repository={repository}>
-            <LazyDistributionCharts
-              data={mockQuadrantData}
-              pullRequests={mockRepoStats.pullRequests}
-              chartType="treemap"
-            />
+            <ShareableCard
+              title="Distribution Treemap"
+              contextInfo={{
+                repository: repository,
+                metric: "distribution treemap"
+              }}
+              chartType="distribution-treemap"
+              bypassAnalytics={true}
+            >
+              <LazyDistributionCharts
+                data={mockQuadrantData}
+                pullRequests={mockRepoStats.pullRequests}
+                chartType="treemap"
+              />
+            </ShareableCard>
           </ShareableCapturePreview>
         );
 
@@ -327,9 +357,9 @@ export function ShareableChartsPreview() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Capture Preview</CardTitle>
+          <CardTitle>Chart Preview</CardTitle>
           <p className="text-sm text-muted-foreground">
-            This shows exactly what will be captured when sharing/downloading - white background with orange border and black attribution header
+            Preview of shareable charts with attribution bar - matching main page appearance (orange border only appears during capture)
           </p>
         </CardHeader>
         <CardContent className="min-h-[400px] p-8 bg-muted/50">

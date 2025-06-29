@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode } from "react";
 
 interface ShareableCapturePreviewProps {
   children: ReactNode;
@@ -6,180 +6,42 @@ interface ShareableCapturePreviewProps {
 }
 
 export function ShareableCapturePreview({ children, repository = "test-org/awesome-project" }: ShareableCapturePreviewProps) {
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Force light mode styles on all elements within the capture preview
-    if (contentRef.current) {
-      const forceLight = (element: Element) => {
-        // Remove dark class and add light class
-        element.classList.remove('dark');
-        if (element.classList.contains('bg-background') || 
-            element.classList.contains('bg-card')) {
-          element.classList.add('!bg-white');
-        }
-        if (element.classList.contains('text-foreground') || 
-            element.classList.contains('text-card-foreground')) {
-          element.classList.add('!text-gray-900');
-        }
-        
-        // Process all children
-        Array.from(element.children).forEach(child => forceLight(child));
-      };
-      
-      forceLight(contentRef.current);
-      
-      // Use MutationObserver to handle dynamically added content
-      const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-              forceLight(node as Element);
-            }
-          });
-        });
-      });
-      
-      observer.observe(contentRef.current, { childList: true, subtree: true });
-      
-      return () => observer.disconnect();
-    }
-  }, [children]);
   return (
     <div className="flex justify-center">
-      {/* Wrapper with orange border matching ShareableCard capture */}
+      {/* Clean card layout for capture preview */}
       <div 
-        className="overflow-hidden"
+        className="overflow-hidden shadow-lg bg-background border border-gray-200 dark:border-gray-700"
         style={{
-          border: "10px solid #f97316",
-          borderRadius: "36px",
+          borderRadius: "12px",
           maxWidth: "540px",
           minWidth: "540px",
-          width: "540px",
-          backgroundColor: "white"
+          width: "540px"
         }}
       >
-        {/* Black attribution header */}
+        {/* Attribution header - white background with black text for capture compatibility */}
         <div 
+          className="h-[60px] bg-white text-black flex items-center justify-between px-5"
           style={{
-            height: "60px",
-            backgroundColor: "#202020",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 20px",
-            fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-            color: "white"
+            fontFamily: "'Inter', system-ui, -apple-system, sans-serif"
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <div 
-              style={{
-                width: "24px",
-                height: "24px",
-                backgroundColor: "#404040",
-                borderRadius: "4px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}
-            >
-              <span style={{ fontSize: "12px" }}>📊</span>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center">
+              <span className="text-xs">📊</span>
             </div>
-            <span style={{ fontSize: "16px", fontWeight: "bold", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "280px" }}>
+            <span className="text-base font-bold truncate max-w-[280px]">
               {repository}
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-            <span style={{ fontSize: "14px", fontWeight: 500 }}>contributor.info</span>
-            <span style={{ fontSize: "18px", marginLeft: "4px" }}>🌱</span>
+          <div className="flex items-center flex-shrink-0">
+            <span className="text-sm font-medium">contributor.info</span>
+            <span className="text-lg ml-1">🌱</span>
           </div>
         </div>
         
-        {/* Content area with white background and forced light mode */}
-        <div 
-          style={{
-            padding: "20px",
-            backgroundColor: "white",
-            minHeight: "300px",
-            colorScheme: "light"
-          }}
-        >
-          {/* Force light theme for all children */}
-          <div 
-            ref={contentRef}
-            className="light-theme-override"
-            style={{ 
-              backgroundColor: "white",
-              color: "#111827"
-            }}
-          >
-            <style dangerouslySetInnerHTML={{ __html: `
-              .light-theme-override * {
-                color-scheme: light !important;
-                -webkit-font-smoothing: antialiased !important;
-                -moz-osx-font-smoothing: grayscale !important;
-                text-rendering: optimizeLegibility !important;
-              }
-              .light-theme-override .bg-background,
-              .light-theme-override .bg-card,
-              .light-theme-override .dark\\:bg-background,
-              .light-theme-override .dark\\:bg-card {
-                background-color: white !important;
-              }
-              .light-theme-override .text-foreground,
-              .light-theme-override .text-card-foreground,
-              .light-theme-override .dark\\:text-foreground,
-              .light-theme-override .dark\\:text-card-foreground {
-                color: #111827 !important;
-              }
-              .light-theme-override .border,
-              .light-theme-override .dark\\:border {
-                border-color: #e5e7eb !important;
-              }
-              .light-theme-override .bg-muted,
-              .light-theme-override .dark\\:bg-muted {
-                background-color: #f9fafb !important;
-              }
-              .light-theme-override .text-muted-foreground,
-              .light-theme-override .dark\\:text-muted-foreground {
-                color: #6b7280 !important;
-              }
-              .light-theme-override .bg-accent,
-              .light-theme-override .dark\\:bg-accent {
-                background-color: #f3f4f6 !important;
-              }
-              .light-theme-override svg {
-                color: currentColor !important;
-              }
-              /* Fix badge colors for light mode */
-              .light-theme-override .bg-red-100,
-              .light-theme-override .dark\\:bg-red-900\\/20 {
-                background-color: #fee2e2 !important;
-              }
-              .light-theme-override .text-red-700,
-              .light-theme-override .dark\\:text-red-400 {
-                color: #b91c1c !important;
-              }
-              .light-theme-override .bg-yellow-100,
-              .light-theme-override .dark\\:bg-yellow-900\\/20 {
-                background-color: #fef3c7 !important;
-              }
-              .light-theme-override .text-yellow-700,
-              .light-theme-override .dark\\:text-yellow-400 {
-                color: #b45309 !important;
-              }
-              .light-theme-override .bg-green-100,
-              .light-theme-override .dark\\:bg-green-900\\/20 {
-                background-color: #d1fae5 !important;
-              }
-              .light-theme-override .text-green-700,
-              .light-theme-override .dark\\:text-green-400 {
-                color: #15803d !important;
-              }
-            ` }} />
-            {children}
-          </div>
+        {/* Content area that adapts to theme */}
+        <div className="p-5 bg-background min-h-[300px]">
+          {children}
         </div>
       </div>
     </div>

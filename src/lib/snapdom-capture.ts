@@ -1,4 +1,5 @@
 import { snapdom } from '@zumer/snapdom';
+import html2canvas from 'html2canvas';
 
 export interface CaptureOptions {
   title: string;
@@ -32,29 +33,73 @@ export class SnapDOMCaptureService {
     element: HTMLElement,
     options: CaptureOptions
   ): Promise<CaptureResult> {
+    // Create a wrapper with attribution for the capture
+    const wrapper = this.createCaptureWrapperForElement(element, options);
+    
     // Store original element position for restoration
     const originalParent = element.parentNode;
     const originalNextSibling = element.nextSibling;
     
-    // Create a wrapper with attribution for the capture
-    const wrapper = this.createCaptureWrapperForElement(element, options);
-    
     try {
-      // Temporarily move the original element to our wrapper
+      // Get the content container from wrapper
       const contentContainer = wrapper.querySelector('[data-content-container]') as HTMLElement;
+      
+      // Move the original element to our wrapper (don't clone - it loses event handlers and chart data)
       contentContainer.appendChild(element);
       
       // Add wrapper to DOM temporarily for measurement and capture
       document.body.appendChild(wrapper);
       
+      // Force layout calculation before waiting
+      wrapper.offsetHeight;
+      
       // Wait for chart libraries and async rendering to complete
       await this.waitForChartRender(contentContainer);
       
-      // Debug: Check if wrapper has content
+      // Ensure visibility and proper dimensions
+      const wrapperRect = wrapper.getBoundingClientRect();
+      const elementRect = element.getBoundingClientRect();
+      
+      // Enhanced debugging to understand what SnapDOM sees
+      console.log('=== SnapDOM Capture Debug ===');
       console.log('Wrapper added to DOM:', wrapper);
       console.log('Wrapper dimensions:', wrapper.offsetWidth, 'x', wrapper.offsetHeight);
       console.log('Content container dimensions:', contentContainer.offsetWidth, 'x', contentContainer.offsetHeight);
       console.log('Element dimensions in wrapper:', element.offsetWidth, 'x', element.offsetHeight);
+      console.log('Wrapper rect:', wrapperRect);
+      console.log('Element rect:', elementRect);
+      
+      // Debug wrapper visibility and styles
+      const wrapperComputedStyle = window.getComputedStyle(wrapper);
+      console.log('Wrapper visibility:', wrapperComputedStyle.visibility);
+      console.log('Wrapper opacity:', wrapperComputedStyle.opacity);
+      console.log('Wrapper display:', wrapperComputedStyle.display);
+      console.log('Wrapper background:', wrapperComputedStyle.backgroundColor);
+      
+      // Debug element content
+      console.log('Element HTML (first 500 chars):', element.innerHTML.substring(0, 500));
+      console.log('Element class list:', Array.from(element.classList));
+      
+      // Debug child elements
+      const childElements = element.querySelectorAll('*');
+      console.log('Child elements count:', childElements.length);
+      
+      // Check for SVG and canvas elements specifically
+      const svgElements = element.querySelectorAll('svg');
+      const canvasElements = element.querySelectorAll('canvas');
+      console.log('SVG elements:', svgElements.length);
+      console.log('Canvas elements:', canvasElements.length);
+      
+      // Check if content is actually visible
+      if (svgElements.length > 0) {
+        const firstSvg = svgElements[0];
+        console.log('First SVG dimensions:', firstSvg.getBoundingClientRect());
+        console.log('First SVG viewBox:', firstSvg.getAttribute('viewBox'));
+      }
+      console.log('=== End Debug ===');
+      
+      // Test SnapDOM with simple content first
+      await this.testSnapDOMBasicCapture();
       
       // Try using SnapDOM's direct canvas method first (more reliable)
       let canvas: HTMLCanvasElement;
@@ -98,8 +143,8 @@ export class SnapDOMCaptureService {
         
         // Validate canvas content before proceeding
         if (this.isCanvasBlank(canvas)) {
-          console.error('Both SnapDOM methods produced blank canvas - capture failed');
-          throw new Error('SnapDOM capture produced blank content');
+          console.warn('Both SnapDOM methods produced blank canvas - trying html2canvas fallback');
+          throw new Error('SnapDOM capture produced blank content - trying fallback');
         }
         
         const snapBlob = await result.toBlob();
@@ -122,14 +167,29 @@ export class SnapDOMCaptureService {
         dataUrl,
         blob
       };
+    } catch (snapdomError) {
+      console.warn('SnapDOM capture failed entirely, falling back to html2canvas:', snapdomError);
+      
+      // Fallback to html2canvas
+      try {
+        const html2canvasResult = await this.captureWithHtml2Canvas(wrapper, options);
+        return html2canvasResult;
+      } catch (fallbackError) {
+        console.error('Both SnapDOM and html2canvas failed:', fallbackError);
+        throw new Error(`Capture failed: SnapDOM (${snapdomError instanceof Error ? snapdomError.message : String(snapdomError)}) and html2canvas (${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)})`);
+      }
     } finally {
       // Restore the original element to its original position
       try {
         if (originalParent) {
-          originalParent.insertBefore(element, originalNextSibling);
+          if (originalNextSibling) {
+            originalParent.insertBefore(element, originalNextSibling);
+          } else {
+            originalParent.appendChild(element);
+          }
         }
-      } catch (error) {
-        console.warn('Failed to restore original element:', error);
+      } catch (restoreError) {
+        console.warn('Failed to restore element position:', restoreError);
       }
       
       // Always clean up the wrapper
@@ -176,13 +236,13 @@ export class SnapDOMCaptureService {
       overflow: hidden;
       background: white;
       position: fixed;
-      top: -10000px;
-      left: -10000px;
+      top: 0;
+      left: -9999px;
       max-width: ${options.width || this.DEFAULT_WIDTH}px;
       min-width: ${options.width || this.DEFAULT_WIDTH}px;
       width: ${options.width || this.DEFAULT_WIDTH}px;
       margin: 0;
-      z-index: 10000;
+      z-index: 99999;
       pointer-events: none;
     `;
   }
@@ -194,13 +254,13 @@ export class SnapDOMCaptureService {
     const header = document.createElement('div');
     header.style.cssText = `
       height: ${this.HEADER_HEIGHT}px;
-      background-color: #202020;
+      background-color: white;
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 20px;
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      color: white;
+      color: black;
       position: relative;
       z-index: 1000;
     `;
@@ -228,7 +288,7 @@ export class SnapDOMCaptureService {
     iconContainer.style.cssText = `
       width: 24px;
       height: 24px;
-      background-color: #404040;
+      background-color: #e5e7eb;
       border-radius: 4px;
       display: flex;
       align-items: center;
@@ -243,7 +303,7 @@ export class SnapDOMCaptureService {
     // Repository name
     const repoName = document.createElement('span');
     repoName.style.cssText = `
-      color: white;
+      color: black;
       font-size: 16px;
       font-weight: bold;
       font-family: "Inter", system-ui, sans-serif;
@@ -302,87 +362,61 @@ export class SnapDOMCaptureService {
   }
 
   /**
-   * Applies light mode styles to ensure consistent appearance
-   * SnapDOM handles CSS better than html2canvas, so we need fewer overrides
+   * Applies minimal light mode styles to ensure consistent appearance
+   * Simplified to avoid conflicts with SnapDOM rendering
    */
   private static applyLightModeStyles(element: HTMLElement): void {
-    // Add a style element for light mode overrides
+    // Remove dark class if present
+    element.classList.remove('dark');
+    
+    // Add a style element with minimal, essential overrides only
     const styleElement = document.createElement('style');
     styleElement.textContent = `
-      .snapdom-light-override * {
+      /* Essential overrides for capture - minimal to avoid conflicts */
+      .snapdom-light-override {
         color-scheme: light !important;
-        -webkit-font-smoothing: antialiased !important;
-        -moz-osx-font-smoothing: grayscale !important;
-        text-rendering: optimizeLegibility !important;
-      }
-      
-      /* Background overrides */
-      .snapdom-light-override .bg-background,
-      .snapdom-light-override .bg-card,
-      .snapdom-light-override .dark\\:bg-background,
-      .snapdom-light-override .dark\\:bg-card {
         background-color: white !important;
       }
       
-      /* Text color overrides */
+      /* Ensure basic visibility */
+      .snapdom-light-override * {
+        visibility: visible !important;
+      }
+      
+      /* Basic color overrides for readability */
+      .snapdom-light-override .bg-background,
+      .snapdom-light-override .bg-card {
+        background-color: white !important;
+      }
+      
       .snapdom-light-override .text-foreground,
-      .snapdom-light-override .text-card-foreground,
-      .snapdom-light-override .dark\\:text-foreground,
-      .snapdom-light-override .dark\\:text-card-foreground {
+      .snapdom-light-override .text-card-foreground {
         color: #111827 !important;
       }
       
-      /* Border overrides */
-      .snapdom-light-override .border,
-      .snapdom-light-override .dark\\:border {
-        border-color: #e5e7eb !important;
+      /* Essential chart overrides */
+      .snapdom-light-override svg text {
+        fill: #374151 !important;
       }
       
-      /* Muted styles */
-      .snapdom-light-override .bg-muted,
-      .snapdom-light-override .dark\\:bg-muted {
-        background-color: #f9fafb !important;
-      }
-      .snapdom-light-override .text-muted-foreground,
-      .snapdom-light-override .dark\\:text-muted-foreground {
-        color: #6b7280 !important;
-      }
-      
-      /* Accent styles */
-      .snapdom-light-override .bg-accent,
-      .snapdom-light-override .dark\\:bg-accent {
-        background-color: #f3f4f6 !important;
-      }
-      
-      /* Badge color overrides */
-      .snapdom-light-override .bg-red-100,
-      .snapdom-light-override .dark\\:bg-red-900\\/20 {
-        background-color: #fee2e2 !important;
-      }
-      .snapdom-light-override .text-red-700,
-      .snapdom-light-override .dark\\:text-red-400 {
-        color: #b91c1c !important;
-      }
-      .snapdom-light-override .bg-yellow-100,
-      .snapdom-light-override .dark\\:bg-yellow-900\\/20 {
-        background-color: #fef3c7 !important;
-      }
-      .snapdom-light-override .text-yellow-700,
-      .snapdom-light-override .dark\\:text-yellow-400 {
-        color: #b45309 !important;
-      }
-      .snapdom-light-override .bg-green-100,
-      .snapdom-light-override .dark\\:bg-green-900\\/20 {
-        background-color: #d1fae5 !important;
-      }
-      .snapdom-light-override .text-green-700,
-      .snapdom-light-override .dark\\:text-green-400 {
-        color: #15803d !important;
+      .snapdom-light-override .recharts-text {
+        fill: #374151 !important;
       }
     `;
 
     element.appendChild(styleElement);
     element.classList.add('snapdom-light-override');
+    
+    // Remove dark classes from nested elements
+    const allElements = element.querySelectorAll('*');
+    allElements.forEach(el => {
+      if (el.classList.contains('dark')) {
+        el.classList.remove('dark');
+      }
+    });
+    
+    // Force layout recalculation
+    element.offsetHeight;
   }
 
   /**
@@ -401,11 +435,13 @@ export class SnapDOMCaptureService {
   }
 
   /**
-   * Waits for chart libraries and dynamic content to render completely
+   * Enhanced wait for chart libraries and dynamic content to render completely
    */
   private static async waitForChartRender(container: HTMLElement): Promise<void> {
-    // Initial wait for basic DOM updates
-    await new Promise(resolve => setTimeout(resolve, 200));
+    console.log('Starting enhanced chart render wait...');
+    
+    // Initial wait for DOM settling
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Wait for images to load
     const images = container.querySelectorAll('img');
@@ -431,17 +467,47 @@ export class SnapDOMCaptureService {
       await new Promise(resolve => setTimeout(resolve, 500));
     }
     
-    // Wait for any SVG elements (D3, Nivo charts)
+    // Enhanced wait for SVG elements (D3, Nivo, Recharts)
     const svgs = container.querySelectorAll('svg');
     if (svgs.length > 0) {
       console.log(`Found ${svgs.length} SVG elements, waiting for render...`);
-      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Wait for multiple animation frames
+      for (let i = 0; i < 3; i++) {
+        await new Promise(resolve => requestAnimationFrame(() => resolve(void 0)));
+      }
+      
+      // Base wait for SVG rendering
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Additional wait for complex charts
+      if (svgs.length > 5) {
+        console.log('Complex chart detected, additional wait...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      // Check for specific chart libraries and give them extra time
+      const hasRecharts = container.querySelector('.recharts-wrapper') !== null;
+      const hasNivo = container.querySelector('[class*="nivo"]') !== null;
+      
+      if (hasRecharts) {
+        console.log('Recharts detected, additional wait...');
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      
+      if (hasNivo) {
+        console.log('Nivo charts detected, additional wait...');
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
     }
     
-    // Final wait for any remaining async operations
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Final animation frame wait for smooth capture
+    await new Promise(resolve => requestAnimationFrame(() => resolve(void 0)));
     
-    console.log('Chart render wait complete');
+    // Additional safety wait
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    console.log('Enhanced chart render wait complete');
   }
 
   /**
@@ -542,6 +608,92 @@ export class SnapDOMCaptureService {
     } catch (error) {
       console.error('Failed to copy blob to clipboard:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Fallback capture method using html2canvas
+   */
+  private static async captureWithHtml2Canvas(
+    wrapper: HTMLElement,
+    _options: CaptureOptions
+  ): Promise<CaptureResult> {
+    console.log('Starting html2canvas fallback capture...');
+    
+    const canvas = await html2canvas(wrapper, {
+      useCORS: true,
+      allowTaint: false,
+      logging: false
+    });
+    
+    console.log('html2canvas result:', {
+      canvasSize: `${canvas.width}x${canvas.height}`,
+      isBlank: this.isCanvasBlank(canvas)
+    });
+    
+    if (this.isCanvasBlank(canvas)) {
+      throw new Error('html2canvas also produced blank content');
+    }
+    
+    const dataUrl = canvas.toDataURL('image/png');
+    const blob = await this.canvasToBlob(canvas);
+    
+    return {
+      canvas,
+      dataUrl,
+      blob
+    };
+  }
+
+  /**
+   * Test SnapDOM with simple content to verify it works at all
+   * Public method for debugging purposes
+   */
+  public static async testSnapDOMBasicCapture(): Promise<void> {
+    console.log('Testing SnapDOM with simple content...');
+    
+    const testElement = document.createElement('div');
+    testElement.style.cssText = `
+      width: 200px;
+      height: 100px;
+      background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: bold;
+      position: fixed;
+      top: 0;
+      left: -9999px;
+      z-index: 99999;
+    `;
+    testElement.textContent = 'TEST CONTENT';
+    
+    document.body.appendChild(testElement);
+    
+    try {
+      const testCanvas = await snapdom.toCanvas(testElement, {
+        scale: 1,
+        backgroundColor: 'white',
+        format: 'png'
+      });
+      
+      const isBlank = this.isCanvasBlank(testCanvas);
+      console.log('SnapDOM basic test result:', {
+        canvasSize: `${testCanvas.width}x${testCanvas.height}`,
+        isBlank: isBlank
+      });
+      
+      if (isBlank) {
+        console.error('SnapDOM fails even with simple content - possible library issue');
+      } else {
+        console.log('SnapDOM works with simple content - issue may be chart-specific');
+      }
+    } catch (error) {
+      console.error('SnapDOM basic test failed:', error);
+    } finally {
+      document.body.removeChild(testElement);
     }
   }
 }
