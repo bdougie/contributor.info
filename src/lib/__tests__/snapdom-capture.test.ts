@@ -108,7 +108,7 @@ describe('SnapDOMCaptureService', () => {
       expect.any(HTMLElement),
       expect.objectContaining({
         scale: 1,
-        backgroundColor: 'white',
+        backgroundColor: '#ffffff', // Theme-aware white color
         format: 'png',
         embedFonts: true,
         compress: false

@@ -21,8 +21,6 @@ export interface CaptureResult {
  */
 export class SnapDOMCaptureService {
   private static readonly DEFAULT_WIDTH = 540;
-  private static readonly BORDER_WIDTH = 10;
-  private static readonly BORDER_COLOR = '#f97316'; // Orange border
   private static readonly HEADER_HEIGHT = 60;
   private static readonly CONTENT_PADDING = 20;
 
@@ -101,6 +99,13 @@ export class SnapDOMCaptureService {
       // Test SnapDOM with simple content first
       await this.testSnapDOMBasicCapture();
       
+      // Detect current theme for background color
+      const isDarkMode = document.documentElement.classList.contains('dark') || 
+                         document.body.classList.contains('dark') ||
+                         (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      
+      const themeBackgroundColor = options.backgroundColor || (isDarkMode ? '#030712' : '#ffffff');
+      
       // Try using SnapDOM's direct canvas method first (more reliable)
       let canvas: HTMLCanvasElement;
       let blob: Blob;
@@ -109,7 +114,7 @@ export class SnapDOMCaptureService {
         // Use SnapDOM's direct canvas method
         canvas = await snapdom.toCanvas(wrapper, {
           scale: 1,
-          backgroundColor: options.backgroundColor || 'white',
+          backgroundColor: themeBackgroundColor,
           format: 'png',
           embedFonts: true,
           compress: false
@@ -133,7 +138,7 @@ export class SnapDOMCaptureService {
         // Fallback to result object method
         const result = await snapdom(wrapper, {
           scale: 1,
-          backgroundColor: options.backgroundColor || 'white',
+          backgroundColor: themeBackgroundColor,
           format: 'png',
           embedFonts: true,
           compress: false
@@ -218,8 +223,8 @@ export class SnapDOMCaptureService {
     const contentContainer = this.createContentContainer();
     contentContainer.setAttribute('data-content-container', 'true');
     
-    // Apply light mode styles to the content container
-    this.applyLightModeStyles(contentContainer);
+    // Apply theme-aware styles to the content container
+    this.applyThemeAwareStyles(contentContainer);
     
     wrapper.appendChild(contentContainer);
     
@@ -227,14 +232,23 @@ export class SnapDOMCaptureService {
   }
 
   /**
-   * Applies wrapper styles matching the existing ShareableCard design
+   * Applies wrapper styles matching the preview design (no orange border, theme-aware)
    */
   private static applyWrapperStyles(wrapper: HTMLDivElement, options: CaptureOptions): void {
+    // Detect current theme to match preview appearance
+    const isDarkMode = document.documentElement.classList.contains('dark') || 
+                       document.body.classList.contains('dark') ||
+                       (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    const backgroundColor = isDarkMode ? '#030712' : '#ffffff'; // bg-background equivalent
+    const borderColor = isDarkMode ? '#374151' : '#e5e7eb'; // border-gray-700 : border-gray-200
+    
     wrapper.style.cssText = `
-      border: ${this.BORDER_WIDTH}px solid ${this.BORDER_COLOR};
-      border-radius: 36px;
+      border: 1px solid ${borderColor};
+      border-radius: 12px;
       overflow: hidden;
-      background: white;
+      background: ${backgroundColor};
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
       position: fixed;
       top: 0;
       left: -9999px;
@@ -373,73 +387,70 @@ export class SnapDOMCaptureService {
   }
 
   /**
-   * Creates the content container
+   * Creates the content container with theme-aware styling
    */
   private static createContentContainer(): HTMLDivElement {
     const contentContainer = document.createElement('div');
+    
+    // Detect current theme to match preview appearance
+    const isDarkMode = document.documentElement.classList.contains('dark') || 
+                       document.body.classList.contains('dark') ||
+                       (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    const backgroundColor = isDarkMode ? '#030712' : '#ffffff'; // bg-background equivalent
+    const colorScheme = isDarkMode ? 'dark' : 'light';
+    
     contentContainer.style.cssText = `
       padding: ${this.CONTENT_PADDING}px;
-      background: white;
+      background: ${backgroundColor};
       min-height: 300px;
-      color-scheme: light;
+      color-scheme: ${colorScheme};
     `;
 
     return contentContainer;
   }
 
   /**
-   * Applies minimal light mode styles to ensure consistent appearance
+   * Applies theme-aware styles to preserve current theme appearance
    * Simplified to avoid conflicts with SnapDOM rendering
    */
-  private static applyLightModeStyles(element: HTMLElement): void {
-    // Remove dark class if present
-    element.classList.remove('dark');
+  private static applyThemeAwareStyles(element: HTMLElement): void {
+    // Detect current theme
+    const isDarkMode = document.documentElement.classList.contains('dark') || 
+                       document.body.classList.contains('dark') ||
+                       (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     
-    // Add a style element with minimal, essential overrides only
+    // Add theme class to preserve current theme
+    if (isDarkMode) {
+      element.classList.add('dark');
+    } else {
+      element.classList.remove('dark');
+    }
+    
+    // Add a style element with minimal overrides to ensure visibility
     const styleElement = document.createElement('style');
     styleElement.textContent = `
-      /* Essential overrides for capture - minimal to avoid conflicts */
-      .snapdom-light-override {
-        color-scheme: light !important;
-        background-color: white !important;
-      }
-      
-      /* Ensure basic visibility */
-      .snapdom-light-override * {
+      /* Ensure basic visibility and proper rendering */
+      .snapdom-theme-preserve {
         visibility: visible !important;
       }
       
-      /* Basic color overrides for readability */
-      .snapdom-light-override .bg-background,
-      .snapdom-light-override .bg-card {
-        background-color: white !important;
+      .snapdom-theme-preserve * {
+        visibility: visible !important;
       }
       
-      .snapdom-light-override .text-foreground,
-      .snapdom-light-override .text-card-foreground {
-        color: #111827 !important;
+      /* Ensure charts render properly in both themes */
+      .snapdom-theme-preserve svg text {
+        visibility: visible !important;
       }
       
-      /* Essential chart overrides */
-      .snapdom-light-override svg text {
-        fill: #374151 !important;
-      }
-      
-      .snapdom-light-override .recharts-text {
-        fill: #374151 !important;
+      .snapdom-theme-preserve .recharts-text {
+        visibility: visible !important;
       }
     `;
 
     element.appendChild(styleElement);
-    element.classList.add('snapdom-light-override');
-    
-    // Remove dark classes from nested elements
-    const allElements = element.querySelectorAll('*');
-    allElements.forEach(el => {
-      if (el.classList.contains('dark')) {
-        el.classList.remove('dark');
-      }
-    });
+    element.classList.add('snapdom-theme-preserve');
     
     // Force layout recalculation
     element.offsetHeight;
