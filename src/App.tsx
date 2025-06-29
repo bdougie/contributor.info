@@ -18,6 +18,7 @@ const DebugMenu = lazy(() => import("@/components/features/debug/debug-menu").th
 const ChangelogPage = lazy(() => import("@/components/features/changelog/changelog-page").then(m => ({ default: m.ChangelogPage })));
 const DocsPage = lazy(() => import("@/components/features/docs/docs-page").then(m => ({ default: m.DocsPage })));
 const FeedPage = lazy(() => import("@/components/features/feed/feed-page"));
+const SpamFeedPage = lazy(() => import("@/components/features/feed/spam-feed-page"));
 const CardLayout = lazy(() => import("@/components/social-cards/card-layout"));
 const HomeSocialCardWithData = lazy(() => import("@/components/social-cards/home-card-with-data"));
 const RepoCardLayout = lazy(() => import("@/components/social-cards/repo-card-layout"));
@@ -255,6 +256,11 @@ function App() {
                 <Route path="health" element={<LotteryFactorRoute />} />
                 <Route path="distribution" element={<DistributionRoute />} />
                 <Route path="feed" element={<FeedPage />} />
+                <Route path="feed/spam" element={
+                  <ProtectedRoute>
+                    <SpamFeedPage />
+                  </ProtectedRoute>
+                } />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Route>

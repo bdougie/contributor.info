@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Database, Github } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Database, GitBranch } from 'lucide-react';
 import {
   ToggleGroup,
   ToggleGroupItem,
@@ -20,18 +21,33 @@ interface FeedSourceToggleProps {
 }
 
 export function FeedSourceToggle({ value, onChange, className }: FeedSourceToggleProps) {
+  const { owner, repo } = useParams<{ owner: string; repo: string }>();
+  const navigate = useNavigate();
+
+  const handleSpamClick = () => {
+    if (owner && repo) {
+      navigate(`/${owner}/${repo}/feed/spam`);
+    }
+  };
+
   return (
     <TooltipProvider>
       <ToggleGroup
         type="single"
         value={value}
-        onValueChange={(newValue) => newValue && onChange(newValue as FeedSource)}
+        onValueChange={(newValue) => {
+          if (newValue === 'database') {
+            handleSpamClick();
+          } else if (newValue) {
+            onChange(newValue as FeedSource);
+          }
+        }}
         className={className}
       >
         <Tooltip>
           <TooltipTrigger asChild>
             <ToggleGroupItem value="github" aria-label="Use GitHub API">
-              <Github className="h-4 w-4 mr-2" />
+              <GitBranch className="h-4 w-4 mr-2" />
               Live
             </ToggleGroupItem>
           </TooltipTrigger>
@@ -43,14 +59,14 @@ export function FeedSourceToggle({ value, onChange, className }: FeedSourceToggl
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <ToggleGroupItem value="database" aria-label="Use cached database">
+            <ToggleGroupItem value="database" aria-label="Go to spam analysis page">
               <Database className="h-4 w-4 mr-2" />
               Spam
             </ToggleGroupItem>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Use cached data with spam detection</p>
-            <p className="text-xs text-muted-foreground">May be slightly delayed but includes filtering</p>
+            <p>Advanced spam detection and analysis</p>
+            <p className="text-xs text-muted-foreground">Requires authentication • Navigate to dedicated spam page</p>
           </TooltipContent>
         </Tooltip>
       </ToggleGroup>
