@@ -22,7 +22,7 @@ import { convertDatabasePRsToActivities, sortActivitiesByTimestamp } from "@/lib
 
 export default function FilteredPRActivity() {
   const { owner, repo: repoName } = useParams<{ owner: string; repo: string }>();
-  const { includeBots, includeSpam, setIncludeBots, setIncludeSpam } = usePRActivityStore();
+  const { includeBots, setIncludeBots } = usePRActivityStore();
   const [visibleCount, setVisibleCount] = useState(15);
 
   const {
@@ -40,10 +40,9 @@ export default function FilteredPRActivity() {
     return sortActivitiesByTimestamp(converted);
   }, [pullRequests]);
 
-  // Filter by bot status and spam status
+  // Filter by bot status only (spam filtering is handled by SpamFilterControls)
   const filteredActivities = activities.filter(
-    (activity) => (includeBots || !activity.user.isBot) && 
-                  (includeSpam || !activity.metadata?.isSpam)
+    (activity) => (includeBots || !activity.user.isBot)
   );
 
   const visibleActivities = filteredActivities.slice(0, visibleCount);
@@ -87,7 +86,6 @@ export default function FilteredPRActivity() {
   }
 
   const hasBots = activities.some((activity) => activity.user.isBot);
-  const hasSpam = activities.some((activity) => activity.metadata?.isSpam);
 
   return (
     <Card>
@@ -121,8 +119,8 @@ export default function FilteredPRActivity() {
         </Alert>
 
         {/* Filter toggles */}
-        <div className="flex flex-wrap gap-4 mb-4">
-          {hasBots && (
+        {hasBots && (
+          <div className="flex flex-wrap gap-4 mb-4">
             <div className="flex items-center space-x-2">
               <Switch
                 id="filter-bots"
@@ -133,21 +131,8 @@ export default function FilteredPRActivity() {
                 Show Bots
               </Label>
             </div>
-          )}
-          
-          {hasSpam && (
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="filter-spam"
-                checked={includeSpam}
-                onCheckedChange={setIncludeSpam}
-              />
-              <Label htmlFor="filter-spam" className="text-sm">
-                Show Spam
-              </Label>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="mb-2 text-sm text-muted-foreground flex items-center gap-2">
           <span>Showing {visibleActivities.length} of {filteredActivities.length} activities</span>

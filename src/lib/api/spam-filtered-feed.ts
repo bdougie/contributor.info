@@ -9,13 +9,12 @@ type PullRequestWithAuthor = Database['public']['Tables']['pull_requests']['Row'
 export interface SpamFilterOptions {
   maxSpamScore?: number;      // Maximum spam score to include (0-100)
   minSpamScore?: number;      // Minimum spam score to include (0-100)
-  includeSpam?: boolean;       // Include PRs marked as spam
+  includeSpam?: boolean;       // Include PRs marked as spam (deprecated - now always true)
   includeUnreviewed?: boolean; // Include PRs not yet analyzed
 }
 
 export const DEFAULT_SPAM_FILTER: SpamFilterOptions = {
   maxSpamScore: 100,         // Show all PRs (will be sorted by score)
-  includeSpam: true,         // Include definite spam (we want to see it first)
   includeUnreviewed: true,   // Show PRs not yet analyzed
 };
 
@@ -43,6 +42,7 @@ export async function fetchFilteredPullRequests(
       `)
       .eq('repository.owner', owner)
       .eq('repository.name', repo)
+      .order('spam_score', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(fetchLimit);
 
@@ -57,25 +57,15 @@ export async function fetchFilteredPullRequests(
 
     // Apply client-side filtering
     let filtered = data.filter(pr => {
-      // Skip PRs with 0% spam score unless they're actually legitimate
-      const spamScore = pr.spam_score || 0;
+      // Treat both null and 0 spam scores as unanalyzed
+      const isUnanalyzed = pr.spam_score === null || pr.spam_score === 0;
       
-      // If spam score is exactly 0 and hasn't been properly analyzed, skip it
-      // We want to show PRs that have been analyzed, even if they got 0%
-      if (spamScore === 0 && !pr.is_spam && pr.spam_score === null) {
+      if (isUnanalyzed) {
         return options.includeUnreviewed !== false;
-      }
-
-      // Apply spam status filter
-      if (!options.includeSpam && pr.is_spam) {
-        return false;
       }
 
       // Apply spam score filter
       if (options.maxSpamScore !== undefined && options.maxSpamScore < 100) {
-        if (pr.spam_score === null) {
-          return options.includeUnreviewed !== false;
-        }
         return pr.spam_score <= options.maxSpamScore;
       }
 
@@ -132,8 +122,8 @@ export async function getRepositorySpamStats(owner: string, repo: string) {
       };
     }
 
-    // Filter only analyzed PRs for statistics
-    const stats = allPRs.filter(pr => pr.spam_score !== null);
+    // Filter only analyzed PRs for statistics (exclude both null and 0 scores)
+    const stats = allPRs.filter(pr => pr.spam_score !== null && pr.spam_score !== 0);
 
     if (!stats || stats.length === 0) {
       return {

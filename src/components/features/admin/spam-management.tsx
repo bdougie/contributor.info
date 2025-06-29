@@ -53,7 +53,7 @@ interface SpamDetection {
     };
   };
   contributors?: {
-    github_username: string;
+    username: string;
     avatar_url?: string;
   };
 }
@@ -88,7 +88,7 @@ export function SpamManagement() {
             )
           ),
           contributors (
-            github_username,
+            username,
             avatar_url
           )
         `)
@@ -132,7 +132,7 @@ export function SpamManagement() {
         detection.id,
         {
           pr_id: detection.pr_id,
-          contributor_username: detection.contributors?.github_username,
+          contributor_username: detection.contributors?.username,
           old_status: detection.status,
           new_status: newStatus,
           spam_score: detection.spam_score
@@ -159,7 +159,7 @@ export function SpamManagement() {
   // Filter detections based on search and filter criteria
   const filteredDetections = detections.filter(detection => {
     const matchesSearch = 
-      detection.contributors?.github_username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      detection.contributors?.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       detection.pull_requests?.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       detection.pull_requests?.repository?.full_name.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -354,19 +354,19 @@ export function SpamManagement() {
                         <Avatar className="h-8 w-8">
                           <AvatarImage 
                             src={detection.contributors?.avatar_url} 
-                            alt={detection.contributors?.github_username} 
+                            alt={detection.contributors?.username} 
                           />
                           <AvatarFallback>
-                            {detection.contributors?.github_username.slice(0, 2).toUpperCase()}
+                            {detection.contributors?.username.slice(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-medium">
-                              {detection.contributors?.github_username}
+                              {detection.contributors?.username}
                             </span>
                             <Link 
-                              to={`https://github.com/${detection.contributors?.github_username}`}
+                              to={`https://github.com/${detection.contributors?.username}`}
                               target="_blank"
                               rel="noopener noreferrer"
                             >

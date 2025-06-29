@@ -49,7 +49,6 @@ export function SpamFilterControls({
     return (
       preset.options.maxSpamScore === filterOptions.maxSpamScore &&
       preset.options.minSpamScore === filterOptions.minSpamScore &&
-      preset.options.includeSpam === filterOptions.includeSpam &&
       preset.options.includeUnreviewed === filterOptions.includeUnreviewed
     );
   })?.[1];
@@ -192,22 +191,6 @@ export function SpamFilterControls({
               </div>
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="include-spam">Include Spam</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Show PRs marked as definite spam
-                    </p>
-                  </div>
-                  <Switch
-                    id="include-spam"
-                    checked={filterOptions.includeSpam || false}
-                    onCheckedChange={(checked) =>
-                      onFilterChange({ ...filterOptions, includeSpam: checked })
-                    }
-                  />
-                </div>
-
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="include-unreviewed">Include Unanalyzed</Label>

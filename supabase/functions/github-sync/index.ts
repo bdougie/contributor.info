@@ -183,6 +183,48 @@ async function processPullRequestData(
   pr: any,
   repositoryId: string
 ) {
+  try {
+    // Fetch detailed PR data to get additions, deletions, and changed_files
+    // The /pulls endpoint doesn't include these stats, we need the individual PR endpoint
+    const github_token = Deno.env.get('GITHUB_TOKEN')
+    if (!github_token) {
+      console.error('[GitHub Sync] GITHUB_TOKEN not found')
+      return
+    }
+    
+    const detailedResponse = await fetch(`https://api.github.com/repos/${pr.base.repo.owner.login}/${pr.base.repo.name}/pulls/${pr.number}`, {
+      headers: {
+        'Authorization': `token ${github_token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    })
+    
+    if (detailedResponse.ok) {
+      const detailedPR = await detailedResponse.json()
+      // Merge the detailed stats into the original PR object
+      pr.additions = detailedPR.additions || 0
+      pr.deletions = detailedPR.deletions || 0
+      pr.changed_files = detailedPR.changed_files || 0
+      pr.commits = detailedPR.commits || 0
+      
+      console.log(`[GitHub Sync] Enhanced PR #${pr.number} with stats: +${pr.additions}/-${pr.deletions}, ${pr.changed_files} files`)
+    } else {
+      console.warn(`[GitHub Sync] Failed to fetch detailed PR data for #${pr.number}: ${detailedResponse.status}`)
+      // Set defaults if we can't fetch detailed data
+      pr.additions = 0
+      pr.deletions = 0
+      pr.changed_files = 0
+      pr.commits = 0
+    }
+  } catch (error) {
+    console.error(`[GitHub Sync] Error fetching detailed PR data for #${pr.number}:`, error)
+    // Set defaults on error
+    pr.additions = 0
+    pr.deletions = 0
+    pr.changed_files = 0
+    pr.commits = 0
+  }
+  
   // Use the spam detection version (will use singleton internally)
   const result = await processPRWithSpamDetection(supabase, pr, repositoryId);
   
@@ -200,6 +242,45 @@ async function processPullRequestEvent(
   repo: string
 ) {
   const pr = event.payload.pull_request
+  
+  try {
+    // Fetch detailed PR data to get additions, deletions, and changed_files
+    // Event payloads don't include these stats, we need the individual PR endpoint
+    const github_token = Deno.env.get('GITHUB_TOKEN')
+    if (github_token) {
+      const detailedResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pr.number}`, {
+        headers: {
+          'Authorization': `token ${github_token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      })
+      
+      if (detailedResponse.ok) {
+        const detailedPR = await detailedResponse.json()
+        // Merge the detailed stats into the original PR object
+        pr.additions = detailedPR.additions || 0
+        pr.deletions = detailedPR.deletions || 0
+        pr.changed_files = detailedPR.changed_files || 0
+        pr.commits = detailedPR.commits || 0
+        
+        console.log(`[GitHub Sync] Enhanced PR event #${pr.number} with stats: +${pr.additions}/-${pr.deletions}, ${pr.changed_files} files`)
+      } else {
+        console.warn(`[GitHub Sync] Failed to fetch detailed PR data for event #${pr.number}: ${detailedResponse.status}`)
+        // Set defaults if we can't fetch detailed data
+        pr.additions = 0
+        pr.deletions = 0
+        pr.changed_files = 0
+        pr.commits = 0
+      }
+    }
+  } catch (error) {
+    console.error(`[GitHub Sync] Error fetching detailed PR data for event #${pr.number}:`, error)
+    // Set defaults on error
+    pr.additions = 0
+    pr.deletions = 0
+    pr.changed_files = 0
+    pr.commits = 0
+  }
   
   // Use the spam detection version (will use singleton internally)
   const result = await processPRWithSpamDetection(supabase, pr, repositoryId);

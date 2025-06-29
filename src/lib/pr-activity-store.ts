@@ -6,10 +6,8 @@ export type ActivityType = 'opened' | 'closed' | 'merged' | 'reviewed' | 'commen
 interface PRActivityState {
   selectedTypes: ActivityType[];
   includeBots: boolean;
-  includeSpam: boolean;
   setSelectedTypes: (types: ActivityType[]) => void;
   setIncludeBots: (include: boolean) => void;
-  setIncludeSpam: (include: boolean) => void;
   toggleActivityType: (type: ActivityType) => void;
 }
 
@@ -18,10 +16,8 @@ export const usePRActivityStore = create<PRActivityState>()(
     (set) => ({
       selectedTypes: ['opened', 'merged', 'commented'],
       includeBots: true,
-      includeSpam: false, // Default to hiding spam
       setSelectedTypes: (types) => set({ selectedTypes: types }),
       setIncludeBots: (include) => set({ includeBots: include }),
-      setIncludeSpam: (include) => set({ includeSpam: include }),
       toggleActivityType: (type) => set((state) => ({
         selectedTypes: state.selectedTypes.includes(type)
           ? state.selectedTypes.filter((t) => t !== type)

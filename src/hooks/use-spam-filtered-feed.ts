@@ -61,7 +61,7 @@ export function useSpamFilteredFeed(
     try {
       // Fetch all PRs and stats in parallel (don't filter server-side)
       const [prs, stats] = await Promise.all([
-        fetchFilteredPullRequests(owner, repo, { includeSpam: true, includeUnreviewed: true, maxSpamScore: 100 }, limit * 3),
+        fetchFilteredPullRequests(owner, repo, { includeUnreviewed: true, maxSpamScore: 100 }, limit * 3),
         getRepositorySpamStats(owner, repo)
       ]);
 
@@ -84,18 +84,15 @@ export function useSpamFilteredFeed(
   // Apply client-side filtering and sorting to the loaded data
   const pullRequests = useMemo(() => {
     let filtered = allPullRequests.filter(pr => {
-      // Skip PRs with null spam scores unless includeUnreviewed is true
-      if (pr.spam_score === null) {
+      // Treat both null and 0 spam scores as unanalyzed
+      const isUnanalyzed = pr.spam_score === null || pr.spam_score === 0;
+      
+      if (isUnanalyzed) {
         return filterOptions.includeUnreviewed !== false;
       }
 
-      // Apply spam status filter
-      if (!filterOptions.includeSpam && pr.is_spam) {
-        return false;
-      }
-
       // Apply spam score range filter
-      const spamScore = pr.spam_score;
+      const spamScore = pr.spam_score!; // We know it's not null/0 at this point
       if (filterOptions.minSpamScore !== undefined && spamScore < filterOptions.minSpamScore) {
         return false;
       }
@@ -108,18 +105,22 @@ export function useSpamFilteredFeed(
 
     // Sort by spam score descending (highest probability first), then by date
     filtered.sort((a, b) => {
-      // First, prioritize PRs with spam scores over those without
-      if (a.spam_score === null && b.spam_score !== null) return 1;
-      if (a.spam_score !== null && b.spam_score === null) return -1;
+      // Treat both null and 0 as unanalyzed
+      const aUnanalyzed = a.spam_score === null || a.spam_score === 0;
+      const bUnanalyzed = b.spam_score === null || b.spam_score === 0;
       
-      // If both have spam scores, sort by score descending (highest first)
-      if (a.spam_score !== null && b.spam_score !== null) {
+      // First, prioritize PRs with analyzed spam scores over unanalyzed ones
+      if (aUnanalyzed && !bUnanalyzed) return 1;
+      if (!aUnanalyzed && bUnanalyzed) return -1;
+      
+      // If both have analyzed spam scores, sort by score descending (highest first)
+      if (!aUnanalyzed && !bUnanalyzed) {
         if (a.spam_score !== b.spam_score) {
-          return b.spam_score - a.spam_score;
+          return b.spam_score! - a.spam_score!; // We know they're not null/0 at this point
         }
       }
       
-      // If spam scores are equal (or both null), sort by date descending (newest first)
+      // If spam scores are equal (or both unanalyzed), sort by date descending (newest first)
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
@@ -148,11 +149,10 @@ export function useSpamTolerancePresets() {
   const presets = {
     spam_first: {
       name: 'Spam First',
-      description: 'Show all PRs, highest spam scores first',
+      description: 'Show analyzed PRs only, highest spam scores first',
       options: {
         maxSpamScore: 100,
-        includeSpam: true,
-        includeUnreviewed: true,
+        includeUnreviewed: false,
       } as SpamFilterOptions,
     },
     likely_spam: {
@@ -161,7 +161,6 @@ export function useSpamTolerancePresets() {
       options: {
         minSpamScore: 50,
         maxSpamScore: 100,
-        includeSpam: true,
         includeUnreviewed: false,
       } as SpamFilterOptions,
     },
@@ -171,7 +170,6 @@ export function useSpamTolerancePresets() {
       options: {
         minSpamScore: 75,
         maxSpamScore: 100,
-        includeSpam: true,
         includeUnreviewed: false,
       } as SpamFilterOptions,
     },
@@ -180,7 +178,6 @@ export function useSpamTolerancePresets() {
       description: 'Show only legitimate PRs (0-25%)',
       options: {
         maxSpamScore: 25,
-        includeSpam: false,
         includeUnreviewed: false,
       } as SpamFilterOptions,
     },

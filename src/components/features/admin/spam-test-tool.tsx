@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Search, 
   AlertTriangle, 
@@ -47,8 +48,10 @@ export function SpamTestTool() {
   const [manualFeedback, setManualFeedback] = useState('');
   const [adminGuidance, setAdminGuidance] = useState<AdminGuidance[]>([]);
   const [templateSyncLoading, setTemplateSyncLoading] = useState(false);
+  const [markingSpam, setMarkingSpam] = useState(false);
   const adminGitHubId = useAdminGitHubId();
   const prTemplateService = new PRTemplateService();
+  const { toast } = useToast();
 
   const parsePRUrl = (url: string) => {
     const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/);
@@ -223,17 +226,32 @@ export function SpamTestTool() {
       }
 
       // First check if PR exists in our database
-      const { data: existingPR, error: dbError } = await supabase
-        .from('pull_requests')
-        .select(`
-          *,
-          repositories!pull_requests_repository_id_fkey(owner, name),
-          contributors!pull_requests_contributor_id_fkey(github_username)
-        `)
-        .eq('repositories.owner', owner)
-        .eq('repositories.name', repo)
-        .eq('number', prNumber)
+      // Get repository ID first since nested filtering doesn't work reliably
+      const { data: repositoryData, error: repoError } = await supabase
+        .from('repositories')
+        .select('id')
+        .eq('owner', owner)
+        .eq('name', repo)
         .single();
+
+      let existingPR = null;
+      let dbError = repoError;
+
+      if (repositoryData && !repoError) {
+        const { data: prData, error: prQueryError } = await supabase
+          .from('pull_requests')
+          .select(`
+            *,
+            repository:repositories(owner, name),
+            author:contributors!pull_requests_contributor_id_fkey(username)
+          `)
+          .eq('repository_id', repositoryData.id)
+          .eq('number', prNumber)
+          .single();
+        
+        existingPR = prData;
+        dbError = prQueryError;
+      }
 
       let prData = existingPR;
       let currentDbScore = existingPR?.spam_score;
@@ -264,15 +282,16 @@ export function SpamTestTool() {
           await new Promise(resolve => setTimeout(resolve, 2000));
 
           // Try to get the PR from database again
+          // Simplified query without foreign key syntax to avoid PostgREST issues
           const { data: newPR, error: newError } = await supabase
             .from('pull_requests')
             .select(`
               *,
-              repositories!pull_requests_repository_id_fkey(owner, name),
-              contributors!pull_requests_contributor_id_fkey(github_username)
+              repository:repositories(owner, name),
+              author:contributors(username)
             `)
-            .eq('repositories.owner', owner)
-            .eq('repositories.name', repo)
+            .eq('repository.owner', owner)
+            .eq('repository.name', repo)
             .eq('number', prNumber)
             .single();
 
@@ -300,11 +319,11 @@ export function SpamTestTool() {
                 body: githubPR.body || '',
                 number: githubPR.number,
                 html_url: githubPR.html_url,
-                contributor_id: `github-${githubPR.user.id}`,
-                contributors: {
-                  github_username: githubPR.user.login
+                author_id: `github-${githubPR.user.id}`,
+                author: {
+                  username: githubPR.user.login
                 },
-                repositories: {
+                repository: {
                   owner,
                   name: repo
                 },
@@ -353,11 +372,11 @@ export function SpamTestTool() {
               body: 'Unable to fetch PR description - analyzing with limited data',
               number: prNumber,
               html_url: prUrl,
-              contributor_id: 'mock-contributor',
-              contributors: {
-                github_username: 'unknown-user'
+              author_id: 'mock-contributor',
+              author: {
+                username: 'unknown-user'
               },
-              repositories: {
+              repository: {
                 owner,
                 name: repo
               },
@@ -384,12 +403,12 @@ export function SpamTestTool() {
         number: prData.number,
         html_url: prData.html_url,
         author: {
-          id: prData.contributor_id || 0,
-          login: prData.contributors?.github_username || 'unknown',
-          created_at: prData.contributors?.created_at || new Date().toISOString()
+          id: prData.author_id || 0,
+          login: prData.author?.username || 'unknown',
+          created_at: prData.author?.created_at || new Date().toISOString()
         },
         repository: {
-          full_name: `${prData.repositories?.owner}/${prData.repositories?.name}` || 'unknown/unknown'
+          full_name: `${prData.repository?.owner}/${prData.repository?.name}` || 'unknown/unknown'
         },
         created_at: prData.created_at,
         additions: prData.additions || 0,
@@ -425,44 +444,76 @@ export function SpamTestTool() {
         warnings
       });
 
+      // Show success toast for analysis completion
+      toast({
+        title: "Analysis Complete",
+        description: `PR #${prNumber} analyzed. Spam score: ${analysis.spam_score}%. Data source: ${dataSource.replace('_', ' ')}.`,
+        variant: "default"
+      });
+
     } catch (err) {
       console.error('Error analyzing PR:', err);
-      setError(err instanceof Error ? err.message : 'Failed to analyze PR');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to analyze PR';
+      setError(errorMessage);
+      
+      // Show error toast for analysis failure
+      toast({
+        title: "Analysis Failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const markAsSpam = async (isSpam: boolean) => {
-    if (!result || !adminGitHubId) return;
+    if (!result || !adminGitHubId) {
+      toast({
+        title: "Cannot mark spam",
+        description: "Missing PR data or admin authentication",
+        variant: "destructive"
+      });
+      return;
+    }
 
+    setMarkingSpam(true);
     try {
-      // Create spam detection record
-      const { error: insertError } = await supabase
-        .from('spam_detections')
-        .insert({
-          pr_id: result.pr.id,
-          contributor_id: result.pr.contributor_id,
-          spam_score: result.spamScore / 100, // Convert to 0-1 scale
-          status: isSpam ? 'confirmed' : 'false_positive',
-          admin_reviewed_by: adminGitHubId,
-          admin_reviewed_at: new Date().toISOString(),
-          detection_reasons: result.detectionReasons,
-          detected_at: new Date().toISOString()
-        });
+      // Only create spam detection record if we have real database IDs (not GitHub API fallback)
+      if (result.pr.id && !result.pr.id.toString().startsWith('github-') && !result.pr.id.toString().startsWith('mock-')) {
+        // Create spam detection record
+        const { error: insertError } = await supabase
+          .from('spam_detections')
+          .insert({
+            pr_id: result.pr.id,
+            contributor_id: result.pr.author_id,
+            spam_score: result.spamScore, // Keep 0-100 scale
+            status: isSpam ? 'confirmed' : 'false_positive',
+            admin_reviewed_by: adminGitHubId,
+            admin_reviewed_at: new Date().toISOString(),
+            detection_reasons: result.detectionReasons,
+            detected_at: new Date().toISOString()
+          });
 
-      if (insertError) {
-        throw insertError;
+        if (insertError) {
+          throw insertError;
+        }
       }
 
-      // Update PR spam score in database
-      await supabase
-        .from('pull_requests')
-        .update({
-          spam_score: isSpam ? Math.max(result.spamScore, 75) : Math.min(result.spamScore, 25),
-          is_spam: isSpam
-        })
-        .eq('id', result.pr.id);
+      // Update PR spam score in database (only for real database records)
+      if (result.pr.id && !result.pr.id.toString().startsWith('github-') && !result.pr.id.toString().startsWith('mock-')) {
+        const { error: updateError } = await supabase
+          .from('pull_requests')
+          .update({
+            spam_score: isSpam ? Math.max(result.spamScore, 75) : Math.min(result.spamScore, 25),
+            is_spam: isSpam
+          })
+          .eq('id', result.pr.id);
+
+        if (updateError) {
+          throw updateError;
+        }
+      }
 
       // Log admin action
       await logAdminAction(
@@ -478,12 +529,34 @@ export function SpamTestTool() {
         }
       );
 
-      setResult(prev => prev ? { ...prev, currentDbScore: isSpam ? Math.max(result.spamScore, 75) : Math.min(result.spamScore, 25) } : null);
+      // Update local state
+      const newScore = isSpam ? Math.max(result.spamScore, 75) : Math.min(result.spamScore, 25);
+      setResult(prev => prev ? { ...prev, currentDbScore: newScore } : null);
       setError(null);
+
+      // Show success toast
+      toast({
+        title: isSpam ? "Marked as Spam" : "Marked as Legitimate",
+        description: `PR #${result.pr.number} has been successfully classified. Spam score updated to ${newScore}%.`,
+        variant: "default"
+      });
+
+      // Clear feedback after successful submission
+      setManualFeedback('');
       
     } catch (err) {
       console.error('Error updating spam status:', err);
-      setError('Failed to update spam status');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update spam status';
+      setError(errorMessage);
+      
+      // Show error toast
+      toast({
+        title: "Failed to update spam status",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setMarkingSpam(false);
     }
   };
 
@@ -612,7 +685,7 @@ export function SpamTestTool() {
                 <div>
                   <h3 className="font-semibold">{result.pr.title}</h3>
                   <p className="text-sm text-muted-foreground">
-                    by {result.pr.contributors?.github_username} • PR #{result.pr.number}
+                    by {result.pr.author?.username || 'unknown'} • PR #{result.pr.number}
                   </p>
                 </div>
 
@@ -725,16 +798,26 @@ export function SpamTestTool() {
                   <Button
                     onClick={() => markAsSpam(true)}
                     variant="destructive"
+                    disabled={markingSpam}
                   >
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    Mark as Spam
+                    {markingSpam ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                    )}
+                    {markingSpam ? 'Marking...' : 'Mark as Spam'}
                   </Button>
                   <Button
                     onClick={() => markAsSpam(false)}
                     variant="default"
+                    disabled={markingSpam}
                   >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Mark as Legitimate
+                    {markingSpam ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                    )}
+                    {markingSpam ? 'Marking...' : 'Mark as Legitimate'}
                   </Button>
                 </div>
               </div>

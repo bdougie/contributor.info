@@ -157,16 +157,55 @@ export async function logAdminAction(
   details?: Record<string, any>
 ): Promise<void> {
   try {
-    await supabase.from('admin_action_logs').insert({
-      admin_user_id: adminGitHubId,
-      action_type: actionType,
-      target_type: targetType,
-      target_id: targetId,
-      details: details || {},
-      created_at: new Date().toISOString(),
+    // First try to use the RPC function
+    const { error: rpcError } = await supabase.rpc('log_admin_action', {
+      p_admin_github_id: adminGitHubId,
+      p_action_type: actionType,
+      p_target_type: targetType,
+      p_target_id: targetId,
+      p_details: details || {},
+      p_ip_address: null,
+      p_user_agent: null
     });
-  } catch (error) {
-    console.error('Failed to log admin action:', error);
-    // Don't throw - logging failure shouldn't break admin functionality
+
+    if (rpcError) {
+      throw rpcError;
+    }
+  } catch (error: any) {
+    console.warn('RPC log_admin_action failed, admin system may not be set up:', error?.message);
+    
+    // Fallback: Try direct insert (will work if admin_action_logs table exists)
+    try {
+      // First get the admin user UUID from GitHub ID
+      const { data: adminUser, error: userError } = await supabase
+        .from('app_users')
+        .select('id')
+        .eq('github_id', adminGitHubId)
+        .single();
+
+      if (userError || !adminUser) {
+        console.warn('Admin user not found in app_users table, skipping action log');
+        return;
+      }
+
+      // Direct insert to admin_action_logs
+      const { error: insertError } = await supabase
+        .from('admin_action_logs')
+        .insert({
+          admin_user_id: adminUser.id,
+          action_type: actionType,
+          target_type: targetType,
+          target_id: targetId,
+          details: details || {},
+          created_at: new Date().toISOString(),
+        });
+
+      if (insertError) {
+        throw insertError;
+      }
+    } catch (fallbackError) {
+      console.error('Failed to log admin action (both RPC and direct insert failed):', fallbackError);
+      // Don't throw - logging failure shouldn't break admin functionality
+    }
   }
 }
