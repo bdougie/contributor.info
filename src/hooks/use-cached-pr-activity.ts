@@ -203,7 +203,7 @@ function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
 
   // Sort activities by date, newest first
   return processedActivities.sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    (a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)
   );
 }
 

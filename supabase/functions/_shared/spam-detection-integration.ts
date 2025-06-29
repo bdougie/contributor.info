@@ -166,7 +166,7 @@ export async function batchProcessPRsForSpam(
         changed_files,
         created_at,
         html_url,
-        author:contributors(
+        author:contributors!fk_pull_requests_author(
           id,
           github_id,
           username,

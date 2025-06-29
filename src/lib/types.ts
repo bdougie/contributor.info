@@ -129,14 +129,40 @@ export interface PullRequestActivity {
   type: ActivityType;
   user: User;
   pullRequest: {
-    id: string;
+    id: string | number;
     number: number;
     title: string;
+    body?: string;
+    state?: string;
+    draft?: boolean;
+    merged?: boolean;
+    mergeable?: boolean | null;
     url: string;
+    additions?: number;
+    deletions?: number;
+    changedFiles?: number;
+    commits?: number;
+    createdAt?: string;
+    updatedAt?: string;
+    closedAt?: string | null;
+    mergedAt?: string | null;
+    // Spam detection fields
+    spamScore?: number | null;
+    isSpam?: boolean;
+    spamFlags?: any;
   };
-  repository: Repository;
+  repository: Repository & {
+    fullName?: string;
+    private?: boolean;
+  };
   timestamp: string;
-  createdAt: Date;
+  createdAt?: Date;
+  // Additional metadata for spam detection
+  metadata?: {
+    spamScore?: number | null;
+    isSpam?: boolean;
+    spamDetectedAt?: string | null;
+  };
 }
 
 // Add TimeRange type for use in hooks

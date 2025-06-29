@@ -71,7 +71,7 @@ serve(async (req) => {
           created_at,
           html_url,
           spam_score,
-          author:contributors(
+          author:contributors!fk_pull_requests_author(
             id,
             github_id,
             username,
