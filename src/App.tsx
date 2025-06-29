@@ -60,86 +60,6 @@ function App() {
         <Suspense fallback={<PageSkeleton />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route
-              path="/dev"
-              element={
-                <ProtectedRoute>
-                  <DebugMenu />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dev/test-insights"
-              element={
-                <ProtectedRoute>
-                  <TestInsights />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dev/debug-auth"
-              element={
-                <ProtectedRoute>
-                  <DebugAuthPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dev/social-cards"
-              element={
-                <ProtectedRoute>
-                  <SocialCardPreview />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dev/sync-test"
-              element={
-                <ProtectedRoute>
-                  <GitHubSyncDebug />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dev/performance-monitoring"
-              element={
-                <ProtectedRoute>
-                  <PerformanceMonitoringDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dev/analytics"
-              element={
-                <ProtectedRoute>
-                  <AnalyticsDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dev/shareable-charts"
-              element={
-                <ProtectedRoute>
-                  <ShareableChartsPreview />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dev/dub-test"
-              element={
-                <ProtectedRoute>
-                  <DubTest />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dev/bulk-add-repos"
-              element={
-                <ProtectedRoute>
-                  <BulkAddRepos />
-                </ProtectedRoute>
-              }
-            />
 
             {/* Social card routes */}
             <Route
@@ -172,6 +92,89 @@ function App() {
               <Route index element={<Home />} />
               <Route path="/changelog" element={<ChangelogPage />} />
               <Route path="/docs" element={<DocsPage />} />
+              
+              {/* Debug routes with Layout */}
+              <Route
+                path="/dev"
+                element={
+                  <ProtectedRoute>
+                    <DebugMenu />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dev/test-insights"
+                element={
+                  <ProtectedRoute>
+                    <TestInsights />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dev/debug-auth"
+                element={
+                  <ProtectedRoute>
+                    <DebugAuthPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dev/social-cards"
+                element={
+                  <ProtectedRoute>
+                    <SocialCardPreview />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dev/sync-test"
+                element={
+                  <ProtectedRoute>
+                    <GitHubSyncDebug />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dev/performance-monitoring"
+                element={
+                  <ProtectedRoute>
+                    <PerformanceMonitoringDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dev/analytics"
+                element={
+                  <ProtectedRoute>
+                    <AnalyticsDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dev/shareable-charts"
+                element={
+                  <ProtectedRoute>
+                    <ShareableChartsPreview />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dev/dub-test"
+                element={
+                  <ProtectedRoute>
+                    <DubTest />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dev/bulk-add-repos"
+                element={
+                  <ProtectedRoute>
+                    <BulkAddRepos />
+                  </ProtectedRoute>
+                }
+              />
+              
               <Route path="/:owner/:repo" element={<RepoView />}>
                 <Route path="" element={<ContributionsRoute />} />
                 <Route path="activity" element={<ContributionsRoute />} />
