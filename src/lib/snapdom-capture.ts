@@ -1,4 +1,13 @@
 import { snapdom } from '@zumer/snapdom';
+
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 import html2canvas from 'html2canvas';
 
 export interface CaptureOptions {
@@ -373,7 +382,7 @@ export class SnapDOMCaptureService {
             font-weight: bold;
             font-family: 'Inter', system-ui, sans-serif;
           ">
-            ${owner.slice(0, 2).toUpperCase()}
+            ${escapeHtml(owner.slice(0, 2).toUpperCase())}
           </div>
         `;
       };
