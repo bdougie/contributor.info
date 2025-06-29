@@ -1,6 +1,5 @@
 import { snapdom } from '@zumer/snapdom';
 import html2canvas from 'html2canvas';
-import { getRepositoryOwnerAvatarUrl } from '@/lib/utils/image-optimization';
 
 export interface CaptureOptions {
   title: string;
@@ -24,6 +23,13 @@ export class SnapDOMCaptureService {
   private static readonly DEFAULT_WIDTH = 540;
   private static readonly HEADER_HEIGHT = 60;
   private static readonly CONTENT_PADDING = 20;
+
+  /**
+   * Gets the GitHub avatar URL for a repository owner
+   */
+  private static getRepositoryOwnerAvatarUrl(owner: string, size: number = 24): string {
+    return `https://github.com/${owner}.png?s=${size}`;
+  }
 
   /**
    * Captures an element as an image using SnapDOM with attribution
@@ -339,7 +345,7 @@ export class SnapDOMCaptureService {
       `;
 
       const logoImg = document.createElement('img');
-      const avatarUrl = getRepositoryOwnerAvatarUrl(owner, 24);
+      const avatarUrl = this.getRepositoryOwnerAvatarUrl(owner, 24);
       logoImg.src = avatarUrl;
       logoImg.alt = `${owner} logo`;
       logoImg.style.cssText = `

@@ -8,6 +8,7 @@ vi.mock('@zumer/snapdom', () => ({
   })
 }));
 
+
 describe('SnapDOMCaptureService', () => {
   let mockElement: HTMLElement;
   let mockCanvas: HTMLCanvasElement;
