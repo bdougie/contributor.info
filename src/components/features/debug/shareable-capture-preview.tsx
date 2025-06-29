@@ -29,7 +29,7 @@ export function ShareableCapturePreview({ children, repository = "test-org/aweso
             <div className="w-6 h-6 bg-gray-200 dark:bg-gray-200 rounded flex items-center justify-center">
               <span className="text-xs">📊</span>
             </div>
-            <span className="text-base font-bold truncate max-w-[280px]">
+            <span className="text-base font-bold truncate max-w-[380px]">
               {repository}
             </span>
           </div>

@@ -117,6 +117,16 @@
     display: none !important;
   }
 
+  /* Hide tooltips during capture to prevent them from appearing in downloaded images */
+  .capturing [data-state="delayed-open"],
+  .capturing [data-state="instant-open"],
+  .capturing [role="tooltip"],
+  .capturing .tooltip-trigger,
+  .capturing [data-radix-tooltip-trigger] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
   /* Light mode specific shadow enhancements */
   .light .bg-card {
     @apply shadow-card;

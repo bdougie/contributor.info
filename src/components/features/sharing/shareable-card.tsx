@@ -232,7 +232,7 @@ export function ShareableCard({
   return (
     <div
       ref={cardRef}
-      className={cn("relative group shareable-card", className)}
+      className={cn("relative group shareable-card", isCapturing && "capturing", className)}
       data-shareable-card
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -243,14 +243,14 @@ export function ShareableCard({
       {!isCapturing && (
         <div
           className={cn(
-            "absolute top-2 right-2 flex gap-2 transition-opacity duration-200",
+            "absolute top-2 left-1/2 -translate-x-1/2 flex gap-2 transition-opacity duration-200",
             isHovered && !isGeneratingUrl ? "opacity-100" : "opacity-0 pointer-events-none"
           )}
         >
         <Button
           size="icon"
           variant="secondary"
-          className="h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
+          className="hidden sm:flex h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
           onClick={() => handleCapture('copy')}
           title="Copy chart as image"
           disabled={isCapturing || isGeneratingUrl}
@@ -260,7 +260,7 @@ export function ShareableCard({
         <Button
           size="icon"
           variant="secondary"
-          className="h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
+          className="hidden sm:flex h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
           onClick={() => handleCapture('download')}
           title="Download chart"
           disabled={isCapturing || isGeneratingUrl}
@@ -284,7 +284,7 @@ export function ShareableCard({
         <Button
           size="icon"
           variant="secondary"
-          className="h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
+          className="sm:hidden h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
           onClick={() => handleCapture('share')}
           title="Share chart"
           disabled={isCapturing || isGeneratingUrl}
