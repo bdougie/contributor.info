@@ -155,8 +155,13 @@ export class PRTemplateService {
     const patterns: SpamPattern[] = [];
 
     // Clean up template content
-    const cleanTemplate = templateContent
-      .replace(/<!--[\s\S]*?-->/g, '') // Remove HTML comments
+    let cleanTemplate = templateContent;
+    let previousTemplate;
+    do {
+      previousTemplate = cleanTemplate;
+      cleanTemplate = cleanTemplate.replace(/<!--[\s\S]*?-->/g, ''); // Remove HTML comments
+    } while (cleanTemplate !== previousTemplate);
+    cleanTemplate = cleanTemplate
       .replace(/\[.*?\]/g, '') // Remove markdown checkboxes
       .replace(/#+\s*/g, '') // Remove markdown headers
       .trim();
