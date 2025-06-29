@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useLocation as useRouterLocation } from "react-router-dom";
 import { createChartShareUrl, getDubConfig } from "@/lib/dub";
 import { trackShareEvent as trackAnalytics } from "@/lib/analytics";
+import { SnapDOMCaptureService } from "@/lib/snapdom-capture";
 
 interface ShareableCardProps {
   children: ReactNode;
@@ -50,211 +51,24 @@ export function ShareableCard({
 
     setIsCapturing(true);
     
-    // Lazy load html2canvas to reduce initial bundle size
-    const { default: html2canvas } = await import('html2canvas');
-    
-    // Use requestAnimationFrame to ensure DOM operations are batched and buttons are hidden
-    await new Promise(resolve => requestAnimationFrame(resolve));
-    
     try {
-      // Create a wrapper div for the entire capture with border and attribution
-      const element = cardRef.current;
-      let wrapper: HTMLDivElement | null = null;
-      let attributionBar: HTMLDivElement | null = null;
-      let contentWrapper: HTMLDivElement | null = null;
+      // Use SnapDOM for superior performance and accuracy
+      // Use wider width for treemap charts to provide better visualization
+      const captureWidth = chartType === 'distribution-treemap' ? 840 : 540;
       
-      // Store original parent and styles for cleanup
-      const originalParent = element.parentNode;
-      const originalNextSibling = element.nextSibling;
-      
-      // Cleanup function to ensure DOM is always restored
-      const cleanup = () => {
-        try {
-          if (originalParent && element) {
-            originalParent.insertBefore(element, originalNextSibling);
-          }
-          if (wrapper?.parentNode) {
-            wrapper.parentNode.removeChild(wrapper);
-          }
-        } catch (cleanupError) {
-          console.warn('Cleanup error:', cleanupError);
-        }
-      };
-      
-      wrapper = document.createElement('div');
-      wrapper.setAttribute('data-capture-wrapper', 'true');
-      
-      // Wrapper styling with thick orange border and rounded corners (matching lottery factory card)
-      wrapper.style.cssText = `
-        border: 10px solid #f97316;
-        border-radius: 36px;
-        overflow: hidden;
-        background: white;
-        position: relative;
-        max-width: 540px;
-        min-width: 540px;
-        width: 540px;
-        margin: 0 auto;
-      `;
-      
-      // Add attribution bar at the top (matching lottery factory card header)
-      attributionBar = document.createElement('div');
-      attributionBar.style.cssText = `
-        height: 60px;
-        background-color: #202020;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 20px;
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        color: white;
-        position: relative;
-        z-index: 1000;
-      `;
-      
-      // Attribution content: repo with icon on left, logo on right (adjusted for smaller width)
-      // Create elements programmatically to avoid XSS vulnerabilities
-      const leftContainer = document.createElement('div');
-      leftContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
-      
-      const iconContainer = document.createElement('div');
-      iconContainer.style.cssText = 'width: 24px; height: 24px; background-color: #404040; border-radius: 4px; display: flex; align-items: center; justify-content: center;';
-      const iconSpan = document.createElement('span');
-      iconSpan.style.cssText = 'font-size: 12px;';
-      iconSpan.textContent = '📊';
-      iconContainer.appendChild(iconSpan);
-      
-      const repoName = document.createElement('span');
-      repoName.style.cssText = 'color: white; font-size: 16px; font-weight: bold; font-family: "Inter", system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px;';
-      repoName.textContent = contextInfo?.repository || 'Repository'; // Safe: using textContent instead of innerHTML
-      
-      leftContainer.appendChild(iconContainer);
-      leftContainer.appendChild(repoName);
-      
-      const rightContainer = document.createElement('div');
-      rightContainer.style.cssText = 'display: flex; align-items: center; flex-shrink: 0;';
-      
-      const logoIcon = document.createElement('span');
-      logoIcon.style.cssText = 'font-size: 18px; margin-right: 4px;';
-      logoIcon.textContent = '🌱';
-      
-      const logoText = document.createElement('span');
-      logoText.style.cssText = 'color: white; font-size: 14px; font-weight: 500; font-family: "Inter", system-ui, sans-serif;';
-      logoText.textContent = 'contributor.info';
-      
-      rightContainer.appendChild(logoIcon);
-      rightContainer.appendChild(logoText);
-      
-      attributionBar.appendChild(leftContainer);
-      attributionBar.appendChild(rightContainer);
-      
-      // Content wrapper to ensure proper padding and no overlap (adjusted for smaller width)
-      contentWrapper = document.createElement('div');
-      contentWrapper.style.cssText = `
-        padding: 20px;
-        background: white;
-        min-height: 300px;
-        color-scheme: light;
-      `;
-      
-      // Add style element to force light mode and fix text rendering
-      const styleElement = document.createElement('style');
-      styleElement.textContent = `
-        .shareable-capture-wrapper * {
-          color-scheme: light !important;
-          -webkit-font-smoothing: antialiased !important;
-          -moz-osx-font-smoothing: grayscale !important;
-          text-rendering: optimizeLegibility !important;
-        }
-        .shareable-capture-wrapper .bg-background,
-        .shareable-capture-wrapper .bg-card,
-        .shareable-capture-wrapper .dark\\:bg-background,
-        .shareable-capture-wrapper .dark\\:bg-card {
-          background-color: white !important;
-        }
-        .shareable-capture-wrapper .text-foreground,
-        .shareable-capture-wrapper .text-card-foreground,
-        .shareable-capture-wrapper .dark\\:text-foreground,
-        .shareable-capture-wrapper .dark\\:text-card-foreground {
-          color: #111827 !important;
-        }
-        .shareable-capture-wrapper .border,
-        .shareable-capture-wrapper .dark\\:border {
-          border-color: #e5e7eb !important;
-        }
-        .shareable-capture-wrapper .bg-muted,
-        .shareable-capture-wrapper .dark\\:bg-muted {
-          background-color: #f9fafb !important;
-        }
-        .shareable-capture-wrapper .text-muted-foreground,
-        .shareable-capture-wrapper .dark\\:text-muted-foreground {
-          color: #6b7280 !important;
-        }
-        .shareable-capture-wrapper .bg-accent,
-        .shareable-capture-wrapper .dark\\:bg-accent {
-          background-color: #f3f4f6 !important;
-        }
-        /* Fix text overflow and truncation */
-        .shareable-capture-wrapper .truncate {
-          overflow: visible !important;
-          text-overflow: clip !important;
-          white-space: normal !important;
-        }
-        /* Ensure badges are properly rendered */
-        .shareable-capture-wrapper .bg-red-100,
-        .shareable-capture-wrapper .dark\\:bg-red-900\\/20 {
-          background-color: #fee2e2 !important;
-        }
-        .shareable-capture-wrapper .text-red-700,
-        .shareable-capture-wrapper .dark\\:text-red-400 {
-          color: #b91c1c !important;
-        }
-        .shareable-capture-wrapper .bg-yellow-100,
-        .shareable-capture-wrapper .dark\\:bg-yellow-900\\/20 {
-          background-color: #fef3c7 !important;
-        }
-        .shareable-capture-wrapper .text-yellow-700,
-        .shareable-capture-wrapper .dark\\:text-yellow-400 {
-          color: #b45309 !important;
-        }
-        .shareable-capture-wrapper .bg-green-100,
-        .shareable-capture-wrapper .dark\\:bg-green-900\\/20 {
-          background-color: #d1fae5 !important;
-        }
-        .shareable-capture-wrapper .text-green-700,
-        .shareable-capture-wrapper .dark\\:text-green-400 {
-          color: #15803d !important;
-        }
-      `;
-      contentWrapper.appendChild(styleElement);
-      contentWrapper.classList.add('shareable-capture-wrapper');
-      
-      // Build the structure: wrapper > attribution + contentWrapper > original element
-      wrapper.appendChild(attributionBar);
-      wrapper.appendChild(contentWrapper);
-      contentWrapper.appendChild(element);
-      
-      // Insert wrapper where the original element was
-      if (originalParent) {
-        originalParent.insertBefore(wrapper, originalNextSibling);
-      }
-
-      const canvas = await html2canvas(wrapper!, {
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        width: 540
+      const captureResult = await SnapDOMCaptureService.captureElement(cardRef.current, {
+        title,
+        repository: contextInfo?.repository,
+        width: captureWidth,
+        backgroundColor: 'white'
       });
 
-      // Restore original DOM structure using cleanup function
-      cleanup();
+      const { blob } = captureResult;
 
       if (action === 'download') {
-        // Download as PNG
-        const link = document.createElement('a');
-        link.download = `${title.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.png`;
-        link.href = canvas.toDataURL();
-        link.click();
+        // Download as PNG using the utility method
+        const filename = `${title.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.png`;
+        SnapDOMCaptureService.downloadBlob(blob, filename);
         toast.success("Chart downloaded!");
         
         // Track download event
@@ -263,11 +77,54 @@ export function ShareableCard({
         }
       } else if (action === 'copy') {
         // Copy to clipboard
-        canvas.toBlob(async (blob) => {
-          if (!blob) return;
+        try {
+          // Generate short URL for copy with image
+          const currentUrl = window.location.href;
+          const shortUrl = await createChartShareUrl(
+            currentUrl,
+            chartType,
+            contextInfo?.repository
+          );
           
+          // Try to copy both image and URL (rich clipboard)
+          const clipboardItems = [
+            new ClipboardItem({
+              'image/png': blob,
+              'text/plain': new Blob([shortUrl], { type: 'text/plain' })
+            })
+          ];
+          await navigator.clipboard.write(clipboardItems);
+          toast.success("Chart copied to clipboard with link!");
+          
+          // Track copy event
+          if (!bypassAnalytics) {
+            await trackShareEvent('copy', 'image', { 
+              shortUrl, 
+              isShortened: shortUrl !== currentUrl,
+              dubLinkId: shortUrl !== currentUrl ? shortUrl.split('/').pop() : undefined 
+            });
+          }
+        } catch (err) {
+          // Fallback to just copying the image
           try {
-            // Generate short URL for copy with image
+            await SnapDOMCaptureService.copyBlobToClipboard(blob);
+            toast.success("Chart copied to clipboard!");
+            
+            // Track copy event (image only)
+            if (!bypassAnalytics) {
+              await trackShareEvent('copy', 'image');
+            }
+          } catch (err2) {
+            toast.error("Failed to copy to clipboard");
+          }
+        }
+      } else if (action === 'share') {
+        // Native share with image
+        const file = new File([blob], `${title}.png`, { type: 'image/png' });
+        
+        if (navigator.share && navigator.canShare({ files: [file] })) {
+          try {
+            // Generate short URL for native sharing
             const currentUrl = window.location.href;
             const shortUrl = await createChartShareUrl(
               currentUrl,
@@ -275,97 +132,32 @@ export function ShareableCard({
               contextInfo?.repository
             );
             
-            // Try to copy both image and URL (rich clipboard)
-            const clipboardItems = [
-              new ClipboardItem({
-                'image/png': blob,
-                'text/plain': new Blob([shortUrl], { type: 'text/plain' })
-              })
-            ];
-            await navigator.clipboard.write(clipboardItems);
-            toast.success("Chart copied to clipboard with link!");
+            await navigator.share({
+              title: title,
+              text: `Check out this ${contextInfo?.metric || 'chart'} for ${contextInfo?.repository || 'this repository'}`,
+              url: shortUrl,
+              files: [file]
+            });
             
-            // Track copy event
+            // Track share event
             if (!bypassAnalytics) {
-              await trackShareEvent('copy', 'image', { 
+              await trackShareEvent('share', 'native', { 
                 shortUrl, 
-                isShortened: shortUrl !== currentUrl,
+                withImage: true,
                 dubLinkId: shortUrl !== currentUrl ? shortUrl.split('/').pop() : undefined 
               });
             }
           } catch (err) {
-            // Fallback to just copying the image
-            try {
-              await navigator.clipboard.write([
-                new ClipboardItem({ 'image/png': blob })
-              ]);
-              toast.success("Chart copied to clipboard!");
-              
-              // Track copy event (image only)
-              if (!bypassAnalytics) {
-                await trackShareEvent('copy', 'image');
-              }
-            } catch (err2) {
-              toast.error("Failed to copy to clipboard");
-            }
+            // User cancelled share
           }
-        });
-      } else if (action === 'share') {
-        // Native share with image
-        canvas.toBlob(async (blob) => {
-          if (!blob) return;
-          
-          const file = new File([blob], `${title}.png`, { type: 'image/png' });
-          
-          if (navigator.share && navigator.canShare({ files: [file] })) {
-            try {
-              // Generate short URL for native sharing
-              const currentUrl = window.location.href;
-              const shortUrl = await createChartShareUrl(
-                currentUrl,
-                chartType,
-                contextInfo?.repository
-              );
-              
-              await navigator.share({
-                title: title,
-                text: `Check out this ${contextInfo?.metric || 'chart'} for ${contextInfo?.repository || 'this repository'}`,
-                url: shortUrl,
-                files: [file]
-              });
-              
-              // Track share event
-              if (!bypassAnalytics) {
-                await trackShareEvent('share', 'native', { 
-                  shortUrl, 
-                  withImage: true,
-                  dubLinkId: shortUrl !== currentUrl ? shortUrl.split('/').pop() : undefined 
-                });
-              }
-            } catch (err) {
-              // User cancelled share
-            }
-          } else {
-            // Fallback to URL share only
-            handleShareUrl();
-          }
-        });
+        } else {
+          // Fallback to URL share only
+          handleShareUrl();
+        }
       }
     } catch (error) {
-      console.error('Error capturing element:', error);
+      console.error('Error capturing element with SnapDOM:', error);
       toast.error("Failed to capture chart");
-      // Ensure cleanup runs even on error
-      try {
-        const element = cardRef.current;
-        if (element) {
-          const wrapper = element.closest('[data-capture-wrapper]');
-          if (wrapper?.parentNode) {
-            wrapper.parentNode.removeChild(wrapper);
-          }
-        }
-      } catch (cleanupError) {
-        console.warn('Error cleanup failed:', cleanupError);
-      }
     } finally {
       setIsCapturing(false);
     }
@@ -443,7 +235,7 @@ export function ShareableCard({
   return (
     <div
       ref={cardRef}
-      className={cn("relative group shareable-card", className)}
+      className={cn("relative group shareable-card", isCapturing && "capturing", className)}
       data-shareable-card
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -454,14 +246,14 @@ export function ShareableCard({
       {!isCapturing && (
         <div
           className={cn(
-            "absolute top-2 right-2 flex gap-2 transition-opacity duration-200",
+            "absolute top-2 left-1/2 -translate-x-1/2 flex gap-2 transition-opacity duration-200",
             isHovered && !isGeneratingUrl ? "opacity-100" : "opacity-0 pointer-events-none"
           )}
         >
         <Button
           size="icon"
           variant="secondary"
-          className="h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
+          className="hidden sm:flex h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
           onClick={() => handleCapture('copy')}
           title="Copy chart as image"
           disabled={isCapturing || isGeneratingUrl}
@@ -471,7 +263,7 @@ export function ShareableCard({
         <Button
           size="icon"
           variant="secondary"
-          className="h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
+          className="hidden sm:flex h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
           onClick={() => handleCapture('download')}
           title="Download chart"
           disabled={isCapturing || isGeneratingUrl}
@@ -495,7 +287,7 @@ export function ShareableCard({
         <Button
           size="icon"
           variant="secondary"
-          className="h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
+          className="sm:hidden h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
           onClick={() => handleCapture('share')}
           title="Share chart"
           disabled={isCapturing || isGeneratingUrl}
