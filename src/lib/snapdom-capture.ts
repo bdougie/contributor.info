@@ -737,6 +737,12 @@ export class SnapDOMCaptureService {
       filename 
     });
     
+    // Check if we're in a browser environment
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      console.warn('downloadBlob called in non-browser environment');
+      return;
+    }
+    
     if (!blob || blob.size === 0) {
       console.error('Cannot download empty blob');
       throw new Error('Cannot download empty blob');
@@ -754,14 +760,19 @@ export class SnapDOMCaptureService {
     link.click();
     
     // Clean up after a short delay to ensure download starts
-    setTimeout(() => {
-      // Safety check to ensure link is still in the DOM before removing
-      if (link.parentNode === document.body) {
+    const timeoutId = setTimeout(() => {
+      // Additional safety checks for browser environment
+      if (typeof document !== 'undefined' && document.body && link.parentNode === document.body) {
         document.body.removeChild(link);
       }
-      URL.revokeObjectURL(url);
+      if (typeof URL !== 'undefined' && URL.revokeObjectURL) {
+        URL.revokeObjectURL(url);
+      }
       console.log('Cleaned up download link and blob URL');
     }, 100);
+
+    // Store timeout ID for potential cleanup (useful for testing)
+    (link as any)._timeoutId = timeoutId;
   }
 
   /**

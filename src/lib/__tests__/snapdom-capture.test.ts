@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SnapDOMCaptureService } from '../snapdom-capture';
 
 // Mock the snapdom module
@@ -53,6 +53,11 @@ describe('SnapDOMCaptureService', () => {
       createObjectURL: vi.fn().mockReturnValue('blob:test-url'),
       revokeObjectURL: vi.fn()
     } as unknown as typeof URL;
+  });
+
+  afterEach(() => {
+    // Clear all timers to prevent unhandled errors
+    vi.clearAllTimers();
   });
 
   it('should capture element with attribution', async () => {
@@ -125,7 +130,9 @@ describe('SnapDOMCaptureService', () => {
       download: '',
       href: '',
       style: { display: '' },
-      click: vi.fn()
+      click: vi.fn(),
+      parentNode: null,
+      _timeoutId: undefined
     } as unknown as HTMLAnchorElement;
     
     vi.spyOn(document, 'createElement').mockReturnValueOnce(mockLink);
@@ -135,7 +142,12 @@ describe('SnapDOMCaptureService', () => {
     expect(mockLink.download).toBe('test-chart.png');
     expect(mockLink.click).toHaveBeenCalled();
     expect(global.URL.createObjectURL).toHaveBeenCalledWith(mockBlob);
-    // Note: revokeObjectURL is called in setTimeout, so we don't test it here
+    
+    // Clean up the timeout to prevent unhandled errors
+    const timeoutId = (mockLink as any)._timeoutId;
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   });
 
   it('should copy blob to clipboard', async () => {
