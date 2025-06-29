@@ -1,101 +1,128 @@
-import { useEffect } from "react";
-import type { ReactNode } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAdminAuth } from "@/hooks/use-admin-auth";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Loader2, ShieldX, Lock } from "lucide-react";
+import { useAdminAuth } from '@/hooks/use-admin-auth';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Shield, AlertTriangle, Github } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface AdminRouteProps {
-  children: ReactNode;
-  requireRole?: 'admin' | 'moderator'; // Optional specific role requirement
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
 }
 
-export function AdminRoute({ children }: AdminRouteProps) {
-  const { user, isLoggedIn, isAdmin, loading, error } = useAdminAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+/**
+ * Component that protects admin-only routes
+ * Renders children only if user is authenticated and has admin privileges
+ */
+export function AdminRoute({ children, fallback }: AdminRouteProps) {
+  const { isAuthenticated, isAdmin, isLoading, user, error } = useAdminAuth();
 
-  useEffect(() => {
-    if (!loading && !isLoggedIn) {
-      // Store the attempted URL for redirect after login
-      const redirectTo = location.pathname + location.search;
-      localStorage.setItem("redirectTo", redirectTo);
-      navigate("/login");
-    }
-  }, [isLoggedIn, loading, navigate, location]);
-
-  // Show loading spinner while checking authentication
-  if (loading) {
+  // Show loading state
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <p className="text-sm text-muted-foreground">Checking admin access...</p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Verifying admin access...</p>
         </div>
       </div>
     );
   }
 
-  // Show error state if there's an authentication error
+  // Show error state
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <div className="max-w-md w-full">
+      <Card className="max-w-md mx-auto mt-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            Access Verification Error
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
           <Alert variant="destructive">
-            <ShieldX className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+          <Button asChild className="w-full mt-4">
+            <Link to="/">Return to Home</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show authentication required
+  if (!isAuthenticated) {
+    return fallback || (
+      <Card className="max-w-md mx-auto mt-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Github className="h-5 w-5" />
+            Authentication Required
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground mb-4">
+            Please sign in with GitHub to access this area.
+          </p>
+          <div className="flex gap-2">
+            <Button asChild variant="outline" className="flex-1">
+              <Link to="/">Go Home</Link>
+            </Button>
+            <Button asChild className="flex-1">
+              <Link to="/login">Sign In</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show admin access required
+  if (!isAdmin) {
+    return fallback || (
+      <Card className="max-w-md mx-auto mt-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-amber-500" />
+            Admin Access Required
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <Shield className="h-4 w-4" />
             <AlertDescription>
-              Authentication error: {error}
+              This area is restricted to administrators only. Your access level has been verified and you do not have sufficient privileges.
             </AlertDescription>
           </Alert>
-          <div className="mt-4 text-center">
-            <Button onClick={() => window.location.reload()}>
-              Try Again
-            </Button>
+          <div className="mt-4 text-sm text-muted-foreground">
+            <p><strong>Current user:</strong> {user?.github_username || 'Unknown'}</p>
+            <p><strong>Admin status:</strong> {isAdmin ? 'Admin' : 'Regular user'}</p>
           </div>
-        </div>
-      </div>
+          <Button asChild className="w-full mt-4">
+            <Link to="/">Return to Home</Link>
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
-  // Don't render if not authenticated (navigation will handle redirect)
-  if (!isLoggedIn || !user) {
-    return null;
-  }
-
-  // Check admin access
-  if (!isAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <div className="max-w-md w-full text-center">
-          <div className="mb-6">
-            <Lock className="h-16 w-16 mx-auto text-muted-foreground" />
-          </div>
-          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-          <p className="text-muted-foreground mb-6">
-            You need administrator privileges to access this page.
-          </p>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Current user: <span className="font-medium">{user.user_metadata?.user_name}</span>
-            </p>
-            <Button onClick={() => navigate("/")} variant="outline">
-              Return to Home
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // TODO: Add specific role checking when needed
-  // This can be extended later for more granular permissions
-  // if (requireRole === 'moderator') {
-  //   const hasModerator = await hasRole('moderator');
-  //   if (!hasModerator) {
-  //     // Show insufficient permissions
-  //   }
-  // }
-
+  // User is authenticated and has admin privileges
   return <>{children}</>;
+}
+
+/**
+ * Higher-order component version for route protection
+ */
+export function withAdminAuth<P extends object>(
+  Component: React.ComponentType<P>,
+  fallback?: React.ReactNode
+) {
+  return function AdminProtectedComponent(props: P) {
+    return (
+      <AdminRoute fallback={fallback}>
+        <Component {...props} />
+      </AdminRoute>
+    );
+  };
 }

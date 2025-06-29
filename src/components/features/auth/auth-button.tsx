@@ -30,9 +30,23 @@ export function AuthButton() {
       }
 
       try {
-        const { data: adminCheck } = await supabase
-          .rpc('is_user_admin', { user_github_username: user.user_metadata.user_name });
-        setIsAdmin(adminCheck === true);
+        // Get GitHub user ID from metadata and check admin status
+        const githubId = user.user_metadata?.provider_id || user.user_metadata?.sub;
+        if (!githubId) {
+          setIsAdmin(false);
+          return;
+        }
+
+        const { data: isAdminResult, error } = await supabase
+          .rpc('is_user_admin', { user_github_id: parseInt(githubId) });
+
+        if (error) {
+          console.warn('Failed to check admin status:', error);
+          setIsAdmin(false);
+          return;
+        }
+
+        setIsAdmin(isAdminResult === true);
       } catch (err) {
         console.warn('Failed to check admin status:', err);
         setIsAdmin(false);

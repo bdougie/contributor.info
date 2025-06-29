@@ -1,273 +1,175 @@
 import { useState, useEffect } from 'react';
+import { useGitHubAuth } from './use-github-auth';
 import { supabase } from '@/lib/supabase';
-import type { User } from '@supabase/supabase-js';
+
+interface AdminUser {
+  id: string;
+  github_user_id: number;
+  github_username: string;
+  display_name?: string;
+  avatar_url?: string;
+  email?: string;
+  is_admin: boolean;
+  last_login_at: string;
+}
 
 interface AdminAuthState {
-  user: User | null;
-  isLoggedIn: boolean;
+  isAuthenticated: boolean;
   isAdmin: boolean;
-  loading: boolean;
+  isLoading: boolean;
+  user: AdminUser | null;
   error: string | null;
 }
 
 /**
- * Hook for managing admin authentication state and actions
- * Extends regular GitHub auth with admin role verification
+ * Hook for admin authentication that extends GitHub authentication
+ * with database-verified admin checking
  */
-export function useAdminAuth() {
-  const [state, setState] = useState<AdminAuthState>({
-    user: null,
-    isLoggedIn: false,
+export function useAdminAuth(): AdminAuthState {
+  const { isLoggedIn, loading: githubLoading } = useGitHubAuth();
+  const [adminState, setAdminState] = useState<AdminAuthState>({
+    isAuthenticated: false,
     isAdmin: false,
-    loading: true,
+    isLoading: true,
+    user: null,
     error: null,
   });
-  
+
   useEffect(() => {
-    let mounted = true;
-    
-    async function checkAdminAuth() {
-      try {
-        setState(prev => ({ ...prev, loading: true, error: null }));
-        
-        // Check URL for auth tokens first
-        if (window.location.hash.includes('access_token')) {
-          try {
-            const hashParams = new URLSearchParams(window.location.hash.substring(1));
-            const accessToken = hashParams.get('access_token');
-            const refreshToken = hashParams.get('refresh_token');
-            
-            if (accessToken && refreshToken) {
-              await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken
-              });
-            }
-          } catch (err) {
-            // Silently handle token processing errors
-          }
-          
-          // Clear the URL hash after processing
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
-        
-        // Get current session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          throw sessionError;
-        }
-        
-        const user = session?.user ?? null;
-        const isLoggedIn = !!user;
-        let isAdmin = false;
-        
-        if (user && user.user_metadata?.user_name) {
-          // Check admin status from database
-          const { data: adminCheck, error: adminError } = await supabase
-            .rpc('is_user_admin', { user_github_username: user.user_metadata.user_name });
-          
-          if (adminError) {
-            console.warn('Failed to check admin status:', adminError);
-          } else {
-            isAdmin = adminCheck === true;
-          }
-          
-          // Upsert user data if logged in
-          if (isLoggedIn) {
-            await upsertUserData(user);
-          }
-        }
-        
-        if (mounted) {
-          setState({
-            user,
-            isLoggedIn,
-            isAdmin,
-            loading: false,
-            error: null,
-          });
-        }
-      } catch (err) {
-        if (mounted) {
-          setState(prev => ({
-            ...prev,
-            loading: false,
-            error: err instanceof Error ? err.message : 'Authentication failed',
-          }));
-        }
+    async function checkAdminStatus() {
+      if (githubLoading) {
+        return; // Still loading GitHub auth
       }
-    }
-    
-    checkAdminAuth();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_, session) => {
-      if (!mounted) return;
-      
-      const user = session?.user ?? null;
-      const isLoggedIn = !!user;
-      let isAdmin = false;
-      
-      if (user && user.user_metadata?.user_name) {
-        try {
-          // Check admin status from database
-          const { data: adminCheck } = await supabase
-            .rpc('is_user_admin', { user_github_username: user.user_metadata.user_name });
-          
-          isAdmin = adminCheck === true;
-          
-          // Upsert user data if logged in
-          if (isLoggedIn) {
-            await upsertUserData(user);
-          }
-        } catch (err) {
-          console.warn('Failed to check admin status on auth change:', err);
-        }
-      }
-      
-      setState(prev => ({
-        ...prev,
-        user,
-        isLoggedIn,
-        isAdmin,
-        loading: false,
-        error: null,
-      }));
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  /**
-   * Upsert user data to app_users table
-   */
-  const upsertUserData = async (user: User) => {
-    try {
-      if (!user.user_metadata?.user_name) {
+      if (!isLoggedIn) {
+        // Not authenticated with GitHub
+        setAdminState({
+          isAuthenticated: false,
+          isAdmin: false,
+          isLoading: false,
+          user: null,
+          error: null,
+        });
         return;
       }
-      
-      await supabase.rpc('upsert_app_user', {
-        p_auth_user_id: user.id,
-        p_github_username: user.user_metadata.user_name,
-        p_github_user_id: user.user_metadata.provider_id ? 
-          parseInt(user.user_metadata.provider_id) : null,
-        p_email: user.email,
-        p_avatar_url: user.user_metadata.avatar_url,
-        p_display_name: user.user_metadata.full_name || user.user_metadata.name,
-      });
-    } catch (err) {
-      console.warn('Failed to upsert user data:', err);
-    }
-  };
 
-  /**
-   * Initiates GitHub OAuth login flow
-   */
-  const login = async () => {
-    try {
-      setState(prev => ({ ...prev, error: null }));
-      
-      // Store the current path for redirect after login
-      const currentPath = window.location.pathname;
-      if (currentPath !== '/login') {
-        localStorage.setItem('redirectAfterLogin', currentPath);
-      }
-      
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
-        options: {
-          redirectTo: window.location.origin,
-          scopes: 'repo user',
-        },
-      });
-      
-      if (error) {
-        throw error;
-      }
-    } catch (err) {
-      setState(prev => ({
-        ...prev,
-        error: err instanceof Error ? err.message : 'Login failed',
-      }));
-    }
-  };
+      try {
+        // Get current user session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session?.user) {
+          setAdminState({
+            isAuthenticated: false,
+            isAdmin: false,
+            isLoading: false,
+            user: null,
+            error: sessionError?.message || 'No active session',
+          });
+          return;
+        }
 
-  /**
-   * Signs the user out
-   */
-  const logout = async () => {
-    try {
-      setState(prev => ({ ...prev, error: null }));
-      await supabase.auth.signOut();
-    } catch (err) {
-      setState(prev => ({
-        ...prev,
-        error: err instanceof Error ? err.message : 'Logout failed',
-      }));
-    }
-  };
+        // Get GitHub user ID from metadata and check admin status
+        const githubId = session.user.user_metadata?.provider_id || session.user.user_metadata?.sub;
+        if (!githubId) {
+          setAdminState({
+            isAuthenticated: true,
+            isAdmin: false,
+            isLoading: false,
+            user: null,
+            error: null,
+          });
+          return;
+        }
 
-  /**
-   * Force refresh admin status
-   */
-  const refreshAdminStatus = async () => {
-    if (!state.user || !state.user.user_metadata?.user_name) {
-      return false;
-    }
-    
-    try {
-      const { data: adminCheck, error } = await supabase
-        .rpc('is_user_admin', { user_github_username: state.user.user_metadata.user_name });
-      
-      if (error) {
-        throw error;
-      }
-      
-      const isAdmin = adminCheck === true;
-      setState(prev => ({ ...prev, isAdmin }));
-      return isAdmin;
-    } catch (err) {
-      console.warn('Failed to refresh admin status:', err);
-      return false;
-    }
-  };
+        // Check admin status in database using RPC to bypass RLS
+        const { data: isAdminResult, error } = await supabase
+          .rpc('is_user_admin', { user_github_id: parseInt(githubId) });
 
-  /**
-   * Check if user has a specific role
-   */
-  const hasRole = async (role: string): Promise<boolean> => {
-    if (!state.user || !state.user.user_metadata?.user_name) {
-      return false;
-    }
-    
-    try {
-      const { data: hasRoleResult, error } = await supabase
-        .rpc('user_has_role', { 
-          user_github_username: state.user.user_metadata.user_name,
-          role_name: role 
+        if (error) {
+          console.error('Error checking admin status:', error);
+          setAdminState({
+            isAuthenticated: true,
+            isAdmin: false,
+            isLoading: false,
+            user: null,
+            error: `Failed to verify admin status: ${error.message}`,
+          });
+          return;
+        }
+
+        const isAdmin = isAdminResult === true;
+
+        // If user is admin, get their full user data
+        let adminUser = null;
+        if (isAdmin) {
+          try {
+            // Use a direct query that should work since we know they're admin
+            const { data: userData } = await supabase
+              .from('app_users')
+              .select('*')
+              .eq('github_user_id', parseInt(githubId))
+              .single();
+            adminUser = userData;
+          } catch (err) {
+            console.warn('Could not fetch admin user data:', err);
+          }
+        }
+
+        setAdminState({
+          isAuthenticated: true,
+          isAdmin,
+          isLoading: false,
+          user: adminUser,
+          error: null,
         });
-      
-      if (error) {
-        throw error;
-      }
-      
-      return hasRoleResult === true;
-    } catch (err) {
-      console.warn(`Failed to check role ${role}:`, err);
-      return false;
-    }
-  };
 
-  return { 
-    ...state,
-    login, 
-    logout,
-    refreshAdminStatus,
-    hasRole,
-  };
+      } catch (err) {
+        console.error('Error in admin auth check:', err);
+        setAdminState({
+          isAuthenticated: true,
+          isAdmin: false,
+          isLoading: false,
+          user: null,
+          error: 'Failed to verify admin status',
+        });
+      }
+    }
+
+    checkAdminStatus();
+  }, [isLoggedIn, githubLoading]);
+
+  return adminState;
+}
+
+/**
+ * Hook to get current admin user's GitHub ID for logging actions
+ */
+export function useAdminGitHubId(): number | null {
+  const { user } = useAdminAuth();
+  return user?.github_user_id || null;
+}
+
+/**
+ * Function to log admin actions for audit trail
+ */
+export async function logAdminAction(
+  adminGitHubId: number,
+  actionType: string,
+  targetType?: string,
+  targetId?: string,
+  details?: Record<string, any>
+): Promise<void> {
+  try {
+    await supabase.from('admin_action_logs').insert({
+      admin_user_id: adminGitHubId,
+      action_type: actionType,
+      target_type: targetType,
+      target_id: targetId,
+      details: details || {},
+      created_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Failed to log admin action:', error);
+    // Don't throw - logging failure shouldn't break admin functionality
+  }
 }
