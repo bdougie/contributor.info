@@ -248,47 +248,70 @@ export class SnapDOMCaptureService {
   }
 
   /**
-   * Creates the attribution header
+   * Creates the attribution header with theme-aware colors
    */
   private static createAttributionHeader(repository?: string): HTMLDivElement {
     const header = document.createElement('div');
+    
+    // Detect current theme from document
+    const isDarkMode = document.documentElement.classList.contains('dark') || 
+                       document.body.classList.contains('dark') ||
+                       (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    console.log('Theme detection for attribution bar:', {
+      isDarkMode,
+      htmlHasDark: document.documentElement.classList.contains('dark'),
+      bodyHasDark: document.body.classList.contains('dark'),
+      systemPrefersData: typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)').matches : 'N/A'
+    });
+    
+    // Theme-aware colors: almost white on dark mode, black on light mode
+    const backgroundColor = isDarkMode ? '#f9fafb' : '#000000'; // gray-50 (almost white) for dark, black for light  
+    const textColor = isDarkMode ? '#111827' : '#ffffff'; // gray-900 (dark text) for dark, white for light
+    
+    console.log('Attribution bar colors:', { backgroundColor, textColor });
+    
     header.style.cssText = `
       height: ${this.HEADER_HEIGHT}px;
-      background-color: white;
+      background-color: ${backgroundColor};
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 20px;
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      color: black;
+      color: ${textColor};
       position: relative;
       z-index: 1000;
     `;
 
     // Left side - repo info
-    const leftContainer = this.createLeftContainer(repository);
+    const leftContainer = this.createLeftContainer(repository, isDarkMode);
     header.appendChild(leftContainer);
 
     // Right side - branding
-    const rightContainer = this.createRightContainer();
+    const rightContainer = this.createRightContainer(isDarkMode);
     header.appendChild(rightContainer);
 
     return header;
   }
 
   /**
-   * Creates the left side of the attribution header
+   * Creates the left side of the attribution header with theme-aware colors
    */
-  private static createLeftContainer(repository?: string): HTMLDivElement {
+  private static createLeftContainer(repository?: string, isDarkMode = false): HTMLDivElement {
     const leftContainer = document.createElement('div');
     leftContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+
+    // Theme-aware icon container colors
+    const iconBgColor = isDarkMode ? '#e5e7eb' : '#e5e7eb'; // gray-200 for both modes (light gray on almost white background)
+    const textColor = isDarkMode ? '#111827' : '#000000'; // gray-900 for dark, black for light
 
     // Icon container
     const iconContainer = document.createElement('div');
     iconContainer.style.cssText = `
       width: 24px;
       height: 24px;
-      background-color: #e5e7eb;
+      background-color: ${iconBgColor};
       border-radius: 4px;
       display: flex;
       align-items: center;
@@ -303,7 +326,7 @@ export class SnapDOMCaptureService {
     // Repository name
     const repoName = document.createElement('span');
     repoName.style.cssText = `
-      color: black;
+      color: ${textColor};
       font-size: 16px;
       font-weight: bold;
       font-family: "Inter", system-ui, sans-serif;
@@ -321,11 +344,14 @@ export class SnapDOMCaptureService {
   }
 
   /**
-   * Creates the right side of the attribution header
+   * Creates the right side of the attribution header with theme-aware colors
    */
-  private static createRightContainer(): HTMLDivElement {
+  private static createRightContainer(isDarkMode = false): HTMLDivElement {
     const rightContainer = document.createElement('div');
     rightContainer.style.cssText = 'display: flex; align-items: center; flex-shrink: 0;';
+
+    // Theme-aware text color for the logo
+    const logoTextColor = isDarkMode ? '#111827' : '#ffffff'; // gray-900 for dark, white for light
 
     const logoIcon = document.createElement('span');
     logoIcon.style.cssText = 'font-size: 18px; margin-right: 4px;';
@@ -333,7 +359,7 @@ export class SnapDOMCaptureService {
 
     const logoText = document.createElement('span');
     logoText.style.cssText = `
-      color: white;
+      color: ${logoTextColor};
       font-size: 14px;
       font-weight: 500;
       font-family: "Inter", system-ui, sans-serif;

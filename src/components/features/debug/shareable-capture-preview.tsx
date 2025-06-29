@@ -18,15 +18,15 @@ export function ShareableCapturePreview({ children, repository = "test-org/aweso
           width: "540px"
         }}
       >
-        {/* Attribution header - white background with black text for capture compatibility */}
+        {/* Attribution header - theme aware: black on light mode, almost white on dark mode */}
         <div 
-          className="h-[60px] bg-white text-black flex items-center justify-between px-5"
+          className="h-[60px] bg-black dark:bg-gray-50 text-white dark:text-gray-900 flex items-center justify-between px-5"
           style={{
             fontFamily: "'Inter', system-ui, -apple-system, sans-serif"
           }}
         >
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center">
+            <div className="w-6 h-6 bg-gray-200 dark:bg-gray-200 rounded flex items-center justify-center">
               <span className="text-xs">📊</span>
             </div>
             <span className="text-base font-bold truncate max-w-[280px]">
