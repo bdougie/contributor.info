@@ -2,21 +2,43 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { GithubIcon, LogOut, MessageSquare } from "lucide-react";
+import { GithubIcon, LogOut, MessageSquare, Shield, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 
 export function AuthButton() {
+  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    // Check admin status for a user
+    const checkAdminStatus = async (user: User | null) => {
+      if (!user || !user.user_metadata?.user_name) {
+        setIsAdmin(false);
+        return;
+      }
+
+      try {
+        const { data: adminCheck } = await supabase
+          .rpc('is_user_admin', { user_github_username: user.user_metadata.user_name });
+        setIsAdmin(adminCheck === true);
+      } catch (err) {
+        console.warn('Failed to check admin status:', err);
+        setIsAdmin(false);
+      }
+    };
+
     // Get initial session
     supabase.auth
       .getSession()
@@ -24,7 +46,9 @@ export function AuthButton() {
         if (sessionError) {
           setError(sessionError.message);
         }
-        setUser(session?.user ?? null);
+        const user = session?.user ?? null;
+        setUser(user);
+        checkAdminStatus(user);
         setLoading(false);
       })
       .catch(() => {
@@ -36,7 +60,9 @@ export function AuthButton() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const user = session?.user ?? null;
+      setUser(user);
+      checkAdminStatus(user);
     });
 
     return () => subscription.unsubscribe();
@@ -110,10 +136,33 @@ export function AuthButton() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuItem className="font-medium">
-          {user.user_metadata.user_name}
+          <div className="flex items-center justify-between w-full">
+            <span>{user.user_metadata.user_name}</span>
+            {isAdmin && (
+              <Badge variant="destructive" className="text-xs">
+                Admin
+              </Badge>
+            )}
+          </div>
         </DropdownMenuItem>
+        
+        {isAdmin && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate("/admin")}>
+              <Shield className="mr-2 h-4 w-4" />
+              Admin Dashboard
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/dev")}>
+              <Settings className="mr-2 h-4 w-4" />
+              Developer Tools
+            </DropdownMenuItem>
+          </>
+        )}
+        
+        <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <a
             href="https://github.com/bdougie/contributor.info/discussions"

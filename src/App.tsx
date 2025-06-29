@@ -3,7 +3,7 @@ import { Suspense, lazy, useEffect } from "react";
 import { ThemeProvider } from "@/components/common/theming";
 import { Toaster } from "@/components/ui/sonner";
 import { Layout, Home, NotFound } from "@/components/common/layout";
-import { ProtectedRoute } from "@/components/features/auth";
+import { ProtectedRoute, AdminRoute } from "@/components/features/auth";
 
 // Lazy load route components for better performance
 const RepoView = lazy(() => import("@/components/features/repository/repo-view"));
@@ -28,6 +28,10 @@ const AnalyticsDashboard = lazy(() => import("@/components/features/debug/analyt
 const ShareableChartsPreview = lazy(() => import("@/components/features/debug/shareable-charts-preview").then(m => ({ default: m.ShareableChartsPreview })));
 const DubTest = lazy(() => import("@/components/features/debug/dub-test").then(m => ({ default: m.DubTest })));
 const BulkAddRepos = lazy(() => import("@/components/features/debug/bulk-add-repos").then(m => ({ default: m.BulkAddRepos })));
+
+// Admin components
+const AdminMenu = lazy(() => import("@/components/features/admin").then(m => ({ default: m.AdminMenu })));
+const UserManagement = lazy(() => import("@/components/features/admin").then(m => ({ default: m.UserManagement })));
 
 // Loading fallback component
 const PageSkeleton = () => (
@@ -172,6 +176,48 @@ function App() {
                   <ProtectedRoute>
                     <BulkAddRepos />
                   </ProtectedRoute>
+                }
+              />
+              
+              {/* Admin routes - require admin privileges */}
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <AdminMenu />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={
+                  <AdminRoute>
+                    <UserManagement />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/analytics"
+                element={
+                  <AdminRoute>
+                    <AnalyticsDashboard />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/performance-monitoring"
+                element={
+                  <AdminRoute>
+                    <PerformanceMonitoringDashboard />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/bulk-add-repos"
+                element={
+                  <AdminRoute>
+                    <BulkAddRepos />
+                  </AdminRoute>
                 }
               />
               
