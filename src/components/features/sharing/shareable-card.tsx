@@ -53,10 +53,13 @@ export function ShareableCard({
     
     try {
       // Use SnapDOM for superior performance and accuracy
+      // Use wider width for treemap charts to provide better visualization
+      const captureWidth = chartType === 'distribution-treemap' ? 840 : 540;
+      
       const captureResult = await SnapDOMCaptureService.captureElement(cardRef.current, {
         title,
         repository: contextInfo?.repository,
-        width: 540,
+        width: captureWidth,
         backgroundColor: 'white'
       });
 

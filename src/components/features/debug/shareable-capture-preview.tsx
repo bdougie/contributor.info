@@ -3,9 +3,10 @@ import { ReactNode } from "react";
 interface ShareableCapturePreviewProps {
   children: ReactNode;
   repository?: string;
+  width?: number;
 }
 
-export function ShareableCapturePreview({ children, repository = "test-org/awesome-project" }: ShareableCapturePreviewProps) {
+export function ShareableCapturePreview({ children, repository = "test-org/awesome-project", width = 540 }: ShareableCapturePreviewProps) {
   return (
     <div className="flex justify-center">
       {/* Clean card layout for capture preview */}
@@ -13,9 +14,9 @@ export function ShareableCapturePreview({ children, repository = "test-org/aweso
         className="overflow-hidden shadow-lg bg-background border border-gray-200 dark:border-gray-700"
         style={{
           borderRadius: "12px",
-          maxWidth: "540px",
-          minWidth: "540px",
-          width: "540px"
+          maxWidth: `${width}px`,
+          minWidth: `${width}px`,
+          width: `${width}px`
         }}
       >
         {/* Attribution header - theme aware: black on light mode, almost white on dark mode */}

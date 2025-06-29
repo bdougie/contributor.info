@@ -283,7 +283,7 @@ export function ShareableChartsPreview() {
 
       case "distribution-treemap":
         return (
-          <ShareableCapturePreview repository={repository}>
+          <ShareableCapturePreview repository={repository} width={840}>
             <ShareableCard
               title="Distribution Treemap"
               contextInfo={{
