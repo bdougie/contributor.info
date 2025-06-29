@@ -8,6 +8,10 @@ import {
 import { 
   batchUpdateConfidenceScores 
 } from '../_shared/confidence-scoring.ts'
+import { 
+  processPRWithSpamDetection, 
+  batchProcessPRsForSpam 
+} from '../_shared/spam-detection-integration.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -179,68 +183,53 @@ async function processPullRequestData(
   pr: any,
   repositoryId: string
 ) {
-  const author = pr.user
-  
   try {
-    // First ensure the contributor exists
-    const { data: contributor, error: contributorError } = await supabase
-      .from('contributors')
-      .upsert({
-        github_id: author.id,
-        username: author.login,
-        display_name: author.login,
-        avatar_url: author.avatar_url,
-        profile_url: author.html_url,
-        is_bot: author.type === 'Bot',
-        first_seen_at: new Date().toISOString(),
-        last_updated_at: new Date().toISOString(),
-        is_active: true
-      }, {
-        onConflict: 'github_id',
-        ignoreDuplicates: false
-      })
-      .select()
-      .single()
-    
-    if (contributorError) {
-      console.error(`[GitHub Sync] Error upserting contributor ${author.login}:`, contributorError)
+    // Fetch detailed PR data to get additions, deletions, and changed_files
+    // The /pulls endpoint doesn't include these stats, we need the individual PR endpoint
+    const github_token = Deno.env.get('GITHUB_TOKEN')
+    if (!github_token) {
+      console.error('[GitHub Sync] GITHUB_TOKEN not found')
       return
     }
     
-    // Then create/update the pull request
-    const { error: prError } = await supabase
-      .from('pull_requests')
-      .upsert({
-        github_id: pr.id,
-        number: pr.number,
-        title: pr.title,
-        body: pr.body,
-        state: pr.state,
-        repository_id: repositoryId,
-        author_id: contributor.id,
-        base_branch: pr.base?.ref || 'main',
-        head_branch: pr.head?.ref || 'unknown',
-        draft: pr.draft || false,
-        merged: pr.merged || false,
-        created_at: pr.created_at,
-        updated_at: pr.updated_at,
-        merged_at: pr.merged_at,
-        closed_at: pr.closed_at,
-        additions: pr.additions || 0,
-        deletions: pr.deletions || 0,
-        changed_files: pr.changed_files || 0,
-        commits: pr.commits || 0,
-        html_url: pr.html_url
-      }, {
-        onConflict: 'github_id',
-        ignoreDuplicates: false
-      })
+    const detailedResponse = await fetch(`https://api.github.com/repos/${pr.base.repo.owner.login}/${pr.base.repo.name}/pulls/${pr.number}`, {
+      headers: {
+        'Authorization': `token ${github_token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    })
     
-    if (prError) {
-      console.error(`[GitHub Sync] Error upserting pull request #${pr.number}:`, prError)
+    if (detailedResponse.ok) {
+      const detailedPR = await detailedResponse.json()
+      // Merge the detailed stats into the original PR object
+      pr.additions = detailedPR.additions || 0
+      pr.deletions = detailedPR.deletions || 0
+      pr.changed_files = detailedPR.changed_files || 0
+      pr.commits = detailedPR.commits || 0
+      
+      console.log(`[GitHub Sync] Enhanced PR #${pr.number} with stats: +${pr.additions}/-${pr.deletions}, ${pr.changed_files} files`)
+    } else {
+      console.warn(`[GitHub Sync] Failed to fetch detailed PR data for #${pr.number}: ${detailedResponse.status}`)
+      // Set defaults if we can't fetch detailed data
+      pr.additions = 0
+      pr.deletions = 0
+      pr.changed_files = 0
+      pr.commits = 0
     }
   } catch (error) {
-    console.error(`[GitHub Sync] Error processing pull request #${pr.number}:`, error)
+    console.error(`[GitHub Sync] Error fetching detailed PR data for #${pr.number}:`, error)
+    // Set defaults on error
+    pr.additions = 0
+    pr.deletions = 0
+    pr.changed_files = 0
+    pr.commits = 0
+  }
+  
+  // Use the spam detection version (will use singleton internally)
+  const result = await processPRWithSpamDetection(supabase, pr, repositoryId);
+  
+  if (!result.success) {
+    console.error(`[GitHub Sync] Error processing pull request #${pr.number}:`, result.error);
   }
 }
 
@@ -253,70 +242,53 @@ async function processPullRequestEvent(
   repo: string
 ) {
   const pr = event.payload.pull_request
-  const author = pr.user
   
   try {
-    // First ensure the contributor exists
-    const { data: contributor, error: contributorError } = await supabase
-      .from('contributors')
-      .upsert({
-        github_id: author.id,
-        username: author.login,
-        display_name: author.login,
-        avatar_url: author.avatar_url,
-        profile_url: author.html_url,
-        is_bot: author.type === 'Bot',
-        first_seen_at: new Date().toISOString(),
-        last_updated_at: new Date().toISOString(),
-        is_active: true
-      }, {
-        onConflict: 'github_id',
-        ignoreDuplicates: false
+    // Fetch detailed PR data to get additions, deletions, and changed_files
+    // Event payloads don't include these stats, we need the individual PR endpoint
+    const github_token = Deno.env.get('GITHUB_TOKEN')
+    if (github_token) {
+      const detailedResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pr.number}`, {
+        headers: {
+          'Authorization': `token ${github_token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
       })
-      .select()
-      .single()
-    
-    if (contributorError) {
-      console.error(`[GitHub Sync] Error upserting contributor ${author.login}:`, contributorError)
-      return
-    }
-    
-    // Then create/update the pull request
-    const { error: prError } = await supabase
-      .from('pull_requests')
-      .upsert({
-        github_id: pr.id,
-        number: pr.number,
-        title: pr.title,
-        body: pr.body,
-        state: pr.state,
-        repository_id: repositoryId,
-        author_id: contributor.id,
-        base_branch: pr.base?.ref || 'main',
-        head_branch: pr.head?.ref || 'unknown',
-        draft: pr.draft || false,
-        merged: pr.merged || false,
-        created_at: pr.created_at,
-        updated_at: pr.updated_at,
-        merged_at: pr.merged_at,
-        closed_at: pr.closed_at,
-        additions: pr.additions || 0,
-        deletions: pr.deletions || 0,
-        changed_files: pr.changed_files || 0,
-        commits: pr.commits || 0,
-        html_url: pr.html_url
-      }, {
-        onConflict: 'github_id',
-        ignoreDuplicates: false
-      })
-    
-    if (prError) {
-      console.error(`[GitHub Sync] Error upserting pull request #${pr.number}:`, prError)
-    } else {
-      console.log(`[GitHub Sync] Processed pull request #${pr.number} by ${author.login}`)
+      
+      if (detailedResponse.ok) {
+        const detailedPR = await detailedResponse.json()
+        // Merge the detailed stats into the original PR object
+        pr.additions = detailedPR.additions || 0
+        pr.deletions = detailedPR.deletions || 0
+        pr.changed_files = detailedPR.changed_files || 0
+        pr.commits = detailedPR.commits || 0
+        
+        console.log(`[GitHub Sync] Enhanced PR event #${pr.number} with stats: +${pr.additions}/-${pr.deletions}, ${pr.changed_files} files`)
+      } else {
+        console.warn(`[GitHub Sync] Failed to fetch detailed PR data for event #${pr.number}: ${detailedResponse.status}`)
+        // Set defaults if we can't fetch detailed data
+        pr.additions = 0
+        pr.deletions = 0
+        pr.changed_files = 0
+        pr.commits = 0
+      }
     }
   } catch (error) {
-    console.error(`[GitHub Sync] Error processing pull request event:`, error)
+    console.error(`[GitHub Sync] Error fetching detailed PR data for event #${pr.number}:`, error)
+    // Set defaults on error
+    pr.additions = 0
+    pr.deletions = 0
+    pr.changed_files = 0
+    pr.commits = 0
+  }
+  
+  // Use the spam detection version (will use singleton internally)
+  const result = await processPRWithSpamDetection(supabase, pr, repositoryId);
+  
+  if (!result.success) {
+    console.error(`[GitHub Sync] Error processing pull request event:`, result.error);
+  } else {
+    console.log(`[GitHub Sync] Processed pull request #${pr.number} by ${pr.user.login} - Spam Score: ${result.spamResult?.spam_score}`);
   }
 }
 
@@ -551,6 +523,20 @@ serve(async (req) => {
         
         // Fetch and process pull requests directly from GitHub API
         await fetchAndProcessPullRequests(supabase, repo.owner, repo.name, github_token)
+        
+        // Batch process existing PRs for spam detection (for PRs that might not have spam scores)
+        const { data: repoData } = await supabase
+          .from('repositories')
+          .select('id')
+          .eq('owner', repo.owner)
+          .eq('name', repo.name)
+          .single()
+          
+        if (repoData) {
+          console.log(`[GitHub Sync] Running batch spam detection for existing PRs in ${repo.owner}/${repo.name}`)
+          const { processed, errors } = await batchProcessPRsForSpam(supabase, repoData.id, 50) // Process 50 at a time
+          console.log(`[GitHub Sync] Spam detection complete: ${processed} processed, ${errors} errors`)
+        }
         
         // Update confidence scores for all contributors
         await batchUpdateConfidenceScores(supabase, repo.owner, repo.name)

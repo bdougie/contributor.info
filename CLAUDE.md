@@ -151,3 +151,4 @@ npx supabase status
 - use the /docs folder for postmortems and /tasks for plans. remove plans when feature is implemented, but write docs when plans are completed
 - after visual changes always look for opportunity to improve performance
 - no premmature optimizations without testing
+- use the supabase mcp server for migrations

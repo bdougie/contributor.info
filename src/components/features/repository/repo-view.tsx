@@ -41,7 +41,7 @@ export default function RepoView() {
     const path = location.pathname;
     if (path.endsWith("/health")) return "lottery";
     if (path.endsWith("/distribution")) return "distribution";
-    if (path.endsWith("/feed")) return "feed";
+    if (path.endsWith("/feed") || path.includes("/feed/")) return "feed";
     if (path.endsWith("/activity") || path.endsWith("/contributions"))
       return "contributions";
     return "contributions"; // default for root path

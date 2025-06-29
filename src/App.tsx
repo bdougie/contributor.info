@@ -3,7 +3,7 @@ import { Suspense, lazy, useEffect } from "react";
 import { ThemeProvider } from "@/components/common/theming";
 import { Toaster } from "@/components/ui/sonner";
 import { Layout, Home, NotFound } from "@/components/common/layout";
-import { ProtectedRoute } from "@/components/features/auth";
+import { ProtectedRoute, AdminRoute } from "@/components/features/auth";
 
 // Lazy load route components for better performance
 const RepoView = lazy(() => import("@/components/features/repository/repo-view"));
@@ -18,6 +18,7 @@ const DebugMenu = lazy(() => import("@/components/features/debug/debug-menu").th
 const ChangelogPage = lazy(() => import("@/components/features/changelog/changelog-page").then(m => ({ default: m.ChangelogPage })));
 const DocsPage = lazy(() => import("@/components/features/docs/docs-page").then(m => ({ default: m.DocsPage })));
 const FeedPage = lazy(() => import("@/components/features/feed/feed-page"));
+const SpamFeedPage = lazy(() => import("@/components/features/feed/spam-feed-page"));
 const CardLayout = lazy(() => import("@/components/social-cards/card-layout"));
 const HomeSocialCardWithData = lazy(() => import("@/components/social-cards/home-card-with-data"));
 const RepoCardLayout = lazy(() => import("@/components/social-cards/repo-card-layout"));
@@ -28,6 +29,13 @@ const AnalyticsDashboard = lazy(() => import("@/components/features/debug/analyt
 const ShareableChartsPreview = lazy(() => import("@/components/features/debug/shareable-charts-preview").then(m => ({ default: m.ShareableChartsPreview })));
 const DubTest = lazy(() => import("@/components/features/debug/dub-test").then(m => ({ default: m.DubTest })));
 const BulkAddRepos = lazy(() => import("@/components/features/debug/bulk-add-repos").then(m => ({ default: m.BulkAddRepos })));
+
+// Admin components
+const AdminMenu = lazy(() => import("@/components/features/admin").then(m => ({ default: m.AdminMenu })));
+const UserManagement = lazy(() => import("@/components/features/admin").then(m => ({ default: m.UserManagement })));
+const SpamManagement = lazy(() => import("@/components/features/admin").then(m => ({ default: m.SpamManagement })));
+const SpamTestTool = lazy(() => import("@/components/features/admin").then(m => ({ default: m.SpamTestTool })));
+const BulkSpamAnalysis = lazy(() => import("@/components/features/admin").then(m => ({ default: m.BulkSpamAnalysis })));
 
 // Loading fallback component
 const PageSkeleton = () => (
@@ -175,6 +183,72 @@ function App() {
                 }
               />
               
+              {/* Admin routes - require admin privileges */}
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <AdminMenu />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={
+                  <AdminRoute>
+                    <UserManagement />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/analytics"
+                element={
+                  <AdminRoute>
+                    <AnalyticsDashboard />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/performance-monitoring"
+                element={
+                  <AdminRoute>
+                    <PerformanceMonitoringDashboard />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/bulk-add-repos"
+                element={
+                  <AdminRoute>
+                    <BulkAddRepos />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/spam"
+                element={
+                  <AdminRoute>
+                    <SpamManagement />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/spam-test"
+                element={
+                  <AdminRoute>
+                    <SpamTestTool />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/bulk-spam-analysis"
+                element={
+                  <AdminRoute>
+                    <BulkSpamAnalysis />
+                  </AdminRoute>
+                }
+              />
+              
               <Route path="/:owner/:repo" element={<RepoView />}>
                 <Route path="" element={<ContributionsRoute />} />
                 <Route path="activity" element={<ContributionsRoute />} />
@@ -182,6 +256,11 @@ function App() {
                 <Route path="health" element={<LotteryFactorRoute />} />
                 <Route path="distribution" element={<DistributionRoute />} />
                 <Route path="feed" element={<FeedPage />} />
+                <Route path="feed/spam" element={
+                  <ProtectedRoute>
+                    <SpamFeedPage />
+                  </ProtectedRoute>
+                } />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Route>

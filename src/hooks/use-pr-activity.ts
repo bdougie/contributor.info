@@ -184,7 +184,7 @@ export function usePRActivity(pullRequests: PullRequest[]) {
 
       // Sort activities by date, newest first
       const sortedActivities = processedActivities.sort(
-        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+        (a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)
       );
 
       setActivities(sortedActivities);
