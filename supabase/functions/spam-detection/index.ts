@@ -17,6 +17,7 @@ interface SpamDetectionRequest {
   repository_id?: string;
   repository_owner?: string;
   repository_name?: string;
+  analyze_all?: boolean; // Analyze all repositories
   
   // Options
   limit?: number;
@@ -39,13 +40,14 @@ serve(async (req) => {
 
     // Parse request body
     const body: SpamDetectionRequest = await req.json().catch(() => ({}))
-    const { pr_id, repository_id, repository_owner, repository_name, limit = 100, force_recheck = false } = body
+    const { pr_id, repository_id, repository_owner, repository_name, analyze_all = false, limit = 100, force_recheck = false } = body
     
     console.log('[Spam Detection] Request:', { 
       pr_id, 
       repository_id,
       repository_owner,
       repository_name,
+      analyze_all,
       limit,
       force_recheck
     })
@@ -157,6 +159,126 @@ serve(async (req) => {
       )
     }
     
+    // Analyze all repositories
+    if (analyze_all) {
+      console.log('[Spam Detection] Analyzing all repositories')
+      
+      // Get all repositories with PRs
+      const { data: repositories, error: reposError } = await supabase
+        .from('repositories')
+        .select('id, full_name')
+        .order('full_name')
+      
+      if (reposError) {
+        throw new Error(`Failed to fetch repositories: ${reposError.message}`)
+      }
+      
+      if (!repositories || repositories.length === 0) {
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            message: 'No repositories found',
+            processed: 0,
+            errors: 0
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200 
+          }
+        )
+      }
+      
+      let totalProcessed = 0;
+      let totalErrors = 0;
+      const results = [];
+      
+      // Process each repository
+      for (const repo of repositories) {
+        try {
+          console.log(`[Spam Detection] Processing repository: ${repo.full_name}`)
+          
+          // If force_recheck is true, clear existing spam scores first
+          if (force_recheck) {
+            console.log(`[Spam Detection] Force recheck enabled for ${repo.full_name}, clearing existing spam scores`)
+            const { error: clearError } = await supabase
+              .from('pull_requests')
+              .update({
+                spam_score: null,
+                spam_flags: null,
+                is_spam: null,
+                spam_detected_at: null
+              })
+              .eq('repository_id', repo.id)
+            
+            if (clearError) {
+              console.warn(`[Spam Detection] Error clearing spam scores for ${repo.full_name}:`, clearError)
+            }
+          }
+          
+          // Run batch processing for this repository
+          const { processed, errors } = await batchProcessPRsForSpam(supabase, repo.id, limit)
+          
+          totalProcessed += processed;
+          totalErrors += errors;
+          
+          results.push({
+            repository_id: repo.id,
+            repository_name: repo.full_name,
+            processed,
+            errors
+          });
+          
+          console.log(`[Spam Detection] Completed ${repo.full_name}: ${processed} processed, ${errors} errors`)
+          
+        } catch (repoError) {
+          console.error(`[Spam Detection] Error processing repository ${repo.full_name}:`, repoError)
+          totalErrors++;
+          results.push({
+            repository_id: repo.id,
+            repository_name: repo.full_name,
+            processed: 0,
+            errors: 1,
+            error: repoError.message
+          });
+        }
+      }
+      
+      // Get overall statistics
+      const { data: overallStats, error: statsError } = await supabase
+        .from('pull_requests')
+        .select('spam_score, is_spam')
+        .not('spam_score', 'is', null)
+      
+      let avgScore = 0;
+      let spamCount = 0;
+      
+      if (overallStats && overallStats.length > 0) {
+        avgScore = overallStats.reduce((sum, pr) => sum + pr.spam_score, 0) / overallStats.length;
+        spamCount = overallStats.filter(pr => pr.is_spam).length;
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          analyze_all: true,
+          total_repositories: repositories.length,
+          total_processed: totalProcessed,
+          total_errors: totalErrors,
+          results,
+          overall_stats: {
+            total_analyzed: overallStats?.length || 0,
+            spam_count: spamCount,
+            spam_percentage: overallStats?.length ? (spamCount / overallStats.length) * 100 : 0,
+            avg_spam_score: Math.round(avgScore * 10) / 10
+          }
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      )
+    }
+    
     // Batch detection for repository
     if (repository_id || (repository_owner && repository_name)) {
       let repoId = repository_id;
@@ -239,7 +361,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: 'Invalid request. Provide either pr_id or repository details.' 
+        error: 'Invalid request. Provide either pr_id, repository details, or analyze_all=true.' 
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

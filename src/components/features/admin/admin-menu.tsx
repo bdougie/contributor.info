@@ -95,6 +95,14 @@ export function AdminMenu() {
       variant: 'default' as const
     },
     {
+      title: 'Bulk Spam Analysis',
+      description: 'Analyze previous PRs across all repositories for spam detection. Process unanalyzed PRs in bulk.',
+      icon: BarChart3,
+      href: '/admin/bulk-spam-analysis',
+      badge: 'New',
+      variant: 'success' as const
+    },
+    {
       title: 'Analytics Dashboard',
       description: 'System-wide analytics, user metrics, and performance insights for administrators.',
       icon: BarChart3,
@@ -195,6 +203,9 @@ export function AdminMenu() {
           </Button>
           <Button asChild variant="outline" size="sm">
             <Link to="/admin/spam?status=pending">Pending Reviews</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/bulk-spam-analysis?filter=pending">Analyze Pending PRs</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
             <Link to="/admin/analytics?view=today">Today's Metrics</Link>

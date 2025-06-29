@@ -14,7 +14,8 @@ import {
   BarChart3,
   Image,
   Link,
-  Database
+  Database,
+  GitBranch
 } from "lucide-react";
 
 interface DebugRoute {
@@ -73,6 +74,13 @@ const debugRoutes: DebugRoute[] = [
     title: "Dub.co API Test",
     description: "Test dub.co API integration and debug authorization issues",
     icon: <Link className="h-4 w-4" />,
+    category: "testing"
+  },
+  {
+    path: "/dev/sync-test",
+    title: "GitHub Sync Test",
+    description: "Manual GitHub sync testing with real-time logging and debugging",
+    icon: <GitBranch className="h-4 w-4" />,
     category: "testing"
   },
   {
