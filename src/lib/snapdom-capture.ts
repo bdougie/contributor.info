@@ -1,5 +1,6 @@
 import { snapdom } from '@zumer/snapdom';
 import html2canvas from 'html2canvas';
+import { getRepositoryOwnerAvatarUrl } from '@/lib/utils/image-optimization';
 
 export interface CaptureOptions {
   title: string;
@@ -53,6 +54,9 @@ export class SnapDOMCaptureService {
       
       // Wait for chart libraries and async rendering to complete
       await this.waitForChartRender(contentContainer);
+      
+      // Wait for attribution images (repo logos) to load
+      await this.waitForAttributionImages(wrapper);
       
       // Ensure visibility and proper dimensions
       const wrapperRect = wrapper.getBoundingClientRect();
@@ -316,26 +320,89 @@ export class SnapDOMCaptureService {
     const leftContainer = document.createElement('div');
     leftContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
 
-    // Theme-aware icon container colors
-    const iconBgColor = isDarkMode ? '#e5e7eb' : '#e5e7eb'; // gray-200 for both modes (light gray on almost white background)
+    // Extract owner from repository string (format: "owner/repo")
+    const owner = repository ? repository.split('/')[0] : null;
+
+    // Theme-aware colors
     const textColor = isDarkMode ? '#111827' : '#000000'; // gray-900 for dark, black for light
 
-    // Icon container
-    const iconContainer = document.createElement('div');
-    iconContainer.style.cssText = `
-      width: 24px;
-      height: 24px;
-      background-color: ${iconBgColor};
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    `;
-    
-    const iconSpan = document.createElement('span');
-    iconSpan.style.cssText = 'font-size: 12px;';
-    iconSpan.textContent = '📊';
-    iconContainer.appendChild(iconSpan);
+    // Add repository owner logo if available
+    if (owner && repository) {
+      const logoContainer = document.createElement('div');
+      logoContainer.style.cssText = `
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        overflow: hidden;
+        flex-shrink: 0;
+        border: 1px solid ${isDarkMode ? '#d1d5db' : '#e5e7eb'};
+      `;
+
+      const logoImg = document.createElement('img');
+      const avatarUrl = getRepositoryOwnerAvatarUrl(owner, 24);
+      logoImg.src = avatarUrl;
+      logoImg.alt = `${owner} logo`;
+      logoImg.style.cssText = `
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      `;
+      
+      console.log(`Loading repository logo for ${owner}: ${avatarUrl}`);
+      
+      // Add fallback for failed image loads
+      logoImg.onerror = () => {
+        console.log(`Repository logo failed to load for ${owner}, using fallback`);
+        // Replace with initials fallback in rounded square
+        logoContainer.innerHTML = `
+          <div style="
+            width: 100%;
+            height: 100%;
+            background-color: ${isDarkMode ? '#9ca3af' : '#6b7280'};
+            color: ${isDarkMode ? '#ffffff' : '#ffffff'};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            font-family: 'Inter', system-ui, sans-serif;
+          ">
+            ${owner.slice(0, 2).toUpperCase()}
+          </div>
+        `;
+      };
+      
+      logoImg.onload = () => {
+        console.log(`Repository logo loaded successfully for ${owner}`);
+      };
+
+      logoContainer.appendChild(logoImg);
+      leftContainer.appendChild(logoContainer);
+    } else {
+      // Fallback: Use a generic repository icon when no owner info is available
+      const iconBgColor = isDarkMode ? '#e5e7eb' : '#e5e7eb'; // gray-200 for both modes
+      const iconContainer = document.createElement('div');
+      iconContainer.style.cssText = `
+        width: 24px;
+        height: 24px;
+        background-color: ${iconBgColor};
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid ${isDarkMode ? '#d1d5db' : '#e5e7eb'};
+      `;
+      
+      // Use a repository icon for consistency with repo logos
+      const iconSpan = document.createElement('span');
+      iconSpan.style.cssText = `
+        font-size: 12px;
+        color: ${isDarkMode ? '#6b7280' : '#9ca3af'};
+      `;
+      iconSpan.textContent = '📁'; // Repository/folder icon is more appropriate
+      iconContainer.appendChild(iconSpan);
+      leftContainer.appendChild(iconContainer);
+    }
 
     // Repository name
     const repoName = document.createElement('span');
@@ -351,7 +418,6 @@ export class SnapDOMCaptureService {
     `;
     repoName.textContent = repository || 'Repository';
 
-    leftContainer.appendChild(iconContainer);
     leftContainer.appendChild(repoName);
 
     return leftContainer;
@@ -548,6 +614,62 @@ export class SnapDOMCaptureService {
   }
 
   /**
+   * Waits for attribution header images (repository logos) to load
+   */
+  private static async waitForAttributionImages(wrapper: HTMLElement): Promise<void> {
+    console.log('Waiting for attribution images to load...');
+    
+    // Find all images in the attribution header specifically
+    const attributionImages = wrapper.querySelectorAll('img[alt*="logo"], img[alt*="avatar"]');
+    
+    if (attributionImages.length > 0) {
+      console.log(`Found ${attributionImages.length} attribution images to load...`);
+      
+      await Promise.all(
+        Array.from(attributionImages).map(img => {
+          const imgElement = img as HTMLImageElement;
+          
+          // If already loaded, return immediately
+          if (imgElement.complete && imgElement.naturalWidth > 0) {
+            console.log(`Image already loaded: ${imgElement.src}`);
+            return Promise.resolve();
+          }
+          
+          return new Promise<void>((resolve) => {
+            const timeout = setTimeout(() => {
+              console.log(`Image load timeout: ${imgElement.src}`);
+              resolve();
+            }, 3000); // 3 second timeout for external images
+            
+            imgElement.onload = () => {
+              console.log(`Image loaded successfully: ${imgElement.src}`);
+              clearTimeout(timeout);
+              resolve();
+            };
+            
+            imgElement.onerror = () => {
+              console.log(`Image failed to load: ${imgElement.src}`);
+              clearTimeout(timeout);
+              resolve(); // Continue even if image fails
+            };
+            
+            // If the src is not set or empty, resolve immediately
+            if (!imgElement.src) {
+              clearTimeout(timeout);
+              resolve();
+            }
+          });
+        })
+      );
+    }
+    
+    // Additional small wait for any CSS transitions
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    console.log('Attribution images wait complete');
+  }
+
+  /**
    * Checks if a canvas is blank (all white/transparent)
    */
   private static isCanvasBlank(canvas: HTMLCanvasElement): boolean {
@@ -618,7 +740,10 @@ export class SnapDOMCaptureService {
     
     // Clean up after a short delay to ensure download starts
     setTimeout(() => {
-      document.body.removeChild(link);
+      // Safety check to ensure link is still in the DOM before removing
+      if (link.parentNode === document.body) {
+        document.body.removeChild(link);
+      }
       URL.revokeObjectURL(url);
       console.log('Cleaned up download link and blob URL');
     }, 100);
