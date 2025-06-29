@@ -25,7 +25,7 @@ export class SpamDetectionService {
       }
 
       // Analyze different aspects of the PR
-      const prAnalysis = this.prAnalysisService.analyzePR(pr);
+      const prAnalysis = await this.prAnalysisService.analyzePR(pr);
       const accountFlags = this.accountAnalysisService.analyzeAccount(pr);
 
       // Combine all flags

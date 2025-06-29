@@ -149,8 +149,12 @@ export default function FilteredPRActivity() {
           )}
         </div>
 
-        <div className="mb-2 text-sm text-muted-foreground">
-          Showing {visibleActivities.length} of {filteredActivities.length} activities
+        <div className="mb-2 text-sm text-muted-foreground flex items-center gap-2">
+          <span>Showing {visibleActivities.length} of {filteredActivities.length} activities</span>
+          <span>•</span>
+          <span className="text-xs bg-muted px-2 py-1 rounded">
+            📊 Sorted by spam score (highest first)
+          </span>
         </div>
 
         {/* Activity Feed */}

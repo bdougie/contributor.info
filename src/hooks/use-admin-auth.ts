@@ -99,17 +99,14 @@ export function useAdminAuth(): AdminAuthState {
 
         const isAdmin = isAdminResult === true;
 
-        // If user is admin, get their full user data
+        // If user is admin, get their full user data using RPC to bypass RLS
         let adminUser = null;
         if (isAdmin) {
           try {
-            // Use a direct query that should work since we know they're admin
+            // Use RPC to get user data since direct queries may fail due to RLS
             const { data: userData } = await supabase
-              .from('app_users')
-              .select('*')
-              .eq('github_user_id', parseInt(githubId))
-              .single();
-            adminUser = userData;
+              .rpc('get_user_by_github_id', { user_github_id: parseInt(githubId) });
+            adminUser = userData?.[0] || null; // RPC returns array
           } catch (err) {
             console.warn('Could not fetch admin user data:', err);
           }

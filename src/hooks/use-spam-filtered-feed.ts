@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   fetchFilteredPullRequests, 
   getRepositorySpamStats,
@@ -40,7 +40,7 @@ export function useSpamFilteredFeed(
   repo: string,
   limit: number = 100
 ): UseSpamFilteredFeedResult {
-  const [pullRequests, setPullRequests] = useState<PullRequestWithAuthor[]>([]);
+  const [allPullRequests, setAllPullRequests] = useState<PullRequestWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [spamStats, setSpamStats] = useState<UseSpamFilteredFeedResult['spamStats']>(null);
@@ -51,7 +51,7 @@ export function useSpamFilteredFeed(
     getUserSpamPreferences().then(setFilterOptions);
   }, []);
 
-  // Fetch data
+  // Fetch data (only when owner/repo changes, not when filters change)
   const fetchData = useCallback(async () => {
     if (!owner || !repo) return;
     
@@ -59,29 +59,74 @@ export function useSpamFilteredFeed(
     setError(null);
 
     try {
-      // Fetch filtered PRs and stats in parallel
+      // Fetch all PRs and stats in parallel (don't filter server-side)
       const [prs, stats] = await Promise.all([
-        fetchFilteredPullRequests(owner, repo, filterOptions, limit),
+        fetchFilteredPullRequests(owner, repo, { includeSpam: true, includeUnreviewed: true, maxSpamScore: 100 }, limit * 3),
         getRepositorySpamStats(owner, repo)
       ]);
 
-      setPullRequests(prs);
+      setAllPullRequests(prs);
       setSpamStats(stats);
     } catch (err) {
       console.error('Error fetching spam-filtered feed:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch pull requests');
-      setPullRequests([]);
+      setAllPullRequests([]);
     } finally {
       setLoading(false);
     }
-  }, [owner, repo, filterOptions, limit]);
+  }, [owner, repo, limit]);
 
-  // Fetch data when dependencies change
+  // Fetch data when owner/repo changes
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Update filter options
+  // Apply client-side filtering and sorting to the loaded data
+  const pullRequests = useMemo(() => {
+    let filtered = allPullRequests.filter(pr => {
+      // Skip PRs with null spam scores unless includeUnreviewed is true
+      if (pr.spam_score === null) {
+        return filterOptions.includeUnreviewed !== false;
+      }
+
+      // Apply spam status filter
+      if (!filterOptions.includeSpam && pr.is_spam) {
+        return false;
+      }
+
+      // Apply spam score range filter
+      const spamScore = pr.spam_score;
+      if (filterOptions.minSpamScore !== undefined && spamScore < filterOptions.minSpamScore) {
+        return false;
+      }
+      if (filterOptions.maxSpamScore !== undefined && filterOptions.maxSpamScore < 100 && spamScore > filterOptions.maxSpamScore) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Sort by spam score descending (highest probability first), then by date
+    filtered.sort((a, b) => {
+      // First, prioritize PRs with spam scores over those without
+      if (a.spam_score === null && b.spam_score !== null) return 1;
+      if (a.spam_score !== null && b.spam_score === null) return -1;
+      
+      // If both have spam scores, sort by score descending (highest first)
+      if (a.spam_score !== null && b.spam_score !== null) {
+        if (a.spam_score !== b.spam_score) {
+          return b.spam_score - a.spam_score;
+        }
+      }
+      
+      // If spam scores are equal (or both null), sort by date descending (newest first)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+    return filtered.slice(0, limit);
+  }, [allPullRequests, filterOptions, limit]);
+
+  // Update filter options (no refetch needed)
   const updateFilterOptions = useCallback(async (newOptions: SpamFilterOptions) => {
     setFilterOptions(newOptions);
     await saveUserSpamPreferences(newOptions);
@@ -101,40 +146,42 @@ export function useSpamFilteredFeed(
 // Helper hook for spam tolerance presets
 export function useSpamTolerancePresets() {
   const presets = {
-    strict: {
-      name: 'Strict',
-      description: 'Only show high-quality PRs',
-      options: {
-        maxSpamScore: 25,
-        includeSpam: false,
-        includeUnreviewed: false,
-      } as SpamFilterOptions,
-    },
-    balanced: {
-      name: 'Balanced',
-      description: 'Hide likely spam, show warnings',
-      options: {
-        maxSpamScore: 50,
-        includeSpam: false,
-        includeUnreviewed: true,
-      } as SpamFilterOptions,
-    },
-    permissive: {
-      name: 'Permissive',
-      description: 'Show most PRs, hide only definite spam',
-      options: {
-        maxSpamScore: 75,
-        includeSpam: false,
-        includeUnreviewed: true,
-      } as SpamFilterOptions,
-    },
-    all: {
-      name: 'Show All',
-      description: 'No filtering, show everything',
+    spam_first: {
+      name: 'Spam First',
+      description: 'Show all PRs, highest spam scores first',
       options: {
         maxSpamScore: 100,
         includeSpam: true,
         includeUnreviewed: true,
+      } as SpamFilterOptions,
+    },
+    likely_spam: {
+      name: 'Likely Spam',
+      description: 'Show only probable spam (50%+)',
+      options: {
+        minSpamScore: 50,
+        maxSpamScore: 100,
+        includeSpam: true,
+        includeUnreviewed: false,
+      } as SpamFilterOptions,
+    },
+    definite_spam: {
+      name: 'Definite Spam',
+      description: 'Show only high confidence spam (75%+)',
+      options: {
+        minSpamScore: 75,
+        maxSpamScore: 100,
+        includeSpam: true,
+        includeUnreviewed: false,
+      } as SpamFilterOptions,
+    },
+    clean_only: {
+      name: 'Clean Only',
+      description: 'Show only legitimate PRs (0-25%)',
+      options: {
+        maxSpamScore: 25,
+        includeSpam: false,
+        includeUnreviewed: false,
       } as SpamFilterOptions,
     },
   };

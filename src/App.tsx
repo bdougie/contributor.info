@@ -33,6 +33,7 @@ const BulkAddRepos = lazy(() => import("@/components/features/debug/bulk-add-rep
 const AdminMenu = lazy(() => import("@/components/features/admin").then(m => ({ default: m.AdminMenu })));
 const UserManagement = lazy(() => import("@/components/features/admin").then(m => ({ default: m.UserManagement })));
 const SpamManagement = lazy(() => import("@/components/features/admin").then(m => ({ default: m.SpamManagement })));
+const SpamTestTool = lazy(() => import("@/components/features/admin").then(m => ({ default: m.SpamTestTool })));
 
 // Loading fallback component
 const PageSkeleton = () => (
@@ -226,6 +227,14 @@ function App() {
                 element={
                   <AdminRoute>
                     <SpamManagement />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/spam-test"
+                element={
+                  <AdminRoute>
+                    <SpamTestTool />
                   </AdminRoute>
                 }
               />

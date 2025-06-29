@@ -8,7 +8,8 @@ import {
   Settings,
   Database,
   FileText,
-  TrendingUp
+  TrendingUp,
+  Bug
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -84,6 +85,14 @@ export function AdminMenu() {
       href: '/admin/spam',
       badge: 'Phase 4',
       variant: 'warning' as const
+    },
+    {
+      title: 'Spam Test Tool',
+      description: 'Test spam detection on individual PRs and provide manual feedback for training.',
+      icon: Bug,
+      href: '/admin/spam-test',
+      badge: 'Debug',
+      variant: 'default' as const
     },
     {
       title: 'Analytics Dashboard',

@@ -79,6 +79,29 @@ export const COMMON_SPAM_TEMPLATES: SpamTemplate[] = [
     category: 'automated',
     weight: 0.6,
   },
+  
+  // Repository-specific templates - Continue project
+  {
+    id: 'continue_template_unchanged',
+    template: 'what changed feel free to be brief',
+    description: 'Continue PR template with placeholder text unchanged',
+    category: 'generic_spam',
+    weight: 0.95,
+  },
+  {
+    id: 'continue_placeholder_sections',
+    template: 'for visual changes include screenshots screen recordings are particularly helpful what tests were added or updated',
+    description: 'Continue PR template sections left as placeholders',
+    category: 'generic_spam',
+    weight: 0.90,
+  },
+  {
+    id: 'continue_empty_checklist',
+    template: 'description checklist screenshots tests',
+    description: 'Continue PR template with empty sections',
+    category: 'generic_spam',
+    weight: 0.85,
+  },
 ];
 
 // Templates that should be checked for exact matches (100% similarity)
@@ -112,6 +135,9 @@ export const SPAM_PATTERNS = {
   
   // Common meaningless phrases
   MEANINGLESS: /^(done|finished|complete|ok|good|nice|cool|awesome)\.?$/i,
+  
+  // Continue project specific placeholder patterns
+  CONTINUE_PLACEHOLDERS: /what changed\??\s*feel free to be brief|for visual changes,?\s*include screenshots|what tests were added or updated|screen recordings are particularly helpful/i,
 };
 
 export class TemplateDetector {

@@ -4,21 +4,23 @@ import {
   CONTENT_THRESHOLDS
 } from './types';
 import { TemplateDetector, SPAM_PATTERNS } from './templates/CommonTemplates';
+import { PRTemplateService } from './PRTemplateService';
 
 export class PRAnalysisService {
   private templateDetector = new TemplateDetector();
+  private prTemplateService = new PRTemplateService();
 
   /**
    * Analyze PR content quality and characteristics
    */
-  analyzePR(pr: PullRequestData): {
+  async analyzePR(pr: PullRequestData): Promise<{
     content_quality: SpamFlags['content_quality'];
     pr_characteristics: SpamFlags['pr_characteristics'];
     template_match: SpamFlags['template_match'];
-  } {
+  }> {
     const contentQuality = this.analyzeContentQuality(pr);
     const prCharacteristics = this.analyzePRCharacteristics(pr);
-    const templateMatch = this.analyzeTemplateMatch(pr);
+    const templateMatch = await this.analyzeTemplateMatch(pr);
 
     return {
       content_quality: contentQuality,
@@ -222,19 +224,59 @@ export class PRAnalysisService {
   }
 
   /**
-   * Analyze template matching
+   * Analyze template matching with repository-specific patterns
    */
-  private analyzeTemplateMatch(pr: PullRequestData): SpamFlags['template_match'] {
+  private async analyzeTemplateMatch(pr: PullRequestData): Promise<SpamFlags['template_match']> {
     const description = pr.body || '';
     const title = pr.title || '';
     const combinedText = `${title}\n${description}`.trim();
 
-    const templateMatch = this.templateDetector.detectTemplateMatch(combinedText);
+    // First check repository-specific patterns
+    let repositoryMatchResult = null;
+    try {
+      // Extract repository info from PR
+      const repoFullName = pr.repository?.full_name;
+      if (repoFullName) {
+        const [owner, name] = repoFullName.split('/');
+        if (owner && name) {
+          // Get repository ID from database
+          const { supabase } = await import('@/lib/supabase');
+          const { data: repo } = await supabase
+            .from('repositories')
+            .select('id')
+            .eq('owner', owner)
+            .eq('name', name)
+            .single();
 
+          if (repo?.id) {
+            repositoryMatchResult = await this.prTemplateService.checkRepositorySpamPatterns(
+              repo.id,
+              combinedText
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to check repository-specific patterns:', error);
+    }
+
+    // Fallback to common template detection
+    const commonTemplateMatch = this.templateDetector.detectTemplateMatch(combinedText);
+
+    // Use repository-specific results if available and confident
+    if (repositoryMatchResult?.is_match && repositoryMatchResult.overall_confidence > 0.7) {
+      return {
+        is_match: true,
+        template_id: `repository_specific_${repositoryMatchResult.matched_patterns[0]?.pattern_type}`,
+        similarity_score: repositoryMatchResult.overall_confidence,
+      };
+    }
+
+    // Otherwise use common template detection
     return {
-      is_match: templateMatch.is_match,
-      template_id: templateMatch.template_id,
-      similarity_score: templateMatch.similarity_score,
+      is_match: commonTemplateMatch.is_match,
+      template_id: commonTemplateMatch.template_id,
+      similarity_score: commonTemplateMatch.similarity_score,
     };
   }
 }

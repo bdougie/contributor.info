@@ -48,12 +48,13 @@ export function SpamFilterControls({
   const currentPreset = Object.entries(presets).find(([_, preset]) => {
     return (
       preset.options.maxSpamScore === filterOptions.maxSpamScore &&
+      preset.options.minSpamScore === filterOptions.minSpamScore &&
       preset.options.includeSpam === filterOptions.includeSpam &&
       preset.options.includeUnreviewed === filterOptions.includeUnreviewed
     );
   })?.[1];
 
-  const handlePresetSelect = (preset: typeof presets.strict) => {
+  const handlePresetSelect = (preset: { name: string; description: string; options: SpamFilterOptions }) => {
     onFilterChange(preset.options);
   };
 
@@ -70,11 +71,27 @@ export function SpamFilterControls({
     const { distribution } = spamStats;
     let included = 0;
     
-    if (filterOptions.maxSpamScore !== undefined) {
-      if (filterOptions.maxSpamScore >= 76) included += distribution.definiteSpam;
-      if (filterOptions.maxSpamScore >= 51) included += distribution.likelySpam;
-      if (filterOptions.maxSpamScore >= 26) included += distribution.warning;
+    const minScore = filterOptions.minSpamScore || 0;
+    const maxScore = filterOptions.maxSpamScore || 100;
+    
+    // Count legitimate (0-25)
+    if (minScore <= 25 && maxScore >= 0) {
       included += distribution.legitimate;
+    }
+    
+    // Count warning (26-50)
+    if (minScore <= 50 && maxScore >= 26) {
+      included += distribution.warning;
+    }
+    
+    // Count likely spam (51-75)
+    if (minScore <= 75 && maxScore >= 51) {
+      included += distribution.likelySpam;
+    }
+    
+    // Count definite spam (76-100)
+    if (minScore <= 100 && maxScore >= 76) {
+      included += distribution.definiteSpam;
     }
     
     return included;

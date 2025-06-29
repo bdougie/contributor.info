@@ -190,7 +190,24 @@ export function SpamProbabilityBadge({
   spamScore: number | null; 
   className?: string;
 }) {
-  if (spamScore === null) return null;
+  // Show "-" for unanalyzed PRs instead of hiding the badge
+  if (spamScore === null) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="outline" className={cn('text-xs gap-1', className)}>
+              <span>📊</span>
+              <span>-</span>
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Not analyzed for spam yet</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
 
   const getVariant = () => {
     if (spamScore <= 25) return 'outline';

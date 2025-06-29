@@ -176,10 +176,8 @@ export function SpamAwareActivityItem({ activity }: SpamAwareActivityItemProps) 
             #{pullRequest.number} {pullRequest.title}
           </a>
           
-          {/* Spam probability badge */}
-          {pullRequest.spamScore !== undefined && pullRequest.spamScore !== null && (
-            <SpamProbabilityBadge spamScore={pullRequest.spamScore} />
-          )}
+          {/* Spam probability badge - always show, even for unanalyzed PRs */}
+          <SpamProbabilityBadge spamScore={pullRequest.spamScore ?? null} />
         </div>
         
         <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">

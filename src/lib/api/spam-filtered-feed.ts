@@ -8,18 +8,20 @@ type PullRequestWithAuthor = Database['public']['Tables']['pull_requests']['Row'
 
 export interface SpamFilterOptions {
   maxSpamScore?: number;      // Maximum spam score to include (0-100)
+  minSpamScore?: number;      // Minimum spam score to include (0-100)
   includeSpam?: boolean;       // Include PRs marked as spam
   includeUnreviewed?: boolean; // Include PRs not yet analyzed
 }
 
 export const DEFAULT_SPAM_FILTER: SpamFilterOptions = {
-  maxSpamScore: 50,          // Show legitimate and warning level PRs
-  includeSpam: false,        // Hide definite spam
+  maxSpamScore: 100,         // Show all PRs (will be sorted by score)
+  includeSpam: true,         // Include definite spam (we want to see it first)
   includeUnreviewed: true,   // Show PRs not yet analyzed
 };
 
 /**
  * Fetch pull requests from database with spam filtering
+ * This function now fetches more PRs and filters client-side for better UX
  */
 export async function fetchFilteredPullRequests(
   owner: string,
@@ -28,7 +30,10 @@ export async function fetchFilteredPullRequests(
   limit: number = 100
 ): Promise<PullRequestWithAuthor[]> {
   try {
-    // Start building the query
+    // Fetch more PRs than needed to account for filtering
+    // This reduces the need for refetching when filters change
+    const fetchLimit = Math.max(limit * 3, 300);
+    
     let query = supabase
       .from('pull_requests')
       .select(`
@@ -39,32 +44,46 @@ export async function fetchFilteredPullRequests(
       .eq('repository.owner', owner)
       .eq('repository.name', repo)
       .order('created_at', { ascending: false })
-      .limit(limit);
-
-    // Apply spam filtering
-    if (!options.includeSpam) {
-      query = query.eq('is_spam', false);
-    }
-
-    // Apply spam score filtering
-    if (options.maxSpamScore !== undefined && options.maxSpamScore < 100) {
-      if (options.includeUnreviewed) {
-        // Include PRs with no spam score OR below threshold
-        query = query.or(`spam_score.is.null,spam_score.lte.${options.maxSpamScore}`);
-      } else {
-        // Only include PRs with spam score below threshold
-        query = query.lte('spam_score', options.maxSpamScore);
-      }
-    }
+      .limit(fetchLimit);
 
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching filtered PRs:', error);
+      console.error('Error fetching PRs:', error);
       throw new Error(`Failed to fetch pull requests: ${error.message}`);
     }
 
-    return data || [];
+    if (!data) return [];
+
+    // Apply client-side filtering
+    let filtered = data.filter(pr => {
+      // Skip PRs with 0% spam score unless they're actually legitimate
+      const spamScore = pr.spam_score || 0;
+      
+      // If spam score is exactly 0 and hasn't been properly analyzed, skip it
+      // We want to show PRs that have been analyzed, even if they got 0%
+      if (spamScore === 0 && !pr.is_spam && pr.spam_score === null) {
+        return options.includeUnreviewed !== false;
+      }
+
+      // Apply spam status filter
+      if (!options.includeSpam && pr.is_spam) {
+        return false;
+      }
+
+      // Apply spam score filter
+      if (options.maxSpamScore !== undefined && options.maxSpamScore < 100) {
+        if (pr.spam_score === null) {
+          return options.includeUnreviewed !== false;
+        }
+        return pr.spam_score <= options.maxSpamScore;
+      }
+
+      return true;
+    });
+
+    // Return only the requested number of results
+    return filtered.slice(0, limit);
   } catch (error) {
     console.error('Error in fetchFilteredPullRequests:', error);
     throw error;
@@ -88,16 +107,33 @@ export async function getRepositorySpamStats(owner: string, repo: string) {
       throw new Error('Repository not found');
     }
 
-    // Get spam statistics
-    const { data: stats, error: statsError } = await supabase
+    // Get spam statistics - include all PRs to see what percentage have been analyzed
+    const { data: allPRs, error: allError } = await supabase
       .from('pull_requests')
       .select('spam_score, is_spam')
-      .eq('repository_id', repoData.id)
-      .not('spam_score', 'is', null);
+      .eq('repository_id', repoData.id);
 
-    if (statsError) {
-      throw new Error('Failed to fetch spam statistics');
+    if (allError) {
+      throw new Error('Failed to fetch PR statistics');
     }
+
+    if (!allPRs || allPRs.length === 0) {
+      return {
+        totalAnalyzed: 0,
+        spamCount: 0,
+        spamPercentage: 0,
+        averageScore: 0,
+        distribution: {
+          legitimate: 0,
+          warning: 0,
+          likelySpam: 0,
+          definiteSpam: 0,
+        }
+      };
+    }
+
+    // Filter only analyzed PRs for statistics
+    const stats = allPRs.filter(pr => pr.spam_score !== null);
 
     if (!stats || stats.length === 0) {
       return {
