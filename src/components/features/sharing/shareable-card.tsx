@@ -1,5 +1,5 @@
 import { useState, useRef, ReactNode } from "react";
-import { Download, Share2, Copy, Link } from "lucide-react";
+import { Download, Share2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,6 @@ export function ShareableCard({
 }: ShareableCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
-  const [isGeneratingUrl, setIsGeneratingUrl] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   
   // Safe router access for testing environment
@@ -151,8 +150,8 @@ export function ShareableCard({
             // User cancelled share
           }
         } else {
-          // Fallback to URL share only
-          handleShareUrl();
+          // Fallback to copy functionality
+          await handleCapture('copy');
         }
       }
     } catch (error) {
@@ -163,51 +162,6 @@ export function ShareableCard({
     }
   };
 
-  const handleShareUrl = async () => {
-    setIsGeneratingUrl(true);
-    
-    try {
-      // Generate short URL for charts/metrics only
-      const currentUrl = window.location.href;
-      const shortUrl = await createChartShareUrl(
-        currentUrl,
-        chartType,
-        contextInfo?.repository
-      );
-      
-      // Copy only the URL (no descriptive text for link capture)
-      await navigator.clipboard.writeText(shortUrl);
-      
-      const domain = dubConfig.isDev ? "dub.co" : "oss.fyi";
-      const isShortened = shortUrl !== currentUrl;
-      
-      if (isShortened) {
-        toast.success(`Short link copied! (${domain})`);
-      } else {
-        toast.success("Link copied to clipboard!");
-      }
-      
-      // Track URL share event
-      if (!bypassAnalytics) {
-        await trackShareEvent('share', 'url', { 
-          shortUrl, 
-          isShortened,
-          dubLinkId: isShortened ? shortUrl.split('/').pop() : undefined 
-        });
-      }
-    } catch (err) {
-      console.error("Failed to create short URL:", err);
-      // Fallback to original URL only (no descriptive text)
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success("Link copied to clipboard!");
-      } catch (fallbackErr) {
-        toast.error("Failed to copy link");
-      }
-    } finally {
-      setIsGeneratingUrl(false);
-    }
-  };
 
   const trackShareEvent = async (action: string, type: string, metadata?: Record<string, any>) => {
     try {
@@ -247,7 +201,7 @@ export function ShareableCard({
         <div
           className={cn(
             "absolute top-2 left-1/2 -translate-x-1/2 flex gap-2 transition-opacity duration-200",
-            isHovered && !isGeneratingUrl ? "opacity-100" : "opacity-0 pointer-events-none"
+            isHovered ? "opacity-100" : "opacity-0 pointer-events-none"
           )}
         >
         <Button
@@ -256,7 +210,7 @@ export function ShareableCard({
           className="hidden sm:flex h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
           onClick={() => handleCapture('copy')}
           title="Copy chart as image"
-          disabled={isCapturing || isGeneratingUrl}
+          disabled={isCapturing}
         >
           <Copy className="h-4 w-4" />
         </Button>
@@ -266,23 +220,9 @@ export function ShareableCard({
           className="hidden sm:flex h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
           onClick={() => handleCapture('download')}
           title="Download chart"
-          disabled={isCapturing || isGeneratingUrl}
+          disabled={isCapturing}
         >
           <Download className="h-4 w-4" />
-        </Button>
-        <Button
-          size="icon"
-          variant="secondary"
-          className="h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
-          onClick={handleShareUrl}
-          title={`Copy short link (${dubConfig.isDev ? 'dub.co' : 'oss.fyi'})`}
-          disabled={isCapturing || isGeneratingUrl}
-        >
-          {isGeneratingUrl ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          ) : (
-            <Link className="h-4 w-4" />
-          )}
         </Button>
         <Button
           size="icon"
@@ -290,7 +230,7 @@ export function ShareableCard({
           className="sm:hidden h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
           onClick={() => handleCapture('share')}
           title="Share chart"
-          disabled={isCapturing || isGeneratingUrl}
+          disabled={isCapturing}
         >
           <Share2 className="h-4 w-4" />
         </Button>

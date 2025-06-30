@@ -3,8 +3,9 @@ import { supabase } from './supabase';
 // Environment-specific configuration
 const isDev = import.meta.env.DEV;
 const DOMAIN = isDev ? "dub.sh" : "oss.fyi";
+const DUB_API_KEY = import.meta.env.VITE_DUB_CO_KEY;
 
-console.log("Environment:", isDev ? "Development" : "Production", "- Using Supabase Edge Function for URL shortening");
+console.log("Environment:", isDev ? "Development" : "Production", "- Using Dub API directly");
 
 interface CreateShortUrlOptions {
   url: string;
@@ -39,7 +40,7 @@ interface ShortUrlResponse {
 
 /**
  * Create a short URL for chart/metric sharing
- * Uses Supabase Edge Function to call Dub API
+ * Uses Dub API directly from client
  */
 export async function createShortUrl({
   url,
@@ -67,8 +68,26 @@ export async function createShortUrl({
     };
   }
 
+  // Check if API key is available
+  if (!DUB_API_KEY) {
+    console.warn("DUB_API_KEY not configured, returning original URL");
+    return {
+      id: 'no-api-key',
+      domain: 'original',
+      key: key || 'original',
+      url: url,
+      shortLink: url,
+      qrCode: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      clicks: 0,
+      title: title || null,
+      description: description || null,
+    };
+  }
+
   try {
-    console.log("Creating short URL via Supabase Edge Function:", {
+    console.log("Creating short URL via Dub API:", {
       url,
       domain: DOMAIN,
       key,
@@ -76,9 +95,14 @@ export async function createShortUrl({
       description
     });
     
-    // Call Supabase Edge Function
-    const { data, error } = await supabase.functions.invoke('url-shortener', {
-      body: {
+    // Call Dub API directly
+    const response = await fetch('https://api.dub.co/links', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${DUB_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         url,
         domain: DOMAIN,
         key,
@@ -89,25 +113,82 @@ export async function createShortUrl({
         utmSource: "contributor-info",
         utmMedium: "chart-share",
         utmCampaign: "social-sharing"
-      }
+      }),
     });
 
-    if (error) {
-      console.error("Supabase function error:", error);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Dub API error:", {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
       return null;
     }
 
-    if (data?.error) {
-      console.error("URL shortening service error:", data.error);
-      return null;
-    }
-    
+    const data = await response.json();
     console.log("URL shortening success:", data.shortLink);
-    return data;
+    
+    // Track the short URL creation in Supabase for analytics
+    await trackShortUrlCreation(data);
+    
+    return {
+      id: data.id,
+      domain: data.domain,
+      key: data.key,
+      url: data.url,
+      shortLink: data.shortLink,
+      qrCode: data.qrCode || '',
+      utmSource: data.utmSource,
+      utmMedium: data.utmMedium,
+      utmCampaign: data.utmCampaign,
+      utmTerm: data.utmTerm,
+      utmContent: data.utmContent,
+      userId: data.userId,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      expiresAt: data.expiresAt,
+      clicks: data.clicks || 0,
+      title: data.title,
+      description: data.description,
+      image: data.image
+    };
     
   } catch (error: any) {
     console.error("Failed to create short URL:", error);
     return null;
+  }
+}
+
+/**
+ * Track short URL creation in Supabase for analytics
+ */
+async function trackShortUrlCreation(dubData: any) {
+  try {
+    // Store the short URL data in Supabase for our internal analytics
+    const { error } = await supabase
+      .from('short_urls')
+      .insert({
+        dub_id: dubData.id,
+        short_url: dubData.shortLink,
+        original_url: dubData.url,
+        domain: dubData.domain,
+        key: dubData.key,
+        title: dubData.title,
+        description: dubData.description,
+        utm_source: dubData.utmSource,
+        utm_medium: dubData.utmMedium,
+        utm_campaign: dubData.utmCampaign,
+        created_at: dubData.createdAt
+      });
+
+    if (error) {
+      console.error("Failed to track short URL creation:", error);
+    } else {
+      console.log("Short URL tracked in Supabase analytics");
+    }
+  } catch (error) {
+    console.error("Error tracking short URL creation:", error);
   }
 }
 
@@ -121,10 +202,19 @@ export async function getUrlAnalytics(linkId: string) {
   }
 
   try {
-    // This could be extended to call a Supabase function for analytics
-    // For now, analytics are tracked via Dub's automatic click tracking
-    console.log("Analytics tracking for link:", linkId);
-    return null;
+    // Query Supabase for our internal analytics
+    const { data, error } = await supabase
+      .from('short_urls')
+      .select('*')
+      .eq('dub_id', linkId)
+      .single();
+
+    if (error) {
+      console.error("Failed to get URL analytics:", error);
+      return null;
+    }
+
+    return data;
   } catch (error: any) {
     console.error("Failed to get URL analytics:", error);
     return null;
@@ -221,6 +311,6 @@ export function getDubConfig() {
   return {
     domain: DOMAIN,
     isDev,
-    hasApiKey: true // Always true now since we use Supabase function
+    hasApiKey: !!DUB_API_KEY
   };
 }

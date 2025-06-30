@@ -1,4 +1,5 @@
 import { fetchPullRequests } from '../github';
+import { supabase } from '../supabase';
 
 export interface PrAlert {
   id: number;
@@ -20,6 +21,9 @@ export interface PrAlert {
   size: "small" | "medium" | "large" | "xl";
   linesChanged: number;
   filesChanged: number;
+  hasMaintainerComment: boolean;
+  maintainerCommenters: string[];
+  daysSinceLastMaintainerComment: number | null;
 }
 
 export interface PrAttentionMetrics {
@@ -33,6 +37,73 @@ export interface PrAttentionMetrics {
 }
 
 /**
+ * Fetches maintainers and owners for a repository based on confidence scores
+ */
+async function fetchMaintainers(owner: string, repo: string): Promise<Set<string>> {
+  try {
+    const { data, error } = await supabase
+      .from('contributor_roles')
+      .select('user_id')
+      .eq('repository_owner', owner)
+      .eq('repository_name', repo)
+      .in('role', ['owner', 'maintainer'])
+      .gte('confidence_score', 0.7); // Minimum confidence threshold for maintainers
+
+    if (error) throw error;
+
+    return new Set((data || []).map(role => role.user_id));
+  } catch (error) {
+    console.warn('Failed to fetch maintainers:', error);
+    return new Set();
+  }
+}
+
+/**
+ * Analyzes PR comments to determine maintainer engagement
+ */
+function analyzeMaintainerComments(
+  comments: Array<{ user: { login: string }, created_at: string }>,
+  reviews: Array<{ user: { login: string }, submitted_at: string }>,
+  maintainers: Set<string>
+): {
+  hasMaintainerComment: boolean;
+  maintainerCommenters: string[];
+  daysSinceLastMaintainerComment: number | null;
+} {
+  const now = new Date();
+  const allInteractions = [
+    ...comments.map(c => ({ user: c.user.login, date: new Date(c.created_at) })),
+    ...reviews.map(r => ({ user: r.user.login, date: new Date(r.submitted_at) }))
+  ];
+
+  const maintainerInteractions = allInteractions.filter(interaction => 
+    maintainers.has(interaction.user)
+  );
+
+  if (maintainerInteractions.length === 0) {
+    return {
+      hasMaintainerComment: false,
+      maintainerCommenters: [],
+      daysSinceLastMaintainerComment: null
+    };
+  }
+
+  const maintainerCommenters = [...new Set(maintainerInteractions.map(i => i.user))];
+  const latestMaintainerInteraction = maintainerInteractions
+    .sort((a, b) => b.date.getTime() - a.date.getTime())[0];
+
+  const daysSinceLastMaintainerComment = Math.floor(
+    (now.getTime() - latestMaintainerInteraction.date.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  return {
+    hasMaintainerComment: true,
+    maintainerCommenters,
+    daysSinceLastMaintainerComment
+  };
+}
+
+/**
  * Detects PRs that need attention based on various criteria
  */
 export async function detectPrAttention(
@@ -41,13 +112,25 @@ export async function detectPrAttention(
   timeRange: string = '90'
 ): Promise<{ alerts: PrAlert[]; metrics: PrAttentionMetrics }> {
   try {
-    // Fetch open PRs
-    const pullRequests = await fetchPullRequests(owner, repo, timeRange);
+    // Fetch open PRs and maintainers in parallel
+    const [pullRequests, maintainers] = await Promise.all([
+      fetchPullRequests(owner, repo, timeRange),
+      fetchMaintainers(owner, repo)
+    ]);
+
+    // Filter to only open PRs for attention analysis
+    const openPRs = pullRequests.filter(pr => pr.state === 'open');
     
     const alerts: PrAlert[] = [];
     let totalDaysOpen = 0;
     
-    for (const pr of pullRequests) {
+    for (const pr of openPRs) {
+      // Skip PRs created by maintainers - they don't need attention from other maintainers
+      const prAuthor = pr.user?.login;
+      if (prAuthor && maintainers.has(prAuthor)) {
+        continue;
+      }
+
       const createdAt = new Date(pr.created_at);
       const updatedAt = new Date(pr.updated_at);
       const now = new Date();
@@ -55,15 +138,22 @@ export async function detectPrAttention(
       const daysSinceCreated = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
       const daysSinceUpdated = Math.floor((now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24));
       
-      // Calculate PR size (simplified without GitHub API additions/deletions)
-      const linesChanged = 100; // Default estimate
-      const filesChanged = 5; // Default estimate
+      // Calculate PR size using real data from GitHub API
+      const linesChanged = (pr.additions || 0) + (pr.deletions || 0);
+      const filesChanged = 5; // Default estimate - could be enhanced with file count API call
       
       let size: PrAlert["size"] = "small";
       if (linesChanged > 1000 || filesChanged > 20) size = "xl";
       else if (linesChanged > 500 || filesChanged > 10) size = "large";
       else if (linesChanged > 100 || filesChanged > 5) size = "medium";
       
+      // Analyze maintainer engagement
+      const maintainerAnalysis = analyzeMaintainerComments(
+        pr.comments || [],
+        pr.reviews || [],
+        maintainers
+      );
+
       // Gather alert reasons and calculate urgency
       const reasons: string[] = [];
       let urgencyScore = 0;
@@ -98,6 +188,21 @@ export async function detectPrAttention(
         urgencyScore = Math.max(0, urgencyScore - 20); // Reduce urgency for drafts
       }
       
+      // Maintainer attention analysis - this is the key enhancement
+      if (!maintainerAnalysis.hasMaintainerComment) {
+        if (daysSinceCreated >= 7) {
+          reasons.push("No response in 7+ days");
+          urgencyScore += 30; // High urgency for aged PRs without maintainer attention
+        } else if (daysSinceCreated >= 3) {
+          reasons.push("Needs response");
+          urgencyScore += 20; // Medium urgency for PRs waiting for maintainer attention
+        }
+      } else if (maintainerAnalysis.daysSinceLastMaintainerComment !== null && 
+                 maintainerAnalysis.daysSinceLastMaintainerComment >= 5) {
+        reasons.push(`Last response ${maintainerAnalysis.daysSinceLastMaintainerComment} days ago`);
+        urgencyScore += 15; // Boost for stale maintainer conversations
+      }
+
       // First-time contributor detection (simplified)
       const isFirstTimeContributor = false;
       
@@ -106,9 +211,9 @@ export async function detectPrAttention(
         urgencyScore += 15; // Boost for first-timers
       }
       
-      // Review status (simplified)
-      const reviewsRequested = 0;
-      const reviewsReceived = 0; // Would need separate API call
+      // Review status using real data
+      const reviewsRequested = 0; // Could be enhanced with review request API
+      const reviewsReceived = (pr.reviews || []).length;
       
       if (reviewsRequested > 0 && daysSinceCreated >= 2) {
         reasons.push("Review requested but no response");
@@ -146,6 +251,9 @@ export async function detectPrAttention(
           size,
           linesChanged,
           filesChanged,
+          hasMaintainerComment: maintainerAnalysis.hasMaintainerComment,
+          maintainerCommenters: maintainerAnalysis.maintainerCommenters,
+          daysSinceLastMaintainerComment: maintainerAnalysis.daysSinceLastMaintainerComment,
         });
         
         totalDaysOpen += daysSinceCreated;
