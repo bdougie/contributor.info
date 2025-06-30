@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
 import { MetricsAndTrendsCard } from "./metrics-and-trends-card";
 
 // Mock the insights modules to avoid API calls

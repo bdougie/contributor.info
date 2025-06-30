@@ -7,28 +7,33 @@ const createMockActivity = (
   id: string,
   type: ActivityType,
   actor: string,
-  description: string,
   timestamp: string,
   prNumber?: number,
-  repository?: string
+  repositoryName?: string
 ): PullRequestActivity => ({
   id,
   type,
-  actor: {
-    login: actor,
-    avatar_url: `https://avatars.githubusercontent.com/u/${Math.floor(Math.random() * 1000)}?v=4`,
-    html_url: `https://github.com/${actor}`,
+  user: {
+    id: `user-${id}`,
+    name: actor,
+    avatar: `https://avatars.githubusercontent.com/u/${Math.floor(Math.random() * 1000)}?v=4`,
+    isBot: false,
   },
-  description,
-  timestamp,
-  pull_request: prNumber ? {
-    number: prNumber,
-    title: `Example PR #${prNumber}`,
-    html_url: `https://github.com/${repository || 'example/repo'}/pull/${prNumber}`,
+  pullRequest: {
+    id: `pr-${prNumber || id}`,
+    number: prNumber || parseInt(id),
+    title: `Example PR #${prNumber || id}`,
+    url: `https://github.com/${repositoryName || 'example/repo'}/pull/${prNumber || id}`,
     state: Math.random() > 0.5 ? 'open' : 'closed'
-  } : undefined,
-  repository: repository || 'example/repo',
-  html_url: `https://github.com/${repository || 'example/repo'}/pull/${prNumber || 1}`,
+  },
+  repository: {
+    id: `repo-${repositoryName?.replace('/', '-') || 'example-repo'}`,
+    name: repositoryName?.split('/')[1] || 'repo',
+    owner: repositoryName?.split('/')[0] || 'example',
+    url: `https://github.com/${repositoryName || 'example/repo'}`,
+    fullName: repositoryName || 'example/repo'
+  },
+  timestamp,
 });
 
 const mixedActivities: PullRequestActivity[] = [
@@ -36,7 +41,6 @@ const mixedActivities: PullRequestActivity[] = [
     "1",
     "opened",
     "alice-dev",
-    "opened pull request #123",
     "2024-01-15T10:30:00Z",
     123,
     "facebook/react"
@@ -45,7 +49,6 @@ const mixedActivities: PullRequestActivity[] = [
     "2", 
     "reviewed",
     "bob-reviewer",
-    "reviewed pull request #123",
     "2024-01-15T11:45:00Z",
     123,
     "facebook/react"
@@ -53,8 +56,7 @@ const mixedActivities: PullRequestActivity[] = [
   createMockActivity(
     "3",
     "merged",
-    "carol-maintainer", 
-    "merged pull request #122",
+    "carol-maintainer",
     "2024-01-15T12:00:00Z",
     122,
     "facebook/react"
@@ -63,7 +65,6 @@ const mixedActivities: PullRequestActivity[] = [
     "4",
     "commented",
     "dave-contributor",
-    "commented on pull request #124",
     "2024-01-15T12:30:00Z",
     124,
     "facebook/react"
@@ -72,7 +73,6 @@ const mixedActivities: PullRequestActivity[] = [
     "5",
     "closed",
     "eve-maintainer",
-    "closed pull request #121",
     "2024-01-15T13:00:00Z",
     121,
     "facebook/react"
@@ -91,7 +91,6 @@ const highVolumeActivities: PullRequestActivity[] = Array.from(
       `activity-${i}`,
       type,
       actor,
-      `${type} pull request #${i + 100}`,
       new Date(Date.now() - i * 3600000).toISOString(), // Each activity 1 hour apart
       i + 100,
       "microsoft/vscode"
@@ -206,11 +205,11 @@ export const LoadingWithExistingData: Story = {
   )
 };
 
-export const Error: Story = {
+export const ErrorState: Story = {
   args: {
     activities: [],
     loading: false,
-    error: new Error("Failed to load PR activity data"),
+    error: new globalThis.Error("Failed to load PR activity data"),
     selectedTypes: []
   },
   render: (args) => (
@@ -239,7 +238,7 @@ export const EmptyAfterFilter: Story = {
     activities: mixedActivities,
     loading: false,
     error: null,
-    selectedTypes: ["assigned"] // Type that doesn't exist in our data
+    selectedTypes: ["opened"] // Filter to show only opened PRs (but our data has mixed types)
   },
   render: (args) => (
     <div className="w-[600px] p-4">

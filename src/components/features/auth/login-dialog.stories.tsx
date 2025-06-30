@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { useState } from "react";
 import { fn } from "@storybook/test";
 import { LoginDialog } from "./login-dialog";
-import { useState } from "react";
 
 // Mock the GitHub auth hook
 const mockLogin = fn();
@@ -9,8 +9,11 @@ const mockLogout = fn();
 const mockUseGitHubAuth = fn(() => ({
   login: mockLogin,
   isLoggedIn: false,
-  user: null,
+  loading: false,
   logout: mockLogout,
+  checkSession: fn(),
+  showLoginDialog: false,
+  setShowLoginDialog: fn(),
 }));
 
 // Override the module using module-level mock
@@ -96,8 +99,11 @@ export const LoggingInState: Story = {
     mockUseGitHubAuth.mockReturnValue({
       login: fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 5000))),
       isLoggedIn: false,
-      user: null,
+      loading: false,
       logout: mockLogout,
+      checkSession: fn(),
+      showLoginDialog: false,
+      setShowLoginDialog: fn(),
     });
 
     const LoggingInDialog = () => {
@@ -146,8 +152,11 @@ export const WithError: Story = {
     mockUseGitHubAuth.mockReturnValue({
       login: fn().mockRejectedValue(new Error("Authentication failed. Please try again.")),
       isLoggedIn: false,
-      user: null,
+      loading: false,
       logout: mockLogout,
+      checkSession: fn(),
+      showLoginDialog: false,
+      setShowLoginDialog: fn(),
     });
 
     return <LoginDialog {...args} />;
@@ -171,14 +180,11 @@ export const AlreadyLoggedIn: Story = {
     mockUseGitHubAuth.mockReturnValue({
       login: mockLogin,
       isLoggedIn: true,
-      user: {
-        login: "test-user",
-        avatar_url: "https://avatars.githubusercontent.com/u/123?v=4",
-        id: 123,
-        name: "Test User",
-        email: "test@example.com",
-      },
+      loading: false,
       logout: mockLogout,
+      checkSession: fn(),
+      showLoginDialog: false,
+      setShowLoginDialog: fn(),
     });
 
     return (

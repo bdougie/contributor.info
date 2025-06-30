@@ -5,18 +5,9 @@ import { MemoryRouter } from "react-router-dom";
 
 // Mock the GitHub auth hook
 const mockUseGitHubAuth = fn();
-// TODO: Mock @/hooks/use-github-auth using Storybook's approach
-// Original fnmock replaced - needs manual review;
 
 // Mock react-router-dom hooks
 const mockNavigate = fn();
-fnmock("react-router-dom", async () => {
-  const actual = await fnimportActual("react-router-dom");
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
 
 // Mock SocialMetaTags to avoid issues in Storybook
 // TODO: Mock @/components/common/layout using Storybook's approach

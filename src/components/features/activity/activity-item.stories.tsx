@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
 import { ActivityItem } from "./activity-item";
 import { PullRequestActivity } from "@/lib/types";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
@@ -20,17 +19,19 @@ const createMockActivity = (
   id: `activity-${type}-${Date.now()}`,
   type,
   user: {
-    id: Math.floor(Math.random() * 1000),
+    id: `user-${Math.floor(Math.random() * 1000)}`,
     name: userName,
     avatar: `https://avatars.githubusercontent.com/u/${Math.floor(Math.random() * 1000)}?v=4`,
     isBot,
   },
   pullRequest: {
+    id: `pr-${Math.floor(Math.random() * 1000)}`,
     number: Math.floor(Math.random() * 1000) + 1,
     title: `Example PR: Add new feature for ${type} event`,
     url: "https://github.com/facebook/react/pull/123",
   },
   repository: {
+    id: "repo-facebook-react",
     owner: "facebook",
     name: "react", 
     url: "https://github.com/facebook/react",
@@ -169,6 +170,7 @@ export const LongTitle: Story = {
     activity: {
       ...createMockActivity("opened"),
       pullRequest: {
+        id: "pr-456",
         number: 456,
         title: "This is a very long pull request title that should demonstrate how the component handles text truncation and responsive layout on different screen sizes",
         url: "https://github.com/facebook/react/pull/456",
@@ -189,6 +191,7 @@ export const LongRepositoryName: Story = {
     activity: {
       ...createMockActivity("merged"),
       repository: {
+        id: "repo-very-long-organization-name-extremely-long-repository-name-that-might-cause-layout-issues",
         owner: "very-long-organization-name",
         name: "extremely-long-repository-name-that-might-cause-layout-issues",
         url: "https://github.com/very-long-organization-name/extremely-long-repository-name-that-might-cause-layout-issues",

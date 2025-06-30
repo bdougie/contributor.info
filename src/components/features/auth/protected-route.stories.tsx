@@ -5,21 +5,10 @@ import { MemoryRouter } from "react-router-dom";
 
 // Mock the GitHub auth hook
 const mockUseGitHubAuth = fn();
-// TODO: Mock @/hooks/use-github-auth using Storybook's approach
-// Original fnmock replaced - needs manual review;
 
 // Mock react-router-dom hooks
 const mockNavigate = fn();
 const mockUseLocation = fn();
-
-fnmock("react-router-dom", async () => {
-  const actual = await fnimportActual("react-router-dom");
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-    useLocation: mockUseLocation,
-  };
-});
 
 const SampleProtectedContent = () => (
   <div className="p-8 text-center">
@@ -61,15 +50,19 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const AuthenticatedUser: Story = {
-  render: () => {
+  args: {
+    children: <SampleProtectedContent />
+  },
+  render: (args) => {
     // Mock authenticated state
     mockUseGitHubAuth.mockReturnValue({
       isLoggedIn: true,
       loading: false,
-      user: {
-        login: "test-user",
-        avatar_url: "https://avatars.githubusercontent.com/u/123?v=4",
-      },
+      login: fn(),
+      logout: fn(),
+      checkSession: fn(),
+      showLoginDialog: false,
+      setShowLoginDialog: fn(),
     });
 
     mockUseLocation.mockReturnValue({
@@ -78,9 +71,7 @@ export const AuthenticatedUser: Story = {
     });
 
     return (
-      <ProtectedRoute>
-        <SampleProtectedContent />
-      </ProtectedRoute>
+      <ProtectedRoute {...args} />
     );
   },
   parameters: {
@@ -93,7 +84,10 @@ export const AuthenticatedUser: Story = {
 };
 
 export const LoadingState: Story = {
-  render: () => {
+  args: {
+    children: <SampleProtectedContent />
+  },
+  render: (args) => {
     // Mock loading state
     mockUseGitHubAuth.mockReturnValue({
       isLoggedIn: false,
@@ -107,7 +101,7 @@ export const LoadingState: Story = {
     });
 
     return (
-      <ProtectedRoute>
+      <ProtectedRoute {...args}>
         <SampleProtectedContent />
       </ProtectedRoute>
     );
@@ -122,7 +116,10 @@ export const LoadingState: Story = {
 };
 
 export const UnauthenticatedUser: Story = {
-  render: () => {
+  args: {
+    children: <SampleProtectedContent />
+  },
+  render: (args) => {
     // Mock unauthenticated state
     mockUseGitHubAuth.mockReturnValue({
       isLoggedIn: false,
@@ -140,9 +137,7 @@ export const UnauthenticatedUser: Story = {
 
     return (
       <div>
-        <ProtectedRoute>
-          <SampleProtectedContent />
-        </ProtectedRoute>
+        <ProtectedRoute {...args} />
         <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-yellow-800 text-sm">
             User is not authenticated. Component would redirect to /login.
@@ -163,14 +158,18 @@ export const UnauthenticatedUser: Story = {
 };
 
 export const WithComplexContent: Story = {
+  args: {
+    children: null // Will be overridden in render
+  },
   render: () => {
     mockUseGitHubAuth.mockReturnValue({
       isLoggedIn: true,
       loading: false,
-      user: {
-        login: "test-user",
-        avatar_url: "https://avatars.githubusercontent.com/u/123?v=4",
-      },
+      login: fn(),
+      logout: fn(),
+      checkSession: fn(),
+      showLoginDialog: false,
+      setShowLoginDialog: fn(),
     });
 
     mockUseLocation.mockReturnValue({
@@ -225,20 +224,22 @@ export const WithComplexContent: Story = {
 };
 
 export const MobileView: Story = {
-  render: () => {
+  args: {
+    children: <SampleProtectedContent />
+  },
+  render: (args) => {
     mockUseGitHubAuth.mockReturnValue({
       isLoggedIn: true,
       loading: false,
-      user: {
-        login: "test-user",
-        avatar_url: "https://avatars.githubusercontent.com/u/123?v=4",
-      },
+      login: fn(),
+      logout: fn(),
+      checkSession: fn(),
+      showLoginDialog: false,
+      setShowLoginDialog: fn(),
     });
 
     return (
-      <ProtectedRoute>
-        <SampleProtectedContent />
-      </ProtectedRoute>
+      <ProtectedRoute {...args} />
     );
   },
   parameters: {

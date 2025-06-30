@@ -16,23 +16,8 @@ const mockSupabase = {
   }
 };
 
-// TODO: Mock @/lib/supabase using Storybook's approach
-// Original fnmock replaced - needs manual review;
-
 // Mock the GitHub auth hook
 const mockUseGitHubAuth = fn();
-// TODO: Mock @/hooks/use-github-auth using Storybook's approach
-// Original fnmock replaced - needs manual review;
-
-// Mock react-router-dom hooks
-const mockNavigate = fn();
-fnmock("react-router-dom", async () => {
-  const actual = await fnimportActual("react-router-dom");
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
 
 // Mock environment variables
 const mockEnv = {
@@ -236,30 +221,8 @@ export const WithDebugLogs: Story = {
     });
 
     // Simulate auth state changes
-    let authCallback: ((event: string, session: any) => void) | null = null;
-    mockSupabase.auth.onAuthStateChange.mockImplementation((callback) => {
-      authCallback = callback;
-      
-      // Simulate some auth events after component mounts
-      setTimeout(() => {
-        if (authCallback) {
-          authCallback("SIGNED_IN", {
-            user: { id: "123", email: "test@example.com" }
-          });
-        }
-      }, 1000);
-      
-      setTimeout(() => {
-        if (authCallback) {
-          authCallback("TOKEN_REFRESHED", {
-            user: { id: "123", email: "test@example.com" }
-          });
-        }
-      }, 2000);
-
-      return {
-        data: { subscription: { unsubscribe: fn() } }
-      };
+    mockSupabase.auth.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: fn() } }
     });
 
     mockUseGitHubAuth.mockReturnValue({
