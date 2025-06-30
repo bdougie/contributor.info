@@ -504,13 +504,14 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
       const author = commit.author || commit.committer || {};
       const login = author.login || 'unknown';
       const avatar_url = author.avatar_url || '';
+      const isBot = login.includes('[bot]');
       
       return {
         sha: commit.sha,
         actor: {
           login,
           avatar_url,
-          type: login.includes('[bot]') ? 'Bot' : 'User'
+          type: isBot ? 'Bot' as const : 'User' as const
         },
         event_time: commit.commit.author?.date || commit.commit.committer?.date || new Date().toISOString(),
         push_num_commits: 1 // Each commit represents one commit
@@ -542,7 +543,7 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
           avatar_url: commit.actor.avatar_url,
           directCommits: 1,
           totalPushedCommits: commit.push_num_commits,
-          type: isBot ? 'Bot' : 'User',
+          type: isBot ? 'Bot' as const : 'User' as const,
         });
       }
     }
