@@ -1,6 +1,9 @@
 [build]
   publish = "dist"
 
+[functions]
+  directory = "netlify/functions"
+
 # Headers for proper MIME types
 [[headers]]
   for = "/*.js"
