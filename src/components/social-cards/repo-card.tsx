@@ -35,23 +35,6 @@ export default function RepoSocialCard({ owner, repo, timeRange, stats }: RepoSo
           <span className="text-white text-xl font-semibold">contributor.info</span>
         </div>
 
-        {/* Repository Owner Avatar */}
-        <div className="flex items-center gap-3">
-          <Avatar className="w-10 h-10 border-2 border-white/20">
-            <AvatarImage 
-              src={`https://github.com/${owner}.png?s=40`} 
-              alt={`${owner} avatar`}
-              loading="eager"
-            />
-            <AvatarFallback className="bg-gray-700 text-white text-lg font-semibold">
-              {owner?.[0]?.toUpperCase() || '?'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="text-white">
-            <div className="text-sm text-gray-300">Repository by</div>
-            <div className="text-lg font-semibold">{owner}</div>
-          </div>
-        </div>
       </div>
 
       {/* Main content */}
