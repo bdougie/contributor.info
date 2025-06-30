@@ -1,7 +1,20 @@
-import type { Context, Config } from "@netlify/functions";
+// @ts-check
+/**
+ * Social Cards Generation Function
+ * 
+ * NOTE: This function is written in JavaScript (.mjs) instead of TypeScript (.mts)
+ * because Netlify Functions has better support and faster cold starts with native JS.
+ * 
+ * TypeScript functions (.mts) were experiencing deployment issues and the functions
+ * weren't being recognized by Netlify's runtime. Converting to .mjs resolved the
+ * deployment and execution issues.
+ * 
+ * Performance is critical for social card generation (target: <100ms) since social
+ * media crawlers have strict timeout requirements (Twitter: 2-3 seconds).
+ */
 
 // Optimized SVG generation for maximum speed (< 100ms)
-function generateFastSVG(title: string, subtitle: string, stats?: { stars?: number; contributors?: number }): string {
+function generateFastSVG(title, subtitle, stats) {
   // Pre-calculate dimensions and positions for speed
   const width = 1200;
   const height = 630;
@@ -11,7 +24,7 @@ function generateFastSVG(title: string, subtitle: string, stats?: { stars?: numb
   const cardHeight = 430;
   
   // Escape HTML for safety
-  const escapeHtml = (text: string) => text
+  const escapeHtml = (text) => text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -49,7 +62,7 @@ function generateFastSVG(title: string, subtitle: string, stats?: { stars?: numb
   </svg>`;
 }
 
-export default async (req: Request, context: Context) => {
+export default async (req, context) => {
   // Measure performance
   const startTime = Date.now();
   
@@ -63,7 +76,7 @@ export default async (req: Request, context: Context) => {
     // Fast parameter processing
     let cardTitle = title || 'contributor.info';
     let cardSubtitle = 'Open Source Contributions';
-    let cardData: { stars?: number; contributors?: number } | undefined;
+    let cardData;
 
     if (owner && repo) {
       cardTitle = `${owner}/${repo}`;
@@ -110,6 +123,6 @@ export default async (req: Request, context: Context) => {
   }
 };
 
-export const config: Config = {
+export const config = {
   path: "/api/social-cards"
 };
