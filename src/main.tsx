@@ -73,9 +73,11 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   });
 }
 
-// Initialize performance tracking
-trackWebVitals();
-trackCustomMetrics();
+// Initialize performance tracking (defer slightly to not block initial render)
+setTimeout(() => {
+  trackWebVitals();
+  trackCustomMetrics();
+}, 100);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
