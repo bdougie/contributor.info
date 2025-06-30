@@ -111,6 +111,14 @@ export function AdminMenu() {
       variant: 'success' as const
     },
     {
+      title: 'Confidence Analytics',
+      description: 'Debug contributor confidence scores, analyze algorithm performance, and identify low-confidence repositories.',
+      icon: TrendingUp,
+      href: '/admin/confidence-analytics',
+      badge: 'New',
+      variant: 'success' as const
+    },
+    {
       title: 'Analytics Dashboard',
       description: 'System-wide analytics, user metrics, and performance insights for administrators.',
       icon: BarChart3,

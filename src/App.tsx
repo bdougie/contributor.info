@@ -37,6 +37,7 @@ const SpamManagement = lazy(() => import("@/components/features/admin").then(m =
 const SpamTestTool = lazy(() => import("@/components/features/admin").then(m => ({ default: m.SpamTestTool })));
 const BulkSpamAnalysis = lazy(() => import("@/components/features/admin").then(m => ({ default: m.BulkSpamAnalysis })));
 const MaintainerManagement = lazy(() => import("@/components/features/admin/maintainer-management").then(m => ({ default: m.MaintainerManagement })));
+const ConfidenceAnalyticsDashboard = lazy(() => import("@/components/features/admin/confidence-analytics-dashboard").then(m => ({ default: m.ConfidenceAnalyticsDashboard })));
 
 // Loading fallback component
 const PageSkeleton = () => (
@@ -254,6 +255,14 @@ function App() {
                 element={
                   <AdminRoute>
                     <MaintainerManagement />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/confidence-analytics"
+                element={
+                  <AdminRoute>
+                    <ConfidenceAnalyticsDashboard />
                   </AdminRoute>
                 }
               />
