@@ -58,26 +58,34 @@ export function SocialMetaTags({
 }: SocialMetaTagsProps) {
   const currentUrl = url || (typeof window !== "undefined" ? window.location.href : "https://contributor.info");
   
-  // Handle Supabase Storage URLs and create proper fallbacks
+  // Handle URLs and create proper fallbacks
   let imageUrl = image;
   let fallbackImageUrl = image;
   
   if (!image.startsWith("http")) {
-    // Check if it's a social card path
+    // Check if it's a social card path - use dynamic Edge Function for generation
     if (image.includes("social-cards/")) {
-      imageUrl = `https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/${image}`;
+      // Extract parameters from image path for dynamic generation
+      const isRepoCard = image.includes('repo-');
       
-      // Create intelligent fallbacks
-      if (image.endsWith('.webp')) {
-        // For webp, fallback to png
-        fallbackImageUrl = `https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/${image.replace('.webp', '.png')}`;
-      } else if (image.includes('repo-')) {
-        // For repo cards, fallback to home card if specific repo image doesn't exist
-        fallbackImageUrl = `https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/social-cards/home-card.png`;
+      if (isRepoCard) {
+        // For repo cards, try to extract owner/repo from URL or use Netlify function
+        const urlPath = currentUrl.replace(/^https?:\/\/[^\/]+/, '');
+        const pathMatch = urlPath.match(/\/([^\/]+)\/([^\/]+)/);
+        
+        if (pathMatch) {
+          const [, owner, repo] = pathMatch;
+          imageUrl = `https://contributor.info/api/social-cards?owner=${owner}&repo=${repo}`;
+        } else {
+          imageUrl = `https://contributor.info/api/social-cards`;
+        }
       } else {
-        // For other cases, try webp version
-        fallbackImageUrl = `https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/${image.replace('.png', '.webp')}`;
+        // For home/general cards - use Netlify function
+        imageUrl = `https://contributor.info/api/social-cards`;
       }
+      
+      // Use local static fallback
+      fallbackImageUrl = `https://contributor.info${image.replace('social-cards/', '/')}`;
     } else {
       imageUrl = `https://contributor.info${image}`;
       fallbackImageUrl = `https://contributor.info${image.replace('.webp', '.png')}`;
