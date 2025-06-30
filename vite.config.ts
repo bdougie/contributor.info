@@ -51,68 +51,77 @@ export default defineConfig({
     force: true, // Force re-optimization for performance
   },
   build: {
-    // Disable CSS code splitting to prevent FOUC
-    cssCodeSplit: false,
+    // Enable CSS code splitting for better performance
+    cssCodeSplit: true,
     rollupOptions: {
-      // Exclude test and story files from the build
+      // Only exclude story and test files, not their dependencies
       external: (id) => {
-        return id.includes('.stories.') || 
-               id.includes('.test.') || 
-               id.includes('__tests__') ||
-               id.includes('__mocks__') ||
-               id.includes('@storybook/') ||
-               id.includes('vitest');
-      },
-      // Explicit input to ensure only main app files are bundled
-      input: {
-        main: path.resolve(__dirname, 'index.html')
+        // Only mark actual story/test files as external, not their dependencies
+        return id.endsWith('.stories.ts') || 
+               id.endsWith('.stories.tsx') || 
+               id.endsWith('.test.ts') || 
+               id.endsWith('.test.tsx') ||
+               id.includes('/__tests__/') ||
+               id.includes('/__mocks__/');
       },
       output: {
         // Ensure proper file extensions for module recognition
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Performance-optimized chunking strategy that maintains reliability
-        manualChunks: {
-          // Critical React core - bundle together to prevent initialization issues
-          'react-core': [
-            'react', 
-            'react-dom',
-            '@radix-ui/react-slot' // Essential for UI components
-          ],
-          // React ecosystem - can load after core is initialized
-          'react-ecosystem': [
-            'react-router-dom',
-            'class-variance-authority',
-            'clsx',
-            'tailwind-merge'
-          ],
-          // Heavy chart libraries - lazy loaded, separate for better caching
-          'charts-nivo': ['@nivo/scatterplot', '@nivo/core'],
-          'charts-recharts': ['recharts'],
-          // UI component library - used throughout app
-          'ui-radix': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-select',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-tooltip'
-          ],
-          // Icons - separate for optimal tree-shaking
-          'icons': ['lucide-react'],
-          // Utilities - frequently used, good for caching
-          'utils': ['date-fns', 'zod'],
-          // State management and data
-          'data': [
-            'zustand',
-            '@supabase/supabase-js'
-          ],
-          // Analytics - non-critical, lazy loaded, exclude from main bundle
-          'analytics': [
-            'posthog-js',
-            '@sentry/react'
-          ]
+        // Performance-optimized chunking strategy for better LCP
+        manualChunks: (id) => {
+          // Critical path - keep minimal for fast LCP
+          if (id.includes('react/') || id.includes('react-dom/')) {
+            return 'react-core';
+          }
+          
+          // Router and essential utilities - defer but keep small
+          if (id.includes('react-router-dom') || id.includes('class-variance-authority') || 
+              id.includes('clsx') || id.includes('tailwind-merge')) {
+            return 'react-router';
+          }
+          
+          // Heavy chart libraries - lazy load completely
+          if (id.includes('@nivo') || id.includes('recharts') || id.includes('d3-')) {
+            return 'charts';
+          }
+          
+          // UI components - split into smaller chunks
+          if (id.includes('@radix-ui/react-dialog') || id.includes('@radix-ui/react-dropdown-menu')) {
+            return 'ui-overlay';
+          }
+          if (id.includes('@radix-ui/react-select') || id.includes('@radix-ui/react-popover')) {
+            return 'ui-interactive';
+          }
+          if (id.includes('@radix-ui/')) {
+            return 'ui-base';
+          }
+          
+          // Icons - separate for tree-shaking
+          if (id.includes('lucide-react')) {
+            return 'icons';
+          }
+          
+          // Date and validation libraries - defer
+          if (id.includes('date-fns') || id.includes('zod')) {
+            return 'utils';
+          }
+          
+          // State and data - defer
+          if (id.includes('zustand') || id.includes('@supabase/')) {
+            return 'data';
+          }
+          
+          // Analytics - completely defer
+          if (id.includes('posthog') || id.includes('@sentry/')) {
+            return 'analytics';
+          }
+          
+          // Node modules fallback
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
         },
       },
     },
@@ -120,25 +129,31 @@ export default defineConfig({
     cssMinify: 'esbuild',
     // Disable sourcemaps for production to reduce bundle size
     sourcemap: false,
-    // Optimize minification and target
+    // Optimize minification and target for better compression
     minify: 'esbuild',
-    target: 'es2020', // Modern target for better optimization while maintaining compatibility
+    target: 'es2022', // More modern target for better tree-shaking
     // Optimize chunk size warnings  
     chunkSizeWarningLimit: 600, // Slightly more lenient given postmortem learnings
     // Enable compression reporting
     reportCompressedSize: true,
-    // Module preload optimization for better loading performance
+    // Module preload optimization for better LCP
     modulePreload: {
       polyfill: true,
       resolveDependencies: (_, deps) => {
-        // Don't preload analytics chunks to avoid blocking critical path
+        // Only preload absolutely critical chunks for fast LCP
         return deps.filter(dep => 
-          !dep.includes('analytics') && 
-          !dep.includes('posthog') && 
-          !dep.includes('sentry') &&
-          !dep.includes('charts-') && // Don't preload heavy chart libraries
-          !dep.includes('test') &&
-          !dep.includes('storybook')
+          dep.includes('react-core') ||
+          dep.includes('react-router') ||
+          // Exclude everything else from preloading
+          (!dep.includes('analytics') && 
+           !dep.includes('charts') && 
+           !dep.includes('ui-') && 
+           !dep.includes('data') && 
+           !dep.includes('utils') && 
+           !dep.includes('icons') &&
+           !dep.includes('vendor') &&
+           !dep.includes('test') &&
+           !dep.includes('storybook'))
         );
       }
     },
