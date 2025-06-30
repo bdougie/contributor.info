@@ -98,6 +98,10 @@ function generateFastSVG(title, subtitle, stats, type = 'home') {
         <!-- Logo -->
         <text x="0" y="24" font-size="32" font-family="Arial, sans-serif">🌱</text>
         <text x="50" y="24" font-size="20" font-weight="600" fill="#ffffff" font-family="Arial, sans-serif">contributor.info</text>
+        
+        <!-- Repository by -->
+        <text x="850" y="12" font-size="14" fill="#9ca3af" font-family="Arial, sans-serif">Repository by</text>
+        <text x="850" y="32" font-size="18" font-weight="600" fill="#ffffff" font-family="Arial, sans-serif">${owner}</text>
       </g>
       
       <!-- Main content -->
