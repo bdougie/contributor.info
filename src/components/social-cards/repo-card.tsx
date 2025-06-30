@@ -49,9 +49,9 @@ export default function RepoSocialCard({ owner, repo, timeRange, stats }: RepoSo
           {timeRange || 'Past 6 months'}
         </p>
 
-        {/* Bottom section with trends and avatars */}
-        <div className="flex items-end justify-between">
-          {/* Left side - Trends */}
+        {/* Bottom section with trends */}
+        <div className="space-y-8">
+          {/* Trends */}
           <div className="flex items-center gap-16">
             <div className="flex items-center gap-3">
               <TrendingUp className="w-8 h-8 text-white" />
@@ -70,7 +70,7 @@ export default function RepoSocialCard({ owner, repo, timeRange, stats }: RepoSo
             </div>
           </div>
 
-          {/* Right side - Contributor avatars */}
+          {/* Contributor avatars */}
           <div className="flex items-center gap-4">
             {stats?.topContributors && stats.topContributors.length > 0 && (
               <div className="flex items-center">
