@@ -1,17 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "@storybook/test";
 import LoginPage from "./login-page";
 import { MemoryRouter } from "react-router-dom";
 
 // Mock the GitHub auth hook
-const mockUseGitHubAuth = vi.fn();
-vi.mock("@/hooks/use-github-auth", () => ({
-  useGitHubAuth: mockUseGitHubAuth,
-}));
+const mockUseGitHubAuth = fn();
+// TODO: Mock @/hooks/use-github-auth using Storybook's approach
+// Original fnmock replaced - needs manual review;
 
 // Mock react-router-dom hooks
-const mockNavigate = vi.fn();
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual("react-router-dom");
+const mockNavigate = fn();
+fnmock("react-router-dom", async () => {
+  const actual = await fnimportActual("react-router-dom");
   return {
     ...actual,
     useNavigate: () => mockNavigate,
@@ -19,14 +19,8 @@ vi.mock("react-router-dom", async () => {
 });
 
 // Mock SocialMetaTags to avoid issues in Storybook
-vi.mock("@/components/common/layout", () => ({
-  SocialMetaTags: ({ title, description }: { title: string, description: string }) => (
-    <div data-testid="social-meta-tags" className="hidden">
-      <meta name="title" content={title} />
-      <meta name="description" content={description} />
-    </div>
-  ),
-}));
+// TODO: Mock @/components/common/layout using Storybook's approach
+// Original fnmock replaced - needs manual review;
 
 // Mock window.location for URL parameter tests
 const mockLocation = {
@@ -70,10 +64,10 @@ export const Default: Story = {
   render: () => {
     // Mock unauthenticated state
     mockUseGitHubAuth.mockReturnValue({
-      login: vi.fn().mockResolvedValue(undefined),
+      login: fn().mockResolvedValue(undefined),
       isLoggedIn: false,
       user: null,
-      logout: vi.fn(),
+      logout: fn(),
     });
 
     mockLocation.search = '';
@@ -92,10 +86,10 @@ export const Default: Story = {
 export const WithRedirectParameter: Story = {
   render: () => {
     mockUseGitHubAuth.mockReturnValue({
-      login: vi.fn().mockResolvedValue(undefined),
+      login: fn().mockResolvedValue(undefined),
       isLoggedIn: false,
       user: null,
-      logout: vi.fn(),
+      logout: fn(),
     });
 
     // Mock URL with redirect parameter
@@ -124,10 +118,10 @@ export const WithRedirectParameter: Story = {
 export const WithError: Story = {
   render: () => {
     mockUseGitHubAuth.mockReturnValue({
-      login: vi.fn().mockRejectedValue(new Error("Authentication failed. Please try again.")),
+      login: fn().mockRejectedValue(new Error("Authentication failed. Please try again.")),
       isLoggedIn: false,
       user: null,
-      logout: vi.fn(),
+      logout: fn(),
     });
 
     mockLocation.search = '';
@@ -147,13 +141,13 @@ export const AlreadyLoggedIn: Story = {
   render: () => {
     // Mock authenticated state
     mockUseGitHubAuth.mockReturnValue({
-      login: vi.fn(),
+      login: fn(),
       isLoggedIn: true,
       user: {
         login: "test-user",
         avatar_url: "https://avatars.githubusercontent.com/u/123?v=4",
       },
-      logout: vi.fn(),
+      logout: fn(),
     });
 
     mockLocation.search = '';
@@ -184,7 +178,7 @@ export const AlreadyLoggedIn: Story = {
 export const LoadingState: Story = {
   render: () => {
     // Mock login function that takes time
-    const mockLogin = vi.fn().mockImplementation(
+    const mockLogin = fn().mockImplementation(
       () => new Promise(resolve => setTimeout(resolve, 5000))
     );
 
@@ -192,7 +186,7 @@ export const LoadingState: Story = {
       login: mockLogin,
       isLoggedIn: false,
       user: null,
-      logout: vi.fn(),
+      logout: fn(),
     });
 
     mockLocation.search = '';
@@ -220,10 +214,10 @@ export const LoadingState: Story = {
 export const SecurityTest: Story = {
   render: () => {
     mockUseGitHubAuth.mockReturnValue({
-      login: vi.fn().mockResolvedValue(undefined),
+      login: fn().mockResolvedValue(undefined),
       isLoggedIn: false,
       user: null,
-      logout: vi.fn(),
+      logout: fn(),
     });
 
     // Mock malicious redirect URL
@@ -256,10 +250,10 @@ export const SecurityTest: Story = {
 export const MobileView: Story = {
   render: () => {
     mockUseGitHubAuth.mockReturnValue({
-      login: vi.fn().mockResolvedValue(undefined),
+      login: fn().mockResolvedValue(undefined),
       isLoggedIn: false,
       user: null,
-      logout: vi.fn(),
+      logout: fn(),
     });
 
     return <LoginPage />;

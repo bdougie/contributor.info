@@ -8,29 +8,37 @@ const balancedQuadrantData: QuadrantData[] = [
     name: "Core",
     count: 145,
     percentage: 35.2,
-    color: "#ef4444",
-    description: "Critical system files"
+    authors: [
+      { id: 1, login: "alice-dev" },
+      { id: 2, login: "bob-dev" },
+      { id: 3, login: "charlie-dev" }
+    ]
   },
   {
     name: "Peripheral",
     count: 89,
     percentage: 21.6,
-    color: "#f97316", 
-    description: "Supporting functionality"
+    authors: [
+      { id: 4, login: "david-dev" },
+      { id: 5, login: "eve-dev" }
+    ]
   },
   {
     name: "Supplemental",
     count: 112,
     percentage: 27.1,
-    color: "#eab308",
-    description: "Additional features"
+    authors: [
+      { id: 6, login: "frank-dev" },
+      { id: 7, login: "grace-dev" }
+    ]
   },
   {
     name: "Trivial",
     count: 67,
     percentage: 16.1,
-    color: "#22c55e",
-    description: "Documentation and tests"
+    authors: [
+      { id: 8, login: "henry-dev" }
+    ]
   }
 ];
 
@@ -39,29 +47,36 @@ const coreHeavyQuadrantData: QuadrantData[] = [
     name: "Core",
     count: 320,
     percentage: 68.4,
-    color: "#ef4444",
-    description: "Critical system files"
+    authors: [
+      { id: 1, login: "alice-dev" },
+      { id: 2, login: "bob-dev" },
+      { id: 3, login: "charlie-dev" },
+      { id: 4, login: "david-dev" }
+    ]
   },
   {
     name: "Peripheral", 
     count: 78,
     percentage: 16.7,
-    color: "#f97316",
-    description: "Supporting functionality"
+    authors: [
+      { id: 5, login: "eve-dev" }
+    ]
   },
   {
     name: "Supplemental",
     count: 45,
     percentage: 9.6,
-    color: "#eab308",
-    description: "Additional features"
+    authors: [
+      { id: 6, login: "frank-dev" }
+    ]
   },
   {
     name: "Trivial",
     count: 25,
     percentage: 5.3,
-    color: "#22c55e",
-    description: "Documentation and tests"
+    authors: [
+      { id: 7, login: "grace-dev" }
+    ]
   }
 ];
 
@@ -70,29 +85,37 @@ const documentationHeavyData: QuadrantData[] = [
     name: "Core",
     count: 23,
     percentage: 8.1,
-    color: "#ef4444",
-    description: "Critical system files"
+    authors: [
+      { id: 1, login: "alice-dev" }
+    ]
   },
   {
     name: "Peripheral",
     count: 31,
     percentage: 10.9,
-    color: "#f97316",
-    description: "Supporting functionality"  
+    authors: [
+      { id: 2, login: "bob-dev" }
+    ]
   },
   {
     name: "Supplemental",
     count: 67,
     percentage: 23.6,
-    color: "#eab308",
-    description: "Additional features"
+    authors: [
+      { id: 3, login: "charlie-dev" },
+      { id: 4, login: "david-dev" }
+    ]
   },
   {
     name: "Trivial",
     count: 163,
     percentage: 57.4,
-    color: "#22c55e",
-    description: "Documentation and tests"
+    authors: [
+      { id: 5, login: "eve-dev" },
+      { id: 6, login: "frank-dev" },
+      { id: 7, login: "grace-dev" },
+      { id: 8, login: "henry-dev" }
+    ]
   }
 ];
 
@@ -101,29 +124,25 @@ const emptyQuadrantData: QuadrantData[] = [
     name: "Core",
     count: 0,
     percentage: 0,
-    color: "#ef4444",
-    description: "Critical system files"
+    authors: []
   },
   {
     name: "Peripheral",
     count: 0,
     percentage: 0,
-    color: "#f97316",
-    description: "Supporting functionality"
+    authors: []
   },
   {
     name: "Supplemental",
     count: 0,
     percentage: 0,
-    color: "#eab308",
-    description: "Additional features"
+    authors: []
   },
   {
     name: "Trivial",
     count: 0,
     percentage: 0,
-    color: "#22c55e",
-    description: "Documentation and tests"
+    authors: []
   }
 ];
 
@@ -132,29 +151,27 @@ const singleQuadrantData: QuadrantData[] = [
     name: "Core",
     count: 1,
     percentage: 100,
-    color: "#ef4444",
-    description: "Critical system files"
+    authors: [
+      { id: 1, login: "alice-dev" }
+    ]
   },
   {
     name: "Peripheral",
     count: 0,
     percentage: 0,
-    color: "#f97316",
-    description: "Supporting functionality"
+    authors: []
   },
   {
     name: "Supplemental",
     count: 0,
     percentage: 0,
-    color: "#eab308",
-    description: "Additional features"
+    authors: []
   },
   {
     name: "Trivial",
     count: 0,
     percentage: 0,
-    color: "#22c55e",
-    description: "Documentation and tests"
+    authors: []
   }
 ];
 
@@ -279,29 +296,40 @@ export const HighVolume: Story = {
         name: "Core",
         count: 2847,
         percentage: 42.3,
-        color: "#ef4444",
-        description: "Critical system files"
+        authors: [
+          { id: 1, login: "alice-dev" },
+          { id: 2, login: "bob-dev" },
+          { id: 3, login: "charlie-dev" },
+          { id: 4, login: "david-dev" },
+          { id: 5, login: "eve-dev" }
+        ]
       },
       {
         name: "Peripheral",
         count: 1926,
         percentage: 28.6,
-        color: "#f97316",
-        description: "Supporting functionality"
+        authors: [
+          { id: 6, login: "frank-dev" },
+          { id: 7, login: "grace-dev" },
+          { id: 8, login: "henry-dev" }
+        ]
       },
       {
         name: "Supplemental",
         count: 1204,
         percentage: 17.9,
-        color: "#eab308",
-        description: "Additional features"
+        authors: [
+          { id: 9, login: "iris-dev" },
+          { id: 10, login: "jack-dev" }
+        ]
       },
       {
         name: "Trivial",
         count: 756,
         percentage: 11.2,
-        color: "#22c55e",
-        description: "Documentation and tests"
+        authors: [
+          { id: 11, login: "kate-dev" }
+        ]
       }
     ]
   },
@@ -365,29 +393,37 @@ export const CustomColors: Story = {
         name: "Core",
         count: 145,
         percentage: 35.2,
-        color: "#8b5cf6",
-        description: "Critical system files"
+        authors: [
+          { id: 1, login: "alice-dev" },
+          { id: 2, login: "bob-dev" },
+          { id: 3, login: "charlie-dev" }
+        ]
       },
       {
         name: "Peripheral",
         count: 89,
         percentage: 21.6,
-        color: "#06b6d4",
-        description: "Supporting functionality"
+        authors: [
+          { id: 4, login: "david-dev" },
+          { id: 5, login: "eve-dev" }
+        ]
       },
       {
         name: "Supplemental",
         count: 112,
         percentage: 27.1,
-        color: "#84cc16",
-        description: "Additional features"
+        authors: [
+          { id: 6, login: "frank-dev" },
+          { id: 7, login: "grace-dev" }
+        ]
       },
       {
         name: "Trivial",
         count: 67,
         percentage: 16.1,
-        color: "#f59e0b",
-        description: "Documentation and tests"
+        authors: [
+          { id: 8, login: "henry-dev" }
+        ]
       }
     ]
   },
@@ -412,29 +448,35 @@ export const DecimalPrecision: Story = {
         name: "Core",
         count: 7,
         percentage: 33.33,
-        color: "#ef4444",
-        description: "Critical system files"
+        authors: [
+          { id: 1, login: "alice-dev" },
+          { id: 2, login: "bob-dev" }
+        ]
       },
       {
         name: "Peripheral",
         count: 5,
         percentage: 23.81,
-        color: "#f97316",
-        description: "Supporting functionality"
+        authors: [
+          { id: 3, login: "charlie-dev" }
+        ]
       },
       {
         name: "Supplemental",
         count: 6,
         percentage: 28.57,
-        color: "#eab308",
-        description: "Additional features"
+        authors: [
+          { id: 4, login: "david-dev" },
+          { id: 5, login: "eve-dev" }
+        ]
       },
       {
         name: "Trivial",
         count: 3,
         percentage: 14.29,
-        color: "#22c55e",
-        description: "Documentation and tests"
+        authors: [
+          { id: 6, login: "frank-dev" }
+        ]
       }
     ]
   },

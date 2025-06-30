@@ -1,40 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "@storybook/test";
 import { ActivityItem } from "./activity-item";
 import { PullRequestActivity } from "@/lib/types";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 
 // Mock the contributor hooks and utilities
-vi.mock("@/hooks/useContributorRoles", () => ({
-  useContributorRole: vi.fn().mockReturnValue({
-    role: { role: "Maintainer" },
-  }),
-}));
+// TODO: Mock @/hooks/useContributorRoles using Storybook's approach
+// Original vi.mock replaced - needs manual review;
 
-vi.mock("@/lib/contributor-utils", () => ({
-  createContributorStats: vi.fn().mockReturnValue({
-    login: "test-user",
-    name: "Test User",
-    avatar: "https://avatars.githubusercontent.com/u/123?v=4",
-    id: 123,
-    pullRequests: 15,
-    reviews: 8,
-    comments: 12,
-    additions: 500,
-    deletions: 200,
-  }),
-  createContributorStatsWithOrgs: vi.fn().mockResolvedValue({
-    login: "test-user",
-    name: "Test User", 
-    avatar: "https://avatars.githubusercontent.com/u/123?v=4",
-    id: 123,
-    pullRequests: 15,
-    reviews: 8,
-    comments: 12,
-    additions: 500,
-    deletions: 200,
-    organizations: ["acme-corp", "open-source-collective"],
-  }),
-}));
+// TODO: Mock @/lib/contributor-utils using Storybook's approach
+// Original vi.mock replaced - needs manual review;
 
 // Helper function to create mock activities
 const createMockActivity = (

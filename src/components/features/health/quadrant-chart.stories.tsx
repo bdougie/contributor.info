@@ -1,34 +1,28 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "@storybook/test";
+import React from "react";
 import { QuadrantChart } from "./quadrant-chart";
 import type { PullRequest, QuadrantData } from "@/lib/types";
 
 // Mock the dependencies
-vi.mock("@/lib/contribution-analyzer", () => ({
-  ContributionAnalyzer: {
-    analyze: vi.fn((pr: PullRequest) => ({
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 10 + 2,
-      complexity: Math.random() * 100
-    }))
-  }
-}));
+import * as contributionAnalyzer from "@/lib/contribution-analyzer";
+import * as contributorModule from "../contributor";
+import * as cardsModule from "@/components/common/cards";
 
-vi.mock("../contributor", () => ({
-  ContributorHoverCard: ({ children, contributor }: any) => (
-    <div title={`${contributor.login}: ${contributor.pullRequests} PRs`}>
-      {children}
-    </div>
-  )
-}));
+// Override modules
+(contributionAnalyzer as any).ContributionAnalyzer = class {
+  analyze = fn().mockReturnValue({
+    quadrants: [],
+  });
+};
 
-vi.mock("@/components/common/cards", () => ({
-  FileHoverInfo: ({ children, pullRequest }: any) => (
-    <div title={`PR #${pullRequest.number}: ${pullRequest.title}`}>
-      {children}
-    </div>
-  )
-}));
+(contributorModule as any).ContributorHoverCard = ({ trigger }: any) => trigger;
+
+(cardsModule as any).Card = ({ children }: any) => React.createElement('div', { className: 'card' }, children);
+(cardsModule as any).CardContent = ({ children }: any) => React.createElement('div', { className: 'card-content' }, children);
+(cardsModule as any).CardHeader = ({ children }: any) => React.createElement('div', { className: 'card-header' }, children);
+(cardsModule as any).CardTitle = ({ children }: any) => React.createElement('h3', { className: 'card-title' }, children);
+(cardsModule as any).CardDescription = ({ children }: any) => React.createElement('p', { className: 'card-description' }, children);
 
 // Mock data
 const mockPullRequests: PullRequest[] = [
@@ -55,7 +49,6 @@ const mockPullRequests: PullRequest[] = [
     comments: [],
     url: "https://github.com/facebook/react/pull/123",
     author: {
-      id: 1,
       login: "alice-dev"
     },
     commits: [
@@ -94,7 +87,6 @@ const mockPullRequests: PullRequest[] = [
     comments: [],
     url: "https://github.com/facebook/react/pull/124",
     author: {
-      id: 2,
       login: "bob-fix"
     },
     commits: [
@@ -133,7 +125,6 @@ const mockPullRequests: PullRequest[] = [
     comments: [],
     url: "https://github.com/facebook/react/pull/125",
     author: {
-      id: 3,
       login: "carol-arch"
     },
     commits: [
@@ -151,44 +142,36 @@ const mockQuadrants: QuadrantData[] = [
     name: "Refinement",
     count: 45,
     percentage: 28.1,
-    color: "#ef4444",
-    description: "Refining existing features",
     authors: [
-      { id: 1, login: "alice-dev", contributions: 12 },
-      { id: 2, login: "bob-fix", contributions: 8 }
+      { id: 1, login: "alice-dev" },
+      { id: 2, login: "bob-fix" }
     ]
   },
   {
     name: "New Stuff", 
     count: 67,
     percentage: 41.9,
-    color: "#22c55e",
-    description: "Adding new functionality",
     authors: [
-      { id: 1, login: "alice-dev", contributions: 15 },
-      { id: 3, login: "carol-arch", contributions: 10 },
-      { id: 4, login: "dave-new", contributions: 7 }
+      { id: 1, login: "alice-dev" },
+      { id: 3, login: "carol-arch" },
+      { id: 4, login: "dave-new" }
     ]
   },
   {
     name: "Maintenance",
     count: 32,
     percentage: 20.0,
-    color: "#f97316",
-    description: "Bug fixes and maintenance",
     authors: [
-      { id: 2, login: "bob-fix", contributions: 18 },
-      { id: 5, login: "eve-maint", contributions: 6 }
+      { id: 2, login: "bob-fix" },
+      { id: 5, login: "eve-maint" }
     ]
   },
   {
     name: "Refactoring",
     count: 16,
     percentage: 10.0,
-    color: "#8b5cf6",
-    description: "Code structure improvements",
     authors: [
-      { id: 3, login: "carol-arch", contributions: 12 }
+      { id: 3, login: "carol-arch" }
     ]
   }
 ];
@@ -257,7 +240,7 @@ export const HighActivity: Story = {
       count: q.count * 2,
       authors: [
         ...q.authors,
-        { id: 6, login: "new-contributor", contributions: 5 }
+        { id: 6, login: "new-contributor" }
       ]
     }))
   },
@@ -296,9 +279,9 @@ export const RefactoringHeavy: Story = {
         count: 40, 
         percentage: 40.0,
         authors: [
-          { id: 3, login: "carol-arch", contributions: 20 },
-          { id: 7, login: "refactor-expert", contributions: 15 },
-          { id: 8, login: "clean-code-fan", contributions: 12 }
+          { id: 3, login: "carol-arch" },
+          { id: 7, login: "refactor-expert" },
+          { id: 8, login: "clean-code-fan" }
         ]
       }
     ]
@@ -336,10 +319,10 @@ export const NewProjectActivity: Story = {
         count: 70, 
         percentage: 70.0,
         authors: [
-          { id: 1, login: "alice-dev", contributions: 25 },
-          { id: 2, login: "bob-fix", contributions: 20 },
-          { id: 3, login: "carol-arch", contributions: 18 },
-          { id: 9, login: "startup-dev", contributions: 15 }
+          { id: 1, login: "alice-dev" },
+          { id: 2, login: "bob-fix" },
+          { id: 3, login: "carol-arch" },
+          { id: 9, login: "startup-dev" }
         ]
       },
       { ...mockQuadrants[2], count: 15, percentage: 15.0 },
@@ -388,7 +371,7 @@ export const SingleContributor: Story = {
   args: {
     data: mockPullRequests.map(pr => ({
       ...pr,
-      author: { id: 1, login: "solo-dev" },
+      author: { login: "solo-dev" },
       user: {
         ...pr.user,
         id: 1,
@@ -397,7 +380,7 @@ export const SingleContributor: Story = {
     })),
     quadrants: mockQuadrants.map(q => ({
       ...q,
-      authors: [{ id: 1, login: "solo-dev", contributions: q.count }]
+      authors: [{ id: 1, login: "solo-dev" }]
     }))
   },
   render: (args) => (
@@ -467,7 +450,6 @@ export const ManyContributors: Story = {
         authors: Array.from({ length: 8 }, (_, i) => ({
           id: i + 1,
           login: `contributor-${i + 1}`,
-          contributions: 10 - i
         }))
       },
       ...mockQuadrants.slice(1)

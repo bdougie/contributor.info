@@ -1,54 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "@storybook/test";
 import TestInsights from "./test-insights";
 
 // Mock the insights analyzePullRequests function
-vi.mock("@/lib/insights/pullRequests", () => ({
-  analyzePullRequests: vi.fn().mockResolvedValue({
-    totalPRs: 15,
-    averageTimeToMerge: 48,
-    prMergeTimesByAuthor: {
-      "alice": [24, 36, 48],
-      "bob": [12, 72, 36], 
-      "carol": [60, 24]
-    },
-    prsByAuthor: {
-      "alice": 3,
-      "bob": 3,
-      "carol": 2
-    },
-    insights: {
-      fastestMerger: "bob",
-      mostActive: "alice",
-      bottlenecks: ["carol"]
-    }
-  })
-}));
+// TODO: Mock @/lib/insights/pullRequests using Storybook's approach
+// Original vi.mock replaced - needs manual review;
 
 // Mock the RepoInsightsContainer component
-vi.mock("@/components/insights/RepoInsightsContainer", () => ({
-  RepoInsightsContainer: ({ owner, repo }: { owner: string, repo: string }) => (
-    <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center">
-      <h3 className="text-lg font-semibold mb-2">Repository Insights Preview</h3>
-      <p className="text-muted-foreground mb-4">
-        Showing insights for <code>{owner}/{repo}</code>
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-        <div className="bg-green-50 border border-green-200 rounded p-3">
-          <div className="font-semibold text-green-900">Total PRs</div>
-          <div className="text-2xl font-bold text-green-700">15</div>
-        </div>
-        <div className="bg-blue-50 border border-blue-200 rounded p-3">
-          <div className="font-semibold text-blue-900">Avg Merge Time</div>
-          <div className="text-2xl font-bold text-blue-700">48h</div>
-        </div>
-        <div className="bg-purple-50 border border-purple-200 rounded p-3">
-          <div className="font-semibold text-purple-900">Active Contributors</div>
-          <div className="text-2xl font-bold text-purple-700">3</div>
-        </div>
-      </div>
-    </div>
-  )
-}));
+// TODO: Mock @/components/insights/RepoInsightsContainer using Storybook's approach
+// Original vi.mock replaced - needs manual review;
 
 // Mock environment variables
 const mockEnv = {
@@ -97,27 +57,8 @@ export const Default: Story = {
 export const LocalImplementationSuccess: Story = {
   render: () => {
     // Mock successful local implementation
-    vi.mock("@/lib/insights/pullRequests", () => ({
-      analyzePullRequests: vi.fn().mockResolvedValue({
-        totalPRs: 25,
-        averageTimeToMerge: 32,
-        prMergeTimesByAuthor: {
-          "alice": [24, 36, 48, 12],
-          "bob": [12, 72, 36, 24, 18], 
-          "carol": [60, 24, 48]
-        },
-        prsByAuthor: {
-          "alice": 4,
-          "bob": 5,
-          "carol": 3
-        },
-        insights: {
-          fastestMerger: "bob",
-          mostActive: "bob", 
-          bottlenecks: []
-        }
-      })
-    }));
+    // TODO: Mock @/lib/insights/pullRequests using Storybook's approach
+// Original vi.mock replaced - needs manual review;
 
     return (
       <div className="w-[900px] p-4">
@@ -137,11 +78,8 @@ export const LocalImplementationSuccess: Story = {
 export const LocalImplementationError: Story = {
   render: () => {
     // Mock failed local implementation
-    vi.mock("@/lib/insights/pullRequests", () => ({
-      analyzePullRequests: vi.fn().mockRejectedValue(
-        new Error("API rate limit exceeded. Please try again later.")
-      )
-    }));
+    // TODO: Mock @/lib/insights/pullRequests using Storybook's approach
+// Original vi.mock replaced - needs manual review;
 
     return (
       <div className="w-[900px] p-4">
@@ -161,7 +99,7 @@ export const LocalImplementationError: Story = {
 export const SupabaseFunctionTest: Story = {
   render: () => {
     // Mock fetch for Supabase function testing
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = fn().mockResolvedValue({
       ok: true,
       status: 200,
       headers: new Headers({
@@ -198,7 +136,7 @@ export const SupabaseFunctionTest: Story = {
 export const SupabaseFunctionError: Story = {
   render: () => {
     // Mock fetch error for Supabase function
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = fn().mockResolvedValue({
       ok: false,
       status: 429,
       headers: new Headers({
@@ -242,18 +180,10 @@ export const ComponentPreview: Story = {
 export const LoadingStates: Story = {
   render: () => {
     // Mock slow loading for demonstration
-    vi.mock("@/lib/insights/pullRequests", () => ({
-      analyzePullRequests: vi.fn().mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve({
-          totalPRs: 20,
-          averageTimeToMerge: 36,
-          prMergeTimesByAuthor: {},
-          prsByAuthor: {}
-        }), 5000))
-      )
-    }));
+    // TODO: Mock @/lib/insights/pullRequests using Storybook's approach
+// Original vi.mock replaced - needs manual review;
 
-    global.fetch = vi.fn().mockImplementation(
+    global.fetch = fn().mockImplementation(
       () => new Promise(resolve => setTimeout(() => resolve({
         ok: true,
         status: 200,

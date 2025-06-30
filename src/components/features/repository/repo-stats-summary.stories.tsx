@@ -1,14 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "@storybook/test";
 import { RepoStatsSummary } from "./repo-stats-summary";
 
 // Mock the hooks
-vi.mock("@/hooks/use-repo-stats", () => ({
-  useRepoStats: vi.fn()
-}));
+import * as useRepoStatsModule from "@/hooks/use-repo-stats";
+import * as useTimeFormatterModule from "@/hooks/use-time-formatter";
 
-vi.mock("@/hooks/use-time-formatter", () => ({
-  useTimeFormatter: vi.fn(() => ({
-    formatRelativeTime: vi.fn((date: string) => {
+// @ts-ignore - Storybook mocking
+useRepoStatsModule.useRepoStats = fn();
+
+// @ts-ignore - Storybook mocking
+useTimeFormatterModule.useTimeFormatter = fn(() => ({
+  formatRelativeTime: fn((date: string) => {
       const now = new Date();
       const past = new Date(date);
       const diffInHours = Math.floor((now.getTime() - past.getTime()) / (1000 * 60 * 60));
@@ -16,7 +19,6 @@ vi.mock("@/hooks/use-time-formatter", () => ({
       const diffInDays = Math.floor(diffInHours / 24);
       return `${diffInDays} days ago`;
     })
-  }))
 }));
 
 // Mock data
@@ -123,7 +125,7 @@ export const Default: Story = {
         description: "Repository has healthy contributor distribution"
       },
       directCommitsData: null,
-      getContributorStats: vi.fn(() => ({
+      getContributorStats: fn(() => ({
         totalContributors: 3,
         topContributors: [
           { login: "alice-dev", contributions: 15 },
@@ -131,7 +133,7 @@ export const Default: Story = {
           { login: "carol-docs", contributions: 5 }
         ]
       })),
-      getFilteredPullRequests: vi.fn(() => mockPullRequests)
+      getFilteredPullRequests: fn(() => mockPullRequests)
     });
 
     return (
@@ -177,7 +179,7 @@ export const HighActivityRepository: Story = {
         description: "Very healthy contributor distribution with low bus factor"
       },
       directCommitsData: null,
-      getContributorStats: vi.fn(() => ({
+      getContributorStats: fn(() => ({
         totalContributors: 10,
         topContributors: [
           { login: "contributor-0", contributions: 25 },
@@ -185,7 +187,7 @@ export const HighActivityRepository: Story = {
           { login: "contributor-2", contributions: 12 }
         ]
       })),
-      getFilteredPullRequests: vi.fn(() => highActivityPRs)
+      getFilteredPullRequests: fn(() => highActivityPRs)
     });
 
     return (
@@ -225,14 +227,14 @@ export const WithDirectCommitsWarning: Story = {
           { login: "senior-dev", directCommits: 8 }
         ]
       },
-      getContributorStats: vi.fn(() => ({
+      getContributorStats: fn(() => ({
         totalContributors: 2,
         topContributors: [
           { login: "admin-user", contributions: 20 },
           { login: "senior-dev", contributions: 3 }
         ]
       })),
-      getFilteredPullRequests: vi.fn(() => mockPullRequests)
+      getFilteredPullRequests: fn(() => mockPullRequests)
     });
 
     return (
@@ -262,11 +264,11 @@ export const LoadingState: Story = {
       },
       lotteryFactor: null,
       directCommitsData: null,
-      getContributorStats: vi.fn(() => ({
+      getContributorStats: fn(() => ({
         totalContributors: 0,
         topContributors: []
       })),
-      getFilteredPullRequests: vi.fn(() => [])
+      getFilteredPullRequests: fn(() => [])
     });
 
     return (
@@ -296,11 +298,11 @@ export const ErrorState: Story = {
       },
       lotteryFactor: null,
       directCommitsData: null,
-      getContributorStats: vi.fn(() => ({
+      getContributorStats: fn(() => ({
         totalContributors: 0,
         topContributors: []
       })),
-      getFilteredPullRequests: vi.fn(() => [])
+      getFilteredPullRequests: fn(() => [])
     });
 
     return (
@@ -330,11 +332,11 @@ export const EmptyRepository: Story = {
       },
       lotteryFactor: null,
       directCommitsData: null,
-      getContributorStats: vi.fn(() => ({
+      getContributorStats: fn(() => ({
         totalContributors: 0,
         topContributors: []
       })),
-      getFilteredPullRequests: vi.fn(() => [])
+      getFilteredPullRequests: fn(() => [])
     });
 
     return (
@@ -381,7 +383,7 @@ export const LowMergeRate: Story = {
         description: "Moderate contributor distribution"
       },
       directCommitsData: null,
-      getContributorStats: vi.fn(() => ({
+      getContributorStats: fn(() => ({
         totalContributors: 4,
         topContributors: [
           { login: "alice-dev", contributions: 8 },
@@ -389,7 +391,7 @@ export const LowMergeRate: Story = {
           { login: "carol-docs", contributions: 4 }
         ]
       })),
-      getFilteredPullRequests: vi.fn(() => lowMergeRatePRs)
+      getFilteredPullRequests: fn(() => lowMergeRatePRs)
     });
 
     return (
@@ -423,14 +425,14 @@ export const MobileView: Story = {
         description: "Healthy contributor distribution"
       },
       directCommitsData: null,
-      getContributorStats: vi.fn(() => ({
+      getContributorStats: fn(() => ({
         totalContributors: 3,
         topContributors: [
           { login: "alice-dev", contributions: 15 },
           { login: "bob-contributor", contributions: 8 }
         ]
       })),
-      getFilteredPullRequests: vi.fn(() => mockPullRequests)
+      getFilteredPullRequests: fn(() => mockPullRequests)
     });
 
     return (

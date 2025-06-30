@@ -1,34 +1,33 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "@storybook/test";
 import DebugAuthPage from "./debug-auth-page";
 import { MemoryRouter } from "react-router-dom";
 
 // Mock Supabase client
 const mockSupabase = {
   auth: {
-    getSession: vi.fn(),
-    signInWithOAuth: vi.fn(),
-    signOut: vi.fn(),
-    refreshSession: vi.fn(),
-    onAuthStateChange: vi.fn(() => ({
-      data: { subscription: { unsubscribe: vi.fn() } }
+    getSession: fn(),
+    signInWithOAuth: fn(),
+    signOut: fn(),
+    refreshSession: fn(),
+    onAuthStateChange: fn(() => ({
+      data: { subscription: { unsubscribe: fn() } }
     }))
   }
 };
 
-vi.mock("@/lib/supabase", () => ({
-  supabase: mockSupabase,
-}));
+// TODO: Mock @/lib/supabase using Storybook's approach
+// Original fnmock replaced - needs manual review;
 
 // Mock the GitHub auth hook
-const mockUseGitHubAuth = vi.fn();
-vi.mock("@/hooks/use-github-auth", () => ({
-  useGitHubAuth: mockUseGitHubAuth,
-}));
+const mockUseGitHubAuth = fn();
+// TODO: Mock @/hooks/use-github-auth using Storybook's approach
+// Original fnmock replaced - needs manual review;
 
 // Mock react-router-dom hooks
-const mockNavigate = vi.fn();
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual("react-router-dom");
+const mockNavigate = fn();
+fnmock("react-router-dom", async () => {
+  const actual = await fnimportActual("react-router-dom");
   return {
     ...actual,
     useNavigate: () => mockNavigate,
@@ -80,7 +79,7 @@ export const NotAuthenticated: Story = {
     });
 
     mockUseGitHubAuth.mockReturnValue({
-      checkSession: vi.fn().mockResolvedValue(false),
+      checkSession: fn().mockResolvedValue(false),
     });
 
     return <DebugAuthPage />;
@@ -118,7 +117,7 @@ export const Authenticated: Story = {
     });
 
     mockUseGitHubAuth.mockReturnValue({
-      checkSession: vi.fn().mockResolvedValue(true),
+      checkSession: fn().mockResolvedValue(true),
     });
 
     return <DebugAuthPage />;
@@ -145,7 +144,7 @@ export const AuthenticationError: Story = {
     });
 
     mockUseGitHubAuth.mockReturnValue({
-      checkSession: vi.fn().mockRejectedValue(new Error("Hook check session failed")),
+      checkSession: fn().mockRejectedValue(new Error("Hook check session failed")),
     });
 
     return <DebugAuthPage />;
@@ -184,7 +183,7 @@ export const SessionExpired: Story = {
     });
 
     mockUseGitHubAuth.mockReturnValue({
-      checkSession: vi.fn().mockResolvedValue(false),
+      checkSession: fn().mockResolvedValue(false),
     });
 
     return <DebugAuthPage />;
@@ -215,7 +214,7 @@ export const EnvironmentIssues: Story = {
     });
 
     mockUseGitHubAuth.mockReturnValue({
-      checkSession: vi.fn().mockResolvedValue(false),
+      checkSession: fn().mockResolvedValue(false),
     });
 
     return <DebugAuthPage />;
@@ -259,12 +258,12 @@ export const WithDebugLogs: Story = {
       }, 2000);
 
       return {
-        data: { subscription: { unsubscribe: vi.fn() } }
+        data: { subscription: { unsubscribe: fn() } }
       };
     });
 
     mockUseGitHubAuth.mockReturnValue({
-      checkSession: vi.fn().mockResolvedValue(true),
+      checkSession: fn().mockResolvedValue(true),
     });
 
     return <DebugAuthPage />;
@@ -286,7 +285,7 @@ export const MobileView: Story = {
     });
 
     mockUseGitHubAuth.mockReturnValue({
-      checkSession: vi.fn().mockResolvedValue(false),
+      checkSession: fn().mockResolvedValue(false),
     });
 
     return <DebugAuthPage />;

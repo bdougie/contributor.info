@@ -1,19 +1,19 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "@storybook/test";
 import { ProtectedRoute } from "./protected-route";
 import { MemoryRouter } from "react-router-dom";
 
 // Mock the GitHub auth hook
-const mockUseGitHubAuth = vi.fn();
-vi.mock("@/hooks/use-github-auth", () => ({
-  useGitHubAuth: mockUseGitHubAuth,
-}));
+const mockUseGitHubAuth = fn();
+// TODO: Mock @/hooks/use-github-auth using Storybook's approach
+// Original fnmock replaced - needs manual review;
 
 // Mock react-router-dom hooks
-const mockNavigate = vi.fn();
-const mockUseLocation = vi.fn();
+const mockNavigate = fn();
+const mockUseLocation = fn();
 
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual("react-router-dom");
+fnmock("react-router-dom", async () => {
+  const actual = await fnimportActual("react-router-dom");
   return {
     ...actual,
     useNavigate: () => mockNavigate,

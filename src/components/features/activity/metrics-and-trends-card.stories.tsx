@@ -1,57 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "@storybook/test";
 import { MetricsAndTrendsCard } from "./metrics-and-trends-card";
 
 // Mock the insights modules to avoid API calls
-vi.mock("@/lib/insights/trends-metrics", () => ({
-  calculateTrendMetrics: vi.fn().mockResolvedValue([
-    {
-      metric: "Active Contributors",
-      current: "12",
-      change: 20,
-      trend: "up" as const,
-      insight: "3 new contributors this month",
-      unit: "people"
-    },
-    {
-      metric: "PR Velocity",
-      current: "2.4",
-      change: -10,
-      trend: "down" as const,
-      insight: "Slightly slower than last month",
-      unit: "days"
-    },
-    {
-      metric: "Review Coverage",
-      current: "85",
-      change: 5,
-      trend: "up" as const,
-      insight: "More PRs getting reviewed",
-      unit: "%"
-    },
-    {
-      metric: "Merge Rate",
-      current: "92",
-      change: 0,
-      trend: "stable" as const,
-      insight: "Consistent merge rate",
-      unit: "%"
-    }
-  ])
-}));
+// TODO: Mock @/lib/insights/trends-metrics using Storybook's approach
+// Original vi.mock replaced - needs manual review;
 
-vi.mock("@/lib/insights/pr-activity-metrics", () => ({
-  calculatePrActivityMetrics: vi.fn().mockResolvedValue({
-    openPRs: 8,
-    totalPRs: 45,
-    averageMergeTime: 2.5,
-    averageMergeTimeTrend: -15,
-    velocity: {
-      current: 2.4,
-      previous: 2.8,
-      change: -14
-    }
-  })
-}));
+// TODO: Mock @/lib/insights/pr-activity-metrics using Storybook's approach
+// Original vi.mock replaced - needs manual review;
 
 const meta = {
   title: "Features/Activity/MetricsAndTrendsCard",
@@ -151,17 +107,11 @@ export const Loading: Story = {
   },
   render: (args) => {
     // Override the mocks to simulate loading state
-    vi.mock("@/lib/insights/trends-metrics", () => ({
-      calculateTrendMetrics: vi.fn().mockImplementation(
-        () => new Promise(resolve => setTimeout(resolve, 10000))
-      )
-    }));
+    // TODO: Mock @/lib/insights/trends-metrics using Storybook's approach
+// Original vi.mock replaced - needs manual review;
     
-    vi.mock("@/lib/insights/pr-activity-metrics", () => ({
-      calculatePrActivityMetrics: vi.fn().mockImplementation(
-        () => new Promise(resolve => setTimeout(resolve, 10000))
-      )
-    }));
+    // TODO: Mock @/lib/insights/pr-activity-metrics using Storybook's approach
+// Original vi.mock replaced - needs manual review;
 
     return (
       <div className="w-[800px] p-4">

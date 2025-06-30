@@ -1,144 +1,72 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "@storybook/test";
+import React from "react";
 import { RepositoryHealthCard } from "./repository-health-card";
 import { MemoryRouter } from "react-router-dom";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 
-// Mock all the hooks and dependencies
-vi.mock("@/lib/time-range-store", () => ({
-  useTimeRangeStore: vi.fn(() => ({
-    timeRange: "30d"
-  }))
+// Mock dependencies
+import * as timeRangeStore from "@/lib/time-range-store";
+import * as autoTrackRepo from "@/hooks/use-auto-track-repository";
+import * as onDemandSync from "@/hooks/use-on-demand-sync";
+import * as supabaseModule from "@/lib/supabase";
+import * as healthMetrics from "@/lib/insights/health-metrics";
+import * as healthOverall from "@/components/insights/sections/repository-health-overall";
+import * as healthFactors from "@/components/insights/sections/repository-health-factors";
+import * as lotteryFactorModule from "./lottery-factor";
+import * as selfSelectionRate from "@/components/features/contributor/self-selection-rate";
+import * as confidenceCard from "./contributor-confidence-card";
+
+const mockGetDaysAgo = fn().mockReturnValue(30);
+const mockHandleSync = fn();
+const mockUseOnDemandSync = fn(() => ({
+  isInitialSync: false,
+  isSyncing: false,
+  syncLogs: null,
+  handleSync: mockHandleSync,
 }));
 
-vi.mock("@/hooks/use-auto-track-repository", () => ({
-  useAutoTrackRepository: vi.fn()
-}));
+// Override modules
+(timeRangeStore as any).useTimeRangeStore = () => ({
+  getDaysAgo: mockGetDaysAgo,
+});
 
-vi.mock("@/hooks/use-on-demand-sync", () => ({
-  useOnDemandSync: vi.fn(() => ({
-    syncStatus: {
-      isTriggering: false,
-      isInProgress: false,
-      isComplete: false
-    }
-  }))
-}));
+(autoTrackRepo as any).useAutoTrackRepository = fn();
 
-// Mock Supabase
-vi.mock("@/lib/supabase", () => ({
-  supabase: {
-    rpc: vi.fn().mockReturnValue({
-      eq: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({
-            data: {
-              avg_confidence_score: 3.2,
-              contributor_count: 15
-            },
-            error: null
-          })
-        })
-      })
-    })
-  }
-}));
+(onDemandSync as any).useOnDemandSync = () => mockUseOnDemandSync();
 
-// Mock the health metrics calculation
-vi.mock("@/lib/insights/health-metrics", () => ({
-  calculateRepositoryConfidence: vi.fn().mockResolvedValue({
-    score: 3.2,
-    breakdown: {
-      starForkConfidence: 1.12,
-      engagementConfidence: 0.8,
-      retentionConfidence: 0.8,
-      qualityConfidence: 0.48,
-      totalStargazers: 45000,
-      totalForkers: 8500,
-      contributorCount: 15,
-      conversionRate: 3.2
-    }
-  })
-}));
+const mockSupabase = {
+  from: fn().mockReturnValue({
+    select: fn().mockReturnValue({
+      eq: fn().mockReturnValue({
+        gte: fn().mockReturnValue({
+          order: fn().mockResolvedValue({
+            data: [],
+            error: null,
+          }),
+        }),
+      }),
+    }),
+  }),
+};
 
-// Mock child components
-vi.mock("@/components/insights/sections/repository-health-overall", () => ({
-  RepositoryHealthOverall: ({ stats }: any) => (
-    <div className="border border-dashed border-gray-300 rounded-lg p-6 text-center">
-      <h3 className="text-lg font-semibold mb-2">Repository Health Overall</h3>
-      <div className="text-3xl font-bold text-green-600">B+</div>
-      <p className="text-muted-foreground">
-        {stats.pullRequests.length} PRs analyzed
-      </p>
-    </div>
-  )
-}));
+(supabaseModule as any).supabase = mockSupabase;
 
-vi.mock("@/components/insights/sections/repository-health-factors", () => ({
-  RepositoryHealthFactors: ({ repositoryName }: { repositoryName: string }) => (
-    <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center">
-      <h3 className="text-sm font-semibold mb-2">Health Factors</h3>
-      <p className="text-xs text-muted-foreground">{repositoryName}</p>
-      <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
-        <div>Code Quality: 85%</div>
-        <div>Review Coverage: 92%</div>
-        <div>Response Time: 2.3d</div>
-        <div>Contributor Diversity: Good</div>
-      </div>
-    </div>
-  )
-}));
+(healthMetrics as any).calculateHealthMetrics = fn().mockReturnValue({
+  overallHealth: 85,
+  healthFactors: {
+    documentation: 80,
+    testing: 75,
+    codeQuality: 90,
+    maintainerActivity: 88,
+  },
+});
 
-vi.mock("./lottery-factor", () => ({
-  LotteryFactorContent: ({ lotteryFactor, showYoloButton }: any) => (
-    <div className="text-center">
-      <h3 className="text-lg font-semibold mb-2">Lottery Factor</h3>
-      <div className="text-3xl font-bold text-blue-600">
-        {lotteryFactor || "2.5"}
-      </div>
-      <p className="text-sm text-muted-foreground">Contributors needed to cover 50% of code</p>
-      {showYoloButton && (
-        <div className="mt-2 text-xs text-amber-600">⚠️ Direct commits detected</div>
-      )}
-    </div>
-  )
-}));
-
-vi.mock("@/components/features/contributor/self-selection-rate", () => ({
-  SelfSelectionRate: ({ owner, repo }: { owner: string, repo: string }) => (
-    <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center">
-      <h3 className="text-sm font-semibold mb-2">Self-Selection Rate</h3>
-      <div className="text-2xl font-bold text-purple-600">67%</div>
-      <p className="text-xs text-muted-foreground">
-        Contributors active in {owner}/{repo}
-      </p>
-    </div>
-  )
-}));
-
-vi.mock("./contributor-confidence-card", () => ({
-  ContributorConfidenceCard: ({ confidenceScore, loading, error, owner, repo }: any) => (
-    <div className="border border-dashed border-gray-300 rounded-lg p-4 text-center">
-      <h3 className="text-sm font-semibold mb-2">Contributor Confidence</h3>
-      {loading ? (
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
-        </div>
-      ) : error ? (
-        <div className="text-red-500 text-xs">{error}</div>
-      ) : (
-        <>
-          <div className="text-2xl font-bold text-green-600">
-            {confidenceScore?.toFixed(1) || "3.2"}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            High confidence in {owner}/{repo}
-          </p>
-        </>
-      )}
-    </div>
-  )
-}));
+(healthOverall as any).RepositoryHealthOverall = () => React.createElement('div', null, 'Repository Health Overall');
+(healthFactors as any).RepositoryHealthFactors = () => React.createElement('div', null, 'Repository Health Factors');
+(lotteryFactorModule as any).default = () => React.createElement('div', null, 'Lottery Factor');
+(selfSelectionRate as any).SelfSelectionRate = () => React.createElement('div', null, 'Self Selection Rate');
+(confidenceCard as any).ContributorConfidenceCard = () => React.createElement('div', null, 'Contributor Confidence Card');
 
 // Mock data
 const mockPullRequests = [
@@ -188,6 +116,34 @@ const mockPullRequests = [
   },
 ];
 
+// Mock lottery factor data
+const defaultLotteryFactor = {
+  topContributorsCount: 3,
+  totalContributors: 12,
+  topContributorsPercentage: 75,
+  contributors: [
+    {
+      login: "alice-dev",
+      avatar_url: "https://avatars.githubusercontent.com/u/1?v=4",
+      pullRequests: 8,
+      percentage: 40
+    },
+    {
+      login: "bob-dev",
+      avatar_url: "https://avatars.githubusercontent.com/u/2?v=4",
+      pullRequests: 5,
+      percentage: 25
+    },
+    {
+      login: "charlie-dev",
+      avatar_url: "https://avatars.githubusercontent.com/u/3?v=4",
+      pullRequests: 2,
+      percentage: 10
+    }
+  ],
+  riskLevel: 'Medium' as const
+};
+
 const meta = {
   title: "Features/Health/RepositoryHealthCard",
   component: RepositoryHealthCard,
@@ -213,7 +169,7 @@ const meta = {
             },
             includeBots: false,
             setIncludeBots: () => {},
-            lotteryFactor: 2.5,
+            lotteryFactor: defaultLotteryFactor,
             directCommitsData: null,
           }}
         >
@@ -254,7 +210,32 @@ export const WithBots: Story = {
             },
             includeBots: true,
             setIncludeBots: () => {},
-            lotteryFactor: 2.8,
+            lotteryFactor: {
+              topContributorsCount: 3,
+              totalContributors: 10,
+              topContributorsPercentage: 80,
+              contributors: [
+                {
+                  login: "alice-dev",
+                  avatar_url: "https://avatars.githubusercontent.com/u/1?v=4",
+                  pullRequests: 12,
+                  percentage: 50
+                },
+                {
+                  login: "bob-dev",
+                  avatar_url: "https://avatars.githubusercontent.com/u/2?v=4",
+                  pullRequests: 5,
+                  percentage: 20
+                },
+                {
+                  login: "dependabot[bot]",
+                  avatar_url: "https://avatars.githubusercontent.com/u/49699333?v=4",
+                  pullRequests: 3,
+                  percentage: 10
+                }
+              ],
+              riskLevel: 'High' as const
+            },
             directCommitsData: null,
           }}
         >
@@ -288,12 +269,43 @@ export const WithDirectCommits: Story = {
             },
             includeBots: false,
             setIncludeBots: () => {},
-            lotteryFactor: 1.8,
+            lotteryFactor: {
+              topContributorsCount: 2,
+              totalContributors: 8,
+              topContributorsPercentage: 60,
+              contributors: [
+                {
+                  login: "admin-user",
+                  avatar_url: "https://avatars.githubusercontent.com/u/4?v=4",
+                  pullRequests: 15,
+                  percentage: 45
+                },
+                {
+                  login: "senior-dev",
+                  avatar_url: "https://avatars.githubusercontent.com/u/5?v=4",
+                  pullRequests: 8,
+                  percentage: 15
+                }
+              ],
+              riskLevel: 'Low' as const
+            },
             directCommitsData: {
               hasYoloCoders: true,
               yoloCoderStats: [
-                { login: "admin-user", directCommits: 15 },
-                { login: "senior-dev", directCommits: 8 }
+                { 
+                  login: "admin-user", 
+                  avatar_url: "https://avatars.githubusercontent.com/u/4?v=4",
+                  directCommits: 15,
+                  totalPushedCommits: 25,
+                  type: "User" as const
+                },
+                { 
+                  login: "senior-dev", 
+                  avatar_url: "https://avatars.githubusercontent.com/u/5?v=4",
+                  directCommits: 8,
+                  totalPushedCommits: 20,
+                  type: "User" as const
+                }
               ]
             },
           }}
@@ -351,17 +363,18 @@ export const LoadingState: Story = {
 export const ConfidenceError: Story = {
   render: () => {
     // Mock confidence calculation error
-    vi.mock("@/lib/supabase", () => ({
-      supabase: {
-        rpc: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockRejectedValue(new Error("Database connection failed"))
-            })
-          })
-        })
-      }
-    }));
+    mockSupabase.from.mockReturnValue({
+      select: fn().mockReturnValue({
+        eq: fn().mockReturnValue({
+          gte: fn().mockReturnValue({
+            order: fn().mockResolvedValue({
+              data: null,
+              error: new Error("Failed to calculate confidence"),
+            }),
+          }),
+        }),
+      }),
+    });
 
     return <RepositoryHealthCard />;
   },
@@ -377,7 +390,7 @@ export const ConfidenceError: Story = {
             },
             includeBots: false,
             setIncludeBots: () => {},
-            lotteryFactor: 2.5,
+            lotteryFactor: defaultLotteryFactor,
             directCommitsData: null,
           }}
         >
@@ -400,15 +413,12 @@ export const ConfidenceError: Story = {
 export const SyncInProgress: Story = {
   render: () => {
     // Mock sync in progress
-    vi.mock("@/hooks/use-on-demand-sync", () => ({
-      useOnDemandSync: vi.fn(() => ({
-        syncStatus: {
-          isTriggering: false,
-          isInProgress: true,
-          isComplete: false
-        }
-      }))
-    }));
+    mockUseOnDemandSync.mockReturnValue({
+      isInitialSync: true,
+      isSyncing: true,
+      syncLogs: null,
+      handleSync: mockHandleSync,
+    });
 
     return <RepositoryHealthCard />;
   },
@@ -424,7 +434,7 @@ export const SyncInProgress: Story = {
             },
             includeBots: false,
             setIncludeBots: () => {},
-            lotteryFactor: 2.5,
+            lotteryFactor: defaultLotteryFactor,
             directCommitsData: null,
           }}
         >
@@ -470,7 +480,32 @@ export const HighActivity: Story = {
               },
               includeBots: false,
               setIncludeBots: () => {},
-              lotteryFactor: 4.2,
+              lotteryFactor: {
+                topContributorsCount: 5,
+                totalContributors: 8,
+                topContributorsPercentage: 85,
+                contributors: [
+                  {
+                    login: "contributor-0",
+                    avatar_url: "https://avatars.githubusercontent.com/u/10?v=4",
+                    pullRequests: 20,
+                    percentage: 40
+                  },
+                  {
+                    login: "contributor-1",
+                    avatar_url: "https://avatars.githubusercontent.com/u/11?v=4",
+                    pullRequests: 15,
+                    percentage: 30
+                  },
+                  {
+                    login: "contributor-2",
+                    avatar_url: "https://avatars.githubusercontent.com/u/12?v=4",
+                    pullRequests: 8,
+                    percentage: 15
+                  }
+                ],
+                riskLevel: 'High' as const
+              },
               directCommitsData: null,
             }}
           >
@@ -505,7 +540,7 @@ export const MobileView: Story = {
             },
             includeBots: false,
             setIncludeBots: () => {},
-            lotteryFactor: 2.5,
+            lotteryFactor: defaultLotteryFactor,
             directCommitsData: null,
           }}
         >

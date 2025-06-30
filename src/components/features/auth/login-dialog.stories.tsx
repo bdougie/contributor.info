@@ -1,16 +1,21 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "@storybook/test";
 import { LoginDialog } from "./login-dialog";
 import { useState } from "react";
 
 // Mock the GitHub auth hook
-vi.mock("@/hooks/use-github-auth", () => ({
-  useGitHubAuth: vi.fn(() => ({
-    login: vi.fn().mockResolvedValue(undefined),
-    isLoggedIn: false,
-    user: null,
-    logout: vi.fn(),
-  })),
+const mockLogin = fn();
+const mockLogout = fn();
+const mockUseGitHubAuth = fn(() => ({
+  login: mockLogin,
+  isLoggedIn: false,
+  user: null,
+  logout: mockLogout,
 }));
+
+// Override the module using module-level mock
+import * as useGitHubAuthModule from "@/hooks/use-github-auth";
+(useGitHubAuthModule as any).useGitHubAuth = mockUseGitHubAuth;
 
 const meta = {
   title: "Features/Auth/LoginDialog",
@@ -43,12 +48,16 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     open: true,
-    onOpenChange: () => {},
+    onOpenChange: fn(),
   },
   render: (args) => <LoginDialog {...args} />
 };
 
 export const Interactive: Story = {
+  args: {
+    open: false,
+    onOpenChange: fn(),
+  },
   render: () => {
     const InteractiveDialog = () => {
       const [open, setOpen] = useState(false);
@@ -80,18 +89,16 @@ export const Interactive: Story = {
 export const LoggingInState: Story = {
   args: {
     open: true,
-    onOpenChange: () => {},
+    onOpenChange: fn(),
   },
   render: (args) => {
     // Mock the hook to return logging in state
-    vi.doMock("@/hooks/use-github-auth", () => ({
-      useGitHubAuth: vi.fn(() => ({
-        login: vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 5000))),
-        isLoggedIn: false,
-        user: null,
-        logout: vi.fn(),
-      })),
-    }));
+    mockUseGitHubAuth.mockReturnValue({
+      login: fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 5000))),
+      isLoggedIn: false,
+      user: null,
+      logout: mockLogout,
+    });
 
     const LoggingInDialog = () => {
       const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -132,18 +139,16 @@ export const LoggingInState: Story = {
 export const WithError: Story = {
   args: {
     open: true,
-    onOpenChange: () => {},
+    onOpenChange: fn(),
   },
   render: (args) => {
     // Mock the hook to simulate login error
-    vi.doMock("@/hooks/use-github-auth", () => ({
-      useGitHubAuth: vi.fn(() => ({
-        login: vi.fn().mockRejectedValue(new Error("Authentication failed. Please try again.")),
-        isLoggedIn: false,
-        user: null,
-        logout: vi.fn(),
-      })),
-    }));
+    mockUseGitHubAuth.mockReturnValue({
+      login: fn().mockRejectedValue(new Error("Authentication failed. Please try again.")),
+      isLoggedIn: false,
+      user: null,
+      logout: mockLogout,
+    });
 
     return <LoginDialog {...args} />;
   },
@@ -159,21 +164,22 @@ export const WithError: Story = {
 export const AlreadyLoggedIn: Story = {
   args: {
     open: true,
-    onOpenChange: () => {},
+    onOpenChange: fn(),
   },
   render: (args) => {
     // Mock the hook to return logged in state
-    vi.doMock("@/hooks/use-github-auth", () => ({
-      useGitHubAuth: vi.fn(() => ({
-        login: vi.fn(),
-        isLoggedIn: true,
-        user: {
-          login: "test-user",
-          avatar_url: "https://avatars.githubusercontent.com/u/123?v=4",
-        },
-        logout: vi.fn(),
-      })),
-    }));
+    mockUseGitHubAuth.mockReturnValue({
+      login: mockLogin,
+      isLoggedIn: true,
+      user: {
+        login: "test-user",
+        avatar_url: "https://avatars.githubusercontent.com/u/123?v=4",
+        id: 123,
+        name: "Test User",
+        email: "test@example.com",
+      },
+      logout: mockLogout,
+    });
 
     return (
       <div>
@@ -196,7 +202,7 @@ export const AlreadyLoggedIn: Story = {
 export const MobileView: Story = {
   args: {
     open: true,
-    onOpenChange: () => {},
+    onOpenChange: fn(),
   },
   parameters: {
     viewport: {

@@ -1,69 +1,57 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "@storybook/test";
+import React, { useState } from "react";
 import LotteryFactor, { LotteryFactorContent } from "./lottery-factor";
 import { MemoryRouter } from "react-router-dom";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import type { LotteryFactor as LotteryFactorType, ContributorStats } from "@/lib/types";
 
 // Mock dependencies
-vi.mock("@/lib/time-range-store", () => ({
-  useTimeRange: vi.fn(() => ({
-    timeRange: "30"
-  }))
+import * as timeRangeStore from "@/lib/time-range-store";
+import * as supabaseModule from "@/lib/supabase";
+import * as shareableCard from "@/components/features/sharing/shareable-card";
+import * as contributorModule from "../contributor";
+import * as lotteryIcon from "@/components/icons/LotteryIcon";
+import * as yoloIcon from "@/components/icons/YoloIcon";
+
+// Override modules
+(timeRangeStore as any).useTimeRangeStore = fn(() => ({
+  getDaysAgo: fn().mockReturnValue(30),
 }));
 
-vi.mock("@/lib/supabase", () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({
-            data: [
-              { user_id: "alice-dev", role: "Maintainer" },
-              { user_id: "bob-contributor", role: "Member" }
-            ],
-            error: null
-          }))
-        }))
-      }))
-    }))
-  }
-}));
+(supabaseModule as any).supabase = {
+  auth: {
+    getUser: fn().mockResolvedValue({
+      data: {
+        user: {
+          email: "test@example.com",
+          user_metadata: {
+            user_name: "test-user",
+            avatar_url: "https://avatars.githubusercontent.com/u/123?v=4",
+          },
+        },
+      },
+      error: null,
+    }),
+  },
+  from: fn().mockReturnValue({
+    select: fn().mockReturnValue({
+      eq: fn().mockReturnValue({
+        gte: fn().mockReturnValue({
+          order: fn().mockResolvedValue({
+            data: [],
+            error: null,
+          }),
+        }),
+      }),
+    }),
+  }),
+};
 
-// Mock ShareableCard 
-vi.mock("@/components/features/sharing/shareable-card", () => ({
-  ShareableCard: ({ children, title }: any) => (
-    <div className="border border-dashed border-gray-300 rounded-lg p-4">
-      <h3 className="text-sm font-semibold mb-2">{title}</h3>
-      {children}
-    </div>
-  )
-}));
-
-// Mock ContributorHoverCard
-vi.mock("../contributor", () => ({
-  ContributorHoverCard: ({ children, contributor, role }: any) => (
-    <div title={`${contributor.login} (${role}): ${contributor.pullRequests} PRs`}>
-      {children}
-    </div>
-  )
-}));
-
-// Mock icons
-vi.mock("@/components/icons/LotteryIcon", () => ({
-  LotteryIcon: ({ className }: { className?: string }) => (
-    <div className={`${className} bg-blue-500 rounded-full flex items-center justify-center text-white text-xs`}>
-      🎯
-    </div>
-  )
-}));
-
-vi.mock("@/components/icons/YoloIcon", () => ({
-  YoloIcon: ({ className }: { className?: string }) => (
-    <div className={`${className} bg-red-500 rounded-full flex items-center justify-center text-white text-xs`}>
-      ⚠️
-    </div>
-  )
-}));
+(shareableCard as any).ShareableCard = ({ children }: any) => React.createElement('div', null, children);
+(contributorModule as any).ContributorHoverCard = ({ trigger }: any) => trigger;
+(lotteryIcon as any).LotteryIcon = () => React.createElement('div', null, 'LotteryIcon');
+(yoloIcon as any).YoloIcon = () => React.createElement('div', null, 'YoloIcon');
 
 // Mock data
 const mockContributors: ContributorStats[] = [
@@ -71,37 +59,19 @@ const mockContributors: ContributorStats[] = [
     login: "alice-dev",
     avatar_url: "https://avatars.githubusercontent.com/u/1?v=4",
     pullRequests: 45,
-    percentage: 37.5,
-    id: 1,
-    name: "Alice Developer",
-    additions: 2500,
-    deletions: 800,
-    reviews: 25,
-    comments: 120
+    percentage: 37.5
   },
   {
     login: "bob-contributor",
     avatar_url: "https://avatars.githubusercontent.com/u/2?v=4",
     pullRequests: 28,
-    percentage: 23.3,
-    id: 2,
-    name: "Bob Contributor",
-    additions: 1800,
-    deletions: 600,
-    reviews: 15,
-    comments: 80
+    percentage: 23.3
   },
   {
     login: "carol-occasional",
     avatar_url: "https://avatars.githubusercontent.com/u/3?v=4",
     pullRequests: 15,
-    percentage: 12.5,
-    id: 3,
-    name: "Carol Occasional",
-    additions: 900,
-    deletions: 300,
-    reviews: 8,
-    comments: 45
+    percentage: 12.5
   }
 ];
 

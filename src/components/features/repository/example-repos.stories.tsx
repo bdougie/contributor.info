@@ -111,6 +111,9 @@ export const InSearchContext: Story = {
 };
 
 export const CustomRepositories: Story = {
+  args: {
+    onSelect: action("custom-repository-selected")
+  },
   render: () => {
     // Create a variant with different example repositories
     const CustomExampleRepos = ({ onSelect }: { onSelect: (repo: string) => void }) => {
