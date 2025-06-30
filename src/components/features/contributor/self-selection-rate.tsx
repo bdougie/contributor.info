@@ -183,9 +183,9 @@ export function SelfSelectionRate({
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="text-center">
-            <div className="text-4xl font-bold">0.0%</div>
+            <div className="text-4xl font-bold text-muted-foreground">N/A</div>
             <p className="text-sm text-muted-foreground mt-1">
-              of contributions from external contributors
+              Not enough pull request data available
             </p>
             {error && (
               <p className="text-xs text-red-500 mt-2">{error}</p>
@@ -324,10 +324,13 @@ export function SelfSelectionRate({
           {/* Main metric */}
           <div className="text-center">
             <div className="text-4xl font-bold">
-              {stats.external_contribution_rate !== null ? stats.external_contribution_rate.toFixed(1) : '0.0'}%
+              {stats.external_contribution_rate !== null ? `${stats.external_contribution_rate.toFixed(1)}%` : 'N/A'}
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              of contributions from external contributors
+              {stats.external_contribution_rate !== null 
+                ? 'of contributions from external contributors'
+                : 'Not enough pull request data available'
+              }
             </p>
           </div>
 

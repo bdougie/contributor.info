@@ -1,5 +1,6 @@
 import { useContext, useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 import {
   Card,
   CardContent,
@@ -98,6 +99,9 @@ export function LotteryFactorContent({
   const rawStats = stats || { pullRequests: [], loading: false, error: null };
   const rawLotteryFactor = lotteryFactor || null;
   const repositoryName = owner && repo ? `${owner}/${repo}` : undefined;
+  
+  // State for contributor roles from confidence system
+  const [contributorRoles, setContributorRoles] = useState<Map<string, string>>(new Map());
 
   // Apply client-side filtering based on includeBots
   const safeStats = {
@@ -120,6 +124,50 @@ export function LotteryFactorContent({
     : rawLotteryFactor;
   const [showYoloCoders, setShowYoloCoders] = useState(false);
   const { directCommitsData } = useContext(RepoStatsContext);
+
+  // Fetch contributor roles from confidence system
+  useEffect(() => {
+    async function fetchContributorRoles() {
+      if (!owner || !repo) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('contributor_roles')
+          .select('user_id, role')
+          .eq('repository_owner', owner)
+          .eq('repository_name', repo);
+        
+        if (error) {
+          console.warn('Failed to fetch contributor roles:', error);
+          return;
+        }
+        
+        const rolesMap = new Map<string, string>();
+        data?.forEach(({ user_id, role }) => {
+          rolesMap.set(user_id, role);
+        });
+        setContributorRoles(rolesMap);
+      } catch (error) {
+        console.warn('Error fetching contributor roles:', error);
+      }
+    }
+    
+    fetchContributorRoles();
+  }, [owner, repo]);
+
+  // Function to get role for a contributor
+  const getContributorRole = (username: string, index: number): string => {
+    // First try to get role from confidence system
+    const confidenceRole = contributorRoles.get(username);
+    if (confidenceRole) {
+      return confidenceRole;
+    }
+    
+    // Fallback to old position-based system
+    if (index === 0) return "maintainer";
+    if (index === 1) return "member";
+    return "contributor";
+  };
 
   if (safeStats.loading) {
     return <LotteryFactorSkeleton />;
@@ -410,13 +458,7 @@ export function LotteryFactorContent({
               <div className="flex items-center gap-2">
                 <ContributorHoverCard
                   contributor={contributor}
-                  role={
-                    index === 0
-                      ? "maintainer"
-                      : index === 1
-                      ? "member"
-                      : "contributor"
-                  }
+                  role={getContributorRole(contributor.login, index)}
                 >
                   <OptimizedAvatar
                     src={contributor.avatar_url}
@@ -431,11 +473,7 @@ export function LotteryFactorContent({
                   <div className="font-medium" style={{ wordBreak: 'break-word' }}>{contributor.login}</div>
                   <div className="text-sm text-muted-foreground flex items-center justify-between">
                     <span>
-                      {index === 0
-                        ? "maintainer"
-                        : index === 1
-                        ? "member"
-                        : "contributor"}
+                      {getContributorRole(contributor.login, index)}
                     </span>
                     <div className="flex items-center gap-2 sm:hidden">
                       <span className="flex items-center gap-1">
