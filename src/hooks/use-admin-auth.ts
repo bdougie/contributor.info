@@ -180,7 +180,7 @@ export async function logAdminAction(
       const { data: adminUser, error: userError } = await supabase
         .from('app_users')
         .select('id')
-        .eq('github_id', adminGitHubId)
+        .eq('github_user_id', adminGitHubId)
         .single();
 
       if (userError || !adminUser) {
