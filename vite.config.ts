@@ -40,13 +40,33 @@ export default defineConfig({
       'clsx',
       'tailwind-merge'
     ],
-    exclude: ['lucide-react'], // Keep icons separate for better tree-shaking
+    exclude: [
+      'lucide-react', // Keep icons separate for better tree-shaking
+      '@storybook/test',
+      '@storybook/react',
+      'vitest',
+      '@testing-library/react',
+      '@testing-library/jest-dom'
+    ],
     force: true, // Force re-optimization for performance
   },
   build: {
     // Disable CSS code splitting to prevent FOUC
     cssCodeSplit: false,
     rollupOptions: {
+      // Exclude test and story files from the build
+      external: (id) => {
+        return id.includes('.stories.') || 
+               id.includes('.test.') || 
+               id.includes('__tests__') ||
+               id.includes('__mocks__') ||
+               id.includes('@storybook/') ||
+               id.includes('vitest');
+      },
+      // Explicit input to ensure only main app files are bundled
+      input: {
+        main: path.resolve(__dirname, 'index.html')
+      },
       output: {
         // Ensure proper file extensions for module recognition
         entryFileNames: 'assets/[name]-[hash].js',
@@ -112,7 +132,14 @@ export default defineConfig({
       polyfill: true,
       resolveDependencies: (_, deps) => {
         // Don't preload analytics chunks to avoid blocking critical path
-        return deps.filter(dep => !dep.includes('analytics') && !dep.includes('posthog') && !dep.includes('sentry'));
+        return deps.filter(dep => 
+          !dep.includes('analytics') && 
+          !dep.includes('posthog') && 
+          !dep.includes('sentry') &&
+          !dep.includes('charts-') && // Don't preload heavy chart libraries
+          !dep.includes('test') &&
+          !dep.includes('storybook')
+        );
       }
     },
   },
