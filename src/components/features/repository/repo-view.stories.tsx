@@ -3,6 +3,7 @@ import { fn } from "@storybook/test";
 import { vi } from "vitest";
 import RepoView, { ContributionsRoute, LotteryFactorRoute, DistributionRoute } from "./repo-view";
 import { MemoryRouter } from "react-router-dom";
+import type { LotteryFactor, DirectCommitsData } from "@/lib/types";
 
 // Mock all the dependencies
 const mockTimeRangeStore = fn(() => ({
@@ -25,10 +26,10 @@ const mockCachedRepoData = fn(() => ({
       }
     ],
     loading: false,
-    error: null
+    error: null as string | null
   },
-  lotteryFactor: 2.5,
-  directCommitsData: null
+  lotteryFactor: null as LotteryFactor | null,
+  directCommitsData: null as DirectCommitsData | null
 }));
 
 const mockRepoSearch = fn(() => ({

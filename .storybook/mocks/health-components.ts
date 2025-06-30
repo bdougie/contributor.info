@@ -10,6 +10,9 @@ export const RepositoryHealthFactors = (props: any) =>
 export default (props: any) => 
   globalThis.React.createElement('div', { className: 'lottery-factor', ...props }, 'Lottery Factor Mock');
 
+export const LotteryFactorContent = (props: any) => 
+  globalThis.React.createElement('div', { className: 'lottery-factor-content', ...props }, 'Lottery Factor Content Mock');
+
 export const ContributorConfidenceCard = (props: any) => 
   globalThis.React.createElement('div', { className: 'contributor-confidence-card', ...props }, 'Confidence Card Mock');
 
