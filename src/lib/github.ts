@@ -408,7 +408,7 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
   const { data: { session } } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
 
-  // Use user's token if available, otherwise fall back to env tokerm -rf src/github-activityn
+  // Use user's token if available, otherwise fall back to env token
   const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
   if (token) {
     headers.Authorization = `token ${token}`;
@@ -427,98 +427,97 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
 
     const repoData = await repoResponse.json();
     const defaultBranch = repoData.default_branch;
-    const defaultRef = `refs/heads/${defaultBranch}`;
 
-    // Calculate date range based on timeRange parameter
+    // Calculate date range based on timeRange parameter (support up to 90 days)
     const since = new Date();
-    since.setDate(since.getDate() - parseInt(timeRange));
+    since.setDate(since.getDate() - Math.min(parseInt(timeRange), 90));
 
-    // Get merged PRs for the repository in the time range
+    // Get merged PRs for the repository in the time range to identify PR-related commits
     const pullRequests = await fetchPullRequests(owner, repo, timeRange);
     const mergedPRs = pullRequests.filter(pr => pr.merged_at);
     
-    // Get the merge commit SHAs of the merged PRs
-    const prMergeShaSet = new Set<string>();
+    // Collect all commit SHAs that are associated with merged PRs
+    const prCommitShaSet = new Set<string>();
     
     await Promise.all(
       mergedPRs.map(async (pr) => {
         try {
-          // Fetch the PR details to get the merge commit SHA
-          const prResponse = await fetch(
-            `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}`,
+          // Fetch the commits for this PR to get all commit SHAs
+          const prCommitsResponse = await fetch(
+            `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}/commits`,
             { headers }
           );
           
-          if (prResponse.ok) {
-            const prData = await prResponse.json();
-            if (prData.merge_commit_sha) {
-              prMergeShaSet.add(prData.merge_commit_sha);
-            }
+          if (prCommitsResponse.ok) {
+            const prCommits = await prCommitsResponse.json();
+            prCommits.forEach((commit: any) => {
+              prCommitShaSet.add(commit.sha);
+            });
           }
         } catch (error) {
-          // Silently handle merge commit SHA fetch errors
+          // Silently handle PR commits fetch errors
         }
       })
     );
 
-    // Fetch push events for the repository
-    // Note: GitHub API doesn't have a direct way to get push events for a specific branch,
-    // so we'll fetch all events and filter for push events to the default branch
-    const eventsResponse = await fetch(
-      `${GITHUB_API_BASE}/repos/${owner}/${repo}/events?per_page=100`,
-      { headers }
-    );
-
-    if (!eventsResponse.ok) {
-      throw new Error(`Failed to fetch repository events: ${eventsResponse.statusText}`);
-    }
-
-    const events = await eventsResponse.json();
+    // Fetch commits directly from the default branch using commits API
+    // This is more reliable than the events API for longer time ranges
+    let allCommits: any[] = [];
+    let page = 1;
+    const perPage = 100;
     
-    // Filter for push events to the default branch
-    const pushEvents = events.filter((event: any) => {
-      // Check if it's a push event to the default branch
-      return event.type === 'PushEvent' && 
-             event.payload.ref === defaultRef &&
-             new Date(event.created_at) >= since;
-    });
+    while (page <= 10) { // Limit to 10 pages (1000 commits) to avoid rate limiting
+      const commitsResponse = await fetch(
+        `${GITHUB_API_BASE}/repos/${owner}/${repo}/commits?sha=${defaultBranch}&since=${since.toISOString()}&per_page=${perPage}&page=${page}`,
+        { headers }
+      );
 
-    // Identify YOLO pushes (pushes to default branch that don't correlate with PR merges)
-    const yoloPushes = pushEvents.filter((push: any) => {
-      return !prMergeShaSet.has(push.payload.head);
-    });
-
-    // Format the YOLO pushes data
-    const directCommits = await Promise.all(yoloPushes.map(async (push: any) => {
-      // Fetch user details to get avatar URL
-      let avatar_url = '';
-      try {
-        const userResponse = await fetch(
-          `${GITHUB_API_BASE}/users/${push.actor.login}`,
-          { headers }
-        );
-        
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          avatar_url = userData.avatar_url;
+      if (!commitsResponse.ok) {
+        if (page === 1) {
+          throw new Error(`Failed to fetch repository commits: ${commitsResponse.statusText}`);
         }
-      } catch (error) {
-        // Silently handle user details fetch errors
+        break; // Stop fetching if later pages fail
       }
 
-      return {
-        sha: push.payload.head,
-        actor: {
-          login: push.actor.login,
-          avatar_url,
-          type: push.actor.login.includes('[bot]') ? 'Bot' : 'User'
-        },
-        event_time: push.created_at,
-        push_num_commits: push.payload.size
-      };
-    }));
+      const commits = await commitsResponse.json();
+      if (commits.length === 0) {
+        break; // No more commits
+      }
+      
+      allCommits.push(...commits);
+      
+      // If we got less than a full page, we're done
+      if (commits.length < perPage) {
+        break;
+      }
+      
+      page++;
+    }
 
-    // Calculate statistics for YOLO coders (authors with direct pushes)
+    // Filter commits to find direct commits (those not associated with merged PRs)
+    const directCommitData = allCommits.filter((commit: any) => {
+      return !prCommitShaSet.has(commit.sha);
+    });
+
+    // Format the direct commits data
+    const directCommits = directCommitData.map((commit: any) => {
+      const author = commit.author || commit.committer || {};
+      const login = author.login || 'unknown';
+      const avatar_url = author.avatar_url || '';
+      
+      return {
+        sha: commit.sha,
+        actor: {
+          login,
+          avatar_url,
+          type: login.includes('[bot]') ? 'Bot' : 'User'
+        },
+        event_time: commit.commit.author?.date || commit.commit.committer?.date || new Date().toISOString(),
+        push_num_commits: 1 // Each commit represents one commit
+      };
+    });
+
+    // Calculate statistics for YOLO coders (authors with direct commits)
     const yoloCoderMap = new Map<string, { 
       login: string; 
       avatar_url: string; 
