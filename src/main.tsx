@@ -1,11 +1,10 @@
-import { StrictMode, Suspense, lazy } from 'react';
+import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
-
-// Lazy load analytics providers to reduce initial bundle
-const PHProvider = lazy(() => import('./lib/posthog').then(m => ({ default: m.PHProvider })));
-const MetaTagsProvider = lazy(() => import('./components/common/layout').then(m => ({ default: m.MetaTagsProvider })));
+import { PHProvider } from './lib/posthog';
+import { MetaTagsProvider } from './components/common/layout';
+import { trackWebVitals, trackCustomMetrics } from './lib/web-vitals';
 
 // Dynamically import and initialize Sentry only when needed
 const initializeSentry = async () => {
@@ -74,27 +73,18 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   });
 }
 
-// Defer performance tracking to avoid blocking initial render
+// Initialize performance tracking (defer slightly to not block initial render)
 setTimeout(() => {
-  import('./lib/web-vitals').then(({ trackWebVitals, trackCustomMetrics }) => {
-    trackWebVitals();
-    trackCustomMetrics();
-  });
-}, 1000);
-
-// Minimal fallback component for lazy loading
-const LoadingFallback = () => <div style={{ minHeight: '100vh' }} />;
+  trackWebVitals();
+  trackCustomMetrics();
+}, 100);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Suspense fallback={<LoadingFallback />}>
-      <MetaTagsProvider>
-        <Suspense fallback={<LoadingFallback />}>
-          <PHProvider>
-            <App />
-          </PHProvider>
-        </Suspense>
-      </MetaTagsProvider>
-    </Suspense>
+    <MetaTagsProvider>
+      <PHProvider>
+        <App />
+      </PHProvider>
+    </MetaTagsProvider>
   </StrictMode>
 );

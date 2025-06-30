@@ -13,17 +13,15 @@
 ## ✅ Chunk Splitting Improvements
 
 ### Critical Path (Preloaded):
-- `react-core`: 176 KiB (gzipped: 53.5 KiB) - Essential React runtime
-- `react-router`: 24.9 KiB (gzipped: 8.8 KiB) - Routing essentials
+- `react-core`: 142 KiB (gzipped: 45.7 KiB) - Essential React runtime
+- `react-ecosystem`: 43 KiB (gzipped: 15.1 KiB) - Routing and utilities
 
 ### Deferred Loading:
-- `ui-base`: 102 KiB → Lazy loaded when needed
-- `ui-overlay`: 9.7 KiB → Loaded on demand (dialogs, dropdowns)
-- `ui-interactive`: 22.2 KiB → Loaded on demand (selects, popovers)
-- `data`: 110 KiB → Lazy loaded
-- `analytics`: 269 KiB → Completely deferred
-- `charts`: 484 KiB → Lazy loaded on chart pages
-- `vendor`: 731 KiB → Split and optimized
+- `ui-radix`: 114 KiB (gzipped: 35.6 KiB) → Loaded when UI components needed
+- `data`: 109 KiB (gzipped: 30.1 KiB) → Supabase and state management
+- `analytics`: 412 KiB (gzipped: 137.5 KiB) → Completely deferred (PostHog Provider, Sentry)
+- `charts`: 629 KiB (gzipped: 184.2 KiB) → Lazy loaded on chart pages
+- `icons`: 31 KiB (gzipped: 6.4 KiB) → Lucide icons lazy loaded
 
 ## 🚀 Performance Improvements
 
@@ -34,21 +32,22 @@
 
 ### 2. **Improved Loading Strategy**
 - Only preload critical React core and routing
-- Lazy load providers (PostHog, MetaTags) with Suspense
-- Defer web vitals tracking by 1 second
+- Analytics providers (PostHog Provider, Sentry) deferred until after page load
+- Web vitals tracking deferred by 100ms to not block initial render
 - Use `requestIdleCallback` for Sentry initialization
 
 ### 3. **Better Resource Prioritization**
-- Critical path: React + Router (~62 KiB gzipped)
-- Everything else lazy loaded or deferred
-- Analytics completely non-blocking
+- Critical path: React + Ecosystem (~60.8 KiB gzipped)
+- Heavy analytics (137.5 KiB) completely deferred (PostHog Provider, Sentry)
+- Charts (184.2 KiB) only loaded when needed
+- UI components (35.6 KiB) loaded on demand
 
 ## 📊 Expected Lighthouse Improvements
 
 ### LCP (Largest Contentful Paint):
 - **Before**: Blocked by 165+ KiB of JS
-- **After**: Only ~62 KiB blocking critical path
-- **Expected improvement**: 20-30 point gain
+- **After**: Only ~60.8 KiB blocking critical path
+- **Expected improvement**: 15-25 point gain
 
 ### CLS (Cumulative Layout Shift):
 - Better with CSS code splitting enabled
