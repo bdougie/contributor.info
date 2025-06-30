@@ -114,7 +114,7 @@ function generateFastSVG(title, subtitle, stats, type = 'home') {
       </g>
       
       <!-- Bottom stats -->
-      <g transform="translate(48, 520)">
+      <g transform="translate(48, 480)">
         <!-- Weekly PR Volume -->
         <g>
           <text x="0" y="0" font-size="48" font-weight="bold" fill="#ffffff" font-family="Arial, sans-serif">${stats?.weeklyPRVolume || 0}</text>
@@ -126,6 +126,16 @@ function generateFastSVG(title, subtitle, stats, type = 'home') {
           <text x="0" y="0" font-size="48" font-weight="bold" fill="#ffffff" font-family="Arial, sans-serif">${stats?.activeContributors || 0}</text>
           <text x="80" y="0" font-size="20" fill="#9ca3af" font-family="Arial, sans-serif">Active Contributors</text>
         </g>
+      </g>
+      
+      <!-- Contributor avatars placeholder -->
+      <g transform="translate(48, 560)">
+        <rect x="0" y="0" width="40" height="40" rx="20" fill="#374151"/>
+        <rect x="30" y="0" width="40" height="40" rx="20" fill="#374151"/>
+        <rect x="60" y="0" width="40" height="40" rx="20" fill="#374151"/>
+        <rect x="90" y="0" width="40" height="40" rx="20" fill="#374151"/>
+        <rect x="120" y="0" width="40" height="40" rx="20" fill="#374151"/>
+        <text x="170" y="25" font-size="14" fill="#ffffff" font-family="Arial, sans-serif">+${(stats?.totalContributors || 10) - 5}</text>
       </g>
     </svg>`;
   }

@@ -35,23 +35,6 @@ export default function RepoSocialCard({ owner, repo, timeRange, stats }: RepoSo
           <span className="text-white text-xl font-semibold">contributor.info</span>
         </div>
 
-        {/* Repository Owner Avatar */}
-        <div className="flex items-center gap-3">
-          <Avatar className="w-10 h-10 border-2 border-white/20">
-            <AvatarImage 
-              src={`https://github.com/${owner}.png?s=40`} 
-              alt={`${owner} avatar`}
-              loading="eager"
-            />
-            <AvatarFallback className="bg-gray-700 text-white text-lg font-semibold">
-              {owner?.[0]?.toUpperCase() || '?'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="text-white">
-            <div className="text-sm text-gray-300">Repository by</div>
-            <div className="text-lg font-semibold">{owner}</div>
-          </div>
-        </div>
       </div>
 
       {/* Main content */}
@@ -66,9 +49,9 @@ export default function RepoSocialCard({ owner, repo, timeRange, stats }: RepoSo
           {timeRange || 'Past 6 months'}
         </p>
 
-        {/* Bottom section with trends and avatars */}
-        <div className="flex items-end justify-between">
-          {/* Left side - Trends */}
+        {/* Bottom section with trends */}
+        <div className="space-y-8">
+          {/* Trends */}
           <div className="flex items-center gap-16">
             <div className="flex items-center gap-3">
               <TrendingUp className="w-8 h-8 text-white" />
@@ -87,7 +70,7 @@ export default function RepoSocialCard({ owner, repo, timeRange, stats }: RepoSo
             </div>
           </div>
 
-          {/* Right side - Contributor avatars */}
+          {/* Contributor avatars */}
           <div className="flex items-center gap-4">
             {stats?.topContributors && stats.topContributors.length > 0 && (
               <div className="flex items-center">
