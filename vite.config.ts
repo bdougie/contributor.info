@@ -40,59 +40,77 @@ export default defineConfig({
       'clsx',
       'tailwind-merge'
     ],
-    exclude: ['lucide-react'], // Keep icons separate for better tree-shaking
+    exclude: [
+      'lucide-react', // Keep icons separate for better tree-shaking
+      '@storybook/test',
+      '@storybook/react',
+      'vitest',
+      '@testing-library/react',
+      '@testing-library/jest-dom'
+    ],
     force: true, // Force re-optimization for performance
   },
   build: {
-    // Disable CSS code splitting to prevent FOUC
-    cssCodeSplit: false,
+    // Enable CSS code splitting for better performance
+    cssCodeSplit: true,
     rollupOptions: {
+      // Only exclude story and test files, not their dependencies
+      external: (id) => {
+        // Only mark actual story/test files as external, not their dependencies
+        return id.endsWith('.stories.ts') || 
+               id.endsWith('.stories.tsx') || 
+               id.endsWith('.test.ts') || 
+               id.endsWith('.test.tsx') ||
+               id.includes('/__tests__/') ||
+               id.includes('/__mocks__/');
+      },
       output: {
         // Ensure proper file extensions for module recognition
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Performance-optimized chunking strategy that maintains reliability
+        // Simplified, more stable chunking strategy
         manualChunks: {
-          // Critical React core - bundle together to prevent initialization issues
-          'react-core': [
-            'react', 
-            'react-dom',
-            '@radix-ui/react-slot' // Essential for UI components
-          ],
-          // React ecosystem - can load after core is initialized
+          // Core React - keep together for stability
+          'react-core': ['react', 'react-dom'],
+          
+          // Router and utilities
           'react-ecosystem': [
             'react-router-dom',
             'class-variance-authority',
             'clsx',
             'tailwind-merge'
           ],
-          // Heavy chart libraries - lazy loaded, separate for better caching
-          'charts-nivo': ['@nivo/scatterplot', '@nivo/core'],
-          'charts-recharts': ['recharts'],
-          // UI component library - used throughout app
+          
+          // UI library - keep reasonably sized chunks
           'ui-radix': [
             '@radix-ui/react-dialog',
             '@radix-ui/react-dropdown-menu',
             '@radix-ui/react-popover',
             '@radix-ui/react-select',
             '@radix-ui/react-tabs',
-            '@radix-ui/react-tooltip'
+            '@radix-ui/react-tooltip',
+            '@radix-ui/react-slot'
           ],
-          // Icons - separate for optimal tree-shaking
+          
+          // Charts - separate for lazy loading
+          'charts': [
+            '@nivo/scatterplot', 
+            '@nivo/core',
+            'recharts'
+          ],
+          
+          // Icons
           'icons': ['lucide-react'],
-          // Utilities - frequently used, good for caching
+          
+          // Utilities
           'utils': ['date-fns', 'zod'],
-          // State management and data
-          'data': [
-            'zustand',
-            '@supabase/supabase-js'
-          ],
-          // Analytics - non-critical, lazy loaded, exclude from main bundle
-          'analytics': [
-            'posthog-js',
-            '@sentry/react'
-          ]
+          
+          // Data and state
+          'data': ['zustand', '@supabase/supabase-js'],
+          
+          // Analytics - defer these
+          'analytics': ['posthog-js', '@sentry/react']
         },
       },
     },
@@ -100,19 +118,24 @@ export default defineConfig({
     cssMinify: 'esbuild',
     // Disable sourcemaps for production to reduce bundle size
     sourcemap: false,
-    // Optimize minification and target
+    // Optimize minification and target for better compression
     minify: 'esbuild',
-    target: 'es2020', // Modern target for better optimization while maintaining compatibility
+    target: 'es2020', // Modern target with good compatibility
     // Optimize chunk size warnings  
     chunkSizeWarningLimit: 600, // Slightly more lenient given postmortem learnings
     // Enable compression reporting
     reportCompressedSize: true,
-    // Module preload optimization for better loading performance
+    // Module preload optimization
     modulePreload: {
       polyfill: true,
       resolveDependencies: (_, deps) => {
-        // Don't preload analytics chunks to avoid blocking critical path
-        return deps.filter(dep => !dep.includes('analytics') && !dep.includes('posthog') && !dep.includes('sentry'));
+        // Don't preload heavy chunks to improve initial load
+        return deps.filter(dep => 
+          !dep.includes('analytics') && 
+          !dep.includes('charts') && 
+          !dep.includes('test') &&
+          !dep.includes('storybook')
+        );
       }
     },
   },
