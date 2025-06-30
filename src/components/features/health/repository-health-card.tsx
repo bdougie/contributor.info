@@ -78,18 +78,18 @@ export function RepositoryHealthCard() {
 
       if (error) throw error;
       
-      if (data && data.avg_confidence_score !== null) {
-        setConfidenceScore(Number(data.avg_confidence_score));
+      if (data && (data as any).avg_confidence_score !== null) {
+        setConfidenceScore(Number((data as any).avg_confidence_score));
         // Create a basic breakdown for tooltip compatibility
         setConfidenceBreakdown({
-          starForkConfidence: Number(data.avg_confidence_score) * 0.35,
-          engagementConfidence: Number(data.avg_confidence_score) * 0.25,
-          retentionConfidence: Number(data.avg_confidence_score) * 0.25,
-          qualityConfidence: Number(data.avg_confidence_score) * 0.15,
+          starForkConfidence: Number((data as any).avg_confidence_score) * 0.35,
+          engagementConfidence: Number((data as any).avg_confidence_score) * 0.25,
+          retentionConfidence: Number((data as any).avg_confidence_score) * 0.25,
+          qualityConfidence: Number((data as any).avg_confidence_score) * 0.15,
           totalStargazers: 0,
           totalForkers: 0,
-          contributorCount: data.contributor_count || 0,
-          conversionRate: Number(data.avg_confidence_score)
+          contributorCount: (data as any).contributor_count || 0,
+          conversionRate: Number((data as any).avg_confidence_score)
         });
       } else {
         // Fallback to the original algorithm if no data in the new system
