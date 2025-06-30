@@ -79,6 +79,14 @@ export function AdminMenu() {
       badge: 'Core'
     },
     {
+      title: 'Maintainer Management',
+      description: 'Review and override contributor roles. View confidence scores and manually identify maintainers and bots.',
+      icon: Shield,
+      href: '/admin/maintainers',
+      badge: 'New',
+      variant: 'success' as const
+    },
+    {
       title: 'Spam Management',
       description: 'Review flagged PRs, adjust spam detection settings, and manage false positives.',
       icon: AlertTriangle,
@@ -200,6 +208,9 @@ export function AdminMenu() {
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
             <Link to="/admin/users?filter=recent">Recent Users</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/maintainers?filter=manual">Manual Overrides</Link>
           </Button>
           <Button asChild variant="outline" size="sm">
             <Link to="/admin/spam?status=pending">Pending Reviews</Link>
