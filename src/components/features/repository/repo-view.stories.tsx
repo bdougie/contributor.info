@@ -1,20 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "@storybook/test";
+import { vi } from "vitest";
 import RepoView, { ContributionsRoute, LotteryFactorRoute, DistributionRoute } from "./repo-view";
 import { MemoryRouter } from "react-router-dom";
 
 // Mock all the dependencies
-import * as timeRangeStoreModule from "@/lib/time-range-store";
-import * as useCachedRepoDataModule from "@/hooks/use-cached-repo-data";
-import * as useRepoSearchModule from "@/hooks/use-repo-search";
-
-// @ts-ignore - Storybook mocking
-timeRangeStoreModule.useTimeRangeStore = fn(() => ({
+const mockTimeRangeStore = fn(() => ({
   timeRange: "30d"
 }));
 
-// @ts-ignore - Storybook mocking
-useCachedRepoDataModule.useCachedRepoData = fn(() => ({
+const mockCachedRepoData = fn(() => ({
   stats: {
     pullRequests: [
       {
@@ -36,12 +31,24 @@ useCachedRepoDataModule.useCachedRepoData = fn(() => ({
   directCommitsData: null
 }));
 
-// @ts-ignore - Storybook mocking
-useRepoSearchModule.useRepoSearch = fn(() => ({
+const mockRepoSearch = fn(() => ({
   searchInput: "",
   setSearchInput: fn(),
   handleSearch: fn(),
   handleSelectExample: fn()
+}));
+
+// Apply mocks
+vi.mock("@/lib/time-range-store", () => ({
+  useTimeRangeStore: mockTimeRangeStore
+}));
+
+vi.mock("@/hooks/use-cached-repo-data", () => ({
+  useCachedRepoData: mockCachedRepoData
+}));
+
+vi.mock("@/hooks/use-repo-search", () => ({
+  useRepoSearch: mockRepoSearch
 }));
 
 // Mock components for Storybook
@@ -132,11 +139,13 @@ export const SocialMetaTags = ({ title }: { title: string }) => (
 );
 
 // Mock dub functions
-import * as dubModule from "@/lib/dub";
-// @ts-ignore - Storybook mocking
-dubModule.createChartShareUrl = fn().mockResolvedValue("https://oss.fyi/abc123");
-// @ts-ignore - Storybook mocking
-dubModule.getDubConfig = fn().mockReturnValue({ isDev: false });
+const mockCreateChartShareUrl = fn().mockResolvedValue("https://oss.fyi/abc123");
+const mockGetDubConfig = fn().mockReturnValue({ isDev: false });
+
+vi.mock("@/lib/dub", () => ({
+  createChartShareUrl: mockCreateChartShareUrl,
+  getDubConfig: mockGetDubConfig
+}));
 
 export const RepoStatsProvider = ({ children }: any) => (
   <div data-testid="repo-stats-provider">{children}</div>
@@ -181,8 +190,7 @@ export const Default: Story = {
 export const LoadingState: Story = {
   render: () => {
     // Override the mock for loading state
-    // @ts-ignore - Storybook mocking
-    useCachedRepoDataModule.useCachedRepoData = fn(() => ({
+    mockCachedRepoData.mockReturnValue({
       stats: {
         pullRequests: [],
         loading: true,
@@ -190,7 +198,7 @@ export const LoadingState: Story = {
       },
       lotteryFactor: null,
       directCommitsData: null
-    }));
+    });
 
     return <RepoView />;
   },
@@ -206,8 +214,7 @@ export const LoadingState: Story = {
 export const ErrorState: Story = {
   render: () => {
     // Override the mock for error state
-    // @ts-ignore - Storybook mocking
-    useCachedRepoDataModule.useCachedRepoData = fn(() => ({
+    mockCachedRepoData.mockReturnValue({
       stats: {
         pullRequests: [],
         loading: false,
@@ -215,7 +222,7 @@ export const ErrorState: Story = {
       },
       lotteryFactor: null,
       directCommitsData: null
-    }));
+    });
 
     return <RepoView />;
   },
@@ -285,13 +292,12 @@ export const DistributionPage: Story = {
 export const WithSearchQuery: Story = {
   render: () => {
     // Override the mock with search input
-    // @ts-ignore - Storybook mocking
-    useRepoSearchModule.useRepoSearch = fn(() => ({
+    mockRepoSearch.mockReturnValue({
       searchInput: "microsoft/vscode",
       setSearchInput: fn(),
       handleSearch: fn(),
       handleSelectExample: fn()
-    }));
+    });
 
     return <RepoView />;
   },

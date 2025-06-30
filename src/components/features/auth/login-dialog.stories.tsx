@@ -1,24 +1,29 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { fn } from "@storybook/test";
+import { vi } from "vitest";
 import { LoginDialog } from "./login-dialog";
 
-// Mock the GitHub auth hook
+// Create mock functions
 const mockLogin = fn();
 const mockLogout = fn();
+const mockCheckSession = fn();
+const mockSetShowLoginDialog = fn();
+
+// Mock the GitHub auth hook
 const mockUseGitHubAuth = fn(() => ({
   login: mockLogin,
   isLoggedIn: false,
   loading: false,
   logout: mockLogout,
-  checkSession: fn(),
+  checkSession: mockCheckSession,
   showLoginDialog: false,
-  setShowLoginDialog: fn(),
+  setShowLoginDialog: mockSetShowLoginDialog,
 }));
 
-// Override the module using module-level mock
-import * as useGitHubAuthModule from "@/hooks/use-github-auth";
-(useGitHubAuthModule as any).useGitHubAuth = mockUseGitHubAuth;
+vi.mock("@/hooks/use-github-auth", () => ({
+  useGitHubAuth: mockUseGitHubAuth
+}));
 
 const meta = {
   title: "Features/Auth/LoginDialog",

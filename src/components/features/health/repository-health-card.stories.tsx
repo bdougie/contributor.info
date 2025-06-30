@@ -1,22 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "@storybook/test";
-import React from "react";
+import { vi } from "vitest";
 import { RepositoryHealthCard } from "./repository-health-card";
 import { MemoryRouter } from "react-router-dom";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 
-// Mock dependencies
-import * as timeRangeStore from "@/lib/time-range-store";
-import * as autoTrackRepo from "@/hooks/use-auto-track-repository";
-import * as onDemandSync from "@/hooks/use-on-demand-sync";
-import * as supabaseModule from "@/lib/supabase";
-import * as healthMetrics from "@/lib/insights/health-metrics";
-import * as healthOverall from "@/components/insights/sections/repository-health-overall";
-import * as healthFactors from "@/components/insights/sections/repository-health-factors";
-import * as lotteryFactorModule from "./lottery-factor";
-import * as selfSelectionRate from "@/components/features/contributor/self-selection-rate";
-import * as confidenceCard from "./contributor-confidence-card";
-
+// Mock functions
 const mockGetDaysAgo = fn().mockReturnValue(30);
 const mockHandleSync = fn();
 const mockUseOnDemandSync = fn(() => ({
@@ -26,14 +15,11 @@ const mockUseOnDemandSync = fn(() => ({
   handleSync: mockHandleSync,
 }));
 
-// Override modules
-(timeRangeStore as any).useTimeRangeStore = () => ({
+const mockUseTimeRangeStore = fn(() => ({
   getDaysAgo: mockGetDaysAgo,
-});
+}));
 
-(autoTrackRepo as any).useAutoTrackRepository = fn();
-
-(onDemandSync as any).useOnDemandSync = () => mockUseOnDemandSync();
+const mockUseAutoTrackRepository = fn();
 
 const mockSupabase = {
   from: fn().mockReturnValue({
@@ -50,9 +36,7 @@ const mockSupabase = {
   }),
 };
 
-(supabaseModule as any).supabase = mockSupabase;
-
-(healthMetrics as any).calculateHealthMetrics = fn().mockReturnValue({
+const mockCalculateHealthMetrics = fn().mockReturnValue({
   overallHealth: 85,
   healthFactors: {
     documentation: 80,
@@ -62,11 +46,52 @@ const mockSupabase = {
   },
 });
 
-(healthOverall as any).RepositoryHealthOverall = () => React.createElement('div', null, 'Repository Health Overall');
-(healthFactors as any).RepositoryHealthFactors = () => React.createElement('div', null, 'Repository Health Factors');
-(lotteryFactorModule as any).default = () => React.createElement('div', null, 'Lottery Factor');
-(selfSelectionRate as any).SelfSelectionRate = () => React.createElement('div', null, 'Self Selection Rate');
-(confidenceCard as any).ContributorConfidenceCard = () => React.createElement('div', null, 'Contributor Confidence Card');
+const MockRepositoryHealthOverall = () => <div>Repository Health Overall</div>;
+const MockRepositoryHealthFactors = () => <div>Repository Health Factors</div>;
+const MockLotteryFactor = () => <div>Lottery Factor</div>;
+const MockSelfSelectionRate = () => <div>Self Selection Rate</div>;
+const MockContributorConfidenceCard = () => <div>Contributor Confidence Card</div>;
+
+// Apply mocks
+vi.mock("@/lib/time-range-store", () => ({
+  useTimeRangeStore: mockUseTimeRangeStore
+}));
+
+vi.mock("@/hooks/use-auto-track-repository", () => ({
+  useAutoTrackRepository: mockUseAutoTrackRepository
+}));
+
+vi.mock("@/hooks/use-on-demand-sync", () => ({
+  useOnDemandSync: mockUseOnDemandSync
+}));
+
+vi.mock("@/lib/supabase", () => ({
+  supabase: mockSupabase
+}));
+
+vi.mock("@/lib/insights/health-metrics", () => ({
+  calculateHealthMetrics: mockCalculateHealthMetrics
+}));
+
+vi.mock("@/components/insights/sections/repository-health-overall", () => ({
+  RepositoryHealthOverall: MockRepositoryHealthOverall
+}));
+
+vi.mock("@/components/insights/sections/repository-health-factors", () => ({
+  RepositoryHealthFactors: MockRepositoryHealthFactors
+}));
+
+vi.mock("./lottery-factor", () => ({
+  default: MockLotteryFactor
+}));
+
+vi.mock("@/components/features/contributor/self-selection-rate", () => ({
+  SelfSelectionRate: MockSelfSelectionRate
+}));
+
+vi.mock("./contributor-confidence-card", () => ({
+  ContributorConfidenceCard: MockContributorConfidenceCard
+}));
 
 // Mock data
 const mockPullRequests = [

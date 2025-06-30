@@ -1,28 +1,39 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "@storybook/test";
-import React from "react";
+import { vi } from "vitest";
 import { QuadrantChart } from "./quadrant-chart";
 import type { PullRequest, QuadrantData } from "@/lib/types";
 
 // Mock the dependencies
-import * as contributionAnalyzer from "@/lib/contribution-analyzer";
-import * as contributorModule from "../contributor";
-import * as cardsModule from "@/components/common/cards";
-
-// Override modules
-(contributionAnalyzer as any).ContributionAnalyzer = class {
+const MockContributionAnalyzer = class {
   analyze = fn().mockReturnValue({
     quadrants: [],
   });
 };
 
-(contributorModule as any).ContributorHoverCard = ({ trigger }: any) => trigger;
+const MockContributorHoverCard = ({ trigger }: any) => trigger;
 
-(cardsModule as any).Card = ({ children }: any) => React.createElement('div', { className: 'card' }, children);
-(cardsModule as any).CardContent = ({ children }: any) => React.createElement('div', { className: 'card-content' }, children);
-(cardsModule as any).CardHeader = ({ children }: any) => React.createElement('div', { className: 'card-header' }, children);
-(cardsModule as any).CardTitle = ({ children }: any) => React.createElement('h3', { className: 'card-title' }, children);
-(cardsModule as any).CardDescription = ({ children }: any) => React.createElement('p', { className: 'card-description' }, children);
+const MockCard = ({ children }: any) => <div className="card">{children}</div>;
+const MockCardContent = ({ children }: any) => <div className="card-content">{children}</div>;
+const MockCardHeader = ({ children }: any) => <div className="card-header">{children}</div>;
+const MockCardTitle = ({ children }: any) => <h3 className="card-title">{children}</h3>;
+const MockCardDescription = ({ children }: any) => <p className="card-description">{children}</p>;
+
+vi.mock("@/lib/contribution-analyzer", () => ({
+  ContributionAnalyzer: MockContributionAnalyzer
+}));
+
+vi.mock("../contributor", () => ({
+  ContributorHoverCard: MockContributorHoverCard
+}));
+
+vi.mock("@/components/common/cards", () => ({
+  Card: MockCard,
+  CardContent: MockCardContent,
+  CardHeader: MockCardHeader,
+  CardTitle: MockCardTitle,
+  CardDescription: MockCardDescription
+}));
 
 // Mock data
 const mockPullRequests: PullRequest[] = [

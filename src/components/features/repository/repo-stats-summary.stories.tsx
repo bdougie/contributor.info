@@ -1,16 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "@storybook/test";
+import { vi } from "vitest";
 import { RepoStatsSummary } from "./repo-stats-summary";
 
 // Mock the hooks
-import * as useRepoStatsModule from "@/hooks/use-repo-stats";
-import * as useTimeFormatterModule from "@/hooks/use-time-formatter";
-
-// @ts-ignore - Storybook mocking
-useRepoStatsModule.useRepoStats = fn();
-
-// @ts-ignore - Storybook mocking
-useTimeFormatterModule.useTimeFormatter = fn(() => ({
+const mockUseRepoStats = fn();
+const mockUseTimeFormatter = fn(() => ({
   formatRelativeTime: fn((date: string) => {
       const now = new Date();
       const past = new Date(date);
@@ -19,6 +14,14 @@ useTimeFormatterModule.useTimeFormatter = fn(() => ({
       const diffInDays = Math.floor(diffInHours / 24);
       return `${diffInDays} days ago`;
     })
+}));
+
+vi.mock("@/hooks/use-repo-stats", () => ({
+  useRepoStats: mockUseRepoStats
+}));
+
+vi.mock("@/hooks/use-time-formatter", () => ({
+  useTimeFormatter: mockUseTimeFormatter
 }));
 
 // Mock data
@@ -111,9 +114,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   render: () => {
-    const { useRepoStats } = require("@/hooks/use-repo-stats");
-    
-    useRepoStats.mockReturnValue({
+    mockUseRepoStats.mockReturnValue({
       stats: {
         pullRequests: mockPullRequests,
         loading: false,
@@ -153,8 +154,6 @@ export const Default: Story = {
 
 export const HighActivityRepository: Story = {
   render: () => {
-    const { useRepoStats } = require("@/hooks/use-repo-stats");
-    
     const highActivityPRs = Array.from({ length: 50 }, (_, i) => ({
       ...mockPullRequests[0],
       id: i + 1,
@@ -167,7 +166,7 @@ export const HighActivityRepository: Story = {
       }
     }));
 
-    useRepoStats.mockReturnValue({
+    mockUseRepoStats.mockReturnValue({
       stats: {
         pullRequests: highActivityPRs,
         loading: false,
@@ -207,9 +206,7 @@ export const HighActivityRepository: Story = {
 
 export const WithDirectCommitsWarning: Story = {
   render: () => {
-    const { useRepoStats } = require("@/hooks/use-repo-stats");
-    
-    useRepoStats.mockReturnValue({
+    mockUseRepoStats.mockReturnValue({
       stats: {
         pullRequests: mockPullRequests,
         loading: false,
@@ -254,9 +251,7 @@ export const WithDirectCommitsWarning: Story = {
 
 export const LoadingState: Story = {
   render: () => {
-    const { useRepoStats } = require("@/hooks/use-repo-stats");
-    
-    useRepoStats.mockReturnValue({
+    mockUseRepoStats.mockReturnValue({
       stats: {
         pullRequests: [],
         loading: true,
@@ -288,9 +283,7 @@ export const LoadingState: Story = {
 
 export const ErrorState: Story = {
   render: () => {
-    const { useRepoStats } = require("@/hooks/use-repo-stats");
-    
-    useRepoStats.mockReturnValue({
+    mockUseRepoStats.mockReturnValue({
       stats: {
         pullRequests: [],
         loading: false,
@@ -322,9 +315,7 @@ export const ErrorState: Story = {
 
 export const EmptyRepository: Story = {
   render: () => {
-    const { useRepoStats } = require("@/hooks/use-repo-stats");
-    
-    useRepoStats.mockReturnValue({
+    mockUseRepoStats.mockReturnValue({
       stats: {
         pullRequests: [],
         loading: false,
@@ -356,8 +347,6 @@ export const EmptyRepository: Story = {
 
 export const LowMergeRate: Story = {
   render: () => {
-    const { useRepoStats } = require("@/hooks/use-repo-stats");
-    
     const lowMergeRatePRs = [
       { ...mockPullRequests[0], merged_at: "2024-01-10T14:00:00Z" }, // merged
       { ...mockPullRequests[1], state: "closed" as const, merged_at: null }, // closed without merge
@@ -371,7 +360,7 @@ export const LowMergeRate: Story = {
       }, // closed without merge
     ];
 
-    useRepoStats.mockReturnValue({
+    mockUseRepoStats.mockReturnValue({
       stats: {
         pullRequests: lowMergeRatePRs,
         loading: false,
@@ -411,9 +400,7 @@ export const LowMergeRate: Story = {
 
 export const MobileView: Story = {
   render: () => {
-    const { useRepoStats } = require("@/hooks/use-repo-stats");
-    
-    useRepoStats.mockReturnValue({
+    mockUseRepoStats.mockReturnValue({
       stats: {
         pullRequests: mockPullRequests,
         loading: false,

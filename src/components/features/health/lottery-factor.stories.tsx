@@ -1,57 +1,26 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "@storybook/test";
-import React, { useState } from "react";
+import { useState } from "react";
+import { vi } from "vitest";
 import LotteryFactor, { LotteryFactorContent } from "./lottery-factor";
 import { MemoryRouter } from "react-router-dom";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import type { LotteryFactor as LotteryFactorType, ContributorStats } from "@/lib/types";
 
-// Mock dependencies
-import * as timeRangeStore from "@/lib/time-range-store";
-import * as supabaseModule from "@/lib/supabase";
-import * as shareableCard from "@/components/features/sharing/shareable-card";
-import * as contributorModule from "../contributor";
-import * as lotteryIcon from "@/components/icons/LotteryIcon";
-import * as yoloIcon from "@/components/icons/YoloIcon";
-
-// Override modules
-(timeRangeStore as any).useTimeRangeStore = fn(() => ({
+// Set up mocks
+const mockTimeRangeStore = fn(() => ({
   getDaysAgo: fn().mockReturnValue(30),
+  timeRange: "last_30_days",
+  setTimeRange: fn(),
+  getDateRange: fn(() => ({
+    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    to: new Date()
+  }))
 }));
 
-(supabaseModule as any).supabase = {
-  auth: {
-    getUser: fn().mockResolvedValue({
-      data: {
-        user: {
-          email: "test@example.com",
-          user_metadata: {
-            user_name: "test-user",
-            avatar_url: "https://avatars.githubusercontent.com/u/123?v=4",
-          },
-        },
-      },
-      error: null,
-    }),
-  },
-  from: fn().mockReturnValue({
-    select: fn().mockReturnValue({
-      eq: fn().mockReturnValue({
-        gte: fn().mockReturnValue({
-          order: fn().mockResolvedValue({
-            data: [],
-            error: null,
-          }),
-        }),
-      }),
-    }),
-  }),
-};
-
-(shareableCard as any).ShareableCard = ({ children }: any) => React.createElement('div', null, children);
-(contributorModule as any).ContributorHoverCard = ({ trigger }: any) => trigger;
-(lotteryIcon as any).LotteryIcon = () => React.createElement('div', null, 'LotteryIcon');
-(yoloIcon as any).YoloIcon = () => React.createElement('div', null, 'YoloIcon');
+vi.mock("@/lib/time-range-store", () => ({
+  useTimeRangeStore: mockTimeRangeStore
+}));
 
 // Mock data
 const mockContributors: ContributorStats[] = [
