@@ -344,7 +344,9 @@ export function ConfidenceAnalyticsDashboard() {
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <div className="text-sm text-muted-foreground">Self-Selection Rate</div>
-                    <div className="font-medium">{repo.self_selection_rate?.toFixed(1) || 0}%</div>
+                    <div className="font-medium">
+                      {repo.self_selection_rate > 0 ? `${repo.self_selection_rate.toFixed(1)}%` : 'N/A'}
+                    </div>
                   </div>
                   
                   <div className="text-right">

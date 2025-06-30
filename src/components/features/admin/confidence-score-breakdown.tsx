@@ -80,7 +80,8 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
           });
 
         if (err) throw err;
-        setBreakdown(data);
+        // The function returns an array with a single object
+        setBreakdown(data && data.length > 0 ? data[0] : null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch breakdown');
         console.error('Error fetching confidence breakdown:', err);
@@ -93,17 +94,17 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
   }, [owner, repo]);
 
   const getScoreColor = (score: number) => {
-    if (score <= 5) return 'text-red-600';
-    if (score <= 15) return 'text-orange-600';
-    if (score <= 35) return 'text-blue-600';
-    return 'text-green-600';
+    if (score <= 5) return 'text-red-600 dark:text-red-400';
+    if (score <= 15) return 'text-orange-600 dark:text-orange-400';
+    if (score <= 35) return 'text-blue-600 dark:text-blue-400';
+    return 'text-green-600 dark:text-green-400';
   };
 
   const getScoreBg = (score: number) => {
-    if (score <= 5) return 'bg-red-50 border-red-200';
-    if (score <= 15) return 'bg-orange-50 border-orange-200';
-    if (score <= 35) return 'bg-blue-50 border-blue-200';
-    return 'bg-green-50 border-green-200';
+    if (score <= 5) return 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800';
+    if (score <= 15) return 'bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800';
+    if (score <= 35) return 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800';
+    return 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800';
   };
 
   const formatLastActive = (dateString: string) => {
@@ -185,30 +186,30 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
 
         {/* Overall Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className={getScoreBg(breakdown.overall_avg_confidence)}>
+          <Card className={getScoreBg(breakdown.overall_avg_confidence || 0)}>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">{breakdown.overall_avg_confidence.toFixed(1)}%</div>
+              <div className="text-2xl font-bold">{(breakdown.overall_avg_confidence || 0).toFixed(1)}%</div>
               <p className="text-sm text-muted-foreground">Overall Avg</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-red-600">{breakdown.insights.low_confidence_count}</div>
+              <div className="text-2xl font-bold text-red-600">{breakdown.insights?.low_confidence_count || 0}</div>
               <p className="text-sm text-muted-foreground">Low Confidence</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">{breakdown.insights.maintainer_count}</div>
+              <div className="text-2xl font-bold">{breakdown.insights?.maintainer_count || 0}</div>
               <p className="text-sm text-muted-foreground">Maintainers</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">{breakdown.insights.external_contributor_count}</div>
+              <div className="text-2xl font-bold">{breakdown.insights?.external_contributor_count || 0}</div>
               <p className="text-sm text-muted-foreground">External Contributors</p>
             </CardContent>
           </Card>
@@ -230,14 +231,14 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4" />
                     <span className="font-medium">Privileged Events</span>
-                    <Badge variant="secondary">{breakdown.algorithm_weights.privileged_events_weight * 100}%</Badge>
+                    <Badge variant="secondary">{(breakdown.algorithm_weights?.privileged_events_weight || 0) * 100}%</Badge>
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    Avg: {(breakdown.contributor_breakdown.reduce((sum, c) => sum + c.component_scores.privileged_events, 0) / breakdown.contributor_breakdown.length * 100).toFixed(1)}%
+                    Avg: {breakdown.contributor_breakdown?.length ? (breakdown.contributor_breakdown.reduce((sum, c) => sum + (c.component_scores?.privileged_events || 0), 0) / breakdown.contributor_breakdown.length * 100).toFixed(1) : '0.0'}%
                   </span>
                 </div>
                 <Progress 
-                  value={breakdown.contributor_breakdown.reduce((sum, c) => sum + c.component_scores.privileged_events, 0) / breakdown.contributor_breakdown.length * 100}
+                  value={breakdown.contributor_breakdown?.length ? breakdown.contributor_breakdown.reduce((sum, c) => sum + (c.component_scores?.privileged_events || 0), 0) / breakdown.contributor_breakdown.length * 100 : 0}
                   className="h-2"
                 />
               </div>
@@ -248,14 +249,14 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
                   <div className="flex items-center gap-2">
                     <Activity className="h-4 w-4" />
                     <span className="font-medium">Activity Patterns</span>
-                    <Badge variant="secondary">{breakdown.algorithm_weights.activity_patterns_weight * 100}%</Badge>
+                    <Badge variant="secondary">{(breakdown.algorithm_weights?.activity_patterns_weight || 0) * 100}%</Badge>
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    Avg: {(breakdown.contributor_breakdown.reduce((sum, c) => sum + c.component_scores.activity_patterns, 0) / breakdown.contributor_breakdown.length * 100).toFixed(1)}%
+                    Avg: {breakdown.contributor_breakdown?.length ? (breakdown.contributor_breakdown.reduce((sum, c) => sum + (c.component_scores?.activity_patterns || 0), 0) / breakdown.contributor_breakdown.length * 100).toFixed(1) : '0.0'}%
                   </span>
                 </div>
                 <Progress 
-                  value={breakdown.contributor_breakdown.reduce((sum, c) => sum + c.component_scores.activity_patterns, 0) / breakdown.contributor_breakdown.length * 100}
+                  value={breakdown.contributor_breakdown?.length ? breakdown.contributor_breakdown.reduce((sum, c) => sum + (c.component_scores?.activity_patterns || 0), 0) / breakdown.contributor_breakdown.length * 100 : 0}
                   className="h-2"
                 />
               </div>
@@ -266,14 +267,14 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4" />
                     <span className="font-medium">Temporal Consistency</span>
-                    <Badge variant="secondary">{breakdown.algorithm_weights.temporal_consistency_weight * 100}%</Badge>
+                    <Badge variant="secondary">{(breakdown.algorithm_weights?.temporal_consistency_weight || 0) * 100}%</Badge>
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    Avg: {(breakdown.contributor_breakdown.reduce((sum, c) => sum + c.component_scores.temporal_consistency, 0) / breakdown.contributor_breakdown.length * 100).toFixed(1)}%
+                    Avg: {breakdown.contributor_breakdown?.length ? (breakdown.contributor_breakdown.reduce((sum, c) => sum + (c.component_scores?.temporal_consistency || 0), 0) / breakdown.contributor_breakdown.length * 100).toFixed(1) : '0.0'}%
                   </span>
                 </div>
                 <Progress 
-                  value={breakdown.contributor_breakdown.reduce((sum, c) => sum + c.component_scores.temporal_consistency, 0) / breakdown.contributor_breakdown.length * 100}
+                  value={breakdown.contributor_breakdown?.length ? breakdown.contributor_breakdown.reduce((sum, c) => sum + (c.component_scores?.temporal_consistency || 0), 0) / breakdown.contributor_breakdown.length * 100 : 0}
                   className="h-2"
                 />
               </div>
@@ -282,7 +283,7 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
         </Card>
 
         {/* Common Issues */}
-        {breakdown.insights.common_issues.length > 0 && (
+        {breakdown.insights?.common_issues?.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-orange-600">
@@ -292,7 +293,7 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
-                {breakdown.insights.common_issues.map((issue, index) => (
+                {breakdown.insights?.common_issues?.map((issue, index) => (
                   <li key={index} className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2" />
                     <span className="text-sm">{issue}</span>
@@ -312,18 +313,18 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
                 Individual Contributor Analysis
               </CardTitle>
               <div className="text-sm text-muted-foreground">
-                {breakdown.contributor_breakdown.length} contributors
+                {breakdown.contributor_breakdown?.length || 0} contributors
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {breakdown.contributor_breakdown
-                .sort((a, b) => b.confidence_score - a.confidence_score)
+              {breakdown.contributor_breakdown?.length > 0 ? breakdown.contributor_breakdown
+                .sort((a, b) => (b.confidence_score || 0) - (a.confidence_score || 0))
                 .map((contributor) => (
                 <div 
                   key={contributor.user_id}
-                  className={`p-4 border rounded-lg ${getScoreBg(contributor.confidence_score * 100)} cursor-pointer hover:shadow-sm transition-shadow`}
+                  className={`p-4 border rounded-lg ${getScoreBg((contributor.confidence_score || 0) * 100)} cursor-pointer hover:shadow-sm transition-shadow`}
                   onClick={() => setSelectedContributor(
                     selectedContributor === contributor.user_id ? null : contributor.user_id
                   )}
@@ -336,19 +337,19 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
                           <Badge variant="outline" className="text-xs">
                             {contributor.role}
                           </Badge>
-                          <span>{contributor.total_events} events</span>
-                          <span>{formatLastActive(contributor.last_active)}</span>
+                          <span>{contributor.total_events || 0} events</span>
+                          <span>{contributor.last_active ? formatLastActive(contributor.last_active) : 'Unknown'}</span>
                         </div>
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <div className={`text-lg font-bold ${getScoreColor(contributor.confidence_score * 100)}`}>
-                          {(contributor.confidence_score * 100).toFixed(1)}%
+                        <div className={`text-lg font-bold ${getScoreColor((contributor.confidence_score || 0) * 100)}`}>
+                          {((contributor.confidence_score || 0) * 100).toFixed(1)}%
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {contributor.privileged_events} privileged
+                          {contributor.privileged_events || 0} privileged
                         </div>
                       </div>
                     </div>
@@ -360,37 +361,37 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
                           <div className="font-medium">Privileged Events</div>
-                          <div className="text-lg">{(contributor.component_scores.privileged_events * 100).toFixed(1)}%</div>
-                          <Progress value={contributor.component_scores.privileged_events * 100} className="h-1 mt-1" />
+                          <div className="text-lg">{((contributor.component_scores?.privileged_events || 0) * 100).toFixed(1)}%</div>
+                          <Progress value={(contributor.component_scores?.privileged_events || 0) * 100} className="h-1 mt-1" />
                         </div>
                         <div>
                           <div className="font-medium">Activity Patterns</div>
-                          <div className="text-lg">{(contributor.component_scores.activity_patterns * 100).toFixed(1)}%</div>
-                          <Progress value={contributor.component_scores.activity_patterns * 100} className="h-1 mt-1" />
+                          <div className="text-lg">{((contributor.component_scores?.activity_patterns || 0) * 100).toFixed(1)}%</div>
+                          <Progress value={(contributor.component_scores?.activity_patterns || 0) * 100} className="h-1 mt-1" />
                         </div>
                         <div>
                           <div className="font-medium">Temporal Consistency</div>
-                          <div className="text-lg">{(contributor.component_scores.temporal_consistency * 100).toFixed(1)}%</div>
-                          <Progress value={contributor.component_scores.temporal_consistency * 100} className="h-1 mt-1" />
+                          <div className="text-lg">{((contributor.component_scores?.temporal_consistency || 0) * 100).toFixed(1)}%</div>
+                          <Progress value={(contributor.component_scores?.temporal_consistency || 0) * 100} className="h-1 mt-1" />
                         </div>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <div className="font-medium">Event Diversity</div>
-                          <div>{contributor.event_diversity} types</div>
+                          <div>{contributor.event_diversity || 0} types</div>
                         </div>
                         <div>
                           <div className="font-medium">Consistency Score</div>
-                          <div>{(contributor.consistency_score * 100).toFixed(1)}%</div>
+                          <div>{((contributor.consistency_score || 0) * 100).toFixed(1)}%</div>
                         </div>
                       </div>
 
-                      {contributor.detection_methods.length > 0 && (
+                      {contributor.detection_methods?.length > 0 && (
                         <div>
                           <div className="font-medium text-sm mb-2">Detection Methods</div>
                           <div className="flex flex-wrap gap-1">
-                            {contributor.detection_methods.map((method, index) => (
+                            {contributor.detection_methods?.map((method, index) => (
                               <Badge key={index} variant="outline" className="text-xs">
                                 {method}
                               </Badge>
@@ -401,7 +402,11 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
                     </div>
                   )}
                 </div>
-              ))}
+              )) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No contributor data available for this repository
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
