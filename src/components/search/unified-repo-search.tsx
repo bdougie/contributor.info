@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { SearchIcon, GitBranch, Star, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -188,29 +187,26 @@ export function UnifiedRepoSearch({
 
   return (
     <div className={cn("relative w-full", className)}>
-      <Popover open={isOpen && (hasResults || isLoading)} onOpenChange={setIsOpen}>
-        <form onSubmit={handleSubmit} className="flex gap-4">
-          <div className="relative flex-1">
-            <Input
-              ref={inputRef}
-              placeholder={placeholder}
-              value={inputValue}
-              onChange={(e) => handleInputChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onFocus={() => {
-                if (query.length >= 2 && hasResults) {
-                  setIsOpen(true);
-                }
-              }}
-              className="flex-1"
-              autoComplete="off"
-            />
-            
-            <PopoverContent 
-              className="w-[var(--radix-popover-trigger-width)] p-0" 
-              align="start"
-              onOpenAutoFocus={(e) => e.preventDefault()}
-            >
+      <form onSubmit={handleSubmit} className="flex gap-4">
+        <div className="relative flex-1">
+          <Input
+            ref={inputRef}
+            placeholder={placeholder}
+            value={inputValue}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => {
+              if (query.length >= 2 && hasResults) {
+                setIsOpen(true);
+              }
+            }}
+            className="flex-1"
+            autoComplete="off"
+          />
+          
+          {/* Dropdown with absolute positioning */}
+          {isOpen && (hasResults || isLoading || error || (query.length >= 2 && !isLoading && !hasResults)) && (
+            <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md border bg-popover p-0 text-popover-foreground shadow-md outline-none">
               <Command className="rounded-lg border-none shadow-none">
                 <CommandList>
                   {isLoading && (
@@ -288,15 +284,15 @@ export function UnifiedRepoSearch({
                   )}
                 </CommandList>
               </Command>
-            </PopoverContent>
-          </div>
-          
-          <Button type="submit" aria-label={buttonText}>
-            <SearchIcon className="mr-2 h-4 w-4" />
-            {buttonText}
-          </Button>
-        </form>
-      </Popover>
+            </div>
+          )}
+        </div>
+        
+        <Button type="submit" aria-label={buttonText}>
+          <SearchIcon className="mr-2 h-4 w-4" />
+          {buttonText}
+        </Button>
+      </form>
     </div>
   );
 }
