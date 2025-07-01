@@ -159,15 +159,17 @@ describe("Login behavior for repository search", () => {
 
     // With the new GitHubSearchInput, this will call handleRepositoryNavigation
     // which should navigate to the typed repository
-    expect(mockHandleRepositoryNavigation).toHaveBeenCalledWith("facebook/react");
+    expect(mockHandleRepositoryNavigation).toHaveBeenCalledWith(
+      "facebook/react"
+    );
   });
 
   it("requires login for search when unauthenticated on repo view", async () => {
     // Mock handleRepositoryNavigation to simulate login requirement on repo view
     const mockHandleRepositoryNavigation = vi.fn((repository: string) => {
       // On repo view when not logged in, navigate to login page
-      localStorage.setItem('redirectAfterLogin', `/${repository}`);
-      mockNavigate('/login');
+      localStorage.setItem("redirectAfterLogin", `/${repository}`);
+      mockNavigate("/login");
     });
 
     vi.mocked(useRepoSearch).mockReturnValue({
@@ -207,8 +209,8 @@ describe("Login behavior for repository search", () => {
     await user.click(searchButton);
 
     // Check that user is redirected to login page (repo view behavior when not logged in)
-    expect(mockNavigate).toHaveBeenCalledWith('/login');
-    expect(localStorage.getItem('redirectAfterLogin')).toBe('/facebook/react');
+    expect(mockNavigate).toHaveBeenCalledWith("/login");
+    expect(localStorage.getItem("redirectAfterLogin")).toBe("/facebook/react");
   });
 
   it("clicking an example repo only fills the search input without navigating", async () => {

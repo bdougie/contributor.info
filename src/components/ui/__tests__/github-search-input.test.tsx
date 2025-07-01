@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import { GitHubSearchInput } from "../github-search-input";
+import { useGitHubSearch } from "@/hooks/use-github-search";
 
 // Mock the custom hook
 vi.mock("@/hooks/use-github-search", () => ({
@@ -20,7 +21,6 @@ vi.mock("@/lib/github", () => ({
 
 describe("GitHubSearchInput", () => {
   const mockOnSearch = vi.fn();
-  const mockOnSelect = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -28,8 +28,10 @@ describe("GitHubSearchInput", () => {
 
   it("renders with default placeholder", () => {
     render(<GitHubSearchInput onSearch={mockOnSearch} />);
-    
-    expect(screen.getByPlaceholderText("Search repositories (e.g., facebook/react)")).toBeInTheDocument();
+
+    expect(
+      screen.getByPlaceholderText("Search repositories (e.g., facebook/react)")
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Search" })).toBeInTheDocument();
   });
 
@@ -41,16 +43,18 @@ describe("GitHubSearchInput", () => {
         buttonText="Analyze"
       />
     );
-    
-    expect(screen.getByPlaceholderText("Custom placeholder")).toBeInTheDocument();
+
+    expect(
+      screen.getByPlaceholderText("Custom placeholder")
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Analyze" })).toBeInTheDocument();
   });
 
   it("calls onSearch when form is submitted", async () => {
     const user = userEvent.setup();
-    
+
     render(<GitHubSearchInput onSearch={mockOnSearch} />);
-    
+
     const input = screen.getByRole("textbox");
     const submitButton = screen.getByRole("button", { name: "Search" });
 
@@ -62,9 +66,9 @@ describe("GitHubSearchInput", () => {
 
   it("calls onSearch when enter is pressed", async () => {
     const user = userEvent.setup();
-    
+
     render(<GitHubSearchInput onSearch={mockOnSearch} />);
-    
+
     const input = screen.getByRole("textbox");
 
     await user.type(input, "kubernetes/kubernetes");
@@ -75,23 +79,98 @@ describe("GitHubSearchInput", () => {
 
   it("can be rendered without button", () => {
     render(<GitHubSearchInput onSearch={mockOnSearch} showButton={false} />);
-    
+
     expect(screen.getByRole("textbox")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("accepts initial value", () => {
     render(<GitHubSearchInput onSearch={mockOnSearch} value="initial/repo" />);
-    
+
     const input = screen.getByRole("textbox") as HTMLInputElement;
     expect(input.value).toBe("initial/repo");
   });
 
+  it("clears input after form submission", async () => {
+    const user = userEvent.setup();
+
+    render(<GitHubSearchInput onSearch={mockOnSearch} />);
+
+    const input = screen.getByRole("textbox");
+    const submitButton = screen.getByRole("button", { name: "Search" });
+
+    // Type in a repository name
+    await user.type(input, "facebook/react");
+    expect(input).toHaveValue("facebook/react");
+
+    // Submit the form
+    await user.click(submitButton);
+
+    // Verify the search was called with the typed value
+    expect(mockOnSearch).toHaveBeenCalledWith("facebook/react");
+
+    // Verify the input is cleared after submission
+    expect(input).toHaveValue("");
+  });
+
+  it("clears input when selecting a repository from search results", async () => {
+    const user = userEvent.setup();
+    const mockOnSelect = vi.fn();
+
+    // Mock the GitHub search hook to return some results
+    vi.mocked(useGitHubSearch).mockReturnValue({
+      query: "facebook",
+      setQuery: vi.fn(),
+      results: [
+        {
+          id: 1,
+          name: "react",
+          full_name: "facebook/react",
+          owner: {
+            login: "facebook",
+            avatar_url: "https://github.com/facebook.png",
+          },
+          description:
+            "A declarative, efficient, and flexible JavaScript library for building user interfaces.",
+          stargazers_count: 1000,
+          forks_count: 500,
+          private: false,
+        },
+      ],
+      loading: false,
+      error: null,
+      clearResults: vi.fn(),
+    });
+
+    render(
+      <GitHubSearchInput onSearch={mockOnSearch} onSelect={mockOnSelect} />
+    );
+
+    const input = screen.getByRole("textbox");
+
+    // Type to trigger search results
+    await user.type(input, "facebook");
+
+    // Find and click on the search result
+    const resultButton = await screen.findByText("facebook/react");
+    await user.click(resultButton);
+
+    // Verify the selection was called
+    expect(mockOnSelect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        full_name: "facebook/react",
+      })
+    );
+
+    // Verify the input is cleared after selection
+    expect(input).toHaveValue("");
+  });
+
   it("prevents form submission when input is empty", async () => {
     const user = userEvent.setup();
-    
+
     render(<GitHubSearchInput onSearch={mockOnSearch} />);
-    
+
     const submitButton = screen.getByRole("button", { name: "Search" });
     await user.click(submitButton);
 

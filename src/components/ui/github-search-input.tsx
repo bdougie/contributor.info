@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { SearchIcon, Star, GitFork } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useGitHubSearch } from '@/hooks/use-github-search';
-import type { GitHubRepository } from '@/lib/github';
+import { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { SearchIcon, Star, GitFork } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useGitHubSearch } from "@/hooks/use-github-search";
+import type { GitHubRepository } from "@/lib/github";
 
 interface GitHubSearchInputProps {
   placeholder?: string;
@@ -30,7 +30,7 @@ export function GitHubSearchInput({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
+
   const { setQuery, results, loading } = useGitHubSearch({
     debounceMs: 300,
     minQueryLength: 2,
@@ -56,22 +56,23 @@ export function GitHubSearchInput({
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (selectedIndex >= 0 && results[selectedIndex]) {
       const selected = results[selectedIndex];
       handleSelectRepository(selected);
     } else {
       onSearch(inputValue);
+      setInputValue(""); // Clear the input after search
       setShowDropdown(false);
     }
   };
 
   // Handle repository selection
   const handleSelectRepository = (repository: GitHubRepository) => {
-    setInputValue(repository.full_name);
+    setInputValue(""); // Clear the input when selecting a repository
     setShowDropdown(false);
     setSelectedIndex(-1);
-    
+
     if (onSelect) {
       onSelect(repository);
     } else {
@@ -84,19 +85,19 @@ export function GitHubSearchInput({
     if (!showDropdown || results.length === 0) return;
 
     switch (e.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         e.preventDefault();
-        setSelectedIndex(prev => 
+        setSelectedIndex((prev) =>
           prev < results.length - 1 ? prev + 1 : prev
         );
         break;
-      
-      case 'ArrowUp':
+
+      case "ArrowUp":
         e.preventDefault();
-        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
         break;
-      
-      case 'Enter':
+
+      case "Enter":
         e.preventDefault();
         if (selectedIndex >= 0 && results[selectedIndex]) {
           handleSelectRepository(results[selectedIndex]);
@@ -104,8 +105,8 @@ export function GitHubSearchInput({
           handleSubmit(e);
         }
         break;
-      
-      case 'Escape':
+
+      case "Escape":
         setShowDropdown(false);
         setSelectedIndex(-1);
         inputRef.current?.blur();
@@ -126,8 +127,8 @@ export function GitHubSearchInput({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
@@ -143,7 +144,7 @@ export function GitHubSearchInput({
             className="w-full"
             autoComplete="off"
           />
-          
+
           {/* Dropdown with search results */}
           {showDropdown && (
             <div
@@ -155,47 +156,50 @@ export function GitHubSearchInput({
                   Searching repositories...
                 </div>
               )}
-              
-              {!loading && results.map((repo, index) => (
-                <button
-                  key={repo.id}
-                  type="button"
-                  onClick={() => handleSelectRepository(repo)}
-                  className={cn(
-                    "w-full px-4 py-3 text-left hover:bg-accent focus:bg-accent focus:outline-none transition-colors",
-                    selectedIndex === index && "bg-accent"
-                  )}
-                >
-                  <div className="flex items-center space-x-3">
-                    <img
-                      src={repo.owner.avatar_url}
-                      alt={repo.owner.login}
-                      className="w-6 h-6 rounded-full"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">
-                        {repo.full_name}
-                      </div>
-                      {repo.description && (
-                        <div className="text-xs text-muted-foreground truncate mt-1">
-                          {repo.description}
+
+              {!loading &&
+                results.map((repo, index) => (
+                  <button
+                    key={repo.id}
+                    type="button"
+                    onClick={() => handleSelectRepository(repo)}
+                    className={cn(
+                      "w-full px-4 py-3 text-left hover:bg-accent focus:bg-accent focus:outline-none transition-colors",
+                      selectedIndex === index && "bg-accent"
+                    )}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <img
+                        src={repo.owner.avatar_url}
+                        alt={repo.owner.login}
+                        className="w-6 h-6 rounded-full"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">
+                          {repo.full_name}
                         </div>
-                      )}
-                      <div className="flex items-center space-x-4 mt-1 text-xs text-muted-foreground">
-                        <span className="flex items-center space-x-1">
-                          <Star className="w-3 h-3" />
-                          <span>{repo.stargazers_count.toLocaleString()}</span>
-                        </span>
-                        <span className="flex items-center space-x-1">
-                          <GitFork className="w-3 h-3" />
-                          <span>{repo.forks_count.toLocaleString()}</span>
-                        </span>
+                        {repo.description && (
+                          <div className="text-xs text-muted-foreground truncate mt-1">
+                            {repo.description}
+                          </div>
+                        )}
+                        <div className="flex items-center space-x-4 mt-1 text-xs text-muted-foreground">
+                          <span className="flex items-center space-x-1">
+                            <Star className="w-3 h-3" />
+                            <span>
+                              {repo.stargazers_count.toLocaleString()}
+                            </span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <GitFork className="w-3 h-3" />
+                            <span>{repo.forks_count.toLocaleString()}</span>
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </button>
-              ))}
-              
+                  </button>
+                ))}
+
               {!loading && results.length === 0 && inputValue.length > 1 && (
                 <div className="px-4 py-3 text-sm text-muted-foreground">
                   No repositories found
@@ -204,7 +208,7 @@ export function GitHubSearchInput({
             </div>
           )}
         </div>
-        
+
         {showButton && (
           <Button type="submit" aria-label={buttonText}>
             <SearchIcon className="mr-2 h-4 w-4" />
