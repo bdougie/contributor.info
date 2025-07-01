@@ -204,6 +204,23 @@ export interface ContributorRanking {
   phase: 'winner_announcement' | 'running_leaderboard';
 }
 
+// GitHub Repository Search type
+export interface GitHubRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
+  description: string;
+  html_url: string;
+  stargazers_count: number;
+  forks_count: number;
+  language: string | null;
+  updated_at: string;
+}
+
 // Activity weight constants for contributor scoring
 export const ACTIVITY_WEIGHTS = {
   PULL_REQUESTS: 1,

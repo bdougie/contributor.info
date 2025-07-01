@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { PullRequest } from './types';
+import type { PullRequest, GitHubRepository } from './types';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
@@ -377,6 +377,77 @@ export async function fetchRepositoryCommitActivity(owner: string, repo: string,
   } catch (error) {
     console.error('Error fetching commit activity:', error);
     return { totalCommits: 0, commitFrequency: 0, uniqueCommitters: 0, recentCommits: [] };
+  }
+}
+
+/**
+ * Search for GitHub repositories based on a query string
+ * @param query The search query
+ * @param limit Maximum number of results to return (default: 10)
+ * @returns Array of repository information
+ */
+export async function searchRepositories(query: string, limit: number = 10): Promise<GitHubRepository[]> {
+  const headers: HeadersInit = {
+    'Accept': 'application/vnd.github.v3+json',
+  };
+
+  // Try to get user's GitHub token from Supabase session
+  const { data: { session } } = await supabase.auth.getSession();
+  const userToken = session?.provider_token;
+
+  // Use user's token if available, otherwise fall back to env token
+  const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  if (token) {
+    headers.Authorization = `token ${token}`;
+  }
+
+  try {
+    // Encode the query for URL
+    const encodedQuery = encodeURIComponent(query);
+    
+    // Make the API request
+    const response = await fetch(
+      `${GITHUB_API_BASE}/search/repositories?q=${encodedQuery}&sort=stars&order=desc&per_page=${limit}`,
+      { headers }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      if (response.status === 403 && error.message?.includes('rate limit')) {
+        if (!token) {
+          throw new Error('GitHub API rate limit exceeded. Please log in with GitHub to increase the rate limit.');
+        } else {
+          throw new Error('GitHub API rate limit exceeded. Please try again later.');
+        }
+      } else if (response.status === 401) {
+        throw new Error('Invalid GitHub token. Please check your token and try again.');
+      }
+      throw new Error(`GitHub API error: ${error.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    // Map the response to our GitHubRepository type
+    return data.items.map((repo: any) => ({
+      id: repo.id,
+      name: repo.name,
+      full_name: repo.full_name,
+      owner: {
+        login: repo.owner.login,
+        avatar_url: repo.owner.avatar_url,
+      },
+      description: repo.description || '',
+      html_url: repo.html_url,
+      stargazers_count: repo.stargazers_count,
+      forks_count: repo.forks_count,
+      language: repo.language,
+      updated_at: repo.updated_at,
+    }));
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('An unexpected error occurred while searching repositories.');
   }
 }
 

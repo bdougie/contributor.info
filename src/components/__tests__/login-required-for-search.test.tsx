@@ -21,7 +21,7 @@ vi.mock("@/lib/supabase", () => ({
 
 // Import the hooks after mocking Supabase
 import { useGitHubAuth } from "@/hooks/use-github-auth";
-import { useRepoSearch } from "@/hooks/use-repo-search";
+import { useRepositorySearch } from "@/hooks/use-repository-search";
 
 // Mock problematic components to avoid ESM/CJS issues
 vi.mock("../contributions", () => ({
@@ -62,8 +62,8 @@ const mockNavigate = vi.fn();
 const mockSetSearchInput = vi.fn();
 const mockSetShowLoginDialog = vi.fn();
 
-vi.mock("@/hooks/use-repo-search", () => ({
-  useRepoSearch: vi.fn(),
+vi.mock("@/hooks/use-repository-search", () => ({
+  useRepositorySearch: vi.fn(),
 }));
 
 vi.mock("react-router-dom", async () => {
@@ -82,6 +82,16 @@ vi.mock("@/lib/time-range-store", () => ({
   useTimeRangeStore: vi.fn(() => ({ timeRange: "30d" })),
 }));
 
+// Mock the Command component to avoid test issues
+vi.mock("@/components/ui/command", () => {
+  const actual = vi.importActual("@/components/ui/command");
+  return {
+    ...actual,
+    Command: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    CommandInput: ({ placeholder }: { placeholder: string }) => <div data-testid="command-input" />,
+  };
+});
+
 describe("Login behavior for repository search", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -99,13 +109,17 @@ describe("Login behavior for repository search", () => {
     });
 
     // Default mock implementation
-    vi.mocked(useRepoSearch).mockReturnValue({
+    vi.mocked(useRepositorySearch).mockReturnValue({
       searchInput: "test/repo",
       setSearchInput: mockSetSearchInput,
+      searchResults: [],
+      isLoading: false,
+      error: null,
       handleSearch: vi.fn((e) => {
         e.preventDefault();
         mockNavigate("/test/repo");
       }),
+      handleSelectRepository: vi.fn(),
       handleSelectExample: vi.fn((repo) => {
         // Only update the search input, don't navigate
         mockSetSearchInput(repo);
@@ -129,9 +143,11 @@ describe("Login behavior for repository search", () => {
     mockNavigate.mockReset();
 
     // Find the search form and submit button
-    const searchInput = screen.getByPlaceholderText(
+    const searchInputs = screen.getAllByPlaceholderText(
       /Search another repository/i
     );
+    // Get the visible input (the second one, not the Command one)
+    const searchInput = searchInputs.length > 1 ? searchInputs[1] : searchInputs[0];
     const searchButton = screen.getByRole("button", { name: /search/i });
 
     // Enter a repo name and click search
@@ -145,14 +161,18 @@ describe("Login behavior for repository search", () => {
 
   it("requires login for the second search when unauthenticated", async () => {
     // Mock hasSearchedOnce to true to simulate a second search attempt
-    vi.mocked(useRepoSearch).mockReturnValue({
+    vi.mocked(useRepositorySearch).mockReturnValue({
       searchInput: "facebook/react",
       setSearchInput: mockSetSearchInput,
+      searchResults: [],
+      isLoading: false,
+      error: null,
       handleSearch: vi.fn((e) => {
         e.preventDefault();
         // Instead of navigating, it should show login dialog
         mockSetShowLoginDialog(true);
       }),
+      handleSelectRepository: vi.fn(),
       handleSelectExample: vi.fn((repo) => {
         // Only update the search input, don't navigate
         mockSetSearchInput(repo);
@@ -170,9 +190,11 @@ describe("Login behavior for repository search", () => {
     );
 
     // Find the search form and submit button
-    const searchInput = screen.getByPlaceholderText(
+    const searchInputs = screen.getAllByPlaceholderText(
       /Search another repository/i
     );
+    // Get the visible input (the second one, not the Command one)
+    const searchInput = searchInputs.length > 1 ? searchInputs[1] : searchInputs[0];
     const searchButton = screen.getByRole("button", { name: /search/i });
 
     // Enter a repo name and click search
@@ -191,13 +213,17 @@ describe("Login behavior for repository search", () => {
       mockSetSearchInput(repo);
     });
 
-    vi.mocked(useRepoSearch).mockReturnValue({
+    vi.mocked(useRepositorySearch).mockReturnValue({
       searchInput: "",
       setSearchInput: mockSetSearchInput,
+      searchResults: [],
+      isLoading: false,
+      error: null,
       handleSearch: vi.fn((e) => {
         e.preventDefault();
         mockNavigate("/test/repo");
       }),
+      handleSelectRepository: vi.fn(),
       handleSelectExample,
     });
 
