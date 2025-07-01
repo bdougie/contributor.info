@@ -1,0 +1,217 @@
+import { useState, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { SearchIcon, Star, GitFork } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useGitHubSearch } from '@/hooks/use-github-search';
+import type { GitHubRepository } from '@/lib/github';
+
+interface GitHubSearchInputProps {
+  placeholder?: string;
+  value?: string;
+  onSearch: (repository: string) => void;
+  onSelect?: (repository: GitHubRepository) => void;
+  className?: string;
+  showButton?: boolean;
+  buttonText?: string;
+}
+
+export function GitHubSearchInput({
+  placeholder = "Search repositories (e.g., facebook/react)",
+  value = "",
+  onSearch,
+  onSelect,
+  className,
+  showButton = true,
+  buttonText = "Search",
+}: GitHubSearchInputProps) {
+  const [inputValue, setInputValue] = useState(value);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  const { setQuery, results, loading } = useGitHubSearch({
+    debounceMs: 300,
+    minQueryLength: 2,
+    maxResults: 8,
+  });
+
+  // Update search query when input changes
+  useEffect(() => {
+    setQuery(inputValue);
+  }, [inputValue, setQuery]);
+
+  // Show dropdown when we have results
+  useEffect(() => {
+    setShowDropdown(results.length > 0 && inputValue.length > 1);
+    setSelectedIndex(-1);
+  }, [results, inputValue]);
+
+  // Handle input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+  };
+
+  // Handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (selectedIndex >= 0 && results[selectedIndex]) {
+      const selected = results[selectedIndex];
+      handleSelectRepository(selected);
+    } else {
+      onSearch(inputValue);
+      setShowDropdown(false);
+    }
+  };
+
+  // Handle repository selection
+  const handleSelectRepository = (repository: GitHubRepository) => {
+    setInputValue(repository.full_name);
+    setShowDropdown(false);
+    setSelectedIndex(-1);
+    
+    if (onSelect) {
+      onSelect(repository);
+    } else {
+      onSearch(repository.full_name);
+    }
+  };
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showDropdown || results.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev < results.length - 1 ? prev + 1 : prev
+        );
+        break;
+      
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0 && results[selectedIndex]) {
+          handleSelectRepository(results[selectedIndex]);
+        } else {
+          handleSubmit(e);
+        }
+        break;
+      
+      case 'Escape':
+        setShowDropdown(false);
+        setSelectedIndex(-1);
+        inputRef.current?.blur();
+        break;
+    }
+  };
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        !inputRef.current?.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+        setSelectedIndex(-1);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className={cn("relative", className)}>
+      <form onSubmit={handleSubmit} className="flex gap-4">
+        <div className="flex-1 relative">
+          <Input
+            ref={inputRef}
+            placeholder={placeholder}
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            className="w-full"
+            autoComplete="off"
+          />
+          
+          {/* Dropdown with search results */}
+          {showDropdown && (
+            <div
+              ref={dropdownRef}
+              className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-md shadow-md max-h-80 overflow-y-auto"
+            >
+              {loading && (
+                <div className="px-4 py-3 text-sm text-muted-foreground">
+                  Searching repositories...
+                </div>
+              )}
+              
+              {!loading && results.map((repo, index) => (
+                <button
+                  key={repo.id}
+                  type="button"
+                  onClick={() => handleSelectRepository(repo)}
+                  className={cn(
+                    "w-full px-4 py-3 text-left hover:bg-accent focus:bg-accent focus:outline-none transition-colors",
+                    selectedIndex === index && "bg-accent"
+                  )}
+                >
+                  <div className="flex items-center space-x-3">
+                    <img
+                      src={repo.owner.avatar_url}
+                      alt={repo.owner.login}
+                      className="w-6 h-6 rounded-full"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">
+                        {repo.full_name}
+                      </div>
+                      {repo.description && (
+                        <div className="text-xs text-muted-foreground truncate mt-1">
+                          {repo.description}
+                        </div>
+                      )}
+                      <div className="flex items-center space-x-4 mt-1 text-xs text-muted-foreground">
+                        <span className="flex items-center space-x-1">
+                          <Star className="w-3 h-3" />
+                          <span>{repo.stargazers_count.toLocaleString()}</span>
+                        </span>
+                        <span className="flex items-center space-x-1">
+                          <GitFork className="w-3 h-3" />
+                          <span>{repo.forks_count.toLocaleString()}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+              
+              {!loading && results.length === 0 && inputValue.length > 1 && (
+                <div className="px-4 py-3 text-sm text-muted-foreground">
+                  No repositories found
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {showButton && (
+          <Button type="submit" aria-label={buttonText}>
+            <SearchIcon className="mr-2 h-4 w-4" />
+            {buttonText}
+          </Button>
+        )}
+      </form>
+    </div>
+  );
+}

@@ -7,10 +7,9 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SearchIcon, Link } from "lucide-react";
+import { Link } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { toast } from "sonner";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
@@ -19,6 +18,7 @@ import { Contributions, MetricsAndTrendsCard } from "../activity";
 import { Distribution } from "../distribution";
 import { ContributorOfMonthWrapper } from "../contributor";
 import { ExampleRepos } from "./example-repos";
+import { GitHubSearchInput } from "@/components/ui/github-search-input";
 import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
 import { useRepoSearch } from "@/hooks/use-repo-search";
 import { InsightsSidebar } from "@/components/insights/insights-sidebar";
@@ -55,7 +55,7 @@ export default function RepoView() {
     includeBots
   );
 
-  const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
+  const { handleRepositoryNavigation, handleSelectExample } =
     useRepoSearch({ isHomeView: false });
 
   // Update document title when owner/repo changes
@@ -156,18 +156,11 @@ export default function RepoView() {
       />
       <Card className="mb-8">
         <CardContent className="pt-6">
-          <form onSubmit={handleSearch} className="flex gap-4">
-            <Input
-              placeholder="Search another repository (e.g., facebook/react)"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="submit" aria-label="Search">
-              <SearchIcon className="mr-2 h-4 w-4" />
-              Search
-            </Button>
-          </form>
+          <GitHubSearchInput
+            placeholder="Search another repository (e.g., facebook/react)"
+            onSearch={handleRepositoryNavigation}
+            buttonText="Search"
+          />
           <ExampleRepos onSelect={handleSelectExample} />
         </CardContent>
       </Card>

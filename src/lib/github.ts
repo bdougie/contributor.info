@@ -3,6 +3,21 @@ import type { PullRequest } from './types';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
+// Type for repository search results
+export interface GitHubRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
+  description: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  private: boolean;
+}
+
 // Export the fetchUserOrganizations function to fix the missing export error
 export async function fetchUserOrganizations(username: string, headers: HeadersInit): Promise<{ login: string; avatar_url: string; }[]> {
   try {
@@ -562,5 +577,70 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
       hasYoloCoders: false,
       yoloCoderStats: [],
     };
+  }
+}
+
+/**
+ * Search for GitHub repositories based on a query
+ * @param query - Search query string
+ * @param limit - Maximum number of results to return (default: 10)
+ * @returns Promise<GitHubRepository[]>
+ */
+export async function searchGitHubRepositories(query: string, limit: number = 10): Promise<GitHubRepository[]> {
+  if (!query.trim()) {
+    return [];
+  }
+
+  const headers: HeadersInit = {
+    'Accept': 'application/vnd.github.v3+json',
+  };
+
+  // Try to get user's GitHub token from Supabase session
+  const { data: { session } } = await supabase.auth.getSession();
+  const userToken = session?.provider_token;
+
+  // Use user's token if available, otherwise fall back to env token
+  const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  if (token) {
+    headers.Authorization = `token ${token}`;
+  }
+
+  try {
+    // Use GitHub search API to find repositories
+    const searchQuery = encodeURIComponent(`${query} in:name,description fork:true`);
+    const response = await fetch(
+      `${GITHUB_API_BASE}/search/repositories?q=${searchQuery}&sort=stars&order=desc&per_page=${Math.min(limit, 100)}`,
+      { headers }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      if (response.status === 403 && error.message?.includes('rate limit')) {
+        if (!token) {
+          console.warn('GitHub API rate limit exceeded for repository search. Consider logging in for higher limits.');
+        } else {
+          console.warn('GitHub API rate limit exceeded for repository search.');
+        }
+      }
+      return [];
+    }
+
+    const searchResults = await response.json();
+    return searchResults.items?.map((repo: any) => ({
+      id: repo.id,
+      name: repo.name,
+      full_name: repo.full_name,
+      owner: {
+        login: repo.owner.login,
+        avatar_url: repo.owner.avatar_url,
+      },
+      description: repo.description,
+      stargazers_count: repo.stargazers_count,
+      forks_count: repo.forks_count,
+      private: repo.private,
+    })) || [];
+  } catch (error) {
+    console.error('Error searching GitHub repositories:', error);
+    return [];
   }
 }

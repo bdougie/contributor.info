@@ -106,15 +106,33 @@ describe("Login behavior for repository search", () => {
         e.preventDefault();
         mockNavigate("/test/repo");
       }),
+      handleSelectRepository: vi.fn(),
       handleSelectExample: vi.fn((repo) => {
         // Only update the search input, don't navigate
         mockSetSearchInput(repo);
       }),
+      handleRepositoryNavigation: vi.fn(),
     });
   });
 
   it("allows searching for a repo the first time while unauthenticated", async () => {
     const user = userEvent.setup();
+
+    // Mock the GitHubSearchInput component to call onSearch when button is clicked
+    const mockHandleRepositoryNavigation = vi.fn();
+    vi.mocked(useRepoSearch).mockReturnValue({
+      searchInput: "test/repo",
+      setSearchInput: mockSetSearchInput,
+      handleSearch: vi.fn((e) => {
+        e.preventDefault();
+        mockNavigate("/test/repo");
+      }),
+      handleSelectRepository: vi.fn(),
+      handleSelectExample: vi.fn((repo) => {
+        mockSetSearchInput(repo);
+      }),
+      handleRepositoryNavigation: mockHandleRepositoryNavigation,
+    });
 
     render(
       <MetaTagsProvider>
@@ -139,8 +157,9 @@ describe("Login behavior for repository search", () => {
     await user.type(searchInput, "facebook/react");
     await user.click(searchButton);
 
-    // Check that direct navigation to repo happens for the first search
-    expect(mockNavigate).toHaveBeenCalledWith("/test/repo");
+    // With the new GitHubSearchInput, this will call handleRepositoryNavigation
+    // which should navigate to the typed repository
+    expect(mockHandleRepositoryNavigation).toHaveBeenCalledWith("facebook/react");
   });
 
   it("requires login for the second search when unauthenticated", async () => {
@@ -153,10 +172,12 @@ describe("Login behavior for repository search", () => {
         // Instead of navigating, it should show login dialog
         mockSetShowLoginDialog(true);
       }),
+      handleSelectRepository: vi.fn(),
       handleSelectExample: vi.fn((repo) => {
         // Only update the search input, don't navigate
         mockSetSearchInput(repo);
       }),
+      handleRepositoryNavigation: vi.fn(),
     });
 
     const user = userEvent.setup();
@@ -198,7 +219,9 @@ describe("Login behavior for repository search", () => {
         e.preventDefault();
         mockNavigate("/test/repo");
       }),
+      handleSelectRepository: vi.fn(),
       handleSelectExample,
+      handleRepositoryNavigation: vi.fn(),
     });
 
     render(
