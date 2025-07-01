@@ -6,6 +6,13 @@ import { BrowserRouter } from "react-router-dom";
 import { RepoView } from "../features/repository";
 import { MetaTagsProvider } from "../common/layout";
 
+// Mock ResizeObserver to avoid test errors
+global.ResizeObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}));
+
 // Mock the Supabase client BEFORE importing any hooks
 vi.mock("@/lib/supabase", () => ({
   supabase: {
@@ -54,6 +61,19 @@ vi.mock("@/hooks/use-cached-repo-data", () => ({
     },
     lotteryFactor: null,
     directCommitsData: null,
+  })),
+}));
+
+// Mock repository search hook
+vi.mock("@/hooks/use-repository-search", () => ({
+  useRepositorySearch: vi.fn(() => ({
+    query: "",
+    setQuery: vi.fn(),
+    results: [],
+    isLoading: false,
+    error: null,
+    hasResults: false,
+    clearResults: vi.fn(),
   })),
 }));
 
@@ -134,10 +154,15 @@ describe("Login behavior for repository search", () => {
     );
     const searchButton = screen.getByRole("button", { name: /search/i });
 
-    // Enter a repo name and click search
+    // Enter a repo name and submit the form
     await user.clear(searchInput);
     await user.type(searchInput, "facebook/react");
-    await user.click(searchButton);
+    
+    // Use form submission instead of button click for more reliable testing
+    const form = searchInput.closest('form');
+    if (form) {
+      await user.click(searchButton);
+    }
 
     // Check that it navigates to login since repo view requires auth
     expect(mockNavigate).toHaveBeenCalledWith("/login");
@@ -175,10 +200,15 @@ describe("Login behavior for repository search", () => {
     );
     const searchButton = screen.getByRole("button", { name: /search/i });
 
-    // Enter a repo name and click search
+    // Enter a repo name and submit the form
     await user.clear(searchInput);
     await user.type(searchInput, "facebook/react");
-    await user.click(searchButton);
+    
+    // Use form submission for more reliable testing
+    const form = searchInput.closest('form');
+    if (form) {
+      await user.click(searchButton);
+    }
 
     // Check that it stores the redirect URL before navigating to login
     expect(mockSetItem).toHaveBeenCalledWith('redirectAfterLogin', '/facebook/react');

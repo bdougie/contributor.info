@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { SearchIcon, GitBranch, Star, Clock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useRepositorySearch } from '@/hooks/use-repository-search';
