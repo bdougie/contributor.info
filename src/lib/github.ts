@@ -564,3 +564,104 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
     };
   }
 }
+
+export interface GitHubSearchRepository {
+  id: number;
+  full_name: string;
+  name: string;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
+  description: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  language: string | null;
+  updated_at: string;
+  html_url: string;
+}
+
+export interface GitHubSearchResponse {
+  total_count: number;
+  incomplete_results: boolean;
+  items: GitHubSearchRepository[];
+}
+
+/**
+ * Search GitHub repositories using the GitHub Search API
+ * @param query Search query string
+ * @param options Search options
+ * @returns Promise with search results
+ */
+export async function searchRepositories(
+  query: string,
+  options: {
+    sort?: 'stars' | 'forks' | 'help-wanted-issues' | 'updated';
+    order?: 'asc' | 'desc';
+    per_page?: number;
+    page?: number;
+  } = {}
+): Promise<GitHubSearchResponse> {
+  if (!query.trim()) {
+    return {
+      total_count: 0,
+      incomplete_results: false,
+      items: [],
+    };
+  }
+
+  const headers: HeadersInit = {
+    'Accept': 'application/vnd.github.v3+json',
+  };
+
+  // Try to get user's GitHub token from Supabase session
+  const { data: { session } } = await supabase.auth.getSession();
+  const userToken = session?.provider_token;
+
+  // Use user's token if available, otherwise fall back to env token
+  const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  if (token) {
+    headers.Authorization = `token ${token}`;
+  }
+
+  try {
+    const searchParams = new URLSearchParams({
+      q: query,
+      sort: options.sort || 'stars',
+      order: options.order || 'desc',
+      per_page: String(options.per_page || 30),
+      page: String(options.page || 1),
+    });
+
+    const response = await fetch(
+      `${GITHUB_API_BASE}/search/repositories?${searchParams}`,
+      { headers }
+    );
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      
+      if (response.status === 403 && error.message?.includes('rate limit')) {
+        if (!token) {
+          throw new Error('GitHub API rate limit exceeded. Please log in with GitHub to increase the rate limit.');
+        } else {
+          throw new Error('GitHub API rate limit exceeded. Please try again later.');
+        }
+      } else if (response.status === 401) {
+        throw new Error('Invalid GitHub token. Please check your token and try again.');
+      } else if (response.status === 422) {
+        throw new Error('Invalid search query. Please check your search terms.');
+      }
+      
+      throw new Error(`GitHub Search API error: ${error.message || response.statusText}`);
+    }
+
+    const searchResults = await response.json();
+    return searchResults;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Failed to search repositories. Please try again.');
+  }
+}

@@ -7,10 +7,8 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SearchIcon, Link } from "lucide-react";
+import { Link } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { toast } from "sonner";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
@@ -20,7 +18,7 @@ import { Distribution } from "../distribution";
 import { ContributorOfMonthWrapper } from "../contributor";
 import { ExampleRepos } from "./example-repos";
 import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
-import { useRepoSearch } from "@/hooks/use-repo-search";
+import { UnifiedRepoSearch } from "@/components/search/unified-repo-search";
 import { InsightsSidebar } from "@/components/insights/insights-sidebar";
 import { RepoViewSkeleton } from "@/components/skeletons";
 import { SocialMetaTags } from "@/components/common/layout";
@@ -55,8 +53,16 @@ export default function RepoView() {
     includeBots
   );
 
-  const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
-    useRepoSearch({ isHomeView: false });
+  const handleSelectExample = (repo: string) => {
+    // The unified search component will handle navigation internally
+    // But we can still provide this for the ExampleRepos component
+    const match = repo.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+    if (match) {
+      const [, newOwner, newRepo] = match;
+      // For repo view, the unified search will handle auth requirements
+      navigate(`/${newOwner}/${newRepo}`);
+    }
+  };
 
   // Update document title when owner/repo changes
   useEffect(() => {
@@ -156,18 +162,11 @@ export default function RepoView() {
       />
       <Card className="mb-8">
         <CardContent className="pt-6">
-          <form onSubmit={handleSearch} className="flex gap-4">
-            <Input
-              placeholder="Search another repository (e.g., facebook/react)"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="submit" aria-label="Search">
-              <SearchIcon className="mr-2 h-4 w-4" />
-              Search
-            </Button>
-          </form>
+          <UnifiedRepoSearch
+            isHomeView={false}
+            placeholder="Search another repository (e.g., facebook/react)"
+            buttonText="Search"
+          />
           <ExampleRepos onSelect={handleSelectExample} />
         </CardContent>
       </Card>
