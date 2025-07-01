@@ -162,22 +162,27 @@ describe("Login behavior for repository search", () => {
     expect(mockHandleRepositoryNavigation).toHaveBeenCalledWith("facebook/react");
   });
 
-  it("requires login for the second search when unauthenticated", async () => {
-    // Mock hasSearchedOnce to true to simulate a second search attempt
+  it("requires login for search when unauthenticated on repo view", async () => {
+    // Mock handleRepositoryNavigation to simulate login requirement on repo view
+    const mockHandleRepositoryNavigation = vi.fn((repository: string) => {
+      // On repo view when not logged in, navigate to login page
+      localStorage.setItem('redirectAfterLogin', `/${repository}`);
+      mockNavigate('/login');
+    });
+
     vi.mocked(useRepoSearch).mockReturnValue({
       searchInput: "facebook/react",
       setSearchInput: mockSetSearchInput,
       handleSearch: vi.fn((e) => {
         e.preventDefault();
-        // Instead of navigating, it should show login dialog
-        mockSetShowLoginDialog(true);
+        mockHandleRepositoryNavigation("facebook/react");
       }),
       handleSelectRepository: vi.fn(),
       handleSelectExample: vi.fn((repo) => {
         // Only update the search input, don't navigate
         mockSetSearchInput(repo);
       }),
-      handleRepositoryNavigation: vi.fn(),
+      handleRepositoryNavigation: mockHandleRepositoryNavigation,
     });
 
     const user = userEvent.setup();
@@ -201,9 +206,9 @@ describe("Login behavior for repository search", () => {
     await user.type(searchInput, "facebook/react");
     await user.click(searchButton);
 
-    // Check that login dialog is shown instead of navigating
-    expect(mockSetShowLoginDialog).toHaveBeenCalledWith(true);
-    expect(mockNavigate).not.toHaveBeenCalled();
+    // Check that user is redirected to login page (repo view behavior when not logged in)
+    expect(mockNavigate).toHaveBeenCalledWith('/login');
+    expect(localStorage.getItem('redirectAfterLogin')).toBe('/facebook/react');
   });
 
   it("clicking an example repo only fills the search input without navigating", async () => {
