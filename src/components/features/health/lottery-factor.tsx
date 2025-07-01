@@ -369,10 +369,8 @@ export function LotteryFactorContent({
                   <span className="hidden xs:inline">YOLO Coders</span>
                   <span className="xs:hidden">YOLO</span>
                 </div>
-                <p className="block lg:hidden 2xl:block" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  Pushing commits{" "}
-                  <span className="hidden sm:inline-block">directly</span> to
-                  main
+                <p className="text-sm" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  commits directly on main
                 </p>
               </div>
 
