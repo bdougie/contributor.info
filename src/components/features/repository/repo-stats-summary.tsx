@@ -134,8 +134,9 @@ export function RepoStatsSummary() {
               Warning: Direct Commits Detected
             </h3>
             <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-              {directCommitsData.yoloCoderStats.length} commits were pushed
-              directly to the main branch, bypassing code review.
+              {directCommitsData.yoloCoderStats.length} contributor
+              {directCommitsData.yoloCoderStats.length !== 1 ? "s have" : " has"} pushed
+              commits directly to the main branch, bypassing code review.
             </p>
           </div>
         )}
