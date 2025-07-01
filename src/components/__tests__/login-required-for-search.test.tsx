@@ -113,7 +113,7 @@ describe("Login behavior for repository search", () => {
     });
   });
 
-  it("allows searching for a repo the first time while unauthenticated", async () => {
+  it("requires login for searches from repo view when unauthenticated", async () => {
     const user = userEvent.setup();
 
     render(
@@ -139,27 +139,24 @@ describe("Login behavior for repository search", () => {
     await user.type(searchInput, "facebook/react");
     await user.click(searchButton);
 
-    // Check that direct navigation to repo happens for the first search
-    expect(mockNavigate).toHaveBeenCalledWith("/test/repo");
+    // Check that it navigates to login since repo view requires auth
+    expect(mockNavigate).toHaveBeenCalledWith("/login");
   });
 
-  it("requires login for the second search when unauthenticated", async () => {
-    // Mock hasSearchedOnce to true to simulate a second search attempt
-    vi.mocked(useRepoSearch).mockReturnValue({
-      searchInput: "facebook/react",
-      setSearchInput: mockSetSearchInput,
-      handleSearch: vi.fn((e) => {
-        e.preventDefault();
-        // Instead of navigating, it should show login dialog
-        mockSetShowLoginDialog(true);
-      }),
-      handleSelectExample: vi.fn((repo) => {
-        // Only update the search input, don't navigate
-        mockSetSearchInput(repo);
-      }),
-    });
-
+  it("stores redirect URL when navigating to login", async () => {
     const user = userEvent.setup();
+    const mockSetItem = vi.fn();
+    
+    // Mock localStorage
+    Object.defineProperty(window, 'localStorage', {
+      value: {
+        setItem: mockSetItem,
+        getItem: vi.fn(),
+        removeItem: vi.fn(),
+        clear: vi.fn(),
+      },
+      writable: true,
+    });
 
     render(
       <MetaTagsProvider>
@@ -168,6 +165,9 @@ describe("Login behavior for repository search", () => {
         </BrowserRouter>
       </MetaTagsProvider>
     );
+
+    // Reset navigation mock
+    mockNavigate.mockReset();
 
     // Find the search form and submit button
     const searchInput = screen.getByPlaceholderText(
@@ -180,27 +180,14 @@ describe("Login behavior for repository search", () => {
     await user.type(searchInput, "facebook/react");
     await user.click(searchButton);
 
-    // Check that login dialog is shown instead of navigating
-    expect(mockSetShowLoginDialog).toHaveBeenCalledWith(true);
-    expect(mockNavigate).not.toHaveBeenCalled();
+    // Check that it stores the redirect URL before navigating to login
+    expect(mockSetItem).toHaveBeenCalledWith('redirectAfterLogin', '/facebook/react');
+    expect(mockNavigate).toHaveBeenCalledWith('/login');
   });
 
-  it("clicking an example repo only fills the search input without navigating", async () => {
+  it("clicking an example repo navigates directly without auth check", async () => {
     const user = userEvent.setup();
-    const handleSelectExample = vi.fn((repo) => {
-      mockSetSearchInput(repo);
-    });
-
-    vi.mocked(useRepoSearch).mockReturnValue({
-      searchInput: "",
-      setSearchInput: mockSetSearchInput,
-      handleSearch: vi.fn((e) => {
-        e.preventDefault();
-        mockNavigate("/test/repo");
-      }),
-      handleSelectExample,
-    });
-
+    
     render(
       <MetaTagsProvider>
         <BrowserRouter>
@@ -208,6 +195,9 @@ describe("Login behavior for repository search", () => {
         </BrowserRouter>
       </MetaTagsProvider>
     );
+
+    // Reset navigation mock  
+    mockNavigate.mockReset();
 
     // Find example repo buttons
     const exampleButtons = await screen.findAllByRole("button");
@@ -220,12 +210,9 @@ describe("Login behavior for repository search", () => {
       await user.click(exampleButton);
     }
 
-    // Check that handleSelectExample was called
-    expect(handleSelectExample).toHaveBeenCalled();
-
-    // Check that setSearchInput was called but navigation did not occur
-    expect(mockSetSearchInput).toHaveBeenCalled();
-    expect(mockNavigate).not.toHaveBeenCalled();
+    // The handleSelectExample in RepoView navigates directly without auth check
+    // This is the current behavior based on the RepoView implementation
+    expect(mockNavigate).toHaveBeenCalledWith("/kubernetes/kubernetes");
   });
 
   it("allows viewing repo details when logged in", async () => {

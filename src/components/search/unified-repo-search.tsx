@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SearchIcon, GitBranch, Star, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Popover, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -191,22 +191,20 @@ export function UnifiedRepoSearch({
       <Popover open={isOpen && (hasResults || isLoading)} onOpenChange={setIsOpen}>
         <form onSubmit={handleSubmit} className="flex gap-4">
           <div className="relative flex-1">
-            <PopoverTrigger asChild>
-              <Input
-                ref={inputRef}
-                placeholder={placeholder}
-                value={inputValue}
-                onChange={(e) => handleInputChange(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onFocus={() => {
-                  if (query.length >= 2 && hasResults) {
-                    setIsOpen(true);
-                  }
-                }}
-                className="flex-1"
-                autoComplete="off"
-              />
-            </PopoverTrigger>
+            <Input
+              ref={inputRef}
+              placeholder={placeholder}
+              value={inputValue}
+              onChange={(e) => handleInputChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => {
+                if (query.length >= 2 && hasResults) {
+                  setIsOpen(true);
+                }
+              }}
+              className="flex-1"
+              autoComplete="off"
+            />
             
             <PopoverContent 
               className="w-[var(--radix-popover-trigger-width)] p-0" 

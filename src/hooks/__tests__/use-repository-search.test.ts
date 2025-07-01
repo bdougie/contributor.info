@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useRepositorySearch } from '../use-repository-search';
 import * as githubModule from '@/lib/github';
@@ -74,7 +74,9 @@ describe('useRepositorySearch', () => {
   it('should update query when setQuery is called', () => {
     const { result } = renderHook(() => useRepositorySearch());
 
-    result.current.setQuery('react');
+    act(() => {
+      result.current.setQuery('react');
+    });
 
     expect(result.current.query).toBe('react');
   });
@@ -135,7 +137,7 @@ describe('useRepositorySearch', () => {
     const searchPromise = new Promise((resolve) => {
       resolveSearch = resolve;
     });
-    mockSearchRepositories.mockReturnValueOnce(searchPromise);
+    mockSearchRepositories.mockReturnValueOnce(searchPromise as Promise<any>);
 
     const { result } = renderHook(() => useRepositorySearch());
 
@@ -177,13 +179,17 @@ describe('useRepositorySearch', () => {
 
     const { result } = renderHook(() => useRepositorySearch());
 
-    result.current.setQuery('react');
+    act(() => {
+      result.current.setQuery('react');
+    });
 
     await waitFor(() => {
       expect(result.current.hasResults).toBe(true);
     });
 
-    result.current.clearResults();
+    act(() => {
+      result.current.clearResults();
+    });
 
     expect(result.current.query).toBe('');
     expect(result.current.results).toEqual([]);
