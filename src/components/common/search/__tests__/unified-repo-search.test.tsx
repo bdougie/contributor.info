@@ -1,23 +1,23 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { UnifiedRepoSearch } from '../unified-repo-search';
 import { useRepositorySearch } from '@/hooks/use-repository-search';
 
 // Mock the hook
-jest.mock('@/hooks/use-repository-search', () => ({
-  useRepositorySearch: jest.fn(),
+vi.mock('@/hooks/use-repository-search', () => ({
+  useRepositorySearch: vi.fn(),
 }));
 
 // Mock the ExampleRepos component
-jest.mock('@/components/features/repository', () => ({
+vi.mock('@/components/features/repository', () => ({
   ExampleRepos: () => <div data-testid="example-repos">Example Repos</div>,
 }));
 
 describe('UnifiedRepoSearch', () => {
-  const mockHandleSearch = jest.fn();
-  const mockHandleSelectRepository = jest.fn();
-  const mockHandleSelectExample = jest.fn();
-  const mockSetSearchInput = jest.fn();
+  const mockHandleSearch = vi.fn();
+  const mockHandleSelectRepository = vi.fn();
+  const mockHandleSelectExample = vi.fn();
+  const mockSetSearchInput = vi.fn();
   
   const mockSearchResults = [
     {
@@ -38,8 +38,8 @@ describe('UnifiedRepoSearch', () => {
   ];
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    (useRepositorySearch as jest.Mock).mockReturnValue({
+    vi.clearAllMocks();
+    (useRepositorySearch as any).mockReturnValue({
       searchInput: '',
       setSearchInput: mockSetSearchInput,
       searchResults: [],
@@ -54,7 +54,9 @@ describe('UnifiedRepoSearch', () => {
   it('renders with default props', () => {
     render(<UnifiedRepoSearch />);
     
-    expect(screen.getByPlaceholderText('Search GitHub repositories...')).toBeInTheDocument();
+    // Use getAllByPlaceholderText since there are two inputs with the same placeholder
+    const inputs = screen.getAllByPlaceholderText('Search GitHub repositories...');
+    expect(inputs).toHaveLength(2); // Command input and regular input
     expect(screen.getByText('Analyze')).toBeInTheDocument();
     expect(screen.getByTestId('example-repos')).toBeInTheDocument();
   });
@@ -68,7 +70,9 @@ describe('UnifiedRepoSearch', () => {
       />
     );
     
-    expect(screen.getByPlaceholderText('Custom placeholder')).toBeInTheDocument();
+    // Use getAllByPlaceholderText since there are two inputs with the same placeholder
+    const inputs = screen.getAllByPlaceholderText('Custom placeholder');
+    expect(inputs).toHaveLength(2); // Command input and regular input
     expect(screen.getByText('Custom button')).toBeInTheDocument();
   });
 
@@ -84,14 +88,16 @@ describe('UnifiedRepoSearch', () => {
   it('updates search input when typing', () => {
     render(<UnifiedRepoSearch />);
     
-    const input = screen.getByPlaceholderText('Search GitHub repositories...');
-    fireEvent.change(input, { target: { value: 'react' } });
+    // Get the visible input (the regular input, not the command input)
+    const inputs = screen.getAllByPlaceholderText('Search GitHub repositories...');
+    const visibleInput = inputs.find(input => input.className.includes('flex h-10'));
+    fireEvent.change(visibleInput!, { target: { value: 'react' } });
     
     expect(mockSetSearchInput).toHaveBeenCalledWith('react');
   });
 
   it('displays search results when available', async () => {
-    (useRepositorySearch as jest.Mock).mockReturnValue({
+    (useRepositorySearch as any).mockReturnValue({
       searchInput: 'react',
       setSearchInput: mockSetSearchInput,
       searchResults: mockSearchResults,
@@ -104,21 +110,22 @@ describe('UnifiedRepoSearch', () => {
     
     render(<UnifiedRepoSearch />);
     
-    // Trigger dropdown to open
-    const input = screen.getByPlaceholderText('Search GitHub repositories...');
-    fireEvent.focus(input);
+    // Trigger dropdown to open by focusing the visible input
+    const inputs = screen.getAllByPlaceholderText('Search GitHub repositories...');
+    const visibleInput = inputs.find(input => input.className.includes('flex h-10'));
+    fireEvent.focus(visibleInput!);
     
     // Wait for results to be displayed
     await waitFor(() => {
       expect(screen.getByText('facebook/react')).toBeInTheDocument();
       expect(screen.getByText('A JavaScript library for building user interfaces')).toBeInTheDocument();
       expect(screen.getByText('JavaScript')).toBeInTheDocument();
-      expect(screen.getByText('200K')).toBeInTheDocument();
+      expect(screen.getByText('200.0K')).toBeInTheDocument();
     });
   });
 
   it('displays loading state', async () => {
-    (useRepositorySearch as jest.Mock).mockReturnValue({
+    (useRepositorySearch as any).mockReturnValue({
       searchInput: 'react',
       setSearchInput: mockSetSearchInput,
       searchResults: [],
@@ -131,10 +138,11 @@ describe('UnifiedRepoSearch', () => {
     
     render(<UnifiedRepoSearch />);
     
-    // Trigger dropdown to open
-    const input = screen.getByPlaceholderText('Search GitHub repositories...');
-    fireEvent.focus(input);
-    fireEvent.change(input, { target: { value: 'react' } });
+    // Trigger dropdown to open by focusing the visible input
+    const inputs = screen.getAllByPlaceholderText('Search GitHub repositories...');
+    const visibleInput = inputs.find(input => input.className.includes('flex h-10'));
+    fireEvent.focus(visibleInput!);
+    fireEvent.change(visibleInput!, { target: { value: 'react' } });
     
     // Wait for loading state to be displayed
     await waitFor(() => {
@@ -143,7 +151,7 @@ describe('UnifiedRepoSearch', () => {
   });
 
   it('displays error state', async () => {
-    (useRepositorySearch as jest.Mock).mockReturnValue({
+    (useRepositorySearch as any).mockReturnValue({
       searchInput: 'react',
       setSearchInput: mockSetSearchInput,
       searchResults: [],
@@ -156,10 +164,11 @@ describe('UnifiedRepoSearch', () => {
     
     render(<UnifiedRepoSearch />);
     
-    // Trigger dropdown to open
-    const input = screen.getByPlaceholderText('Search GitHub repositories...');
-    fireEvent.focus(input);
-    fireEvent.change(input, { target: { value: 'react' } });
+    // Trigger dropdown to open by focusing the visible input
+    const inputs = screen.getAllByPlaceholderText('Search GitHub repositories...');
+    const visibleInput = inputs.find(input => input.className.includes('flex h-10'));
+    fireEvent.focus(visibleInput!);
+    fireEvent.change(visibleInput!, { target: { value: 'react' } });
     
     // Wait for error state to be displayed
     await waitFor(() => {

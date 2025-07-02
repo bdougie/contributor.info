@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useRepositorySearch } from '@/hooks/use-repository-search';
-import { GitHubRepository } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { SearchIcon, StarIcon, GitForkIcon, Clock } from 'lucide-react';
 import { ExampleRepos } from '@/components/features/repository';

@@ -1,33 +1,34 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { useRepositorySearch } from '../use-repository-search';
 import { searchRepositories } from '@/lib/github';
 import { useNavigate } from 'react-router-dom';
 import { useGitHubAuth } from '../use-github-auth';
 
 // Mock dependencies
-jest.mock('@/lib/github', () => ({
-  searchRepositories: jest.fn(),
+vi.mock('@/lib/github', () => ({
+  searchRepositories: vi.fn(),
 }));
 
-jest.mock('react-router-dom', () => ({
-  useNavigate: jest.fn(),
+vi.mock('react-router-dom', () => ({
+  useNavigate: vi.fn(),
 }));
 
-jest.mock('../use-github-auth', () => ({
-  useGitHubAuth: jest.fn(),
+vi.mock('../use-github-auth', () => ({
+  useGitHubAuth: vi.fn(),
 }));
 
 // Mock localStorage
 const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
 };
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 describe('useRepositorySearch', () => {
-  const mockNavigate = jest.fn();
+  const mockNavigate = vi.fn();
   const mockSearchResults = [
     {
       id: 1,
@@ -47,10 +48,10 @@ describe('useRepositorySearch', () => {
   ];
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
-    (useGitHubAuth as jest.Mock).mockReturnValue({ isLoggedIn: true });
-    (searchRepositories as jest.Mock).mockResolvedValue(mockSearchResults);
+    vi.clearAllMocks();
+    (useNavigate as any).mockReturnValue(mockNavigate);
+    (useGitHubAuth as any).mockReturnValue({ isLoggedIn: true });
+    (searchRepositories as any).mockResolvedValue(mockSearchResults);
   });
 
   it('should initialize with empty state', () => {
@@ -86,7 +87,7 @@ describe('useRepositorySearch', () => {
   });
 
   it('should handle search errors', async () => {
-    (searchRepositories as jest.Mock).mockRejectedValue(new Error('API error'));
+    (searchRepositories as any).mockRejectedValue(new Error('API error'));
     
     const { result } = renderHook(() => useRepositorySearch({ debounceMs: 0 }));
     
@@ -111,7 +112,7 @@ describe('useRepositorySearch', () => {
   });
 
   it('should redirect to login if not logged in on repo view', () => {
-    (useGitHubAuth as jest.Mock).mockReturnValue({ isLoggedIn: false });
+    (useGitHubAuth as any).mockReturnValue({ isLoggedIn: false });
     
     const { result } = renderHook(() => useRepositorySearch({ isHomeView: false }));
     
@@ -124,7 +125,7 @@ describe('useRepositorySearch', () => {
   });
 
   it('should allow navigation on home view even if not logged in', () => {
-    (useGitHubAuth as jest.Mock).mockReturnValue({ isLoggedIn: false });
+    (useGitHubAuth as any).mockReturnValue({ isLoggedIn: false });
     
     const { result } = renderHook(() => useRepositorySearch({ isHomeView: true }));
     
@@ -137,10 +138,15 @@ describe('useRepositorySearch', () => {
 
   it('should handle form submission with owner/repo format', () => {
     const { result } = renderHook(() => useRepositorySearch());
-    const mockEvent = { preventDefault: jest.fn() } as unknown as React.FormEvent;
+    const mockEvent = { preventDefault: vi.fn() } as unknown as React.FormEvent;
     
+    // First set the search input
     act(() => {
       result.current.setSearchInput('facebook/react');
+    });
+    
+    // Then handle the search
+    act(() => {
       result.current.handleSearch(mockEvent);
     });
     

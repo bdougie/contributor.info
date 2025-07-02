@@ -82,15 +82,7 @@ vi.mock("@/lib/time-range-store", () => ({
   useTimeRangeStore: vi.fn(() => ({ timeRange: "30d" })),
 }));
 
-// Mock the Command component to avoid test issues
-vi.mock("@/components/ui/command", () => {
-  const actual = vi.importActual("@/components/ui/command");
-  return {
-    ...actual,
-    Command: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    CommandInput: ({ placeholder }: { placeholder: string }) => <div data-testid="command-input" />,
-  };
-});
+// Command component is already mocked in setup.ts
 
 describe("Login behavior for repository search", () => {
   beforeEach(() => {

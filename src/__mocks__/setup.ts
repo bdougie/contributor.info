@@ -158,6 +158,37 @@ vi.mock('d3-interpolate', () => ({
   default: vi.fn()
 }));
 
+// Mock the Command UI components
+vi.mock('@/components/ui/command', () => ({
+  Command: vi.fn(({ children, ...props }) => 
+    createElement('div', { 'data-testid': 'mock-command', ...props }, children)
+  ),
+  CommandInput: vi.fn(({ placeholder, ...props }) => 
+    createElement('input', { 'data-testid': 'mock-command-input', placeholder, ...props })
+  ),
+  CommandList: vi.fn(({ children, ...props }) => 
+    createElement('div', { 'data-testid': 'mock-command-list', ...props }, children)
+  ),
+  CommandEmpty: vi.fn(({ children, ...props }) => 
+    createElement('div', { 'data-testid': 'mock-command-empty', ...props }, children)
+  ),
+  CommandGroup: vi.fn(({ children, ...props }) => 
+    createElement('div', { 'data-testid': 'mock-command-group', ...props }, children)
+  ),
+  CommandItem: vi.fn(({ children, ...props }) => 
+    createElement('div', { 'data-testid': 'mock-command-item', ...props }, children)
+  ),
+  CommandShortcut: vi.fn(({ children, ...props }) => 
+    createElement('span', { 'data-testid': 'mock-command-shortcut', ...props }, children)
+  ),
+  CommandSeparator: vi.fn((props) => 
+    createElement('div', { 'data-testid': 'mock-command-separator', ...props })
+  ),
+  CommandDialog: vi.fn(({ children, ...props }) => 
+    createElement('div', { 'data-testid': 'mock-command-dialog', ...props }, children)
+  ),
+}));
+
 // Mock OpenAI service to avoid real API calls
 vi.mock('@/lib/llm/openai-service', () => ({
   openAIService: {
