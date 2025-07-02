@@ -33,8 +33,10 @@ export function ThemeProvider({
   useEffect(() => {
     const root = window.document.documentElement;
 
+    // Remove existing theme classes to prevent conflicts
     root.classList.remove('light', 'dark');
 
+    // Apply the selected theme
     if (theme === 'system') {
       const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
         .matches
