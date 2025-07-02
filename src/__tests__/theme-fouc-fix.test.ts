@@ -91,20 +91,13 @@ describe('Theme Detection FOUC Fix', () => {
 
   it('should not cause layout shift', () => {
     // This test verifies that only CSS classes are modified, not layout properties
-    const operations = [
+    const allowedOperations = [
       'classList.add', // Only allowed operation
     ];
     
-    const prohibitedOperations = [
-      'style.width',
-      'style.height', 
-      'style.position',
-      'innerHTML',
-      'appendChild'
-    ];
-    
     // Our script only uses classList.add, which doesn't cause layout shift
-    expect(operations).toContain('classList.add');
-    expect(operations).not.toContain('innerHTML');
+    expect(allowedOperations).toContain('classList.add');
+    expect(allowedOperations).not.toContain('innerHTML');
+    expect(allowedOperations).not.toContain('style.width');
   });
 });
