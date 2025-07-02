@@ -5,7 +5,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ExampleRepos } from "../../features/repository";
 import { RepoSearch } from "../search/repo-search";
 import { SocialMetaTags } from "./meta-tags-provider";
 

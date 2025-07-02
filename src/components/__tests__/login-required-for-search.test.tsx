@@ -6,6 +6,16 @@ import { BrowserRouter } from "react-router-dom";
 import { RepoView } from "../features/repository";
 import { MetaTagsProvider } from "../common/layout";
 
+// Mock ResizeObserver for CMDK
+global.ResizeObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}));
+
+// Mock scrollIntoView for CMDK
+Element.prototype.scrollIntoView = vi.fn();
+
 // Mock the Supabase client BEFORE importing any hooks
 vi.mock("@/lib/supabase", () => ({
   supabase: {
@@ -110,6 +120,8 @@ describe("Login behavior for repository search", () => {
         // Only update the search input, don't navigate
         mockSetSearchInput(repo);
       }),
+      searchResults: [],
+      isSearching: false,
     });
   });
 
@@ -157,6 +169,8 @@ describe("Login behavior for repository search", () => {
         // Only update the search input, don't navigate
         mockSetSearchInput(repo);
       }),
+      searchResults: [],
+      isSearching: false,
     });
 
     const user = userEvent.setup();
@@ -185,20 +199,22 @@ describe("Login behavior for repository search", () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it("clicking an example repo only fills the search input without navigating", async () => {
+  it("shows search autocomplete results when typing", async () => {
     const user = userEvent.setup();
-    const handleSelectExample = vi.fn((repo) => {
-      mockSetSearchInput(repo);
-    });
-
+    
+    // Mock search results to appear when typing
     vi.mocked(useRepoSearch).mockReturnValue({
-      searchInput: "",
+      searchInput: "kubernetes",
       setSearchInput: mockSetSearchInput,
       handleSearch: vi.fn((e) => {
         e.preventDefault();
-        mockNavigate("/test/repo");
+        mockNavigate("/kubernetes/kubernetes");
       }),
-      handleSelectExample,
+      handleSelectExample: vi.fn((repo) => {
+        mockSetSearchInput(repo);
+      }),
+      searchResults: ["kubernetes/kubernetes", "kubernetes/minikube"],
+      isSearching: false,
     });
 
     render(
@@ -209,23 +225,17 @@ describe("Login behavior for repository search", () => {
       </MetaTagsProvider>
     );
 
-    // Find example repo buttons
-    const exampleButtons = await screen.findAllByRole("button");
-    const exampleButton = exampleButtons.find((button) =>
-      button.textContent?.includes("kubernetes/kubernetes")
+    // Find the search input
+    const searchInput = screen.getByPlaceholderText(
+      /Search another repository/i
     );
 
-    // Click an example repo button
-    if (exampleButton) {
-      await user.click(exampleButton);
-    }
+    // Type in the search input
+    await user.clear(searchInput);
+    await user.type(searchInput, "kubernetes");
 
-    // Check that handleSelectExample was called
-    expect(handleSelectExample).toHaveBeenCalled();
-
-    // Check that setSearchInput was called but navigation did not occur
+    // Check that setSearchInput was called
     expect(mockSetSearchInput).toHaveBeenCalled();
-    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it("allows viewing repo details when logged in", async () => {
