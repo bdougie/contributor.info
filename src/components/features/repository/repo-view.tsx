@@ -1,4 +1,4 @@
-import { useState, Suspense, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Outlet } from "react-router-dom";
 import {
   Card,
@@ -22,7 +22,7 @@ import { ExampleRepos } from "./example-repos";
 import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
 import { useRepoSearch } from "@/hooks/use-repo-search";
 import { InsightsSidebar } from "@/components/insights/insights-sidebar";
-import { RepoViewSkeleton, ContributionsSkeleton, DistributionSkeleton, HealthSkeleton, FeedSkeleton } from "@/components/skeletons";
+import { RepoViewSkeleton } from "@/components/skeletons";
 import { SocialMetaTags } from "@/components/common/layout";
 import RepoNotFound from "./repo-not-found";
 import { createChartShareUrl, getDubConfig } from "@/lib/dub";
@@ -268,7 +268,7 @@ export default function RepoView() {
 // Route components
 export function LotteryFactorRoute() {
   return (
-    <ProgressiveChartWrapper skeletonType="health">
+    <ProgressiveChartWrapper>
       <RepositoryHealthCard />
     </ProgressiveChartWrapper>
   );
@@ -285,7 +285,7 @@ export function ContributionsRoute() {
   return (
     <div className="space-y-8">
       {/* Progressive loading: Charts load independently */}
-      <ProgressiveChartWrapper skeletonType="contributions">
+      <ProgressiveChartWrapper>
         <Contributions />
       </ProgressiveChartWrapper>
       
@@ -302,54 +302,19 @@ export function ContributionsRoute() {
 
 export function DistributionRoute() {
   return (
-    <ProgressiveChartWrapper skeletonType="distribution">
+    <ProgressiveChartWrapper>
       <Distribution />
     </ProgressiveChartWrapper>
   );
 }
 
-// Progressive Chart Wrapper - loads individual components with detailed skeletons
-type SkeletonType = 'contributions' | 'health' | 'distribution' | 'feed' | 'generic';
-
+// Progressive Chart Wrapper - simplified since routes are already lazy loaded
 function ProgressiveChartWrapper({ 
-  children, 
-  skeletonType = 'generic' 
+  children 
 }: { 
   children: React.ReactNode;
-  skeletonType?: SkeletonType;
 }) {
-  const getSkeleton = () => {
-    switch (skeletonType) {
-      case 'contributions':
-        return <ContributionsSkeleton />;
-      case 'health':
-        return <HealthSkeleton />;
-      case 'distribution':
-        return <DistributionSkeleton />;
-      case 'feed':
-        return <FeedSkeleton />;
-      default:
-        // Generic fallback skeleton
-        return (
-          <Card>
-            <CardContent className="p-6">
-              <div className="animate-pulse space-y-3">
-                <div className="h-4 bg-muted rounded w-1/3"></div>
-                <div className="h-48 bg-muted rounded"></div>
-                <div className="flex gap-4">
-                  <div className="h-8 bg-muted rounded w-16"></div>
-                  <div className="h-8 bg-muted rounded w-16"></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-    }
-  };
-
-  return (
-    <Suspense fallback={getSkeleton()}>
-      {children}
-    </Suspense>
-  );
+  // Remove Suspense here since the routes are already lazy loaded with Suspense in App.tsx
+  // This double Suspense was causing the blank page issue
+  return <>{children}</>;
 }
