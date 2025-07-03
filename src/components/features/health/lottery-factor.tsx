@@ -10,7 +10,15 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HelpCircle, Users, Bot, ArrowLeft, ArrowRight, GitPullRequest, Percent } from "lucide-react";
+import {
+  HelpCircle,
+  Users,
+  Bot,
+  ArrowLeft,
+  ArrowRight,
+  GitPullRequest,
+  Percent,
+} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -99,29 +107,34 @@ export function LotteryFactorContent({
   const rawStats = stats || { pullRequests: [], loading: false, error: null };
   const rawLotteryFactor = lotteryFactor || null;
   const repositoryName = owner && repo ? `${owner}/${repo}` : undefined;
-  
+
   // State for contributor roles from confidence system
-  const [contributorRoles, setContributorRoles] = useState<Map<string, string>>(new Map());
+  const [contributorRoles, setContributorRoles] = useState<Map<string, string>>(
+    new Map()
+  );
 
   // Apply client-side filtering based on includeBots
   const safeStats = {
     ...rawStats,
-    pullRequests: includeBots 
-      ? rawStats.pullRequests 
-      : rawStats.pullRequests.filter(pr => pr.user.type !== "Bot")
+    pullRequests: includeBots
+      ? rawStats.pullRequests
+      : rawStats.pullRequests.filter((pr) => pr.user.type !== "Bot"),
   };
 
   // Filter lottery factor contributors based on includeBots
-  const safeLotteryFactor = rawLotteryFactor && !includeBots
-    ? {
-        ...rawLotteryFactor,
-        contributors: rawLotteryFactor.contributors.filter(contributor => {
-          // Find the corresponding PR to check if user is a bot
-          const userPRs = rawStats.pullRequests.filter(pr => pr.user.login === contributor.login);
-          return userPRs.length === 0 || userPRs[0].user.type !== "Bot";
-        })
-      }
-    : rawLotteryFactor;
+  const safeLotteryFactor =
+    rawLotteryFactor && !includeBots
+      ? {
+          ...rawLotteryFactor,
+          contributors: rawLotteryFactor.contributors.filter((contributor) => {
+            // Find the corresponding PR to check if user is a bot
+            const userPRs = rawStats.pullRequests.filter(
+              (pr) => pr.user.login === contributor.login
+            );
+            return userPRs.length === 0 || userPRs[0].user.type !== "Bot";
+          }),
+        }
+      : rawLotteryFactor;
   const [showYoloCoders, setShowYoloCoders] = useState(false);
   const { directCommitsData } = useContext(RepoStatsContext);
 
@@ -129,29 +142,29 @@ export function LotteryFactorContent({
   useEffect(() => {
     async function fetchContributorRoles() {
       if (!owner || !repo) return;
-      
+
       try {
         const { data, error } = await supabase
-          .from('contributor_roles')
-          .select('user_id, role')
-          .eq('repository_owner', owner)
-          .eq('repository_name', repo);
-        
+          .from("contributor_roles")
+          .select("user_id, role")
+          .eq("repository_owner", owner)
+          .eq("repository_name", repo);
+
         if (error) {
-          console.warn('Failed to fetch contributor roles:', error);
+          console.warn("Failed to fetch contributor roles:", error);
           return;
         }
-        
+
         const rolesMap = new Map<string, string>();
         data?.forEach(({ user_id, role }) => {
           rolesMap.set(user_id, role);
         });
         setContributorRoles(rolesMap);
       } catch (error) {
-        console.warn('Error fetching contributor roles:', error);
+        console.warn("Error fetching contributor roles:", error);
       }
     }
-    
+
     fetchContributorRoles();
   }, [owner, repo]);
 
@@ -162,7 +175,7 @@ export function LotteryFactorContent({
     if (confidenceRole) {
       return confidenceRole;
     }
-    
+
     // Fallback to old position-based system
     if (index === 0) return "maintainer";
     if (index === 1) return "member";
@@ -186,7 +199,7 @@ export function LotteryFactorContent({
           title="YOLO Coders"
           contextInfo={{
             repository: repositoryName,
-            metric: "direct commits"
+            metric: "direct commits",
           }}
           chartType="yolo-coders"
         >
@@ -220,7 +233,7 @@ export function LotteryFactorContent({
         title="YOLO Coders"
         contextInfo={{
           repository: repositoryName,
-          metric: "direct commits"
+          metric: "direct commits",
         }}
         chartType="yolo-coders"
       >
@@ -242,8 +255,8 @@ export function LotteryFactorContent({
           </div>
           <p className="text-sm text-muted-foreground">
             {directCommitsData.yoloCoderStats.length} contributor
-            {directCommitsData.yoloCoderStats.length !== 1 ? "s" : ""} have pushed
-            directly to the main branch of this repository in the last{" "}
+            {directCommitsData.yoloCoderStats.length !== 1 ? "s" : ""} have
+            pushed directly to the main branch of this repository in the last{" "}
             {timeRangeNumber} days without pull requests
           </p>
           <div className="space-y-4 mt-2">
@@ -258,7 +271,7 @@ export function LotteryFactorContent({
                     alt={coder.login}
                     size={32}
                     lazy={false}
-                    fallback={coder.login[0]?.toUpperCase() || '?'}
+                    fallback={coder.login[0]?.toUpperCase() || "?"}
                   />
                   <div>
                     <p className="font-medium">{coder.login}</p>
@@ -268,9 +281,12 @@ export function LotteryFactorContent({
                   </div>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  <span className="font-medium">{coder.directCommits}</span> push
+                  <span className="font-medium">{coder.directCommits}</span>{" "}
+                  push
                   {coder.directCommits !== 1 ? "es" : ""} with{" "}
-                  <span className="font-medium">{coder.totalPushedCommits}</span>{" "}
+                  <span className="font-medium">
+                    {coder.totalPushedCommits}
+                  </span>{" "}
                   commit{coder.totalPushedCommits !== 1 ? "s" : ""}
                 </div>
               </div>
@@ -323,7 +339,7 @@ export function LotteryFactorContent({
       title="Lottery Factor"
       contextInfo={{
         repository: repositoryName,
-        metric: "lottery factor"
+        metric: "lottery factor",
       }}
       chartType="lottery-factor"
     >
@@ -369,214 +385,227 @@ export function LotteryFactorContent({
                   <span className="hidden sm:inline">YOLO Coders</span>
                   <span className="sm:hidden">YOLO</span>
                 </div>
-                <p className="text-sm" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  commits directly on main
+                <p
+                  className="text-sm hidden sm:inline"
+                  style={{ overflow: "hidden", textOverflow: "ellipsis" }}
+                >
+                  commits pushed on main
                 </p>
               </div>
 
               <div className="flex gap-2 items-center ml-auto mr-1 sm:mr-3 flex-shrink-0">
-                <p className="hidden sm:inline-block xl:hidden min-[1650px]:inline-block">
-                  See more
-                </p>
                 <ArrowRight className="h-4 w-4" />
               </div>
             </button>
           )}
         </div>
 
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <div className="text-sm text-muted-foreground">
-            The top {safeLotteryFactor.topContributorsCount} contributors of
-            this repository have made{" "}
-            <span className="font-medium text-foreground">
-              {safeLotteryFactor.topContributorsPercentage}%
-            </span>{" "}
-            of all pull requests in the past {timeRangeNumber} days.
-          </div>
-
-          <div className="h-2 w-full rounded-full overflow-hidden flex">
-            {getProgressBarSegments(safeLotteryFactor.contributors).map(
-              (segment, i) => (
-                <TooltipProvider key={i}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div
-                        className={`h-full transition-colors ${segment.color}`}
-                        style={{ width: segment.width }}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <div className="flex items-center gap-2">
-                        {segment.contributor ? (
-                          <>
-                            <OptimizedAvatar
-                              src={segment.contributor.avatar_url}
-                              alt={segment.contributor.login}
-                              size={32}
-                              lazy={false}
-                              fallback={segment.contributor.login[0]?.toUpperCase() || '?'}
-                              className="w-4 h-4"
-                            />
-                            <span>{segment.contributor.login}</span>
-                            <span className="text-muted-foreground">
-                              ({Math.round(segment.contributor.percentage)}%)
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <Users className="w-4 h-4" />
-                            <span>Other contributors</span>
-                            <span className="text-muted-foreground">
-                              ({Math.round(parseFloat(segment.width))}%)
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )
-            )}
-          </div>
-        </div>
-
         <div className="space-y-4">
-          <div className="hidden sm:grid grid-cols-[1fr_100px_80px] gap-4 text-sm text-muted-foreground">
-            <div>Contributor</div>
-            <div className="text-right">Pull Requests</div>
-            <div className="text-right">% of total</div>
+          <div className="space-y-2">
+            <div className="text-sm text-muted-foreground">
+              The top {safeLotteryFactor.topContributorsCount} contributors of
+              this repository have made{" "}
+              <span className="font-medium text-foreground">
+                {safeLotteryFactor.topContributorsPercentage}%
+              </span>{" "}
+              of all pull requests in the past {timeRangeNumber} days.
+            </div>
+
+            <div className="h-2 w-full rounded-full overflow-hidden flex">
+              {getProgressBarSegments(safeLotteryFactor.contributors).map(
+                (segment, i) => (
+                  <TooltipProvider key={i}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={`h-full transition-colors ${segment.color}`}
+                          style={{ width: segment.width }}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="flex items-center gap-2">
+                          {segment.contributor ? (
+                            <>
+                              <OptimizedAvatar
+                                src={segment.contributor.avatar_url}
+                                alt={segment.contributor.login}
+                                size={32}
+                                lazy={false}
+                                fallback={
+                                  segment.contributor.login[0]?.toUpperCase() ||
+                                  "?"
+                                }
+                                className="w-4 h-4"
+                              />
+                              <span>{segment.contributor.login}</span>
+                              <span className="text-muted-foreground">
+                                ({Math.round(segment.contributor.percentage)}%)
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <Users className="w-4 h-4" />
+                              <span>Other contributors</span>
+                              <span className="text-muted-foreground">
+                                ({Math.round(parseFloat(segment.width))}%)
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )
+              )}
+            </div>
           </div>
 
-          {safeLotteryFactor.contributors.map((contributor, index) => (
-            <div
-              key={contributor.login}
-              className="flex flex-col space-y-2 sm:grid sm:grid-cols-[1fr_100px_80px] sm:gap-4 sm:items-center sm:space-y-0"
-            >
-              <div className="flex items-center gap-2">
-                <ContributorHoverCard
-                  contributor={contributor}
-                  role={getContributorRole(contributor.login, index)}
-                >
-                  <OptimizedAvatar
-                    src={contributor.avatar_url}
-                    alt={contributor.login}
-                    size={32}
-                    lazy={false}
-                    fallback={contributor.login[0]?.toUpperCase() || '?'}
-                    className="cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
-                  />
-                </ContributorHoverCard>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium" style={{ wordBreak: 'break-word' }}>{contributor.login}</div>
-                  <div className="text-sm text-muted-foreground flex items-center justify-between">
-                    <span>
-                      {getContributorRole(contributor.login, index)}
-                    </span>
-                    <div className="flex items-center gap-2 sm:hidden">
-                      <span className="flex items-center gap-1">
-                        <span className="text-xs">{contributor.pullRequests}</span>
-                        <GitPullRequest className="h-3 w-3" />
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="text-xs">{Math.round(contributor.percentage)}</span>
-                        <Percent className="h-3 w-3" />
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="hidden sm:flex sm:justify-between sm:contents">
-                <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
-                  <span className="text-base">{contributor.pullRequests}</span>
-                </div>
-                <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
-                  <span className="text-base">{Math.round(contributor.percentage)}%</span>
-                </div>
-              </div>
+          <div className="space-y-4">
+            <div className="hidden sm:grid grid-cols-[1fr_100px_80px] gap-4 text-sm text-muted-foreground">
+              <div>Contributor</div>
+              <div className="text-right">Pull Requests</div>
+              <div className="text-right">% of total</div>
             </div>
-          ))}
 
-          <div className="border-t pt-4">
-            <div className="flex flex-col space-y-2 sm:grid sm:grid-cols-[1fr_100px_80px] sm:gap-4 sm:items-center sm:space-y-0">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium">Other contributors</div>
-                  <div className="text-sm text-muted-foreground flex items-center justify-between">
-                    <span>
-                      {safeLotteryFactor.totalContributors -
-                        safeLotteryFactor.contributors.length}{" "}
-                      contributors
-                    </span>
-                    <div className="flex items-center gap-2 sm:hidden">
-                      <span className="flex items-center gap-1">
-                        <span className="text-xs">
-                          {safeStats.pullRequests.length -
-                            safeLotteryFactor.contributors.reduce(
-                              (sum, c) => sum + c.pullRequests,
-                              0
-                            )}
-                        </span>
-                        <GitPullRequest className="h-3 w-3" />
+            {safeLotteryFactor.contributors.map((contributor, index) => (
+              <div
+                key={contributor.login}
+                className="flex flex-col space-y-2 sm:grid sm:grid-cols-[1fr_100px_80px] sm:gap-4 sm:items-center sm:space-y-0"
+              >
+                <div className="flex items-center gap-2">
+                  <ContributorHoverCard
+                    contributor={contributor}
+                    role={getContributorRole(contributor.login, index)}
+                  >
+                    <OptimizedAvatar
+                      src={contributor.avatar_url}
+                      alt={contributor.login}
+                      size={32}
+                      lazy={false}
+                      fallback={contributor.login[0]?.toUpperCase() || "?"}
+                      className="cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                    />
+                  </ContributorHoverCard>
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className="font-medium"
+                      style={{ wordBreak: "break-word" }}
+                    >
+                      {contributor.login}
+                    </div>
+                    <div className="text-sm text-muted-foreground flex items-center justify-between">
+                      <span>
+                        {getContributorRole(contributor.login, index)}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <span className="text-xs">
-                          {Math.round(
-                            100 -
-                              safeLotteryFactor.contributors.reduce(
-                                (sum, c) => sum + c.percentage,
-                                0
-                              )
-                          )}
+                      <div className="flex items-center gap-2 sm:hidden">
+                        <span className="flex items-center gap-1">
+                          <span className="text-xs">
+                            {contributor.pullRequests}
+                          </span>
+                          <GitPullRequest className="h-3 w-3" />
                         </span>
-                        <Percent className="h-3 w-3" />
-                      </span>
+                        <span className="flex items-center gap-1">
+                          <span className="text-xs">
+                            {Math.round(contributor.percentage)}
+                          </span>
+                          <Percent className="h-3 w-3" />
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="hidden sm:flex sm:justify-between sm:contents">
-                <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
-                  <span className="text-base">
-                    {safeStats.pullRequests.length -
-                      safeLotteryFactor.contributors.reduce(
-                        (sum, c) => sum + c.pullRequests,
-                        0
-                      )}
-                  </span>
+                <div className="hidden sm:flex sm:justify-between sm:contents">
+                  <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
+                    <span className="text-base">
+                      {contributor.pullRequests}
+                    </span>
+                  </div>
+                  <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
+                    <span className="text-base">
+                      {Math.round(contributor.percentage)}%
+                    </span>
+                  </div>
                 </div>
-                <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
-                  <span className="text-base">
-                    {Math.round(
-                      100 -
+              </div>
+            ))}
+
+            <div className="border-t pt-4">
+              <div className="flex flex-col space-y-2 sm:grid sm:grid-cols-[1fr_100px_80px] sm:gap-4 sm:items-center sm:space-y-0">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium">Other contributors</div>
+                    <div className="text-sm text-muted-foreground flex items-center justify-between">
+                      <span>
+                        {safeLotteryFactor.totalContributors -
+                          safeLotteryFactor.contributors.length}{" "}
+                        contributors
+                      </span>
+                      <div className="flex items-center gap-2 sm:hidden">
+                        <span className="flex items-center gap-1">
+                          <span className="text-xs">
+                            {safeStats.pullRequests.length -
+                              safeLotteryFactor.contributors.reduce(
+                                (sum, c) => sum + c.pullRequests,
+                                0
+                              )}
+                          </span>
+                          <GitPullRequest className="h-3 w-3" />
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="text-xs">
+                            {Math.round(
+                              100 -
+                                safeLotteryFactor.contributors.reduce(
+                                  (sum, c) => sum + c.percentage,
+                                  0
+                                )
+                            )}
+                          </span>
+                          <Percent className="h-3 w-3" />
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="hidden sm:flex sm:justify-between sm:contents">
+                  <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
+                    <span className="text-base">
+                      {safeStats.pullRequests.length -
                         safeLotteryFactor.contributors.reduce(
-                          (sum, c) => sum + c.percentage,
+                          (sum, c) => sum + c.pullRequests,
                           0
-                        )
-                    )}%
-                  </span>
+                        )}
+                    </span>
+                  </div>
+                  <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
+                    <span className="text-base">
+                      {Math.round(
+                        100 -
+                          safeLotteryFactor.contributors.reduce(
+                            (sum, c) => sum + c.percentage,
+                            0
+                          )
+                      )}
+                      %
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
     </ShareableCard>
   );
 }
 
 // LotteryFactor Tab Component that uses Context
 export default function LotteryFactor() {
-  const {
-    stats,
-    lotteryFactor,
-    directCommitsData,
-    includeBots,
-  } = useContext(RepoStatsContext);
+  const { stats, lotteryFactor, directCommitsData, includeBots } =
+    useContext(RepoStatsContext);
 
   // Local state for bot toggle to avoid page refresh
   const [localIncludeBots, setLocalIncludeBots] = useState(includeBots);
