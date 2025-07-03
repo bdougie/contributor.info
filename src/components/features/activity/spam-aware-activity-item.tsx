@@ -124,7 +124,7 @@ export function SpamAwareActivityItem({ activity }: SpamAwareActivityItemProps) 
   };
 
   return (
-    <div className="flex gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors">
+    <div className="flex gap-3 p-2 sm:p-3 rounded-lg border hover:bg-accent/50 transition-colors">
       {/* Timeline indicator */}
       <div className="flex flex-col items-center">
         <div className={`w-2 h-2 rounded-full ${getActivityColor()}`} />
@@ -171,7 +171,7 @@ export function SpamAwareActivityItem({ activity }: SpamAwareActivityItemProps) 
             href={pullRequest.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-medium hover:underline truncate"
+            className="text-sm font-medium hover:underline truncate max-w-[200px] sm:max-w-none"
           >
             #{pullRequest.number} {pullRequest.title}
           </a>

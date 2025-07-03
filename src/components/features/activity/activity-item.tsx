@@ -106,7 +106,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
   };
 
   return (
-    <div className="flex items-start space-x-3 p-3 rounded-md hover:bg-muted/50 transition-colors">
+    <div className="flex items-start space-x-3 p-2 sm:p-3 rounded-md hover:bg-muted/50 transition-colors">
       <div className="relative flex-shrink-0">
         <ContributorHoverCard
           contributor={displayData}

@@ -366,8 +366,8 @@ export function LotteryFactorContent({
               <div className="flex gap-2 items-center min-w-0 flex-1">
                 <div className="flex items-center font-medium gap-1 px-2 py-0.5 rounded-2xl bg-light-red-4 text-light-red-11 flex-shrink-0">
                   <YoloIcon className="h-4 w-4" />
-                  <span className="hidden xs:inline">YOLO Coders</span>
-                  <span className="xs:hidden">YOLO</span>
+                  <span className="hidden min-[360px]:inline">YOLO Coders</span>
+                  <span className="min-[360px]:hidden">YOLO</span>
                 </div>
                 <p className="text-sm" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   commits directly on main
