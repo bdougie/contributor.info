@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Database, GitBranch } from 'lucide-react';
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from '@/components/ui/toggle-group';
+import { Database } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   Tooltip,
   TooltipContent,
@@ -14,13 +11,7 @@ import {
 
 export type FeedSource = 'github' | 'database';
 
-interface FeedSourceToggleProps {
-  value: FeedSource;
-  onChange: (source: FeedSource) => void;
-  className?: string;
-}
-
-export function FeedSourceToggle({ value, onChange, className }: FeedSourceToggleProps) {
+export function FeedSourceToggle({ className }: { className?: string }) {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const navigate = useNavigate();
 
@@ -32,44 +23,25 @@ export function FeedSourceToggle({ value, onChange, className }: FeedSourceToggl
 
   return (
     <TooltipProvider>
-      <ToggleGroup
-        type="single"
-        value={value}
-        onValueChange={(newValue) => {
-          if (newValue === 'database') {
-            handleSpamClick();
-          } else if (newValue) {
-            onChange(newValue as FeedSource);
-          }
-        }}
-        className={className}
-      >
+      <div className={className}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <ToggleGroupItem value="github" aria-label="Use GitHub API">
-              <GitBranch className="h-4 w-4 mr-2" />
-              Live
-            </ToggleGroupItem>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Fetch latest data directly from GitHub</p>
-            <p className="text-xs text-muted-foreground">Real-time but no spam filtering</p>
-          </TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <ToggleGroupItem value="database" aria-label="Go to spam analysis page">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSpamClick}
+              aria-label="Go to spam analysis page"
+            >
               <Database className="h-4 w-4 mr-2" />
               Spam
-            </ToggleGroupItem>
+            </Button>
           </TooltipTrigger>
           <TooltipContent>
             <p>Advanced spam detection and analysis</p>
             <p className="text-xs text-muted-foreground">Requires authentication • Navigate to dedicated spam page</p>
           </TooltipContent>
         </Tooltip>
-      </ToggleGroup>
+      </div>
     </TooltipProvider>
   );
 }

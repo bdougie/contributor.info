@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import FilteredPRActivity from "../activity/pr-activity-filtered";
 import { useTimeRangeStore } from "@/lib/time-range-store";
@@ -13,8 +15,15 @@ import { SocialMetaTags } from "@/components/common/layout";
 
 export default function SpamFeedPage() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
+  const navigate = useNavigate();
   const timeRange = useTimeRangeStore((state) => state.timeRange);
   const [includeBots, setIncludeBots] = useState(false);
+
+  const handleBackToFeed = () => {
+    if (owner && repo) {
+      navigate(`/${owner}/${repo}/feed`);
+    }
+  };
 
   // Use our custom hooks
   const { stats, lotteryFactor, directCommitsData } = useCachedRepoData(
@@ -76,6 +85,17 @@ export default function SpamFeedPage() {
         image={`social-cards/repo-${owner}-${repo}.png`}
       />
       
+      <div className="mb-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBackToFeed}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to feed
+        </Button>
+      </div>
 
       <RepoStatsProvider
         value={{
