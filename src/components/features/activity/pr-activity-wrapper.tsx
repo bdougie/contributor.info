@@ -1,15 +1,12 @@
 import { lazy, Suspense } from 'react';
-import { FeedSourceToggle, useFeedSourcePreference } from './feed-source-toggle';
+import { FeedSourceToggle } from './feed-source-toggle';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
 // Lazy load the components
 const PRActivity = lazy(() => import('./pr-activity'));
-const FilteredPRActivity = lazy(() => import('./pr-activity-filtered'));
 
 export default function PRActivityWrapper() {
-  const [feedSource, setFeedSource] = useFeedSourcePreference('github');
-
   const LoadingFallback = () => (
     <Card>
       <CardHeader>
@@ -29,18 +26,11 @@ export default function PRActivityWrapper() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <FeedSourceToggle
-          value={feedSource}
-          onChange={setFeedSource}
-        />
+        <FeedSourceToggle />
       </div>
 
       <Suspense fallback={<LoadingFallback />}>
-        {feedSource === 'github' ? (
-          <PRActivity />
-        ) : (
-          <FilteredPRActivity />
-        )}
+        <PRActivity />
       </Suspense>
     </div>
   );
