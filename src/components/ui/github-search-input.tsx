@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { SearchIcon, Star, GitFork } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGitHubSearch } from "@/hooks/use-github-search";
+import { OrganizationAvatar } from "@/components/ui/organization-avatar";
 import type { GitHubRepository } from "@/lib/github";
 
 interface GitHubSearchInputProps {
@@ -169,10 +170,11 @@ export function GitHubSearchInput({
                     )}
                   >
                     <div className="flex items-center space-x-3">
-                      <img
+                      <OrganizationAvatar
                         src={repo.owner.avatar_url}
                         alt={repo.owner.login}
-                        className="w-6 h-6 rounded-full"
+                        size={24}
+                        priority={index < 3}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm truncate">
