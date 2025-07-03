@@ -163,7 +163,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
               <span className="text-muted-foreground hidden sm:inline">in</span>
               <a
                 href={repository.url}
-                className="text-orange-500 hover:underline truncate max-w-[200px] sm:max-w-none hidden sm:inline"
+                className="text-orange-500 hover:underline truncate max-w-xs sm:max-w-none hidden sm:inline"
                 target="_blank"
                 rel="noopener noreferrer"
                 title={`${repository.owner}/${repository.name}`}

@@ -171,7 +171,7 @@ export function SpamAwareActivityItem({ activity }: SpamAwareActivityItemProps) 
             href={pullRequest.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-medium hover:underline truncate max-w-[200px] sm:max-w-none"
+            className="text-sm font-medium hover:underline truncate max-w-xs sm:max-w-none"
           >
             #{pullRequest.number} {pullRequest.title}
           </a>
