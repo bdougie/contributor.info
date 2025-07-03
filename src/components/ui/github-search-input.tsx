@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchIcon, Star, Clock, GitBranch } from "lucide-react";
+import { SearchIcon, Star, Clock, GitBranch, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGitHubSearch } from "@/hooks/use-github-search";
 import { OrganizationAvatar } from "@/components/ui/organization-avatar";
 import { useTimeFormatter } from "@/hooks/use-time-formatter";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { GitHubRepository } from "@/lib/github";
 
 interface GitHubSearchInputProps {
@@ -168,19 +169,48 @@ export function GitHubSearchInput({
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            className="w-full"
+            className="w-full pr-8"
             autoComplete="off"
           />
+          {/* Loading spinner in input field */}
+          {loading && inputValue.length > 1 && (
+            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
 
           {/* Dropdown with search results */}
           {showDropdown && (
             <div
               ref={dropdownRef}
-              className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-md shadow-md max-h-80 overflow-y-auto"
+              className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-md shadow-md max-h-80 overflow-y-auto animate-in fade-in-0 zoom-in-95 duration-200"
             >
               {loading && (
-                <div className="px-4 py-3 text-sm text-muted-foreground">
-                  Searching repositories...
+                <div className="p-2">
+                  {/* Skeleton loaders for search results */}
+                  {[...Array(3)].map((_, index) => (
+                    <div 
+                      key={index} 
+                      className="p-2 animate-in fade-in-0 duration-500"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-5 w-16 rounded-full" />
+                          </div>
+                          <Skeleton className="h-3 w-full" />
+                          <div className="flex items-center space-x-4">
+                            <Skeleton className="h-3 w-12" />
+                            <Skeleton className="h-3 w-12" />
+                            <Skeleton className="h-3 w-20" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -191,9 +221,10 @@ export function GitHubSearchInput({
                     type="button"
                     onClick={() => handleSelectRepository(repo)}
                     className={cn(
-                      "w-full px-4 py-3 text-left hover:bg-accent focus:bg-accent focus:outline-none transition-colors",
+                      "w-full px-4 py-3 text-left hover:bg-accent focus:bg-accent focus:outline-none transition-colors animate-in fade-in-0 slide-in-from-top-1 duration-300",
                       selectedIndex === index && "bg-accent"
                     )}
+                    style={{ animationDelay: `${index * 50}ms` }}
                   >
                     <div className="flex items-center space-x-3">
                       <OrganizationAvatar
@@ -246,7 +277,7 @@ export function GitHubSearchInput({
                 ))}
 
               {!loading && results.length === 0 && inputValue.length > 1 && (
-                <div className="px-4 py-3 text-sm text-muted-foreground">
+                <div className="px-4 py-3 text-sm text-muted-foreground animate-in fade-in-0 duration-300">
                   No repositories found
                 </div>
               )}
