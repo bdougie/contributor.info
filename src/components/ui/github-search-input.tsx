@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchIcon, Star, GitFork } from "lucide-react";
+import { SearchIcon, Star, Clock, GitBranch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGitHubSearch } from "@/hooks/use-github-search";
 import { OrganizationAvatar } from "@/components/ui/organization-avatar";
+import { useTimeFormatter } from "@/hooks/use-time-formatter";
 import type { GitHubRepository } from "@/lib/github";
 
 interface GitHubSearchInputProps {
@@ -16,6 +17,30 @@ interface GitHubSearchInputProps {
   showButton?: boolean;
   buttonText?: string;
 }
+
+// Language color mapping (subset of common languages)
+const languageColors: Record<string, string> = {
+  JavaScript: '#f1e05a',
+  TypeScript: '#3178c6',
+  Python: '#3572A5',
+  Java: '#b07219',
+  Go: '#00ADD8',
+  Rust: '#dea584',
+  Ruby: '#701516',
+  PHP: '#4F5D95',
+  Swift: '#FA7343',
+  Kotlin: '#A97BFF',
+  C: '#555555',
+  'C++': '#f34b7d',
+  'C#': '#178600',
+  HTML: '#e34c26',
+  CSS: '#563d7c',
+  Shell: '#89e051',
+  Dart: '#00B4AB',
+  Vue: '#41b883',
+  Scala: '#c22d40',
+  Elixir: '#6e4a7e',
+};
 
 export function GitHubSearchInput({
   placeholder = "Search repositories (e.g., facebook/react)",
@@ -31,6 +56,7 @@ export function GitHubSearchInput({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { formatRelativeTime } = useTimeFormatter();
 
   const { setQuery, results, loading } = useGitHubSearch({
     debounceMs: 300,
@@ -173,12 +199,23 @@ export function GitHubSearchInput({
                       <OrganizationAvatar
                         src={repo.owner.avatar_url}
                         alt={repo.owner.login}
-                        size={24}
+                        size={32}
                         priority={index < 3}
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">
-                          {repo.full_name}
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm truncate">
+                            {repo.full_name}
+                          </span>
+                          {repo.language && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-muted">
+                              <span 
+                                className="w-2 h-2 rounded-full" 
+                                style={{ backgroundColor: languageColors[repo.language] || '#959da5' }}
+                              />
+                              <span>{repo.language}</span>
+                            </span>
+                          )}
                         </div>
                         {repo.description && (
                           <div className="text-xs text-muted-foreground truncate mt-1">
@@ -193,9 +230,15 @@ export function GitHubSearchInput({
                             </span>
                           </span>
                           <span className="flex items-center space-x-1">
-                            <GitFork className="w-3 h-3" />
+                            <GitBranch className="w-3 h-3" />
                             <span>{repo.forks_count.toLocaleString()}</span>
                           </span>
+                          {repo.pushed_at && (
+                            <span className="flex items-center space-x-1">
+                              <Clock className="w-3 h-3" />
+                              <span>{formatRelativeTime(repo.pushed_at)}</span>
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

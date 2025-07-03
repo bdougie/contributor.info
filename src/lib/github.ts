@@ -16,6 +16,8 @@ export interface GitHubRepository {
   stargazers_count: number;
   forks_count: number;
   private: boolean;
+  pushed_at?: string;
+  language?: string | null;
 }
 
 // Export the fetchUserOrganizations function to fix the missing export error
@@ -626,7 +628,7 @@ export async function searchGitHubRepositories(query: string, limit: number = 10
     }
 
     const searchResults = await response.json();
-    return searchResults.items?.map((repo: any) => ({
+    const repositories = searchResults.items?.map((repo: any) => ({
       id: repo.id,
       name: repo.name,
       full_name: repo.full_name,
@@ -638,7 +640,22 @@ export async function searchGitHubRepositories(query: string, limit: number = 10
       stargazers_count: repo.stargazers_count,
       forks_count: repo.forks_count,
       private: repo.private,
+      pushed_at: repo.pushed_at,
+      language: repo.language,
     })) || [];
+    
+    // Sort by stars (descending) first, then by last commit date (most recent first)
+    return repositories.sort((a: GitHubRepository, b: GitHubRepository) => {
+      // First sort by stars
+      const starDiff = b.stargazers_count - a.stargazers_count;
+      if (starDiff !== 0) return starDiff;
+      
+      // If stars are equal, sort by last commit date
+      if (a.pushed_at && b.pushed_at) {
+        return new Date(b.pushed_at).getTime() - new Date(a.pushed_at).getTime();
+      }
+      return 0;
+    });
   } catch (error) {
     console.error('Error searching GitHub repositories:', error);
     return [];
