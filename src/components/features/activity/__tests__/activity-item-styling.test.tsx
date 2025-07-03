@@ -145,7 +145,7 @@ describe('ActivityItem Link Styling', () => {
     
     // Repository link should have truncation classes
     expect(repoLink).toHaveClass('truncate')
-    expect(repoLink).toHaveClass('max-w-[200px]')
+    expect(repoLink).toHaveClass('max-w-xs')
     expect(repoLink).toHaveClass('sm:max-w-none')
     
     // Should have title attribute for accessibility

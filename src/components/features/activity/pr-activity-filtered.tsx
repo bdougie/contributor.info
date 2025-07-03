@@ -104,7 +104,7 @@ export default function FilteredPRActivity() {
           />
         </div>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent className="p-3 sm:p-6">
         {/* Database source indicator */}
         <Alert className="mb-4">
           <Database className="h-4 w-4" />
