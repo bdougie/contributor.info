@@ -26,6 +26,7 @@ import { RepoViewSkeleton } from "@/components/skeletons";
 import { SocialMetaTags } from "@/components/common/layout";
 import RepoNotFound from "./repo-not-found";
 import { createChartShareUrl, getDubConfig } from "@/lib/dub";
+import { RepositorySummaryCard } from "./repository-summary-card";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -173,6 +174,15 @@ export default function RepoView() {
       </Card>
 
       <div className="grid gap-8">
+        {/* AI Repository Summary Card */}
+        {owner && repo && (
+          <RepositorySummaryCard 
+            owner={owner} 
+            repo={repo} 
+            pullRequests={stats.pullRequests}
+          />
+        )}
+        
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
