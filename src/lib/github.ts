@@ -164,7 +164,7 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
     let page = 1;
     const perPage = 100;
     
-    while (page <= 5) { // Limit to 5 pages (500 PRs) to avoid excessive API calls
+    while (page <= 10) { // Limit to 10 pages (1000 PRs) for very active repositories
       const response = await fetch(
         `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=${perPage}&page=${page}`,
         { headers }
@@ -211,6 +211,11 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
       const prDate = new Date(pr.updated_at);
       return prDate >= since;
     });
+
+    // Debug logging for pagination effectiveness
+    if (import.meta.env.DEV) {
+      console.log(`PR Pagination Debug - Total PRs fetched: ${allPRs.length}, Filtered PRs: ${filteredPRs.length}, Pages fetched: ${page - 1}`);
+    }
     
     // Fetch additional details for each PR to get additions/deletions
     const detailedPRs = await Promise.all(
