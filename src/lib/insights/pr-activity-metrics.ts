@@ -1,4 +1,4 @@
-import { fetchPullRequests } from '../github';
+import { fetchPRDataWithFallback } from '../supabase-pr-data';
 
 export interface ActivityMetrics {
   totalPRs: number;
@@ -28,7 +28,7 @@ export async function calculatePrActivityMetrics(
 ): Promise<ActivityMetrics> {
   try {
     // Fetch PRs for the current time period
-    const allPRs = await fetchPullRequests(owner, repo, timeRange);
+    const allPRs = await fetchPRDataWithFallback(owner, repo, timeRange);
     
     // Get current date and calculate time boundaries
     const now = new Date();
