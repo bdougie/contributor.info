@@ -159,31 +159,55 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
     const since = new Date();
     since.setDate(since.getDate() - parseInt(timeRange));
     
-    const response = await fetch(
-      `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=100&since=${since.toISOString()}`,
-      { headers }
-    );
+    // Fetch multiple pages of PRs to ensure we get all recent ones
+    let allPRs: any[] = [];
+    let page = 1;
+    const perPage = 100;
+    
+    while (page <= 5) { // Limit to 5 pages (500 PRs) to avoid excessive API calls
+      const response = await fetch(
+        `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=${perPage}&page=${page}`,
+        { headers }
+      );
 
-    if (!response.ok) {
-      const error = await response.json();
-      if (response.status === 404) {
-        throw new Error(`Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`);
-      } else if (response.status === 403 && error.message?.includes('rate limit')) {
-        if (!token) {
-          throw new Error('GitHub API rate limit exceeded. Please log in with GitHub to increase the rate limit.');
-        } else {
-          throw new Error('GitHub API rate limit exceeded. Please try again later.');
+      if (!response.ok) {
+        if (page === 1) {
+          const error = await response.json();
+          if (response.status === 404) {
+            throw new Error(`Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`);
+          } else if (response.status === 403 && error.message?.includes('rate limit')) {
+            if (!token) {
+              throw new Error('GitHub API rate limit exceeded. Please log in with GitHub to increase the rate limit.');
+            } else {
+              throw new Error('GitHub API rate limit exceeded. Please try again later.');
+            }
+          } else if (response.status === 401) {
+            throw new Error('Invalid GitHub token. Please check your token and try again. Make sure you\'ve copied the entire token correctly.');
+          }
+          throw new Error(`GitHub API error: ${error.message || response.statusText}`);
         }
-      } else if (response.status === 401) {
-        throw new Error('Invalid GitHub token. Please check your token and try again. Make sure you\'ve copied the entire token correctly.');
+        break; // Stop fetching if later pages fail
       }
-      throw new Error(`GitHub API error: ${error.message || response.statusText}`);
-    }
 
-    const prs = await response.json();
+      const prs = await response.json();
+      allPRs.push(...prs);
+      
+      // If we got less than a full page, we're done
+      if (prs.length < perPage) {
+        break;
+      }
+      
+      // Check if all PRs are too old to be relevant
+      const oldestPRDate = new Date(prs[prs.length - 1].updated_at);
+      if (oldestPRDate < since) {
+        break; // No point in fetching older PRs
+      }
+      
+      page++;
+    }
     
     // Filter PRs by the time range
-    const filteredPRs = prs.filter((pr: any) => {
+    const filteredPRs = allPRs.filter((pr: any) => {
       const prDate = new Date(pr.updated_at);
       return prDate >= since;
     });
@@ -497,7 +521,22 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
 
     // Get merged PRs for the repository in the time range to identify PR-related commits
     const pullRequests = await fetchPullRequests(owner, repo, timeRange);
-    const mergedPRs = pullRequests.filter(pr => pr.merged_at);
+    const mergedPRs = pullRequests.filter(pr => {
+      if (!pr.merged_at) return false;
+      // Only include PRs merged within our time range
+      const mergedDate = new Date(pr.merged_at);
+      return mergedDate >= since;
+    });
+    
+    // Debug logging (can be removed in production)
+    if (import.meta.env.DEV) {
+      console.log(`YOLO Debug - Total PRs found: ${pullRequests.length}`);
+      console.log(`YOLO Debug - Merged PRs found: ${mergedPRs.length}`);
+      console.log(`YOLO Debug - Time range: ${since.toISOString()} to ${new Date().toISOString()}`);
+      if (mergedPRs.length > 0) {
+        console.log(`YOLO Debug - Sample merged PR dates:`, mergedPRs.slice(0, 3).map(pr => pr.merged_at));
+      }
+    }
     
     // Collect all commit SHAs that are associated with merged PRs
     const prCommitShaSet = new Set<string>();
@@ -513,12 +552,19 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
           
           if (prCommitsResponse.ok) {
             const prCommits = await prCommitsResponse.json();
+            if (import.meta.env.DEV) {
+              console.log(`YOLO Debug - PR #${pr.number} has ${prCommits.length} commits`);
+            }
             prCommits.forEach((commit: any) => {
               prCommitShaSet.add(commit.sha);
             });
+          } else if (import.meta.env.DEV) {
+            console.log(`YOLO Debug - Failed to fetch commits for PR #${pr.number}: ${prCommitsResponse.statusText}`);
           }
         } catch (error) {
-          // Silently handle PR commits fetch errors
+          if (import.meta.env.DEV) {
+            console.log(`YOLO Debug - Error fetching commits for PR #${pr.number}:`, error);
+          }
         }
       })
     );
@@ -558,9 +604,23 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
     }
 
     // Filter commits to find direct commits (those not associated with merged PRs)
+    if (import.meta.env.DEV) {
+      console.log(`YOLO Debug - Total commits on main branch: ${allCommits.length}`);
+      console.log(`YOLO Debug - PR commit SHAs collected: ${prCommitShaSet.size}`);
+      console.log(`YOLO Debug - Sample PR commit SHAs:`, Array.from(prCommitShaSet).slice(0, 5));
+    }
+    
     const directCommitData = allCommits.filter((commit: any) => {
-      return !prCommitShaSet.has(commit.sha);
+      const isDirectCommit = !prCommitShaSet.has(commit.sha);
+      if (isDirectCommit && import.meta.env.DEV) {
+        console.log(`YOLO Debug - Direct commit found: ${commit.sha} by ${commit.author?.login || commit.committer?.login || 'unknown'}`);
+      }
+      return isDirectCommit;
     });
+    
+    if (import.meta.env.DEV) {
+      console.log(`YOLO Debug - Direct commits found: ${directCommitData.length}`);
+    }
 
     // Format the direct commits data
     const directCommits = directCommitData.map((commit: any) => {
