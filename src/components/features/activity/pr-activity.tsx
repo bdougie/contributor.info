@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from "react";
+import { useParams } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -12,19 +13,35 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { PullRequestActivityFeed } from "./pr-activity-feed";
 import { useCachedPRActivity } from "@/hooks/use-cached-pr-activity";
+import { useFastPRData } from "@/hooks/use-fast-pr-data";
 import { usePRActivityStore } from "@/lib/pr-activity-store";
+import { useTimeRange } from "@/lib/time-range-store";
 
 export default function PRActivity() {
+  const { owner, repo } = useParams<{ owner: string; repo: string }>();
+  const { timeRange } = useTimeRange();
   const { stats } = useContext(RepoStatsContext);
   const { selectedTypes, includeBots, toggleActivityType, setIncludeBots } = usePRActivityStore();
   const [visibleCount, setVisibleCount] = useState(15);
   const [hasBots, setHasBots] = useState(false);
 
+  // Use fast PR data for immediate loading, fallback to context data
+  const { pullRequests: fastPRs, loading: fastLoading, error: fastError } = useFastPRData(owner, repo, timeRange);
+  
+  // Use fast data if available, otherwise fallback to context data
+  const effectivePRs = fastPRs.length > 0 ? fastPRs : stats.pullRequests;
+  const effectiveLoading = fastLoading && stats.loading;
+  const effectiveError = fastError || stats.error;
+
   const {
     activities: allActivities,
-    loading,
-    error,
-  } = useCachedPRActivity(stats.pullRequests);
+    loading: activityLoading,
+    error: activityError,
+  } = useCachedPRActivity(effectivePRs);
+
+  // Combined loading state and error
+  const loading = effectiveLoading || activityLoading;
+  const error = activityError || (effectiveError ? new Error(effectiveError) : null);
 
   // Check if there are any bot activities
   useEffect(() => {

@@ -260,23 +260,34 @@ export function LotteryFactorContent({
             {timeRangeNumber} days without pull requests
           </p>
           <div className="space-y-4 mt-2">
-            {directCommitsData.yoloCoderStats.map((coder) => (
+            {directCommitsData.yoloCoderStats.map((coder, index) => (
               <div
                 key={coder.login}
                 className="flex items-center justify-between"
               >
                 <div className="flex items-center gap-3">
-                  <OptimizedAvatar
-                    src={coder.avatar_url}
-                    alt={coder.login}
-                    size={32}
-                    lazy={false}
-                    fallback={coder.login[0]?.toUpperCase() || "?"}
-                  />
+                  <ContributorHoverCard
+                    contributor={{
+                      login: coder.login,
+                      avatar_url: coder.avatar_url,
+                      pullRequests: 0, // YOLO coders bypass PRs
+                      percentage: 0, // Not applicable for direct commits
+                    }}
+                    role={coder.type === "Bot" ? "bot" : getContributorRole(coder.login, index)}
+                  >
+                    <OptimizedAvatar
+                      src={coder.avatar_url}
+                      alt={coder.login}
+                      size={32}
+                      lazy={false}
+                      fallback={coder.login[0]?.toUpperCase() || "?"}
+                      className="cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                    />
+                  </ContributorHoverCard>
                   <div>
                     <p className="font-medium">{coder.login}</p>
                     <p className="text-sm text-muted-foreground">
-                      {coder.type === "Bot" ? "bot" : "contributor"}
+                      {coder.type === "Bot" ? "bot" : getContributorRole(coder.login, index)}
                     </p>
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import { fetchPullRequests } from '../github';
+import { fetchPRDataWithFallback } from '../supabase-pr-data';
 import type { PullRequest } from '../types';
 
 export interface TrendData {
@@ -43,8 +43,16 @@ export async function calculateTrendMetrics(
     const currentPeriodStart = new Date(now.getTime() - currentPeriodDays * 24 * 60 * 60 * 1000);
     const previousPeriodStart = new Date(now.getTime() - 2 * currentPeriodDays * 24 * 60 * 60 * 1000);
     
-    // Fetch data
-    const allPRs = await fetchPullRequests(owner, repo, timeRange);
+    // Fetch data (try database first, fallback to GitHub API)
+    const allPRs = await fetchPRDataWithFallback(owner, repo, timeRange);
+    
+    // Debug logging
+    if (import.meta.env.DEV) {
+      console.log(`Trends Debug - ${owner}/${repo}: Fetched ${allPRs.length} PRs for timeRange ${timeRange}`);
+      console.log(`Trends Debug - Period: ${currentPeriodDays} ${periodLabel}s`);
+      console.log(`Trends Debug - Current period start: ${currentPeriodStart.toISOString()}`);
+      console.log(`Trends Debug - Previous period start: ${previousPeriodStart.toISOString()}`);
+    }
     
     // Calculate PR Volume
     const currentPRs = allPRs.filter(pr => {
@@ -56,6 +64,17 @@ export async function calculateTrendMetrics(
       const createdAt = new Date(pr.created_at);
       return createdAt >= previousPeriodStart && createdAt < currentPeriodStart;
     });
+    
+    // Debug logging for filtered results
+    if (import.meta.env.DEV) {
+      console.log(`Trends Debug - Current PRs: ${currentPRs.length}, Previous PRs: ${previousPRs.length}`);
+      if (currentPRs.length > 0) {
+        console.log(`Trends Debug - Sample current PR dates:`, currentPRs.slice(0, 3).map(pr => pr.created_at));
+      }
+      if (previousPRs.length > 0) {
+        console.log(`Trends Debug - Sample previous PR dates:`, previousPRs.slice(0, 3).map(pr => pr.created_at));
+      }
+    }
     
     const prVolumeChange = previousPRs.length > 0
       ? Math.round(((currentPRs.length - previousPRs.length) / previousPRs.length) * 100)
