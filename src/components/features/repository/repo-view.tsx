@@ -7,10 +7,11 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { GitHubSearchInput } from "@/components/ui/github-search-input";
+import type { GitHubRepository } from "@/lib/github";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SearchIcon, Link } from "lucide-react";
+import { Link } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { toast } from "sonner";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
@@ -20,12 +21,12 @@ import { Distribution } from "../distribution";
 import { ContributorOfMonthWrapper } from "../contributor";
 import { ExampleRepos } from "./example-repos";
 import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
-import { useRepoSearch } from "@/hooks/use-repo-search";
 import { InsightsSidebar } from "@/components/insights/insights-sidebar";
 import { RepoViewSkeleton } from "@/components/skeletons";
 import { SocialMetaTags } from "@/components/common/layout";
 import RepoNotFound from "./repo-not-found";
 import { createChartShareUrl, getDubConfig } from "@/lib/dub";
+import { useGitHubAuth } from "@/hooks/use-github-auth";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -34,7 +35,9 @@ export default function RepoView() {
   const timeRange = useTimeRangeStore((state) => state.timeRange);
   const [includeBots, setIncludeBots] = useState(false);
   const [isGeneratingUrl, setIsGeneratingUrl] = useState(false);
+  const [hasSearchedOnce, setHasSearchedOnce] = useState(false);
   const dubConfig = getDubConfig();
+  const { isLoggedIn } = useGitHubAuth();
 
   // Determine current tab based on URL
   const getCurrentTab = () => {
@@ -55,8 +58,23 @@ export default function RepoView() {
     includeBots
   );
 
-  const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
-    useRepoSearch({ isHomeView: false });
+  const handleSelectExample = (repo: string) => {
+    const match = repo.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+    if (match) {
+      const [, newOwner, newRepo] = match;
+      
+      // Check if login is required (second search while not logged in)
+      if (hasSearchedOnce && !isLoggedIn) {
+        localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
+        navigate('/login');
+        return;
+      }
+      
+      // Mark that a search has been performed
+      setHasSearchedOnce(true);
+      navigate(`/${newOwner}/${newRepo}`);
+    }
+  };
 
   // Update document title when owner/repo changes
   useEffect(() => {
@@ -156,18 +174,38 @@ export default function RepoView() {
       />
       <Card className="mb-8">
         <CardContent className="pt-6">
-          <form onSubmit={handleSearch} className="flex gap-4">
-            <Input
-              placeholder="Search another repository (e.g., facebook/react)"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="submit" aria-label="Search">
-              <SearchIcon className="mr-2 h-4 w-4" />
-              Search
-            </Button>
-          </form>
+          <GitHubSearchInput
+            placeholder="Search another repository (e.g., facebook/react)"
+            onSearch={(repositoryPath) => {
+              const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+              if (match) {
+                const [, newOwner, newRepo] = match;
+                
+                // Check if login is required (second search while not logged in)
+                if (hasSearchedOnce && !isLoggedIn) {
+                  localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
+                  navigate('/login');
+                  return;
+                }
+                
+                // Mark that a search has been performed
+                setHasSearchedOnce(true);
+                navigate(`/${newOwner}/${newRepo}`);
+              }
+            }}
+            onSelect={(repository: GitHubRepository) => {
+              // Check if login is required (second search while not logged in)
+              if (hasSearchedOnce && !isLoggedIn) {
+                localStorage.setItem('redirectAfterLogin', `/${repository.full_name}`);
+                navigate('/login');
+                return;
+              }
+              
+              // Mark that a search has been performed
+              setHasSearchedOnce(true);
+              navigate(`/${repository.full_name}`);
+            }}
+          />
           <ExampleRepos onSelect={handleSelectExample} />
         </CardContent>
       </Card>

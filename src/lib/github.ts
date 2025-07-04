@@ -3,6 +3,69 @@ import type { PullRequest } from './types';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
+// Type for repository search results
+export interface GitHubRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
+  description: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  private: boolean;
+  pushed_at?: string;
+  language?: string | null;
+}
+
+export async function searchGitHubRepositories(query: string, limit: number = 10): Promise<GitHubRepository[]> {
+  if (!query.trim()) {
+    return [];
+  }
+
+  const headers: HeadersInit = {
+    'Accept': 'application/vnd.github.v3+json',
+  };
+
+  // Try to get user's GitHub token from Supabase session
+  const { data: { session } } = await supabase.auth.getSession();
+  const userToken = session?.provider_token;
+
+  // Use user's token if available, otherwise fall back to env token
+  const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  if (token) {
+    headers.Authorization = `token ${token}`;
+  }
+
+  try {
+    // Use GitHub search API to find repositories
+    const searchQuery = encodeURIComponent(`${query} in:name,description fork:true`);
+    const response = await fetch(
+      `${GITHUB_API_BASE}/search/repositories?q=${searchQuery}&sort=stars&order=desc&per_page=${Math.min(limit, 100)}`,
+      { headers }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      if (response.status === 403 && error.message?.includes('rate limit')) {
+        if (!token) {
+          throw new Error('GitHub API rate limit exceeded. Please log in to continue searching.');
+        }
+        throw new Error('GitHub API rate limit exceeded. Please try again later.');
+      }
+      throw new Error(`GitHub API error: ${error.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.items || [];
+  } catch (error) {
+    console.error('Error searching GitHub repositories:', error);
+    throw error;
+  }
+}
+
 // Export the fetchUserOrganizations function to fix the missing export error
 export async function fetchUserOrganizations(username: string, headers: HeadersInit): Promise<{ login: string; avatar_url: string; }[]> {
   try {
