@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { fetchPullRequests, fetchDirectCommits } from '@/lib/github';
+import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-commits';
+import { fetchPRDataWithFallback } from '@/lib/supabase-pr-data';
 import { calculateLotteryFactor } from '@/lib/utils';
 import type { RepoStats, LotteryFactor, DirectCommitsData, TimeRange } from '@/lib/types';
 
@@ -101,8 +102,8 @@ export function useCachedRepoData(
 
         // Fetch pull requests and direct commits in parallel
         const [prs, directCommits] = await Promise.all([
-          fetchPullRequests(owner, repo, timeRange),
-          fetchDirectCommits(owner, repo, timeRange),
+          fetchPRDataWithFallback(owner, repo, timeRange),
+          fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
         ]);
 
         const newStats = { pullRequests: prs, loading: false, error: null };

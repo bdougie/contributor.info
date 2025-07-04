@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { Suspense, lazy, useEffect } from "react";
 import { ThemeProvider } from "@/components/common/theming";
 import { Toaster } from "@/components/ui/sonner";
+import '@/lib/progressive-capture/manual-trigger'; // Enable progressive capture tools
 import { Layout, Home, NotFound } from "@/components/common/layout";
 import { ProtectedRoute, AdminRoute } from "@/components/features/auth";
 

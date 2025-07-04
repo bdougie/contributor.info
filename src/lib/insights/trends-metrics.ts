@@ -46,6 +46,12 @@ export async function calculateTrendMetrics(
     // Fetch data (try database first, fallback to GitHub API)
     const allPRs = await fetchPRDataWithFallback(owner, repo, timeRange);
     
+    // Handle case where no data is available
+    if (!allPRs || allPRs.length === 0) {
+      console.warn(`[Trends] No PR data available for ${owner}/${repo}`);
+      return getEmptyTrends(periodLabel);
+    }
+    
     // Debug logging
     if (import.meta.env.DEV) {
       console.log(`Trends Debug - ${owner}/${repo}: Fetched ${allPRs.length} PRs for timeRange ${timeRange}`);
@@ -198,6 +204,58 @@ export async function calculateTrendMetrics(
     
   } catch (error) {
     console.error('Error calculating trend metrics:', error);
-    return [];
+    // Return empty trends on error to prevent component crashes
+    return getEmptyTrends("period");
   }
+}
+
+/**
+ * Returns empty trend data when no data is available
+ * This prevents component crashes and provides graceful degradation
+ */
+function getEmptyTrends(periodLabel: string): TrendData[] {
+  const period = periodLabel === "week" ? "Weekly" : periodLabel === "month" ? "Monthly" : "Daily";
+  
+  return [
+    {
+      metric: `${period} PR Volume`,
+      current: 0,
+      previous: 0,
+      change: 0,
+      trend: "stable",
+      icon: "GitPullRequest",
+      unit: "PRs",
+      insight: "No recent PR data available"
+    },
+    {
+      metric: "Active Contributors",
+      current: 0,
+      previous: 0,
+      change: 0,
+      trend: "stable",
+      icon: "Users",
+      unit: "contributors",
+      insight: "No contributor data available"
+    },
+    {
+      metric: "Avg Review Time",
+      current: 0,
+      previous: 0,
+      change: 0,
+      trend: "stable",
+      icon: "Clock",
+      unit: "hours",
+      insight: "No review data available"
+    },
+    {
+      metric: "PR Completion Rate",
+      current: 0,
+      previous: 0,
+      change: 0,
+      trend: "stable",
+      icon: "CheckCircle",
+      unit: "%",
+      insight: "No completion data available"
+    }
+  ];
 }
