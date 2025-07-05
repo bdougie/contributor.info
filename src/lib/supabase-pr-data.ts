@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { fetchPullRequests } from './github';
 import type { PullRequest } from './types';
+import { trackDatabaseOperation, trackRateLimit } from './sentry/data-tracking';
 
 /**
  * Fetch PR data from Supabase database first, fallback to GitHub API
@@ -12,12 +13,19 @@ export async function fetchPRDataWithFallback(
   timeRange: string = '30'
 ): Promise<PullRequest[]> {
   
-  // ALWAYS check database first and prefer it over API to avoid rate limiting
-  try {
-    // Calculate date range
-    const days = parseInt(timeRange) || 30;
-    const since = new Date();
-    since.setDate(since.getDate() - days);
+  let fallbackUsed = false;
+  let cacheHit = false;
+  
+  return trackDatabaseOperation(
+    'fetchPRDataWithFallback',
+    async () => {
+      // ALWAYS check database first and prefer it over API to avoid rate limiting
+      
+      try {
+        // Calculate date range
+        const days = parseInt(timeRange) || 30;
+        const since = new Date();
+        since.setDate(since.getDate() - days);
 
 
     // First, get the repository ID
@@ -30,8 +38,10 @@ export async function fetchPRDataWithFallback(
 
     if (repoError || !repoData) {
       // Fall through to GitHub API
+      fallbackUsed = true;
     } else {
-      // Now fetch PRs for this repository with contributor data, reviews, and comments
+      cacheHit = true;
+      // Now fetch PRs for this repository with contributor data
       const { data: dbPRs, error: dbError } = await supabase
         .from('pull_requests')
         .select(`
@@ -55,36 +65,11 @@ export async function fetchPRDataWithFallback(
           html_url,
           repository_id,
           author_id,
-          contributors!pull_requests_contributor_id_fkey(
+          contributors!fk_pull_requests_author(
             github_id,
             username,
             avatar_url,
             is_bot
-          ),
-          reviews(
-            id,
-            github_id,
-            state,
-            submitted_at,
-            reviewer:contributors!reviews_reviewer_id_fkey(
-              github_id,
-              username,
-              avatar_url,
-              is_bot
-            )
-          ),
-          comments(
-            id,
-            github_id,
-            body,
-            created_at,
-            comment_type,
-            commenter:contributors!comments_commenter_id_fkey(
-              github_id,
-              username,
-              avatar_url,
-              is_bot
-            )
           )
         `)
         .eq('repository_id', repoData.id)
@@ -125,24 +110,8 @@ export async function fetchPRDataWithFallback(
         html_url: dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
         repository_owner: owner,
         repository_name: repo,
-        reviews: (dbPR.reviews || []).map((review: any) => ({
-          id: review.github_id,
-          state: review.state,
-          user: {
-            login: review.reviewer?.username || 'unknown',
-            avatar_url: review.reviewer?.avatar_url || ''
-          },
-          submitted_at: review.submitted_at
-        })),
-        comments: (dbPR.comments || []).map((comment: any) => ({
-          id: comment.github_id,
-          user: {
-            login: comment.commenter?.username || 'unknown',
-            avatar_url: comment.commenter?.avatar_url || ''
-          },
-          created_at: comment.created_at,
-          body: comment.body
-        }))
+        reviews: [], // TODO: Fetch reviews separately if needed
+        comments: [] // TODO: Fetch comments separately if needed
       }));
 
       // Filter by timeRange if needed
@@ -151,11 +120,6 @@ export async function fetchPRDataWithFallback(
         return prDate >= since;
       });
 
-      
-      // Check for data quality issues
-      const prsWithFileChanges = transformedPRs.filter(pr => pr.additions > 0 || pr.deletions > 0).length;
-      if (prsWithFileChanges === 0 && transformedPRs.length > 0) {
-      }
       
       // During widespread rate limiting, use ANY database data we have
       // Only skip database data if it's completely empty or extremely old (30+ days)
@@ -183,9 +147,15 @@ export async function fetchPRDataWithFallback(
 
   // Fallback to GitHub API
   try {
+    fallbackUsed = true;
     const githubPRs = await fetchPullRequests(owner, repo, timeRange);
     return githubPRs;
   } catch (githubError) {
+    // Track rate limiting specifically
+    if (githubError instanceof Error && 
+        (githubError.message.includes('rate limit') || githubError.message.includes('403'))) {
+      trackRateLimit('github', `repos/${owner}/${repo}/pulls`);
+    }
     
     // As absolute last resort, try to get ANY data from database, even very old
     try {
@@ -219,7 +189,7 @@ export async function fetchPRDataWithFallback(
             commits,
             html_url,
             author_id,
-            contributors!pull_requests_contributor_id_fkey(
+            contributors!fk_pull_requests_author(
               github_id,
               username,
               avatar_url,
@@ -268,6 +238,15 @@ export async function fetchPRDataWithFallback(
     // If everything fails, throw the original GitHub error
     throw githubError;
   }
+    },
+    {
+      operation: 'fetch',
+      table: 'pull_requests',
+      repository: `${owner}/${repo}`,
+      fallbackUsed,
+      cacheHit
+    }
+  );
 }
 
 /**

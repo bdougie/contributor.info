@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import { smartCommitAnalyzer } from './progressive-capture/smart-commit-analyzer';
+import { trackDatabaseOperation } from './sentry/data-tracking';
+import * as Sentry from '@sentry/react';
 
 /**
  * Smart database-first direct commits analysis
@@ -29,31 +31,68 @@ export async function fetchDirectCommitsWithDatabaseFallback(
   timeRange: string = '30'
 ): Promise<DirectCommitsResult> {
   
-  try {
-    // First, get the repository ID
-    const { data: repoData, error: repoError } = await supabase
-      .from('repositories')
-      .select('id')
-      .eq('owner', owner)
-      .eq('name', repo)
-      .single();
+  return trackDatabaseOperation(
+    'fetchDirectCommitsWithDatabaseFallback',
+    async () => {
+      try {
+        // First, get the repository ID
+        const { data: repoData, error: repoError } = await supabase
+          .from('repositories')
+          .select('id')
+          .eq('owner', owner)
+          .eq('name', repo)
+          .single();
 
-    if (repoError || !repoData) {
-      return getEmptyDirectCommitsResult();
+        if (repoError || !repoData) {
+          Sentry.addBreadcrumb({
+            category: 'database',
+            message: `Repository not found in database: ${owner}/${repo}`,
+            level: 'info',
+            data: { owner, repo, error: repoError?.message }
+          });
+          return getEmptyDirectCommitsResult();
+        }
+
+        // Use the smart commit analyzer to get results from database
+        const result = await smartCommitAnalyzer.getDirectCommitsFromDatabase(repoData.id, timeRange);
+        
+        // Track analytics about the results
+        Sentry.addBreadcrumb({
+          category: 'data_analysis',
+          message: `Direct commits analysis completed for ${owner}/${repo}`,
+          level: 'info',
+          data: {
+            yolo_coders_found: result.yoloCoderStats.length,
+            has_yolo_coders: result.hasYoloCoders,
+            time_range: timeRange
+          }
+        });
+        
+        return result;
+
+      } catch (error) {
+        Sentry.withScope((scope) => {
+          scope.setTag('component', 'direct-commits');
+          scope.setContext('direct_commits_analysis', {
+            owner,
+            repo,
+            timeRange
+          });
+          scope.setLevel('warning');
+          Sentry.captureException(error);
+        });
+        
+        return getEmptyDirectCommitsResult();
+      }
+    },
+    {
+      operation: 'fetch',
+      table: 'direct_commits_analysis',
+      repository: `${owner}/${repo}`,
+      fallbackUsed: false,
+      cacheHit: false
     }
-
-    // Use the smart commit analyzer to get results from database
-    const result = await smartCommitAnalyzer.getDirectCommitsFromDatabase(repoData.id, timeRange);
-    
-    if (result.yoloCoderStats.length === 0) {
-    } else {
-    }
-    
-    return result;
-
-  } catch (error) {
-    return getEmptyDirectCommitsResult();
-  }
+  );
 }
 
 function getEmptyDirectCommitsResult(): DirectCommitsResult {

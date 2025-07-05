@@ -28,6 +28,7 @@ import RepoNotFound from "./repo-not-found";
 import { createChartShareUrl, getDubConfig } from "@/lib/dub";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { DataProcessingIndicator } from "./data-processing-indicator";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -266,48 +267,54 @@ export default function RepoView() {
             )}
 
             <div className="mt-6">
-              <RepoStatsProvider
-                value={{
-                  stats,
-                  lotteryFactor,
-                  directCommitsData,
-                  includeBots,
-                  setIncludeBots,
-                }}
-              >
-                {stats.loading ? (
-                  <div className="space-y-4">
-                    <div className="text-center text-muted-foreground">
-                      Loading repository data...
+              <ErrorBoundary context="Repository Data Provider">
+                <RepoStatsProvider
+                  value={{
+                    stats,
+                    lotteryFactor,
+                    directCommitsData,
+                    includeBots,
+                    setIncludeBots,
+                  }}
+                >
+                  {stats.loading ? (
+                    <div className="space-y-4">
+                      <div className="text-center text-muted-foreground">
+                        Loading repository data...
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card>
+                          <CardContent className="p-6">
+                            <div className="animate-pulse space-y-3">
+                              <div className="h-4 bg-muted rounded w-1/2"></div>
+                              <div className="h-32 bg-muted rounded"></div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="p-6">
+                            <div className="animate-pulse space-y-3">
+                              <div className="h-4 bg-muted rounded w-1/2"></div>
+                              <div className="h-32 bg-muted rounded"></div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Card>
-                        <CardContent className="p-6">
-                          <div className="animate-pulse space-y-3">
-                            <div className="h-4 bg-muted rounded w-1/2"></div>
-                            <div className="h-32 bg-muted rounded"></div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-6">
-                          <div className="animate-pulse space-y-3">
-                            <div className="h-4 bg-muted rounded w-1/2"></div>
-                            <div className="h-32 bg-muted rounded"></div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                ) : (
-                  <Outlet />
-                )}
-              </RepoStatsProvider>
+                  ) : (
+                    <ErrorBoundary context="Repository Chart Display">
+                      <Outlet />
+                    </ErrorBoundary>
+                  )}
+                </RepoStatsProvider>
+              </ErrorBoundary>
             </div>
           </CardContent>
         </Card>
       </div>
-      <InsightsSidebar />
+      <ErrorBoundary context="Repository Insights">
+        <InsightsSidebar />
+      </ErrorBoundary>
     </div>
   );
 }
@@ -315,9 +322,11 @@ export default function RepoView() {
 // Route components
 export function LotteryFactorRoute() {
   return (
-    <ProgressiveChartWrapper>
-      <RepositoryHealthCard />
-    </ProgressiveChartWrapper>
+    <ErrorBoundary context="Repository Health Analysis">
+      <ProgressiveChartWrapper>
+        <RepositoryHealthCard />
+      </ProgressiveChartWrapper>
+    </ErrorBoundary>
   );
 }
 
@@ -332,26 +341,34 @@ export function ContributionsRoute() {
   return (
     <div className="space-y-8">
       {/* Progressive loading: Charts load independently */}
-      <ProgressiveChartWrapper>
-        <Contributions />
-      </ProgressiveChartWrapper>
+      <ErrorBoundary context="Contributions Chart">
+        <ProgressiveChartWrapper>
+          <Contributions />
+        </ProgressiveChartWrapper>
+      </ErrorBoundary>
       
-      <ProgressiveChartWrapper>
-        <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
-      </ProgressiveChartWrapper>
+      <ErrorBoundary context="Metrics and Trends">
+        <ProgressiveChartWrapper>
+          <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
+        </ProgressiveChartWrapper>
+      </ErrorBoundary>
       
-      <ProgressiveChartWrapper>
-        <ContributorOfMonthWrapper />
-      </ProgressiveChartWrapper>
+      <ErrorBoundary context="Contributor of the Month">
+        <ProgressiveChartWrapper>
+          <ContributorOfMonthWrapper />
+        </ProgressiveChartWrapper>
+      </ErrorBoundary>
     </div>
   );
 }
 
 export function DistributionRoute() {
   return (
-    <ProgressiveChartWrapper>
-      <Distribution />
-    </ProgressiveChartWrapper>
+    <ErrorBoundary context="Distribution Analysis">
+      <ProgressiveChartWrapper>
+        <Distribution />
+      </ProgressiveChartWrapper>
+    </ErrorBoundary>
   );
 }
 

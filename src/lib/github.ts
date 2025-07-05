@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import type { PullRequest } from './types';
+import { trackRateLimit } from './sentry/data-tracking';
+import * as Sentry from '@sentry/react';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
@@ -39,7 +41,19 @@ export async function searchGitHubRepositories(query: string, limit: number = 10
     headers.Authorization = `token ${token}`;
   }
 
-  try {
+  return Sentry.startSpan(
+    {
+      name: 'github.api.search_repositories',
+      op: 'http.client',
+      attributes: {
+        'github.search_query': query,
+        'github.search_limit': limit,
+        'github.has_token': !!token,
+        'github.token_type': userToken ? 'user' : 'app'
+      }
+    },
+    async (span) => {
+      try {
     // Use GitHub search API to find repositories
     const searchQuery = encodeURIComponent(`${query} in:name,description fork:true`);
     const response = await fetch(
@@ -47,23 +61,85 @@ export async function searchGitHubRepositories(query: string, limit: number = 10
       { headers }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      if (response.status === 403 && error.message?.includes('rate limit')) {
-        if (!token) {
-          throw new Error('GitHub API rate limit exceeded. Please log in to continue searching.');
+        if (!response.ok) {
+          const error = await response.json();
+          if (response.status === 403 && error.message?.includes('rate limit')) {
+            // Track rate limiting
+            const rateLimitReset = response.headers.get('X-RateLimit-Reset');
+            const resetTime = rateLimitReset ? new Date(parseInt(rateLimitReset) * 1000) : undefined;
+            
+            trackRateLimit('github', 'search/repositories', undefined, resetTime);
+            
+            span.setAttributes({
+              'http.status_code': 403,
+              'error.type': 'rate_limit'
+            });
+            
+            if (!token) {
+              throw new Error('GitHub API rate limit exceeded. Please log in to continue searching.');
+            }
+            throw new Error('GitHub API rate limit exceeded. Please try again later.');
+          }
+          
+          span.setAttributes({
+            'http.status_code': response.status,
+            'error.type': 'api_error'
+          });
+          throw new Error(`GitHub API error: ${error.message || response.statusText}`);
         }
-        throw new Error('GitHub API rate limit exceeded. Please try again later.');
-      }
-      throw new Error(`GitHub API error: ${error.message || response.statusText}`);
-    }
 
-    const data = await response.json();
-    return data.items || [];
-  } catch (error) {
-    console.error('Error searching GitHub repositories:', error);
-    throw error;
-  }
+        const data = await response.json();
+        const results = data.items || [];
+        
+        span.setAttributes({
+          'github.results_count': results.length,
+          'github.success': true
+        });
+
+        Sentry.addBreadcrumb({
+          category: 'github_api',
+          message: `Repository search completed: ${results.length} results for "${query}"`,
+          level: 'info',
+          data: {
+            query,
+            results_count: results.length,
+            limit
+          }
+        });
+
+        return results;
+      } catch (error) {
+        span.setAttributes({
+          'github.success': false,
+          'error.type': error instanceof Error ? error.constructor.name : 'Unknown'
+        });
+
+        Sentry.withScope((scope) => {
+          scope.setTag('component', 'github_api');
+          scope.setTag('api_endpoint', 'search_repositories');
+          scope.setContext('github_search', {
+            query,
+            limit,
+            hasToken: !!token,
+            tokenType: userToken ? 'user' : 'app'
+          });
+
+          if (error instanceof Error && error.message.includes('rate limit')) {
+            scope.setTag('error.category', 'rate_limit');
+            scope.setLevel('warning');
+          } else {
+            scope.setTag('error.category', 'search_error');
+            scope.setLevel('error');
+          }
+
+          Sentry.captureException(error);
+        });
+
+        console.error('Error searching GitHub repositories:', error);
+        throw error;
+      }
+    }
+  );
 }
 
 // Export the fetchUserOrganizations function to fix the missing export error
@@ -154,7 +230,20 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
     headers.Authorization = `token ${token}`;
   }
 
-  try {
+  return Sentry.startSpan(
+    {
+      name: 'github.api.fetch_pull_requests',
+      op: 'http.client',
+      attributes: {
+        'github.owner': owner,
+        'github.repo': repo,
+        'github.time_range': timeRange,
+        'github.has_token': !!token,
+        'github.token_type': userToken ? 'user' : 'app'
+      }
+    },
+    async (span) => {
+      try {
     // Calculate date range based on timeRange parameter
     const since = new Date();
     since.setDate(since.getDate() - parseInt(timeRange));
@@ -174,16 +263,41 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
         if (page === 1) {
           const error = await response.json();
           if (response.status === 404) {
+            span.setAttributes({
+              'http.status_code': 404,
+              'error.type': 'repository_not_found'
+            });
             throw new Error(`Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`);
           } else if (response.status === 403 && error.message?.includes('rate limit')) {
+            // Track rate limiting
+            const rateLimitReset = response.headers.get('X-RateLimit-Reset');
+            const resetTime = rateLimitReset ? new Date(parseInt(rateLimitReset) * 1000) : undefined;
+            
+            trackRateLimit('github', `repos/${owner}/${repo}/pulls`, undefined, resetTime);
+            
+            span.setAttributes({
+              'http.status_code': 403,
+              'error.type': 'rate_limit',
+              'github.rate_limit_reset': rateLimitReset || ''
+            });
+            
             if (!token) {
               throw new Error('GitHub API rate limit exceeded. Please log in with GitHub to increase the rate limit.');
             } else {
               throw new Error('GitHub API rate limit exceeded. Please try again later.');
             }
           } else if (response.status === 401) {
+            span.setAttributes({
+              'http.status_code': 401,
+              'error.type': 'invalid_token'
+            });
             throw new Error('Invalid GitHub token. Please check your token and try again. Make sure you\'ve copied the entire token correctly.');
           }
+          
+          span.setAttributes({
+            'http.status_code': response.status,
+            'error.type': 'api_error'
+          });
           throw new Error(`GitHub API error: ${error.message || response.statusText}`);
         }
         break; // Stop fetching if later pages fail
@@ -272,13 +386,69 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
       })
     );
 
-    return detailedPRs;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error;
+        // Track successful completion
+        span.setAttributes({
+          'github.prs_fetched': detailedPRs.length,
+          'github.pages_fetched': page - 1,
+          'github.success': true
+        });
+
+        Sentry.addBreadcrumb({
+          category: 'github_api',
+          message: `Successfully fetched ${detailedPRs.length} PRs for ${owner}/${repo}`,
+          level: 'info',
+          data: {
+            prs_count: detailedPRs.length,
+            time_range: timeRange,
+            pages_fetched: page - 1
+          }
+        });
+
+        return detailedPRs;
+      } catch (error) {
+        span.setAttributes({
+          'github.success': false,
+          'error.type': error instanceof Error ? error.constructor.name : 'Unknown'
+        });
+
+        // Enhanced error context for GitHub API calls
+        Sentry.withScope((scope) => {
+          scope.setTag('component', 'github_api');
+          scope.setTag('api_endpoint', 'pull_requests');
+          scope.setContext('github_request', {
+            owner,
+            repo,
+            timeRange,
+            hasToken: !!token,
+            tokenType: userToken ? 'user' : 'app'
+          });
+
+          if (error instanceof Error) {
+            if (error.message.includes('rate limit')) {
+              scope.setTag('error.category', 'rate_limit');
+              scope.setLevel('warning');
+            } else if (error.message.includes('not found')) {
+              scope.setTag('error.category', 'repository_not_found');
+              scope.setLevel('info');
+            } else if (error.message.includes('token')) {
+              scope.setTag('error.category', 'authentication');
+              scope.setLevel('error');
+            } else {
+              scope.setTag('error.category', 'api_error');
+              scope.setLevel('error');
+            }
+          }
+
+          Sentry.captureException(error);
+        });
+
+        if (error instanceof Error) {
+          throw error;
+        }
+        throw new Error('An unexpected error occurred while fetching repository data.');
+      }
     }
-    throw new Error('An unexpected error occurred while fetching repository data.');
-  }
+  );
 }
 
 export async function fetchRepositoryInfo(owner: string, repo: string): Promise<{
