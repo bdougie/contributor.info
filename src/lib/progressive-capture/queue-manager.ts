@@ -27,7 +27,6 @@ export class DataCaptureQueueManager {
    * Queue jobs to fetch missing file changes for PRs
    */
   async queueMissingFileChanges(repositoryId: string, limit: number = 50): Promise<number> {
-    console.log(`[Queue] Queuing missing file changes for repository ${repositoryId}`);
 
     // Find PRs with missing file change data
     const { data: prsNeedingUpdate, error } = await supabase
@@ -46,7 +45,6 @@ export class DataCaptureQueueManager {
     }
 
     if (!prsNeedingUpdate || prsNeedingUpdate.length === 0) {
-      console.log('[Queue] No PRs need file change updates');
       return 0;
     }
 
@@ -75,7 +73,6 @@ export class DataCaptureQueueManager {
       }
     }
 
-    console.log(`[Queue] Queued ${queuedCount} file change jobs for repository ${repositoryId}`);
     
     // Show UI notification
     if (queuedCount > 0) {
@@ -89,10 +86,8 @@ export class DataCaptureQueueManager {
    * Queue jobs to analyze commits for PR associations (smart YOLO analysis)
    */
   async queueCommitPRAnalysis(repositoryId: string, commitShas: string[], priority: 'high' | 'medium' | 'low' = 'medium'): Promise<number> {
-    console.log(`[Queue] Queuing commit PR analysis for ${commitShas.length} commits in repository ${repositoryId}`);
 
     if (!commitShas || commitShas.length === 0) {
-      console.log('[Queue] No commits to analyze');
       return 0;
     }
 
@@ -125,7 +120,6 @@ export class DataCaptureQueueManager {
       }
     }
 
-    console.log(`[Queue] Queued ${queuedCount} commit PR analysis jobs for repository ${repositoryId}`);
     
     // Show UI notification
     if (queuedCount > 0) {
@@ -139,7 +133,6 @@ export class DataCaptureQueueManager {
    * Queue commit analysis for recent commits in a repository
    */
   async queueRecentCommitsAnalysis(repositoryId: string, days: number = 90): Promise<number> {
-    console.log(`[Queue] Queuing recent commits analysis for repository ${repositoryId} (last ${days} days)`);
 
     try {
       // Find commits that need PR analysis (don't have is_direct_commit set)
@@ -158,7 +151,6 @@ export class DataCaptureQueueManager {
       }
 
       if (!commitsNeedingAnalysis || commitsNeedingAnalysis.length === 0) {
-        console.log('[Queue] No commits need PR analysis');
         return 0;
       }
 
@@ -175,7 +167,6 @@ export class DataCaptureQueueManager {
    * Queue jobs to fetch recent PRs for repositories with stale data
    */
   async queueRecentPRs(repositoryId: string): Promise<boolean> {
-    console.log(`[Queue] Queuing recent PRs for repository ${repositoryId}`);
 
     try {
       const { error } = await supabase
@@ -193,7 +184,6 @@ export class DataCaptureQueueManager {
         return false;
       }
 
-      console.log(`[Queue] Queued recent PRs job for repository ${repositoryId}`);
       
       // Show UI notification
       ProgressiveCaptureNotifications.showJobsQueued(1, 'recent PRs');
@@ -382,7 +372,6 @@ export class DataCaptureQueueManager {
    * Queue jobs to fetch reviews for PRs that don't have them
    */
   async queueMissingReviews(repositoryId: string, limit: number = 50): Promise<number> {
-    console.log(`[Queue] Finding PRs needing review data for repository ${repositoryId}`);
 
     // Find PRs without reviews
     const { data: prsNeedingReviews, error } = await supabase
@@ -406,7 +395,6 @@ export class DataCaptureQueueManager {
     }
 
     if (!prsNeedingReviews || prsNeedingReviews.length === 0) {
-      console.log('[Queue] No PRs need review data');
       return 0;
     }
 
@@ -435,7 +423,6 @@ export class DataCaptureQueueManager {
       }
     }
 
-    console.log(`[Queue] Queued ${queuedCount} review jobs for repository ${repositoryId}`);
     
     // Show UI notification
     if (queuedCount > 0) {
@@ -449,7 +436,6 @@ export class DataCaptureQueueManager {
    * Queue jobs to fetch comments for PRs that don't have them
    */
   async queueMissingComments(repositoryId: string, limit: number = 50): Promise<number> {
-    console.log(`[Queue] Finding PRs needing comment data for repository ${repositoryId}`);
 
     // Find PRs without comments
     const { data: prsNeedingComments, error } = await supabase
@@ -473,7 +459,6 @@ export class DataCaptureQueueManager {
     }
 
     if (!prsNeedingComments || prsNeedingComments.length === 0) {
-      console.log('[Queue] No PRs need comment data');
       return 0;
     }
 
@@ -502,7 +487,6 @@ export class DataCaptureQueueManager {
       }
     }
 
-    console.log(`[Queue] Queued ${queuedCount} comment jobs for repository ${repositoryId}`);
     
     // Show UI notification
     if (queuedCount > 0) {

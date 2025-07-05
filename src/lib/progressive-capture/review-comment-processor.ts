@@ -33,7 +33,6 @@ export class ReviewCommentProcessor {
    */
   static async processReviewsJob(repositoryId: string, prNumber: string, metadata: any): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log(`[Reviews Processor] Processing reviews for PR #${prNumber}`);
 
       // Get repository info to construct GitHub API URL
       const { data: repo, error: repoError } = await supabase
@@ -55,7 +54,6 @@ export class ReviewCommentProcessor {
 
       if (!response.ok) {
         if (response.status === 404) {
-          console.log(`[Reviews Processor] PR #${prNumber} not found or has no reviews`);
           return { success: true }; // Not an error, just no reviews
         }
         return { success: false, error: `GitHub API error: ${response.status} ${response.statusText}` };
@@ -64,11 +62,9 @@ export class ReviewCommentProcessor {
       const reviews = await response.json();
       
       if (!Array.isArray(reviews) || reviews.length === 0) {
-        console.log(`[Reviews Processor] No reviews found for PR #${prNumber}`);
         return { success: true };
       }
 
-      console.log(`[Reviews Processor] Found ${reviews.length} reviews for PR #${prNumber}`);
 
       // Process each review
       let processed = 0;
@@ -126,7 +122,6 @@ export class ReviewCommentProcessor {
         }
       }
 
-      console.log(`[Reviews Processor] Successfully processed ${processed}/${reviews.length} reviews for PR #${prNumber}`);
       return { success: true };
 
     } catch (error) {
@@ -140,7 +135,6 @@ export class ReviewCommentProcessor {
    */
   static async processCommentsJob(repositoryId: string, prNumber: string, metadata: any): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log(`[Comments Processor] Processing comments for PR #${prNumber}`);
 
       // Get repository info to construct GitHub API URL
       const { data: repo, error: repoError } = await supabase
@@ -190,11 +184,9 @@ export class ReviewCommentProcessor {
       }
 
       if (allComments.length === 0) {
-        console.log(`[Comments Processor] No comments found for PR #${prNumber}`);
         return { success: true };
       }
 
-      console.log(`[Comments Processor] Found ${allComments.length} comments for PR #${prNumber}`);
 
       // Process each comment
       let processed = 0;
@@ -258,7 +250,6 @@ export class ReviewCommentProcessor {
         }
       }
 
-      console.log(`[Comments Processor] Successfully processed ${processed}/${allComments.length} comments for PR #${prNumber}`);
       return { success: true };
 
     } catch (error) {

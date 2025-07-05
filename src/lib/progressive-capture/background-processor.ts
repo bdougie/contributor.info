@@ -28,11 +28,9 @@ export class BackgroundProcessor {
    */
   start(): void {
     if (this.intervalId) {
-      console.log('[Background Processor] Already running');
       return;
     }
 
-    console.log('[Background Processor] Starting automatic job processing');
     
     // Process immediately, then on interval
     this.processNextBatch();
@@ -49,7 +47,6 @@ export class BackgroundProcessor {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      console.log('[Background Processor] Stopped');
     }
   }
 
@@ -71,7 +68,6 @@ export class BackgroundProcessor {
         return; // Nothing to process
       }
 
-      console.log(`[Background Processor] Processing batch - ${stats.pending} pending jobs`);
 
       // Process up to MAX_JOBS_PER_BATCH jobs
       let processed = 0;
@@ -83,7 +79,6 @@ export class BackgroundProcessor {
           
           if (job) {
             processed++;
-            console.log(`[Background Processor] Processed job: ${job.type}`);
           } else {
             // No more jobs to process
             break;
@@ -107,7 +102,6 @@ export class BackgroundProcessor {
         }
       }
 
-      console.log(`[Background Processor] Batch complete - processed: ${processed}, failed: ${failures}`);
 
     } catch (error) {
       console.error('[Background Processor] Error in batch processing:', error);

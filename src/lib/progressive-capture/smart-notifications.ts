@@ -36,7 +36,6 @@ export class SmartDataNotifications {
         .single();
 
       if (repoError || !repoData) {
-        console.log(`[Smart Notifications] Repository ${repoKey} not found in database`);
         return;
       }
 

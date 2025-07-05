@@ -37,7 +37,6 @@ export class SmartCommitAnalyzer {
    * Uses the efficient GitHub API endpoint: /repos/{owner}/{repo}/commits/{sha}/pulls
    */
   async analyzeCommit(owner: string, repo: string, sha: string): Promise<CommitPRAssociation> {
-    console.log(`[Smart Commit] Analyzing commit ${sha} for ${owner}/${repo}`);
 
     const headers: HeadersInit = {
       'Accept': 'application/vnd.github.v3+json',
@@ -68,7 +67,6 @@ export class SmartCommitAnalyzer {
       const associatedPRs = await response.json();
       const isDirectCommit = associatedPRs.length === 0;
 
-      console.log(`[Smart Commit] Commit ${sha}: ${isDirectCommit ? 'DIRECT' : `${associatedPRs.length} PR(s)`}`);
 
       return {
         sha,
@@ -87,7 +85,6 @@ export class SmartCommitAnalyzer {
    * Analyze multiple commits in batches with rate limiting
    */
   async analyzeCommitBatch(owner: string, repo: string, commitShas: string[], batchSize: number = 10): Promise<CommitAnalysisResult> {
-    console.log(`[Smart Commit] Analyzing ${commitShas.length} commits for ${owner}/${repo} (batch size: ${batchSize})`);
 
     const results: CommitPRAssociation[] = [];
     const errors: Array<{ sha: string; error: string }> = [];
@@ -95,7 +92,6 @@ export class SmartCommitAnalyzer {
     // Process commits in batches to avoid overwhelming the API
     for (let i = 0; i < commitShas.length; i += batchSize) {
       const batch = commitShas.slice(i, i + batchSize);
-      console.log(`[Smart Commit] Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(commitShas.length / batchSize)}`);
 
       // Process batch with delay between requests
       for (const sha of batch) {
@@ -116,7 +112,6 @@ export class SmartCommitAnalyzer {
 
       // Longer delay between batches
       if (i + batchSize < commitShas.length) {
-        console.log(`[Smart Commit] Waiting before next batch...`);
         await this.delay(2000); // 2 second delay between batches
       }
     }
@@ -128,7 +123,6 @@ export class SmartCommitAnalyzer {
       errors: errors.length
     };
 
-    console.log(`[Smart Commit] Analysis complete for ${owner}/${repo}:`, summary);
 
     return {
       analyzed: results,
@@ -141,7 +135,6 @@ export class SmartCommitAnalyzer {
    * Store commit analysis results in the database
    */
   async storeAnalysisResults(repositoryId: string, results: CommitPRAssociation[]): Promise<void> {
-    console.log(`[Smart Commit] Storing ${results.length} analysis results for repository ${repositoryId}`);
 
     for (const result of results) {
       try {
@@ -165,7 +158,6 @@ export class SmartCommitAnalyzer {
       }
     }
 
-    console.log(`[Smart Commit] Stored analysis results for repository ${repositoryId}`);
   }
 
   /**
@@ -181,7 +173,6 @@ export class SmartCommitAnalyzer {
       // Store the result in database
       await this.storeAnalysisResults(job.repository_id, [result]);
       
-      console.log(`[Smart Commit] Successfully processed job for commit ${commitSha}`);
       
     } catch (error) {
       console.error(`[Smart Commit] Failed to process job for commit ${commitSha}:`, error);
@@ -202,7 +193,6 @@ export class SmartCommitAnalyzer {
       directCommitPercentage: number;
     }>;
   }> {
-    console.log(`[Smart Commit] Getting direct commits analysis from database for repository ${repositoryId}`);
 
     try {
       const days = parseInt(timeRange) || 30;
@@ -231,14 +221,12 @@ export class SmartCommitAnalyzer {
       }
 
       if (!commits || commits.length === 0) {
-        console.log('[Smart Commit] No analyzed commits found in database');
         return { hasYoloCoders: false, yoloCoderStats: [] };
       }
 
       // Calculate YOLO coder stats from database
       const contributorStats = this.calculateYoloCoderStats(commits);
       
-      console.log(`[Smart Commit] Found ${contributorStats.length} contributors with direct commits`);
       
       return {
         hasYoloCoders: contributorStats.length > 0,

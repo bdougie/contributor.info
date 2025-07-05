@@ -7,11 +7,9 @@ import { ProgressiveCaptureNotifications } from './ui-notifications';
  * This should be run once to queue the most important missing data
  */
 export async function bootstrapDataCaptureQueue(): Promise<void> {
-  console.log('[Bootstrap] Starting queue bootstrap for critical missing data');
 
   try {
     // 1. Find repositories with stale data (older than 3 days)
-    console.log('[Bootstrap] Queuing recent PRs for stale repositories...');
     const { data: staleRepos, error: staleError } = await supabase
       .from('repositories')
       .select('id, owner, name')
@@ -24,12 +22,10 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
     } else if (staleRepos) {
       for (const repo of staleRepos) {
         await queueManager.queueRecentPRs(repo.id);
-        console.log(`[Bootstrap] Queued recent PRs for ${repo.owner}/${repo.name}`);
       }
     }
 
     // 2. Find repositories with missing file change data
-    console.log('[Bootstrap] Queuing file changes for active repositories...');
     const { data: activeRepos, error: activeError } = await supabase
       .from('repositories')
       .select(`
@@ -46,12 +42,10 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
     } else if (activeRepos) {
       for (const repo of activeRepos) {
         const queuedCount = await queueManager.queueMissingFileChanges(repo.id, 25); // 25 PRs per repo
-        console.log(`[Bootstrap] Queued ${queuedCount} file change jobs for ${repo.owner}/${repo.name}`);
       }
     }
 
     // 3. Queue smart commit analysis for repositories with commits
-    console.log('[Bootstrap] Queuing smart commit analysis for repositories with commit data...');
     const { data: reposWithCommits, error: commitsError } = await supabase
       .from('repositories')
       .select(`
@@ -67,13 +61,11 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
     } else if (reposWithCommits) {
       for (const repo of reposWithCommits) {
         const queuedCommitsCount = await queueManager.queueRecentCommitsAnalysis(repo.id, 90); // Last 90 days
-        console.log(`[Bootstrap] Queued ${queuedCommitsCount} commit analysis jobs for ${repo.owner}/${repo.name}`);
       }
     }
 
     // 4. Show queue statistics
     const stats = await queueManager.getQueueStats();
-    console.log('[Bootstrap] Queue bootstrap completed. Stats:', stats);
 
     // Show UI notification for bootstrap completion
     if (stats.pending > 0) {
@@ -109,7 +101,6 @@ export async function analyzeDataGaps(): Promise<{
   emptyCommentsTable: boolean;
   emptyCommitsTable: boolean;
 }> {
-  console.log('[Analysis] Analyzing data gaps...');
 
   try {
     // Count repositories with stale data
@@ -146,7 +137,6 @@ export async function analyzeDataGaps(): Promise<{
       emptyCommitsTable: (commitCount || 0) === 0
     };
 
-    console.log('[Analysis] Data gap analysis:', analysis);
     return analysis;
 
   } catch (error) {

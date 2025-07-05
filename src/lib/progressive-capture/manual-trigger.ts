@@ -12,7 +12,6 @@ export class ProgressiveCaptureTrigger {
    * Analyze current data gaps and provide recommendations
    */
   static async analyze() {
-    console.log('🔍 Analyzing data gaps...');
     const gaps = await analyzeDataGaps();
     const queueStats = await queueManager.getQueueStats();
 
@@ -48,7 +47,6 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
    * Bootstrap the queue with critical missing data
    */
   static async bootstrap() {
-    console.log('🚀 Starting progressive data capture bootstrap...');
     
     try {
       await bootstrapDataCaptureQueue();
@@ -76,7 +74,6 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
    * Check current queue status
    */
   static async status() {
-    console.log('📊 Checking queue status...');
     
     const stats = await queueManager.getQueueStats();
     const canMakeAPICalls = await queueManager.canMakeAPICalls(10);
@@ -108,7 +105,6 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
    * Process the next job in queue (for manual testing)
    */
   static async processNext() {
-    console.log('⚡ Processing next job in queue...');
     
     const canMakeAPICalls = await queueManager.canMakeAPICalls(1);
     if (!canMakeAPICalls) {
@@ -163,7 +159,6 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
           break;
           
         default:
-          console.log(`[Process] Job type '${nextJob.type}' not yet implemented`);
           result = { success: true }; // Mark as successful to avoid retries
           break;
       }
@@ -189,7 +184,6 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
    * Check rate limit status
    */
   static async rateLimits() {
-    console.log('🔍 Checking rate limit status...');
     
     const canMake1 = await queueManager.canMakeAPICalls(1);
     const canMake10 = await queueManager.canMakeAPICalls(10);
@@ -214,7 +208,6 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
    * Analyze commits for a specific repository (YOLO coder detection)
    */
   static async analyzeCommits(owner: string, repo: string) {
-    console.log(`🔍 Analyzing commits for ${owner}/${repo}...`);
     
     try {
       // Find repository ID
@@ -255,7 +248,6 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
    * Quick fix for specific repository
    */
   static async quickFix(owner: string, repo: string) {
-    console.log(`🔧 Quick fix for ${owner}/${repo}...`);
     
     try {
       // Find repository ID
