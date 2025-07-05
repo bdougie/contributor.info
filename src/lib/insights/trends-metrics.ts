@@ -53,6 +53,10 @@ export async function calculateTrendMetrics(
     
     // Debug logging
     if (import.meta.env.DEV) {
+      console.log(`Trends Debug - ${owner}/${repo}: Fetched ${allPRs.length} PRs for timeRange ${timeRange}`);
+      console.log(`Trends Debug - Period: ${currentPeriodDays} ${periodLabel}s`);
+      console.log(`Trends Debug - Current period start: ${currentPeriodStart.toISOString()}`);
+      console.log(`Trends Debug - Previous period start: ${previousPeriodStart.toISOString()}`);
     }
     
     // Calculate PR Volume
@@ -68,9 +72,12 @@ export async function calculateTrendMetrics(
     
     // Debug logging for filtered results
     if (import.meta.env.DEV) {
+      console.log(`Trends Debug - Current PRs: ${currentPRs.length}, Previous PRs: ${previousPRs.length}`);
       if (currentPRs.length > 0) {
+        console.log(`Trends Debug - Sample current PR dates:`, currentPRs.slice(0, 3).map(pr => pr.created_at));
       }
       if (previousPRs.length > 0) {
+        console.log(`Trends Debug - Sample previous PR dates:`, previousPRs.slice(0, 3).map(pr => pr.created_at));
       }
     }
     
