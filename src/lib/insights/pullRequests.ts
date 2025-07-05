@@ -1,4 +1,4 @@
-import { fetchPullRequests } from '../github';
+import { fetchPRDataWithFallback } from '../supabase-pr-data';
 
 export interface PRAnalysisResult {
   totalPRs: number;
@@ -18,7 +18,7 @@ export async function analyzePullRequests(
   timeRange: string = '90' // Default to 90 days of data
 ): Promise<PRAnalysisResult> {
   // Fetch pull requests using the existing github.ts functionality
-  const pullRequests = await fetchPullRequests(owner, repo, timeRange);
+  const pullRequests = await fetchPRDataWithFallback(owner, repo, timeRange);
 
   // Filter PRs by date range if provided
   let filteredPRs = pullRequests;

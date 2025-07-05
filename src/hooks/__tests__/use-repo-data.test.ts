@@ -1,14 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, cleanup, waitFor } from '@testing-library/react';
 import { useRepoData } from '../use-repo-data';
-import { fetchPullRequests, fetchDirectCommits } from '@/lib/github';
+import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-commits';
+import { fetchPRDataWithFallback } from '@/lib/supabase-pr-data';
 import { calculateLotteryFactor } from '@/lib/utils';
 import type { PullRequest } from '@/lib/types';
 
 // Mock dependencies
-vi.mock('@/lib/github', () => ({
-  fetchPullRequests: vi.fn(),
-  fetchDirectCommits: vi.fn()
+vi.mock('@/lib/supabase-pr-data', () => ({
+  fetchPRDataWithFallback: vi.fn()
+}));
+
+vi.mock('@/lib/supabase-direct-commits', () => ({
+  fetchDirectCommitsWithDatabaseFallback: vi.fn()
 }));
 
 vi.mock('@/lib/utils', () => ({
@@ -63,7 +67,8 @@ describe('useRepoData', () => {
         login: 'yolocoder',
         avatar_url: 'https://example.com/yolocoder.png',
         directCommits: 15,
-        totalPushedCommits: 20
+        totalCommits: 20,
+        directCommitPercentage: 75
       }
     ]
   };
@@ -89,11 +94,10 @@ describe('useRepoData', () => {
     vi.clearAllMocks();
     
     // Setup mock return values
-    vi.mocked(fetchPullRequests).mockResolvedValue(mockPullRequests);
-    vi.mocked(fetchDirectCommits).mockResolvedValue({
+    vi.mocked(fetchPRDataWithFallback).mockResolvedValue(mockPullRequests);
+    vi.mocked(fetchDirectCommitsWithDatabaseFallback).mockResolvedValue({
       hasYoloCoders: mockDirectCommits.hasYoloCoders,
-      yoloCoderStats: mockDirectCommits.yoloCoderStats,
-      directCommits: [] // Adding required property for the interface
+      yoloCoderStats: mockDirectCommits.yoloCoderStats
     });
     vi.mocked(calculateLotteryFactor).mockReturnValue(mockLotteryFactor);
   });
@@ -117,8 +121,8 @@ describe('useRepoData', () => {
     });
     
     // Verify API calls
-    expect(fetchPullRequests).toHaveBeenCalledWith('testorg', 'testrepo', mockTimeRange);
-    expect(fetchDirectCommits).toHaveBeenCalledWith('testorg', 'testrepo', mockTimeRange);
+    expect(fetchPRDataWithFallback).toHaveBeenCalledWith('testorg', 'testrepo', mockTimeRange);
+    expect(fetchDirectCommitsWithDatabaseFallback).toHaveBeenCalledWith('testorg', 'testrepo', mockTimeRange);
     expect(calculateLotteryFactor).toHaveBeenCalledWith(mockPullRequests, mockTimeRange, false);
     
     // Check final state
@@ -132,7 +136,7 @@ describe('useRepoData', () => {
 
   it('should handle API errors', async () => {
     const errorMessage = 'Failed to fetch data';
-    vi.mocked(fetchPullRequests).mockRejectedValue(new Error(errorMessage));
+    vi.mocked(fetchPRDataWithFallback).mockRejectedValue(new Error(errorMessage));
     
     const { result } = renderHook(() => 
       useRepoData('testorg', 'testrepo', mockTimeRange, false)
@@ -151,8 +155,8 @@ describe('useRepoData', () => {
     renderHook(() => useRepoData(undefined, 'testrepo', mockTimeRange, false));
     renderHook(() => useRepoData('testorg', undefined, mockTimeRange, false));
     
-    expect(fetchPullRequests).not.toHaveBeenCalled();
-    expect(fetchDirectCommits).not.toHaveBeenCalled();
+    expect(fetchPRDataWithFallback).not.toHaveBeenCalled();
+    expect(fetchDirectCommitsWithDatabaseFallback).not.toHaveBeenCalled();
   });
 
   it('should refetch data when inputs change', async () => {
@@ -174,7 +178,7 @@ describe('useRepoData', () => {
     });
     
     // Verify initial call
-    expect(fetchPullRequests).toHaveBeenCalledWith('testorg', 'testrepo', mockTimeRange);
+    expect(fetchPRDataWithFallback).toHaveBeenCalledWith('testorg', 'testrepo', mockTimeRange);
     
     // Reset mocks for next test
     vi.clearAllMocks();
@@ -189,10 +193,10 @@ describe('useRepoData', () => {
     
     // Wait for refetch - using testing-library waitFor
     await waitFor(() => {
-      expect(fetchPullRequests).toHaveBeenCalled();
+      expect(fetchPRDataWithFallback).toHaveBeenCalled();
     });
     
-    expect(fetchPullRequests).toHaveBeenCalledWith('neworg', 'testrepo', mockTimeRange);
+    expect(fetchPRDataWithFallback).toHaveBeenCalledWith('neworg', 'testrepo', mockTimeRange);
     
     // Reset mocks for next test
     vi.clearAllMocks();
@@ -207,10 +211,10 @@ describe('useRepoData', () => {
     
     // Wait for refetch
     await waitFor(() => {
-      expect(fetchPullRequests).toHaveBeenCalled();
+      expect(fetchPRDataWithFallback).toHaveBeenCalled();
     });
     
-    expect(fetchPullRequests).toHaveBeenCalledWith('neworg', 'newrepo', mockTimeRange);
+    expect(fetchPRDataWithFallback).toHaveBeenCalledWith('neworg', 'newrepo', mockTimeRange);
     
     // Reset mocks for next test
     vi.clearAllMocks();
@@ -226,10 +230,10 @@ describe('useRepoData', () => {
     
     // Wait for refetch
     await waitFor(() => {
-      expect(fetchPullRequests).toHaveBeenCalled();
+      expect(fetchPRDataWithFallback).toHaveBeenCalled();
     });
     
-    expect(fetchPullRequests).toHaveBeenCalledWith('neworg', 'newrepo', newTimeRange);
+    expect(fetchPRDataWithFallback).toHaveBeenCalledWith('neworg', 'newrepo', newTimeRange);
     
     // Reset mocks for next test
     vi.clearAllMocks();
@@ -242,9 +246,9 @@ describe('useRepoData', () => {
       includeBots: true
     });
     
-    // First ensure that fetchPullRequests is called
+    // First ensure that fetchPRDataWithFallback is called
     await waitFor(() => {
-      expect(fetchPullRequests).toHaveBeenCalled();
+      expect(fetchPRDataWithFallback).toHaveBeenCalled();
     });
     
     // Then wait for calculateLotteryFactor to be called with the new includeBots value

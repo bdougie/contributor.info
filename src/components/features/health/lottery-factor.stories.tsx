@@ -235,14 +235,16 @@ export const WithYoloCoders: Story = {
                   login: "admin-user",
                   avatar_url: "https://avatars.githubusercontent.com/u/999?v=4",
                   directCommits: 12,
-                  totalPushedCommits: 45,
+                  totalCommits: 45,
+                  directCommitPercentage: 67,
                   type: "User"
                 },
                 {
                   login: "senior-dev",
                   avatar_url: "https://avatars.githubusercontent.com/u/998?v=4",
                   directCommits: 8,
-                  totalPushedCommits: 28,
+                  totalCommits: 28,
+                  directCommitPercentage: 54,
                   type: "User"
                 }
               ]
@@ -475,7 +477,8 @@ export const YoloCodersView: Story = {
                   login: "admin-user",
                   avatar_url: "https://avatars.githubusercontent.com/u/999?v=4",
                   directCommits: 12,
-                  totalPushedCommits: 45,
+                  totalCommits: 45,
+                  directCommitPercentage: 67,
                   type: "User"
                 }
               ]
