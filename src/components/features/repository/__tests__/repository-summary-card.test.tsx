@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { RepositorySummaryCard } from '@/components/features/repository/repository-summary-card';
 
