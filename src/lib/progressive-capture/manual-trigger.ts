@@ -2,6 +2,7 @@ import { bootstrapDataCaptureQueue, analyzeDataGaps } from './bootstrap-queue';
 import { queueManager } from './queue-manager';
 import { ProgressiveCaptureNotifications } from './ui-notifications';
 import { ReviewCommentProcessor } from './review-comment-processor';
+import { AISummaryProcessor } from './ai-summary-processor';
 
 /**
  * Manual trigger for progressive data capture
@@ -158,6 +159,15 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
           }
           break;
           
+        case 'ai_summary':
+          if (nextJob.repository_id) {
+            const success = await AISummaryProcessor.processAISummaryJob(nextJob);
+            result = { success };
+          } else {
+            result = { success: false, error: 'Missing repository_id' };
+          }
+          break;
+          
         default:
           result = { success: true }; // Mark as successful to avoid retries
           break;
@@ -264,15 +274,16 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
         return;
       }
 
-      // Queue recent PRs, file changes, reviews, comments, and commit analysis
+      // Queue recent PRs, file changes, reviews, comments, commit analysis, and AI summary
       await queueManager.queueRecentPRs(repoData.id);
       const fileChangeCount = await queueManager.queueMissingFileChanges(repoData.id, 10);
       const reviewCount = await queueManager.queueMissingReviews(repoData.id, 20);
       const commentCount = await queueManager.queueMissingComments(repoData.id, 20);
       const commitAnalysisCount = await queueManager.queueRecentCommitsAnalysis(repoData.id, 90);
+      const aiSummaryQueued = await AISummaryProcessor.queueSummaryRegeneration(repoData.id, 'medium');
       
       // Show comprehensive UI notification
-      const totalJobs = 1 + fileChangeCount + reviewCount + commentCount + commitAnalysisCount;
+      const totalJobs = 1 + fileChangeCount + reviewCount + commentCount + commitAnalysisCount + (aiSummaryQueued ? 1 : 0);
       ProgressiveCaptureNotifications.showProcessingStarted(`${owner}/${repo}`);
       
       console.log(`
@@ -282,9 +293,11 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
   • Reviews: ${reviewCount} PRs queued
   • Comments: ${commentCount} PRs queued
   • Commit analysis: ${commitAnalysisCount} commits queued
+  • AI Summary: ${aiSummaryQueued ? 'Queued' : 'Skipped (recent)'}
   • Total: ${totalJobs} jobs queued
   • Review and comment data will be populated for better insights
   • YOLO coder detection will be available once commits are analyzed
+  • AI summary will be regenerated with latest data
       `);
       
     } catch (error) {

@@ -3,7 +3,7 @@ import { ProgressiveCaptureNotifications } from './ui-notifications';
 
 export interface DataCaptureJob {
   id: string;
-  type: 'pr_details' | 'reviews' | 'comments' | 'commits' | 'recent_prs' | 'commit_pr_check';
+  type: 'pr_details' | 'reviews' | 'comments' | 'commits' | 'recent_prs' | 'commit_pr_check' | 'ai_summary';
   priority: 'critical' | 'high' | 'medium' | 'low';
   repository_id: string;
   resource_id?: string; // PR number, commit SHA, etc.

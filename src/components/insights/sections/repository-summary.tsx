@@ -4,6 +4,8 @@ import { RefreshCw, AlertCircle } from "lucide-react";
 import { useRepositorySummary } from "@/hooks/use-repository-summary";
 import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
 import { Markdown } from "@/components/common/layout";
+import { ErrorBoundary } from "@/components/error-boundary";
+import * as Sentry from '@sentry/react';
 
 interface RepositorySummaryProps {
   owner: string;
@@ -11,9 +13,18 @@ interface RepositorySummaryProps {
   timeRange: string;
 }
 
-export function RepositorySummary({ owner, repo, timeRange }: RepositorySummaryProps) {
+// Internal component without error boundary
+function RepositorySummaryInternal({ owner, repo, timeRange }: RepositorySummaryProps) {
   const { stats } = useCachedRepoData(owner, repo, timeRange, false);
   const { summary, loading, error, refetch } = useRepositorySummary(owner, repo, stats.pullRequests);
+
+  // Set Sentry context for better error tracking
+  Sentry.setContext('ai_summary_context', {
+    repository: `${owner}/${repo}`,
+    timeRange,
+    hasStats: !!stats,
+    pullRequestCount: stats.pullRequests?.length || 0
+  });
 
   if (loading) {
     return (
@@ -75,5 +86,51 @@ export function RepositorySummary({ owner, repo, timeRange }: RepositorySummaryP
         </Button>
       </div>
     </div>
+  );
+}
+
+// Error boundary fallback for AI summary
+function AISummaryErrorFallback({ retry }: { error?: Error; retry: () => void }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 text-sm text-destructive">
+        <AlertCircle className="h-4 w-4 flex-shrink-0" />
+        <span>AI summary failed to load</span>
+      </div>
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={retry}
+        className="gap-2 w-full"
+      >
+        <RefreshCw className="h-4 w-4" />
+        Try Again
+      </Button>
+    </div>
+  );
+}
+
+// Main exported component with error boundary
+export function RepositorySummary({ owner, repo, timeRange }: RepositorySummaryProps) {
+  return (
+    <ErrorBoundary
+      context={`AI Summary for ${owner}/${repo}`}
+      fallback={<AISummaryErrorFallback error={new Error('AI Summary Error')} retry={() => window.location.reload()} />}
+      onError={(error, errorInfo) => {
+        Sentry.withScope((scope) => {
+          scope.setTag('component', 'ai-summary');
+          scope.setTag('repository', `${owner}/${repo}`);
+          scope.setContext('ai_summary_error', {
+            owner,
+            repo,
+            timeRange,
+            componentStack: errorInfo.componentStack
+          });
+          Sentry.captureException(error);
+        });
+      }}
+    >
+      <RepositorySummaryInternal owner={owner} repo={repo} timeRange={timeRange} />
+    </ErrorBoundary>
   );
 }
