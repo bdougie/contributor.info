@@ -52,8 +52,8 @@ vi.mock("../distribution-charts", () => ({
 }));
 
 vi.mock("../distribution-charts-lazy", () => ({
-  LazyDistributionCharts: vi.fn(({ onSegmentClick, selectedQuadrant }) => (
-    <div data-testid="distribution-charts">
+  LazyDistributionCharts: vi.fn(({ onSegmentClick, selectedQuadrant, chartType = "treemap" }) => (
+    <div data-testid={`distribution-charts-${chartType}`}>
       <button onClick={() => onSegmentClick("new-feature")}>
         New Feature
       </button>
@@ -194,8 +194,14 @@ describe("Distribution", () => {
     expect(
       screen.getByText(/Visualize merged contribution patterns/)
     ).toBeInTheDocument();
-    expect(screen.getByTestId("distribution-charts")).toBeInTheDocument();
+    // Check for the active treemap chart by default
+    expect(screen.getByTestId("distribution-charts-treemap")).toBeInTheDocument();
     expect(screen.getByTestId("language-legend")).toBeInTheDocument();
+    
+    // Check that tabs are present (mobile and desktop versions)
+    expect(screen.getAllByText("Donut")).toHaveLength(2);
+    expect(screen.getAllByText("Bar")).toHaveLength(2);
+    expect(screen.getAllByText("Treemap")).toHaveLength(1); // Only on desktop
   });
 
   it("displays correct statistics", () => {
@@ -210,9 +216,9 @@ describe("Distribution", () => {
   it("handles quadrant filtering", async () => {
     renderDistribution();
 
-    // Click on New Feature quadrant
-    const newFeatureButton = screen.getByText("New Feature");
-    fireEvent.click(newFeatureButton);
+    // Click on New Feature quadrant (get the first one)
+    const newFeatureButtons = screen.getAllByText("New Feature");
+    fireEvent.click(newFeatureButtons[0]);
 
     await waitFor(() => {
       expect(screen.getByText(/Filtered by: New Feature/)).toBeInTheDocument();
@@ -223,8 +229,8 @@ describe("Distribution", () => {
   it("updates URL params when filtering", async () => {
     renderDistribution();
 
-    const newFeatureButton = screen.getByText("New Feature");
-    fireEvent.click(newFeatureButton);
+    const newFeatureButtons = screen.getAllByText("New Feature");
+    fireEvent.click(newFeatureButtons[0]);
 
     // Just test that the component renders properly
     expect(screen.getByText("Merged Pull Request Distribution Analysis")).toBeInTheDocument();
@@ -237,8 +243,8 @@ describe("Distribution", () => {
 
     renderDistribution();
 
-    const newFeatureButton = screen.getByText("New Feature");
-    fireEvent.click(newFeatureButton);
+    const newFeatureButtons = screen.getAllByText("New Feature");
+    fireEvent.click(newFeatureButtons[0]);
 
     await waitFor(() => {
       // Verify ContributionAnalyzer was called at least once
@@ -273,8 +279,8 @@ describe("Distribution", () => {
 
     renderDistribution();
 
-    const newFeatureButton = screen.getByText("New Feature");
-    fireEvent.click(newFeatureButton);
+    const newFeatureButtons = screen.getAllByText("New Feature");
+    fireEvent.click(newFeatureButtons[0]);
 
     await waitFor(() => {
       expect(consoleSpy).toHaveBeenCalledWith(
