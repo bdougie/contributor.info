@@ -77,11 +77,15 @@ ${formatPRList(recentMergedPRs)}
 Current Open Pull Requests:
 ${formatPRList(recentOpenPRs)}
 
-Provide a 2-3 sentence summary that captures:
-1. What this repository does (based on name, description, and recent activity)
-2. Recent development activity and key improvements
-3. Current focus areas based on open PRs
+Provide a summary in 2-3 paragraphs using markdown formatting:
 
+1. First paragraph (2-3 sentences): What this repository does, its main purpose, and key features based on the name, description, and overall activity patterns.
+
+2. Second paragraph (1-2 sentences): Recent development activity, highlighting notable improvements or changes from the merged PRs.
+
+3. Third paragraph (1-2 sentences): Start with "Current open pull requests suggest" and describe the current development focus areas based on open PRs.
+
+Use inline code markdown (backticks) for repository names, technical terms, and feature names.
 Keep it concise and informative for potential contributors.`;
 
   const controller = new AbortController();
@@ -99,7 +103,7 @@ Keep it concise and informative for potential contributors.`;
         messages: [
           {
             role: 'system',
-            content: 'You are a technical writer who creates concise, informative repository summaries for developers.'
+            content: 'You are a technical writer who creates concise, informative repository summaries for developers. Always format your response with proper markdown, using paragraphs for better readability. Use inline code formatting (backticks) for technical terms, repository names, and feature names.'
           },
           {
             role: 'user',
@@ -107,7 +111,7 @@ Keep it concise and informative for potential contributors.`;
           }
         ],
         temperature: 0.7,
-        max_tokens: 300, // Keep summaries concise
+        max_tokens: 400, // Allow for better formatting with paragraphs
       }),
       signal: controller.signal,
     });
