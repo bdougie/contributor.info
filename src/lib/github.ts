@@ -212,10 +212,6 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
       return prDate >= since;
     });
 
-    // Debug logging for pagination effectiveness
-    if (import.meta.env.DEV) {
-      console.log(`PR Pagination Debug - Total PRs fetched: ${allPRs.length}, Filtered PRs: ${filteredPRs.length}, Pages fetched: ${page - 1}`);
-    }
     
     // Fetch additional details for each PR to get additions/deletions
     const detailedPRs = await Promise.all(

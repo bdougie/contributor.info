@@ -19,7 +19,6 @@ export async function fetchPRDataWithFallback(
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    console.log(`[PR Data] Attempting to fetch ${owner}/${repo} data from database first...`);
 
     // First, get the repository ID
     const { data: repoData, error: repoError } = await supabase
@@ -30,7 +29,6 @@ export async function fetchPRDataWithFallback(
       .single();
 
     if (repoError || !repoData) {
-      console.log(`[PR Data] Repository not found in database for ${owner}/${repo}`);
       // Fall through to GitHub API
     } else {
       // Now fetch PRs for this repository with contributor data, reviews, and comments
@@ -94,9 +92,7 @@ export async function fetchPRDataWithFallback(
         .limit(300); // Get up to 300 PRs from database
 
     if (dbError) {
-      console.error(`[PR Data] Database query failed:`, dbError);
     } else if (dbPRs && dbPRs.length > 0) {
-      console.log(`[PR Data] Found ${dbPRs.length} PRs in database for ${owner}/${repo}`);
       
       // Transform database data to match GitHub API format
       const transformedPRs: PullRequest[] = dbPRs.map((dbPR: any) => ({
@@ -159,7 +155,6 @@ export async function fetchPRDataWithFallback(
       // Check for data quality issues
       const prsWithFileChanges = transformedPRs.filter(pr => pr.additions > 0 || pr.deletions > 0).length;
       if (prsWithFileChanges === 0 && transformedPRs.length > 0) {
-        console.warn(`[PR Data] Data quality issue: ${transformedPRs.length} PRs found but none have file change data (additions/deletions)`);
       }
       
       // During widespread rate limiting, use ANY database data we have
@@ -170,10 +165,8 @@ export async function fetchPRDataWithFallback(
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
         
         if (latestUpdate > thirtyDaysAgo) {
-          console.log(`[PR Data] Using database data for ${owner}/${repo} (latest update: ${latestUpdate.toISOString()})`);
           return filteredPRs.length > 0 ? filteredPRs : transformedPRs.slice(0, 100); // Return filtered or recent 100
         } else {
-          console.log(`[PR Data] Database data is very stale (${latestUpdate.toISOString()}), trying GitHub API first`);
         }
       }
 
@@ -183,21 +176,16 @@ export async function fetchPRDataWithFallback(
         return filteredPRs.length > 0 ? filteredPRs : transformedPRs.slice(0, 100);
       }
     } else {
-      console.log(`[PR Data] No database data found for ${owner}/${repo}, falling back to GitHub API`);
     }
     }
   } catch (error) {
-    console.warn(`[PR Data] Database query error:`, error);
   }
 
   // Fallback to GitHub API
-  console.log(`[PR Data] Fetching fresh data from GitHub API for ${owner}/${repo}...`);
   try {
     const githubPRs = await fetchPullRequests(owner, repo, timeRange);
-    console.log(`[PR Data] Successfully fetched ${githubPRs.length} PRs from GitHub API`);
     return githubPRs;
   } catch (githubError) {
-    console.error(`[PR Data] GitHub API failed (likely rate limited):`, githubError);
     
     // As absolute last resort, try to get ANY data from database, even very old
     try {
@@ -243,7 +231,6 @@ export async function fetchPRDataWithFallback(
           .limit(100);
 
       if (emergencyData && emergencyData.length > 0) {
-        console.log(`[PR Data] Using emergency fallback data: ${emergencyData.length} PRs`);
         return emergencyData.map((dbPR: any) => ({
           id: dbPR.github_id,
           number: dbPR.number,
@@ -276,7 +263,6 @@ export async function fetchPRDataWithFallback(
       }
       }
     } catch (emergencyError) {
-      console.error(`[PR Data] Emergency fallback also failed:`, emergencyError);
     }
     
     // If everything fails, throw the original GitHub error
@@ -305,7 +291,6 @@ export async function hasRecentPRData(
 
     return !error && data && data.length > 0;
   } catch (error) {
-    console.warn(`[PR Data] Error checking for recent data:`, error);
     return false;
   }
 }
