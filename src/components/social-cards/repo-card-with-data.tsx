@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { fetchPullRequests } from "@/lib/github";
+import { fetchPRDataWithFallback } from "@/lib/supabase-pr-data";
 import { calculateTrendMetrics } from "@/lib/insights/trends-metrics";
 import RepoSocialCard from "./repo-card";
 import type { PullRequest, TimeRange } from "@/lib/types";
@@ -31,7 +31,7 @@ export default function RepoCardWithData() {
         // Fetch both pull requests data and trend metrics
         const timeRange: TimeRange = "30"; // 30 days for trends
         const [pullRequests, trends] = await Promise.all([
-          fetchPullRequests(owner, repo, timeRange),
+          fetchPRDataWithFallback(owner, repo, timeRange),
           calculateTrendMetrics(owner, repo, timeRange)
         ]);
 
