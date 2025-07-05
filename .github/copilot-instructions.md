@@ -364,4 +364,16 @@ npx supabase status
 # Copy contents of migration file and run in SQL Editor
 ```
 
+## Development Memories
+
+- Replaced all require() calls with proper ES module patterns in storybook
+- remember to mock external dependencies in tests
+- never use jest. only vitest
+- mock supabase in tests always
+- jest is leveraged in the storybook only
+- use the /docs folder for postmortems and /tasks for plans. remove plans when feature is implemented, but write docs when plans are completed
+- after visual changes always look for opportunity to improve performance
+- no premmature optimizations without testing
+- use the supabase mcp server for migrations
+
 FILENAMES should be `this-is-component.tsx` and not `ThisIsComponent.tsx` or `this_is_component.tsx`. Use kebab-case for filenames.
