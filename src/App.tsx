@@ -2,6 +2,10 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { Suspense, lazy, useEffect } from "react";
 import { ThemeProvider } from "@/components/common/theming";
 import { Toaster } from "@/components/ui/sonner";
+import { ErrorBoundary } from "@/components/error-boundary";
+import '@/lib/progressive-capture/manual-trigger'; // Enable progressive capture tools
+import '@/lib/progressive-capture/smart-notifications'; // Enable smart data notifications
+import '@/lib/progressive-capture/background-processor'; // Enable automatic background processing
 import { Layout, Home, NotFound } from "@/components/common/layout";
 import { ProtectedRoute, AdminRoute } from "@/components/features/auth";
 
@@ -65,10 +69,11 @@ function App() {
   }, []);
 
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
-      <Router>
-        <Suspense fallback={<PageSkeleton />}>
-          <Routes>
+    <ErrorBoundary context="Application Root">
+      <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
+        <Router>
+          <Suspense fallback={<PageSkeleton />}>
+            <Routes>
             <Route path="/login" element={<LoginPage />} />
 
             {/* Social card routes */}
@@ -287,6 +292,7 @@ function App() {
       </Router>
       <Toaster />
     </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

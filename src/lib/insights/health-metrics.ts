@@ -1,4 +1,4 @@
-import { fetchPullRequests } from '../github';
+import { fetchPRDataWithFallback } from '../supabase-pr-data';
 
 export interface HealthMetrics {
   score: number; // 0-100
@@ -25,7 +25,7 @@ export async function calculateHealthMetrics(
   try {
     const now = new Date();
     // Fetch data
-    const pullRequests = await fetchPullRequests(owner, repo, timeRange);
+    const pullRequests = await fetchPRDataWithFallback(owner, repo, timeRange);
     
     // Calculate various health factors
     const factors: HealthMetrics['factors'] = [];

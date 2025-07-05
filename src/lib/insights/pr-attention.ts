@@ -1,4 +1,4 @@
-import { fetchPullRequests } from '../github';
+import { fetchPRDataWithFallback } from '../supabase-pr-data';
 import { supabase } from '../supabase';
 
 export interface PrAlert {
@@ -114,7 +114,7 @@ export async function detectPrAttention(
   try {
     // Fetch open PRs and maintainers in parallel
     const [pullRequests, maintainers] = await Promise.all([
-      fetchPullRequests(owner, repo, timeRange),
+      fetchPRDataWithFallback(owner, repo, timeRange),
       fetchMaintainers(owner, repo)
     ]);
 

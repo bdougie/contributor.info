@@ -163,7 +163,8 @@ describe('YOLO Algorithm Improved Implementation', () => {
     expect(coder).toHaveProperty('login', 'testuser');
     expect(coder).toHaveProperty('avatar_url');
     expect(coder).toHaveProperty('directCommits', 1);
-    expect(coder).toHaveProperty('totalPushedCommits', 1);
+    expect(coder).toHaveProperty('totalCommits', 1);
+    expect(coder).toHaveProperty('directCommitPercentage');
     expect(coder).toHaveProperty('type', 'User');
   });
 
