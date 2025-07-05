@@ -9,7 +9,8 @@ import {
   ChevronRight, 
   AlertCircle, 
   Heart,
-  Sparkles
+  Sparkles,
+  FileText
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useTimeRangeStore } from "@/lib/time-range-store";
@@ -18,6 +19,7 @@ import { useTimeRangeStore } from "@/lib/time-range-store";
 import { NeedsAttention } from "./sections/needs-attention";
 import { InsightsHealth } from "./sections/repository-health-insights";
 import { Recommendations } from "./sections/recommendations";
+import { RepositorySummary } from "./sections/repository-summary";
 import { getCriticalPrCount } from "@/lib/insights/pr-attention";
 
 interface InsightsSidebarProps {
@@ -28,7 +30,7 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const timeRange = useTimeRangeStore((state) => state.timeRange);
   const [isCollapsed, setIsCollapsed] = useState(true);
-  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<string | null>("summary");
   const [criticalCount, setCriticalCount] = useState(0);
 
   // Mobile detection
@@ -48,6 +50,13 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
   }, [owner, repo, timeRange]);
 
   const sections = [
+    {
+      id: "summary",
+      title: "Repository Overview",
+      icon: FileText,
+      color: "text-blue-500",
+      count: null
+    },
     {
       id: "attention",
       title: "Needs Attention",
@@ -152,6 +161,9 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                       {/* Section content */}
                       {activeSection === section.id && owner && repo && (
                         <div className="mt-3">
+                          {section.id === "summary" && (
+                            <RepositorySummary owner={owner} repo={repo} timeRange={timeRange} />
+                          )}
                           {section.id === "attention" && (
                             <NeedsAttention owner={owner} repo={repo} timeRange={timeRange} />
                           )}
@@ -213,6 +225,9 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                     {/* Section content */}
                     {activeSection === section.id && owner && repo && (
                       <div className="mt-3">
+                        {section.id === "summary" && (
+                          <RepositorySummary owner={owner} repo={repo} timeRange={timeRange} />
+                        )}
                         {section.id === "attention" && (
                           <NeedsAttention owner={owner} repo={repo} timeRange={timeRange} />
                         )}
