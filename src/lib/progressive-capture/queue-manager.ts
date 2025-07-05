@@ -1,8 +1,9 @@
 import { supabase } from '../supabase';
+import { ProgressiveCaptureNotifications } from './ui-notifications';
 
 export interface DataCaptureJob {
   id: string;
-  type: 'pr_details' | 'reviews' | 'comments' | 'commits' | 'recent_prs';
+  type: 'pr_details' | 'reviews' | 'comments' | 'commits' | 'recent_prs' | 'commit_pr_check';
   priority: 'critical' | 'high' | 'medium' | 'low';
   repository_id: string;
   resource_id?: string; // PR number, commit SHA, etc.
@@ -75,7 +76,99 @@ export class DataCaptureQueueManager {
     }
 
     console.log(`[Queue] Queued ${queuedCount} file change jobs for repository ${repositoryId}`);
+    
+    // Show UI notification
+    if (queuedCount > 0) {
+      ProgressiveCaptureNotifications.showJobsQueued(queuedCount, 'file changes');
+    }
+    
     return queuedCount;
+  }
+
+  /**
+   * Queue jobs to analyze commits for PR associations (smart YOLO analysis)
+   */
+  async queueCommitPRAnalysis(repositoryId: string, commitShas: string[], priority: 'high' | 'medium' | 'low' = 'medium'): Promise<number> {
+    console.log(`[Queue] Queuing commit PR analysis for ${commitShas.length} commits in repository ${repositoryId}`);
+
+    if (!commitShas || commitShas.length === 0) {
+      console.log('[Queue] No commits to analyze');
+      return 0;
+    }
+
+    // Queue individual commit PR checks (1 API call per commit)
+    let queuedCount = 0;
+    for (const sha of commitShas) {
+      try {
+        const { error } = await supabase
+          .from('data_capture_queue')
+          .insert({
+            type: 'commit_pr_check',
+            priority,
+            repository_id: repositoryId,
+            resource_id: sha,
+            estimated_api_calls: 1, // 1 call per commit - much more efficient
+            metadata: { 
+              commit_sha: sha, 
+              reason: 'direct_commit_analysis',
+              batch_id: `batch_${Date.now()}`
+            }
+          });
+
+        if (!error) {
+          queuedCount++;
+        } else if (error.code !== '23505') { // Ignore duplicate key errors
+          console.warn(`[Queue] Failed to queue commit ${sha}:`, error);
+        }
+      } catch (err) {
+        console.warn(`[Queue] Error queuing commit ${sha}:`, err);
+      }
+    }
+
+    console.log(`[Queue] Queued ${queuedCount} commit PR analysis jobs for repository ${repositoryId}`);
+    
+    // Show UI notification
+    if (queuedCount > 0) {
+      ProgressiveCaptureNotifications.showJobsQueued(queuedCount, 'commit analysis');
+    }
+    
+    return queuedCount;
+  }
+
+  /**
+   * Queue commit analysis for recent commits in a repository
+   */
+  async queueRecentCommitsAnalysis(repositoryId: string, days: number = 90): Promise<number> {
+    console.log(`[Queue] Queuing recent commits analysis for repository ${repositoryId} (last ${days} days)`);
+
+    try {
+      // Find commits that need PR analysis (don't have is_direct_commit set)
+      const { data: commitsNeedingAnalysis, error } = await supabase
+        .from('commits')
+        .select('sha')
+        .eq('repository_id', repositoryId)
+        .is('is_direct_commit', null)
+        .gte('authored_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
+        .order('authored_at', { ascending: false })
+        .limit(100); // Analyze up to 100 recent commits
+
+      if (error) {
+        console.error('[Queue] Error finding commits needing analysis:', error);
+        return 0;
+      }
+
+      if (!commitsNeedingAnalysis || commitsNeedingAnalysis.length === 0) {
+        console.log('[Queue] No commits need PR analysis');
+        return 0;
+      }
+
+      const commitShas = commitsNeedingAnalysis.map(c => c.sha);
+      return await this.queueCommitPRAnalysis(repositoryId, commitShas, 'medium');
+
+    } catch (error) {
+      console.error('[Queue] Error queuing recent commits analysis:', error);
+      return 0;
+    }
   }
 
   /**
@@ -101,6 +194,10 @@ export class DataCaptureQueueManager {
       }
 
       console.log(`[Queue] Queued recent PRs job for repository ${repositoryId}`);
+      
+      // Show UI notification
+      ProgressiveCaptureNotifications.showJobsQueued(1, 'recent PRs');
+      
       return true;
     } catch (err) {
       console.error('[Queue] Error queuing recent PRs:', err);
@@ -279,6 +376,140 @@ export class DataCaptureQueueManager {
     } catch (err) {
       console.error('[Queue] Error updating rate limit tracking:', err);
     }
+  }
+
+  /**
+   * Queue jobs to fetch reviews for PRs that don't have them
+   */
+  async queueMissingReviews(repositoryId: string, limit: number = 50): Promise<number> {
+    console.log(`[Queue] Finding PRs needing review data for repository ${repositoryId}`);
+
+    // Find PRs without reviews
+    const { data: prsNeedingReviews, error } = await supabase
+      .from('pull_requests')
+      .select(`
+        id,
+        number,
+        repository_id,
+        github_id
+      `)
+      .eq('repository_id', repositoryId)
+      .not('id', 'in', 
+        supabase.from('reviews').select('pull_request_id')
+      )
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('[Queue] Error finding PRs needing reviews:', error);
+      return 0;
+    }
+
+    if (!prsNeedingReviews || prsNeedingReviews.length === 0) {
+      console.log('[Queue] No PRs need review data');
+      return 0;
+    }
+
+    // Queue jobs for each PR
+    let queuedCount = 0;
+    for (const pr of prsNeedingReviews) {
+      try {
+        const { error: insertError } = await supabase
+          .from('data_capture_queue')
+          .insert({
+            type: 'reviews',
+            priority: 'medium',
+            repository_id: pr.repository_id,
+            resource_id: pr.number.toString(),
+            estimated_api_calls: 1,
+            metadata: { pr_id: pr.id, pr_github_id: pr.github_id }
+          });
+
+        if (!insertError) {
+          queuedCount++;
+        } else if (insertError.code !== '23505') { // Ignore duplicate key errors
+          console.warn(`[Queue] Failed to queue reviews for PR ${pr.number}:`, insertError);
+        }
+      } catch (err) {
+        console.warn(`[Queue] Error queuing reviews for PR ${pr.number}:`, err);
+      }
+    }
+
+    console.log(`[Queue] Queued ${queuedCount} review jobs for repository ${repositoryId}`);
+    
+    // Show UI notification
+    if (queuedCount > 0) {
+      ProgressiveCaptureNotifications.showJobsQueued(queuedCount, 'reviews');
+    }
+    
+    return queuedCount;
+  }
+
+  /**
+   * Queue jobs to fetch comments for PRs that don't have them
+   */
+  async queueMissingComments(repositoryId: string, limit: number = 50): Promise<number> {
+    console.log(`[Queue] Finding PRs needing comment data for repository ${repositoryId}`);
+
+    // Find PRs without comments
+    const { data: prsNeedingComments, error } = await supabase
+      .from('pull_requests')
+      .select(`
+        id,
+        number,
+        repository_id,
+        github_id
+      `)
+      .eq('repository_id', repositoryId)
+      .not('id', 'in', 
+        supabase.from('comments').select('pull_request_id')
+      )
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('[Queue] Error finding PRs needing comments:', error);
+      return 0;
+    }
+
+    if (!prsNeedingComments || prsNeedingComments.length === 0) {
+      console.log('[Queue] No PRs need comment data');
+      return 0;
+    }
+
+    // Queue jobs for each PR
+    let queuedCount = 0;
+    for (const pr of prsNeedingComments) {
+      try {
+        const { error: insertError } = await supabase
+          .from('data_capture_queue')
+          .insert({
+            type: 'comments',
+            priority: 'medium',
+            repository_id: pr.repository_id,
+            resource_id: pr.number.toString(),
+            estimated_api_calls: 2, // PR comments + issue comments
+            metadata: { pr_id: pr.id, pr_github_id: pr.github_id }
+          });
+
+        if (!insertError) {
+          queuedCount++;
+        } else if (insertError.code !== '23505') { // Ignore duplicate key errors
+          console.warn(`[Queue] Failed to queue comments for PR ${pr.number}:`, insertError);
+        }
+      } catch (err) {
+        console.warn(`[Queue] Error queuing comments for PR ${pr.number}:`, err);
+      }
+    }
+
+    console.log(`[Queue] Queued ${queuedCount} comment jobs for repository ${repositoryId}`);
+    
+    // Show UI notification
+    if (queuedCount > 0) {
+      ProgressiveCaptureNotifications.showJobsQueued(queuedCount, 'comments');
+    }
+    
+    return queuedCount;
   }
 }
 

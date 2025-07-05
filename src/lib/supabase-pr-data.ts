@@ -27,10 +27,11 @@ export async function fetchPRDataWithFallback(
       console.log(`[PR Data] Repository not found in database: ${owner}/${repo}`);
       // Fall through to GitHub API
     } else {
-      // Now fetch PRs for this repository with contributor data
+      // Now fetch PRs for this repository with contributor data, reviews, and comments
       const { data: dbPRs, error: dbError } = await supabase
         .from('pull_requests')
         .select(`
+          id,
           github_id,
           number,
           title,
@@ -55,6 +56,31 @@ export async function fetchPRDataWithFallback(
             username,
             avatar_url,
             is_bot
+          ),
+          reviews(
+            id,
+            github_id,
+            state,
+            submitted_at,
+            reviewer:contributors!reviews_reviewer_id_fkey(
+              github_id,
+              username,
+              avatar_url,
+              is_bot
+            )
+          ),
+          comments(
+            id,
+            github_id,
+            body,
+            created_at,
+            comment_type,
+            commenter:contributors!comments_commenter_id_fkey(
+              github_id,
+              username,
+              avatar_url,
+              is_bot
+            )
           )
         `)
         .eq('repository_id', repoData.id)
@@ -97,8 +123,24 @@ export async function fetchPRDataWithFallback(
         html_url: dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
         repository_owner: owner,
         repository_name: repo,
-        reviews: [],
-        comments: []
+        reviews: (dbPR.reviews || []).map((review: any) => ({
+          id: review.github_id,
+          state: review.state,
+          user: {
+            login: review.reviewer?.username || 'unknown',
+            avatar_url: review.reviewer?.avatar_url || ''
+          },
+          submitted_at: review.submitted_at
+        })),
+        comments: (dbPR.comments || []).map((comment: any) => ({
+          id: comment.github_id,
+          user: {
+            login: comment.commenter?.username || 'unknown',
+            avatar_url: comment.commenter?.avatar_url || ''
+          },
+          created_at: comment.created_at,
+          body: comment.body
+        }))
       }));
 
       // Filter by timeRange if needed

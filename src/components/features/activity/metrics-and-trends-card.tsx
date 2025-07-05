@@ -152,7 +152,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
           <div>
             <CardTitle>Metrics and Trends</CardTitle>
             <CardDescription>
-              Snapshot comparing the previous 30 days (limited to 100 prs)
+              Snapshot comparing the previous 30 days with review and comment data
             </CardDescription>
           </div>
           <Button

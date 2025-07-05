@@ -27,6 +27,7 @@ import { SocialMetaTags } from "@/components/common/layout";
 import RepoNotFound from "./repo-not-found";
 import { createChartShareUrl, getDubConfig } from "@/lib/dub";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
+import { DataProcessingIndicator } from "./data-processing-indicator";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -255,6 +256,14 @@ export default function RepoView() {
                 <TabsTrigger value="feed">Feed</TabsTrigger>
               </TabsList>
             </Tabs>
+
+            {/* Show data processing indicator */}
+            {owner && repo && (
+              <DataProcessingIndicator 
+                repository={`${owner}/${repo}`} 
+                className="mt-4" 
+              />
+            )}
 
             <div className="mt-6">
               <RepoStatsProvider

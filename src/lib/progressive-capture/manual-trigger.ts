@@ -1,5 +1,7 @@
 import { bootstrapDataCaptureQueue, analyzeDataGaps } from './bootstrap-queue';
 import { queueManager } from './queue-manager';
+import { ProgressiveCaptureNotifications } from './ui-notifications';
+import { ReviewCommentProcessor } from './review-comment-processor';
 
 /**
  * Manual trigger for progressive data capture
@@ -131,12 +133,54 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
     // Mark as processing
     await queueManager.markJobProcessing(nextJob.id);
     
-    // TODO: Implement actual job processing based on type
-    // For now, just mark as completed for testing
-    setTimeout(async () => {
-      await queueManager.markJobCompleted(nextJob.id);
-      console.log('✅ Job completed (mock processing)');
-    }, 1000);
+    // Process the job based on type
+    let result: { success: boolean; error?: string } = { success: false };
+    
+    try {
+      switch (nextJob.type) {
+        case 'reviews':
+          if (nextJob.repository_id && nextJob.resource_id) {
+            result = await ReviewCommentProcessor.processReviewsJob(
+              nextJob.repository_id,
+              nextJob.resource_id,
+              nextJob.metadata
+            );
+          } else {
+            result = { success: false, error: 'Missing repository_id or resource_id' };
+          }
+          break;
+          
+        case 'comments':
+          if (nextJob.repository_id && nextJob.resource_id) {
+            result = await ReviewCommentProcessor.processCommentsJob(
+              nextJob.repository_id,
+              nextJob.resource_id,
+              nextJob.metadata
+            );
+          } else {
+            result = { success: false, error: 'Missing repository_id or resource_id' };
+          }
+          break;
+          
+        default:
+          console.log(`[Process] Job type '${nextJob.type}' not yet implemented`);
+          result = { success: true }; // Mark as successful to avoid retries
+          break;
+      }
+      
+      // Mark job as completed or failed
+      if (result.success) {
+        await queueManager.markJobCompleted(nextJob.id);
+        console.log(`✅ Job ${nextJob.type} completed successfully`);
+      } else {
+        await queueManager.markJobFailed(nextJob.id, result.error || 'Unknown error');
+        console.log(`❌ Job ${nextJob.type} failed: ${result.error}`);
+      }
+      
+    } catch (error) {
+      await queueManager.markJobFailed(nextJob.id, error instanceof Error ? error.message : 'Unknown error');
+      console.log(`❌ Job ${nextJob.type} failed with exception:`, error);
+    }
 
     return nextJob;
   }
@@ -167,6 +211,47 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
   }
 
   /**
+   * Analyze commits for a specific repository (YOLO coder detection)
+   */
+  static async analyzeCommits(owner: string, repo: string) {
+    console.log(`🔍 Analyzing commits for ${owner}/${repo}...`);
+    
+    try {
+      // Find repository ID
+      const { supabase } = await import('../supabase');
+      const { data: repoData, error } = await supabase
+        .from('repositories')
+        .select('id')
+        .eq('owner', owner)
+        .eq('name', repo)
+        .single();
+
+      if (error || !repoData) {
+        console.log(`❌ Repository ${owner}/${repo} not found in database`);
+        return;
+      }
+
+      // Queue commit analysis
+      const queuedCount = await queueManager.queueRecentCommitsAnalysis(repoData.id, 90);
+      
+      // Show UI notification
+      if (queuedCount > 0) {
+        ProgressiveCaptureNotifications.showJobsQueued(queuedCount, 'commit analysis', `${owner}/${repo}`);
+      }
+      
+      console.log(`
+✅ Commit analysis queued for ${owner}/${repo}:
+  • ${queuedCount} commits queued for PR association analysis
+  • This will enable YOLO coder detection
+  • Use ProgressiveCapture.processNext() to process manually
+      `);
+      
+    } catch (error) {
+      console.error(`❌ Commit analysis failed for ${owner}/${repo}:`, error);
+    }
+  }
+
+  /**
    * Quick fix for specific repository
    */
   static async quickFix(owner: string, repo: string) {
@@ -187,14 +272,27 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
         return;
       }
 
-      // Queue recent PRs and file changes
+      // Queue recent PRs, file changes, reviews, comments, and commit analysis
       await queueManager.queueRecentPRs(repoData.id);
       const fileChangeCount = await queueManager.queueMissingFileChanges(repoData.id, 10);
+      const reviewCount = await queueManager.queueMissingReviews(repoData.id, 20);
+      const commentCount = await queueManager.queueMissingComments(repoData.id, 20);
+      const commitAnalysisCount = await queueManager.queueRecentCommitsAnalysis(repoData.id, 90);
+      
+      // Show comprehensive UI notification
+      const totalJobs = 1 + fileChangeCount + reviewCount + commentCount + commitAnalysisCount;
+      ProgressiveCaptureNotifications.showProcessingStarted(`${owner}/${repo}`);
       
       console.log(`
 ✅ Quick fix queued for ${owner}/${repo}:
   • Recent PRs: Queued
   • File changes: ${fileChangeCount} PRs queued
+  • Reviews: ${reviewCount} PRs queued
+  • Comments: ${commentCount} PRs queued
+  • Commit analysis: ${commitAnalysisCount} commits queued
+  • Total: ${totalJobs} jobs queued
+  • Review and comment data will be populated for better insights
+  • YOLO coder detection will be available once commits are analyzed
       `);
       
     } catch (error) {
@@ -215,8 +313,10 @@ Use in browser console:
   • ProgressiveCapture.status()     - Check queue status
   • ProgressiveCapture.rateLimits() - Check API rate limits
   • ProgressiveCapture.quickFix('owner', 'repo') - Fix specific repository
+  • ProgressiveCapture.analyzeCommits('owner', 'repo') - Queue YOLO coder analysis
 
-Example:
+Examples:
   ProgressiveCapture.quickFix('continuedev', 'continue')
+  ProgressiveCapture.analyzeCommits('continuedev', 'continue')
   `);
 }

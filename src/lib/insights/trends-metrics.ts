@@ -140,6 +140,30 @@ export async function calculateTrendMetrics(
       ? Math.round(((currentCompletionRate - previousCompletionRate) / previousCompletionRate) * 100)
       : 0;
     
+    // Calculate Review Activity
+    const calculateReviewActivity = (prs: PullRequest[]) => {
+      return prs.reduce((total, pr) => total + (pr.reviews?.length || 0), 0);
+    };
+    
+    const currentReviews = calculateReviewActivity(currentPRs);
+    const previousReviews = calculateReviewActivity(previousPRs);
+    
+    const reviewChange = previousReviews > 0
+      ? Math.round(((currentReviews - previousReviews) / previousReviews) * 100)
+      : 0;
+    
+    // Calculate Comment Activity
+    const calculateCommentActivity = (prs: PullRequest[]) => {
+      return prs.reduce((total, pr) => total + (pr.comments?.length || 0), 0);
+    };
+    
+    const currentComments = calculateCommentActivity(currentPRs);
+    const previousComments = calculateCommentActivity(previousPRs);
+    
+    const commentChange = previousComments > 0
+      ? Math.round(((currentComments - previousComments) / previousComments) * 100)
+      : 0;
+    
     // Build trends array
     const trends: TrendData[] = [
       {
@@ -197,6 +221,34 @@ export async function calculateTrendMetrics(
           : completionChange < 0
           ? "PR completion rate has decreased"
           : "PR completion rate stable"
+      },
+      {
+        metric: "Review Activity",
+        current: currentReviews,
+        previous: previousReviews,
+        change: reviewChange,
+        trend: reviewChange > 0 ? "up" : reviewChange < 0 ? "down" : "stable",
+        icon: "GitPullRequestDraft",
+        unit: "reviews",
+        insight: reviewChange > 0
+          ? `${Math.abs(currentReviews - previousReviews)} more reviews this ${periodLabel}`
+          : reviewChange < 0
+          ? `${Math.abs(currentReviews - previousReviews)} fewer reviews this ${periodLabel}`
+          : "Review activity stable"
+      },
+      {
+        metric: "Comment Activity", 
+        current: currentComments,
+        previous: previousComments,
+        change: commentChange,
+        trend: commentChange > 0 ? "up" : commentChange < 0 ? "down" : "stable",
+        icon: "MessageSquare",
+        unit: "comments",
+        insight: commentChange > 0
+          ? `${Math.abs(currentComments - previousComments)} more comments this ${periodLabel}`
+          : commentChange < 0
+          ? `${Math.abs(currentComments - previousComments)} fewer comments this ${periodLabel}`
+          : "Comment activity stable"
       }
     ];
     
@@ -256,6 +308,26 @@ function getEmptyTrends(periodLabel: string): TrendData[] {
       icon: "CheckCircle",
       unit: "%",
       insight: "No completion data available"
+    },
+    {
+      metric: "Review Activity",
+      current: 0,
+      previous: 0,
+      change: 0,
+      trend: "stable",
+      icon: "GitPullRequestDraft",
+      unit: "reviews",
+      insight: "No review data available"
+    },
+    {
+      metric: "Comment Activity",
+      current: 0,
+      previous: 0,
+      change: 0,
+      trend: "stable",
+      icon: "MessageSquare",
+      unit: "comments",
+      insight: "No comment data available"
     }
   ];
 }

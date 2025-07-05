@@ -6,10 +6,14 @@ export interface ActivityMetrics {
   mergedThisWeek: number;
   averageMergeTime: number; // in hours
   averageMergeTimeTrend: "up" | "down" | "stable";
+  totalReviews: number;
+  totalComments: number;
   topContributors: Array<{
     name: string;
     avatar: string;
     prCount: number;
+    reviewCount: number;
+    commentCount: number;
   }>;
   velocity: {
     current: number;
@@ -99,26 +103,71 @@ export async function calculatePrActivityMetrics(
       else if (change < -10) averageMergeTimeTrend = "down";
     }
     
-    // Calculate top contributors
-    const contributorMap = new Map<string, { count: number; avatar: string }>();
+    // Calculate total reviews and comments
+    const totalReviews = allPRs.reduce((total, pr) => total + (pr.reviews?.length || 0), 0);
+    const totalComments = allPRs.reduce((total, pr) => total + (pr.comments?.length || 0), 0);
+    
+    // Calculate top contributors with review and comment activity
+    const contributorMap = new Map<string, { prCount: number; reviewCount: number; commentCount: number; avatar: string }>();
     
     allPRs.forEach(pr => {
       const author = pr.user?.login || 'unknown';
       const avatar = pr.user?.avatar_url || '';
-      const current = contributorMap.get(author) || { count: 0, avatar: '' };
+      const current = contributorMap.get(author) || { prCount: 0, reviewCount: 0, commentCount: 0, avatar: '' };
+      
+      // Count PRs authored
       contributorMap.set(author, { 
-        count: current.count + 1, 
+        prCount: current.prCount + 1,
+        reviewCount: current.reviewCount,
+        commentCount: current.commentCount,
         avatar: avatar || current.avatar // Keep first non-empty avatar found
       });
+      
+      // Count reviews given by this person
+      if (pr.reviews) {
+        pr.reviews.forEach(review => {
+          const reviewer = review.user?.login || 'unknown';
+          const reviewerAvatar = review.user?.avatar_url || '';
+          const reviewerCurrent = contributorMap.get(reviewer) || { prCount: 0, reviewCount: 0, commentCount: 0, avatar: '' };
+          contributorMap.set(reviewer, {
+            prCount: reviewerCurrent.prCount,
+            reviewCount: reviewerCurrent.reviewCount + 1,
+            commentCount: reviewerCurrent.commentCount,
+            avatar: reviewerAvatar || reviewerCurrent.avatar
+          });
+        });
+      }
+      
+      // Count comments made by this person
+      if (pr.comments) {
+        pr.comments.forEach(comment => {
+          const commenter = comment.user?.login || 'unknown';
+          const commenterAvatar = comment.user?.avatar_url || '';
+          const commenterCurrent = contributorMap.get(commenter) || { prCount: 0, reviewCount: 0, commentCount: 0, avatar: '' };
+          contributorMap.set(commenter, {
+            prCount: commenterCurrent.prCount,
+            reviewCount: commenterCurrent.reviewCount,
+            commentCount: commenterCurrent.commentCount + 1,
+            avatar: commenterAvatar || commenterCurrent.avatar
+          });
+        });
+      }
     });
     
     const topContributors = Array.from(contributorMap.entries())
-      .sort((a, b) => b[1].count - a[1].count)
+      .sort((a, b) => {
+        // Sort by total activity (PRs + reviews + comments)
+        const totalA = a[1].prCount + a[1].reviewCount + a[1].commentCount;
+        const totalB = b[1].prCount + b[1].reviewCount + b[1].commentCount;
+        return totalB - totalA;
+      })
       .slice(0, 5)
       .map(([name, data]) => ({
         name,
         avatar: data.avatar,
-        prCount: data.count
+        prCount: data.prCount,
+        reviewCount: data.reviewCount,
+        commentCount: data.commentCount
       }));
     
     // Calculate velocity
@@ -134,6 +183,8 @@ export async function calculatePrActivityMetrics(
       mergedThisWeek: mergedThisWeek.length,
       averageMergeTime,
       averageMergeTimeTrend,
+      totalReviews,
+      totalComments,
       topContributors,
       velocity: {
         current: currentVelocity,
@@ -151,6 +202,8 @@ export async function calculatePrActivityMetrics(
       mergedThisWeek: 0,
       averageMergeTime: 0,
       averageMergeTimeTrend: "stable",
+      totalReviews: 0,
+      totalComments: 0,
       topContributors: [],
       velocity: {
         current: 0,

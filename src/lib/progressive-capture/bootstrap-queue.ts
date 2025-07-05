@@ -1,5 +1,6 @@
 import { queueManager } from './queue-manager';
 import { supabase } from '../supabase';
+import { ProgressiveCaptureNotifications } from './ui-notifications';
 
 /**
  * Bootstrap the queue with critical missing data for immediate improvements
@@ -49,20 +50,48 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
       }
     }
 
-    // 3. Show queue statistics
+    // 3. Queue smart commit analysis for repositories with commits
+    console.log('[Bootstrap] Queuing smart commit analysis for repositories with commit data...');
+    const { data: reposWithCommits, error: commitsError } = await supabase
+      .from('repositories')
+      .select(`
+        id,
+        owner,
+        name,
+        commits!inner(id)
+      `)
+      .limit(3); // Start with 3 repositories for commit analysis
+
+    if (commitsError) {
+      console.error('[Bootstrap] Error finding repositories with commits:', commitsError);
+    } else if (reposWithCommits) {
+      for (const repo of reposWithCommits) {
+        const queuedCommitsCount = await queueManager.queueRecentCommitsAnalysis(repo.id, 90); // Last 90 days
+        console.log(`[Bootstrap] Queued ${queuedCommitsCount} commit analysis jobs for ${repo.owner}/${repo.name}`);
+      }
+    }
+
+    // 4. Show queue statistics
     const stats = await queueManager.getQueueStats();
     console.log('[Bootstrap] Queue bootstrap completed. Stats:', stats);
+
+    // Show UI notification for bootstrap completion
+    if (stats.pending > 0) {
+      ProgressiveCaptureNotifications.showQueueStatus(stats);
+    }
 
     console.log(`
 [Bootstrap] Queue Bootstrap Summary:
 - Queued recent PR jobs for ${staleRepos?.length || 0} stale repositories
 - Queued file change jobs for ${activeRepos?.length || 0} active repositories
+- Queued commit analysis jobs for ${reposWithCommits?.length || 0} repositories with commits
 - Total pending jobs: ${stats.pending}
 - 
 Next steps:
-1. Run the queue processor to start filling missing data
-2. Monitor rate limits to ensure compliance
-3. Check data quality improvements in the UI
+1. Jobs will process automatically in the background
+2. Use ProgressiveCapture.processNext() to manually process jobs
+3. Monitor rate limits with ProgressiveCapture.rateLimits()
+4. Check YOLO coder analysis once commits are analyzed
     `);
 
   } catch (error) {
