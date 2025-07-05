@@ -1,6 +1,5 @@
 import { supabase } from '../supabase';
 import { ProgressiveCaptureNotifications } from './ui-notifications';
-import { trackDataSync } from '../sentry/data-tracking';
 
 export interface DataCaptureJob {
   id: string;

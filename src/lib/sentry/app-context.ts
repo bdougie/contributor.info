@@ -56,7 +56,15 @@ export function setSentryUserContext(user: {
  */
 export function trackFeatureUsage(feature: string, metadata?: Record<string, any>) {
   setApplicationContext({
-    experimentalFeatures: [feature],
-    featureMetadata: metadata
+    experimentalFeatures: [feature]
   });
+  
+  // Set metadata separately if provided
+  if (metadata) {
+    // Use a context name that doesn't conflict with the main application context
+    // Using @sentry/react's setContext method directly
+    import('@sentry/react').then(Sentry => {
+      Sentry.setContext('feature_metadata', metadata);
+    });
+  }
 }

@@ -20,6 +20,7 @@ import { PrCountCard } from "./pr-count-card";
 import { AvgTimeCard } from "./avg-time-card";
 import { VelocityCard } from "./velocity-card";
 import { calculatePrActivityMetrics, type ActivityMetrics } from "@/lib/insights/pr-activity-metrics";
+import { ProgressiveCaptureButton } from "./progressive-capture-button";
 
 interface MetricsAndTrendsCardProps {
   owner: string;
@@ -145,6 +146,20 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     }
   };
 
+  // Check if metrics suggest missing data (all zeros or very low)
+  const hasLowDataQuality = (metrics: ActivityMetrics | null, trends: TrendData[]) => {
+    if (!metrics) return true;
+    
+    // Check if review and comment activity is suspiciously low
+    const reviewTrend = trends.find(t => t.metric === 'Review Activity');
+    const commentTrend = trends.find(t => t.metric === 'Comment Activity');
+    
+    return (
+      metrics.totalPRs > 0 && // Has PRs but...
+      (reviewTrend?.current === 0 || commentTrend?.current === 0) // No reviews or comments
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -155,18 +170,41 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
               Snapshot comparing the previous 30 days with review and comment data
             </CardDescription>
           </div>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleCopyLink}
-            className="h-8 w-8"
-            title="Copy page link"
-          >
-            <Link className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Show compact capture button when data quality is good */}
+            {!loading && !hasLowDataQuality(metrics, trends) && (
+              <ProgressiveCaptureButton 
+                owner={owner}
+                repo={repo}
+                onRefreshNeeded={loadData}
+                compact={true}
+              />
+            )}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleCopyLink}
+              className="h-8 w-8"
+              title="Copy page link"
+            >
+              <Link className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Progressive Capture Button - Show when data quality is low */}
+        {!loading && hasLowDataQuality(metrics, trends) && (
+          <div className="mb-6">
+            <ProgressiveCaptureButton 
+              owner={owner}
+              repo={repo}
+              onRefreshNeeded={loadData}
+              compact={false}
+            />
+          </div>
+        )}
+
         {/* Metrics Section */}
         <div>
           <h3 className="text-sm font-medium mb-3">Activity Metrics</h3>
