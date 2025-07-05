@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, RefreshCw, AlertCircle } from "lucide-react";
 import { useRepositorySummary } from "@/hooks/use-repository-summary";
+import { Markdown } from "@/components/common/layout";
 
 interface RepositorySummaryCardProps {
   owner: string;
@@ -82,11 +83,9 @@ export function RepositorySummaryCard({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="prose prose-sm max-w-none dark:prose-invert">
-          <p className="text-foreground leading-relaxed">
-            {summary}
-          </p>
-        </div>
+        <Markdown className="prose-sm">
+          {summary}
+        </Markdown>
         <div className="mt-4 flex items-center justify-between">
           <div className="text-xs text-muted-foreground">
             Generated using recent repository activity

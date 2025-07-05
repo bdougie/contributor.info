@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertCircle } from "lucide-react";
 import { useRepositorySummary } from "@/hooks/use-repository-summary";
 import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
+import { Markdown } from "@/components/common/layout";
 
 interface RepositorySummaryProps {
   owner: string;
@@ -56,9 +57,9 @@ export function RepositorySummary({ owner, repo, timeRange }: RepositorySummaryP
 
   return (
     <div className="space-y-3">
-      <div className="text-sm leading-relaxed">
+      <Markdown className="text-sm prose-sm prose-p:mb-2 prose-p:leading-relaxed prose-code:text-xs">
         {summary}
-      </div>
+      </Markdown>
       <div className="flex items-center justify-between pt-2">
         <Badge variant="secondary" className="text-xs">
           AI Generated
