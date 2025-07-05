@@ -6,6 +6,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ShareableCard } from "@/components/features/sharing/shareable-card";
 import { LanguageLegend } from "./language-legend";
 import { LazyDistributionCharts } from "./distribution-charts-lazy";
@@ -26,12 +27,35 @@ export default function Distribution() {
   const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>(
     searchParams.get("filter") || null
   );
+  const [chartType, setChartType] = useState<"donut" | "bar" | "treemap">(
+    (searchParams.get("chart") as "donut" | "bar" | "treemap") || "treemap"
+  );
 
-  // Sync selectedQuadrant with URL params
+  // Sync selectedQuadrant and chartType with URL params
   useEffect(() => {
     const quadrantFromUrl = searchParams.get("filter");
+    const chartFromUrl = searchParams.get("chart") as "donut" | "bar" | "treemap";
     setSelectedQuadrant(quadrantFromUrl);
+    setChartType(chartFromUrl || "treemap");
   }, [searchParams]);
+
+  // Handle mobile responsiveness for treemap
+  useEffect(() => {
+    const checkMobileAndAdjustChart = () => {
+      const isMobile = window.innerWidth < 640;
+      if (isMobile && chartType === "treemap") {
+        // On mobile, switch to donut chart instead of treemap
+        setChartType("donut");
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.set("chart", "donut");
+        setSearchParams(newSearchParams);
+      }
+    };
+
+    checkMobileAndAdjustChart();
+    window.addEventListener('resize', checkMobileAndAdjustChart);
+    return () => window.removeEventListener('resize', checkMobileAndAdjustChart);
+  }, [chartType, searchParams, setSearchParams]);
 
   // Filter to only include merged PRs and memoize to prevent infinite re-renders
   const mergedPullRequests = useMemo(() => 
@@ -94,6 +118,19 @@ export default function Distribution() {
     setSearchParams(newSearchParams);
   };
 
+  const handleChartTypeChange = (newChartType: "donut" | "bar" | "treemap") => {
+    setChartType(newChartType);
+    
+    // Update URL params
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (newChartType !== "treemap") {
+      newSearchParams.set("chart", newChartType);
+    } else {
+      newSearchParams.delete("chart"); // treemap is default
+    }
+    setSearchParams(newSearchParams);
+  };
+
   if (loading || stats.loading) {
     return <DistributionSkeleton />;
   }
@@ -127,15 +164,92 @@ export default function Distribution() {
           {dominantQuadrant && ` · Primary focus: ${dominantQuadrant.label}`}
         </div>
 
-        <Suspense fallback={<DistributionSkeleton />}>
-          <LazyDistributionCharts
-            data={chartData}
-            onSegmentClick={handleSegmentClick}
-            filteredPRs={filteredPRs}
-            selectedQuadrant={selectedQuadrant}
-            pullRequests={mergedPullRequests}
-          />
-        </Suspense>
+        <Tabs value={chartType} onValueChange={(value) => handleChartTypeChange(value as "donut" | "bar" | "treemap")}>
+          <div className="flex items-center justify-between mb-4">
+            {/* Mobile: Only show donut and bar */}
+            <div className="block sm:hidden">
+              <TabsList className="grid w-full grid-cols-2 max-w-md">
+                <TabsTrigger value="donut" className="text-sm">
+                  Donut
+                </TabsTrigger>
+                <TabsTrigger value="bar" className="text-sm">
+                  Bar
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            
+            {/* Desktop: Show all three */}
+            <div className="hidden sm:block">
+              <TabsList className="grid w-full grid-cols-3 max-w-md">
+                <TabsTrigger value="donut" className="text-sm">
+                  Donut
+                </TabsTrigger>
+                <TabsTrigger value="bar" className="text-sm">
+                  Bar
+                </TabsTrigger>
+                <TabsTrigger value="treemap" className="text-sm">
+                  Treemap
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </div>
+
+          <TabsContent value="donut" className="mt-0">
+            <Suspense fallback={<DistributionSkeleton />}>
+              <LazyDistributionCharts
+                data={chartData}
+                onSegmentClick={handleSegmentClick}
+                filteredPRs={filteredPRs}
+                selectedQuadrant={selectedQuadrant}
+                pullRequests={mergedPullRequests}
+                chartType="donut"
+              />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="bar" className="mt-0">
+            <Suspense fallback={<DistributionSkeleton />}>
+              <LazyDistributionCharts
+                data={chartData}
+                onSegmentClick={handleSegmentClick}
+                filteredPRs={filteredPRs}
+                selectedQuadrant={selectedQuadrant}
+                pullRequests={mergedPullRequests}
+                chartType="bar"
+              />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="treemap" className="mt-0">
+            {/* Mobile: Show alternative chart */}
+            <div className="block sm:hidden">
+              <Suspense fallback={<DistributionSkeleton />}>
+                <LazyDistributionCharts
+                  data={chartData}
+                  onSegmentClick={handleSegmentClick}
+                  filteredPRs={filteredPRs}
+                  selectedQuadrant={selectedQuadrant}
+                  pullRequests={mergedPullRequests}
+                  chartType="donut"
+                />
+              </Suspense>
+            </div>
+            
+            {/* Desktop: Show treemap */}
+            <div className="hidden sm:block">
+              <Suspense fallback={<DistributionSkeleton />}>
+                <LazyDistributionCharts
+                  data={chartData}
+                  onSegmentClick={handleSegmentClick}
+                  filteredPRs={filteredPRs}
+                  selectedQuadrant={selectedQuadrant}
+                  pullRequests={mergedPullRequests}
+                  chartType="treemap"
+                />
+              </Suspense>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         <LanguageLegend languages={languageStats} />
       </CardContent>
