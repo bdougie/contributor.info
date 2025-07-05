@@ -98,7 +98,8 @@ export interface YoloCoderStats {
   login: string;
   avatar_url: string;
   directCommits: number;
-  totalPushedCommits: number;
+  totalCommits: number;
+  directCommitPercentage: number;
   type?: 'User' | 'Bot';
 }
 

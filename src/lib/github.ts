@@ -488,7 +488,8 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
     login: string;
     avatar_url: string;
     directCommits: number;
-    totalPushedCommits: number;
+    totalCommits: number;
+    directCommitPercentage: number;
     type?: 'User' | 'Bot';
   }>;
 }> {
@@ -621,7 +622,8 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
       login: string; 
       avatar_url: string; 
       directCommits: number;
-      totalPushedCommits: number;
+      totalCommits: number;
+      directCommitPercentage: number;
       type?: 'User' | 'Bot'; 
     }>();
 
@@ -634,19 +636,26 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
       if (yoloCoderMap.has(login)) {
         const coder = yoloCoderMap.get(login)!;
         coder.directCommits += 1;
-        coder.totalPushedCommits += commit.push_num_commits;
+        coder.totalCommits += commit.push_num_commits;
       } else {
         yoloCoderMap.set(login, {
           login,
           avatar_url: commit.actor.avatar_url,
           directCommits: 1,
-          totalPushedCommits: commit.push_num_commits,
+          totalCommits: commit.push_num_commits,
+          directCommitPercentage: 0, // Will be calculated below
           type: isBot ? 'Bot' as const : 'User' as const,
         });
       }
     }
 
     const yoloCoderStats = Array.from(yoloCoderMap.values())
+      .map(coder => ({
+        ...coder,
+        directCommitPercentage: coder.totalCommits > 0 
+          ? Math.round((coder.directCommits / coder.totalCommits) * 100)
+          : 0
+      }))
       .sort((a, b) => b.directCommits - a.directCommits);
 
     return {

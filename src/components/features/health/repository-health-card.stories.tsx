@@ -321,14 +321,16 @@ export const WithDirectCommits: Story = {
                   login: "admin-user", 
                   avatar_url: "https://avatars.githubusercontent.com/u/4?v=4",
                   directCommits: 15,
-                  totalPushedCommits: 25,
+                  totalCommits: 25,
+                  directCommitPercentage: 60,
                   type: "User" as const
                 },
                 { 
                   login: "senior-dev", 
                   avatar_url: "https://avatars.githubusercontent.com/u/5?v=4",
                   directCommits: 8,
-                  totalPushedCommits: 20,
+                  totalCommits: 20,
+                  directCommitPercentage: 50,
                   type: "User" as const
                 }
               ]

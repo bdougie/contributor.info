@@ -299,7 +299,10 @@ export class DataCaptureQueueManager {
     }
 
     const stats = data.reduce((acc, job) => {
-      acc[job.status]++;
+      const status = job.status as keyof typeof acc;
+      if (status !== 'total' && status in acc) {
+        acc[status]++;
+      }
       acc.total++;
       return acc;
     }, { pending: 0, processing: 0, completed: 0, failed: 0, total: 0 });

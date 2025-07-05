@@ -296,9 +296,9 @@ export function LotteryFactorContent({
                   push
                   {coder.directCommits !== 1 ? "es" : ""} with{" "}
                   <span className="font-medium">
-                    {coder.totalPushedCommits}
+                    {coder.totalCommits}
                   </span>{" "}
-                  commit{coder.totalPushedCommits !== 1 ? "s" : ""}
+                  commit{coder.totalCommits !== 1 ? "s" : ""}
                 </div>
               </div>
             ))}

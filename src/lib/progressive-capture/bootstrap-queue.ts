@@ -41,7 +41,7 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
       console.error('[Bootstrap] Error finding active repositories:', activeError);
     } else if (activeRepos) {
       for (const repo of activeRepos) {
-        const queuedCount = await queueManager.queueMissingFileChanges(repo.id, 25); // 25 PRs per repo
+        await queueManager.queueMissingFileChanges(repo.id, 25); // 25 PRs per repo
       }
     }
 
@@ -60,7 +60,7 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
       console.error('[Bootstrap] Error finding repositories with commits:', commitsError);
     } else if (reposWithCommits) {
       for (const repo of reposWithCommits) {
-        const queuedCommitsCount = await queueManager.queueRecentCommitsAnalysis(repo.id, 90); // Last 90 days
+        await queueManager.queueRecentCommitsAnalysis(repo.id, 90); // Last 90 days
       }
     }
 
