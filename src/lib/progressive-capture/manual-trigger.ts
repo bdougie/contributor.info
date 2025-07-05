@@ -288,7 +288,7 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
       `);
       
     } catch (error) {
-      console.error(`❌ Quick fix failed for ${owner}/${repo}:`, error);
+      console.error('❌ Quick fix failed for %s/%s:', owner, repo, error);
     }
   }
 }
