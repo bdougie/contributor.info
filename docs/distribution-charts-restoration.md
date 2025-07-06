@@ -46,20 +46,27 @@ Successfully restored distribution chart visualizations that were accidentally r
 2. **Chart Type Support**: All three chart types are now functional
    - **Donut Chart**: Interactive pie chart with center totals
    - **Bar Chart**: Responsive bar chart with proper axis labeling
-   - **Treemap**: Enhanced hierarchical treemap with drill-down functionality
+   - **Treemap**: Enhanced hierarchical treemap with drill-down functionality and visible borders
 
-3. **Mobile Responsiveness**: 
+3. **UI Improvements**:
+   - Removed redundant "Merged Pull Request Distribution Analysis" title
+   - Moved statistics to same line as tabs for cleaner layout
+   - Added 2px white borders to treemap cells for better visibility
+   - Statistics displayed on right side with proper alignment
+
+4. **Mobile Responsiveness**: 
    - Automatic chart type switching on mobile (treemap → donut)
    - Responsive tab layout (2-col on mobile, 3-col on desktop)
    - Proper touch interactions and responsive sizing
 
-4. **URL State Management**: Chart type persists in URL parameters
+5. **URL State Management**: Chart type persists in URL parameters
    - `?chart=donut|bar|treemap` parameter support
    - Automatic mobile fallback handling
 
-5. **Testing**: Updated all tests to handle new multi-chart structure
+6. **Testing**: Updated all tests to handle new multi-chart structure
    - Fixed multiple chart instance handling in tests
    - Maintained 100% test coverage (10/10 tests passing)
+   - Updated test assertions for new UI structure
 
 ## Technical Implementation
 

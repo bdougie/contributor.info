@@ -135,8 +135,9 @@ export function DistributionTreemapEnhanced({
               fill: isQuadrant
                 ? color
                 : COLORS[selectedQuadrant as keyof typeof COLORS],
-              stroke: "var(--background)",
-              strokeWidth: 1,
+              stroke: "#ffffff",
+              strokeWidth: 2,
+              strokeOpacity: 0.8,
             }}
             onClick={handleClick}
             onMouseEnter={handleMouseEnter}

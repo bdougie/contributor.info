@@ -1,17 +1,12 @@
 import { useContext, useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams, useParams } from "react-router-dom";
-import {
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { PieChart, BarChart3, TreePine } from "lucide-react";
 import { ShareableCard } from "@/components/features/sharing/shareable-card";
 import { LanguageLegend } from "./language-legend";
 import { LazyDistributionCharts } from "./distribution-charts-lazy";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
-import { useTimeRange } from "@/lib/time-range-store";
 import { DistributionSkeleton } from "@/components/skeletons";
 import { getLanguageStats } from "@/lib/language-stats";
 import type { PullRequest } from "@/lib/types";
@@ -21,8 +16,6 @@ import { ContributionAnalyzer } from "@/lib/contribution-analyzer";
 export default function Distribution() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const { stats } = useContext(RepoStatsContext);
-  const { timeRange } = useTimeRange();
-  const timeRangeNumber = parseInt(timeRange, 10); // Parse string to number
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>(
     searchParams.get("filter") || null
@@ -145,52 +138,57 @@ export default function Distribution() {
       }}
       chartType="distribution"
     >
-      <CardHeader>
-        <CardTitle>Merged Pull Request Distribution Analysis</CardTitle>
-        <CardDescription>
-          Visualize merged contribution patterns across different categories over the
-          past {timeRangeNumber} days
-          {selectedQuadrant &&
-            ` · Filtered by: ${
-              chartData.find((q) => q.id === selectedQuadrant)?.label
-            }`}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6 w-full overflow-hidden">
-        <div className="text-sm text-muted-foreground">
-          {totalFiles.toLocaleString()} files touched ·{" "}
-          {selectedQuadrant ? filteredPRs.length : totalContributions} merged pull
-          requests {selectedQuadrant ? "shown" : "analyzed"}
-          {dominantQuadrant && ` · Primary focus: ${dominantQuadrant.label}`}
-        </div>
-
+      <CardContent className="space-y-6 w-full overflow-hidden pt-6">
         <Tabs value={chartType} onValueChange={(value) => handleChartTypeChange(value as "donut" | "bar" | "treemap")}>
-          <div className="flex items-center justify-between mb-4">
-            {/* Mobile: Only show donut and bar */}
-            <div className="block sm:hidden">
-              <TabsList className="grid w-full grid-cols-2 max-w-md">
-                <TabsTrigger value="donut" className="text-sm">
-                  Donut
-                </TabsTrigger>
-                <TabsTrigger value="bar" className="text-sm">
-                  Bar
-                </TabsTrigger>
-              </TabsList>
+          <div className="flex items-center justify-between mb-4 gap-4">
+            {/* Statistics on the left */}
+            <div className="text-sm text-muted-foreground">
+              <div>{totalFiles.toLocaleString()} files touched</div>
+              <div>
+                {selectedQuadrant ? filteredPRs.length : totalContributions} merged pull
+                requests {selectedQuadrant ? "shown" : "analyzed"}
+                {dominantQuadrant && ` · Primary focus: ${dominantQuadrant.label}`}
+              </div>
+              {selectedQuadrant && (
+                <div className="text-xs">
+                  Filtered by: {chartData.find((q) => q.id === selectedQuadrant)?.label}
+                </div>
+              )}
             </div>
-            
-            {/* Desktop: Show all three */}
-            <div className="hidden sm:block">
-              <TabsList className="grid w-full grid-cols-3 max-w-md">
-                <TabsTrigger value="donut" className="text-sm">
-                  Donut
-                </TabsTrigger>
-                <TabsTrigger value="bar" className="text-sm">
-                  Bar
-                </TabsTrigger>
-                <TabsTrigger value="treemap" className="text-sm">
-                  Treemap
-                </TabsTrigger>
-              </TabsList>
+
+            {/* Tabs on the right */}
+            <div>
+              {/* Mobile: Only show donut and bar */}
+              <div className="block sm:hidden">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="donut" className="text-sm flex items-center gap-1">
+                    <PieChart className="h-4 w-4" />
+                    <span className="hidden xs:inline">Donut</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="bar" className="text-sm flex items-center gap-1">
+                    <BarChart3 className="h-4 w-4" />
+                    <span className="hidden xs:inline">Bar</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              
+              {/* Desktop: Show all three */}
+              <div className="hidden sm:block">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="donut" className="text-sm flex items-center gap-1">
+                    <PieChart className="h-4 w-4" />
+                    Donut
+                  </TabsTrigger>
+                  <TabsTrigger value="bar" className="text-sm flex items-center gap-1">
+                    <BarChart3 className="h-4 w-4" />
+                    Bar
+                  </TabsTrigger>
+                  <TabsTrigger value="treemap" className="text-sm flex items-center gap-1">
+                    <TreePine className="h-4 w-4" />
+                    Treemap
+                  </TabsTrigger>
+                </TabsList>
+              </div>
             </div>
           </div>
 

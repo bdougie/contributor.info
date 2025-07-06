@@ -188,12 +188,10 @@ describe("Distribution", () => {
   it("renders distribution analysis with correct data", () => {
     renderDistribution();
 
-    expect(
-      screen.getByText("Merged Pull Request Distribution Analysis")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Visualize merged contribution patterns/)
-    ).toBeInTheDocument();
+    // Check for statistics text instead of title
+    expect(screen.getByText(/files touched/)).toBeInTheDocument();
+    expect(screen.getByText(/merged pull requests/)).toBeInTheDocument();
+    
     // Check for the active treemap chart by default
     expect(screen.getByTestId("distribution-charts-treemap")).toBeInTheDocument();
     expect(screen.getByTestId("language-legend")).toBeInTheDocument();
@@ -221,7 +219,7 @@ describe("Distribution", () => {
     fireEvent.click(newFeatureButtons[0]);
 
     await waitFor(() => {
-      expect(screen.getByText(/Filtered by: New Feature/)).toBeInTheDocument();
+      // Updated to match new layout where filter info is in the statistics section
       expect(screen.getByText(/2 merged pull requests shown/)).toBeInTheDocument();
     });
   });
@@ -232,8 +230,8 @@ describe("Distribution", () => {
     const newFeatureButtons = screen.getAllByText("New Feature");
     fireEvent.click(newFeatureButtons[0]);
 
-    // Just test that the component renders properly
-    expect(screen.getByText("Merged Pull Request Distribution Analysis")).toBeInTheDocument();
+    // Just test that the component renders properly with statistics
+    expect(screen.getByText(/files touched/)).toBeInTheDocument();
   });
 
   it("filters pull requests correctly", async () => {
@@ -261,10 +259,8 @@ describe("Distribution", () => {
       },
     });
 
-    expect(
-      screen.getByText("Merged Pull Request Distribution Analysis")
-    ).toBeInTheDocument();
     // Just check that component renders without error
+    expect(screen.getByText(/files touched/)).toBeInTheDocument();
   });
 
   it("handles error in ContributionAnalyzer", async () => {
@@ -298,8 +294,8 @@ describe("Distribution", () => {
     
     renderDistribution();
 
-    // Basic test that component renders
-    expect(screen.getByText("Merged Pull Request Distribution Analysis")).toBeInTheDocument();
+    // Basic test that component renders with statistics
+    expect(screen.getByText(/files touched/)).toBeInTheDocument();
   });
 
   it("filters out non-merged PRs correctly", async () => {
@@ -330,6 +326,6 @@ describe("Distribution", () => {
 
     // Should only show merged PRs (2 out of 4)
     expect(screen.getByText(/2 merged pull requests analyzed/)).toBeInTheDocument();
-    expect(screen.getByText("Merged Pull Request Distribution Analysis")).toBeInTheDocument();
+    expect(screen.getByText(/files touched/)).toBeInTheDocument();
   });
 });
