@@ -196,10 +196,10 @@ describe("Distribution", () => {
     expect(screen.getByTestId("distribution-charts-treemap")).toBeInTheDocument();
     expect(screen.getByTestId("language-legend")).toBeInTheDocument();
     
-    // Check that tabs are present (mobile and desktop versions)
-    expect(screen.getAllByText("Donut")).toHaveLength(2);
-    expect(screen.getAllByText("Bar")).toHaveLength(2);
-    expect(screen.getAllByText("Treemap")).toHaveLength(1); // Only on desktop
+    // Check that tabs are present (adaptive based on device capabilities)
+    expect(screen.getByText("Donut")).toBeInTheDocument();
+    expect(screen.getByText("Bar")).toBeInTheDocument();
+    expect(screen.getByText("Treemap")).toBeInTheDocument();
   });
 
   it("displays correct statistics", () => {

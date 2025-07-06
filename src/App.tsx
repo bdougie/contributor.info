@@ -3,6 +3,7 @@ import { Suspense, lazy, useEffect } from "react";
 import { ThemeProvider } from "@/components/common/theming";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { PWAInstallPrompt } from "@/components/ui/pwa-install-prompt";
 import '@/lib/progressive-capture/manual-trigger'; // Enable progressive capture tools
 import '@/lib/progressive-capture/smart-notifications'; // Enable smart data notifications
 import '@/lib/progressive-capture/background-processor'; // Enable automatic background processing
@@ -291,6 +292,10 @@ function App() {
         </Suspense>
       </Router>
       <Toaster />
+      <PWAInstallPrompt 
+        onInstall={() => console.log('PWA installed successfully!')}
+        onDismiss={() => console.log('PWA install prompt dismissed')}
+      />
     </ThemeProvider>
     </ErrorBoundary>
   );
