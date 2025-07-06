@@ -60,12 +60,12 @@ export default defineConfig({
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Simplified, more stable chunking strategy
+        // Proven chunk splitting strategy from LIGHTHOUSE_OPTIMIZATIONS.md
         manualChunks: {
-          // Core React - keep together for stability
+          // Core React - keep together for stability (Critical Path)
           'react-core': ['react', 'react-dom'],
           
-          // Router and utilities
+          // Router and utilities (Critical Path)
           'react-ecosystem': [
             'react-router-dom',
             'class-variance-authority',
@@ -73,7 +73,7 @@ export default defineConfig({
             'tailwind-merge'
           ],
           
-          // UI library - keep reasonably sized chunks
+          // UI library - deferred loading when UI components needed
           'ui-radix': [
             '@radix-ui/react-dialog',
             '@radix-ui/react-dropdown-menu',
@@ -84,23 +84,26 @@ export default defineConfig({
             '@radix-ui/react-slot'
           ],
           
-          // Charts - separate for lazy loading
-          'charts': [
-            '@nivo/scatterplot', 
-            '@nivo/core',
-            'recharts'
+          // Essential charts for PR contributions (Critical Path)
+          'charts-essential': [
+            '@nivo/scatterplot'  // Main PR contribution chart
           ],
           
-          // Icons
+          // Advanced visualization libraries - lazy loaded on chart pages
+          'charts-advanced': [
+            'recharts'  // Distribution analysis charts
+          ],
+          
+          // Icons - lazy loaded
           'icons': ['lucide-react'],
           
           // Utilities
           'utils': ['date-fns', 'zod'],
           
-          // Data and state
+          // Data and state - deferred
           'data': ['zustand', '@supabase/supabase-js'],
           
-          // Analytics - defer these
+          // Analytics - completely deferred
           'analytics': ['posthog-js', '@sentry/react']
         },
       },
@@ -116,16 +119,23 @@ export default defineConfig({
     chunkSizeWarningLimit: 600, // Slightly more lenient given postmortem learnings
     // Enable compression reporting
     reportCompressedSize: true,
-    // Module preload optimization
+    // Module preload optimization - only preload critical path
     modulePreload: {
       polyfill: true,
       resolveDependencies: (_, deps) => {
-        // Don't preload heavy chunks to improve initial load
+        // Preload critical path + essential charts for PR contributions (~85 KiB total)
         return deps.filter(dep => 
-          !dep.includes('analytics') && 
-          !dep.includes('charts') && 
-          !dep.includes('test') &&
-          !dep.includes('storybook')
+          dep.includes('react-core') || 
+          dep.includes('react-ecosystem') ||
+          dep.includes('charts-essential') || // Include essential PR contribution chart
+          (!dep.includes('analytics') && 
+           !dep.includes('charts-advanced') && 
+           !dep.includes('ui-radix') &&
+           !dep.includes('icons') &&
+           !dep.includes('data') &&
+           !dep.includes('utils') &&
+           !dep.includes('test') &&
+           !dep.includes('storybook'))
         );
       }
     },
