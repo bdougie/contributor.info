@@ -12,6 +12,7 @@ import { getLanguageStats } from "@/lib/language-stats";
 import type { PullRequest } from "@/lib/types";
 import { useDistribution } from "@/hooks/use-distribution";
 import { ContributionAnalyzer } from "@/lib/contribution-analyzer";
+import { useNetworkAwareDetection } from "@/lib/utils";
 
 export default function Distribution() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -20,9 +21,27 @@ export default function Distribution() {
   const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>(
     searchParams.get("filter") || null
   );
-  const [chartType, setChartType] = useState<"donut" | "bar" | "treemap">(
-    (searchParams.get("chart") as "donut" | "bar" | "treemap") || "treemap"
-  );
+  
+  // Use network-aware mobile detection for adaptive chart selection
+  const { isMobile, shouldUseSimplifiedUI, isSlowConnection } = useNetworkAwareDetection();
+  
+  // Initialize chart type based on mobile/network conditions
+  const getInitialChartType = (): "donut" | "bar" | "treemap" => {
+    const chartFromUrl = searchParams.get("chart") as "donut" | "bar" | "treemap";
+    
+    // If URL specifies a chart type, respect it unless it's problematic on mobile
+    if (chartFromUrl) {
+      if (shouldUseSimplifiedUI && chartFromUrl === "treemap") {
+        return "donut"; // Fall back to donut for mobile/slow connections
+      }
+      return chartFromUrl;
+    }
+    
+    // Default based on device/network capabilities
+    return shouldUseSimplifiedUI ? "donut" : "treemap";
+  };
+  
+  const [chartType, setChartType] = useState<"donut" | "bar" | "treemap">(getInitialChartType());
 
   // Sync selectedQuadrant and chartType with URL params
   useEffect(() => {
@@ -32,23 +51,19 @@ export default function Distribution() {
     setChartType(chartFromUrl || "treemap");
   }, [searchParams]);
 
-  // Handle mobile responsiveness for treemap
+  // Adaptive chart type based on mobile/network conditions
   useEffect(() => {
-    const checkMobileAndAdjustChart = () => {
-      const isMobile = window.innerWidth < 640;
-      if (isMobile && chartType === "treemap") {
-        // On mobile, switch to donut chart instead of treemap
-        setChartType("donut");
-        const newSearchParams = new URLSearchParams(searchParams);
-        newSearchParams.set("chart", "donut");
-        setSearchParams(newSearchParams);
-      }
-    };
-
-    checkMobileAndAdjustChart();
-    window.addEventListener('resize', checkMobileAndAdjustChart);
-    return () => window.removeEventListener('resize', checkMobileAndAdjustChart);
-  }, [chartType, searchParams, setSearchParams]);
+    // Auto-adjust chart type for mobile/slow connections
+    if (shouldUseSimplifiedUI && chartType === "treemap") {
+      const newChartType = "donut";
+      setChartType(newChartType);
+      
+      // Update URL to reflect the change
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.set("chart", newChartType);
+      setSearchParams(newSearchParams, { replace: true }); // Use replace to avoid history pollution
+    }
+  }, [shouldUseSimplifiedUI, chartType, searchParams, setSearchParams]);
 
   // Filter to only include merged PRs and memoize to prevent infinite re-renders
   const mergedPullRequests = useMemo(() => 
@@ -112,6 +127,12 @@ export default function Distribution() {
   };
 
   const handleChartTypeChange = (newChartType: "donut" | "bar" | "treemap") => {
+    // Prevent treemap selection on mobile/slow connections
+    if (shouldUseSimplifiedUI && newChartType === "treemap") {
+      console.log("Treemap chart not recommended for mobile/slow connections, using donut instead");
+      newChartType = "donut";
+    }
+    
     setChartType(newChartType);
     
     // Update URL params
@@ -156,24 +177,22 @@ export default function Distribution() {
               )}
             </div>
 
-            {/* Tabs on the right */}
+            {/* Tabs on the right - adaptive based on device capabilities */}
             <div>
-              {/* Mobile: Only show donut and bar */}
-              <div className="block sm:hidden">
+              {/* Mobile/Slow Connection: Only show donut and bar */}
+              {shouldUseSimplifiedUI ? (
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="donut" className="text-sm flex items-center gap-1">
                     <PieChart className="h-4 w-4" />
-                    <span className="hidden xs:inline">Donut</span>
+                    <span className={isMobile ? "hidden xs:inline" : ""}>Donut</span>
                   </TabsTrigger>
                   <TabsTrigger value="bar" className="text-sm flex items-center gap-1">
                     <BarChart3 className="h-4 w-4" />
-                    <span className="hidden xs:inline">Bar</span>
+                    <span className={isMobile ? "hidden xs:inline" : ""}>Bar</span>
                   </TabsTrigger>
                 </TabsList>
-              </div>
-              
-              {/* Desktop: Show all three */}
-              <div className="hidden sm:block">
+              ) : (
+                /* Desktop/Fast Connection: Show all three */
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="donut" className="text-sm flex items-center gap-1">
                     <PieChart className="h-4 w-4" />
@@ -188,7 +207,14 @@ export default function Distribution() {
                     Treemap
                   </TabsTrigger>
                 </TabsList>
-              </div>
+              )}
+              
+              {/* Show performance indicator for slow connections */}
+              {isSlowConnection && (
+                <div className="text-xs text-muted-foreground mt-1 text-center">
+                  Simplified UI for better performance
+                </div>
+              )}
             </div>
           </div>
 
@@ -219,8 +245,9 @@ export default function Distribution() {
           </TabsContent>
 
           <TabsContent value="treemap" className="mt-0">
-            {/* Mobile: Show alternative chart */}
-            <div className="block sm:hidden">
+            {/* Adaptive rendering based on device capabilities */}
+            {shouldUseSimplifiedUI ? (
+              /* Mobile/Slow Connection: Show donut instead of treemap */
               <Suspense fallback={<DistributionSkeleton />}>
                 <LazyDistributionCharts
                   data={chartData}
@@ -231,10 +258,8 @@ export default function Distribution() {
                   chartType="donut"
                 />
               </Suspense>
-            </div>
-            
-            {/* Desktop: Show treemap */}
-            <div className="hidden sm:block">
+            ) : (
+              /* Desktop/Fast Connection: Show treemap */
               <Suspense fallback={<DistributionSkeleton />}>
                 <LazyDistributionCharts
                   data={chartData}
@@ -245,7 +270,7 @@ export default function Distribution() {
                   chartType="treemap"
                 />
               </Suspense>
-            </div>
+            )}
           </TabsContent>
         </Tabs>
 

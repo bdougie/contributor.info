@@ -43,3 +43,7 @@ coverage
 
 # eval
 eval-outputs/
+
+# Lighthouse reports
+lighthouse-reports/
+analyze-lighthouse.cjs
