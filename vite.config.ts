@@ -54,16 +54,7 @@ export default defineConfig({
     // Enable CSS code splitting for better performance
     cssCodeSplit: true,
     rollupOptions: {
-      // Only exclude story and test files, not their dependencies
-      external: (id) => {
-        // Only mark actual story/test files as external, not their dependencies
-        return id.endsWith('.stories.ts') || 
-               id.endsWith('.stories.tsx') || 
-               id.endsWith('.test.ts') || 
-               id.endsWith('.test.tsx') ||
-               id.includes('/__tests__/') ||
-               id.includes('/__mocks__/');
-      },
+      // Remove the external configuration as it's causing build issues
       output: {
         // Ensure proper file extensions for module recognition
         entryFileNames: 'assets/[name]-[hash].js',

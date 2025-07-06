@@ -8,12 +8,17 @@
 [[headers]]
   for = "/*.js"
   [headers.values]
-    Content-Type = "text/javascript"
+    Content-Type = "text/javascript; charset=utf-8"
 
 [[headers]]
   for = "/*.mjs"
   [headers.values]
-    Content-Type = "text/javascript"
+    Content-Type = "text/javascript; charset=utf-8"
+    
+[[headers]]
+  for = "/assets/*.js"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
 
 [[headers]]
   for = "/*.jsx"
