@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from './button';
 import { X, Download, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsMobileDetailed } from '@/lib/utils/mobile-detection';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -27,6 +28,7 @@ export function PWAInstallPrompt({
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const { isMobile } = useIsMobileDetailed();
 
   useEffect(() => {
     // Check if already installed (running in standalone mode)
@@ -44,9 +46,9 @@ export function PWAInstallPrompt({
       e.preventDefault();
       setDeferredPrompt(beforeInstallPromptEvent);
       
-      // Only show prompt if not already dismissed and not standalone
+      // Only show prompt if not already dismissed, not standalone, and on mobile
       const dismissed = localStorage.getItem('pwa-install-dismissed');
-      if (!dismissed && !checkIfStandalone()) {
+      if (!dismissed && !checkIfStandalone() && isMobile) {
         setShowPrompt(true);
       }
     };
@@ -65,7 +67,7 @@ export function PWAInstallPrompt({
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, [onInstall]);
+  }, [onInstall, isMobile]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -104,8 +106,8 @@ export function PWAInstallPrompt({
     onDismiss?.();
   };
 
-  // Don't show if already installed or no prompt available
-  if (isStandalone || !showPrompt || !deferredPrompt) {
+  // Don't show if already installed, no prompt available, or not on mobile
+  if (isStandalone || !showPrompt || !deferredPrompt || !isMobile) {
     return null;
   }
 
