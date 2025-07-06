@@ -84,11 +84,14 @@ export default defineConfig({
             '@radix-ui/react-slot'
           ],
           
-          // Charts - lazy loaded on chart pages
-          'charts': [
-            '@nivo/scatterplot', 
-            '@nivo/core',
-            'recharts'
+          // Essential charts for PR contributions (Critical Path)
+          'charts-essential': [
+            '@nivo/scatterplot'  // Main PR contribution chart
+          ],
+          
+          // Advanced visualization libraries - lazy loaded on chart pages
+          'charts-advanced': [
+            'recharts'  // Distribution analysis charts
           ],
           
           // Icons - lazy loaded
@@ -120,12 +123,13 @@ export default defineConfig({
     modulePreload: {
       polyfill: true,
       resolveDependencies: (_, deps) => {
-        // Only preload critical React core and routing (60.8 KiB total)
+        // Preload critical path + essential charts for PR contributions (~85 KiB total)
         return deps.filter(dep => 
           dep.includes('react-core') || 
           dep.includes('react-ecosystem') ||
+          dep.includes('charts-essential') || // Include essential PR contribution chart
           (!dep.includes('analytics') && 
-           !dep.includes('charts') && 
+           !dep.includes('charts-advanced') && 
            !dep.includes('ui-radix') &&
            !dep.includes('icons') &&
            !dep.includes('data') &&
