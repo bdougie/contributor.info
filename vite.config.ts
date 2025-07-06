@@ -60,84 +60,48 @@ export default defineConfig({
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Mobile-optimized chunking strategy
-        manualChunks: (id) => {
-          // Core React - highest priority for mobile
-          if (id.includes('react') && !id.includes('react-router') && !id.includes('icons')) {
-            return 'react-core';
-          }
+        // Proven chunk splitting strategy from LIGHTHOUSE_OPTIMIZATIONS.md
+        manualChunks: {
+          // Core React - keep together for stability (Critical Path)
+          'react-core': ['react', 'react-dom'],
           
-          // Essential routing and utilities - critical path for mobile
-          if (id.includes('react-router-dom') || 
-              id.includes('class-variance-authority') || 
-              id.includes('clsx') || 
-              id.includes('tailwind-merge')) {
-            return 'react-ecosystem';
-          }
+          // Router and utilities (Critical Path)
+          'react-ecosystem': [
+            'react-router-dom',
+            'class-variance-authority',
+            'clsx',
+            'tailwind-merge'
+          ],
           
-          // Mobile-first UI components - split into smaller chunks
-          if (id.includes('@radix-ui/react-dialog') ||
-              id.includes('@radix-ui/react-dropdown-menu') ||
-              id.includes('@radix-ui/react-popover')) {
-            return 'ui-core';
-          }
+          // UI library - deferred loading when UI components needed
+          'ui-radix': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-tooltip',
+            '@radix-ui/react-slot'
+          ],
           
-          if (id.includes('@radix-ui/react-select') ||
-              id.includes('@radix-ui/react-tabs') ||
-              id.includes('@radix-ui/react-tooltip') ||
-              id.includes('@radix-ui/react-slot')) {
-            return 'ui-extended';
-          }
+          // Charts - lazy loaded on chart pages
+          'charts': [
+            '@nivo/scatterplot', 
+            '@nivo/core',
+            'recharts'
+          ],
           
-          // Lazy-loaded chart libraries - defer for mobile performance
-          if (id.includes('@nivo/scatterplot') || 
-              id.includes('@nivo/core')) {
-            return 'charts-nivo';
-          }
+          // Icons - lazy loaded
+          'icons': ['lucide-react'],
           
-          if (id.includes('recharts')) {
-            return 'charts-recharts';
-          }
+          // Utilities
+          'utils': ['date-fns', 'zod'],
           
-          // Icons - lazy load to reduce initial bundle
-          if (id.includes('lucide-react') || id.includes('@radix-ui/react-icons')) {
-            return 'icons';
-          }
+          // Data and state - deferred
+          'data': ['zustand', '@supabase/supabase-js'],
           
-          // Utilities - group by usage pattern
-          if (id.includes('date-fns') || id.includes('zod')) {
-            return 'utils';
-          }
-          
-          // Data layer - defer for mobile
-          if (id.includes('zustand') || id.includes('@supabase/supabase-js')) {
-            return 'data';
-          }
-          
-          // Analytics - completely defer for mobile performance
-          if (id.includes('posthog-js') || id.includes('@sentry/react')) {
-            return 'analytics';
-          }
-          
-          // Mobile-specific optimizations
-          if (id.includes('html2canvas') || id.includes('react-markdown')) {
-            return 'heavy-features';
-          }
-          
-          // Form libraries - defer for mobile
-          if (id.includes('react-hook-form') || id.includes('@hookform/resolvers')) {
-            return 'forms';
-          }
-          
-          // Additional Radix components - defer for mobile
-          if (id.includes('@radix-ui/')) {
-            return 'ui-radix-extended';
-          }
-          
-          // Node modules - group remaining dependencies
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
+          // Analytics - completely deferred
+          'analytics': ['posthog-js', '@sentry/react']
         },
       },
     },
@@ -152,22 +116,23 @@ export default defineConfig({
     chunkSizeWarningLimit: 600, // Slightly more lenient given postmortem learnings
     // Enable compression reporting
     reportCompressedSize: true,
-    // Mobile-optimized module preload
+    // Module preload optimization - only preload critical path
     modulePreload: {
       polyfill: true,
       resolveDependencies: (_, deps) => {
-        // Only preload critical chunks for mobile performance
-        return deps.filter(dep => {
-          const criticalChunks = ['react-core', 'react-ecosystem', 'ui-core'];
-          return criticalChunks.some(chunk => dep.includes(chunk)) ||
-                 (!dep.includes('analytics') && 
-                  !dep.includes('charts') && 
-                  !dep.includes('heavy-features') &&
-                  !dep.includes('forms') &&
-                  !dep.includes('ui-radix-extended') &&
-                  !dep.includes('test') &&
-                  !dep.includes('storybook'));
-        });
+        // Only preload critical React core and routing (60.8 KiB total)
+        return deps.filter(dep => 
+          dep.includes('react-core') || 
+          dep.includes('react-ecosystem') ||
+          (!dep.includes('analytics') && 
+           !dep.includes('charts') && 
+           !dep.includes('ui-radix') &&
+           !dep.includes('icons') &&
+           !dep.includes('data') &&
+           !dep.includes('utils') &&
+           !dep.includes('test') &&
+           !dep.includes('storybook'))
+        );
       }
     },
   },
