@@ -20,7 +20,7 @@ import { PrCountCard } from "./pr-count-card";
 import { AvgTimeCard } from "./avg-time-card";
 import { VelocityCard } from "./velocity-card";
 import { calculatePrActivityMetrics, type ActivityMetrics } from "@/lib/insights/pr-activity-metrics";
-import { ProgressiveCaptureButton } from "./progressive-capture-button";
+import * as Sentry from "@sentry/react";
 
 interface MetricsAndTrendsCardProps {
   owner: string;
@@ -125,6 +125,52 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     loadData();
   }, [owner, repo, timeRange]);
 
+  // Track when status messages are displayed for monitoring
+  useEffect(() => {
+    if (!loading && hasLowDataQuality(metrics, trends) && metrics) {
+      const statusMessage = getStatusMessage(metrics);
+      
+      Sentry.withScope((scope) => {
+        scope.setTag('ui.component', 'metrics_and_trends_card');
+        scope.setTag('repository.name', `${owner}/${repo}`);
+        scope.setTag('status.type', metrics.status);
+        scope.setContext('user_experience', {
+          repository: `${owner}/${repo}`,
+          statusDisplayed: statusMessage.title,
+          statusDescription: statusMessage.description,
+          userCanRetry: metrics.status !== 'large_repository_protected',
+          timeRange,
+          component: 'MetricsAndTrendsCard'
+        });
+        
+        // Capture different severity levels based on status
+        if (metrics.status === 'large_repository_protected') {
+          Sentry.addBreadcrumb({
+            category: 'user_experience',
+            message: `User viewing protected repository: ${owner}/${repo}`,
+            level: 'info',
+            data: {
+              protection_active: true,
+              guidance_shown: true,
+              alternative_available: 'progressive_data_capture'
+            }
+          });
+        } else if (metrics.status === 'error') {
+          Sentry.captureMessage(`User experiencing data loading error for ${owner}/${repo}`, 'warning');
+        } else if (metrics.status === 'no_data') {
+          Sentry.addBreadcrumb({
+            category: 'user_experience',
+            message: `User viewing repository with no data: ${owner}/${repo}`,
+            level: 'info',
+            data: {
+              suggestion_shown: 'progressive_data_capture'
+            }
+          });
+        }
+      });
+    }
+  }, [loading, metrics, trends, owner, repo, timeRange]);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -134,6 +180,12 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
       ]);
       setTrends(trendData);
       setMetrics(metricsData);
+      
+      // DISABLED: Auto-capture was causing database hammering
+      // TODO: Re-implement with proper debouncing and rate limiting
+      // if (hasLowDataQuality(metricsData, trendData) && !dataCapturing && !captureAttempted) {
+      //   // Auto-capture logic here
+      // }
     } catch (error) {
       // Log error to monitoring service in production
       if (process.env.NODE_ENV === 'development') {
@@ -146,18 +198,53 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     }
   };
 
-  // Check if metrics suggest missing data (all zeros or very low)
+  // Check if metrics suggest missing data or have special status
   const hasLowDataQuality = (metrics: ActivityMetrics | null, trends: TrendData[]) => {
     if (!metrics) return true;
     
-    // Check if review and comment activity is suspiciously low
+    // Check for protected or error status
+    if (metrics.status === 'large_repository_protected' || metrics.status === 'no_data' || metrics.status === 'error') {
+      return true;
+    }
+    
+    // Check for missing data scenarios (legacy check for successful status)
     const reviewTrend = trends.find(t => t.metric === 'Review Activity');
     const commentTrend = trends.find(t => t.metric === 'Comment Activity');
     
     return (
-      metrics.totalPRs > 0 && // Has PRs but...
-      (reviewTrend?.current === 0 || commentTrend?.current === 0) // No reviews or comments
+      // Case 1: No PRs at all (likely large repo with skipped API fallback)
+      metrics.totalPRs === 0 ||
+      // Case 2: Has PRs but no reviews or comments (missing cached data)
+      (metrics.totalPRs > 0 && (reviewTrend?.current === 0 || commentTrend?.current === 0))
     );
+  };
+
+  // Get appropriate message based on status
+  const getStatusMessage = (metrics: ActivityMetrics | null) => {
+    if (!metrics) return { title: "No data available", description: "Unable to load repository data" };
+    
+    switch (metrics.status) {
+      case 'large_repository_protected':
+        return {
+          title: "Large Repository Protection",
+          description: metrics.message || "This repository is protected from resource-intensive operations. Use progressive data capture for complete analysis."
+        };
+      case 'no_data':
+        return {
+          title: "No Data Available", 
+          description: metrics.message || "No recent data found. Try using progressive data capture to populate the database."
+        };
+      case 'error':
+        return {
+          title: "Data Loading Error",
+          description: metrics.message || "An error occurred while loading repository data."
+        };
+      default:
+        return {
+          title: "Limited data available",
+          description: "This repository may have additional review and comment data"
+        };
+    }
   };
 
   return (
@@ -171,15 +258,6 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            {/* Show compact capture button when data quality is good */}
-            {!loading && !hasLowDataQuality(metrics, trends) && (
-              <ProgressiveCaptureButton 
-                owner={owner}
-                repo={repo}
-                onRefreshNeeded={loadData}
-                compact={true}
-              />
-            )}
             <Button
               variant="outline"
               size="icon"
@@ -193,15 +271,38 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Progressive Capture Button - Show when data quality is low */}
+        {/* Show status message for missing data, errors, or protection */}
         {!loading && hasLowDataQuality(metrics, trends) && (
-          <div className="mb-6">
-            <ProgressiveCaptureButton 
-              owner={owner}
-              repo={repo}
-              onRefreshNeeded={loadData}
-              compact={false}
-            />
+          <div className="mb-6 p-4 bg-muted/50 rounded-lg border border-dashed">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">{getStatusMessage(metrics).title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {getStatusMessage(metrics).description}
+                </p>
+              </div>
+              {metrics?.status !== 'large_repository_protected' && (
+                <button 
+                  onClick={() => {
+                    // Track user retry action for monitoring
+                    Sentry.addBreadcrumb({
+                      category: 'user_action',
+                      message: `User retried data loading for ${owner}/${repo}`,
+                      level: 'info',
+                      data: {
+                        repository: `${owner}/${repo}`,
+                        status: metrics?.status || 'unknown',
+                        action: 'manual_retry'
+                      }
+                    });
+                    window.location.reload();
+                  }}
+                  className="text-xs px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                >
+                  {metrics?.status === 'error' ? 'Retry' : 'Refresh'}
+                </button>
+              )}
+            </div>
           </div>
         )}
 

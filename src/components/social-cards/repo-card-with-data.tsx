@@ -30,13 +30,13 @@ export default function RepoCardWithData() {
 
         // Fetch both pull requests data and trend metrics
         const timeRange: TimeRange = "30"; // 30 days for trends
-        const [pullRequests, trends] = await Promise.all([
+        const [prDataResult, trends] = await Promise.all([
           fetchPRDataWithFallback(owner, repo, timeRange),
           calculateTrendMetrics(owner, repo, timeRange)
         ]);
 
         // Process the data to get stats
-        const processedStats = processPullRequestData(pullRequests, trends);
+        const processedStats = processPullRequestData(prDataResult.data, trends);
         setStats(processedStats);
       } catch (err) {
         console.error("Error fetching repo data:", err);

@@ -145,12 +145,12 @@ export function useCachedRepoData(
             });
 
             // Fetch pull requests and direct commits in parallel
-            const [prs, directCommits] = await Promise.all([
+            const [prDataResult, directCommits] = await Promise.all([
               fetchPRDataWithFallback(owner, repo, timeRange),
               fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
             ]);
 
-            return { prs, directCommits };
+            return { prs: prDataResult.data, directCommits };
           }
         );
 

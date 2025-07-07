@@ -10,6 +10,10 @@ export interface TrendData {
   icon: string; // We'll use string names for icons
   unit?: string;
   insight?: string;
+  // Status information for proper error handling
+  status?: 'success' | 'large_repository_protected' | 'no_data' | 'error';
+  message?: string;
+  repositoryName?: string;
 }
 
 /**
@@ -44,11 +48,12 @@ export async function calculateTrendMetrics(
     const previousPeriodStart = new Date(now.getTime() - 2 * currentPeriodDays * 24 * 60 * 60 * 1000);
     
     // Fetch data (try database first, fallback to GitHub API)
-    const allPRs = await fetchPRDataWithFallback(owner, repo, timeRange);
+    const prDataResult = await fetchPRDataWithFallback(owner, repo, timeRange);
+    const allPRs = prDataResult.data;
     
-    // Handle case where no data is available
+    // Handle case where no data is available or special status
     if (!allPRs || allPRs.length === 0) {
-      return getEmptyTrends(periodLabel);
+      return getEmptyTrends(periodLabel, prDataResult.status, prDataResult.message, prDataResult.repositoryName);
     }
     
     
@@ -239,7 +244,7 @@ export async function calculateTrendMetrics(
   } catch (error) {
     console.error('Error calculating trend metrics:', error);
     // Return empty trends on error to prevent component crashes
-    return getEmptyTrends("period");
+    return getEmptyTrends("period", 'error', error instanceof Error ? error.message : 'An unexpected error occurred', `${owner}/${repo}`);
   }
 }
 
@@ -247,7 +252,12 @@ export async function calculateTrendMetrics(
  * Returns empty trend data when no data is available
  * This prevents component crashes and provides graceful degradation
  */
-function getEmptyTrends(periodLabel: string): TrendData[] {
+function getEmptyTrends(
+  periodLabel: string, 
+  status: 'success' | 'large_repository_protected' | 'no_data' | 'error' = 'no_data',
+  message?: string,
+  repositoryName?: string
+): TrendData[] {
   const period = periodLabel === "week" ? "Weekly" : periodLabel === "month" ? "Monthly" : "Daily";
   
   return [
@@ -259,7 +269,10 @@ function getEmptyTrends(periodLabel: string): TrendData[] {
       trend: "stable",
       icon: "GitPullRequest",
       unit: "PRs",
-      insight: "No recent PR data available"
+      insight: message || "No recent PR data available",
+      status,
+      message,
+      repositoryName
     },
     {
       metric: "Active Contributors",
@@ -269,7 +282,10 @@ function getEmptyTrends(periodLabel: string): TrendData[] {
       trend: "stable",
       icon: "Users",
       unit: "contributors",
-      insight: "No contributor data available"
+      insight: message || "No contributor data available",
+      status,
+      message,
+      repositoryName
     },
     {
       metric: "Avg Review Time",
@@ -279,7 +295,10 @@ function getEmptyTrends(periodLabel: string): TrendData[] {
       trend: "stable",
       icon: "Clock",
       unit: "hours",
-      insight: "No review data available"
+      insight: message || "No review data available",
+      status,
+      message,
+      repositoryName
     },
     {
       metric: "PR Completion Rate",
@@ -289,7 +308,10 @@ function getEmptyTrends(periodLabel: string): TrendData[] {
       trend: "stable",
       icon: "CheckCircle",
       unit: "%",
-      insight: "No completion data available"
+      insight: message || "No completion data available",
+      status,
+      message,
+      repositoryName
     },
     {
       metric: "Review Activity",
@@ -299,7 +321,10 @@ function getEmptyTrends(periodLabel: string): TrendData[] {
       trend: "stable",
       icon: "GitPullRequestDraft",
       unit: "reviews",
-      insight: "No review data available"
+      insight: message || "No review data available",
+      status,
+      message,
+      repositoryName
     },
     {
       metric: "Comment Activity",
@@ -309,7 +334,10 @@ function getEmptyTrends(periodLabel: string): TrendData[] {
       trend: "stable",
       icon: "MessageSquare",
       unit: "comments",
-      insight: "No comment data available"
+      insight: message || "No comment data available",
+      status,
+      message,
+      repositoryName
     }
   ];
 }

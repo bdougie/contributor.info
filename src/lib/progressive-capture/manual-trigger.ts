@@ -168,6 +168,17 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
           }
           break;
           
+        case 'recent_prs':
+          if (nextJob.repository_id) {
+            result = await ProgressiveCaptureTrigger.processRecentPRsJob(
+              nextJob.repository_id,
+              nextJob.metadata
+            );
+          } else {
+            result = { success: false, error: 'Missing repository_id' };
+          }
+          break;
+          
         default:
           result = { success: true }; // Mark as successful to avoid retries
           break;
@@ -255,6 +266,70 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
   }
 
   /**
+   * Process a recent_prs job - fetch and store recent PRs from GitHub API
+   */
+  static async processRecentPRsJob(repositoryId: string, metadata: any): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Get repository info
+      const { supabase } = await import('../supabase');
+      const { data: repo, error: repoError } = await supabase
+        .from('repositories')
+        .select('owner, name')
+        .eq('id', repositoryId)
+        .single();
+
+      if (repoError || !repo) {
+        return { success: false, error: `Repository not found: ${repoError?.message}` };
+      }
+
+      // Fetch recent PRs from GitHub API using existing library
+      const { fetchPullRequests } = await import('../github');
+      const days = metadata?.days || 7;
+      
+      console.log(`🔄 Fetching recent PRs for ${repo.owner}/${repo.name} (last ${days} days)`);
+      
+      const recentPRs = await fetchPullRequests(repo.owner, repo.name, days.toString());
+      
+      if (!recentPRs || recentPRs.length === 0) {
+        console.log(`✅ No recent PRs found for ${repo.owner}/${repo.name}`);
+        return { success: true };
+      }
+
+      // Store PRs in database using existing spam detection integration
+      const { processPRWithSpamDetection } = await import('../../../supabase/functions/_shared/spam-detection-integration');
+      
+      let importedCount = 0;
+      for (const pr of recentPRs) {
+        try {
+          const result = await processPRWithSpamDetection(
+            (await import('../supabase')).supabase,
+            pr,
+            repositoryId
+          );
+          
+          if (result.success) {
+            importedCount++;
+          } else {
+            console.warn(`Failed to store PR #${pr.number}: ${result.error}`);
+          }
+        } catch (prError) {
+          console.warn(`Error storing PR #${pr.number}:`, prError);
+        }
+      }
+      
+      console.log(`✅ Imported ${importedCount}/${recentPRs.length} recent PRs for ${repo.owner}/${repo.name}`);
+      return { success: true };
+
+    } catch (error) {
+      console.error(`❌ Error processing recent PRs job:`, error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
    * Quick fix for specific repository
    */
   static async quickFix(owner: string, repo: string) {
@@ -282,11 +357,13 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
       const commitAnalysisCount = await queueManager.queueRecentCommitsAnalysis(repoData.id, 90);
       const aiSummaryQueued = await AISummaryProcessor.queueSummaryRegeneration(repoData.id, 'medium');
       
-      // Show comprehensive UI notification
       const totalJobs = 1 + fileChangeCount + reviewCount + commentCount + commitAnalysisCount + (aiSummaryQueued ? 1 : 0);
-      ProgressiveCaptureNotifications.showProcessingStarted(`${owner}/${repo}`);
       
-      console.log(`
+      // Show subtle processing notification for manual triggers only
+      if (process.env.NODE_ENV === 'development') {
+        ProgressiveCaptureNotifications.showProcessingStarted(`${owner}/${repo}`);
+        
+        console.log(`
 ✅ Quick fix queued for ${owner}/${repo}:
   • Recent PRs: Queued
   • File changes: ${fileChangeCount} PRs queued
@@ -295,10 +372,8 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
   • Commit analysis: ${commitAnalysisCount} commits queued
   • AI Summary: ${aiSummaryQueued ? 'Queued' : 'Skipped (recent)'}
   • Total: ${totalJobs} jobs queued
-  • Review and comment data will be populated for better insights
-  • YOLO coder detection will be available once commits are analyzed
-  • AI summary will be regenerated with latest data
-      `);
+        `);
+      }
       
     } catch (error) {
       console.error('❌ Quick fix failed for %s/%s:', owner, repo, error);
@@ -309,19 +384,8 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
 // Make it available globally for console access
 if (typeof window !== 'undefined') {
   (window as any).ProgressiveCapture = ProgressiveCaptureTrigger;
-  console.log(`
-🔧 Progressive Data Capture Tools Available!
-
-Use in browser console:
-  • ProgressiveCapture.analyze()    - Analyze data gaps
-  • ProgressiveCapture.bootstrap()  - Start filling missing data
-  • ProgressiveCapture.status()     - Check queue status
-  • ProgressiveCapture.rateLimits() - Check API rate limits
-  • ProgressiveCapture.quickFix('owner', 'repo') - Fix specific repository
-  • ProgressiveCapture.analyzeCommits('owner', 'repo') - Queue YOLO coder analysis
-
-Examples:
-  ProgressiveCapture.quickFix('continuedev', 'continue')
-  ProgressiveCapture.analyzeCommits('continuedev', 'continue')
-  `);
+  // Enable console tools in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔧 Progressive Data Capture tools available in console (ProgressiveCapture.*)');
+  }
 }

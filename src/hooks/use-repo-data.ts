@@ -33,11 +33,12 @@ export function useRepoData(
         setStats((prev) => ({ ...prev, loading: true, error: null }));
 
         // Fetch pull requests and direct commits in parallel
-        const [prs, directCommits] = await Promise.all([
+        const [prDataResult, directCommits] = await Promise.all([
           fetchPRDataWithFallback(owner, repo, timeRange),
           fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
         ]);
 
+        const prs = prDataResult.data;
         setStats({ pullRequests: prs, loading: false, error: null });
         setLotteryFactor(calculateLotteryFactor(prs, timeRange, includeBots));
         setDirectCommitsData({

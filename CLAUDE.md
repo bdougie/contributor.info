@@ -152,3 +152,30 @@ npx supabase status
 - after visual changes always look for opportunity to improve performance
 - no premmature optimizations without testing
 - use the supabase mcp server for migrations
+
+## User Experience Standards
+
+This project follows an **invisible, Netflix-like user experience** where data loading and processing happens automatically in the background. Key principles:
+
+1. **Database-first**: Always query cached data before API calls
+2. **Auto-detection**: Automatically detect and fix data quality issues
+3. **Subtle notifications**: Keep users informed without interrupting workflow
+4. **Progressive enhancement**: Core functionality works immediately, enhanced features load in background
+5. **No manual intervention**: Users never need to click "Load Data" or understand technical details
+
+### Implementation Guidelines
+
+- **New Features**: Follow `/docs/user-experience/feature-template.md` for consistent UX patterns
+- **Data Loading**: Use `/docs/user-experience/implementation-checklist.md` for proper auto-detection integration
+- **User Notifications**: Reference `/docs/user-experience/invisible-data-loading.md` for notification standards
+
+### Key Files for UX Consistency
+- `src/lib/progressive-capture/smart-notifications.ts` - Auto-detection on page load
+- `src/lib/progressive-capture/background-processor.ts` - Invisible background work
+- `src/lib/progressive-capture/ui-notifications.ts` - User-friendly notifications
+
+When implementing features that load data or process information in the background, always ensure:
+- Immediate value with cached data
+- Automatic detection and improvement of data quality
+- Subtle, helpful notifications (not technical jargon)
+- Graceful error handling and fallbacks

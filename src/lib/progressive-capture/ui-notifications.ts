@@ -130,19 +130,27 @@ export class ProgressiveCaptureNotifications {
    * Show notification when new data becomes available
    */
   static showDataAvailable(repository: string, dataType: string) {
-    toast.success(`New ${dataType} data available!`, {
-      description: `${repository} has fresh ${dataType} data ready`,
-      duration: 6000,
-      action: {
-        label: 'View',
-        onClick: () => {
-          // Trigger a soft refresh of the current view
-          window.dispatchEvent(new CustomEvent('progressive-data-updated', { 
-            detail: { repository, dataType } 
-          }));
+    if (dataType === 'updated') {
+      // Subtle notification for background updates
+      toast.info(`Updating ${repository}...`, {
+        description: 'Loading fresh data in the background',
+        duration: 4000
+      });
+    } else {
+      toast.success(`New ${dataType} data available!`, {
+        description: `${repository} has fresh ${dataType} data ready`,
+        duration: 6000,
+        action: {
+          label: 'View',
+          onClick: () => {
+            // Trigger a soft refresh of the current view
+            window.dispatchEvent(new CustomEvent('progressive-data-updated', { 
+              detail: { repository, dataType } 
+            }));
+          }
         }
-      }
-    });
+      });
+    }
   }
 
   /**
@@ -178,19 +186,20 @@ export class ProgressiveCaptureNotifications {
    * Show queue status summary
    */
   static showQueueStatus(stats: { pending: number; processing: number; completed: number; failed: number }) {
-    const { pending, processing, completed, failed } = stats;
+    const { pending, processing, completed } = stats;
     
-    if (pending === 0 && processing === 0) {
-      toast.success('All data updates complete!', {
-        description: `Processed ${completed} jobs successfully${failed > 0 ? `, ${failed} failed` : ''}`,
-        duration: 4000
-      });
-    } else {
-      toast.info('Background updates in progress', {
-        description: `${pending} pending, ${processing} processing, ${completed} completed`,
-        duration: 3000
+    if (pending === 0 && processing === 0 && completed > 0) {
+      // Only show completion notification if we actually processed something
+      toast.success('Repository data updated!', {
+        description: 'Fresh data is now available',
+        duration: 3000,
+        action: {
+          label: 'Refresh',
+          onClick: () => window.location.reload()
+        }
       });
     }
+    // Don't show progress notifications - they're too noisy for users
   }
 
   /**
