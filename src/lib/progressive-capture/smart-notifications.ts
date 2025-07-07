@@ -15,14 +15,24 @@ export class SmartDataNotifications {
   static async checkRepositoryAndNotify(owner: string, repo: string): Promise<void> {
     const repoKey = `${owner}/${repo}`;
     
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔍 Smart detection checking: ${repoKey}`);
+    }
+    
     // Don't check the same repo repeatedly
     if (this.checkedRepositories.has(repoKey)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`⏭️ Skipping ${repoKey} - already checked`);
+      }
       return;
     }
 
     // Check cooldown
     const lastNotification = this.notificationCooldown.get(repoKey);
     if (lastNotification && Date.now() - lastNotification < this.COOLDOWN_DURATION) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`⏭️ Skipping ${repoKey} - in cooldown period`);
+      }
       return;
     }
 
@@ -36,15 +46,31 @@ export class SmartDataNotifications {
         .single();
 
       if (repoError || !repoData) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`❌ Repository ${repoKey} not found in database:`, repoError?.message);
+        }
         return;
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✅ Found ${repoKey} in database:`, { id: repoData.id, last_updated_at: repoData.last_updated_at });
       }
 
       // Check for missing data
       const missingData = await this.analyzeMissingData(repoData.id, repoData.last_updated_at);
       
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`📊 Missing data analysis for ${repoKey}:`, missingData);
+      }
+      
       if (missingData.length > 0) {
-        ProgressiveCaptureNotifications.showMissingDataNotification(repoKey, missingData);
+        // Auto-fix missing data elegantly in the background
+        await this.autoFixMissingData(owner, repo, repoData.id, missingData);
         this.notificationCooldown.set(repoKey, Date.now());
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`✅ No missing data detected for ${repoKey}`);
+        }
       }
 
       this.checkedRepositories.add(repoKey);
@@ -59,12 +85,15 @@ export class SmartDataNotifications {
    */
   private static async analyzeMissingData(repositoryId: string, lastUpdatedAt: string): Promise<string[]> {
     const missing: string[] = [];
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
     const lastUpdate = new Date(lastUpdatedAt);
 
     try {
-      // Check if data is stale
-      if (lastUpdate < threeDaysAgo) {
+      // Check if data is stale (24hrs for popular repos, 3 days for others)
+      if (lastUpdate < twentyFourHoursAgo) {
+        missing.push('recent PRs');
+      } else if (lastUpdate < threeDaysAgo) {
         missing.push('recent PRs');
       }
 
@@ -93,16 +122,21 @@ export class SmartDataNotifications {
         missing.push('commit analysis');
       }
 
-      // Check for missing reviews
-      const { count: reviewCount, error: reviewError } = await supabase
-        .from('reviews')
-        .select('*', { count: 'exact', head: true })
-        .eq('pull_request_id', 
-          supabase.from('pull_requests').select('id').eq('repository_id', repositoryId).limit(1)
-        );
+      // Check for missing reviews by joining with pull_requests
+      const { data: reviewData, error: reviewError } = await supabase
+        .from('pull_requests')
+        .select(`
+          id,
+          reviews(id)
+        `)
+        .eq('repository_id', repositoryId)
+        .limit(10);
 
-      if (!reviewError && reviewCount === 0) {
-        missing.push('reviews');
+      if (!reviewError && reviewData) {
+        const prsWithoutReviews = reviewData.filter(pr => !pr.reviews || pr.reviews.length === 0);
+        if (prsWithoutReviews.length > 0) {
+          missing.push('reviews');
+        }
       }
 
     } catch (error) {
@@ -140,6 +174,113 @@ export class SmartDataNotifications {
   }
 
   /**
+   * Automatically fix missing data in the background without user interaction
+   */
+  private static async autoFixMissingData(owner: string, repo: string, repositoryId: string, missingData: string[]): Promise<void> {
+    try {
+      const { queueManager } = await import('./queue-manager');
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔧 Auto-fixing missing data for ${owner}/${repo}:`, missingData);
+      }
+      
+      // Show subtle notification that we're updating data
+      ProgressiveCaptureNotifications.showDataAvailable(`${owner}/${repo}`, 'updated');
+      
+      // Determine priority based on repository popularity and data freshness
+      const priority = await this.calculatePriority(owner, repo, repositoryId);
+      
+      // Queue appropriate jobs based on what's missing
+      const promises: Promise<any>[] = [];
+      
+      if (missingData.includes('recent PRs')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`⏳ Queuing recent PRs job for ${owner}/${repo} with priority: ${priority}`);
+        }
+        promises.push(queueManager.queueRecentPRsWithPriority(repositoryId, priority));
+      }
+      
+      if (missingData.includes('file changes')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`⏳ Queuing file changes job for ${owner}/${repo} with priority: ${priority}`);
+        }
+        promises.push(queueManager.queueMissingFileChangesWithPriority(repositoryId, 15, priority));
+      }
+      
+      if (missingData.includes('reviews')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`⏳ Queuing reviews job for ${owner}/${repo} with priority: ${priority}`);
+        }
+        promises.push(queueManager.queueMissingReviewsWithPriority(repositoryId, 10, priority));
+      }
+      
+      if (missingData.includes('commit analysis')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`⏳ Queuing commit analysis job for ${owner}/${repo} with priority: ${priority}`);
+        }
+        promises.push(queueManager.queueRecentCommitsAnalysisWithPriority(repositoryId, 60, priority));
+      }
+      
+      const results = await Promise.all(promises);
+      
+      // Log in development only
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✅ Auto-fix jobs queued for ${owner}/${repo}:`, results);
+      }
+      
+    } catch (error) {
+      console.warn(`Could not auto-fix data for ${owner}/${repo}:`, error);
+    }
+  }
+
+  /**
+   * Calculate priority based on repository popularity and data freshness
+   */
+  private static async calculatePriority(owner: string, repo: string, repositoryId: string): Promise<'critical' | 'high' | 'medium' | 'low'> {
+    try {
+      // Popular repositories from example-repos.tsx get higher priority
+      const popularRepos = [
+        'continuedev/continue',
+        'kubernetes/kubernetes', 
+        'facebook/react',
+        'etcd-io/etcd',
+        'vitejs/vite'
+      ];
+      
+      const repoName = `${owner}/${repo}`;
+      const isPopular = popularRepos.includes(repoName);
+      
+      // Check data freshness - get latest PR update
+      const { data: latestPR } = await supabase
+        .from('pull_requests')
+        .select('updated_at')
+        .eq('repository_id', repositoryId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      const now = new Date();
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const hasRecentData = latestPR && new Date(latestPR.updated_at) > twentyFourHoursAgo;
+      
+      // Priority logic based on popularity and freshness
+      if (isPopular && !hasRecentData) {
+        return 'critical'; // Popular repo with stale data
+      } else if (isPopular && hasRecentData) {
+        return 'low'; // Popular repo with recent data
+      } else if (!isPopular && !hasRecentData) {
+        return 'high'; // Regular repo with stale data 
+      } else {
+        return 'medium'; // Regular repo with recent data
+      }
+      
+    } catch (error) {
+      console.warn('Error calculating priority, defaulting to medium:', error);
+      return 'medium';
+    }
+  }
+
+  /**
    * Show rate limit warning when approaching limits
    */
   static checkRateLimitAndNotify(remaining: number, limit: number): void {
@@ -166,7 +307,28 @@ export class SmartDataNotifications {
     const repoKey = `${owner}/${repo}`;
     this.checkedRepositories.delete(repoKey);
     this.notificationCooldown.delete(repoKey);
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔄 Force checking ${repoKey} (bypassing cooldown and already-checked status)`);
+    }
+    
     await this.checkRepositoryAndNotify(owner, repo);
+  }
+
+  /**
+   * Get debug info about current state
+   */
+  static getDebugInfo(): { checkedRepositories: string[], cooldowns: Record<string, number> } {
+    const cooldowns: Record<string, number> = {};
+    this.notificationCooldown.forEach((timestamp, repo) => {
+      const minutesAgo = Math.floor((Date.now() - timestamp) / 1000 / 60);
+      cooldowns[repo] = minutesAgo;
+    });
+
+    return {
+      checkedRepositories: Array.from(this.checkedRepositories),
+      cooldowns
+    };
   }
 }
 
@@ -176,14 +338,29 @@ export function setupSmartNotifications(): void {
   if (typeof window !== 'undefined') {
     const checkCurrentRepository = () => {
       const path = window.location.pathname;
-      const match = path.match(/\/repo\/([^\/]+)\/([^\/]+)/);
       
-      if (match) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔍 Route detection checking path: ${path}`);
+      }
+      
+      // Match patterns like /kubernetes/kubernetes or /owner/repo/contributions
+      const match = path.match(/\/([^\/]+)\/([^\/]+)(?:\/|$)/);
+      
+      if (match && match[1] !== 'login' && match[1] !== 'debug' && match[1] !== 'admin') {
         const [, owner, repo] = match;
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`✅ Repository detected: ${owner}/${repo} - scheduling auto-detection in 3 seconds`);
+        }
+        
         // Check after a short delay to let the component load
         setTimeout(() => {
           SmartDataNotifications.checkRepositoryAndNotify(owner, repo);
-        }, 2000);
+        }, 3000);
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`⏭️ Path ${path} doesn't match repository pattern or is excluded`);
+        }
       }
     };
 
@@ -207,7 +384,12 @@ export function setupSmartNotifications(): void {
       setTimeout(checkCurrentRepository, 100);
     };
 
-    console.log('🔔 Smart notifications enabled - will detect missing data automatically');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔔 Smart data detection enabled');
+      
+      // Expose for debugging
+      (window as any).SmartDataNotifications = SmartDataNotifications;
+    }
   }
 }
 

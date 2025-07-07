@@ -2,16 +2,24 @@ import { supabase } from './supabase';
 import { fetchPullRequests } from './github';
 import type { PullRequest } from './types';
 import { trackDatabaseOperation, trackRateLimit } from './sentry/data-tracking';
+import { 
+  createLargeRepositoryResult, 
+  createSuccessResult, 
+  createNoDataResult,
+  type DataResult 
+} from './errors/repository-errors';
+import * as Sentry from '@sentry/react';
 
 /**
  * Fetch PR data from Supabase database first, fallback to GitHub API
  * This reduces rate limiting by using cached database data when available
+ * Returns a DataResult with status information for proper error handling
  */
 export async function fetchPRDataWithFallback(
   owner: string,
   repo: string,
   timeRange: string = '30'
-): Promise<PullRequest[]> {
+): Promise<DataResult<PullRequest[]>> {
   
   let fallbackUsed = false;
   let cacheHit = false;
@@ -65,7 +73,7 @@ export async function fetchPRDataWithFallback(
           html_url,
           repository_id,
           author_id,
-          contributors!fk_pull_requests_author(
+          contributors:author_id(
             github_id,
             username,
             avatar_url,
@@ -95,7 +103,7 @@ export async function fetchPRDataWithFallback(
           login: dbPR.contributors?.username || 'unknown',
           id: dbPR.contributors?.github_id || 0,
           avatar_url: dbPR.contributors?.avatar_url || '',
-          type: dbPR.contributors?.is_bot ? 'Bot' : 'User'
+          type: (dbPR.contributors?.is_bot ? 'Bot' : 'User') as 'Bot' | 'User'
         },
         base: {
           ref: dbPR.base_branch
@@ -129,7 +137,8 @@ export async function fetchPRDataWithFallback(
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
         
         if (latestUpdate > thirtyDaysAgo) {
-          return filteredPRs.length > 0 ? filteredPRs : transformedPRs.slice(0, 100); // Return filtered or recent 100
+          const dataToReturn = filteredPRs.length > 0 ? filteredPRs : transformedPRs.slice(0, 100);
+          return createSuccessResult(dataToReturn);
         } else {
         }
       }
@@ -137,7 +146,8 @@ export async function fetchPRDataWithFallback(
       // Store the database data for potential fallback
       if (transformedPRs.length > 0) {
         // We have database data - use it instead of risking API calls during rate limiting
-        return filteredPRs.length > 0 ? filteredPRs : transformedPRs.slice(0, 100);
+        const dataToReturn = filteredPRs.length > 0 ? filteredPRs : transformedPRs.slice(0, 100);
+        return createSuccessResult(dataToReturn);
       }
     } else {
     }
@@ -145,11 +155,114 @@ export async function fetchPRDataWithFallback(
   } catch (error) {
   }
 
-  // Fallback to GitHub API
+  // Fallback to GitHub API - PROTECTED for large repositories to prevent resource exhaustion
+  // Large repositories like kubernetes/kubernetes can cause ERR_INSUFFICIENT_RESOURCES
+  // BUT: Only apply protection if we have cached data to show, otherwise use normal API flow
   try {
+    // Check if this is a potentially large repository with cached data
+    const largeRepos = ['kubernetes/kubernetes', 'microsoft/vscode'];
+    const repoName = `${owner}/${repo}`;
+    
+    if (largeRepos.includes(repoName)) {
+      // Check if we have cached data before applying protection
+      try {
+        const { data: repoData, error: repoError } = await supabase
+          .from('repositories')
+          .select('id')
+          .eq('owner', owner)
+          .eq('name', repo)
+          .single();
+
+        if (!repoError && repoData) {
+          const { data: cachedPRs, error: cacheError } = await supabase
+            .from('pull_requests')
+            .select(`
+              id,
+              github_id,
+              number,
+              title,
+              body,
+              state,
+              created_at,
+              updated_at,
+              closed_at,
+              merged_at,
+              merged,
+              base_branch,
+              head_branch,
+              additions,
+              deletions,
+              changed_files,
+              commits,
+              html_url,
+              repository_id,
+              author_id,
+              contributors:author_id(
+                github_id,
+                username,
+                avatar_url,
+                is_bot
+              )
+            `)
+            .eq('repository_id', repoData.id)
+            .order('created_at', { ascending: false })
+            .limit(200);
+
+          if (!cacheError && cachedPRs && cachedPRs.length > 0) {
+            // We have cached data - apply protection and return it
+            const transformedPRs: PullRequest[] = cachedPRs.map((dbPR: any) => ({
+              id: dbPR.github_id,
+              number: dbPR.number,
+              title: dbPR.title,
+              body: dbPR.body,
+              state: dbPR.state,
+              created_at: dbPR.created_at,
+              updated_at: dbPR.updated_at,
+              closed_at: dbPR.closed_at,
+              merged_at: dbPR.merged_at,
+              merged: dbPR.merged,
+              user: {
+                login: dbPR.contributors?.username || 'unknown',
+                id: dbPR.contributors?.github_id || 0,
+                avatar_url: dbPR.contributors?.avatar_url || '',
+                type: (dbPR.contributors?.is_bot ? 'Bot' : 'User') as 'Bot' | 'User'
+              },
+              base: { ref: dbPR.base_branch },
+              head: { ref: dbPR.head_branch },
+              additions: dbPR.additions || 0,
+              deletions: dbPR.deletions || 0,
+              changed_files: dbPR.changed_files || 0,
+              commits: dbPR.commits || 0,
+              html_url: dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
+              repository_owner: owner,
+              repository_name: repo,
+              reviews: [],
+              comments: []
+            }));
+
+            const days = parseInt(timeRange) || 30;
+            const since = new Date();
+            since.setDate(since.getDate() - days);
+            
+            const filteredPRs = transformedPRs.filter(pr => {
+              const prDate = new Date(pr.created_at);
+              return prDate >= since;
+            });
+
+            return createLargeRepositoryResult(repoName, filteredPRs);
+          }
+        }
+      } catch (cacheError) {
+        // Silent fallback - continue to API if cache fails
+      }
+      
+      // No cached data available - continue to normal API flow below
+      // This prevents showing empty arrays when we could get fresh data
+    }
+    
     fallbackUsed = true;
     const githubPRs = await fetchPullRequests(owner, repo, timeRange);
-    return githubPRs;
+    return createSuccessResult(githubPRs);
   } catch (githubError) {
     // Track rate limiting specifically
     if (githubError instanceof Error && 
@@ -189,7 +302,7 @@ export async function fetchPRDataWithFallback(
             commits,
             html_url,
             author_id,
-            contributors!fk_pull_requests_author(
+            contributors:author_id(
               github_id,
               username,
               avatar_url,
@@ -201,7 +314,7 @@ export async function fetchPRDataWithFallback(
           .limit(100);
 
       if (emergencyData && emergencyData.length > 0) {
-        return emergencyData.map((dbPR: any) => ({
+        const emergencyPRs = emergencyData.map((dbPR: any) => ({
           id: dbPR.github_id,
           number: dbPR.number,
           title: dbPR.title,
@@ -216,7 +329,7 @@ export async function fetchPRDataWithFallback(
             login: dbPR.contributors?.username || 'unknown',
             id: dbPR.contributors?.github_id || 0,
             avatar_url: dbPR.contributors?.avatar_url || '',
-            type: dbPR.contributors?.is_bot ? 'Bot' : 'User'
+            type: (dbPR.contributors?.is_bot ? 'Bot' : 'User') as 'Bot' | 'User'
           },
           base: { ref: dbPR.base_branch },
           head: { ref: dbPR.head_branch },
@@ -230,13 +343,40 @@ export async function fetchPRDataWithFallback(
           reviews: [],
           comments: []
         }));
+        
+        return createSuccessResult(emergencyPRs);
       }
       }
     } catch (emergencyError) {
     }
     
-    // If everything fails, throw the original GitHub error
-    throw githubError;
+    // If everything fails, return no data result instead of throwing
+    console.error('All data fetching methods failed:', githubError);
+    
+    // Track complete data fetching failure in Sentry
+    Sentry.withScope((scope) => {
+      scope.setTag('error.category', 'complete_data_failure');
+      scope.setTag('repository.name', `${owner}/${repo}`);
+      scope.setTag('fallback.exhausted', true);
+      scope.setContext('data_fetching_failure', {
+        repository: `${owner}/${repo}`,
+        timeRange,
+        fallbackUsed,
+        cacheHit,
+        failureStage: 'all_methods_exhausted',
+        originalError: (githubError instanceof Error ? githubError.message : String(githubError)) || 'Unknown error'
+      });
+      
+      Sentry.captureException(githubError, {
+        level: 'warning',
+        extra: {
+          recovery_action: 'returned_empty_data_with_status',
+          user_impact: 'limited_functionality_maintained'
+        }
+      });
+    });
+    
+    return createNoDataResult(`${owner}/${repo}`, []);
   }
     },
     {
