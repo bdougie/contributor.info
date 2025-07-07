@@ -6,7 +6,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Link } from "lucide-react";
+import { TrendingUp, TrendingDown, Link, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -207,15 +207,45 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
       return true;
     }
     
-    // Check for missing data scenarios (legacy check for successful status)
+    // More intelligent data quality check for successful status
     const reviewTrend = trends.find(t => t.metric === 'Review Activity');
     const commentTrend = trends.find(t => t.metric === 'Comment Activity');
     
+    // Case 1: No PRs at all (definitely missing data)
+    if (metrics.totalPRs === 0) {
+      return true;
+    }
+    
+    // Case 2: Has multiple PRs but suspiciously low engagement
+    // Only flag as low quality if we have a significant number of PRs but zero engagement
+    const hasSignificantPRs = metrics.totalPRs >= 5;
+    const hasZeroReviews = reviewTrend?.current === 0;
+    const hasZeroComments = commentTrend?.current === 0;
+    const hasBothZero = hasZeroReviews && hasZeroComments;
+    
+    // Development logging for data completeness tracking
+    if (process.env.NODE_ENV === 'development') {
+      const reviewTotal = metrics.totalReviews || 0;
+      const commentTotal = metrics.totalComments || 0;
+      const engagementRatio = metrics.totalPRs > 0 ? (reviewTotal + commentTotal) / metrics.totalPRs : 0;
+      
+      console.log(`📊 Data Quality Analysis for ${owner}/${repo}:`, {
+        totalPRs: metrics.totalPRs,
+        totalReviews: reviewTotal,
+        totalComments: commentTotal,
+        engagementRatio: engagementRatio.toFixed(2),
+        hasZeroReviews,
+        hasZeroComments,
+        wouldShowRefresh: (hasSignificantPRs && hasBothZero) || (metrics.totalPRs >= 10 && (hasZeroReviews || hasZeroComments))
+      });
+    }
+    
+    // Only show refresh button if:
+    // - We have 5+ PRs but absolutely no reviews AND no comments (very suspicious)
+    // - OR we have 10+ PRs but missing either reviews OR comments entirely
     return (
-      // Case 1: No PRs at all (likely large repo with skipped API fallback)
-      metrics.totalPRs === 0 ||
-      // Case 2: Has PRs but no reviews or comments (missing cached data)
-      (metrics.totalPRs > 0 && (reviewTrend?.current === 0 || commentTrend?.current === 0))
+      (hasSignificantPRs && hasBothZero) ||
+      (metrics.totalPRs >= 10 && (hasZeroReviews || hasZeroComments))
     );
   };
 
@@ -241,8 +271,8 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
         };
       default:
         return {
-          title: "Limited data available",
-          description: "This repository may have additional review and comment data"
+          title: "Missing engagement data",
+          description: "This repository has PRs but appears to be missing review or comment data. Use progressive data capture to fetch complete information."
         };
     }
   };
@@ -282,7 +312,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                 </p>
               </div>
               {metrics?.status !== 'large_repository_protected' && (
-                <button 
+                <Button 
                   onClick={() => {
                     // Track user retry action for monitoring
                     Sentry.addBreadcrumb({
@@ -297,10 +327,13 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                     });
                     window.location.reload();
                   }}
-                  className="text-xs px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  title={metrics?.status === 'error' ? 'Retry loading data' : 'Refresh data'}
                 >
-                  {metrics?.status === 'error' ? 'Retry' : 'Refresh'}
-                </button>
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
               )}
             </div>
           </div>

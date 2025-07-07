@@ -39,14 +39,14 @@ export class DataCaptureQueueManager {
   /**
    * Queue jobs to fetch missing file changes for PRs
    */
-  async queueMissingFileChanges(repositoryId: string, limit: number = 50): Promise<number> {
+  async queueMissingFileChanges(repositoryId: string, limit: number = 200): Promise<number> {
     return this.queueMissingFileChangesWithPriority(repositoryId, limit, 'critical');
   }
 
   /**
    * Queue jobs to fetch missing file changes for PRs with specific priority
    */
-  async queueMissingFileChangesWithPriority(repositoryId: string, limit: number = 50, priority: 'critical' | 'high' | 'medium' | 'low'): Promise<number> {
+  async queueMissingFileChangesWithPriority(repositoryId: string, limit: number = 200, priority: 'critical' | 'high' | 'medium' | 'low'): Promise<number> {
 
     // Find PRs with missing file change data
     const { data: prsNeedingUpdate, error } = await supabase
@@ -65,7 +65,14 @@ export class DataCaptureQueueManager {
     }
 
     if (!prsNeedingUpdate || prsNeedingUpdate.length === 0) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Queue] No PRs needing file changes found for repository ${repositoryId}`);
+      }
       return 0;
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Queue] Found ${prsNeedingUpdate.length} PRs needing file changes (limit: ${limit}, priority: ${priority})`);
     }
 
     // Queue jobs for each PR
@@ -417,14 +424,14 @@ export class DataCaptureQueueManager {
   /**
    * Queue jobs to fetch reviews for PRs that don't have them
    */
-  async queueMissingReviews(repositoryId: string, limit: number = 50): Promise<number> {
+  async queueMissingReviews(repositoryId: string, limit: number = 200): Promise<number> {
     return this.queueMissingReviewsWithPriority(repositoryId, limit, 'high');
   }
 
   /**
    * Queue jobs to fetch reviews for PRs with specific priority
    */
-  async queueMissingReviewsWithPriority(repositoryId: string, limit: number = 50, priority: 'critical' | 'high' | 'medium' | 'low'): Promise<number> {
+  async queueMissingReviewsWithPriority(repositoryId: string, limit: number = 200, priority: 'critical' | 'high' | 'medium' | 'low'): Promise<number> {
 
     // Find PRs without reviews
     const { data: prsNeedingReviews, error } = await supabase
@@ -448,7 +455,14 @@ export class DataCaptureQueueManager {
     }
 
     if (!prsNeedingReviews || prsNeedingReviews.length === 0) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Queue] No PRs needing reviews found for repository ${repositoryId}`);
+      }
       return 0;
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Queue] Found ${prsNeedingReviews.length} PRs needing reviews (limit: ${limit}, priority: ${priority})`);
     }
 
     // Queue jobs for each PR
@@ -488,7 +502,7 @@ export class DataCaptureQueueManager {
   /**
    * Queue jobs to fetch comments for PRs that don't have them
    */
-  async queueMissingComments(repositoryId: string, limit: number = 50): Promise<number> {
+  async queueMissingComments(repositoryId: string, limit: number = 200): Promise<number> {
 
     // Find PRs without comments
     const { data: prsNeedingComments, error } = await supabase
@@ -512,7 +526,14 @@ export class DataCaptureQueueManager {
     }
 
     if (!prsNeedingComments || prsNeedingComments.length === 0) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Queue] No PRs needing comments found for repository ${repositoryId}`);
+      }
       return 0;
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Queue] Found ${prsNeedingComments.length} PRs needing comments (limit: ${limit})`);
     }
 
     // Queue jobs for each PR

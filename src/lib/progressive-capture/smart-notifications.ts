@@ -139,6 +139,23 @@ export class SmartDataNotifications {
         }
       }
 
+      // Check for missing comments by joining with pull_requests
+      const { data: commentData, error: commentError } = await supabase
+        .from('pull_requests')
+        .select(`
+          id,
+          comments(id)
+        `)
+        .eq('repository_id', repositoryId)
+        .limit(10);
+
+      if (!commentError && commentData) {
+        const prsWithoutComments = commentData.filter(pr => !pr.comments || pr.comments.length === 0);
+        if (prsWithoutComments.length > 0) {
+          missing.push('comments');
+        }
+      }
+
     } catch (error) {
       console.error('[Smart Notifications] Error analyzing missing data:', error);
     }
@@ -204,14 +221,21 @@ export class SmartDataNotifications {
         if (process.env.NODE_ENV === 'development') {
           console.log(`⏳ Queuing file changes job for ${owner}/${repo} with priority: ${priority}`);
         }
-        promises.push(queueManager.queueMissingFileChangesWithPriority(repositoryId, 15, priority));
+        promises.push(queueManager.queueMissingFileChangesWithPriority(repositoryId, 100, priority));
       }
       
       if (missingData.includes('reviews')) {
         if (process.env.NODE_ENV === 'development') {
           console.log(`⏳ Queuing reviews job for ${owner}/${repo} with priority: ${priority}`);
         }
-        promises.push(queueManager.queueMissingReviewsWithPriority(repositoryId, 10, priority));
+        promises.push(queueManager.queueMissingReviewsWithPriority(repositoryId, 100, priority));
+      }
+      
+      if (missingData.includes('comments')) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`⏳ Queuing comments job for ${owner}/${repo} with priority: ${priority}`);
+        }
+        promises.push(queueManager.queueMissingComments(repositoryId, 100));
       }
       
       if (missingData.includes('commit analysis')) {
