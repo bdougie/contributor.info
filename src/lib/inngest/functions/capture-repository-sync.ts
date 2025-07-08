@@ -7,6 +7,46 @@ const MAX_PRS_PER_SYNC = 100;
 const LARGE_REPO_THRESHOLD = 1000;
 const DEFAULT_DAYS_LIMIT = 30;
 
+// Helper function to ensure contributors exist and return their UUIDs
+async function ensureContributorExists(githubUser: any): Promise<string | null> {
+  if (!githubUser || !githubUser.id) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('contributors')
+    .upsert({
+      github_id: githubUser.id.toString(),
+      username: githubUser.login,
+      name: githubUser.name || null,
+      email: githubUser.email || null,
+      avatar_url: githubUser.avatar_url || null,
+      bio: githubUser.bio || null,
+      company: githubUser.company || null,
+      location: githubUser.location || null,
+      blog: githubUser.blog || null,
+      twitter_username: githubUser.twitter_username || null,
+      public_repos: githubUser.public_repos || 0,
+      public_gists: githubUser.public_gists || 0,
+      followers: githubUser.followers || 0,
+      following: githubUser.following || 0,
+      created_at: githubUser.created_at || new Date().toISOString(),
+      updated_at: githubUser.updated_at || new Date().toISOString(),
+    }, {
+      onConflict: 'github_id',
+      ignoreDuplicates: false
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('Error upserting contributor:', error);
+    return null;
+  }
+
+  return data.id;
+}
+
 export const captureRepositorySync = inngest.createFunction(
   {
     id: "capture-repository-sync",
@@ -98,25 +138,34 @@ export const captureRepositorySync = inngest.createFunction(
         return [];
       }
 
-      const prsToStore = recentPRs.map((pr: GitHubPullRequest) => ({
+      // First, ensure all contributors exist and get their UUIDs
+      const contributorPromises = recentPRs.map(pr => ensureContributorExists(pr.user));
+      const contributorIds = await Promise.all(contributorPromises);
+
+      // Then create PRs with proper UUIDs
+      const prsToStore = recentPRs.map((pr: GitHubPullRequest, index: number) => ({
         github_id: pr.id.toString(),
         repository_id: repositoryId,
         number: pr.number,
         title: pr.title,
+        body: null, // PR body not available in simplified type
         state: pr.state,
-        author_id: pr.user?.id.toString(),
-        author_username: pr.user?.login,
+        author_id: contributorIds[index], // Now this is a proper UUID
         created_at: pr.created_at,
         updated_at: pr.updated_at,
         closed_at: pr.closed_at,
         merged_at: pr.merged_at,
         draft: pr.draft,
+        merged: pr.merged || false,
         additions: pr.additions || 0,
         deletions: pr.deletions || 0,
         changed_files: pr.changed_files || 0,
         commits: pr.commits || 0,
-        base_ref: pr.base?.ref || null,
-        head_ref: pr.head?.ref || null,
+        base_branch: pr.base?.ref || 'main',
+        head_branch: pr.head?.ref || 'unknown',
+        html_url: null, // HTML URL not available in simplified type
+        diff_url: null, // Diff URL not available in simplified type
+        patch_url: null, // Patch URL not available in simplified type
       }));
 
       const { data, error } = await supabase
