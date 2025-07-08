@@ -58,7 +58,7 @@ export const capturePrDetails = inngest.createFunction(
         if (apiError.status === 404) {
           throw new Error(`PR #${prNumber} not found in ${repository.owner}/${repository.name}`);
         }
-        if (error.message === 'GitHub API timeout') {
+        if (error instanceof Error && error.message === 'GitHub API timeout') {
           throw new Error(`Timeout fetching PR #${prNumber} from ${repository.owner}/${repository.name}`);
         }
         throw error;
@@ -91,7 +91,8 @@ export const capturePrDetails = inngest.createFunction(
           .select('id')
           .single();
           
-        const { data: contributor, error } = await Promise.race([dbPromise, timeoutPromise]);
+        const result = await Promise.race([dbPromise, timeoutPromise]);
+        const { data: contributor, error } = result as { data: any; error: any };
 
         if (error) {
           console.warn(`Failed to upsert merged_by contributor ${githubPrData.merged_by.login}:`, error);
@@ -126,7 +127,8 @@ export const capturePrDetails = inngest.createFunction(
         })
         .eq('id', prId);
         
-      const { error } = await Promise.race([updatePromise, timeoutPromise]);
+      const result = await Promise.race([updatePromise, timeoutPromise]);
+      const { error } = result as { error: any };
 
       if (error) {
         throw new Error(`Failed to update PR: ${error.message}`);

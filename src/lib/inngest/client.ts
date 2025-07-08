@@ -8,7 +8,7 @@ const isDevelopment = () => {
   }
   
   // Environment variables - direct access
-  const eventKey = import.meta.env?.VITE_INNGEST_EVENT_KEY || process.env.VITE_INNGEST_EVENT_KEY || 'dev-key';
+  const eventKey = ((import.meta as any).env?.VITE_INNGEST_EVENT_KEY || process.env.VITE_INNGEST_EVENT_KEY) || 'dev-key';
   
   return eventKey === 'dev-event-key' || eventKey === 'dev-key';
 };
@@ -19,7 +19,7 @@ export const inngest = new Inngest({
   // Set to development mode for local testing
   isDev: isDevelopment(),
   // Add event key from environment
-  eventKey: import.meta.env?.VITE_INNGEST_EVENT_KEY || process.env.VITE_INNGEST_EVENT_KEY || 'dev-key',
+  eventKey: ((import.meta as any).env?.VITE_INNGEST_EVENT_KEY || process.env.VITE_INNGEST_EVENT_KEY) || 'dev-key',
 });
 
 // Define event schemas for type safety

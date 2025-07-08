@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 const GITHUB_API_BASE = 'https://api.github.com';
 
 // Server-side GitHub token for Inngest functions
-const SERVER_GITHUB_TOKEN = import.meta.env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
+const SERVER_GITHUB_TOKEN = ((import.meta as any).env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN);
 
 export async function getGitHubHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
