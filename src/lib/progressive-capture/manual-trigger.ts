@@ -277,11 +277,24 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
 
       // Queue recent PRs, file changes, reviews, comments, commit analysis, and AI summary
       const manager = await getInngestQueueManager();
+      
+      // Check if we can process this repository
+      const { count: prCount } = await supabase
+        .from('pull_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('repository_id', repoData.id);
+      
+      if (prCount && prCount > 1000) {
+        console.warn(`⚠️ Large repository detected: ${owner}/${repo} has ${prCount} PRs`);
+        console.log('📋 Applying strict limits to prevent rate limiting');
+      }
+      
       await manager.queueRecentPRs(repoData.id);
+      // Apply strict limits to prevent rate limiting
       const fileChangeCount = await manager.queueMissingFileChanges(repoData.id, 10);
-      const reviewCount = await manager.queueMissingReviews(repoData.id, 20);
-      const commentCount = await manager.queueMissingComments(repoData.id, 20);
-      const commitAnalysisCount = await manager.queueRecentCommitsAnalysis(repoData.id, 90);
+      const reviewCount = await manager.queueMissingReviews(repoData.id, 10);
+      const commentCount = await manager.queueMissingComments(repoData.id, 10);
+      const commitAnalysisCount = await manager.queueRecentCommitsAnalysis(repoData.id, 30);
       const aiSummaryQueued = await AISummaryProcessor.queueSummaryRegeneration(repoData.id, 'medium');
       
       const totalJobs = 1 + fileChangeCount + reviewCount + commentCount + commitAnalysisCount + (aiSummaryQueued ? 1 : 0);

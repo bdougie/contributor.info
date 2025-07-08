@@ -8,12 +8,12 @@ export const capturePrReviews = inngest.createFunction(
     id: "capture-pr-reviews",
     name: "Capture PR Reviews",
     concurrency: {
-      limit: 10,
+      limit: 3,
       key: "event.data.repositoryId",
     },
-    retries: 3,
+    retries: 2,
     throttle: {
-      limit: 100,
+      limit: 30,
       period: "1m",
     },
   },
@@ -99,6 +99,9 @@ export const capturePrReviews = inngest.createFunction(
         if (apiError.status === 404) {
           console.warn(`PR #${prNumber} not found, skipping reviews`);
           return [];
+        }
+        if (apiError.status === 403) {
+          throw new Error(`Rate limit exceeded while fetching reviews for PR #${prNumber}. Will retry later.`);
         }
         throw error;
       }

@@ -2,7 +2,18 @@ import { inngest } from './client';
 import { supabase } from '../supabase';
 import { ProgressiveCaptureNotifications } from '../progressive-capture/ui-notifications';
 
+// Rate limiting configuration
+const RATE_LIMIT_CONFIG = {
+  MAX_PRS_PER_REPO: 100,
+  MAX_JOBS_PER_BATCH: 10,
+  MAX_REVIEW_COMMENT_JOBS: 20,
+  LARGE_REPO_THRESHOLD: 1000,
+  COOLDOWN_HOURS: 24,
+  DEFAULT_DAYS_LIMIT: 30,
+};
+
 export class InngestQueueManager {
+  private lastProcessedTimes: Map<string, number> = new Map();
   // Send Inngest events with proper error handling
   private async safeSend(event: any): Promise<boolean> {
     console.log('📤 [Inngest] Sending event:', event.name, event.data);
@@ -32,6 +43,9 @@ export class InngestQueueManager {
     limit: number = 200, 
     priority: 'critical' | 'high' | 'medium' | 'low'
   ): Promise<number> {
+    // Apply rate limiting
+    const effectiveLimit = Math.min(limit, RATE_LIMIT_CONFIG.MAX_JOBS_PER_BATCH);
+    
     // Find PRs with missing file change data
     const { data: prsNeedingUpdate, error } = await supabase
       .from('pull_requests')
@@ -39,30 +53,41 @@ export class InngestQueueManager {
       .eq('repository_id', repositoryId)
       .eq('additions', 0)
       .eq('deletions', 0)
-      .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+      .gte('created_at', new Date(Date.now() - RATE_LIMIT_CONFIG.DEFAULT_DAYS_LIMIT * 24 * 60 * 60 * 1000).toISOString())
       .order('created_at', { ascending: false })
-      .limit(limit);
+      .limit(effectiveLimit);
 
     if (error || !prsNeedingUpdate || prsNeedingUpdate.length === 0) {
       return 0;
     }
 
-    // Queue Inngest events for each PR
+    // Queue Inngest events for each PR with batching
     let queuedCount = 0;
-    for (const pr of prsNeedingUpdate) {
-      try {
-        await this.safeSend({
-          name: "capture/pr.details",
-          data: {
-            repositoryId: pr.repository_id,
-            prNumber: pr.number.toString(),
-            prId: pr.id,
-            priority,
-          },
-        });
-        queuedCount++;
-      } catch (err) {
-        console.warn(`Failed to queue PR ${pr.number}:`, err);
+    const batchSize = 5;
+    
+    for (let i = 0; i < prsNeedingUpdate.length; i += batchSize) {
+      const batch = prsNeedingUpdate.slice(i, i + batchSize);
+      
+      for (const pr of batch) {
+        try {
+          await this.safeSend({
+            name: "capture/pr.details",
+            data: {
+              repositoryId: pr.repository_id,
+              prNumber: pr.number.toString(),
+              prId: pr.id,
+              priority,
+            },
+          });
+          queuedCount++;
+        } catch (err) {
+          console.warn(`Failed to queue PR ${pr.number}:`, err);
+        }
+      }
+      
+      // Add delay between batches to avoid overwhelming the system
+      if (i + batchSize < prsNeedingUpdate.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
 
@@ -72,6 +97,17 @@ export class InngestQueueManager {
     }
     
     return queuedCount;
+  }
+
+  /**
+   * Check if repository can be processed based on cooldown
+   */
+  private canProcessRepository(repositoryId: string): boolean {
+    const lastProcessed = this.lastProcessedTimes.get(repositoryId);
+    if (!lastProcessed) return true;
+    
+    const hoursSinceProcessed = (Date.now() - lastProcessed) / (1000 * 60 * 60);
+    return hoursSinceProcessed >= RATE_LIMIT_CONFIG.COOLDOWN_HOURS;
   }
 
   /**
@@ -88,16 +124,40 @@ export class InngestQueueManager {
     repositoryId: string, 
     priority: 'critical' | 'high' | 'medium' | 'low'
   ): Promise<boolean> {
+    // Check cooldown
+    if (!this.canProcessRepository(repositoryId)) {
+      console.warn(`Repository ${repositoryId} was processed recently. Skipping to prevent rate limiting.`);
+      ProgressiveCaptureNotifications.showWarning(
+        'Repository was processed recently. Please try again later to avoid rate limiting.'
+      );
+      return false;
+    }
+
     try {
+      // Check repository size first
+      const { count: prCount } = await supabase
+        .from('pull_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('repository_id', repositoryId);
+
+      if (prCount && prCount > RATE_LIMIT_CONFIG.LARGE_REPO_THRESHOLD) {
+        ProgressiveCaptureNotifications.showWarning(
+          `This is a large repository with ${prCount} PRs. Capturing limited data to prevent rate limiting.`
+        );
+      }
+
       await this.safeSend({
         name: "capture/repository.sync",
         data: {
           repositoryId,
-          days: 7,
+          days: RATE_LIMIT_CONFIG.DEFAULT_DAYS_LIMIT,
           priority,
           reason: 'stale_data'
         },
       });
+
+      // Update last processed time
+      this.lastProcessedTimes.set(repositoryId, Date.now());
 
       // Show UI notification
       ProgressiveCaptureNotifications.showJobsQueued(1, 'recent PRs');
@@ -113,7 +173,7 @@ export class InngestQueueManager {
    * Queue jobs to fetch reviews for PRs that don't have them
    */
   async queueMissingReviews(repositoryId: string, limit: number = 200): Promise<number> {
-    return this.queueMissingReviewsWithPriority(repositoryId, limit, 'high');
+    return this.queueMissingReviewsWithPriority(repositoryId, Math.min(limit, RATE_LIMIT_CONFIG.MAX_REVIEW_COMMENT_JOBS), 'high');
   }
 
   /**
@@ -187,6 +247,7 @@ export class InngestQueueManager {
    * Queue jobs to fetch comments for PRs that don't have them
    */
   async queueMissingComments(repositoryId: string, limit: number = 200): Promise<number> {
+    const effectiveLimit = Math.min(limit, RATE_LIMIT_CONFIG.MAX_REVIEW_COMMENT_JOBS);
     // First, get PRs that already have comments
     const { data: prsWithComments } = await supabase
       .from('comments')
@@ -205,7 +266,7 @@ export class InngestQueueManager {
       `)
       .eq('repository_id', repositoryId)
       .order('created_at', { ascending: false })
-      .limit(limit);
+      .limit(effectiveLimit);
 
     // Only add the not.in filter if we have existing IDs
     if (existingPrIds.length > 0) {

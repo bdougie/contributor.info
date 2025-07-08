@@ -8,15 +8,15 @@ export const capturePrDetails = inngest.createFunction(
     id: "capture-pr-details",
     name: "Capture PR Details",
     concurrency: {
-      // Limit concurrent executions to prevent rate limiting
-      limit: 10,
+      // Reduced limit for better rate management
+      limit: 5,
       // Group by repository to avoid hammering the same repo
       key: "event.data.repositoryId",
     },
     retries: 3,
-    // Priority-based throttling
+    // More conservative throttling
     throttle: {
-      limit: 50,
+      limit: 20,
       period: "1m",
       key: "event.data.priority",
     },
