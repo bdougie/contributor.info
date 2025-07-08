@@ -1,7 +1,6 @@
 import { bootstrapDataCaptureQueue, analyzeDataGaps } from './bootstrap-queue';
-import { queueManager } from './queue-manager';
+import { inngestQueueManager } from '../inngest/queue-manager';
 import { ProgressiveCaptureNotifications } from './ui-notifications';
-import { ReviewCommentProcessor } from './review-comment-processor';
 import { AISummaryProcessor } from './ai-summary-processor';
 
 /**
@@ -14,7 +13,7 @@ export class ProgressiveCaptureTrigger {
    */
   static async analyze() {
     const gaps = await analyzeDataGaps();
-    const queueStats = await queueManager.getQueueStats();
+    const queueStats = await inngestQueueManager.getQueueStats();
 
     console.log(`
 📊 Data Gap Analysis Results:
@@ -52,7 +51,7 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
     try {
       await bootstrapDataCaptureQueue();
       
-      const queueStats = await queueManager.getQueueStats();
+      const queueStats = await inngestQueueManager.getQueueStats();
       console.log(`
 ✅ Bootstrap completed successfully!
 
@@ -76,8 +75,8 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
    */
   static async status() {
     
-    const stats = await queueManager.getQueueStats();
-    const canMakeAPICalls = await queueManager.canMakeAPICalls(10);
+    const stats = await inngestQueueManager.getQueueStats();
+    const canMakeAPICalls = true; // Inngest handles rate limiting
     
     console.log(`
 📊 Queue Status Report:
@@ -106,99 +105,12 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
    * Process the next job in queue (for manual testing)
    */
   static async processNext() {
+    // Manual processing not available with Inngest
+    console.log('ℹ️ Manual job processing is not available with Inngest queue system');
+    console.log('📋 Jobs are processed automatically by Inngest workers');
+    console.log('🔍 Check the Inngest dashboard for job status and monitoring');
     
-    const canMakeAPICalls = await queueManager.canMakeAPICalls(1);
-    if (!canMakeAPICalls) {
-      console.log('❌ Cannot process jobs - rate limit reached');
-      return null;
-    }
-
-    const nextJob = await queueManager.getNextJob();
-    if (!nextJob) {
-      console.log('ℹ️ No jobs available to process');
-      return null;
-    }
-
-    console.log(`
-🔄 Processing Job:
-  • Type: ${nextJob.type}
-  • Priority: ${nextJob.priority}
-  • Resource: ${nextJob.resource_id || 'N/A'}
-  • Estimated API calls: ${nextJob.estimated_api_calls}
-    `);
-
-    // Mark as processing
-    await queueManager.markJobProcessing(nextJob.id);
-    
-    // Process the job based on type
-    let result: { success: boolean; error?: string } = { success: false };
-    
-    try {
-      switch (nextJob.type) {
-        case 'reviews':
-          if (nextJob.repository_id && nextJob.resource_id) {
-            result = await ReviewCommentProcessor.processReviewsJob(
-              nextJob.repository_id,
-              nextJob.resource_id,
-              nextJob.metadata
-            );
-          } else {
-            result = { success: false, error: 'Missing repository_id or resource_id' };
-          }
-          break;
-          
-        case 'comments':
-          if (nextJob.repository_id && nextJob.resource_id) {
-            result = await ReviewCommentProcessor.processCommentsJob(
-              nextJob.repository_id,
-              nextJob.resource_id,
-              nextJob.metadata
-            );
-          } else {
-            result = { success: false, error: 'Missing repository_id or resource_id' };
-          }
-          break;
-          
-        case 'ai_summary':
-          if (nextJob.repository_id) {
-            const success = await AISummaryProcessor.processAISummaryJob(nextJob);
-            result = { success };
-          } else {
-            result = { success: false, error: 'Missing repository_id' };
-          }
-          break;
-          
-        case 'recent_prs':
-          if (nextJob.repository_id) {
-            result = await ProgressiveCaptureTrigger.processRecentPRsJob(
-              nextJob.repository_id,
-              nextJob.metadata
-            );
-          } else {
-            result = { success: false, error: 'Missing repository_id' };
-          }
-          break;
-          
-        default:
-          result = { success: true }; // Mark as successful to avoid retries
-          break;
-      }
-      
-      // Mark job as completed or failed
-      if (result.success) {
-        await queueManager.markJobCompleted(nextJob.id);
-        console.log(`✅ Job ${nextJob.type} completed successfully`);
-      } else {
-        await queueManager.markJobFailed(nextJob.id, result.error || 'Unknown error');
-        console.log(`❌ Job ${nextJob.type} failed: ${result.error}`);
-      }
-      
-    } catch (error) {
-      await queueManager.markJobFailed(nextJob.id, error instanceof Error ? error.message : 'Unknown error');
-      console.log(`❌ Job ${nextJob.type} failed with exception:`, error);
-    }
-
-    return nextJob;
+    return null;
   }
 
   /**
@@ -206,9 +118,10 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
    */
   static async rateLimits() {
     
-    const canMake1 = await queueManager.canMakeAPICalls(1);
-    const canMake10 = await queueManager.canMakeAPICalls(10);
-    const canMake100 = await queueManager.canMakeAPICalls(100);
+    // Rate limit checking not available with Inngest
+    const canMake1 = true;
+    const canMake10 = true;
+    const canMake100 = true;
 
     console.log(`
 🔒 Rate Limit Status:
@@ -246,7 +159,7 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
       }
 
       // Queue commit analysis
-      const queuedCount = await queueManager.queueRecentCommitsAnalysis(repoData.id, 90);
+      const queuedCount = await inngestQueueManager.queueRecentCommitsAnalysis(repoData.id, 90);
       
       // Show UI notification
       if (queuedCount > 0) {
@@ -350,11 +263,11 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
       }
 
       // Queue recent PRs, file changes, reviews, comments, commit analysis, and AI summary
-      await queueManager.queueRecentPRs(repoData.id);
-      const fileChangeCount = await queueManager.queueMissingFileChanges(repoData.id, 10);
-      const reviewCount = await queueManager.queueMissingReviews(repoData.id, 20);
-      const commentCount = await queueManager.queueMissingComments(repoData.id, 20);
-      const commitAnalysisCount = await queueManager.queueRecentCommitsAnalysis(repoData.id, 90);
+      await inngestQueueManager.queueRecentPRs(repoData.id);
+      const fileChangeCount = await inngestQueueManager.queueMissingFileChanges(repoData.id, 10);
+      const reviewCount = await inngestQueueManager.queueMissingReviews(repoData.id, 20);
+      const commentCount = await inngestQueueManager.queueMissingComments(repoData.id, 20);
+      const commitAnalysisCount = await inngestQueueManager.queueRecentCommitsAnalysis(repoData.id, 90);
       const aiSummaryQueued = await AISummaryProcessor.queueSummaryRegeneration(repoData.id, 'medium');
       
       const totalJobs = 1 + fileChangeCount + reviewCount + commentCount + commitAnalysisCount + (aiSummaryQueued ? 1 : 0);

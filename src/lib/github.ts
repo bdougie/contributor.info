@@ -5,6 +5,8 @@ import * as Sentry from '@sentry/react';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
+import { VITE_GITHUB_TOKEN, NODE_ENV } from './env';
+
 // Type for repository search results
 export interface GitHubRepository {
   id: number;
@@ -36,7 +38,7 @@ export async function searchGitHubRepositories(query: string, limit: number = 10
   const userToken = session?.provider_token;
 
   // Use user's token if available, otherwise fall back to env token
-  const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  const token = userToken || VITE_GITHUB_TOKEN;
   if (token) {
     headers.Authorization = `token ${token}`;
   }
@@ -225,7 +227,7 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
   const userToken = session?.provider_token;
 
   // Use user's token if available, otherwise fall back to env token
-  const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  const token = userToken || VITE_GITHUB_TOKEN;
   if (token) {
     headers.Authorization = `token ${token}`;
   }
@@ -478,7 +480,7 @@ export async function fetchRepositoryInfo(owner: string, repo: string): Promise<
   const userToken = session?.provider_token;
 
   // Use user's token if available, otherwise fall back to env token
-  const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  const token = userToken || VITE_GITHUB_TOKEN;
   if (token) {
     headers.Authorization = `token ${token}`;
   }
@@ -532,7 +534,7 @@ export async function fetchRepositoryStargazers(owner: string, repo: string, lim
 
   const { data: { session } } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
-  const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  const token = userToken || VITE_GITHUB_TOKEN;
   if (token) {
     headers.Authorization = `token ${token}`;
   }
@@ -583,7 +585,7 @@ export async function fetchRepositoryCommitActivity(owner: string, repo: string,
 
   const { data: { session } } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
-  const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  const token = userToken || VITE_GITHUB_TOKEN;
   if (token) {
     headers.Authorization = `token ${token}`;
   }
@@ -668,7 +670,7 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
   const userToken = session?.provider_token;
 
   // Use user's token if available, otherwise fall back to env token
-  const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+  const token = userToken || VITE_GITHUB_TOKEN;
   if (token) {
     headers.Authorization = `token ${token}`;
   }
@@ -701,7 +703,7 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
     });
     
     // Debug logging (can be removed in production)
-    if (import.meta.env.DEV) {
+    if (NODE_ENV === 'development') {
       console.log(`YOLO Debug - Total PRs found: ${pullRequests.length}`);
       console.log(`YOLO Debug - Merged PRs found: ${mergedPRs.length}`);
       console.log(`YOLO Debug - Time range: ${since.toISOString()} to ${new Date().toISOString()}`);
@@ -724,17 +726,17 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
           
           if (prCommitsResponse.ok) {
             const prCommits = await prCommitsResponse.json();
-            if (import.meta.env.DEV) {
+            if (NODE_ENV === 'development') {
               console.log(`YOLO Debug - PR #${pr.number} has ${prCommits.length} commits`);
             }
             prCommits.forEach((commit: any) => {
               prCommitShaSet.add(commit.sha);
             });
-          } else if (import.meta.env.DEV) {
+          } else if (NODE_ENV === 'development') {
             console.log(`YOLO Debug - Failed to fetch commits for PR #${pr.number}: ${prCommitsResponse.statusText}`);
           }
         } catch (error) {
-          if (import.meta.env.DEV) {
+          if (NODE_ENV === 'development') {
             console.log(`YOLO Debug - Error fetching commits for PR #${pr.number}:`, error);
           }
           // Silently continue - error fetching commits for individual PRs shouldn't break the whole process
@@ -777,7 +779,7 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
     }
 
     // Filter commits to find direct commits (those not associated with merged PRs)
-    if (import.meta.env.DEV) {
+    if (NODE_ENV === 'development') {
       console.log(`YOLO Debug - Total commits on main branch: ${allCommits.length}`);
       console.log(`YOLO Debug - PR commit SHAs collected: ${prCommitShaSet.size}`);
       console.log(`YOLO Debug - Sample PR commit SHAs:`, Array.from(prCommitShaSet).slice(0, 5));
@@ -785,13 +787,13 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
     
     const directCommitData = allCommits.filter((commit: any) => {
       const isDirectCommit = !prCommitShaSet.has(commit.sha);
-      if (isDirectCommit && import.meta.env.DEV) {
+      if (isDirectCommit && NODE_ENV === 'development') {
         console.log(`YOLO Debug - Direct commit found: ${commit.sha} by ${commit.author?.login || commit.committer?.login || 'unknown'}`);
       }
       return isDirectCommit;
     });
     
-    if (import.meta.env.DEV) {
+    if (NODE_ENV === 'development') {
       console.log(`YOLO Debug - Direct commits found: ${directCommitData.length}`);
     }
 

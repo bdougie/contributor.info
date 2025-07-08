@@ -3,6 +3,10 @@
 
 [functions]
   directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[functions.inngest]
+  node_bundler = "esbuild"
 
 # Headers for proper MIME types
 [[headers]]

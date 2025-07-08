@@ -1,4 +1,4 @@
-import { queueManager } from './queue-manager';
+import { inngestQueueManager } from '../inngest/queue-manager';
 import { supabase } from '../supabase';
 import { ProgressiveCaptureNotifications } from './ui-notifications';
 
@@ -21,7 +21,7 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
       console.error('[Bootstrap] Error finding stale repositories:', staleError);
     } else if (staleRepos) {
       for (const repo of staleRepos) {
-        await queueManager.queueRecentPRs(repo.id);
+        await inngestQueueManager.queueRecentPRs(repo.id);
       }
     }
 
@@ -41,7 +41,7 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
       console.error('[Bootstrap] Error finding active repositories:', activeError);
     } else if (activeRepos) {
       for (const repo of activeRepos) {
-        await queueManager.queueMissingFileChanges(repo.id, 25); // 25 PRs per repo
+        await inngestQueueManager.queueMissingFileChanges(repo.id, 25); // 25 PRs per repo
       }
     }
 
@@ -60,12 +60,12 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
       console.error('[Bootstrap] Error finding repositories with commits:', commitsError);
     } else if (reposWithCommits) {
       for (const repo of reposWithCommits) {
-        await queueManager.queueRecentCommitsAnalysis(repo.id, 90); // Last 90 days
+        await inngestQueueManager.queueRecentCommitsAnalysis(repo.id, 90); // Last 90 days
       }
     }
 
     // 4. Show queue statistics
-    const stats = await queueManager.getQueueStats();
+    const stats = await inngestQueueManager.getQueueStats();
 
     // Show UI notification for bootstrap completion
     if (stats.pending > 0) {
