@@ -2,19 +2,32 @@ import { supabase } from '../supabase';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
+// Server-side GitHub token for Inngest functions
+const SERVER_GITHUB_TOKEN = import.meta.env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
+
 export async function getGitHubHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
     'Accept': 'application/vnd.github.v3+json',
   };
 
-  // Try to get the user's GitHub token from Supabase session
+  // For server-side operations (like Inngest), use the server token
+  if (SERVER_GITHUB_TOKEN) {
+    headers['Authorization'] = `token ${SERVER_GITHUB_TOKEN}`;
+    console.log('Using server-side GitHub token for Inngest');
+    return headers;
+  }
+
+  // Fallback: Try to get the user's GitHub token from Supabase session
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.provider_token) {
       headers['Authorization'] = `token ${session.provider_token}`;
+      console.log('Using user session GitHub token');
+    } else {
+      console.warn('No GitHub token available, using unauthenticated requests');
     }
   } catch (error) {
-    // Use unauthenticated requests if no token available
+    console.warn('Error getting GitHub session token:', error);
     console.warn('No GitHub token available, using unauthenticated requests');
   }
 
