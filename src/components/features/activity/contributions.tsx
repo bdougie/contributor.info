@@ -16,8 +16,8 @@ import { humanizeNumber } from "@/lib/utils";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import type { PullRequest, ContributorStats } from "@/lib/types";
-import { ContributorHoverCard } from "../contributor";
+import type { PullRequest } from "@/lib/types";
+import { PrHoverCard } from "../contributor/pr-hover-card";
 import { useContributorRole } from "@/hooks/useContributorRoles";
 import { useParams } from "react-router-dom";
 import { useTheme } from "@/components/common/theming/theme-provider";
@@ -197,39 +197,9 @@ function ContributionsChart() {
     ];
   };
 
-  // Create a map of contributors for the hover card
-  const getContributorStats = (
-    login: string,
-    pullRequest: PullRequest
-  ): ContributorStats => {
-    // Calculate percentage and recentPRs based on current PRs
-    const totalPRs = safeStats.pullRequests.length;
-    const contributorPRs = safeStats.pullRequests.filter(
-      (pr) => pr.user.login === login
-    );
-    const percentage = (contributorPRs.length / totalPRs) * 100;
-
-    return {
-      login,
-      avatar_url: pullRequest.user.avatar_url,
-      pullRequests: contributorPRs.length,
-      percentage,
-      recentPRs: [
-        pullRequest,
-        ...contributorPRs.filter((pr) => pr.id !== pullRequest.id),
-      ].slice(0, 5),
-      // Include organizations if available in PR data
-      organizations: pullRequest.organizations || [],
-    };
-  };
 
   // Custom Node for scatter plot points
   const CustomNode = (props: any) => {
-    const contributorStats = getContributorStats(
-      props.node.data.contributor,
-      props.node.data._pr
-    );
-    
     // Get the contributor's role
     const { role } = useContributorRole(owner || '', repo || '', props.node.data.contributor);
     
@@ -258,8 +228,8 @@ function ContributionsChart() {
         }}
       >
         <div style={{ width: '100%', height: '100%' }}>
-          <ContributorHoverCard
-            contributor={contributorStats}
+          <PrHoverCard
+            pullRequest={props.node.data._pr}
             role={role?.role || (props.node.data._pr.user.type === "Bot" ? "Bot" : "Contributor")}
           >
             <Avatar
@@ -296,7 +266,7 @@ function ContributionsChart() {
                   : "?"}
               </AvatarFallback>
             </Avatar>
-          </ContributorHoverCard>
+          </PrHoverCard>
         </div>
       </animated.foreignObject>
     );

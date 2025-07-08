@@ -153,6 +153,25 @@ npx supabase status
 - no premmature optimizations without testing
 - use the supabase mcp server for migrations
 
+## Known Issues
+
+### TypeScript Environment Variable Warnings
+
+**Problem**: TypeScript compilation shows errors like `Property 'env' does not exist on type 'ImportMeta'` for `import.meta.env` usage.
+
+**Root Cause**: Netlify Functions compile to CommonJS while Vite expects ESM. The `import.meta.env` pattern works at runtime but TypeScript struggles with mixed module contexts.
+
+**Solution**: Use the fallback pattern `import.meta.env?.VAR || process.env.VAR` in environment variable files:
+
+```typescript
+// ✅ Correct pattern - works in both ESM and CommonJS
+const VITE_GITHUB_TOKEN = import.meta.env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
+```
+
+**Status**: These are build-time warnings that don't affect runtime functionality. The application works correctly despite these TypeScript errors.
+
+**Files affected**: `src/lib/github.ts`, `src/lib/supabase.ts`, `src/lib/inngest/client.ts`
+
 ## User Experience Standards
 
 This project follows an **invisible, Netflix-like user experience** where data loading and processing happens automatically in the background. Key principles:
