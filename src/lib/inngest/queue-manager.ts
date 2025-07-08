@@ -124,8 +124,15 @@ export class InngestQueueManager {
     limit: number = 200, 
     priority: 'critical' | 'high' | 'medium' | 'low'
   ): Promise<number> {
+    // First, get PRs that already have reviews
+    const { data: prsWithReviews } = await supabase
+      .from('reviews')
+      .select('pull_request_id');
+
+    const existingPrIds = prsWithReviews?.map(r => r.pull_request_id) || [];
+
     // Find PRs without reviews
-    const { data: prsNeedingReviews, error } = await supabase
+    let query = supabase
       .from('pull_requests')
       .select(`
         id,
@@ -134,11 +141,15 @@ export class InngestQueueManager {
         github_id
       `)
       .eq('repository_id', repositoryId)
-      .not('id', 'in', 
-        supabase.from('reviews').select('pull_request_id')
-      )
       .order('created_at', { ascending: false })
       .limit(limit);
+
+    // Only add the not.in filter if we have existing IDs
+    if (existingPrIds.length > 0) {
+      query = query.not('id', 'in', `(${existingPrIds.map(id => `'${id}'`).join(',')})`);
+    }
+
+    const { data: prsNeedingReviews, error } = await query;
 
     if (error || !prsNeedingReviews || prsNeedingReviews.length === 0) {
       return 0;
@@ -176,8 +187,15 @@ export class InngestQueueManager {
    * Queue jobs to fetch comments for PRs that don't have them
    */
   async queueMissingComments(repositoryId: string, limit: number = 200): Promise<number> {
+    // First, get PRs that already have comments
+    const { data: prsWithComments } = await supabase
+      .from('comments')
+      .select('pull_request_id');
+
+    const existingPrIds = prsWithComments?.map(c => c.pull_request_id) || [];
+
     // Find PRs without comments
-    const { data: prsNeedingComments, error } = await supabase
+    let query = supabase
       .from('pull_requests')
       .select(`
         id,
@@ -186,11 +204,15 @@ export class InngestQueueManager {
         github_id
       `)
       .eq('repository_id', repositoryId)
-      .not('id', 'in', 
-        supabase.from('comments').select('pull_request_id')
-      )
       .order('created_at', { ascending: false })
       .limit(limit);
+
+    // Only add the not.in filter if we have existing IDs
+    if (existingPrIds.length > 0) {
+      query = query.not('id', 'in', `(${existingPrIds.map(id => `'${id}'`).join(',')})`);
+    }
+
+    const { data: prsNeedingComments, error } = await query;
 
     if (error || !prsNeedingComments || prsNeedingComments.length === 0) {
       return 0;

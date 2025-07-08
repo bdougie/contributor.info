@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-import { VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY } from './env';
+// Environment variables - direct access
+const VITE_SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const VITE_SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 // Helper function to create the Supabase client
 export function createSupabaseClient() {
