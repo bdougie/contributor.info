@@ -77,8 +77,8 @@ export class InngestQueueManager {
   /**
    * Queue jobs to fetch recent PRs for repositories with stale data
    */
-  async queueRecentPRs(repositoryId: string): Promise<boolean> {
-    return this.queueRecentPRsWithPriority(repositoryId, 'critical');
+  async queueRecentPRs(repositoryId: string, userGitHubToken?: string | null): Promise<boolean> {
+    return this.queueRecentPRsWithPriority(repositoryId, 'critical', userGitHubToken);
   }
 
   /**
@@ -86,7 +86,8 @@ export class InngestQueueManager {
    */
   async queueRecentPRsWithPriority(
     repositoryId: string, 
-    priority: 'critical' | 'high' | 'medium' | 'low'
+    priority: 'critical' | 'high' | 'medium' | 'low',
+    userGitHubToken?: string | null
   ): Promise<boolean> {
     try {
       await this.safeSend({
@@ -96,6 +97,7 @@ export class InngestQueueManager {
           days: 7,
           priority,
           reason: 'stale_data',
+          userGitHubToken: userGitHubToken || undefined
         },
       });
 
@@ -112,8 +114,8 @@ export class InngestQueueManager {
   /**
    * Queue jobs to fetch reviews for PRs that don't have them
    */
-  async queueMissingReviews(repositoryId: string, limit: number = 200): Promise<number> {
-    return this.queueMissingReviewsWithPriority(repositoryId, limit, 'high');
+  async queueMissingReviews(repositoryId: string, limit: number = 200, userGitHubToken?: string | null): Promise<number> {
+    return this.queueMissingReviewsWithPriority(repositoryId, limit, 'high', userGitHubToken);
   }
 
   /**

@@ -37,6 +37,9 @@ export async function getGitHubHeaders(): Promise<Record<string, string>> {
 export async function makeGitHubRequest(endpoint: string): Promise<any> {
   const headers = await getGitHubHeaders();
   
+  // Add delay to prevent rate limiting (respectful API usage)
+  await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay between requests
+  
   const response = await fetch(`${GITHUB_API_BASE}${endpoint}`, {
     headers,
   });

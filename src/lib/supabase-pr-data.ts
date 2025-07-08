@@ -49,7 +49,7 @@ export async function fetchPRDataWithFallback(
       fallbackUsed = true;
     } else {
       cacheHit = true;
-      // Now fetch PRs for this repository with contributor data
+      // Now fetch PRs for this repository with contributor data, reviews, and comments
       const { data: dbPRs, error: dbError } = await supabase
         .from('pull_requests')
         .select(`
@@ -78,6 +78,32 @@ export async function fetchPRDataWithFallback(
             username,
             avatar_url,
             is_bot
+          ),
+          reviews(
+            id,
+            github_id,
+            state,
+            body,
+            submitted_at,
+            contributors:reviewer_id(
+              github_id,
+              username,
+              avatar_url,
+              is_bot
+            )
+          ),
+          comments(
+            id,
+            github_id,
+            body,
+            created_at,
+            comment_type,
+            contributors:commenter_id(
+              github_id,
+              username,
+              avatar_url,
+              is_bot
+            )
           )
         `)
         .eq('repository_id', repoData.id)
@@ -118,9 +144,37 @@ export async function fetchPRDataWithFallback(
         html_url: dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
         repository_owner: owner,
         repository_name: repo,
-        reviews: [], // TODO: Fetch reviews separately if needed
-        comments: [] // TODO: Fetch comments separately if needed
+        reviews: (dbPR.reviews || []).map((review: any) => ({
+          id: review.github_id,
+          state: review.state,
+          body: review.body,
+          submitted_at: review.submitted_at,
+          user: {
+            login: review.contributors?.username || 'unknown',
+            avatar_url: review.contributors?.avatar_url || ''
+          }
+        })),
+        comments: (dbPR.comments || []).map((comment: any) => ({
+          id: comment.github_id,
+          body: comment.body,
+          created_at: comment.created_at,
+          user: {
+            login: comment.contributors?.username || 'unknown',
+            avatar_url: comment.contributors?.avatar_url || ''
+          }
+        }))
       }));
+
+      // Log data quality for debugging
+      if (process.env.NODE_ENV === 'development') {
+        const totalReviews = transformedPRs.reduce((total, pr) => total + pr.reviews.length, 0);
+        const totalComments = transformedPRs.reduce((total, pr) => total + pr.comments.length, 0);
+        console.log(`🔍 [DB] Fetched ${transformedPRs.length} PRs with ${totalReviews} reviews and ${totalComments} comments for ${owner}/${repo}`);
+        
+        if (transformedPRs.length > 5 && totalReviews === 0 && totalComments === 0) {
+          console.warn(`⚠️ [DB] Repository ${owner}/${repo} has ${transformedPRs.length} PRs but no reviews/comments data. Consider running progressive data capture.`);
+        }
+      }
 
       // Filter by timeRange if needed
       const filteredPRs = transformedPRs.filter(pr => {

@@ -20,6 +20,7 @@ import { PrCountCard } from "./pr-count-card";
 import { AvgTimeCard } from "./avg-time-card";
 import { VelocityCard } from "./velocity-card";
 import { calculatePrActivityMetrics, type ActivityMetrics } from "@/lib/insights/pr-activity-metrics";
+import { ProgressiveCaptureTrigger } from "@/lib/progressive-capture/manual-trigger";
 import * as Sentry from "@sentry/react";
 
 interface MetricsAndTrendsCardProps {
@@ -313,19 +314,51 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
               </div>
               {metrics?.status !== 'large_repository_protected' && (
                 <Button 
-                  onClick={() => {
+                  onClick={async () => {
                     // Track user retry action for monitoring
                     Sentry.addBreadcrumb({
                       category: 'user_action',
-                      message: `User retried data loading for ${owner}/${repo}`,
+                      message: `User triggered progressive data capture for ${owner}/${repo}`,
                       level: 'info',
                       data: {
                         repository: `${owner}/${repo}`,
                         status: metrics?.status || 'unknown',
-                        action: 'manual_retry'
+                        action: 'progressive_capture'
                       }
                     });
-                    window.location.reload();
+                    
+                    try {
+                      // Netflix-like experience: Simple, user-friendly notification
+                      toast.info(`Updating ${owner}/${repo}...`, {
+                        description: 'Loading fresh data in the background',
+                        duration: 4000
+                      });
+                      
+                      await ProgressiveCaptureTrigger.quickFix(owner, repo);
+                      
+                      // Set expectation for longer processing due to rate limits
+                      setTimeout(() => {
+                        toast.success('Data update in progress', {
+                          description: 'Background processing may take a few minutes. Fresh data will be available shortly.',
+                          duration: 8000,
+                          action: {
+                            label: 'Check Status',
+                            onClick: () => window.location.reload()
+                          }
+                        });
+                      }, 3000); // Quick acknowledgment that jobs are queued
+                      
+                    } catch (error) {
+                      console.error('Background update failed:', error);
+                      toast.error('Unable to load fresh data', {
+                        description: 'Using cached data instead. Try refreshing in a moment.',
+                        duration: 10000,
+                        action: {
+                          label: 'Retry',
+                          onClick: () => window.location.reload()
+                        }
+                      });
+                    }
                   }}
                   variant="outline"
                   size="icon"

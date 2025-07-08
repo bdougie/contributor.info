@@ -261,7 +261,7 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
   static async quickFix(owner: string, repo: string) {
     
     try {
-      // Find repository ID
+      // Find repository ID  
       const { supabase } = await import('../supabase');
       const { data: repoData, error } = await supabase
         .from('repositories')
