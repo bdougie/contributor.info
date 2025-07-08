@@ -2,7 +2,11 @@
 
 ## Executive Summary
 
+**NOTE: This plan has been superseded by the hybrid approach in `HYBRID_PROGRESSIVE_CAPTURE_PLAN.md`.**
+
 This task outlines the complete migration from the current Inngest-based progressive data capture system to the GitHub Actions approach detailed in `GITHUB_ACTIONS.md`. This migration will eliminate external dependencies, reduce costs by 40-88%, and provide better observability while maintaining all current functionality.
+
+**RECOMMENDED APPROACH**: See `HYBRID_PROGRESSIVE_CAPTURE_PLAN.md` for a better solution that uses Inngest for recent data (< 24hrs) and GitHub Actions for historical data, providing optimal user experience and cost efficiency.
 
 ## Context
 
