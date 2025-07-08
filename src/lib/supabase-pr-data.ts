@@ -167,8 +167,8 @@ export async function fetchPRDataWithFallback(
 
       // Log data quality for debugging
       if (process.env.NODE_ENV === 'development') {
-        const totalReviews = transformedPRs.reduce((total, pr) => total + pr.reviews.length, 0);
-        const totalComments = transformedPRs.reduce((total, pr) => total + pr.comments.length, 0);
+        const totalReviews = transformedPRs.reduce((total, pr) => total + (pr.reviews?.length || 0), 0);
+        const totalComments = transformedPRs.reduce((total, pr) => total + (pr.comments?.length || 0), 0);
         console.log(`🔍 [DB] Fetched ${transformedPRs.length} PRs with ${totalReviews} reviews and ${totalComments} comments for ${owner}/${repo}`);
         
         if (transformedPRs.length > 5 && totalReviews === 0 && totalComments === 0) {

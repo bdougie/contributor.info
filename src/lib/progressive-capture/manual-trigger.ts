@@ -306,6 +306,24 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
       console.error('❌ Quick fix failed for %s/%s:', owner, repo, error);
     }
   }
+
+  /**
+   * Clear all queued jobs and reset tracking
+   */
+  static async clearAllJobs() {
+    try {
+      const manager = await getInngestQueueManager();
+      await manager.clearAllJobs();
+      
+      // Also clear smart notification tracking
+      const { SmartDataNotifications } = await import('./smart-notifications');
+      SmartDataNotifications.reset();
+      
+      console.log('✅ All job tracking cleared and reset');
+    } catch (error) {
+      console.error('❌ Error clearing jobs:', error);
+    }
+  }
 }
 
 // Make it available globally for console access

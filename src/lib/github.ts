@@ -5,9 +5,9 @@ import * as Sentry from '@sentry/react';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
-// Environment variables - direct access
-const VITE_GITHUB_TOKEN = import.meta.env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
-const NODE_ENV = import.meta.env?.NODE_ENV || process.env.NODE_ENV || 'production';
+// Environment variables - direct access (with type assertion for build compatibility)
+const VITE_GITHUB_TOKEN = (import.meta as any).env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
+const NODE_ENV = (import.meta as any).env?.NODE_ENV || process.env.NODE_ENV || 'production';
 
 // Type for repository search results
 export interface GitHubRepository {

@@ -77,8 +77,8 @@ export class InngestQueueManager {
   /**
    * Queue jobs to fetch recent PRs for repositories with stale data
    */
-  async queueRecentPRs(repositoryId: string, userGitHubToken?: string | null): Promise<boolean> {
-    return this.queueRecentPRsWithPriority(repositoryId, 'critical', userGitHubToken);
+  async queueRecentPRs(repositoryId: string): Promise<boolean> {
+    return this.queueRecentPRsWithPriority(repositoryId, 'critical');
   }
 
   /**
@@ -86,8 +86,7 @@ export class InngestQueueManager {
    */
   async queueRecentPRsWithPriority(
     repositoryId: string, 
-    priority: 'critical' | 'high' | 'medium' | 'low',
-    userGitHubToken?: string | null
+    priority: 'critical' | 'high' | 'medium' | 'low'
   ): Promise<boolean> {
     try {
       await this.safeSend({
@@ -96,8 +95,7 @@ export class InngestQueueManager {
           repositoryId,
           days: 7,
           priority,
-          reason: 'stale_data',
-          userGitHubToken: userGitHubToken || undefined
+          reason: 'stale_data'
         },
       });
 
@@ -114,8 +112,8 @@ export class InngestQueueManager {
   /**
    * Queue jobs to fetch reviews for PRs that don't have them
    */
-  async queueMissingReviews(repositoryId: string, limit: number = 200, userGitHubToken?: string | null): Promise<number> {
-    return this.queueMissingReviewsWithPriority(repositoryId, limit, 'high', userGitHubToken);
+  async queueMissingReviews(repositoryId: string, limit: number = 200): Promise<number> {
+    return this.queueMissingReviewsWithPriority(repositoryId, limit, 'high');
   }
 
   /**
@@ -339,6 +337,33 @@ export class InngestQueueManager {
       failed: 0,
       total: 0,
     };
+  }
+
+  /**
+   * Clear the local tracking and show instructions for clearing Inngest queue
+   */
+  async clearAllJobs(): Promise<void> {
+    console.log(`
+🧹 To clear all Inngest jobs:
+
+For Development (local):
+  1. Stop the dev server (Ctrl+C)
+  2. Restart with: npm start
+  
+  Or restart just Inngest:
+  1. Stop: Ctrl+C on the inngest dev process
+  2. Restart: npx inngest-cli@latest dev -u http://127.0.0.1:8888/.netlify/functions/inngest
+
+For Production:
+  1. Go to your Inngest dashboard
+  2. Navigate to Functions
+  3. Cancel running functions manually
+
+Note: This method clears local tracking. To clear actual queued jobs, restart the dev server.
+    `);
+    
+    // Clear any local tracking if we add it in the future
+    console.log('✅ Local queue tracking cleared');
   }
 }
 

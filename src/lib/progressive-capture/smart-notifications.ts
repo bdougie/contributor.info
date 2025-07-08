@@ -7,7 +7,9 @@ import { ProgressiveCaptureNotifications } from './ui-notifications';
 export class SmartDataNotifications {
   private static checkedRepositories = new Set<string>();
   private static notificationCooldown = new Map<string, number>();
+  private static queuedJobs = new Map<string, number>(); // Track when jobs were last queued
   private static readonly COOLDOWN_DURATION = 10 * 60 * 1000; // 10 minutes
+  private static readonly QUEUE_COOLDOWN = 5 * 60 * 1000; // 5 minutes between queue jobs
 
   /**
    * Check repository for missing data and show notifications if needed
@@ -195,6 +197,17 @@ export class SmartDataNotifications {
    */
   private static async autoFixMissingData(owner: string, repo: string, repositoryId: string, missingData: string[]): Promise<void> {
     try {
+      const repoKey = `${owner}/${repo}`;
+      
+      // Check if we recently queued jobs for this repository to prevent hot reload duplicates
+      const lastQueued = this.queuedJobs.get(repoKey);
+      if (lastQueued && Date.now() - lastQueued < this.QUEUE_COOLDOWN) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`⏭️ Skipping ${repoKey} - jobs were queued recently (${Math.floor((Date.now() - lastQueued) / 1000)}s ago)`);
+        }
+        return;
+      }
+      
       const { inngestQueueManager } = await import('../inngest/queue-manager');
       
       if (process.env.NODE_ENV === 'development') {
@@ -206,6 +219,9 @@ export class SmartDataNotifications {
       
       // Determine priority based on repository popularity and data freshness
       const priority = await this.calculatePriority(owner, repo, repositoryId);
+      
+      // Track that we're queuing jobs for this repository
+      this.queuedJobs.set(repoKey, Date.now());
       
       // Queue appropriate jobs based on what's missing
       const promises: Promise<any>[] = [];
@@ -322,6 +338,7 @@ export class SmartDataNotifications {
   static reset(): void {
     this.checkedRepositories.clear();
     this.notificationCooldown.clear();
+    this.queuedJobs.clear();
   }
 
   /**
