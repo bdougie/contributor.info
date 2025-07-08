@@ -26,7 +26,7 @@ export const captureRepositorySync = inngest.createFunction(
     const repository = await step.run("get-repository", async () => {
       const { data, error } = await supabase
         .from('repositories')
-        .select('owner, name, last_synced_at')
+        .select('owner, name, last_updated_at')
         .eq('id', repositoryId)
         .single();
 
@@ -35,8 +35,8 @@ export const captureRepositorySync = inngest.createFunction(
       }
 
       // Check if repository was synced recently (within 24 hours)
-      if (data.last_synced_at) {
-        const lastSyncTime = new Date(data.last_synced_at).getTime();
+      if (data.last_updated_at) {
+        const lastSyncTime = new Date(data.last_updated_at).getTime();
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
         
         if (hoursSinceSync < 24 && reason !== 'manual') {
@@ -221,7 +221,7 @@ export const captureRepositorySync = inngest.createFunction(
       const { error } = await supabase
         .from('repositories')
         .update({
-          last_synced_at: new Date().toISOString(),
+          last_updated_at: new Date().toISOString(),
         })
         .eq('id', repositoryId);
 
