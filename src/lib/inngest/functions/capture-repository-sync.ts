@@ -115,8 +115,8 @@ export const captureRepositorySync = inngest.createFunction(
         deletions: pr.deletions || 0,
         changed_files: pr.changed_files || 0,
         commits: pr.commits || 0,
-        base_ref: pr.base.ref,
-        head_ref: pr.head.ref,
+        base_ref: pr.base?.ref || null,
+        head_ref: pr.head?.ref || null,
       }));
 
       const { data, error } = await supabase

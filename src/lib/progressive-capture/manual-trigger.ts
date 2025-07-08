@@ -342,8 +342,15 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
 // Make it available globally for console access
 if (typeof window !== 'undefined') {
   (window as any).ProgressiveCapture = ProgressiveCaptureTrigger;
+  // Short aliases for easier console usage
+  (window as any).pc = ProgressiveCaptureTrigger;
+  (window as any).cap = ProgressiveCaptureTrigger;
+  
   // Enable console tools in development
   if (process.env.NODE_ENV === 'development') {
-    console.log('🔧 Progressive Data Capture tools available in console (ProgressiveCapture.*)');
+    console.log('🔧 Progressive Data Capture tools available in console:');
+    console.log('   ProgressiveCapture.* (full name)');
+    console.log('   pc.* (short alias)');
+    console.log('   cap.* (capture alias)');
   }
 }
