@@ -13,6 +13,21 @@ import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { SocialMetaTags } from "@/components/common/layout";
 
 /**
+ * Validates redirect URLs to prevent open redirect attacks
+ */
+function isValidRedirectUrl(url: string): boolean {
+  try {
+    // Parse the URL relative to current origin
+    const parsed = new URL(url, window.location.origin);
+    // Only allow same-origin redirects
+    return parsed.origin === window.location.origin;
+  } catch {
+    // If URL parsing fails, check if it's a valid relative path
+    return url.startsWith('/') && !url.startsWith('//');
+  }
+}
+
+/**
  * Dedicated login page that handles authentication and redirects
  */
 export default function LoginPage() {
@@ -22,7 +37,9 @@ export default function LoginPage() {
 
   // Get the intended destination from URL param or use home page as default
   const urlParams = new URLSearchParams(window.location.search);
-  const redirectTo = urlParams.get("redirectTo") || "/";
+  const rawRedirectTo = urlParams.get("redirectTo") || "/";
+  // Validate the redirect URL to prevent open redirect attacks
+  const redirectTo = isValidRedirectUrl(rawRedirectTo) ? rawRedirectTo : "/";
 
   // If already logged in, redirect to the intended destination
   useEffect(() => {

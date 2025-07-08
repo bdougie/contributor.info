@@ -123,15 +123,15 @@ BEGIN
     -- Only reset if user has appropriate permissions
     IF has_function_privilege('pg_stat_statements_reset()', 'EXECUTE') THEN
         PERFORM pg_stat_statements_reset();
-        INSERT INTO sync_logs (operation, status, details, created_at)
-        VALUES ('reset_query_stats', 'success', 'Query statistics reset', NOW());
+        INSERT INTO sync_logs (sync_type, status, started_at, completed_at, metadata)
+        VALUES ('full_sync', 'completed', NOW(), NOW(), jsonb_build_object('operation', 'reset_query_stats', 'details', 'Query statistics reset'));
     ELSE
-        INSERT INTO sync_logs (operation, status, details, created_at)
-        VALUES ('reset_query_stats', 'error', 'Insufficient permissions', NOW());
+        INSERT INTO sync_logs (sync_type, status, started_at, error_message, metadata)
+        VALUES ('full_sync', 'failed', NOW(), 'Insufficient permissions', jsonb_build_object('operation', 'reset_query_stats'));
     END IF;
 EXCEPTION WHEN OTHERS THEN
-    INSERT INTO sync_logs (operation, status, details, created_at)
-    VALUES ('reset_query_stats', 'error', SQLERRM, NOW());
+    INSERT INTO sync_logs (sync_type, status, started_at, error_message, metadata)
+    VALUES ('full_sync', 'failed', NOW(), SQLERRM, jsonb_build_object('operation', 'reset_query_stats'));
 END;
 $$ LANGUAGE plpgsql;
 
@@ -255,5 +255,14 @@ COMMENT ON FUNCTION get_database_size_stats() IS 'Returns database size informat
 COMMENT ON FUNCTION get_connection_pool_status() IS 'Monitors connection pool health and utilization';
 
 -- Log migration completion
-INSERT INTO sync_logs (operation, status, details, created_at)
-VALUES ('enable_performance_monitoring', 'success', 'Performance monitoring migration completed', NOW());
+INSERT INTO sync_logs (sync_type, status, started_at, completed_at, metadata)
+VALUES (
+    'full_sync', 
+    'completed', 
+    NOW(), 
+    NOW(),
+    jsonb_build_object(
+        'operation', 'enable_performance_monitoring',
+        'details', 'Performance monitoring migration completed'
+    )
+);

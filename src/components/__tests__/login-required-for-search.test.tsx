@@ -21,7 +21,6 @@ vi.mock("@/lib/supabase", () => ({
 
 // Import the hooks after mocking Supabase
 import { useGitHubAuth } from "@/hooks/use-github-auth";
-import { useRepoSearch } from "@/hooks/use-repo-search";
 
 // Mock problematic components to avoid ESM/CJS issues
 vi.mock("../contributions", () => ({
@@ -59,11 +58,33 @@ vi.mock("@/hooks/use-cached-repo-data", () => ({
 
 // Mock actual navigation functionality
 const mockNavigate = vi.fn();
-const mockSetSearchInput = vi.fn();
 const mockSetShowLoginDialog = vi.fn();
 
-vi.mock("@/hooks/use-repo-search", () => ({
-  useRepoSearch: vi.fn(),
+// Mock the GitHub search hook and search input component
+vi.mock("@/hooks/use-github-search", () => ({
+  useGitHubSearch: vi.fn(() => ({
+    query: "",
+    setQuery: vi.fn(),
+    results: [],
+    loading: false,
+    error: null,
+    clearResults: vi.fn(),
+  })),
+}));
+
+vi.mock("@/components/ui/github-search-input", () => ({
+  GitHubSearchInput: ({ onSearch, placeholder }: any) => (
+    <form onSubmit={(e) => {
+      e.preventDefault();
+      const input = e.currentTarget.querySelector('input');
+      if (input?.value) {
+        onSearch(input.value);
+      }
+    }}>
+      <input placeholder={placeholder} />
+      <button type="submit" aria-label="Search">Search</button>
+    </form>
+  ),
 }));
 
 vi.mock("react-router-dom", async () => {
@@ -97,20 +118,6 @@ describe("Login behavior for repository search", () => {
       showLoginDialog: false,
       setShowLoginDialog: mockSetShowLoginDialog,
     });
-
-    // Default mock implementation
-    vi.mocked(useRepoSearch).mockReturnValue({
-      searchInput: "test/repo",
-      setSearchInput: mockSetSearchInput,
-      handleSearch: vi.fn((e) => {
-        e.preventDefault();
-        mockNavigate("/test/repo");
-      }),
-      handleSelectExample: vi.fn((repo) => {
-        // Only update the search input, don't navigate
-        mockSetSearchInput(repo);
-      }),
-    });
   });
 
   it("allows searching for a repo the first time while unauthenticated", async () => {
@@ -140,25 +147,10 @@ describe("Login behavior for repository search", () => {
     await user.click(searchButton);
 
     // Check that direct navigation to repo happens for the first search
-    expect(mockNavigate).toHaveBeenCalledWith("/test/repo");
+    expect(mockNavigate).toHaveBeenCalledWith("/facebook/react");
   });
 
   it("requires login for the second search when unauthenticated", async () => {
-    // Mock hasSearchedOnce to true to simulate a second search attempt
-    vi.mocked(useRepoSearch).mockReturnValue({
-      searchInput: "facebook/react",
-      setSearchInput: mockSetSearchInput,
-      handleSearch: vi.fn((e) => {
-        e.preventDefault();
-        // Instead of navigating, it should show login dialog
-        mockSetShowLoginDialog(true);
-      }),
-      handleSelectExample: vi.fn((repo) => {
-        // Only update the search input, don't navigate
-        mockSetSearchInput(repo);
-      }),
-    });
-
     const user = userEvent.setup();
 
     render(
@@ -175,31 +167,26 @@ describe("Login behavior for repository search", () => {
     );
     const searchButton = screen.getByRole("button", { name: /search/i });
 
-    // Enter a repo name and click search
+    // First search - should work without login
     await user.clear(searchInput);
     await user.type(searchInput, "facebook/react");
     await user.click(searchButton);
+    
+    expect(mockNavigate).toHaveBeenCalledWith("/facebook/react");
+    mockNavigate.mockClear();
 
-    // Check that login dialog is shown instead of navigating
-    expect(mockSetShowLoginDialog).toHaveBeenCalledWith(true);
-    expect(mockNavigate).not.toHaveBeenCalled();
+    // Second search - should redirect to login
+    await user.clear(searchInput);
+    await user.type(searchInput, "vuejs/vue");
+    await user.click(searchButton);
+
+    // Check that it navigates to login instead of the repo
+    expect(mockNavigate).toHaveBeenCalledWith('/login');
+    expect(localStorage.getItem('redirectAfterLogin')).toBe('/vuejs/vue');
   });
 
-  it("clicking an example repo only fills the search input without navigating", async () => {
+  it("clicking an example repo navigates on first click, requires login on second", async () => {
     const user = userEvent.setup();
-    const handleSelectExample = vi.fn((repo) => {
-      mockSetSearchInput(repo);
-    });
-
-    vi.mocked(useRepoSearch).mockReturnValue({
-      searchInput: "",
-      setSearchInput: mockSetSearchInput,
-      handleSearch: vi.fn((e) => {
-        e.preventDefault();
-        mockNavigate("/test/repo");
-      }),
-      handleSelectExample,
-    });
 
     render(
       <MetaTagsProvider>
@@ -211,21 +198,27 @@ describe("Login behavior for repository search", () => {
 
     // Find example repo buttons
     const exampleButtons = await screen.findAllByRole("button");
-    const exampleButton = exampleButtons.find((button) =>
+    const firstExampleButton = exampleButtons.find((button) =>
       button.textContent?.includes("kubernetes/kubernetes")
     );
+    const secondExampleButton = exampleButtons.find((button) =>
+      button.textContent?.includes("facebook/react")
+    );
 
-    // Click an example repo button
-    if (exampleButton) {
-      await user.click(exampleButton);
+    // First click - should navigate directly
+    if (firstExampleButton) {
+      await user.click(firstExampleButton);
+      expect(mockNavigate).toHaveBeenCalledWith("/kubernetes/kubernetes");
     }
+    
+    mockNavigate.mockClear();
 
-    // Check that handleSelectExample was called
-    expect(handleSelectExample).toHaveBeenCalled();
-
-    // Check that setSearchInput was called but navigation did not occur
-    expect(mockSetSearchInput).toHaveBeenCalled();
-    expect(mockNavigate).not.toHaveBeenCalled();
+    // Second click - should redirect to login
+    if (secondExampleButton) {
+      await user.click(secondExampleButton);
+      expect(mockNavigate).toHaveBeenCalledWith('/login');
+      expect(localStorage.getItem('redirectAfterLogin')).toBe('/facebook/react');
+    }
   });
 
   it("allows viewing repo details when logged in", async () => {

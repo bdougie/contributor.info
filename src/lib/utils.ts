@@ -2,6 +2,16 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { PullRequest, LotteryFactor, ContributorStats } from './types';
 
+// Re-export mobile detection utilities
+export {
+  useIsMobile,
+  getIsMobile,
+  getIsMobileUserAgent,
+  useIsMobileDetailed,
+  useViewportSize,
+  useNetworkAwareDetection
+} from './utils/mobile-detection';
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }

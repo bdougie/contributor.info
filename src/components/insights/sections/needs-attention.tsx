@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AlertCircle, AlertTriangle, XCircle, FileText, GitCommit } from "lucide-react";
+import { AlertCircle, AlertTriangle, XCircle, FileText, GitCommit, MessageCircle, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -153,6 +153,17 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
                         Draft
                       </Badge>
                     )}
+                    {!alert.hasMaintainerComment ? (
+                      <Badge variant="destructive" className="text-xs flex items-center gap-1">
+                        <MessageCircle className="h-3 w-3" />
+                        Needs Response
+                      </Badge>
+                    ) : alert.daysSinceLastMaintainerComment !== null && alert.daysSinceLastMaintainerComment >= 5 && (
+                      <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                        <MessageSquare className="h-3 w-3" />
+                        {alert.daysSinceLastMaintainerComment}d ago
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 <h4 className="text-sm font-medium line-clamp-1">
@@ -173,6 +184,12 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
                   )}
                   <span>•</span>
                   <span className="font-medium">Score: {alert.urgencyScore}</span>
+                  {alert.maintainerCommenters.length > 0 && (
+                    <>
+                      <span>•</span>
+                      <span>Responded: {alert.maintainerCommenters.slice(0, 2).join(', ')}{alert.maintainerCommenters.length > 2 ? '...' : ''}</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

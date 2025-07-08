@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Users, UserCheck, TrendingUp, TrendingDown, RefreshCw, Database, LogIn } from 'lucide-react'
 import { useOnDemandSync } from '@/hooks/use-on-demand-sync'
 import { useGitHubAuth } from '@/hooks/use-github-auth'
+import { ShareableCard } from '@/components/features/sharing/shareable-card'
 
 interface SelfSelectionStats {
   external_contribution_rate: number
@@ -113,7 +114,8 @@ export function SelfSelectionRate({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="h-5 w-5" />
-            Self-Selection Rate
+            <span className="hidden sm:inline">Self-Selection Rate</span>
+            <span className="sm:hidden">Self-Selection</span>
             <RefreshCw className="h-4 w-4 animate-spin" />
           </CardTitle>
           <CardDescription>
@@ -168,7 +170,10 @@ export function SelfSelectionRate({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Self-Selection Rate</CardTitle>
+          <CardTitle>
+            <span className="hidden sm:inline">Self-Selection Rate</span>
+            <span className="sm:hidden">Self-Selection</span>
+          </CardTitle>
           <CardDescription>
             {error || hasData === false 
               ? 'No contributor data available for this repository'
@@ -178,9 +183,9 @@ export function SelfSelectionRate({
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="text-center">
-            <div className="text-4xl font-bold">0.0%</div>
+            <div className="text-4xl font-bold text-muted-foreground">N/A</div>
             <p className="text-sm text-muted-foreground mt-1">
-              of contributions from external contributors
+              Not enough pull request data available
             </p>
             {error && (
               <p className="text-xs text-red-500 mt-2">{error}</p>
@@ -265,116 +270,129 @@ export function SelfSelectionRate({
     : null
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            Self-Selection Rate
-            {(syncStatus.isTriggering || syncStatus.isInProgress) && (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            )}
-          </span>
-          <div className="flex items-center gap-2">
-            {trend !== null && (
-              <span className="flex items-center text-sm font-normal">
-                {trend > 0 ? (
-                  <>
-                    <TrendingUp className="h-4 w-4 text-green-600 mr-1" />
-                    <span className="text-green-600">+{trend.toFixed(1)}%</span>
-                  </>
-                ) : (
-                  <>
-                    <TrendingDown className="h-4 w-4 text-red-600 mr-1" />
-                    <span className="text-red-600">{trend.toFixed(1)}%</span>
-                  </>
-                )}
-              </span>
-            )}
-            <Button
-              onClick={triggerSync}
-              variant="ghost"
-              size="sm"
-              disabled={syncStatus.isTriggering || syncStatus.isInProgress}
-              className="h-8 w-8 p-0"
-              title="Refresh data"
-            >
-              <RefreshCw className={`h-4 w-4 ${(syncStatus.isTriggering || syncStatus.isInProgress) ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
-        </CardTitle>
-        <CardDescription>
-          External vs internal contributions over the last {daysBack} days
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Main metric */}
-        <div className="text-center">
-          <div className="text-4xl font-bold">
-            {stats.external_contribution_rate !== null ? stats.external_contribution_rate.toFixed(1) : '0.0'}%
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            of contributions from external contributors
-          </p>
-        </div>
-
-        {/* Progress bar */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>External</span>
-            <span>Internal</span>
-          </div>
-          <Progress 
-            value={stats.external_contribution_rate || 0} 
-            className="h-3"
-          />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{stats.external_prs || 0} PRs</span>
-            <span>{stats.internal_prs || 0} PRs</span>
-          </div>
-        </div>
-
-        {/* Contributor breakdown */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
+    <ShareableCard
+      title="Self-Selection Rate"
+      contextInfo={{
+        repository: `${owner}/${repo}`,
+        metric: "self-selection rate"
+      }}
+      chartType="self-selection"
+    >
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <span className="hidden sm:inline">Self-Selection Rate</span>
+              <span className="sm:hidden">Self-Selection</span>
+              {(syncStatus.isTriggering || syncStatus.isInProgress) && (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              )}
+            </span>
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">External</span>
+              {trend !== null && (
+                <span className="flex items-center text-sm font-normal">
+                  {trend > 0 ? (
+                    <>
+                      <TrendingUp className="h-4 w-4 text-green-600 mr-1" />
+                      <span className="text-green-600">+{trend.toFixed(1)}%</span>
+                    </>
+                  ) : (
+                    <>
+                      <TrendingDown className="h-4 w-4 text-red-600 mr-1" />
+                      <span className="text-red-600">{trend.toFixed(1)}%</span>
+                    </>
+                  )}
+                </span>
+              )}
+              <Button
+                onClick={triggerSync}
+                variant="ghost"
+                size="sm"
+                disabled={syncStatus.isTriggering || syncStatus.isInProgress}
+                className="h-8 w-8 p-0"
+                title="Refresh data"
+              >
+                <RefreshCw className={`h-4 w-4 ${(syncStatus.isTriggering || syncStatus.isInProgress) ? 'animate-spin' : ''}`} />
+              </Button>
             </div>
-            <div className="text-2xl font-semibold">
-              {stats.external_contributors || 0}
+          </CardTitle>
+          <CardDescription>
+            External vs internal contributions over the last {daysBack} days
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Main metric */}
+          <div className="text-center">
+            <div className="text-4xl font-bold">
+              {stats.external_contribution_rate !== null ? `${stats.external_contribution_rate.toFixed(1)}%` : 'N/A'}
             </div>
-            <p className="text-xs text-muted-foreground">
-              contributors
+            <p className="text-sm text-muted-foreground mt-1">
+              {stats.external_contribution_rate !== null 
+                ? 'of contributions from external contributors'
+                : 'Not enough pull request data available'
+              }
             </p>
           </div>
-          
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <UserCheck className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Internal</span>
-            </div>
-            <div className="text-2xl font-semibold">
-              {stats.internal_contributors || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              maintainers/owners
-            </p>
-          </div>
-        </div>
 
-        {/* Summary stats */}
-        <div className="pt-4 border-t">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Total PRs</span>
-            <span className="font-medium">{stats.total_prs || 0}</span>
+          {/* Progress bar */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>External</span>
+              <span>Internal</span>
+            </div>
+            <Progress 
+              value={stats.external_contribution_rate || 0} 
+              className="h-3"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{stats.external_prs || 0} PRs</span>
+              <span>{stats.internal_prs || 0} PRs</span>
+            </div>
           </div>
-          <div className="flex justify-between text-sm mt-1">
-            <span className="text-muted-foreground">Total Contributors</span>
-            <span className="font-medium">{stats.total_contributors || 0}</span>
+
+          {/* Contributor breakdown */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">External</span>
+              </div>
+              <div className="text-2xl font-semibold">
+                {stats.external_contributors || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                contributors
+              </p>
+            </div>
+            
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Internal</span>
+              </div>
+              <div className="text-2xl font-semibold">
+                {stats.internal_contributors || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                maintainers/owners
+              </p>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+
+          {/* Summary stats */}
+          <div className="pt-4 border-t">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Total PRs</span>
+              <span className="font-medium">{stats.total_prs || 0}</span>
+            </div>
+            <div className="flex justify-between text-sm mt-1">
+              <span className="text-muted-foreground">Total Contributors</span>
+              <span className="font-medium">{stats.total_contributors || 0}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </ShareableCard>
   )
 }
 

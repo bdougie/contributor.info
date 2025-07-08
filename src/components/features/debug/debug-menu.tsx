@@ -10,7 +10,12 @@ import {
   Activity,
   FileText,
   Globe,
-  Monitor
+  Monitor,
+  BarChart3,
+  Image,
+  Link,
+  Database,
+  GitBranch
 } from "lucide-react";
 
 interface DebugRoute {
@@ -22,6 +27,13 @@ interface DebugRoute {
 }
 
 const debugRoutes: DebugRoute[] = [
+  {
+    path: "/dev/analytics",
+    title: "Share Analytics",
+    description: "View social sharing metrics, popular repositories, and user engagement data",
+    icon: <BarChart3 className="h-4 w-4" />,
+    category: "monitoring"
+  },
   {
     path: "/dev/performance-monitoring",
     title: "Performance Monitoring",
@@ -48,6 +60,34 @@ const debugRoutes: DebugRoute[] = [
     title: "Social Card Preview",
     description: "Preview and test social media card generation",
     icon: <Palette className="h-4 w-4" />,
+    category: "dev"
+  },
+  {
+    path: "/dev/shareable-charts",
+    title: "Shareable Charts Preview",
+    description: "Test shareable charts with different types and attribution bars",
+    icon: <Image className="h-4 w-4" />,
+    category: "dev"
+  },
+  {
+    path: "/dev/dub-test",
+    title: "Dub.co API Test",
+    description: "Test dub.co API integration and debug authorization issues",
+    icon: <Link className="h-4 w-4" />,
+    category: "testing"
+  },
+  {
+    path: "/dev/sync-test",
+    title: "GitHub Sync Test",
+    description: "Manual GitHub sync testing with real-time logging and debugging",
+    icon: <GitBranch className="h-4 w-4" />,
+    category: "testing"
+  },
+  {
+    path: "/dev/bulk-add-repos",
+    title: "Bulk Add Repositories",
+    description: "Add multiple repositories to tracking list for demos and testing",
+    icon: <Database className="h-4 w-4" />,
     category: "dev"
   },
   {

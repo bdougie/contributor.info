@@ -12,7 +12,7 @@ interface AvgTimeCardProps {
 export function AvgTimeCard({ averageMergeTime, averageMergeTimeTrend, loading }: AvgTimeCardProps) {
   if (loading) {
     return (
-      <Card className="p-3">
+      <Card className="p-3 min-w-0">
         <Skeleton className="h-16 w-full" />
       </Card>
     );
@@ -22,14 +22,14 @@ export function AvgTimeCard({ averageMergeTime, averageMergeTimeTrend, loading }
                         averageMergeTime <= 72 ? "text-yellow-500" : "text-red-500";
 
   return (
-    <Card className="p-3">
+    <Card className="p-3 min-w-0">
       <div className="flex items-center justify-between">
         <Clock className="h-4 w-4 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground">Avg Time</span>
+        <span className="text-xs text-muted-foreground truncate">Avg Time</span>
       </div>
-      <p className={cn("text-2xl font-bold mt-2", mergeTimeColor)}>
+      <p className={cn("text-2xl font-bold mt-2 truncate", mergeTimeColor)}>
         {averageMergeTime < 24 
-          ? `${Math.round(averageMergeTime)}h`
+          ? `${Math.round(averageMergeTime)}hrs`
           : `${(averageMergeTime / 24).toFixed(1)}d`
         }
       </p>
@@ -39,7 +39,7 @@ export function AvgTimeCard({ averageMergeTime, averageMergeTimeTrend, loading }
         ) : averageMergeTimeTrend === "up" ? (
           <TrendingUp className="h-3 w-3 text-red-500" />
         ) : null}
-        <p className="text-xs text-muted-foreground">to merge</p>
+        <p className="text-xs text-muted-foreground truncate">to merge</p>
       </div>
     </Card>
   );

@@ -135,8 +135,9 @@ export function DistributionTreemapEnhanced({
               fill: isQuadrant
                 ? color
                 : COLORS[selectedQuadrant as keyof typeof COLORS],
-              stroke: "#fff",
-              strokeWidth: 1,
+              stroke: "#ffffff",
+              strokeWidth: 2,
+              strokeOpacity: 0.8,
             }}
             onClick={handleClick}
             onMouseEnter={handleMouseEnter}
@@ -153,7 +154,7 @@ export function DistributionTreemapEnhanced({
                   x={x + width / 2}
                   y={y + height / 2 - 10}
                   textAnchor="middle"
-                  fill="#fff"
+                  fill="white"
                   fontSize={16}
                   fontWeight="bold"
                   className="distribution-treemap-text"
@@ -165,7 +166,7 @@ export function DistributionTreemapEnhanced({
                   x={x + width / 2}
                   y={y + height / 2 + 10}
                   textAnchor="middle"
-                  fill="#fff"
+                  fill="white"
                   fontSize={14}
                   className="distribution-treemap-text"
                   style={{ textShadow: "1px 1px 2px rgba(0,0,0,0.8)" }}

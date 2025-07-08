@@ -47,3 +47,7 @@ export const Link = ({ children, to, ...props }: { children: React.ReactNode; to
 export const NavLink = ({ children, to, ...props }: { children: React.ReactNode; to: string; [key: string]: any }) => {
   return React.createElement('a', { href: to, ...props }, children);
 };
+
+export const Outlet = () => {
+  return React.createElement('div', null, 'Storybook Outlet Mock');
+};

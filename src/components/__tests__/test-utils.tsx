@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { BrowserRouter as Router } from "react-router-dom";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { RepoStats } from "@/lib/types";
 import { MetaTagsProvider } from "../common/layout";
@@ -30,18 +31,20 @@ export const mockRepoStats: RepoStats = {
 
 export function TestRepoStatsProvider({ children }: { children: ReactNode }) {
   return (
-    <MetaTagsProvider>
-      <RepoStatsContext.Provider
-        value={{
-          stats: mockRepoStats,
-          lotteryFactor: null,
-          directCommitsData: null,
-          includeBots: false,
-          setIncludeBots: () => {},
-        }}
-      >
-        {children}
-      </RepoStatsContext.Provider>
-    </MetaTagsProvider>
+    <Router>
+      <MetaTagsProvider>
+        <RepoStatsContext.Provider
+          value={{
+            stats: mockRepoStats,
+            lotteryFactor: null,
+            directCommitsData: null,
+            includeBots: false,
+            setIncludeBots: () => {},
+          }}
+        >
+          {children}
+        </RepoStatsContext.Provider>
+      </MetaTagsProvider>
+    </Router>
   );
 }

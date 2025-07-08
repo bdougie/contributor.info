@@ -4,12 +4,14 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { ShareableCard } from "@/components/features/sharing/shareable-card";
 import type { HealthMetrics } from "@/lib/insights/health-metrics";
 import type { RepoStats } from "@/lib/types";
 
 interface RepositoryHealthFactorsProps {
   stats: RepoStats;
   timeRange: string;
+  repositoryName?: string;
 }
 
 // Calculate health metrics from cached stats data
@@ -196,6 +198,7 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
 export function RepositoryHealthFactors({
   stats,
   timeRange,
+  repositoryName,
 }: RepositoryHealthFactorsProps) {
   const health = useMemo(() => {
     if (stats.loading || stats.error || stats.pullRequests.length === 0) {
@@ -241,37 +244,46 @@ export function RepositoryHealthFactors({
   }
 
   return (
-    <Card className="p-4">
-      <h4 className="text-sm font-medium mb-3">Health Factors</h4>
-      <div className="space-y-3">
-        {health.factors.map((factor) => (
-          <div key={factor.name} className="space-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div
+    <ShareableCard
+      title="Health Factors"
+      contextInfo={{
+        repository: repositoryName,
+        metric: "health factors"
+      }}
+      chartType="health-factors"
+    >
+      <Card className="p-4">
+        <h4 className="text-sm font-medium mb-3">Health Factors</h4>
+        <div className="space-y-3">
+          {health.factors.map((factor) => (
+            <div key={factor.name} className="space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={cn(
+                      "h-2 w-2 rounded-full",
+                      getStatusColor(factor.status)
+                    )}
+                  />
+                  <span className="text-sm">{factor.name}</span>
+                </div>
+                <span
                   className={cn(
-                    "h-2 w-2 rounded-full",
-                    getStatusColor(factor.status)
+                    "text-sm font-medium",
+                    getScoreColor(factor.score)
                   )}
-                />
-                <span className="text-sm">{factor.name}</span>
+                >
+                  {Math.round(factor.score)}
+                </span>
               </div>
-              <span
-                className={cn(
-                  "text-sm font-medium",
-                  getScoreColor(factor.score)
-                )}
-              >
-                {Math.round(factor.score)}
-              </span>
+              <p className="text-xs text-muted-foreground pl-4">
+                {factor.description}
+              </p>
+              <Progress value={factor.score} className="h-1.5" />
             </div>
-            <p className="text-xs text-muted-foreground pl-4">
-              {factor.description}
-            </p>
-            <Progress value={factor.score} className="h-1.5" />
-          </div>
-        ))}
-      </div>
-    </Card>
+          ))}
+        </div>
+      </Card>
+    </ShareableCard>
   );
 }

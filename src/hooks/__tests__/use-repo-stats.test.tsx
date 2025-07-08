@@ -2,15 +2,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, cleanup } from "@testing-library/react";
 import { useRepoStats } from "../use-repo-stats";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
-import { fetchPullRequests, fetchDirectCommits } from "@/lib/github";
+import { fetchDirectCommitsWithDatabaseFallback } from "@/lib/supabase-direct-commits";
+import { fetchPRDataWithFallback } from "@/lib/supabase-pr-data";
 import { calculateLotteryFactor } from "@/lib/utils";
 import type { PullRequest } from "@/lib/types";
 import React from "react";
 
 // Mock dependencies
-vi.mock("@/lib/github", () => ({
-  fetchPullRequests: vi.fn(),
-  fetchDirectCommits: vi.fn(),
+vi.mock("@/lib/supabase-pr-data", () => ({
+  fetchPRDataWithFallback: vi.fn(),
+}));
+
+vi.mock("@/lib/supabase-direct-commits", () => ({
+  fetchDirectCommitsWithDatabaseFallback: vi.fn(),
 }));
 
 vi.mock("@/lib/utils", () => ({
@@ -106,10 +110,10 @@ describe("useRepoStats", () => {
         login: "yolocoder",
         avatar_url: "https://example.com/yolocoder.png",
         directCommits: 15,
-        totalPushedCommits: 20,
+        totalCommits: 20,
+        directCommitPercentage: 75,
       },
-    ],
-    directCommits: [], // Adding required property for the DirectCommitsData interface
+    ]
   };
 
   // Mock lottery factor
@@ -132,8 +136,8 @@ describe("useRepoStats", () => {
     vi.clearAllMocks();
 
     // Setup mock return values
-    vi.mocked(fetchPullRequests).mockResolvedValue(mockPullRequests);
-    vi.mocked(fetchDirectCommits).mockResolvedValue(mockDirectCommits);
+    vi.mocked(fetchPRDataWithFallback).mockResolvedValue(mockPullRequests);
+    vi.mocked(fetchDirectCommitsWithDatabaseFallback).mockResolvedValue(mockDirectCommits);
     vi.mocked(calculateLotteryFactor).mockReturnValue(mockLotteryFactor);
   });
 
@@ -271,12 +275,12 @@ describe("useRepoStats", () => {
     );
 
     // Verify API calls
-    expect(fetchPullRequests).toHaveBeenCalledWith(
+    expect(fetchPRDataWithFallback).toHaveBeenCalledWith(
       "testorg",
       "testrepo",
       timeRange
     );
-    expect(fetchDirectCommits).toHaveBeenCalledWith(
+    expect(fetchDirectCommitsWithDatabaseFallback).toHaveBeenCalledWith(
       "testorg",
       "testrepo",
       timeRange

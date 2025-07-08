@@ -6,9 +6,11 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Link } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   calculateTrendMetrics,
@@ -18,6 +20,7 @@ import { PrCountCard } from "./pr-count-card";
 import { AvgTimeCard } from "./avg-time-card";
 import { VelocityCard } from "./velocity-card";
 import { calculatePrActivityMetrics, type ActivityMetrics } from "@/lib/insights/pr-activity-metrics";
+import { ProgressiveCaptureButton } from "./progressive-capture-button";
 
 interface MetricsAndTrendsCardProps {
   owner: string;
@@ -109,6 +112,15 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
   const [trends, setTrends] = useState<TrendData[]>([]);
   const [metrics, setMetrics] = useState<ActivityMetrics | null>(null);
 
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copied to clipboard!");
+    } catch (error) {
+      toast.error("Failed to copy link");
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, [owner, repo, timeRange]);
@@ -134,28 +146,78 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     }
   };
 
+  // Check if metrics suggest missing data (all zeros or very low)
+  const hasLowDataQuality = (metrics: ActivityMetrics | null, trends: TrendData[]) => {
+    if (!metrics) return true;
+    
+    // Check if review and comment activity is suspiciously low
+    const reviewTrend = trends.find(t => t.metric === 'Review Activity');
+    const commentTrend = trends.find(t => t.metric === 'Comment Activity');
+    
+    return (
+      metrics.totalPRs > 0 && // Has PRs but...
+      (reviewTrend?.current === 0 || commentTrend?.current === 0) // No reviews or comments
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Metrics and Trends</CardTitle>
-        <CardDescription>
-          Snapshot comparing the previous 30 days (limited to 100 prs)
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Metrics and Trends</CardTitle>
+            <CardDescription>
+              Snapshot comparing the previous 30 days with review and comment data
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Show compact capture button when data quality is good */}
+            {!loading && !hasLowDataQuality(metrics, trends) && (
+              <ProgressiveCaptureButton 
+                owner={owner}
+                repo={repo}
+                onRefreshNeeded={loadData}
+                compact={true}
+              />
+            )}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleCopyLink}
+              className="h-8 w-8"
+              title="Copy page link"
+            >
+              <Link className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Progressive Capture Button - Show when data quality is low */}
+        {!loading && hasLowDataQuality(metrics, trends) && (
+          <div className="mb-6">
+            <ProgressiveCaptureButton 
+              owner={owner}
+              repo={repo}
+              onRefreshNeeded={loadData}
+              compact={false}
+            />
+          </div>
+        )}
+
         {/* Metrics Section */}
         <div>
           <h3 className="text-sm font-medium mb-3">Activity Metrics</h3>
           {loading || !metrics ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <PrCountCard openPRs={0} totalPRs={0} loading={true} />
               <AvgTimeCard averageMergeTime={0} loading={true} />
-              <div className="md:col-span-2">
+              <div className="sm:col-span-2 md:col-span-2">
                 <VelocityCard velocity={{ current: 0, previous: 0, change: 0 }} loading={true} />
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <PrCountCard 
                 openPRs={metrics.openPRs} 
                 totalPRs={metrics.totalPRs}
@@ -166,7 +228,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                 averageMergeTimeTrend={metrics.averageMergeTimeTrend}
                 loading={loading}
               />
-              <div className="md:col-span-2">
+              <div className="sm:col-span-2 md:col-span-2">
                 <VelocityCard 
                   velocity={metrics.velocity}
                   loading={loading}
@@ -180,7 +242,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
         <div>
           <h3 className="text-sm font-medium mb-3">Trends</h3>
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
                 <TrendCard key={i} loading={true} />
               ))}
@@ -193,7 +255,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {trends.slice(0, 4).map((trend, index) => (
                 <TrendCard key={index} trend={trend} loading={loading} />
               ))}
