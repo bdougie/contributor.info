@@ -46,16 +46,54 @@ export const capturePrReviews = inngest.createFunction(
           pull_number: parseInt(prNumber),
         });
 
-        return reviewsData.map((review: any): DatabaseReview => ({
-          github_id: review.id.toString(),
-          pull_request_id: prId,
-          author_id: review.user?.id.toString(),
-          author_username: review.user?.login,
-          state: review.state,
-          body: review.body || '',
-          submitted_at: review.submitted_at,
-          commit_id: review.commit_id,
-        }));
+        // Process each review and ensure reviewers exist in contributors table
+        const processedReviews: DatabaseReview[] = [];
+        
+        for (const review of reviewsData) {
+          if (!review.user) continue; // Skip reviews without user data
+          
+          // Find or create the reviewer in contributors table
+          const { data: existingContributor } = await supabase
+            .from('contributors')
+            .select('id')
+            .eq('github_id', review.user.id)
+            .single();
+          
+          let reviewerId = existingContributor?.id;
+          
+          if (!reviewerId) {
+            // Create new contributor
+            const { data: newContributor, error: contributorError } = await supabase
+              .from('contributors')
+              .insert({
+                github_id: review.user.id,
+                username: review.user.login,
+                avatar_url: review.user.avatar_url,
+                is_bot: review.user.type === 'Bot' || review.user.login.includes('[bot]')
+              })
+              .select('id')
+              .single();
+              
+            if (contributorError) {
+              console.warn(`Failed to create reviewer ${review.user.login}:`, contributorError);
+              continue;
+            }
+            
+            reviewerId = newContributor.id;
+          }
+          
+          processedReviews.push({
+            github_id: review.id.toString(),
+            pull_request_id: prId,
+            reviewer_id: reviewerId,
+            state: review.state,
+            body: review.body || '',
+            submitted_at: review.submitted_at,
+            commit_id: review.commit_id,
+          });
+        }
+
+        return processedReviews;
       } catch (error: unknown) {
         const apiError = error as { status?: number };
         if (apiError.status === 404) {

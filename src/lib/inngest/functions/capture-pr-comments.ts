@@ -54,31 +54,107 @@ export const capturePrComments = inngest.createFunction(
           issue_number: parseInt(prNumber),
         });
 
-        return {
-          prComments: prCommentsData.map((comment: any): DatabaseComment => ({
+        // Process comments and ensure commenters exist in contributors table
+        const processedPrComments: DatabaseComment[] = [];
+        const processedIssueComments: DatabaseComment[] = [];
+        
+        for (const comment of prCommentsData) {
+          if (!comment.user) continue;
+          
+          // Find or create the commenter in contributors table
+          const { data: existingContributor } = await supabase
+            .from('contributors')
+            .select('id')
+            .eq('github_id', comment.user.id)
+            .single();
+          
+          let commenterId = existingContributor?.id;
+          
+          if (!commenterId) {
+            // Create new contributor
+            const { data: newContributor, error: contributorError } = await supabase
+              .from('contributors')
+              .insert({
+                github_id: comment.user.id,
+                username: comment.user.login,
+                avatar_url: comment.user.avatar_url,
+                is_bot: comment.user.type === 'Bot' || comment.user.login.includes('[bot]')
+              })
+              .select('id')
+              .single();
+              
+            if (contributorError) {
+              console.warn(`Failed to create commenter ${comment.user.login}:`, contributorError);
+              continue;
+            }
+            
+            commenterId = newContributor.id;
+          }
+          
+          processedPrComments.push({
             github_id: comment.id.toString(),
             pull_request_id: prId,
-            author_id: comment.user?.id.toString(),
-            author_username: comment.user?.login,
+            commenter_id: commenterId,
             body: comment.body,
             created_at: comment.created_at,
             updated_at: comment.updated_at,
+            comment_type: 'review_comment',
             in_reply_to_id: comment.in_reply_to_id?.toString(),
+            position: comment.position,
+            original_position: comment.original_position,
+            diff_hunk: comment.diff_hunk,
             path: comment.path,
-            line: comment.line,
             commit_id: comment.commit_id,
-            comment_type: 'review' as const,
-          })),
-          issueComments: issueCommentsData.map((comment: any): DatabaseComment => ({
+          });
+        }
+        
+        for (const comment of issueCommentsData) {
+          if (!comment.user) continue;
+          
+          // Find or create the commenter in contributors table
+          const { data: existingContributor } = await supabase
+            .from('contributors')
+            .select('id')
+            .eq('github_id', comment.user.id)
+            .single();
+          
+          let commenterId = existingContributor?.id;
+          
+          if (!commenterId) {
+            // Create new contributor
+            const { data: newContributor, error: contributorError } = await supabase
+              .from('contributors')
+              .insert({
+                github_id: comment.user.id,
+                username: comment.user.login,
+                avatar_url: comment.user.avatar_url,
+                is_bot: comment.user.type === 'Bot' || comment.user.login.includes('[bot]')
+              })
+              .select('id')
+              .single();
+              
+            if (contributorError) {
+              console.warn(`Failed to create commenter ${comment.user.login}:`, contributorError);
+              continue;
+            }
+            
+            commenterId = newContributor.id;
+          }
+          
+          processedIssueComments.push({
             github_id: comment.id.toString(),
             pull_request_id: prId,
-            author_id: comment.user?.id.toString(),
-            author_username: comment.user?.login,
+            commenter_id: commenterId,
             body: comment.body,
             created_at: comment.created_at,
             updated_at: comment.updated_at,
-            comment_type: 'issue' as const,
-          })),
+            comment_type: 'issue_comment',
+          });
+        }
+
+        return {
+          prComments: processedPrComments,
+          issueComments: processedIssueComments,
         };
       } catch (error: unknown) {
         const apiError = error as { status?: number };

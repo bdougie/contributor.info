@@ -65,23 +65,23 @@ export interface GitHubComment {
 export interface DatabaseComment {
   github_id: string;
   pull_request_id: string;
-  author_id?: string;
-  author_username?: string;
+  commenter_id?: string;
   body: string;
   created_at: string;
   updated_at: string;
+  comment_type: 'issue_comment' | 'review_comment';
   in_reply_to_id?: string;
+  position?: number;
+  original_position?: number;
+  diff_hunk?: string;
   path?: string;
-  line?: number;
   commit_id?: string;
-  comment_type: 'review' | 'issue';
 }
 
 export interface DatabaseReview {
   github_id: string;
   pull_request_id: string;
-  author_id?: string;
-  author_username?: string;
+  reviewer_id?: string;
   state: string;
   body: string;
   submitted_at: string;
