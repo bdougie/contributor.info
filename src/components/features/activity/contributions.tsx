@@ -152,7 +152,7 @@ function ContributionsChart() {
     const filteredPRs = [...safeStats.pullRequests]
       .filter((pr) => localIncludeBots || pr.user.type !== "Bot")
       .filter((pr) => {
-        if (statusFilter === "all") return true;
+        if (statusFilter === "all") return pr.state === "open" || pr.merged_at !== null;
         if (statusFilter === "open") return pr.state === "open";
         if (statusFilter === "closed") return pr.state === "closed" && !pr.merged_at;
         if (statusFilter === "merged") return pr.merged_at !== null;

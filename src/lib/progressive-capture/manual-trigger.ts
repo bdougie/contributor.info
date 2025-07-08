@@ -1,7 +1,16 @@
 import { bootstrapDataCaptureQueue, analyzeDataGaps } from './bootstrap-queue';
-import { inngestQueueManager } from '../inngest/queue-manager';
 import { ProgressiveCaptureNotifications } from './ui-notifications';
 import { AISummaryProcessor } from './ai-summary-processor';
+
+// Lazy load Inngest queue manager to avoid Buffer issues in browser
+let inngestQueueManager: any = null;
+async function getInngestQueueManager() {
+  if (!inngestQueueManager) {
+    const { inngestQueueManager: manager } = await import('../inngest/queue-manager');
+    inngestQueueManager = manager;
+  }
+  return inngestQueueManager;
+}
 
 /**
  * Manual trigger for progressive data capture
@@ -13,7 +22,8 @@ export class ProgressiveCaptureTrigger {
    */
   static async analyze() {
     const gaps = await analyzeDataGaps();
-    const queueStats = await inngestQueueManager.getQueueStats();
+    const manager = await getInngestQueueManager();
+    const queueStats = await manager.getQueueStats();
 
     console.log(`
 📊 Data Gap Analysis Results:
@@ -51,7 +61,8 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
     try {
       await bootstrapDataCaptureQueue();
       
-      const queueStats = await inngestQueueManager.getQueueStats();
+      const manager = await getInngestQueueManager();
+      const queueStats = await manager.getQueueStats();
       console.log(`
 ✅ Bootstrap completed successfully!
 
@@ -75,7 +86,8 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
    */
   static async status() {
     
-    const stats = await inngestQueueManager.getQueueStats();
+    const manager = await getInngestQueueManager();
+    const stats = await manager.getQueueStats();
     const canMakeAPICalls = true; // Inngest handles rate limiting
     
     console.log(`
@@ -159,7 +171,8 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
       }
 
       // Queue commit analysis
-      const queuedCount = await inngestQueueManager.queueRecentCommitsAnalysis(repoData.id, 90);
+      const manager = await getInngestQueueManager();
+      const queuedCount = await manager.queueRecentCommitsAnalysis(repoData.id, 90);
       
       // Show UI notification
       if (queuedCount > 0) {
@@ -263,11 +276,12 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
       }
 
       // Queue recent PRs, file changes, reviews, comments, commit analysis, and AI summary
-      await inngestQueueManager.queueRecentPRs(repoData.id);
-      const fileChangeCount = await inngestQueueManager.queueMissingFileChanges(repoData.id, 10);
-      const reviewCount = await inngestQueueManager.queueMissingReviews(repoData.id, 20);
-      const commentCount = await inngestQueueManager.queueMissingComments(repoData.id, 20);
-      const commitAnalysisCount = await inngestQueueManager.queueRecentCommitsAnalysis(repoData.id, 90);
+      const manager = await getInngestQueueManager();
+      await manager.queueRecentPRs(repoData.id);
+      const fileChangeCount = await manager.queueMissingFileChanges(repoData.id, 10);
+      const reviewCount = await manager.queueMissingReviews(repoData.id, 20);
+      const commentCount = await manager.queueMissingComments(repoData.id, 20);
+      const commitAnalysisCount = await manager.queueRecentCommitsAnalysis(repoData.id, 90);
       const aiSummaryQueued = await AISummaryProcessor.queueSummaryRegeneration(repoData.id, 'medium');
       
       const totalJobs = 1 + fileChangeCount + reviewCount + commentCount + commitAnalysisCount + (aiSummaryQueued ? 1 : 0);

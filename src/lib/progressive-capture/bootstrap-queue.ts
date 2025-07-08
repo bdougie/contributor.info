@@ -1,6 +1,11 @@
-import { inngestQueueManager } from '../inngest/queue-manager';
 import { supabase } from '../supabase';
 import { ProgressiveCaptureNotifications } from './ui-notifications';
+
+// Lazy load Inngest queue manager to avoid Buffer issues in browser
+async function getInngestQueueManager() {
+  const { inngestQueueManager } = await import('../inngest/queue-manager');
+  return inngestQueueManager;
+}
 
 /**
  * Bootstrap the queue with critical missing data for immediate improvements
@@ -9,6 +14,8 @@ import { ProgressiveCaptureNotifications } from './ui-notifications';
 export async function bootstrapDataCaptureQueue(): Promise<void> {
 
   try {
+    const manager = await getInngestQueueManager();
+    
     // 1. Find repositories with stale data (older than 3 days)
     const { data: staleRepos, error: staleError } = await supabase
       .from('repositories')
@@ -21,7 +28,7 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
       console.error('[Bootstrap] Error finding stale repositories:', staleError);
     } else if (staleRepos) {
       for (const repo of staleRepos) {
-        await inngestQueueManager.queueRecentPRs(repo.id);
+        await manager.queueRecentPRs(repo.id);
       }
     }
 
@@ -41,7 +48,7 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
       console.error('[Bootstrap] Error finding active repositories:', activeError);
     } else if (activeRepos) {
       for (const repo of activeRepos) {
-        await inngestQueueManager.queueMissingFileChanges(repo.id, 25); // 25 PRs per repo
+        await manager.queueMissingFileChanges(repo.id, 25); // 25 PRs per repo
       }
     }
 
@@ -60,12 +67,12 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
       console.error('[Bootstrap] Error finding repositories with commits:', commitsError);
     } else if (reposWithCommits) {
       for (const repo of reposWithCommits) {
-        await inngestQueueManager.queueRecentCommitsAnalysis(repo.id, 90); // Last 90 days
+        await manager.queueRecentCommitsAnalysis(repo.id, 90); // Last 90 days
       }
     }
 
     // 4. Show queue statistics
-    const stats = await inngestQueueManager.getQueueStats();
+    const stats = await manager.getQueueStats();
 
     // Show UI notification for bootstrap completion
     if (stats.pending > 0) {
