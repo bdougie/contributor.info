@@ -1,7 +1,8 @@
 import { useContext, useCallback } from 'react';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
 import type { PullRequest, TimeRange } from '@/lib/types';
-import { fetchPullRequests, fetchDirectCommits } from '@/lib/github';
+import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-commits';
+import { fetchPRDataWithFallback } from '@/lib/supabase-pr-data';
 import { calculateLotteryFactor } from '@/lib/utils';
 
 /**
@@ -79,8 +80,8 @@ export function useRepoStats() {
     includeBots: boolean = false
   ) => {
     const [prs, directCommits] = await Promise.all([
-      fetchPullRequests(owner, repo, timeRange),
-      fetchDirectCommits(owner, repo, timeRange),
+      fetchPRDataWithFallback(owner, repo, timeRange),
+      fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
     ]);
     
     const lotteryFactor = calculateLotteryFactor(prs, timeRange, includeBots);

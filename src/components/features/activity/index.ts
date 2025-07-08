@@ -6,3 +6,4 @@ export { MetricsAndTrendsCard } from './metrics-and-trends-card';
 export { PrCountCard } from './pr-count-card';
 export { AvgTimeCard } from './avg-time-card';
 export { VelocityCard } from './velocity-card';
+export { ProgressiveCaptureButton } from './progressive-capture-button';

@@ -5,6 +5,7 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 
+# JavaScript modules - ensure proper MIME type and long cache
 /*.js
   Content-Type: text/javascript; charset=utf-8
   Cache-Control: public, max-age=31536000, immutable
@@ -13,15 +14,68 @@
   Content-Type: text/javascript; charset=utf-8
   Cache-Control: public, max-age=31536000, immutable
 
+# ES modules - explicit type for module scripts with versioned cache busting
+/assets/*.js
+  Content-Type: text/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+
+# CSS files with long cache
 /*.css
   Content-Type: text/css; charset=utf-8
   Cache-Control: public, max-age=31536000, immutable
 
+# Images with long cache
+/*.png
+  Content-Type: image/png
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.webp
+  Content-Type: image/webp
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.svg
+  Content-Type: image/svg+xml
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.avif
+  Content-Type: image/avif
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.jpg
+  Content-Type: image/jpeg
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.jpeg
+  Content-Type: image/jpeg
+  Cache-Control: public, max-age=31536000, immutable
+
+# Fonts with long cache
+/*.woff2
+  Content-Type: font/woff2
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.woff
+  Content-Type: font/woff
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.ttf
+  Content-Type: font/ttf
+  Cache-Control: public, max-age=31536000, immutable
+
+# JSON files
 /*.json
   Content-Type: application/json; charset=utf-8
+  Cache-Control: public, max-age=86400
 
+# WASM files
 /*.wasm
   Content-Type: application/wasm
+  Cache-Control: public, max-age=31536000, immutable
+
+# Analytics chunks - cache with lower priority
+/assets/analytics-*.js
+  Content-Type: text/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
 
 # Ensure React loads with highest priority
 /assets/react-*.js

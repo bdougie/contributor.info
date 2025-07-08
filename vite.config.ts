@@ -40,55 +40,71 @@ export default defineConfig({
       'clsx',
       'tailwind-merge'
     ],
-    exclude: ['lucide-react'], // Keep icons separate for better tree-shaking
+    exclude: [
+      'lucide-react', // Keep icons separate for better tree-shaking
+      '@storybook/test',
+      '@storybook/react',
+      'vitest',
+      '@testing-library/react',
+      '@testing-library/jest-dom'
+    ],
     force: true, // Force re-optimization for performance
   },
   build: {
-    // Disable CSS code splitting to prevent FOUC
-    cssCodeSplit: false,
+    // Enable CSS code splitting for better performance
+    cssCodeSplit: true,
     rollupOptions: {
+      // Remove the external configuration as it's causing build issues
       output: {
-        // Performance-optimized chunking strategy that maintains reliability
+        // Ensure proper file extensions for module recognition
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+        // Proven chunk splitting strategy from LIGHTHOUSE_OPTIMIZATIONS.md
         manualChunks: {
-          // Critical React core - bundle together to prevent initialization issues
-          'react-core': [
-            'react', 
-            'react-dom',
-            '@radix-ui/react-slot' // Essential for UI components
-          ],
-          // React ecosystem - can load after core is initialized
+          // Core React - keep together for stability (Critical Path)
+          'react-core': ['react', 'react-dom'],
+          
+          // Router and utilities (Critical Path)
           'react-ecosystem': [
             'react-router-dom',
             'class-variance-authority',
             'clsx',
             'tailwind-merge'
           ],
-          // Heavy chart libraries - lazy loaded, separate for better caching
-          'charts-nivo': ['@nivo/scatterplot', '@nivo/core'],
-          'charts-recharts': ['recharts'],
-          // UI component library - used throughout app
+          
+          // UI library - deferred loading when UI components needed
           'ui-radix': [
             '@radix-ui/react-dialog',
             '@radix-ui/react-dropdown-menu',
             '@radix-ui/react-popover',
             '@radix-ui/react-select',
             '@radix-ui/react-tabs',
-            '@radix-ui/react-tooltip'
+            '@radix-ui/react-tooltip',
+            '@radix-ui/react-slot'
           ],
-          // Icons - separate for optimal tree-shaking
+          
+          // Essential charts for PR contributions (Critical Path)
+          'charts-essential': [
+            '@nivo/scatterplot'  // Main PR contribution chart
+          ],
+          
+          // Advanced visualization libraries - lazy loaded on chart pages
+          'charts-advanced': [
+            'recharts'  // Distribution analysis charts
+          ],
+          
+          // Icons - lazy loaded
           'icons': ['lucide-react'],
-          // Utilities - frequently used, good for caching
+          
+          // Utilities
           'utils': ['date-fns', 'zod'],
-          // State management and data
-          'data': [
-            'zustand',
-            '@supabase/supabase-js'
-          ],
-          // Analytics - non-critical, can load later
-          'analytics': [
-            'posthog-js',
-            '@sentry/react'
-          ]
+          
+          // Data and state - deferred
+          'data': ['zustand', '@supabase/supabase-js'],
+          
+          // Analytics - completely deferred
+          'analytics': ['posthog-js', '@sentry/react']
         },
       },
     },
@@ -96,16 +112,32 @@ export default defineConfig({
     cssMinify: 'esbuild',
     // Disable sourcemaps for production to reduce bundle size
     sourcemap: false,
-    // Optimize minification and target
+    // Optimize minification and target for better compression
     minify: 'esbuild',
-    target: 'es2020', // Modern target for better optimization while maintaining compatibility
+    target: 'es2020', // Modern target with good compatibility
     // Optimize chunk size warnings  
     chunkSizeWarningLimit: 600, // Slightly more lenient given postmortem learnings
     // Enable compression reporting
     reportCompressedSize: true,
-    // Module preload optimization for better loading performance
+    // Module preload optimization - only preload critical path
     modulePreload: {
       polyfill: true,
+      resolveDependencies: (_, deps) => {
+        // Preload critical path + essential charts for PR contributions (~85 KiB total)
+        return deps.filter(dep => 
+          dep.includes('react-core') || 
+          dep.includes('react-ecosystem') ||
+          dep.includes('charts-essential') || // Include essential PR contribution chart
+          (!dep.includes('analytics') && 
+           !dep.includes('charts-advanced') && 
+           !dep.includes('ui-radix') &&
+           !dep.includes('icons') &&
+           !dep.includes('data') &&
+           !dep.includes('utils') &&
+           !dep.includes('test') &&
+           !dep.includes('storybook'))
+        );
+      }
     },
   },
   css: {

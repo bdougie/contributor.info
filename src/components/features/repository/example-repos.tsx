@@ -10,7 +10,7 @@ export function ExampleRepos({ onSelect }: ExampleReposProps) {
     "kubernetes/kubernetes",
     "facebook/react",
     "etcd-io/etcd",
-    "argoproj/argo-cd",
+    "vitejs/vite",
   ];
 
   return (

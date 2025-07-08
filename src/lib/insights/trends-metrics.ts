@@ -1,4 +1,4 @@
-import { fetchPullRequests } from '../github';
+import { fetchPRDataWithFallback } from '../supabase-pr-data';
 import type { PullRequest } from '../types';
 
 export interface TrendData {
@@ -43,8 +43,14 @@ export async function calculateTrendMetrics(
     const currentPeriodStart = new Date(now.getTime() - currentPeriodDays * 24 * 60 * 60 * 1000);
     const previousPeriodStart = new Date(now.getTime() - 2 * currentPeriodDays * 24 * 60 * 60 * 1000);
     
-    // Fetch data
-    const allPRs = await fetchPullRequests(owner, repo, timeRange);
+    // Fetch data (try database first, fallback to GitHub API)
+    const allPRs = await fetchPRDataWithFallback(owner, repo, timeRange);
+    
+    // Handle case where no data is available
+    if (!allPRs || allPRs.length === 0) {
+      return getEmptyTrends(periodLabel);
+    }
+    
     
     // Calculate PR Volume
     const currentPRs = allPRs.filter(pr => {
@@ -56,6 +62,7 @@ export async function calculateTrendMetrics(
       const createdAt = new Date(pr.created_at);
       return createdAt >= previousPeriodStart && createdAt < currentPeriodStart;
     });
+    
     
     const prVolumeChange = previousPRs.length > 0
       ? Math.round(((currentPRs.length - previousPRs.length) / previousPRs.length) * 100)
@@ -115,6 +122,30 @@ export async function calculateTrendMetrics(
       ? Math.round(((currentCompletionRate - previousCompletionRate) / previousCompletionRate) * 100)
       : 0;
     
+    // Calculate Review Activity
+    const calculateReviewActivity = (prs: PullRequest[]) => {
+      return prs.reduce((total, pr) => total + (pr.reviews?.length || 0), 0);
+    };
+    
+    const currentReviews = calculateReviewActivity(currentPRs);
+    const previousReviews = calculateReviewActivity(previousPRs);
+    
+    const reviewChange = previousReviews > 0
+      ? Math.round(((currentReviews - previousReviews) / previousReviews) * 100)
+      : 0;
+    
+    // Calculate Comment Activity
+    const calculateCommentActivity = (prs: PullRequest[]) => {
+      return prs.reduce((total, pr) => total + (pr.comments?.length || 0), 0);
+    };
+    
+    const currentComments = calculateCommentActivity(currentPRs);
+    const previousComments = calculateCommentActivity(previousPRs);
+    
+    const commentChange = previousComments > 0
+      ? Math.round(((currentComments - previousComments) / previousComments) * 100)
+      : 0;
+    
     // Build trends array
     const trends: TrendData[] = [
       {
@@ -172,6 +203,34 @@ export async function calculateTrendMetrics(
           : completionChange < 0
           ? "PR completion rate has decreased"
           : "PR completion rate stable"
+      },
+      {
+        metric: "Review Activity",
+        current: currentReviews,
+        previous: previousReviews,
+        change: reviewChange,
+        trend: reviewChange > 0 ? "up" : reviewChange < 0 ? "down" : "stable",
+        icon: "GitPullRequestDraft",
+        unit: "reviews",
+        insight: reviewChange > 0
+          ? `${Math.abs(currentReviews - previousReviews)} more reviews this ${periodLabel}`
+          : reviewChange < 0
+          ? `${Math.abs(currentReviews - previousReviews)} fewer reviews this ${periodLabel}`
+          : "Review activity stable"
+      },
+      {
+        metric: "Comment Activity", 
+        current: currentComments,
+        previous: previousComments,
+        change: commentChange,
+        trend: commentChange > 0 ? "up" : commentChange < 0 ? "down" : "stable",
+        icon: "MessageSquare",
+        unit: "comments",
+        insight: commentChange > 0
+          ? `${Math.abs(currentComments - previousComments)} more comments this ${periodLabel}`
+          : commentChange < 0
+          ? `${Math.abs(currentComments - previousComments)} fewer comments this ${periodLabel}`
+          : "Comment activity stable"
       }
     ];
     
@@ -179,6 +238,78 @@ export async function calculateTrendMetrics(
     
   } catch (error) {
     console.error('Error calculating trend metrics:', error);
-    return [];
+    // Return empty trends on error to prevent component crashes
+    return getEmptyTrends("period");
   }
+}
+
+/**
+ * Returns empty trend data when no data is available
+ * This prevents component crashes and provides graceful degradation
+ */
+function getEmptyTrends(periodLabel: string): TrendData[] {
+  const period = periodLabel === "week" ? "Weekly" : periodLabel === "month" ? "Monthly" : "Daily";
+  
+  return [
+    {
+      metric: `${period} PR Volume`,
+      current: 0,
+      previous: 0,
+      change: 0,
+      trend: "stable",
+      icon: "GitPullRequest",
+      unit: "PRs",
+      insight: "No recent PR data available"
+    },
+    {
+      metric: "Active Contributors",
+      current: 0,
+      previous: 0,
+      change: 0,
+      trend: "stable",
+      icon: "Users",
+      unit: "contributors",
+      insight: "No contributor data available"
+    },
+    {
+      metric: "Avg Review Time",
+      current: 0,
+      previous: 0,
+      change: 0,
+      trend: "stable",
+      icon: "Clock",
+      unit: "hours",
+      insight: "No review data available"
+    },
+    {
+      metric: "PR Completion Rate",
+      current: 0,
+      previous: 0,
+      change: 0,
+      trend: "stable",
+      icon: "CheckCircle",
+      unit: "%",
+      insight: "No completion data available"
+    },
+    {
+      metric: "Review Activity",
+      current: 0,
+      previous: 0,
+      change: 0,
+      trend: "stable",
+      icon: "GitPullRequestDraft",
+      unit: "reviews",
+      insight: "No review data available"
+    },
+    {
+      metric: "Comment Activity",
+      current: 0,
+      previous: 0,
+      change: 0,
+      trend: "stable",
+      icon: "MessageSquare",
+      unit: "comments",
+      insight: "No comment data available"
+    }
+  ];
 }

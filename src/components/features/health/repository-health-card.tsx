@@ -18,6 +18,9 @@ import { LotteryFactorContent } from "./lottery-factor";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { SelfSelectionRate } from "@/components/features/contributor/self-selection-rate";
 import { useAutoTrackRepository } from "@/hooks/use-auto-track-repository";
+import { ContributorConfidenceCard } from "./contributor-confidence-card";
+import { calculateRepositoryConfidence, ConfidenceBreakdown } from "@/lib/insights/health-metrics";
+import { useOnDemandSync } from "@/hooks/use-on-demand-sync";
 
 export function RepositoryHealthCard() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -36,10 +39,98 @@ export function RepositoryHealthCard() {
   const [localIncludeBots, setLocalIncludeBots] = useState(includeBots);
   const functionTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  // State for contributor confidence calculation
+  const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
+  const [confidenceLoading, setConfidenceLoading] = useState(false);
+  const [confidenceError, setConfidenceError] = useState<string | null>(null);
+  const [confidenceBreakdown, setConfidenceBreakdown] = useState<ConfidenceBreakdown['breakdown'] | undefined>(undefined);
+
+  // Sync status for confidence calculation
+  const { syncStatus: confidenceSyncStatus } = useOnDemandSync({
+    owner: owner || '',
+    repo: repo || '',
+    enabled: !!(owner && repo),
+    autoTriggerOnEmpty: false
+  });
+
   // Sync local state with context when it changes
   useEffect(() => {
     setLocalIncludeBots(includeBots);
   }, [includeBots]);
+
+  // Calculate contributor confidence using the same algorithm as admin dashboard
+  const calculateConfidence = async (forceRecalculate: boolean = false) => {
+    if (!owner || !repo) return;
+    
+    setConfidenceLoading(true);
+    setConfidenceError(null);
+    
+    try {
+      // Import supabase here to avoid circular dependencies
+      const { supabase } = await import('@/lib/supabase');
+      
+      // Use the same function as the admin dashboard
+      const { data, error } = await supabase
+        .rpc('get_repository_confidence_summary_simple')
+        .eq('repository_owner', owner)
+        .eq('repository_name', repo)
+        .single();
+
+      if (error) throw error;
+      
+      if (data && (data as any).avg_confidence_score !== null) {
+        setConfidenceScore(Number((data as any).avg_confidence_score));
+        // Create a basic breakdown for tooltip compatibility
+        setConfidenceBreakdown({
+          starForkConfidence: Number((data as any).avg_confidence_score) * 0.35,
+          engagementConfidence: Number((data as any).avg_confidence_score) * 0.25,
+          retentionConfidence: Number((data as any).avg_confidence_score) * 0.25,
+          qualityConfidence: Number((data as any).avg_confidence_score) * 0.15,
+          totalStargazers: 0,
+          totalForkers: 0,
+          contributorCount: (data as any).contributor_count || 0,
+          conversionRate: Number((data as any).avg_confidence_score)
+        });
+      } else {
+        // Fallback to the original algorithm if no data in the new system
+        const result = await calculateRepositoryConfidence(
+          owner, 
+          repo, 
+          timeRange, 
+          forceRecalculate, 
+          false, // returnMetadata
+          true   // returnBreakdown
+        ) as ConfidenceBreakdown;
+        
+        setConfidenceScore(result.score);
+        setConfidenceBreakdown(result.breakdown);
+      }
+    } catch (error) {
+      console.error('Failed to calculate contributor confidence:', error);
+      setConfidenceError('Repository data not available. This repository may need to be synced first.');
+      setConfidenceScore(null);
+      setConfidenceBreakdown(undefined);
+    } finally {
+      setConfidenceLoading(false);
+    }
+  };
+
+  // Calculate confidence when component mounts or params change
+  useEffect(() => {
+    calculateConfidence();
+  }, [owner, repo, timeRange]);
+
+  // Reset confidence score when sync starts, recalculate when sync completes
+  useEffect(() => {
+    if (confidenceSyncStatus.isTriggering || confidenceSyncStatus.isInProgress) {
+      // Clear the score to show skeleton while syncing
+      setConfidenceScore(null);
+      setConfidenceError(null);
+    } else if (confidenceSyncStatus.isComplete) {
+      // Recalculate confidence after sync completes
+      calculateConfidence();
+    }
+  }, [confidenceSyncStatus.isTriggering, confidenceSyncStatus.isInProgress, confidenceSyncStatus.isComplete]);
 
   const botCount = stats.pullRequests.filter(
     (pr) => pr.user.type === "Bot"
@@ -111,10 +202,26 @@ export function RepositoryHealthCard() {
               </CardContent>
             </Card>
 
-            {/* Right Column - Health Factors (top) and Self-Selection Rate (bottom) */}
+            {/* Right Column - Contributor Confidence (top), Health Factors (middle), Self-Selection Rate (bottom) */}
             <div className="space-y-6">
-              {/* Health Factors - Top */}
-              <RepositoryHealthFactors stats={stats} timeRange={timeRange} />
+              {/* Contributor Confidence - Top */}
+              <ContributorConfidenceCard
+                confidenceScore={confidenceScore}
+                loading={confidenceLoading || confidenceSyncStatus.isTriggering || confidenceSyncStatus.isInProgress}
+                error={confidenceError}
+                className="w-full"
+                owner={owner}
+                repo={repo}
+                breakdown={confidenceBreakdown}
+                onRefresh={() => calculateConfidence(true)}
+              />
+              
+              {/* Health Factors - Middle */}
+              <RepositoryHealthFactors 
+                stats={stats} 
+                timeRange={timeRange} 
+                repositoryName={`${owner}/${repo}`}
+              />
               
               {/* Self-Selection Rate - Bottom */}
               <SelfSelectionRate 

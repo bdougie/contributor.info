@@ -1,52 +1,61 @@
-import { Card } from "@/components/ui/card";
+import { GitPullRequest, Users, TrendingUp } from "lucide-react";
 
 export default function HomeSocialCard() {
   return (
-    <div className="w-[1200px] h-[630px] bg-gradient-to-br from-background to-muted flex items-center justify-center p-16">
-      <Card className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden">
-        {/* Background pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }} />
-        </div>
+    <div className="w-[1200px] h-[630px] bg-black flex flex-col relative overflow-hidden">
 
-        {/* Logo */}
-        <div className="w-32 h-32 bg-primary rounded-full flex items-center justify-center mb-8 relative z-10">
-          <span className="text-4xl font-bold text-primary-foreground">CI</span>
+      {/* Header */}
+      <div className="flex justify-between items-start p-12 relative z-10">
+        {/* Logo/Brand with favicon */}
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="w-8 h-8">
+              <text y=".9em" fontSize="90" textAnchor="middle" x="50">🌱</text>
+            </svg>
+          </div>
+          <span className="text-white text-xl font-semibold">contributor.info</span>
         </div>
+      </div>
 
-        {/* Title */}
-        <h1 className="text-6xl font-bold text-center mb-4 relative z-10">
-          contributor.info
+      {/* Main content */}
+      <div className="flex-1 px-12 pb-20 flex flex-col justify-center relative z-10">
+        {/* Main title */}
+        <h1 className="text-6xl font-bold text-white mb-8">
+          Open Source Insights
         </h1>
 
         {/* Tagline */}
-        <p className="text-2xl text-muted-foreground text-center mb-12 relative z-10">
-          Visualizing Open Source Contributions
+        <p className="text-2xl text-gray-300 mb-16">
+          Visualizing contributions across the ecosystem
         </p>
 
-        {/* Stats */}
-        <div className="flex gap-12 relative z-10">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-primary">1000+</div>
-            <div className="text-lg text-muted-foreground">Repositories</div>
+        {/* Bottom section with metrics */}
+        <div className="flex items-center gap-12">
+          <div className="flex items-center gap-3">
+            <Users className="w-8 h-8 text-orange-500" />
+            <div>
+              <span className="text-4xl font-bold text-white">50K+</span>
+              <span className="text-xl text-gray-300 ml-2">Contributors</span>
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold text-primary">50K+</div>
-            <div className="text-lg text-muted-foreground">Contributors</div>
+          
+          <div className="flex items-center gap-3">
+            <GitPullRequest className="w-8 h-8 text-orange-500" />
+            <div>
+              <span className="text-4xl font-bold text-white">500K+</span>
+              <span className="text-xl text-gray-300 ml-2">Pull Requests</span>
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold text-primary">500K+</div>
-            <div className="text-lg text-muted-foreground">Pull Requests</div>
-          </div>
-        </div>
 
-        {/* URL */}
-        <div className="absolute bottom-8 text-lg text-muted-foreground">
-          contributor.info
+          <div className="flex items-center gap-3">
+            <TrendingUp className="w-8 h-8 text-orange-500" />
+            <div>
+              <span className="text-4xl font-bold text-white">1000+</span>
+              <span className="text-xl text-gray-300 ml-2">Repositories</span>
+            </div>
+          </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

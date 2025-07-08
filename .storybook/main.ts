@@ -79,6 +79,31 @@ const config: StorybookConfig = {
           '@/lib/supabase': new URL('./mocks/supabase.ts', import.meta.url).pathname,
           // Mock react-router-dom for Storybook to avoid router-related errors
           'react-router-dom': new URL('./mocks/react-router-dom.ts', import.meta.url).pathname,
+          // Mock hooks for Storybook to avoid dependency issues
+          '@/hooks/use-on-demand-sync': new URL('./mocks/use-on-demand-sync.ts', import.meta.url).pathname,
+          '@/hooks/use-github-auth': new URL('./mocks/use-github-auth.ts', import.meta.url).pathname,
+          '@/hooks/use-cached-repo-data': new URL('./mocks/use-cached-repo-data.ts', import.meta.url).pathname,
+          '@/hooks/use-repo-search': new URL('./mocks/use-repo-search.ts', import.meta.url).pathname,
+          '@/hooks/use-repo-stats': new URL('./mocks/use-repo-stats.ts', import.meta.url).pathname,
+          '@/hooks/use-time-formatter': new URL('./mocks/use-time-formatter.ts', import.meta.url).pathname,
+          '@/hooks/use-auto-track-repository': new URL('./mocks/use-auto-track-repository.ts', import.meta.url).pathname,
+          // Mock stores and utilities
+          '@/lib/time-range-store': new URL('./mocks/time-range-store.ts', import.meta.url).pathname,
+          '@/lib/insights/health-metrics': new URL('./mocks/health-metrics.ts', import.meta.url).pathname,
+          '@/lib/contribution-analyzer': new URL('./mocks/contribution-analyzer.ts', import.meta.url).pathname,
+          '@/lib/dub': new URL('./mocks/dub.ts', import.meta.url).pathname,
+          // Mock components
+          '@/components/common/cards': new URL('./mocks/cards.ts', import.meta.url).pathname,
+          '@/components/features/sharing/shareable-card': new URL('./mocks/shareable-card.ts', import.meta.url).pathname,
+          '@/components/features/contributor': new URL('./mocks/contributor.ts', import.meta.url).pathname,
+          '@/components/icons/LotteryIcon': new URL('./mocks/icons.ts', import.meta.url).pathname,
+          '@/components/icons/YoloIcon': new URL('./mocks/icons.ts', import.meta.url).pathname,
+          // Mock health components
+          '@/components/insights/sections/repository-health-overall': new URL('./mocks/health-components.ts', import.meta.url).pathname,
+          '@/components/insights/sections/repository-health-factors': new URL('./mocks/health-components.ts', import.meta.url).pathname,
+          './lottery-factor': new URL('./mocks/health-components.ts', import.meta.url).pathname,
+          './contributor-confidence-card': new URL('./mocks/health-components.ts', import.meta.url).pathname,
+          '@/components/features/contributor/self-selection-rate': new URL('./mocks/health-components.ts', import.meta.url).pathname,
         },
       },
       // Enhanced server configuration for development

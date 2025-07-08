@@ -5,7 +5,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
-import { PRActivity } from "../activity";
+import PRActivityWrapper from "../activity/pr-activity-wrapper";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
 import { FeedSkeleton } from "@/components/skeletons";
@@ -86,7 +86,7 @@ export default function FeedPage() {
           setIncludeBots,
         }}
       >
-        <PRActivity />
+        <PRActivityWrapper />
       </RepoStatsProvider>
     </div>
   );

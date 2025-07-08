@@ -10,8 +10,8 @@ interface ActivityCache {
   };
 }
 
-// Cache duration in milliseconds (5 minutes)
-const CACHE_DURATION = 5 * 60 * 1000;
+// Cache duration in milliseconds (10 minutes for better performance)
+const CACHE_DURATION = 10 * 60 * 1000;
 
 // Global cache to persist across component re-mounts
 const activityCache: ActivityCache = {};
@@ -203,7 +203,7 @@ function processActivities(pullRequests: PullRequest[]): PullRequestActivity[] {
 
   // Sort activities by date, newest first
   return processedActivities.sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    (a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)
   );
 }
 

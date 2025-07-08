@@ -1,5 +1,3 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -7,14 +5,31 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { SearchIcon } from "lucide-react";
 import { ExampleRepos } from "../../features/repository";
-import { useRepoSearch } from "@/hooks/use-repo-search";
+import { useNavigate } from "react-router-dom";
 import { SocialMetaTags } from "./meta-tags-provider";
+import { GitHubSearchInput } from "@/components/ui/github-search-input";
+import type { GitHubRepository } from "@/lib/github";
 
 export default function Home() {
-  const { searchInput, setSearchInput, handleSearch, handleSelectExample } =
-    useRepoSearch({ isHomeView: true });
+  const navigate = useNavigate();
+
+  const handleSearch = (repositoryPath: string) => {
+    // Extract owner and repo from the path
+    const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+    if (match) {
+      const [, owner, repo] = match;
+      navigate(`/${owner}/${repo}`);
+    }
+  };
+
+  const handleSelectRepository = (repository: GitHubRepository) => {
+    navigate(`/${repository.full_name}`);
+  };
+
+  const handleSelectExample = (repo: string) => {
+    handleSearch(repo);
+  };
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
@@ -35,18 +50,12 @@ export default function Home() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSearch} className="flex gap-4">
-            <Input
-              placeholder="e.g., etcd-io/etcd or https://github.com/etcd-io/etcd"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="submit" aria-label="Analyze">
-              <SearchIcon className="mr-2 h-4 w-4" />
-              Analyze
-            </Button>
-          </form>
+          <GitHubSearchInput
+            placeholder="Search repositories (e.g., facebook/react)"
+            onSearch={handleSearch}
+            onSelect={handleSelectRepository}
+            buttonText="Analyze"
+          />
           <ExampleRepos onSelect={handleSelectExample} />
         </CardContent>
       </Card>

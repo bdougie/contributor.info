@@ -4,5 +4,6 @@ export {
   ContributionsRoute,
   DistributionRoute
 } from './repo-view';
+export { default as RepoNotFound } from './repo-not-found';
 export { RepoStatsSummary } from './repo-stats-summary';
 export { ExampleRepos } from './example-repos';

@@ -21,6 +21,9 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        content: {
+          DEFAULT: 'hsl(var(--content-background))',
+        },
         popover: {
           DEFAULT: 'hsl(var(--popover))',
           foreground: 'hsl(var(--popover-foreground))',
@@ -28,6 +31,10 @@ export default {
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
+          white: 'hsl(0 0% 100%)',
+          'white-overlay': 'hsl(var(--background) / 0.8)',
+          'white-glass': 'hsl(0 0% 100% / 0.5)',
+          'white-glass-dark': 'hsl(220 13% 18% / 0.5)',
         },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
@@ -59,6 +66,23 @@ export default {
           4: 'hsla(359, 100%, 94%, 1)',
           11: 'hsla(358, 65%, 45%, 1)',
         },
+      },
+      boxShadow: {
+        // Design system shadows for light mode depth
+        'card': '0px 2px 8px rgba(0, 0, 0, 0.04)',
+        'card-hover': '0px 4px 12px rgba(0, 0, 0, 0.08)',
+        'light-sm': '0px 1px 2px rgba(0, 0, 0, 0.05)',
+        'light-md': '0px 4px 6px rgba(0, 0, 0, 0.07)',
+        'light-lg': '0px 4px 24px rgba(0, 0, 0, 0.1)',
+        // Keep existing Tailwind shadows
+        sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+        DEFAULT: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+        md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+        lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+        xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+        '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
+        inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
+        none: 'none',
       },
       keyframes: {
         'accordion-down': {

@@ -42,6 +42,11 @@ const popularRepos = [
   { owner: 'microsoft', repo: 'vscode' },
   { owner: 'torvalds', repo: 'linux' },
   { owner: 'nodejs', repo: 'node' },
+  // Additional popular/demo repos
+  { owner: 'continuedev', repo: 'continue' },
+  { owner: 'supabase', repo: 'supabase' },
+  { owner: 'tailwindlabs', repo: 'tailwindcss' },
+  { owner: 'anthropics', repo: 'anthropic-sdk-typescript' },
 ];
 
 async function generateCard(browser, cardConfig) {
@@ -61,6 +66,21 @@ async function generateCard(browser, cardConfig) {
     // Wait a bit for any animations or async content
     await page.waitForTimeout(2000);
     
+    // Hide any potential sharing elements that might appear
+    await page.addStyleTag({
+      content: `
+        [data-shareable-card] { display: none !important; }
+        .shareable-card { display: none !important; }
+        button[title*="Copy"] { display: none !important; }
+        button[title*="Share"] { display: none !important; }
+        button[title*="Download"] { display: none !important; }
+        .lucide-copy, .lucide-share-2, .lucide-download, .lucide-link { display: none !important; }
+      `
+    });
+    
+    // Wait a bit more to ensure styles are applied
+    await page.waitForTimeout(500);
+    
     // Take screenshot
     const screenshotPath = path.join(config.outputDir, cardConfig.fileName);
     await page.screenshot({ 
@@ -75,7 +95,7 @@ async function generateCard(browser, cardConfig) {
       .from('social-cards')
       .upload(cardConfig.fileName, fileBuffer, {
         contentType: 'image/png',
-        cacheControl: '31536000', // 1 year cache
+        cacheControl: '86400', // 1 day cache (reduced from 1 year for easier updates)
         upsert: true
       });
       
@@ -123,7 +143,7 @@ async function main() {
       await generateCard(browser, config.cards[0]);
       
       // Generate repo cards (configurable count via REPO_COUNT env var)
-      const repoCount = parseInt(process.env.REPO_COUNT) || 1;
+      const repoCount = parseInt(process.env.REPO_COUNT) || 5; // Increased default to include continuedev/continue
       const limitedRepos = popularRepos.slice(0, repoCount);
       console.log(`Generating cards for ${limitedRepos.length} repositories`);
       for (const { owner, repo } of limitedRepos) {

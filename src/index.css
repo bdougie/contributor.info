@@ -4,26 +4,30 @@
 
 @layer base {
   :root {
-    --background: 0 0% 97%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 99%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 99%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 94%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 94%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 94%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 87%;
-    --input: 0 0% 95%;
-    --ring: 0 0% 3.9%;
+    /* Light mode - Enhanced with design system colors (HSL format) */
+    --background: 210 20% 98%;        /* #F8F9FA - slate-02 light background */
+    --foreground: 215 25% 27%;        /* #11181C - slate-12 */
+    --card: 0 0% 100%;                /* #FFFFFF - pure white for cards */
+    --card-foreground: 215 25% 27%;   /* #11181C - slate-12 */
+    --popover: 0 0% 100%;             /* #FFFFFF */
+    --popover-foreground: 215 25% 27%; /* #11181C - slate-12 */
+    --primary: 14 100% 50%;           /* #FF5402 - Bright Orange for buttons/links */
+    --primary-foreground: 0 0% 100%;  /* White text on bright orange */
+    --secondary: 210 20% 94%;         /* #ECEEF0 - slate-04 darker slate */
+    --secondary-foreground: 215 25% 27%; /* #11181C - slate-12 */
+    --muted: 210 20% 94%;             /* #ECEEF0 - slate-04 darker slate */
+    --muted-foreground: 215 16% 47%;  /* #889096 - slate-09 */
+    --accent: 210 20% 94%;            /* #ECEEF0 - slate-04 darker slate */
+    --accent-foreground: 215 25% 27%; /* #11181C - slate-12 */
+    --destructive: 0 84.2% 60.2%;     /* Keep existing red */
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;            /* #ECEEF0 - slate-04 */
+    --input: 210 20% 96%;             /* #F1F3F5 - slate-03 */
+    --ring: 14 100% 50%;              /* #FF5402 - Bright Orange for light mode focus */
     --radius: 0.5rem;
+    
+    /* Content area backgrounds */
+    --content-background: 210 20% 94%; /* #ECEEF0 - darker slate for main content */
   }
 
   .dark {
@@ -33,8 +37,8 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
+    --primary: 14 100% 50%;           /* #FF5402 - Bright Orange for dark mode */
+    --primary-foreground: 0 0% 100%;  /* White text on orange background */
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;
@@ -45,7 +49,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --ring: 14 100% 50%;              /* #FF5402 - Bright Orange for dark mode focus */
   }
 }
 
@@ -102,5 +106,154 @@
   .skeleton-list-item {
     contain: layout style;
     will-change: contents;
+  }
+
+  /* Hide all sharing elements when in social card layout */
+  .social-card-layout [data-shareable-card],
+  .social-card-layout .shareable-card,
+  .social-card-layout button[title*="Copy"],
+  .social-card-layout button[title*="Share"],
+  .social-card-layout button[title*="Download"] {
+    display: none !important;
+  }
+
+  /* Hide tooltips during capture to prevent them from appearing in downloaded images */
+  .capturing [data-state="delayed-open"],
+  .capturing [data-state="instant-open"],
+  .capturing [role="tooltip"],
+  .capturing .tooltip-trigger,
+  .capturing [data-radix-tooltip-trigger] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Light mode specific shadow enhancements */
+  .light .bg-card {
+    @apply shadow-card;
+  }
+  
+  /* Enhanced focus states for light mode */
+  .light *:focus-visible {
+    @apply ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+  
+  /* Content area backgrounds in light mode - target the main container */
+  .light main.container {
+    @apply bg-content;
+  }
+  
+  /* Ensure specific layout areas get the darker slate background */
+  .light .main-content,
+  .light [role="main"] {
+    @apply bg-content;
+  }
+  
+  /* Ensure proper text color in dark mode for search and input components */
+  .dark input[type="text"],
+  .dark input[type="search"],
+  .dark input[placeholder] {
+    @apply text-foreground;
+  }
+  
+  /* Ensure bright orange for primary elements in both modes */
+  .bg-primary,
+  button.bg-primary {
+    background-color: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+  }
+  
+  /* Ensure all primary buttons have white text */
+  .dark button[class*="bg-primary"],
+  .dark .bg-primary {
+    color: hsl(0 0% 100%) !important;
+  }
+  
+  /* Fix switch component visibility */
+  /* Switch background uses primary color when checked */
+  [data-state="checked"] {
+    background-color: hsl(var(--primary)) !important;
+  }
+  
+  /* Switch thumb should be white/contrasting when checked for visibility */
+  [data-state="checked"] .pointer-events-none {
+    background-color: hsl(var(--background)) !important;
+    border: 1px solid hsl(var(--border));
+  }
+  
+  /* Ensure switch thumb has proper contrast in dark mode */
+  .dark [data-state="checked"] .pointer-events-none {
+    background-color: hsl(0 0% 0%) !important;
+    border: 1px solid hsl(0 0% 10%);
+  }
+  
+  /* SPECIFIC: Search button on home page should be white with black text in dark mode ONLY */
+  /* Override Tailwind classes with high specificity */
+  .dark form button[type="submit"][aria-label="Analyze"] {
+    background-color: hsl(0 0% 100%) !important;
+    color: hsl(0 0% 0%) !important;
+    border: 1px solid hsl(0 0% 80%) !important;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+  }
+  
+  .dark form button[type="submit"][aria-label="Analyze"].bg-primary {
+    background-color: hsl(0 0% 100%) !important;
+    color: hsl(0 0% 0%) !important;
+  }
+  
+  .dark form button[type="submit"][aria-label="Analyze"]:hover {
+    background-color: hsl(0 0% 95%) !important;
+    color: hsl(0 0% 0%) !important;
+  }
+  
+  .dark form button[type="submit"][aria-label="Analyze"]:focus-visible {
+    background-color: hsl(0 0% 100%) !important;
+    color: hsl(0 0% 0%) !important;
+    outline: 2px solid hsl(0 0% 60%) !important;
+    outline-offset: 2px !important;
+  }
+  
+  /* SPECIFIC: Search button in repo-view should be white with black text in dark mode ONLY */
+  .dark form button[type="submit"][aria-label="Search"] {
+    background-color: hsl(0 0% 100%) !important;
+    color: hsl(0 0% 0%) !important;
+    border: 1px solid hsl(0 0% 80%) !important;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+  }
+  
+  .dark form button[type="submit"][aria-label="Search"].bg-primary {
+    background-color: hsl(0 0% 100%) !important;
+    color: hsl(0 0% 0%) !important;
+  }
+  
+  .dark form button[type="submit"][aria-label="Search"]:hover {
+    background-color: hsl(0 0% 95%) !important;
+    color: hsl(0 0% 0%) !important;
+  }
+  
+  .dark form button[type="submit"][aria-label="Search"]:focus-visible {
+    background-color: hsl(0 0% 100%) !important;
+    color: hsl(0 0% 0%) !important;
+    outline: 2px solid hsl(0 0% 60%) !important;
+    outline-offset: 2px !important;
+  }
+
+  /* REUSABLE: Primary white button class for dark mode consistency */
+  .btn-primary-white {
+    background-color: hsl(0 0% 100%) !important;
+    color: hsl(0 0% 0%) !important;
+    border: 1px solid hsl(0 0% 80%) !important;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+  }
+  
+  .btn-primary-white:hover {
+    background-color: hsl(0 0% 95%) !important;
+    color: hsl(0 0% 0%) !important;
+  }
+  
+  .btn-primary-white:focus-visible {
+    background-color: hsl(0 0% 100%) !important;
+    color: hsl(0 0% 0%) !important;
+    outline: 2px solid hsl(0 0% 60%) !important;
+    outline-offset: 2px !important;
   }
 }
