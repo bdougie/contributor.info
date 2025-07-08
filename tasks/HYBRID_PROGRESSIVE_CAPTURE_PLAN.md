@@ -422,6 +422,47 @@ Savings: 60-85% cost reduction
 - **Maintenance**: Automated monitoring and alerting
 - **Scaling**: Design for 10x growth from day one
 
+## Future Improvements
+
+### 1. GraphQL Migration (HIGH PRIORITY)
+**Status**: Documented in `/docs/github-graphql-migration-plan.md`
+
+Migrate to GitHub's GraphQL API for significant efficiency gains:
+- **2-5x fewer API calls**: 1 GraphQL query vs 5 REST calls per PR
+- **Higher secondary limits**: 2,000 points/minute (GraphQL) vs 900 points/minute (REST)
+- **Better timeout resilience**: Single atomic request vs multiple calls
+- **Smarter rate limit usage**: Points based on complexity, not request count
+
+**Impact**: Would allow processing 2-5x more data within same rate limits, making both Inngest and GitHub Actions more efficient.
+
+### 2. Timeout Optimizations (COMPLETED ✅)
+**Status**: Documented in `/docs/inngest-timeout-optimizations.md`
+
+Successfully resolved 30-second timeout issues in Inngest functions:
+- Added aggressive timeouts to all operations (15s API, 10s DB)
+- Removed unnecessary rate limit checking
+- Optimized database operations with upserts
+- Streamlined function steps
+- **Result**: 95%+ success rate, 8-15 second average duration
+
+### 3. Advanced Batch Processing
+- Implement GraphQL batch queries for multiple PRs
+- Use GitHub's batch endpoints where available
+- Smart batching based on repository activity and size
+- **Note**: GraphQL migration would enable more efficient batching
+
+### 4. Intelligent Caching Strategy
+- Cache repository metadata and contributor data
+- Use Supabase as a smart cache layer
+- Implement TTL-based cache invalidation
+- Cache GraphQL query results for repeated requests
+
+### 5. Performance Monitoring & Analytics
+- Real-time rate limit tracking across both APIs
+- Cost analysis per repository and data type
+- Performance metrics dashboard
+- Automated optimization recommendations
+
 ## Conclusion
 
 The hybrid approach leverages the strengths of both systems:

@@ -819,6 +819,19 @@ strategy:
 4. **User Experience**: No degradation from current
 5. **Maintainability**: Reduce code complexity by 30%
 
+## Recent Optimizations (COMPLETED ✅)
+
+**Inngest Timeout Fixes**: Documented in `/docs/inngest-timeout-optimizations.md`
+- Resolved 30-second timeout issues
+- Achieved 95%+ success rate
+- Average duration reduced to 8-15 seconds
+- These optimizations buy time for GitHub Actions migration
+
+**Future GraphQL Integration**: Documented in `/docs/github-graphql-migration-plan.md`
+- 2-5x more efficient rate limit usage
+- Perfect complement to GitHub Actions approach
+- Should be implemented for both Inngest and GitHub Actions workflows
+
 ## Timeline
 
 - **Week 1**: Create scripts and basic workflows
