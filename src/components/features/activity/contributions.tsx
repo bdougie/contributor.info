@@ -1,6 +1,7 @@
 import { useState, useContext, useEffect, useRef, Suspense, lazy } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { animated } from "@react-spring/web";
 
 // Lazy load the heavy visualization component
@@ -31,6 +32,7 @@ function ContributionsChart() {
   const [isLogarithmic, setIsLogarithmic] = useState(false);
   const [maxFilesModified, setMaxFilesModified] = useState(10);
   const [localIncludeBots, setLocalIncludeBots] = useState(contextIncludeBots);
+  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "merged" | "closed">("all");
   const safeStats = stats || { pullRequests: [], loading: false, error: null };
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" && window.innerWidth < 768
@@ -149,6 +151,13 @@ function ContributionsChart() {
     // Sort by created_at and filter based on preferences
     const filteredPRs = [...safeStats.pullRequests]
       .filter((pr) => localIncludeBots || pr.user.type !== "Bot")
+      .filter((pr) => {
+        if (statusFilter === "all") return true;
+        if (statusFilter === "open") return pr.state === "open";
+        if (statusFilter === "closed") return pr.state === "closed" && !pr.merged_at;
+        if (statusFilter === "merged") return pr.merged_at !== null;
+        return true;
+      })
       .sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -169,9 +178,10 @@ function ContributionsChart() {
           return null;
         }
 
+        const linesTouched = pr.additions + pr.deletions;
         return {
           x: daysAgo,
-          y: pr.additions + pr.deletions,
+          y: Math.max(linesTouched, 1), // Ensure minimum visibility of 1 line
           contributor: pr.user.login,
           image: pr.user.avatar_url,
           _pr: pr, // store full PR for hover card
@@ -300,35 +310,50 @@ function ContributionsChart() {
   return (
     <div className="space-y-4 w-full overflow-hidden">
         <div
-          className={`flex flex-col items-start justify-between pt-3 ${
-            isMobile ? "px-2" : "md:flex-row md:px-7"
+          className={`flex flex-col gap-4 pt-3 ${
+            isMobile ? "px-2" : "md:px-7"
           }`}
         >
-          <div className="text-sm text-muted-foreground">
-            {data[0].data.length} pull requests shown
-          </div>
-          <div className={`flex flex-wrap gap-2 mt-3 md:mt-0 ${isMobile ? "w-full" : ""}`}>
-            {hasBots && (
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="text-sm text-muted-foreground">
+              {data[0].data.length} pull requests shown
+            </div>
+            
+            {/* Status Filter Tabs */}
+            <div className="flex-shrink-0">
+              <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | "open" | "merged" | "closed")}>
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
+                  <TabsTrigger value="open" className="text-xs">Open</TabsTrigger>
+                  <TabsTrigger value="merged" className="text-xs">Merged</TabsTrigger>
+                  <TabsTrigger value="closed" className="text-xs">Closed</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            
+            <div className={`flex flex-wrap gap-2 ${isMobile ? "w-full" : ""}`}>
+              {hasBots && (
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="include-bots"
+                    checked={localIncludeBots}
+                    onCheckedChange={handleToggleIncludeBots}
+                  />
+                  <Label htmlFor="include-bots" className="text-sm">
+                    Show Bots
+                  </Label>
+                </div>
+              )}
               <div className="flex items-center space-x-2">
                 <Switch
-                  id="include-bots"
-                  checked={localIncludeBots}
-                  onCheckedChange={handleToggleIncludeBots}
+                  id="logarithmic-scale"
+                  checked={isLogarithmic}
+                  onCheckedChange={handleSetLogarithmic}
                 />
-                <Label htmlFor="include-bots" className="text-sm">
-                  Show Bots
+                <Label htmlFor="logarithmic-scale" className="text-sm">
+                  Enhance
                 </Label>
               </div>
-            )}
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="logarithmic-scale"
-                checked={isLogarithmic}
-                onCheckedChange={handleSetLogarithmic}
-              />
-              <Label htmlFor="logarithmic-scale" className="text-sm">
-                Enhance
-              </Label>
             </div>
           </div>
         </div>
@@ -355,7 +380,7 @@ function ContributionsChart() {
               }}
               yScale={{
                 type: isLogarithmic ? "symlog" : "linear",
-                min: 0,
+                min: 1,
                 max: Math.max(Math.round(maxFilesModified * 1.5), 10),
               }}
               blendMode="normal"
@@ -384,7 +409,7 @@ function ContributionsChart() {
                 tickPadding: 3,
                 tickRotation: 0,
                 tickValues: isMobile ? 3 : 5,
-                legend: isMobile ? "Lines" : "Lines Changed",
+                legend: isMobile ? "Lines" : "Lines Touched",
                 legendPosition: "middle",
                 legendOffset: isMobile ? -20 : -60,
                 format: (value: number) => {

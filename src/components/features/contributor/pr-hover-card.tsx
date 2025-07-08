@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 import React from "react";
 
 // Function to get status badge styling
-const getStatusBadgeStyle = (state: string, merged: boolean) => {
-  if (merged)
+const getStatusBadgeStyle = (state: string, merged_at: string | null | undefined) => {
+  if (merged_at)
     return "bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400";
   if (state === "closed")
     return "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400";
@@ -16,8 +16,8 @@ const getStatusBadgeStyle = (state: string, merged: boolean) => {
 };
 
 // Function to get status label
-const getStatusLabel = (state: string, merged: boolean) => {
-  if (merged) return "merged";
+const getStatusLabel = (state: string, merged_at: string | null | undefined) => {
+  if (merged_at) return "merged";
   return state;
 };
 
@@ -43,10 +43,9 @@ interface PullRequest {
   number: number;
   title: string;
   state: string;
-  merged: boolean;
   created_at: string;
   updated_at: string;
-  merged_at?: string;
+  merged_at?: string | null;
   closed_at?: string;
   additions: number;
   deletions: number;
@@ -160,11 +159,11 @@ export function PrHoverCard({
                   <Badge
                     className={cn(
                       "text-xs border-0",
-                      getStatusBadgeStyle(pullRequest.state, pullRequest.merged)
+                      getStatusBadgeStyle(pullRequest.state, pullRequest.merged_at)
                     )}
                     variant="secondary"
                   >
-                    {getStatusLabel(pullRequest.state, pullRequest.merged)}
+                    {getStatusLabel(pullRequest.state, pullRequest.merged_at)}
                   </Badge>
                   <span className="text-xs text-muted-foreground font-medium">
                     #{pullRequest.number}
@@ -184,9 +183,9 @@ export function PrHoverCard({
               </div>
             </div>
 
-            {/* Lines Changed */}
+            {/* Lines Touched */}
             <div className="space-y-2">
-              <div className="text-xs font-medium text-muted-foreground">Lines Changed</div>
+              <div className="text-xs font-medium text-muted-foreground">Lines Touched</div>
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div className="flex items-center gap-1">
                   <Plus className="h-3 w-3 text-green-600" />
