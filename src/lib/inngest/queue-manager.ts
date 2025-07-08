@@ -206,7 +206,10 @@ export class InngestQueueManager {
 
     // Only add the not.in filter if we have existing IDs
     if (existingPrIds.length > 0) {
-      query = query.not('id', 'in', `(${existingPrIds.map(id => `'${id}'`).join(',')})`);
+      // Remove duplicates and limit to reasonable number to avoid URL length issues
+      const uniqueIds = [...new Set(existingPrIds)];
+      const limitedIds = uniqueIds.slice(0, 50); // Limit to 50 to avoid URL length issues
+      query = query.not('id', 'in', limitedIds);
     }
 
     const { data: prsNeedingReviews, error } = await query;
@@ -270,7 +273,10 @@ export class InngestQueueManager {
 
     // Only add the not.in filter if we have existing IDs
     if (existingPrIds.length > 0) {
-      query = query.not('id', 'in', `(${existingPrIds.map(id => `'${id}'`).join(',')})`);
+      // Remove duplicates and limit to reasonable number to avoid URL length issues
+      const uniqueIds = [...new Set(existingPrIds)];
+      const limitedIds = uniqueIds.slice(0, 50); // Limit to 50 to avoid URL length issues
+      query = query.not('id', 'in', limitedIds);
     }
 
     const { data: prsNeedingComments, error } = await query;

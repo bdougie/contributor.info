@@ -192,19 +192,17 @@ export const capturePrComments = inngest.createFunction(
       return allComments.length;
     });
 
-    // Step 4: Update PR comment count
+    // Step 4: Update PR timestamp (comment counts are tracked via foreign key relationships)
     await step.run("update-pr-stats", async () => {
       const { error } = await supabase
         .from('pull_requests')
         .update({
-          comments_count: commentsData.issueComments.length,
-          review_comments_count: commentsData.prComments.length,
           updated_at: new Date().toISOString(),
         })
         .eq('id', prId);
 
       if (error) {
-        console.warn(`Failed to update PR comment counts: ${error.message}`);
+        console.warn(`Failed to update PR timestamp: ${error.message}`);
       }
     });
 

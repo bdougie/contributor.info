@@ -17,6 +17,8 @@ export interface GitHubPullRequest {
   merged_by?: {
     id: number;
     login: string;
+    avatar_url: string;
+    type: string;
   } | null;
   draft: boolean;
   additions: number;

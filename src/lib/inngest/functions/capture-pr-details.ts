@@ -39,73 +39,94 @@ export const capturePrDetails = inngest.createFunction(
       return data;
     });
 
-    // Step 2: Check rate limits
-    await step.run("check-rate-limits", async () => {
+    // Skip rate limit check - Inngest throttling handles this
+
+    // Step 2: Fetch PR details from GitHub (with timeout)
+    const githubPrData = await step.run("fetch-pr-details", async () => {
       try {
-        const rateLimit = await makeGitHubRequest('/rate_limit');
-        const remaining = rateLimit.rate.remaining;
-        const reset = new Date(rateLimit.rate.reset * 1000);
+        // Add a race condition with timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('GitHub API timeout')), 15000); // 15 second timeout
+        });
         
-        // If we're getting low on rate limit, wait
-        if (remaining < 100) {
-          const waitTime = reset.getTime() - Date.now();
-          if (waitTime > 0) {
-            await step.sleep("rate-limit-wait", Math.min(waitTime, 60000)); // Max 1 minute
-          }
-        }
-
-        return { remaining, reset };
-      } catch (error) {
-        // If rate limit check fails, continue anyway
-        return { remaining: 1000, reset: new Date() };
-      }
-    });
-
-    // Step 3: Fetch PR details from GitHub
-    const prDetails = await step.run("fetch-pr-details", async () => {
-      try {
-        const pr = await makeGitHubRequest(`/repos/${repository.owner}/${repository.name}/pulls/${prNumber}`);
-        const githubPr = pr as GitHubPullRequest;
-
-        return {
-          additions: githubPr.additions,
-          deletions: githubPr.deletions,
-          changed_files: githubPr.changed_files,
-          commits: githubPr.commits,
-          review_comments: githubPr.review_comments,
-          comments: githubPr.comments,
-          mergeable_state: githubPr.mergeable_state,
-          merged: githubPr.merged,
-          merged_at: githubPr.merged_at,
-          merged_by_id: githubPr.merged_by?.id,
-        };
+        const apiPromise = makeGitHubRequest(`/repos/${repository.owner}/${repository.name}/pulls/${prNumber}`);
+        
+        const pr = await Promise.race([apiPromise, timeoutPromise]);
+        return pr as GitHubPullRequest;
       } catch (error: unknown) {
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
           throw new Error(`PR #${prNumber} not found in ${repository.owner}/${repository.name}`);
         }
+        if (error.message === 'GitHub API timeout') {
+          throw new Error(`Timeout fetching PR #${prNumber} from ${repository.owner}/${repository.name}`);
+        }
         throw error;
       }
     });
 
-    // Step 4: Update database
+    // Step 3: Find or create merged_by contributor (simplified)
+    const mergedByContributorId = await step.run("resolve-merged-by-contributor", async () => {
+      if (!githubPrData.merged || !githubPrData.merged_by) {
+        return null;
+      }
+
+      try {
+        // Try upsert first - more efficient with timeout
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Database timeout')), 10000); // 10 second timeout
+        });
+        
+        const dbPromise = supabase
+          .from('contributors')
+          .upsert({
+            github_id: githubPrData.merged_by.id,
+            username: githubPrData.merged_by.login,
+            avatar_url: githubPrData.merged_by.avatar_url,
+            is_bot: githubPrData.merged_by.type === 'Bot' || githubPrData.merged_by.login.includes('[bot]')
+          }, {
+            onConflict: 'github_id',
+            ignoreDuplicates: false
+          })
+          .select('id')
+          .single();
+          
+        const { data: contributor, error } = await Promise.race([dbPromise, timeoutPromise]);
+
+        if (error) {
+          console.warn(`Failed to upsert merged_by contributor ${githubPrData.merged_by.login}:`, error);
+          return null;
+        }
+
+        return contributor?.id || null;
+      } catch (error) {
+        console.warn(`Error handling merged_by contributor:`, error);
+        return null;
+      }
+    });
+
+    // Step 4: Update database (with timeout)
     await step.run("update-database", async () => {
-      const { error } = await supabase
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Database update timeout')), 10000); // 10 second timeout
+      });
+      
+      const updatePromise = supabase
         .from('pull_requests')
         .update({
-          additions: prDetails.additions,
-          deletions: prDetails.deletions,
-          changed_files: prDetails.changed_files,
-          commits: prDetails.commits,
-          review_comments_count: prDetails.review_comments,
-          comments_count: prDetails.comments,
-          mergeable_state: prDetails.mergeable_state,
-          merged: prDetails.merged,
-          merged_at: prDetails.merged_at,
-          merged_by_id: prDetails.merged_by_id?.toString(),
+          additions: githubPrData.additions,
+          deletions: githubPrData.deletions,
+          changed_files: githubPrData.changed_files,
+          commits: githubPrData.commits,
+          mergeable_state: githubPrData.mergeable_state,
+          merged: githubPrData.merged,
+          merged_at: githubPrData.merged_at,
+          merged_by_id: mergedByContributorId,
           updated_at: new Date().toISOString(),
         })
         .eq('id', prId);
+        
+      const { error } = await Promise.race([updatePromise, timeoutPromise]);
 
       if (error) {
         throw new Error(`Failed to update PR: ${error.message}`);
@@ -114,30 +135,15 @@ export const capturePrDetails = inngest.createFunction(
       return { success: true, prNumber, repositoryId };
     });
 
-    // Step 5: Log completion
-    await step.run("log-completion", async () => {
-      console.log(`✅ Successfully captured details for PR #${prNumber} in repository ${repositoryId}`);
-      
-      // Optionally trigger UI notification
-      await step.sendEvent("batch-completed", {
-        name: "capture/batch.completed",
-        data: {
-          repositoryId,
-          jobType: "pr_details",
-          successCount: 1,
-          failureCount: 0,
-          totalCount: 1,
-        },
-      });
-    });
+    console.log(`✅ Successfully captured details for PR #${prNumber} in repository ${repositoryId}`);
 
     return {
       success: true,
       prNumber,
       repositoryId,
-      fileChanges: prDetails.changed_files,
-      additions: prDetails.additions,
-      deletions: prDetails.deletions,
+      fileChanges: githubPrData.changed_files,
+      additions: githubPrData.additions,
+      deletions: githubPrData.deletions,
     };
   }
 );
