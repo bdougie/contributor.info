@@ -32,6 +32,14 @@ export type DataCaptureEvents = {
       priority: 'critical' | 'high' | 'medium' | 'low';
     };
   };
+  "capture/pr.details.graphql": {
+    data: {
+      repositoryId: string;
+      prNumber: string;
+      prId: string;
+      priority: 'critical' | 'high' | 'medium' | 'low';
+    };
+  };
   "capture/pr.reviews": {
     data: {
       repositoryId: string;
@@ -51,6 +59,14 @@ export type DataCaptureEvents = {
     };
   };
   "capture/repository.sync": {
+    data: {
+      repositoryId: string;
+      days: number;
+      priority: 'critical' | 'high' | 'medium' | 'low';
+      reason: string;
+    };
+  };
+  "capture/repository.sync.graphql": {
     data: {
       repositoryId: string;
       days: number;

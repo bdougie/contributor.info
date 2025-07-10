@@ -152,6 +152,7 @@ npx supabase status
 - after visual changes always look for opportunity to improve performance
 - no premmature optimizations without testing
 - use the supabase mcp server for migrations
+- `console.log(\`${owner}\`)` is a security vulnerability. We need to do `console.log(%s, owner)`
 
 ## Known Issues
 
