@@ -136,7 +136,10 @@ describe("useRepoStats", () => {
     vi.clearAllMocks();
 
     // Setup mock return values
-    vi.mocked(fetchPRDataWithFallback).mockResolvedValue(mockPullRequests);
+    vi.mocked(fetchPRDataWithFallback).mockResolvedValue({
+      data: mockPullRequests,
+      status: 'success'
+    });
     vi.mocked(fetchDirectCommitsWithDatabaseFallback).mockResolvedValue(mockDirectCommits);
     vi.mocked(calculateLotteryFactor).mockReturnValue(mockLotteryFactor);
   });

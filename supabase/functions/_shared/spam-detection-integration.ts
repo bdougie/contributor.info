@@ -133,7 +133,7 @@ export async function processPRWithSpamDetection(
     return { success: true, spamResult };
   } catch (error) {
     console.error(`[Spam Detection] Error processing PR #${pr.number}:`, error)
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
@@ -194,7 +194,7 @@ export async function batchProcessPRsForSpam(
     // Process PRs in concurrent batches for better performance
     for (let i = 0; i < prs.length; i += batchSize) {
       const batch = prs.slice(i, i + batchSize);
-      const batchPromises = batch.map(async (pr) => {
+      const batchPromises = batch.map(async (pr: any) => {
         try {
           // Convert to spam detection format
           const prData: PullRequestData = {

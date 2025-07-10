@@ -1,0 +1,12 @@
+{
+  "$schema": "https://www.inngest.com/schemas/inngest.json",
+  "name": "contributor-info",
+  "serve": {
+    "path": "/.netlify/functions/inngest",
+    "functions": [
+      {
+        "path": "./netlify/functions/inngest"
+      }
+    ]
+  }
+}

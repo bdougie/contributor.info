@@ -31,7 +31,7 @@ export function useContributorRoles(
   repo: string,
   options: UseContributorRolesOptions = {}
 ) {
-  const { enableRealtime = true, minimumConfidence = 0 } = options
+  const { enableRealtime = false, minimumConfidence = 0 } = options
   const [roles, setRoles] = useState<ContributorRoleWithStats[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)

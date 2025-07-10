@@ -79,11 +79,12 @@ export function useRepoStats() {
     timeRange: TimeRange,
     includeBots: boolean = false
   ) => {
-    const [prs, directCommits] = await Promise.all([
+    const [prDataResult, directCommits] = await Promise.all([
       fetchPRDataWithFallback(owner, repo, timeRange),
       fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
     ]);
     
+    const prs = prDataResult.data;
     const lotteryFactor = calculateLotteryFactor(prs, timeRange, includeBots);
     
     return {

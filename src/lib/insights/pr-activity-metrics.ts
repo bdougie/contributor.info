@@ -20,6 +20,10 @@ export interface ActivityMetrics {
     previous: number;
     change: number;
   };
+  // Status information for proper error handling
+  status: 'success' | 'large_repository_protected' | 'no_data' | 'error';
+  message?: string;
+  repositoryName?: string;
 }
 
 /**
@@ -32,7 +36,8 @@ export async function calculatePrActivityMetrics(
 ): Promise<ActivityMetrics> {
   try {
     // Fetch PRs for the current time period
-    const allPRs = await fetchPRDataWithFallback(owner, repo, timeRange);
+    const prDataResult = await fetchPRDataWithFallback(owner, repo, timeRange);
+    const allPRs = prDataResult.data;
     
     // Get current date and calculate time boundaries
     const now = new Date();
@@ -190,7 +195,11 @@ export async function calculatePrActivityMetrics(
         current: currentVelocity,
         previous: previousVelocity,
         change: velocityChange
-      }
+      },
+      // Include status information from data fetching
+      status: prDataResult.status,
+      message: prDataResult.message,
+      repositoryName: prDataResult.repositoryName
     };
     
   } catch (error) {
@@ -209,7 +218,10 @@ export async function calculatePrActivityMetrics(
         current: 0,
         previous: 0,
         change: 0
-      }
+      },
+      status: 'error',
+      message: error instanceof Error ? error.message : 'An unexpected error occurred while calculating metrics',
+      repositoryName: `${owner}/${repo}`
     };
   }
 }
