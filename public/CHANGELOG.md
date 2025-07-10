@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1](https://github.com/bdougie/contributor.info/compare/v1.7.0...v1.7.1) (2025-07-10)
+
+
+### 🐛 Bug Fixes
+
+* update semantic release config to use main branch ([01e5241](https://github.com/bdougie/contributor.info/commit/01e5241c04681f45d6b05f25344841c0f2cbde43))
+
+
+### 👷 CI/CD
+
+* update release workflow to trigger on main branch ([b76adda](https://github.com/bdougie/contributor.info/commit/b76adda968bdd88306e4502c16739fffe7cb538d))
+
 ## [1.7.0](https://github.com/bdougie/contributor.info/compare/v1.6.0...v1.7.0) (2025-07-10)
 
 
