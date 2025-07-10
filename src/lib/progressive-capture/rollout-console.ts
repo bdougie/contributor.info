@@ -40,6 +40,7 @@ export interface RolloutConsole {
   // Monitoring
   checkHealth(): Promise<void>;
   showMetrics(): Promise<void>;
+  monitorPhase4(): Promise<void>;
   
   // Help
   help(): void;
@@ -483,6 +484,123 @@ class RolloutConsoleManager implements RolloutConsole {
   }
 
   /**
+   * Monitor Phase 4: 10% test repository rollout
+   */
+  async monitorPhase4(): Promise<void> {
+    try {
+      console.log('\n🚀 PHASE 4 MONITORING: 10% Test Repository Rollout\n');
+      
+      // Get current rollout configuration
+      const config = await hybridRolloutManager.getRolloutConfiguration();
+      if (!config) {
+        console.log('❌ No rollout configuration found');
+        return;
+      }
+
+      console.log(`📊 Current Rollout: ${config.rollout_percentage}% (Strategy: ${config.rollout_strategy})`);
+      console.log(`🛡️ Auto Rollback: ${config.auto_rollback_enabled ? '✅ Enabled' : '❌ Disabled'}`);
+      console.log(`🚨 Emergency Stop: ${config.emergency_stop ? '🔴 ACTIVE' : '🟢 Normal'}`);
+      console.log(`⚠️ Max Error Rate: ${config.max_error_rate}%`);
+
+      // Check which repositories are eligible
+      const { data: testRepos } = await supabase
+        .from('repository_categories')
+        .select('repository_id, category, priority_level, is_test_repository, repositories!inner(full_name)')
+        .eq('category', 'test');
+
+      console.log(`\n📋 Test Repositories (${testRepos?.length || 0} total):`);
+      if (testRepos) {
+        for (const repo of testRepos) {
+          const isEligible = await hybridRolloutManager.isRepositoryEligible(repo.repository_id);
+          const status = isEligible ? '✅ ELIGIBLE' : '❌ Not eligible';
+          console.log(`   ${(repo.repositories as any).full_name}: ${status}`);
+        }
+      }
+
+      // Get rollout metrics
+      const stats = await hybridRolloutManager.getRolloutStats();
+      if (stats) {
+        console.log(`\n📈 Rollout Metrics:`);
+        console.log(`   Eligible Repositories: ${stats.eligible_repositories}/${stats.total_repositories}`);
+        console.log(`   Error Rate: ${stats.error_rate.toFixed(2)}%`);
+        console.log(`   Success Rate: ${stats.success_rate.toFixed(2)}%`);
+        console.log(`   Active Jobs: ${stats.active_jobs}`);
+        
+        if (Object.keys(stats.processor_distribution).length > 0) {
+          console.log(`   Processor Distribution:`);
+          Object.entries(stats.processor_distribution).forEach(([processor, count]) => {
+            console.log(`     ${processor}: ${count} jobs`);
+          });
+        }
+      }
+
+      // Check recent rollout history
+      const { data: history } = await supabase
+        .from('rollout_history')
+        .select('*')
+        .eq('rollout_config_id', config.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      console.log(`\n📜 Recent History:`);
+      if (history && history.length > 0) {
+        history.forEach(entry => {
+          const timestamp = new Date(entry.created_at).toLocaleString();
+          console.log(`   ${timestamp}: ${entry.action} (${entry.previous_percentage}% → ${entry.new_percentage}%)`);
+          if (entry.reason) console.log(`     Reason: ${entry.reason}`);
+        });
+      } else {
+        console.log('   No history entries found');
+      }
+
+      // Check for any recent errors
+      const { data: recentMetrics } = await supabase
+        .from('rollout_metrics')
+        .select('*')
+        .eq('rollout_config_id', config.id)
+        .gt('error_count', 0)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (recentMetrics && recentMetrics.length > 0) {
+        console.log(`\n⚠️ Recent Errors:`);
+        recentMetrics.forEach(metric => {
+          console.log(`   Repository: ${metric.repository_id}`);
+          console.log(`   Processor: ${metric.processor_type}`);
+          console.log(`   Errors: ${metric.error_count}/${metric.total_jobs}`);
+          if (metric.last_error_message) {
+            console.log(`   Last Error: ${metric.last_error_message}`);
+          }
+        });
+      }
+
+      // Recommendations
+      console.log(`\n💡 Phase 4 Recommendations:`);
+      
+      if (config.rollout_percentage < 10) {
+        console.log(`   📈 Increase rollout to 10% with: rollout.setRollout(10)`);
+      } else if (config.rollout_percentage === 10) {
+        console.log(`   ✅ Phase 4 active! Monitor for 24-48 hours before proceeding`);
+        console.log(`   📊 Next: Phase 5 (25%) when ready with small production repos`);
+      }
+      
+      if (stats && stats.error_rate > 2) {
+        console.log(`   ⚠️ Error rate elevated (${stats.error_rate.toFixed(2)}%). Consider investigation.`);
+      }
+      
+      if (!config.auto_rollback_enabled) {
+        console.log(`   🛡️ Enable auto rollback with: rollout.enableAutoRollback()`);
+      }
+
+      console.log(`\n🔄 Refresh monitoring with: rollout.monitorPhase4()`);
+      console.log(`🆘 Emergency stop with: rollout.emergencyStop("reason")`);
+
+    } catch (error) {
+      console.error('❌ Error monitoring Phase 4:', error);
+    }
+  }
+
+  /**
    * Show help
    */
   help(): void {
@@ -495,6 +613,7 @@ MONITORING COMMANDS:
   rollout.categories()                - Show repository categories
   rollout.checkHealth()               - Check rollout health and trigger auto-rollback if needed
   rollout.showMetrics()               - Show detailed metrics
+  rollout.monitorPhase4()             - 🚀 Monitor Phase 4: 10% test rollout
 
 ROLLOUT CONTROLS:
   rollout.setRollout(percentage)      - Set rollout percentage (0-100)
