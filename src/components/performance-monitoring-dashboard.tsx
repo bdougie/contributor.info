@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RefreshCw, AlertTriangle, CheckCircle, Clock, Database, Globe, Zap, Activity, Heart, Image } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { githubAPIMonitoring } from '@/lib/github-api-monitoring';
+import { HybridQueueStatus } from '@/components/features/monitoring/hybrid-queue-status';
+import { GitHubActionsMonitor } from '@/components/features/monitoring/github-actions-monitor';
 
 interface DatabaseMetrics {
   slowQueries: number;
@@ -377,6 +379,8 @@ export function PerformanceMonitoringDashboard() {
           <TabsTrigger value="health">Health Endpoints</TabsTrigger>
           <TabsTrigger value="database">Database</TabsTrigger>
           <TabsTrigger value="api">GitHub API</TabsTrigger>
+          <TabsTrigger value="queues">Job Queues</TabsTrigger>
+          <TabsTrigger value="workflows">GitHub Actions</TabsTrigger>
           <TabsTrigger value="cdn">CDN</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
         </TabsList>
@@ -613,6 +617,22 @@ export function PerformanceMonitoringDashboard() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="queues" className="space-y-4">
+          <HybridQueueStatus 
+            showTabs={true}
+            autoRefresh={true}
+            refreshInterval={30000}
+          />
+        </TabsContent>
+
+        <TabsContent value="workflows" className="space-y-4">
+          <GitHubActionsMonitor 
+            showAll={true}
+            autoRefresh={true}
+            refreshInterval={60000}
+          />
         </TabsContent>
 
         <TabsContent value="cdn" className="space-y-4">

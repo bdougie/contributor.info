@@ -2,6 +2,10 @@ import { supabase } from '../supabase';
 import { inngest } from '../inngest/client';
 import { GitHubActionsQueueManager } from './github-actions-queue-manager';
 import { DataCaptureQueueManager } from './queue-manager';
+import { hybridRolloutManager } from './rollout-manager';
+
+// Import rollout console for global availability
+import './rollout-console';
 
 export interface JobData {
   repositoryId: string;
@@ -21,6 +25,13 @@ export interface HybridJob {
   status: 'pending' | 'processing' | 'completed' | 'failed';
 }
 
+export interface ProcessorRouting {
+  inngestJobs: number;
+  actionsJobs: number;
+  processor: 'inngest' | 'github_actions' | 'hybrid';
+  reason: string;
+}
+
 export class HybridQueueManager {
   private inngestManager: DataCaptureQueueManager;
   private actionsManager: GitHubActionsQueueManager;
@@ -36,24 +47,63 @@ export class HybridQueueManager {
   }
 
   /**
-   * Queue a job using the hybrid routing logic
+   * Queue a job using the hybrid routing logic with rollout controls
    */
   async queueJob(jobType: string, data: JobData): Promise<HybridJob> {
-    const processor = this.determineProcessor(jobType, data);
+    // Check if repository is eligible for hybrid rollout
+    const isEligible = await hybridRolloutManager.isRepositoryEligible(data.repositoryId);
     
-    // Create job record in database
-    const job = await this.createJobRecord(jobType, data, processor);
-    
-    // Route to appropriate processor
-    if (processor === 'inngest') {
-      await this.queueWithInngest(job.id, jobType, data);
+    let processor: 'inngest' | 'github_actions';
+    let rolloutApplied = false;
+
+    if (isEligible) {
+      // Use hybrid routing logic
+      processor = this.determineProcessor(jobType, data);
+      rolloutApplied = true;
+      console.log(`[HybridQueue] Repository ${data.repositoryName} eligible for hybrid routing → ${processor}`);
     } else {
-      await this.queueWithGitHubActions(job.id, jobType, data);
+      // Fallback to Inngest-only for non-eligible repositories
+      processor = 'inngest';
+      console.log(`[HybridQueue] Repository ${data.repositoryName} not eligible for hybrid routing → fallback to inngest`);
     }
     
-    console.log(`[HybridQueue] Routed ${jobType} job to ${processor} (job_id: ${job.id})`);
+    // Create job record in database
+    const job = await this.createJobRecord(jobType, data, processor, rolloutApplied);
     
-    return job;
+    try {
+      // Route to appropriate processor
+      if (processor === 'inngest') {
+        await this.queueWithInngest(job.id, jobType, data);
+      } else {
+        await this.queueWithGitHubActions(job.id, jobType, data);
+      }
+      
+      // Record metrics for rollout monitoring
+      await hybridRolloutManager.recordMetrics(
+        data.repositoryId,
+        processor,
+        true, // success
+        0 // processing time not available yet
+      );
+      
+      console.log(`[HybridQueue] Successfully queued ${jobType} job to ${processor} (job_id: ${job.id}, rollout: ${rolloutApplied})`);
+      
+      return job;
+    } catch (error) {
+      // Record error metrics for rollout monitoring
+      await hybridRolloutManager.recordMetrics(
+        data.repositoryId,
+        processor,
+        false, // failed
+        0,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+      
+      // Update job status to failed
+      await this.updateJobStatus(job.id, 'failed', error instanceof Error ? error.message : 'Unknown error');
+      
+      throw error;
+    }
   }
 
   /**
@@ -97,7 +147,7 @@ export class HybridQueueManager {
   /**
    * Create a job record in the database
    */
-  private async createJobRecord(jobType: string, data: JobData, processor: 'inngest' | 'github_actions'): Promise<HybridJob> {
+  private async createJobRecord(jobType: string, data: JobData, processor: 'inngest' | 'github_actions', rolloutApplied: boolean = false): Promise<HybridJob> {
     const { data: job, error } = await supabase
       .from('progressive_capture_jobs')
       .insert({
@@ -111,7 +161,9 @@ export class HybridQueueManager {
           repository_name: data.repositoryName,
           trigger_source: data.triggerSource,
           max_items: data.maxItems,
-          pr_numbers: data.prNumbers
+          pr_numbers: data.prNumbers,
+          rollout_applied: rolloutApplied,
+          created_by: 'hybrid_queue_manager'
         }
       })
       .select()
@@ -282,6 +334,27 @@ export class HybridQueueManager {
     // Inngest jobs are tracked through their own system
     // We can query completed Inngest jobs and update our records
     await this.syncInngestJobStatuses();
+    
+    // Check rollout health and trigger auto-rollback if needed
+    await this.checkRolloutHealth();
+  }
+
+  /**
+   * Check rollout health and trigger auto-rollback if needed
+   */
+  async checkRolloutHealth(): Promise<void> {
+    try {
+      const rollbackTriggered = await hybridRolloutManager.checkAndTriggerAutoRollback();
+      
+      if (rollbackTriggered) {
+        console.log(`[HybridQueue] Auto-rollback triggered due to high error rate`);
+        
+        // Optionally notify monitoring systems or send alerts
+        // This could integrate with Sentry, PostHog, or other monitoring tools
+      }
+    } catch (error) {
+      console.error('[HybridQueue] Error checking rollout health:', error);
+    }
   }
 
   /**
@@ -348,6 +421,62 @@ export class HybridQueueManager {
       triggerSource: 'scheduled',
       maxItems: 1000
     });
+  }
+
+  /**
+   * Analyze routing for a repository without queueing jobs
+   * Used by UI components to show routing information
+   */
+  async analyzeRouting(owner: string, repo: string): Promise<ProcessorRouting> {
+    const repositoryName = `${owner}/${repo}`;
+    
+    // Simulate analysis of what would be done
+    const analysisData: JobData = {
+      repositoryId: `${owner}/${repo}`, // Simplified for demo
+      repositoryName,
+      timeRange: 7, // Analyze last week
+      triggerSource: 'manual',
+      maxItems: 100
+    };
+
+    // Determine routing for common job types
+    const jobTypes = ['pr-details', 'reviews', 'comments', 'recent-prs'];
+    let inngestJobs = 0;
+    let actionsJobs = 0;
+    let primaryProcessor: 'inngest' | 'github_actions' = 'inngest';
+    let reason = '';
+
+    for (const jobType of jobTypes) {
+      const processor = this.determineProcessor(jobType, analysisData);
+      if (processor === 'inngest') {
+        inngestJobs++;
+      } else {
+        actionsJobs++;
+      }
+    }
+
+    // Determine primary processor and reason
+    if (inngestJobs > 0 && actionsJobs > 0) {
+      primaryProcessor = 'inngest'; // Mixed routing still shows as hybrid
+      reason = `Recent data via real-time, historical via bulk processing`;
+    } else if (inngestJobs > 0) {
+      primaryProcessor = 'inngest';
+      reason = analysisData.triggerSource === 'manual' 
+        ? 'Manual trigger for recent data'
+        : `Small batch (${analysisData.maxItems || 0} items) for real-time processing`;
+    } else {
+      primaryProcessor = 'github_actions';
+      reason = analysisData.timeRange && analysisData.timeRange > 1 
+        ? `Historical data (${analysisData.timeRange} days) requires bulk processing`
+        : `Large batch (${analysisData.maxItems || 0} items) for bulk processing`;
+    }
+
+    return {
+      inngestJobs,
+      actionsJobs,
+      processor: inngestJobs > 0 && actionsJobs > 0 ? 'hybrid' : primaryProcessor,
+      reason
+    };
   }
 }
 
