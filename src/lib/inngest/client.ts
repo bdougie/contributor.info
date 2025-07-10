@@ -1,15 +1,15 @@
 import { Inngest } from "inngest";
-import { clientEnv, serverEnv } from '../env';
+import { env, serverEnv } from '../env';
 
 // Detect development environment
 const isDevelopment = () => {
   // Browser environment
   if (typeof window !== 'undefined') {
-    return window.location.hostname === 'localhost' || clientEnv.DEV;
+    return window.location.hostname === 'localhost' || env.DEV;
   }
   
   // Server environment
-  return serverEnv.NODE_ENV === 'development';
+  return env.MODE === 'development';
 };
 
 // Get event key safely based on context
@@ -26,7 +26,7 @@ const getEventKey = () => {
 
 // Create the Inngest client
 export const inngest = new Inngest({ 
-  id: clientEnv.INNGEST_APP_ID,
+  id: env.INNGEST_APP_ID,
   // Set to development mode for local testing
   isDev: isDevelopment(),
   // Add event key from environment (server-side only)

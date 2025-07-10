@@ -2,13 +2,13 @@ import { supabase } from './supabase';
 import type { PullRequest } from './types';
 import { trackRateLimit } from './sentry/data-tracking';
 import * as Sentry from '@sentry/react';
-import { clientEnv } from './env';
+import { env } from './env';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
-// Use secure environment access
-const VITE_GITHUB_TOKEN = clientEnv.GITHUB_TOKEN;
-const NODE_ENV = clientEnv.MODE;
+// Use universal environment access
+const VITE_GITHUB_TOKEN = env.GITHUB_TOKEN;
+const NODE_ENV = env.MODE;
 
 // Type for repository search results
 export interface GitHubRepository {

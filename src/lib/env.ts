@@ -3,8 +3,8 @@
  * 
  * SECURITY RULES:
  * 1. Client code can only access VITE_* prefixed variables (public)
- * 2. Server code accesses non-VITE_* variables via process.env (private)
- * 3. Never expose server keys to the browser
+ * 2. Server code accesses both VITE_* and server-only variables
+ * 3. Server secrets are never exposed to browser bundles
  */
 
 // Detect runtime environment
@@ -12,34 +12,92 @@ const isServer = typeof window === 'undefined';
 const isBrowser = typeof window !== 'undefined';
 
 /**
- * Client-side environment variables (SAFE for browser)
- * Only VITE_* prefixed variables are accessible
+ * Universal environment access that works in both client and server contexts
+ * In browser: Only accesses VITE_* prefixed variables (safe)
+ * In server: Can access both VITE_* and server-only variables
  */
-export const clientEnv = {
-  // Supabase public configuration
-  SUPABASE_URL: import.meta.env?.VITE_SUPABASE_URL || '',
-  SUPABASE_ANON_KEY: import.meta.env?.VITE_SUPABASE_ANON_KEY || '',
+function getEnvVar(viteKey: string, serverKey?: string): string {
+  if (isBrowser) {
+    // Browser: Only access VITE_* prefixed variables via import.meta.env
+    try {
+      return (import.meta as any).env?.[viteKey] || '';
+    } catch {
+      // Fallback if import.meta is not available
+      return '';
+    }
+  } else {
+    // Server: Use process.env only (import.meta.env not available in CommonJS/Netlify Functions)
+    return process.env[viteKey] || (serverKey ? process.env[serverKey] : '') || '';
+  }
+}
+
+/**
+ * Universal environment variables (safe for both client and server)
+ */
+export const env = {
+  // Supabase configuration
+  SUPABASE_URL: getEnvVar('VITE_SUPABASE_URL'),
+  SUPABASE_ANON_KEY: getEnvVar('VITE_SUPABASE_ANON_KEY'),
   
-  // GitHub public token (read-only)
-  GITHUB_TOKEN: import.meta.env?.VITE_GITHUB_TOKEN || '',
+  // GitHub tokens
+  GITHUB_TOKEN: getEnvVar('VITE_GITHUB_TOKEN', 'GITHUB_TOKEN'),
   
-  // Inngest public configuration (app identification only)
-  INNGEST_APP_ID: import.meta.env?.VITE_INNGEST_APP_ID || 'contributor-info',
+  // Inngest configuration
+  INNGEST_APP_ID: getEnvVar('VITE_INNGEST_APP_ID') || 'contributor-info',
   
-  // Other public keys
-  OPENAI_API_KEY: import.meta.env?.VITE_OPENAI_API_KEY || '',
-  POSTHOG_KEY: import.meta.env?.VITE_POSTHOG_KEY || '',
-  POSTHOG_HOST: import.meta.env?.VITE_POSTHOG_HOST || '',
-  SENTRY_DSN: import.meta.env?.VITE_SENTRY_DSN || '',
-  DUB_CO_KEY: import.meta.env?.VITE_DUB_CO_KEY || '',
-  DUB_DOMAIN_DEV: import.meta.env?.VITE_DUB_DOMAIN_DEV || '',
-  DUB_DOMAIN_PROD: import.meta.env?.VITE_DUB_DOMAIN_PROD || '',
+  // Other public configuration
+  OPENAI_API_KEY: getEnvVar('VITE_OPENAI_API_KEY', 'OPENAI_API_KEY'),
+  POSTHOG_KEY: getEnvVar('VITE_POSTHOG_KEY'),
+  POSTHOG_HOST: getEnvVar('VITE_POSTHOG_HOST'),
+  SENTRY_DSN: getEnvVar('VITE_SENTRY_DSN'),
+  DUB_CO_KEY: getEnvVar('VITE_DUB_CO_KEY', 'DUB_API_KEY'),
+  DUB_DOMAIN_DEV: getEnvVar('VITE_DUB_DOMAIN_DEV'),
+  DUB_DOMAIN_PROD: getEnvVar('VITE_DUB_DOMAIN_PROD'),
   
   // Development mode detection
-  DEV: import.meta.env?.DEV || false,
-  PROD: import.meta.env?.PROD || false,
-  MODE: import.meta.env?.MODE || 'development',
+  get DEV() {
+    if (isBrowser) {
+      try {
+        return (import.meta as any).env?.DEV || false;
+      } catch {
+        return false;
+      }
+    }
+    return process.env.NODE_ENV === 'development';
+  },
+  
+  get PROD() {
+    if (isBrowser) {
+      try {
+        return (import.meta as any).env?.PROD || false;
+      } catch {
+        return false;
+      }
+    }
+    return process.env.NODE_ENV === 'production';
+  },
+  
+  get MODE() {
+    if (isBrowser) {
+      try {
+        return (import.meta as any).env?.MODE || 'development';
+      } catch {
+        return 'development';
+      }
+    }
+    return process.env.NODE_ENV || 'development';
+  },
+
+  // Runtime context
+  get isServer() { return isServer; },
+  get isBrowser() { return isBrowser; },
 };
+
+/**
+ * Legacy client-side environment variables (for backwards compatibility)
+ * @deprecated Use `env` instead for universal access
+ */
+export const clientEnv = env;
 
 /**
  * Server-side environment variables (PRIVATE - never exposed to browser)
@@ -133,26 +191,7 @@ export const serverEnv = {
   }
 };
 
-/**
- * Context-aware environment access
- * Automatically chooses the right environment based on runtime context
- */
-export const env = {
-  // Always safe to access (public)
-  ...clientEnv,
-  
-  // Server-only getters (throw errors in browser)
-  get SUPABASE_SERVICE_ROLE_KEY() { return serverEnv.SUPABASE_SERVICE_ROLE_KEY; },
-  get INNGEST_EVENT_KEY() { return serverEnv.INNGEST_EVENT_KEY; },
-  get INNGEST_SIGNING_KEY() { return serverEnv.INNGEST_SIGNING_KEY; },
-  
-  // Environment detection
-  get isServer() { return isServer; },
-  get isBrowser() { return isBrowser; },
-  get isDevelopment() { 
-    return isBrowser ? clientEnv.DEV : serverEnv.IS_DEVELOPMENT; 
-  }
-};
+// Export the universal env as the main export - no duplicate needed
 
 /**
  * Validate that required environment variables are present
