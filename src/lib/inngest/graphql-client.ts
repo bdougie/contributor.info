@@ -1,7 +1,15 @@
 import { graphql } from '@octokit/graphql';
+import { serverEnv } from '../env';
 
-// GitHub token from environment
-const GITHUB_TOKEN = (import.meta as any).env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
+// GitHub token from server environment - this runs in Inngest functions (server context)
+const GITHUB_TOKEN = (() => {
+  // In development, we might use the client token for testing
+  if (serverEnv.NODE_ENV === 'development') {
+    return process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN || '';
+  }
+  // In production, use the proper server token
+  return process.env.GITHUB_TOKEN || '';
+})();
 
 // GraphQL query for comprehensive PR details
 const GET_PR_DETAILS_QUERY = `

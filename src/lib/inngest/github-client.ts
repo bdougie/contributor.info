@@ -1,9 +1,17 @@
 import { supabase } from '../supabase';
+import { serverEnv } from '../env';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
 // Server-side GitHub token for Inngest functions
-const SERVER_GITHUB_TOKEN = ((import.meta as any).env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN);
+const SERVER_GITHUB_TOKEN = (() => {
+  // In development, we might use the client token for testing
+  if (serverEnv.NODE_ENV === 'development') {
+    return process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN || '';
+  }
+  // In production, use the proper server token
+  return process.env.GITHUB_TOKEN || '';
+})();
 
 export async function getGitHubHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
