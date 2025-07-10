@@ -26,7 +26,6 @@ export class HybridQueueManager {
   private actionsManager: GitHubActionsQueueManager;
   
   // Configuration
-  private readonly RECENCY_CUTOFF_HOURS = 24;
   private readonly SMALL_BATCH_SIZE = 50;
   private readonly INNGEST_MAX_ITEMS = 50;
   private readonly ACTIONS_MAX_ITEMS = 1000;
@@ -60,7 +59,7 @@ export class HybridQueueManager {
   /**
    * Determine which processor to use based on job characteristics
    */
-  private determineProcessor(jobType: string, data: JobData): 'inngest' | 'github_actions' {
+  private determineProcessor(_jobType: string, data: JobData): 'inngest' | 'github_actions' {
     // Rule 1: Recent data (< 24 hours) goes to Inngest
     if (data.timeRange && data.timeRange <= 1) {
       return 'inngest';
