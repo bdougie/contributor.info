@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { env } from '../env';
 
 export interface RolloutConfiguration {
   id: string;
@@ -72,7 +73,7 @@ export class HybridRolloutManager {
 
   constructor(featureName: string = 'hybrid_progressive_capture') {
     this.featureName = featureName;
-    this.emergencyStopOverride = (import.meta.env?.HYBRID_EMERGENCY_STOP || process.env.HYBRID_EMERGENCY_STOP) === 'true';
+    this.emergencyStopOverride = env.HYBRID_EMERGENCY_STOP === 'true';
   }
 
   /**

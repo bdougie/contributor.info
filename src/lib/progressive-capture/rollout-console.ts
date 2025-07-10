@@ -1,6 +1,7 @@
 import { hybridRolloutManager } from './rollout-manager';
 import { repositoryCategorizer } from './repository-categorization';
 import { supabase } from '../supabase';
+import { env } from '../env';
 
 /**
  * Rollout Console - Manual override and management utilities
@@ -73,8 +74,8 @@ class RolloutConsoleManager implements RolloutConsole {
       console.log(`🔄 Updated: ${new Date(config.updated_at).toLocaleString()}`);
       
       // Environment overrides
-      const envPercentage = import.meta.env?.HYBRID_ROLLOUT_PERCENTAGE || process.env.HYBRID_ROLLOUT_PERCENTAGE;
-      const envEmergencyStop = import.meta.env?.HYBRID_EMERGENCY_STOP || process.env.HYBRID_EMERGENCY_STOP;
+      const envPercentage = env.HYBRID_ROLLOUT_PERCENTAGE;
+      const envEmergencyStop = env.HYBRID_EMERGENCY_STOP;
       
       if (envPercentage || envEmergencyStop) {
         console.log('\n🔧 Environment Overrides:');
