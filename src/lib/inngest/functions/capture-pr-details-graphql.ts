@@ -91,8 +91,8 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           mergeable: pullRequest.mergeable,
           merged_by_id: pullRequest.mergedBy?.databaseId?.toString(),
           merged_by_login: pullRequest.mergedBy?.login,
-          base_ref: pullRequest.baseRefName,
-          head_ref: pullRequest.headRefName,
+          base_branch: pullRequest.baseRefName,
+          head_branch: pullRequest.headRefName,
           head_sha: pullRequest.headRef?.target?.oid,
         }, {
           onConflict: 'repository_id,number'

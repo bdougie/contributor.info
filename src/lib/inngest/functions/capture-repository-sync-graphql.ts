@@ -169,8 +169,8 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         deletions: pr.deletions || 0,
         changed_files: pr.changedFiles || 0,
         commits: pr.commits?.totalCount || 0,
-        base_ref: pr.baseRefName || 'main',
-        head_ref: pr.headRefName || 'unknown',
+        base_branch: pr.baseRefName || 'main',
+        head_branch: pr.headRefName || 'unknown',
       }));
 
       const { data, error } = await supabase

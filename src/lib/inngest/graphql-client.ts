@@ -157,9 +157,9 @@ const GET_PR_DETAILS_QUERY = `
 
 // GraphQL query for recent PRs
 const GET_RECENT_PRS_QUERY = `
-  query GetRecentPRs($owner: String!, $repo: String!, $first: Int!, $since: DateTime) {
+  query GetRecentPRs($owner: String!, $repo: String!, $first: Int!) {
     repository(owner: $owner, name: $repo) {
-      pullRequests(first: $first, orderBy: {field: UPDATED_AT, direction: DESC}, filterBy: {since: $since}) {
+      pullRequests(first: $first, orderBy: {field: UPDATED_AT, direction: DESC}) {
         totalCount
         nodes {
           databaseId
@@ -296,7 +296,6 @@ export class GraphQLClient {
         owner,
         repo,
         first: Math.min(limit, 100), // GraphQL API limit
-        since
       }) as GraphQLResponse;
 
       this.metrics.queriesExecuted++;
@@ -305,7 +304,16 @@ export class GraphQLClient {
 
       console.log(`[GraphQL] Recent PRs query for ${owner}/${repo} (cost: ${result.rateLimit?.cost} points)`);
 
-      return result.repository?.pullRequests?.nodes || [];
+      const allPRs = result.repository?.pullRequests?.nodes || [];
+      
+      // Filter PRs updated since the given date (client-side filtering)
+      const sinceDate = new Date(since);
+      const filteredPRs = allPRs.filter((pr: any) => {
+        const updatedAt = new Date(pr.updatedAt);
+        return updatedAt >= sinceDate;
+      });
+
+      return filteredPRs;
     } catch (error: any) {
       this.metrics.fallbackCount++;
       console.error(`[GraphQL] Recent PRs query failed for ${owner}/${repo}:`, error.message);
