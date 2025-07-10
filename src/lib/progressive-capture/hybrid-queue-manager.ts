@@ -138,13 +138,13 @@ export class HybridQueueManager {
     // Track job in database
     await this.updateJobStatus(jobId, 'processing');
     
-    // Map job types to Inngest events
+    // Map job types to Inngest events (prefer GraphQL versions)
     const eventMapping: Record<string, string> = {
-      'historical-pr-sync': 'progressive-capture/prs.capture',
-      'pr-details': 'progressive-capture/pr.capture-details',
-      'reviews': 'progressive-capture/reviews.capture',
-      'comments': 'progressive-capture/comments.capture',
-      'recent-prs': 'progressive-capture/recent-prs.capture'
+      'historical-pr-sync': 'capture/repository.sync.graphql',
+      'pr-details': 'capture/pr.details.graphql',
+      'reviews': 'capture/pr.reviews',
+      'comments': 'capture/pr.comments',
+      'recent-prs': 'capture/repository.sync.graphql'
     };
 
     const eventName = eventMapping[jobType];
