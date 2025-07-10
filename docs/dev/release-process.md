@@ -42,6 +42,69 @@ feat(api)!: change response format
 BREAKING CHANGE: API endpoints now return different data structure
 ```
 
+## Major Release Triggers
+
+### Method 1: Breaking Change Commits (Recommended)
+Use conventional commits with breaking change indicators (see [Breaking Changes](#breaking-changes) section above for syntax details):
+
+```bash
+# Option A: Add ! after commit type
+git commit -m "feat!: redesign dashboard with new component architecture"
+
+# Option B: Include BREAKING CHANGE in commit footer
+git commit -m "feat: redesign dashboard layout
+
+BREAKING CHANGE: Dashboard components now require different props structure"
+
+# Option C: Any commit type with breaking change
+git commit -m "refactor!: restructure API response format
+
+BREAKING CHANGE: All API endpoints now return data in new schema format"
+```
+
+### Method 2: Manual GitHub Actions Trigger
+Force a major release via GitHub Actions:
+
+1. Navigate to **Actions** tab in GitHub repository
+2. Select **Release** workflow
+3. Click **Run workflow** button
+4. Select branch: `release`
+5. Choose **Release type**: `major`
+6. Click **Run workflow** to execute
+
+### Method 3: Git Tag (Emergency Releases)
+For urgent major releases:
+
+```bash
+# Create and push major version tag
+git tag v2.0.0
+git push origin v2.0.0
+
+# Verify tag was created
+git tag --list "v*" | tail -5
+```
+
+### Major Release Verification
+After triggering a major release, verify:
+
+```bash
+# Check if release was created
+gh release list --limit 3
+
+# View release notes
+gh release view v2.0.0
+
+# Verify production deployment
+curl -I https://contributor.info
+```
+
+### Common Major Release Scenarios
+- **API Breaking Changes**: New endpoint structure, removed fields
+- **Component Refactoring**: Changed prop interfaces, removed components  
+- **Database Schema Changes**: New required fields, removed tables
+- **Build System Updates**: New Node.js version, changed build output
+- **Authentication Changes**: New login flow, removed auth methods
+
 ### Examples
 ```bash
 # Patch release (1.0.0 � 1.0.1)
@@ -231,6 +294,12 @@ After each release:
 - Ensure commits follow conventional format
 - Check semantic-release configuration
 - Verify GitHub token permissions
+
+**Major Release Issues**
+- **No major version bump**: Ensure `BREAKING CHANGE:` or `!` syntax is correct
+- **Release workflow not triggered**: Verify push is to `release` branch, not `main`
+- **Manual trigger failed**: Check repository permissions and workflow dispatch settings
+- **Tag creation failed**: Ensure no duplicate tags exist and push permissions are granted
 
 ### Emergency Contacts
 - **Infrastructure**: Netlify support
