@@ -1,10 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
+// Environment variables - direct access (with type assertion for build compatibility)
+const VITE_SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const VITE_SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
 // Helper function to create the Supabase client
 export function createSupabaseClient() {
   // Check required environment variables
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const supabaseUrl = VITE_SUPABASE_URL;
+  const supabaseAnonKey = VITE_SUPABASE_ANON_KEY;
   
   if (!supabaseUrl) {
     throw new Error('Missing environment variable: VITE_SUPABASE_URL');
@@ -21,7 +25,7 @@ export function createSupabaseClient() {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: false, // Manual session handling prevents 401 errors with OAuth redirect tokens
+        detectSessionInUrl: true, // Enable automatic session detection for OAuth redirects
         flowType: 'implicit'
       }
     }

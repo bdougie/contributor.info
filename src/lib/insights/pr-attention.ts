@@ -113,11 +113,12 @@ export async function detectPrAttention(
 ): Promise<{ alerts: PrAlert[]; metrics: PrAttentionMetrics }> {
   try {
     // Fetch open PRs and maintainers in parallel
-    const [pullRequests, maintainers] = await Promise.all([
+    const [prDataResult, maintainers] = await Promise.all([
       fetchPRDataWithFallback(owner, repo, timeRange),
       fetchMaintainers(owner, repo)
     ]);
 
+    const pullRequests = prDataResult.data;
     // Filter to only open PRs for attention analysis
     const openPRs = pullRequests.filter(pr => pr.state === 'open');
     

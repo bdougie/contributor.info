@@ -98,7 +98,11 @@ export class BackgroundProcessor {
         const updatedStats = await queueManager.getQueueStats();
         
         if (updatedStats.pending === 0) {
+          // All jobs complete - show success notification
           ProgressiveCaptureNotifications.showQueueStatus(updatedStats);
+        } else {
+          // Show progress notification
+          console.log(`🔄 Background processor: ${processed} jobs completed, ${updatedStats.pending} pending`);
         }
       }
 
@@ -137,9 +141,22 @@ export function startBackgroundProcessing(): void {
     const processor = BackgroundProcessor.getInstance();
     
     // Start after a short delay to let the app initialize
-    setTimeout(() => {
+    setTimeout(async () => {
       processor.start();
-      console.log('🔄 Background job processor started - will automatically process queued data');
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Background job processor started');
+      }
+      
+      // Silently check for pending jobs - no user notification needed
+      try {
+        const stats = await queueManager.getQueueStats();
+        if (stats.pending > 0 && process.env.NODE_ENV === 'development') {
+          console.log(`📋 ${stats.pending} jobs pending in queue`);
+        }
+      } catch (error) {
+        // Silently handle - no need to show user
+      }
     }, 5000);
 
     // Stop processing when page is about to unload

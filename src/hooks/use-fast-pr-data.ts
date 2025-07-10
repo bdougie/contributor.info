@@ -61,7 +61,8 @@ export function useFastPRData(
       try {
         fetchingRef.current = true;
         
-        const prs = await fetchPRDataWithFallback(owner, repo, timeRange);
+        const dataResult = await fetchPRDataWithFallback(owner, repo, timeRange);
+        const prs = dataResult.data;
         
         // Cache the results
         fastPRCache[cacheKey] = {

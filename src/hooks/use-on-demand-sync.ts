@@ -220,7 +220,7 @@ export function useOnDemandSync({
       } catch (error) {
         // Silently handle polling errors
       }
-    }, 2000) // Poll every 2 seconds
+    }, 10000) // Poll every 10 seconds (reduced frequency)
   }, [owner, repo, checkForExistingData])
 
   // Stop polling when component unmounts

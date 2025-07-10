@@ -25,7 +25,8 @@ export async function calculateHealthMetrics(
   try {
     const now = new Date();
     // Fetch data
-    const pullRequests = await fetchPRDataWithFallback(owner, repo, timeRange);
+    const prDataResult = await fetchPRDataWithFallback(owner, repo, timeRange);
+    const pullRequests = prDataResult.data;
     
     // Calculate various health factors
     const factors: HealthMetrics['factors'] = [];

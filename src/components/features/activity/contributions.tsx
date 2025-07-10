@@ -1,6 +1,7 @@
 import { useState, useContext, useEffect, useRef, Suspense, lazy } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { animated } from "@react-spring/web";
 
 // Lazy load the heavy visualization component
@@ -16,8 +17,8 @@ import { humanizeNumber } from "@/lib/utils";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { useTimeRange } from "@/lib/time-range-store";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import type { PullRequest, ContributorStats } from "@/lib/types";
-import { ContributorHoverCard } from "../contributor";
+import type { PullRequest } from "@/lib/types";
+import { PrHoverCard } from "../contributor/pr-hover-card";
 import { useContributorRole } from "@/hooks/useContributorRoles";
 import { useParams } from "react-router-dom";
 import { useTheme } from "@/components/common/theming/theme-provider";
@@ -31,6 +32,7 @@ function ContributionsChart() {
   const [isLogarithmic, setIsLogarithmic] = useState(false);
   const [maxFilesModified, setMaxFilesModified] = useState(10);
   const [localIncludeBots, setLocalIncludeBots] = useState(contextIncludeBots);
+  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "merged" | "closed">("all");
   const safeStats = stats || { pullRequests: [], loading: false, error: null };
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" && window.innerWidth < 768
@@ -149,6 +151,13 @@ function ContributionsChart() {
     // Sort by created_at and filter based on preferences
     const filteredPRs = [...safeStats.pullRequests]
       .filter((pr) => localIncludeBots || pr.user.type !== "Bot")
+      .filter((pr) => {
+        if (statusFilter === "all") return pr.state === "open" || pr.merged_at !== null;
+        if (statusFilter === "open") return pr.state === "open";
+        if (statusFilter === "closed") return pr.state === "closed" && !pr.merged_at;
+        if (statusFilter === "merged") return pr.merged_at !== null;
+        return true;
+      })
       .sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -169,9 +178,10 @@ function ContributionsChart() {
           return null;
         }
 
+        const linesTouched = pr.additions + pr.deletions;
         return {
           x: daysAgo,
-          y: pr.additions + pr.deletions,
+          y: Math.max(linesTouched, 1), // Ensure minimum visibility of 1 line
           contributor: pr.user.login,
           image: pr.user.avatar_url,
           _pr: pr, // store full PR for hover card
@@ -197,39 +207,9 @@ function ContributionsChart() {
     ];
   };
 
-  // Create a map of contributors for the hover card
-  const getContributorStats = (
-    login: string,
-    pullRequest: PullRequest
-  ): ContributorStats => {
-    // Calculate percentage and recentPRs based on current PRs
-    const totalPRs = safeStats.pullRequests.length;
-    const contributorPRs = safeStats.pullRequests.filter(
-      (pr) => pr.user.login === login
-    );
-    const percentage = (contributorPRs.length / totalPRs) * 100;
-
-    return {
-      login,
-      avatar_url: pullRequest.user.avatar_url,
-      pullRequests: contributorPRs.length,
-      percentage,
-      recentPRs: [
-        pullRequest,
-        ...contributorPRs.filter((pr) => pr.id !== pullRequest.id),
-      ].slice(0, 5),
-      // Include organizations if available in PR data
-      organizations: pullRequest.organizations || [],
-    };
-  };
 
   // Custom Node for scatter plot points
   const CustomNode = (props: any) => {
-    const contributorStats = getContributorStats(
-      props.node.data.contributor,
-      props.node.data._pr
-    );
-    
     // Get the contributor's role
     const { role } = useContributorRole(owner || '', repo || '', props.node.data.contributor);
     
@@ -258,8 +238,8 @@ function ContributionsChart() {
         }}
       >
         <div style={{ width: '100%', height: '100%' }}>
-          <ContributorHoverCard
-            contributor={contributorStats}
+          <PrHoverCard
+            pullRequest={props.node.data._pr}
             role={role?.role || (props.node.data._pr.user.type === "Bot" ? "Bot" : "Contributor")}
           >
             <Avatar
@@ -296,7 +276,7 @@ function ContributionsChart() {
                   : "?"}
               </AvatarFallback>
             </Avatar>
-          </ContributorHoverCard>
+          </PrHoverCard>
         </div>
       </animated.foreignObject>
     );
@@ -330,35 +310,50 @@ function ContributionsChart() {
   return (
     <div className="space-y-4 w-full overflow-hidden">
         <div
-          className={`flex flex-col items-start justify-between pt-3 ${
-            isMobile ? "px-2" : "md:flex-row md:px-7"
+          className={`flex flex-col gap-4 pt-3 ${
+            isMobile ? "px-2" : "md:px-7"
           }`}
         >
-          <div className="text-sm text-muted-foreground">
-            {data[0].data.length} pull requests shown
-          </div>
-          <div className={`flex flex-wrap gap-2 mt-3 md:mt-0 ${isMobile ? "w-full" : ""}`}>
-            {hasBots && (
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="text-sm text-muted-foreground">
+              {data[0].data.length} pull requests shown
+            </div>
+            
+            {/* Status Filter Tabs */}
+            <div className="flex-shrink-0">
+              <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | "open" | "merged" | "closed")}>
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
+                  <TabsTrigger value="open" className="text-xs">Open</TabsTrigger>
+                  <TabsTrigger value="merged" className="text-xs">Merged</TabsTrigger>
+                  <TabsTrigger value="closed" className="text-xs">Closed</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+            
+            <div className={`flex flex-wrap gap-2 ${isMobile ? "w-full" : ""}`}>
+              {hasBots && (
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="include-bots"
+                    checked={localIncludeBots}
+                    onCheckedChange={handleToggleIncludeBots}
+                  />
+                  <Label htmlFor="include-bots" className="text-sm">
+                    Show Bots
+                  </Label>
+                </div>
+              )}
               <div className="flex items-center space-x-2">
                 <Switch
-                  id="include-bots"
-                  checked={localIncludeBots}
-                  onCheckedChange={handleToggleIncludeBots}
+                  id="logarithmic-scale"
+                  checked={isLogarithmic}
+                  onCheckedChange={handleSetLogarithmic}
                 />
-                <Label htmlFor="include-bots" className="text-sm">
-                  Show Bots
+                <Label htmlFor="logarithmic-scale" className="text-sm">
+                  Enhance
                 </Label>
               </div>
-            )}
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="logarithmic-scale"
-                checked={isLogarithmic}
-                onCheckedChange={handleSetLogarithmic}
-              />
-              <Label htmlFor="logarithmic-scale" className="text-sm">
-                Enhance
-              </Label>
             </div>
           </div>
         </div>
@@ -385,7 +380,7 @@ function ContributionsChart() {
               }}
               yScale={{
                 type: isLogarithmic ? "symlog" : "linear",
-                min: 0,
+                min: 1,
                 max: Math.max(Math.round(maxFilesModified * 1.5), 10),
               }}
               blendMode="normal"
@@ -414,7 +409,7 @@ function ContributionsChart() {
                 tickPadding: 3,
                 tickRotation: 0,
                 tickValues: isMobile ? 3 : 5,
-                legend: isMobile ? "Lines" : "Lines Changed",
+                legend: isMobile ? "Lines" : "Lines Touched",
                 legendPosition: "middle",
                 legendOffset: isMobile ? -20 : -60,
                 format: (value: number) => {

@@ -85,10 +85,14 @@ export function AuthButton() {
   const handleLogin = async () => {
     try {
       setError(null);
+      
+      // Get the correct redirect URL for the current environment
+      const redirectTo = window.location.origin + window.location.pathname;
+      
       const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: "github",
         options: {
-          redirectTo: window.location.origin,
+          redirectTo,
           scopes: "repo user",
         },
       });

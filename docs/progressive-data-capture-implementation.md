@@ -6,7 +6,9 @@ This document describes the comprehensive solution implemented to resolve GitHub
 
 ## Problem Solved
 
-The application was experiencing GitHub API rate limiting (403 Forbidden errors) that prevented users from accessing repository data. Initial database-first fallback implementation worked but revealed missing cached data (reviews, comments, file changes).
+The application was experiencing GitHub API rate limiting (403 Forbidden errors) that prevented users from accessing repository data. Additionally, large repositories like kubernetes/kubernetes were causing `ERR_INSUFFICIENT_RESOURCES` errors due to excessive concurrent API calls for comments and reviews. Initial database-first fallback implementation worked but revealed missing cached data (reviews, comments, file changes).
+
+**Critical UX Issue Resolved (2025-01-06)**: Resource protection was silently returning empty arrays for large repositories, causing confusing empty charts with no user explanation. This created a poor user experience where users couldn't understand why they weren't seeing any data.
 
 ## Final Solution Architecture
 
@@ -15,22 +17,56 @@ The application was experiencing GitHub API rate limiting (403 Forbidden errors)
 **Core Pattern**: Always query database first, fallback to GitHub API only when necessary
 
 ```typescript
-// Enhanced with comprehensive Sentry tracking
-export async function fetchPRDataWithFallback(owner: string, repo: string) {
+// Enhanced with comprehensive Sentry tracking and structured error handling
+export async function fetchPRDataWithFallback(
+  owner: string, 
+  repo: string, 
+  timeRange: string = '30'
+): Promise<DataResult<PullRequest[]>> {
   return trackDatabaseOperation('fetchPRDataWithFallback', async () => {
     // 1. Check database first (preferred - no rate limits)
     const dbData = await querySupabaseCache();
     if (hasRecentData(dbData)) {
-      return transformDatabaseData(dbData);
+      return createSuccessResult(transformDatabaseData(dbData));
     }
     
-    // 2. Fallback to GitHub API (tracked for rate limiting)
+    // 2. Smart fallback to GitHub API (with resource protection)
     try {
+      const largeRepos = ['kubernetes/kubernetes', 'microsoft/vscode', 'facebook/react', 'angular/angular'];
+      const repoName = `${owner}/${repo}`;
+      
+      if (largeRepos.includes(repoName)) {
+        // Track resource protection in Sentry with detailed context
+        Sentry.withScope((scope) => {
+          scope.setTag('protection.type', 'large_repository');
+          scope.setTag('repository.name', repoName);
+          scope.setContext('resource_protection', {
+            repository: repoName,
+            timeRange,
+            protectedRepos: largeRepos,
+            userGuidance: 'Use progressive data capture for complete analysis'
+          });
+          Sentry.captureMessage('Large repository resource protection activated', 'info');
+        });
+        
+        return createLargeRepositoryResult(repoName, dbData || []);
+      }
+      
       const apiData = await fetchFromGitHubAPI();
-      return apiData;
+      return createSuccessResult(apiData);
     } catch (error) {
-      // 3. Emergency fallback - use any cached data
-      return dbData || [];
+      // 3. Emergency fallback with detailed error tracking
+      Sentry.withScope((scope) => {
+        scope.setTag('error.category', 'complete_data_failure');
+        scope.setContext('data_fetching_failure', {
+          repository: `${owner}/${repo}`,
+          timeRange,
+          failureStage: 'all_methods_exhausted'
+        });
+        Sentry.captureException(error, { level: 'warning' });
+      });
+      
+      return createNoDataResult(`${owner}/${repo}`, dbData || []);
     }
   }, { cacheHit, fallbackUsed, repository: `${owner}/${repo}` });
 }
@@ -54,29 +90,75 @@ class ProgressiveCaptureTrigger {
 }
 ```
 
-### 3. Smart UI Integration
+### 3. Smart UI Integration with Comprehensive Status Handling
 
-**User-Triggered Data Capture**: Shows progressive capture button when data quality is low
+**Structured Error Response System**: Returns `DataResult<T>` with status information instead of silently failing
 
 ```typescript
-// Detects missing data and shows capture button
-const hasLowDataQuality = (metrics: ActivityMetrics, trends: TrendData[]) => {
+// Enhanced error result types for proper user feedback
+export interface DataResult<T> {
+  data: T;
+  status: 'success' | 'large_repository_protected' | 'no_data' | 'error';
+  message?: string;
+  repositoryName?: string;
+}
+
+// UI detection with status-aware handling
+const hasLowDataQuality = (metrics: ActivityMetrics | null, trends: TrendData[]) => {
+  if (!metrics) return true;
+  
+  // Check for protected or error status first
+  if (metrics.status === 'large_repository_protected' || 
+      metrics.status === 'no_data' || 
+      metrics.status === 'error') {
+    return true;
+  }
+  
+  // Legacy data quality checks for successful status
   const reviewTrend = trends.find(t => t.metric === 'Review Activity');
   const commentTrend = trends.find(t => t.metric === 'Comment Activity');
   
   return (
-    metrics.totalPRs > 0 && // Has PRs but...
-    (reviewTrend?.current === 0 || commentTrend?.current === 0) // No reviews/comments
+    metrics.totalPRs === 0 ||
+    (metrics.totalPRs > 0 && (reviewTrend?.current === 0 || commentTrend?.current === 0))
   );
+};
+
+// Status-specific user messaging
+const getStatusMessage = (metrics: ActivityMetrics | null) => {
+  if (!metrics) return { title: "No data available", description: "Unable to load repository data" };
+  
+  switch (metrics.status) {
+    case 'large_repository_protected':
+      return {
+        title: "Large Repository Protection",
+        description: "This repository is protected from resource-intensive operations. Use progressive data capture for complete analysis."
+      };
+    case 'no_data':
+      return {
+        title: "No Data Available", 
+        description: "No recent data found. Try using progressive data capture to populate the database."
+      };
+    case 'error':
+      return {
+        title: "Data Loading Error",
+        description: "An error occurred while loading repository data."
+      };
+    default:
+      return {
+        title: "Limited data available",
+        description: "This repository may have additional review and comment data"
+      };
+  }
 };
 ```
 
-### 4. Enhanced Error Monitoring
+### 4. Enhanced Error Monitoring with Proactive Alerting
 
-**Comprehensive Sentry Integration**: Tracks database performance, cache hits, and fallback usage
+**Comprehensive Sentry Integration**: Tracks resource protection, user experience, and system failures
 
 ```typescript
-// Database operation tracking
+// Database operation tracking with enhanced context
 export function trackDatabaseOperation<T>(
   operationName: string,
   operation: () => Promise<T>,
@@ -94,6 +176,62 @@ export function trackDatabaseOperation<T>(
     // Comprehensive error categorization and performance tracking
   });
 }
+
+// Resource protection monitoring with detailed context
+Sentry.withScope((scope) => {
+  scope.setTag('protection.type', 'large_repository');
+  scope.setTag('repository.name', repoName);
+  scope.setContext('resource_protection', {
+    repository: repoName,
+    timeRange,
+    protectedRepos: largeRepos,
+    userGuidance: 'Use progressive data capture for complete analysis'
+  });
+  Sentry.captureMessage('Large repository resource protection activated', 'info');
+});
+
+// User experience tracking for status message displays
+useEffect(() => {
+  if (!loading && hasLowDataQuality(metrics, trends) && metrics) {
+    Sentry.withScope((scope) => {
+      scope.setTag('ui.component', 'metrics_and_trends_card');
+      scope.setTag('repository.name', `${owner}/${repo}`);
+      scope.setTag('status.type', metrics.status);
+      scope.setContext('user_experience', {
+        repository: `${owner}/${repo}`,
+        statusDisplayed: statusMessage.title,
+        userCanRetry: metrics.status !== 'large_repository_protected',
+        component: 'MetricsAndTrendsCard'
+      });
+      
+      if (metrics.status === 'large_repository_protected') {
+        Sentry.addBreadcrumb({
+          category: 'user_experience',
+          message: `User viewing protected repository: ${owner}/${repo}`,
+          level: 'info',
+          data: { protection_active: true, guidance_shown: true }
+        });
+      } else if (metrics.status === 'error') {
+        Sentry.captureMessage(`User experiencing data loading error for ${owner}/${repo}`, 'warning');
+      }
+    });
+  }
+}, [loading, metrics, trends, owner, repo, timeRange]);
+
+// User retry action tracking
+const handleRetry = () => {
+  Sentry.addBreadcrumb({
+    category: 'user_action',
+    message: `User retried data loading for ${owner}/${repo}`,
+    level: 'info',
+    data: {
+      repository: `${owner}/${repo}`,
+      status: metrics?.status || 'unknown',
+      action: 'manual_retry'
+    }
+  });
+  window.location.reload();
+};
 ```
 
 ## Implementation Details
@@ -110,6 +248,10 @@ export function trackDatabaseOperation<T>(
 - Fixed column references (`commits_count` → `commits`)
 - Corrected foreign key names (`fk_pull_requests_author`)
 - Added comprehensive error handling and context
+- **Resource exhaustion protection**: Skips GitHub API fallback for large repositories (kubernetes/kubernetes, microsoft/vscode, etc.) to prevent `ERR_INSUFFICIENT_RESOURCES` errors
+- **Structured error responses**: Returns `DataResult<T>` with status information instead of throwing exceptions
+- **Enhanced Sentry tracking**: Captures resource protection events, user experience metrics, and failure contexts
+- **Proactive monitoring**: Tracks when users encounter protection states for better visibility
 
 ### 2. Progressive Capture Queue (`/src/lib/progressive-capture/`)
 
@@ -273,6 +415,9 @@ window.ProgressiveCapture = {
 - **Rate Limiting**: GitHub API usage and limits
 - **Error Categories**: Automatic categorization and alerting
 - **User Actions**: Progressive capture usage and success rates
+- **Resource Protection**: Large repository protection activation frequency
+- **User Experience**: Status message displays and retry patterns
+- **System Health**: Data fetching failure rates and recovery success
 
 ### Console Tools
 ```javascript
@@ -281,6 +426,73 @@ ProgressiveCapture.analyze();           // Check data completeness
 ProgressiveCapture.quickFix('owner', 'repo'); // Fix specific repo
 ProgressiveCapture.status();            // Queue status
 ProgressiveCapture.rateLimits();        // API limits
+```
+
+### Sentry Alert Configuration
+
+To ensure proactive monitoring of the resource protection system, configure these Sentry alerts:
+
+```javascript
+// Sentry Alert Rules (configure in Sentry dashboard)
+
+// 1. Large Repository Protection Frequency Alert
+// Trigger: When 'Large repository resource protection activated' messages exceed 10/hour
+// Purpose: Monitor if protection is triggered too frequently (might indicate misconfiguration)
+Alert: "High Repository Protection Activity"
+Condition: event.message:"Large repository resource protection activated" count() > 10
+Time Window: 1 hour
+Action: Email + Slack notification
+
+// 2. User Experience Impact Alert  
+// Trigger: When users encounter error states frequently
+// Purpose: Detect when error handling UX is being displayed to many users
+Alert: "User Error State Display Spike"
+Condition: event.tags.status_type:error OR event.tags.status_type:no_data count() > 50
+Time Window: 1 hour
+Action: Email + Slack notification
+
+// 3. Complete Data Failure Alert
+// Trigger: When all data fetching methods fail
+// Purpose: Critical alert for system-wide data access issues
+Alert: "Critical Data Fetching Failure"
+Condition: event.tags.error_category:complete_data_failure count() > 5
+Time Window: 15 minutes
+Action: PagerDuty + Email + Slack notification
+
+// 4. Protection Bypass Attempt Alert
+// Trigger: If resource protection doesn't work and ERR_INSUFFICIENT_RESOURCES occurs
+// Purpose: Detect if protection mechanism fails
+Alert: "Resource Protection Bypass Detected"
+Condition: event.message:*ERR_INSUFFICIENT_RESOURCES* count() > 1
+Time Window: 30 minutes
+Action: PagerDuty + Email notification
+```
+
+### Debugging Checklist
+
+When resource protection issues arise, follow this debugging checklist:
+
+```bash
+# 1. Check Sentry for recent protection events
+# Look for: 'Large repository resource protection activated'
+# Context: repository name, timeRange, user impact
+
+# 2. Verify protection list is up to date
+# File: src/lib/supabase-pr-data.ts
+# Array: const largeRepos = ['kubernetes/kubernetes', 'microsoft/vscode', ...]
+
+# 3. Check if new large repositories need protection
+# Monitor: ERR_INSUFFICIENT_RESOURCES errors in browser console
+# Add to: largeRepos array if resource issues occur
+
+# 4. Validate user messaging is working
+# Test: Visit protected repository (e.g., kubernetes/kubernetes)
+# Expected: See "Large Repository Protection" message
+# Not: Empty charts or silent failure
+
+# 5. Confirm Sentry tracking is working
+# Check: Sentry dashboard for resource_protection category events
+# Verify: User experience tracking for status message displays
 ```
 
 ## Mobile Performance & PWA Integration
@@ -394,6 +606,7 @@ npm run test:mobile-performance    # Full analysis with reporting
 ### Before Implementation
 - ❌ Rate limiting blocked 50%+ of repository views
 - ❌ Complete application failure during peak usage
+- ❌ `ERR_INSUFFICIENT_RESOURCES` errors for large repositories
 - ❌ No visibility into API usage or errors
 - ❌ Users couldn't access any data during limits
 - ❌ Poor mobile performance with large bundles
@@ -401,10 +614,15 @@ npm run test:mobile-performance    # Full analysis with reporting
 
 ### After Implementation
 - ✅ 95% of views served from database (no rate limits)
+- ✅ **Resource exhaustion protection** prevents browser crashes on large repositories
+- ✅ **Clear user communication** replaces confusing empty charts with helpful status messages
+- ✅ **Structured error handling** with status-aware UI components and user guidance
 - ✅ Intelligent fallback preserves functionality
 - ✅ Progressive capture fills missing data on-demand
 - ✅ Comprehensive monitoring and error recovery
+- ✅ **Proactive Sentry alerting** for protection events and user experience issues
 - ✅ Users can self-service data quality issues
+- ✅ Essential charts preloaded (eliminates 3-second wait for PR contributions)
 - ✅ 24% reduction in critical path bundle size for mobile
 - ✅ PWA installation capability with offline support
 - ✅ Network-aware adaptive UI for optimal mobile experience
@@ -446,12 +664,21 @@ npm run test:mobile-performance    # Full analysis with reporting
 The progressive data capture implementation successfully resolves the GitHub API rate limiting crisis while providing a superior user experience through:
 
 1. **Immediate relief** from rate limiting via database-first queries
-2. **Data quality assurance** through progressive capture system
-3. **User empowerment** with self-service data fixing tools
-4. **Comprehensive monitoring** for continuous improvement
-5. **Graceful degradation** ensuring the app always works
-6. **Mobile-first performance** with 24% critical path reduction
-7. **PWA capabilities** for native-like mobile experience
-8. **Offline functionality** through enhanced service worker architecture
+2. **Clear user communication** replacing silent failures with helpful status messages
+3. **Structured error handling** with proper status codes and user guidance
+4. **Data quality assurance** through progressive capture system
+5. **User empowerment** with self-service data fixing tools
+6. **Comprehensive monitoring** for continuous improvement with proactive Sentry alerting
+7. **Graceful degradation** ensuring the app always works
+8. **Mobile-first performance** with 24% critical path reduction
+9. **PWA capabilities** for native-like mobile experience
+10. **Offline functionality** through enhanced service worker architecture
 
-This solution transforms a critical blocker into a competitive advantage by providing faster, more reliable access to repository data while maintaining the ability to capture fresh information when needed. The mobile performance and PWA enhancements ensure the application delivers an exceptional experience across all devices and network conditions, positioning it as a modern, accessible tool for developers worldwide.
+### Key Achievement: User Experience Transformation
+
+**Before**: Large repositories like `kubernetes/kubernetes` showed confusing empty charts with no explanation
+**After**: Users see clear "Large Repository Protection" messages with actionable guidance
+
+This solution transforms a critical blocker into a competitive advantage by providing faster, more reliable access to repository data while maintaining the ability to capture fresh information when needed. The comprehensive error handling and monitoring ensure that when issues arise in the future, they are immediately visible in Sentry with detailed context for rapid resolution.
+
+The mobile performance and PWA enhancements ensure the application delivers an exceptional experience across all devices and network conditions, positioning it as a modern, accessible tool for developers worldwide.

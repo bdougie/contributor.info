@@ -47,3 +47,6 @@ eval-outputs/
 # Lighthouse reports
 lighthouse-reports/
 analyze-lighthouse.cjs
+
+# Local Netlify folder
+.netlify

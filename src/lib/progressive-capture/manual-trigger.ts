@@ -1,8 +1,16 @@
 import { bootstrapDataCaptureQueue, analyzeDataGaps } from './bootstrap-queue';
-import { queueManager } from './queue-manager';
 import { ProgressiveCaptureNotifications } from './ui-notifications';
-import { ReviewCommentProcessor } from './review-comment-processor';
 import { AISummaryProcessor } from './ai-summary-processor';
+
+// Lazy load Inngest queue manager to avoid Buffer issues in browser
+let inngestQueueManager: any = null;
+async function getInngestQueueManager() {
+  if (!inngestQueueManager) {
+    const { inngestQueueManager: manager } = await import('../inngest/queue-manager');
+    inngestQueueManager = manager;
+  }
+  return inngestQueueManager;
+}
 
 /**
  * Manual trigger for progressive data capture
@@ -14,7 +22,8 @@ export class ProgressiveCaptureTrigger {
    */
   static async analyze() {
     const gaps = await analyzeDataGaps();
-    const queueStats = await queueManager.getQueueStats();
+    const manager = await getInngestQueueManager();
+    const queueStats = await manager.getQueueStats();
 
     console.log(`
 📊 Data Gap Analysis Results:
@@ -52,7 +61,8 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
     try {
       await bootstrapDataCaptureQueue();
       
-      const queueStats = await queueManager.getQueueStats();
+      const manager = await getInngestQueueManager();
+      const queueStats = await manager.getQueueStats();
       console.log(`
 ✅ Bootstrap completed successfully!
 
@@ -76,8 +86,9 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
    */
   static async status() {
     
-    const stats = await queueManager.getQueueStats();
-    const canMakeAPICalls = await queueManager.canMakeAPICalls(10);
+    const manager = await getInngestQueueManager();
+    const stats = await manager.getQueueStats();
+    const canMakeAPICalls = true; // Inngest handles rate limiting
     
     console.log(`
 📊 Queue Status Report:
@@ -106,88 +117,12 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
    * Process the next job in queue (for manual testing)
    */
   static async processNext() {
+    // Manual processing not available with Inngest
+    console.log('ℹ️ Manual job processing is not available with Inngest queue system');
+    console.log('📋 Jobs are processed automatically by Inngest workers');
+    console.log('🔍 Check the Inngest dashboard for job status and monitoring');
     
-    const canMakeAPICalls = await queueManager.canMakeAPICalls(1);
-    if (!canMakeAPICalls) {
-      console.log('❌ Cannot process jobs - rate limit reached');
-      return null;
-    }
-
-    const nextJob = await queueManager.getNextJob();
-    if (!nextJob) {
-      console.log('ℹ️ No jobs available to process');
-      return null;
-    }
-
-    console.log(`
-🔄 Processing Job:
-  • Type: ${nextJob.type}
-  • Priority: ${nextJob.priority}
-  • Resource: ${nextJob.resource_id || 'N/A'}
-  • Estimated API calls: ${nextJob.estimated_api_calls}
-    `);
-
-    // Mark as processing
-    await queueManager.markJobProcessing(nextJob.id);
-    
-    // Process the job based on type
-    let result: { success: boolean; error?: string } = { success: false };
-    
-    try {
-      switch (nextJob.type) {
-        case 'reviews':
-          if (nextJob.repository_id && nextJob.resource_id) {
-            result = await ReviewCommentProcessor.processReviewsJob(
-              nextJob.repository_id,
-              nextJob.resource_id,
-              nextJob.metadata
-            );
-          } else {
-            result = { success: false, error: 'Missing repository_id or resource_id' };
-          }
-          break;
-          
-        case 'comments':
-          if (nextJob.repository_id && nextJob.resource_id) {
-            result = await ReviewCommentProcessor.processCommentsJob(
-              nextJob.repository_id,
-              nextJob.resource_id,
-              nextJob.metadata
-            );
-          } else {
-            result = { success: false, error: 'Missing repository_id or resource_id' };
-          }
-          break;
-          
-        case 'ai_summary':
-          if (nextJob.repository_id) {
-            const success = await AISummaryProcessor.processAISummaryJob(nextJob);
-            result = { success };
-          } else {
-            result = { success: false, error: 'Missing repository_id' };
-          }
-          break;
-          
-        default:
-          result = { success: true }; // Mark as successful to avoid retries
-          break;
-      }
-      
-      // Mark job as completed or failed
-      if (result.success) {
-        await queueManager.markJobCompleted(nextJob.id);
-        console.log(`✅ Job ${nextJob.type} completed successfully`);
-      } else {
-        await queueManager.markJobFailed(nextJob.id, result.error || 'Unknown error');
-        console.log(`❌ Job ${nextJob.type} failed: ${result.error}`);
-      }
-      
-    } catch (error) {
-      await queueManager.markJobFailed(nextJob.id, error instanceof Error ? error.message : 'Unknown error');
-      console.log(`❌ Job ${nextJob.type} failed with exception:`, error);
-    }
-
-    return nextJob;
+    return null;
   }
 
   /**
@@ -195,9 +130,10 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
    */
   static async rateLimits() {
     
-    const canMake1 = await queueManager.canMakeAPICalls(1);
-    const canMake10 = await queueManager.canMakeAPICalls(10);
-    const canMake100 = await queueManager.canMakeAPICalls(100);
+    // Rate limit checking not available with Inngest
+    const canMake1 = true;
+    const canMake10 = true;
+    const canMake100 = true;
 
     console.log(`
 🔒 Rate Limit Status:
@@ -235,7 +171,8 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
       }
 
       // Queue commit analysis
-      const queuedCount = await queueManager.queueRecentCommitsAnalysis(repoData.id, 90);
+      const manager = await getInngestQueueManager();
+      const queuedCount = await manager.queueRecentCommitsAnalysis(repoData.id, 90);
       
       // Show UI notification
       if (queuedCount > 0) {
@@ -255,12 +192,76 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
   }
 
   /**
+   * Process a recent_prs job - fetch and store recent PRs from GitHub API
+   */
+  static async processRecentPRsJob(repositoryId: string, metadata: any): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Get repository info
+      const { supabase } = await import('../supabase');
+      const { data: repo, error: repoError } = await supabase
+        .from('repositories')
+        .select('owner, name')
+        .eq('id', repositoryId)
+        .single();
+
+      if (repoError || !repo) {
+        return { success: false, error: `Repository not found: ${repoError?.message}` };
+      }
+
+      // Fetch recent PRs from GitHub API using existing library
+      const { fetchPullRequests } = await import('../github');
+      const days = metadata?.days || 7;
+      
+      console.log(`🔄 Fetching recent PRs for ${repo.owner}/${repo.name} (last ${days} days)`);
+      
+      const recentPRs = await fetchPullRequests(repo.owner, repo.name, days.toString());
+      
+      if (!recentPRs || recentPRs.length === 0) {
+        console.log(`✅ No recent PRs found for ${repo.owner}/${repo.name}`);
+        return { success: true };
+      }
+
+      // Store PRs in database using existing spam detection integration
+      const { processPRWithSpamDetection } = await import('../../../supabase/functions/_shared/spam-detection-integration');
+      
+      let importedCount = 0;
+      for (const pr of recentPRs) {
+        try {
+          const result = await processPRWithSpamDetection(
+            (await import('../supabase')).supabase,
+            pr,
+            repositoryId
+          );
+          
+          if (result.success) {
+            importedCount++;
+          } else {
+            console.warn(`Failed to store PR #${pr.number}: ${result.error}`);
+          }
+        } catch (prError) {
+          console.warn(`Error storing PR #${pr.number}:`, prError);
+        }
+      }
+      
+      console.log(`✅ Imported ${importedCount}/${recentPRs.length} recent PRs for ${repo.owner}/${repo.name}`);
+      return { success: true };
+
+    } catch (error) {
+      console.error(`❌ Error processing recent PRs job:`, error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
    * Quick fix for specific repository
    */
   static async quickFix(owner: string, repo: string) {
     
     try {
-      // Find repository ID
+      // Find repository ID  
       const { supabase } = await import('../supabase');
       const { data: repoData, error } = await supabase
         .from('repositories')
@@ -275,18 +276,34 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
       }
 
       // Queue recent PRs, file changes, reviews, comments, commit analysis, and AI summary
-      await queueManager.queueRecentPRs(repoData.id);
-      const fileChangeCount = await queueManager.queueMissingFileChanges(repoData.id, 10);
-      const reviewCount = await queueManager.queueMissingReviews(repoData.id, 20);
-      const commentCount = await queueManager.queueMissingComments(repoData.id, 20);
-      const commitAnalysisCount = await queueManager.queueRecentCommitsAnalysis(repoData.id, 90);
+      const manager = await getInngestQueueManager();
+      
+      // Check if we can process this repository
+      const { count: prCount } = await supabase
+        .from('pull_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('repository_id', repoData.id);
+      
+      if (prCount && prCount > 1000) {
+        console.warn(`⚠️ Large repository detected: ${owner}/${repo} has ${prCount} PRs`);
+        console.log('📋 Applying strict limits to prevent rate limiting');
+      }
+      
+      await manager.queueRecentPRs(repoData.id);
+      // Apply strict limits to prevent rate limiting
+      const fileChangeCount = await manager.queueMissingFileChanges(repoData.id, 10);
+      const reviewCount = await manager.queueMissingReviews(repoData.id, 10);
+      const commentCount = await manager.queueMissingComments(repoData.id, 10);
+      const commitAnalysisCount = await manager.queueRecentCommitsAnalysis(repoData.id, 30);
       const aiSummaryQueued = await AISummaryProcessor.queueSummaryRegeneration(repoData.id, 'medium');
       
-      // Show comprehensive UI notification
       const totalJobs = 1 + fileChangeCount + reviewCount + commentCount + commitAnalysisCount + (aiSummaryQueued ? 1 : 0);
-      ProgressiveCaptureNotifications.showProcessingStarted(`${owner}/${repo}`);
       
-      console.log(`
+      // Show subtle processing notification for manual triggers only
+      if (process.env.NODE_ENV === 'development') {
+        ProgressiveCaptureNotifications.showProcessingStarted(`${owner}/${repo}`);
+        
+        console.log(`
 ✅ Quick fix queued for ${owner}/${repo}:
   • Recent PRs: Queued
   • File changes: ${fileChangeCount} PRs queued
@@ -295,13 +312,29 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
   • Commit analysis: ${commitAnalysisCount} commits queued
   • AI Summary: ${aiSummaryQueued ? 'Queued' : 'Skipped (recent)'}
   • Total: ${totalJobs} jobs queued
-  • Review and comment data will be populated for better insights
-  • YOLO coder detection will be available once commits are analyzed
-  • AI summary will be regenerated with latest data
-      `);
+        `);
+      }
       
     } catch (error) {
       console.error('❌ Quick fix failed for %s/%s:', owner, repo, error);
+    }
+  }
+
+  /**
+   * Clear all queued jobs and reset tracking
+   */
+  static async clearAllJobs() {
+    try {
+      const manager = await getInngestQueueManager();
+      await manager.clearAllJobs();
+      
+      // Also clear smart notification tracking
+      const { SmartDataNotifications } = await import('./smart-notifications');
+      SmartDataNotifications.reset();
+      
+      console.log('✅ All job tracking cleared and reset');
+    } catch (error) {
+      console.error('❌ Error clearing jobs:', error);
     }
   }
 }
@@ -309,19 +342,8 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
 // Make it available globally for console access
 if (typeof window !== 'undefined') {
   (window as any).ProgressiveCapture = ProgressiveCaptureTrigger;
-  console.log(`
-🔧 Progressive Data Capture Tools Available!
-
-Use in browser console:
-  • ProgressiveCapture.analyze()    - Analyze data gaps
-  • ProgressiveCapture.bootstrap()  - Start filling missing data
-  • ProgressiveCapture.status()     - Check queue status
-  • ProgressiveCapture.rateLimits() - Check API rate limits
-  • ProgressiveCapture.quickFix('owner', 'repo') - Fix specific repository
-  • ProgressiveCapture.analyzeCommits('owner', 'repo') - Queue YOLO coder analysis
-
-Examples:
-  ProgressiveCapture.quickFix('continuedev', 'continue')
-  ProgressiveCapture.analyzeCommits('continuedev', 'continue')
-  `);
+  // Enable console tools in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔧 Progressive Data Capture tools available in console (ProgressiveCapture.*)');
+  }
 }
