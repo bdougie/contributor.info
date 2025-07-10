@@ -2,6 +2,10 @@ import { supabase } from '../supabase';
 import { inngest } from '../inngest/client';
 import { GitHubActionsQueueManager } from './github-actions-queue-manager';
 import { DataCaptureQueueManager } from './queue-manager';
+import { hybridRolloutManager } from './rollout-manager';
+
+// Import rollout console for global availability
+import './rollout-console';
 
 export interface JobData {
   repositoryId: string;
@@ -43,24 +47,63 @@ export class HybridQueueManager {
   }
 
   /**
-   * Queue a job using the hybrid routing logic
+   * Queue a job using the hybrid routing logic with rollout controls
    */
   async queueJob(jobType: string, data: JobData): Promise<HybridJob> {
-    const processor = this.determineProcessor(jobType, data);
+    // Check if repository is eligible for hybrid rollout
+    const isEligible = await hybridRolloutManager.isRepositoryEligible(data.repositoryId);
     
-    // Create job record in database
-    const job = await this.createJobRecord(jobType, data, processor);
-    
-    // Route to appropriate processor
-    if (processor === 'inngest') {
-      await this.queueWithInngest(job.id, jobType, data);
+    let processor: 'inngest' | 'github_actions';
+    let rolloutApplied = false;
+
+    if (isEligible) {
+      // Use hybrid routing logic
+      processor = this.determineProcessor(jobType, data);
+      rolloutApplied = true;
+      console.log(`[HybridQueue] Repository ${data.repositoryName} eligible for hybrid routing → ${processor}`);
     } else {
-      await this.queueWithGitHubActions(job.id, jobType, data);
+      // Fallback to Inngest-only for non-eligible repositories
+      processor = 'inngest';
+      console.log(`[HybridQueue] Repository ${data.repositoryName} not eligible for hybrid routing → fallback to inngest`);
     }
     
-    console.log(`[HybridQueue] Routed ${jobType} job to ${processor} (job_id: ${job.id})`);
+    // Create job record in database
+    const job = await this.createJobRecord(jobType, data, processor, rolloutApplied);
     
-    return job;
+    try {
+      // Route to appropriate processor
+      if (processor === 'inngest') {
+        await this.queueWithInngest(job.id, jobType, data);
+      } else {
+        await this.queueWithGitHubActions(job.id, jobType, data);
+      }
+      
+      // Record metrics for rollout monitoring
+      await hybridRolloutManager.recordMetrics(
+        data.repositoryId,
+        processor,
+        true, // success
+        0 // processing time not available yet
+      );
+      
+      console.log(`[HybridQueue] Successfully queued ${jobType} job to ${processor} (job_id: ${job.id}, rollout: ${rolloutApplied})`);
+      
+      return job;
+    } catch (error) {
+      // Record error metrics for rollout monitoring
+      await hybridRolloutManager.recordMetrics(
+        data.repositoryId,
+        processor,
+        false, // failed
+        0,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+      
+      // Update job status to failed
+      await this.updateJobStatus(job.id, 'failed', error instanceof Error ? error.message : 'Unknown error');
+      
+      throw error;
+    }
   }
 
   /**
@@ -104,7 +147,7 @@ export class HybridQueueManager {
   /**
    * Create a job record in the database
    */
-  private async createJobRecord(jobType: string, data: JobData, processor: 'inngest' | 'github_actions'): Promise<HybridJob> {
+  private async createJobRecord(jobType: string, data: JobData, processor: 'inngest' | 'github_actions', rolloutApplied: boolean = false): Promise<HybridJob> {
     const { data: job, error } = await supabase
       .from('progressive_capture_jobs')
       .insert({
@@ -118,7 +161,9 @@ export class HybridQueueManager {
           repository_name: data.repositoryName,
           trigger_source: data.triggerSource,
           max_items: data.maxItems,
-          pr_numbers: data.prNumbers
+          pr_numbers: data.prNumbers,
+          rollout_applied: rolloutApplied,
+          created_by: 'hybrid_queue_manager'
         }
       })
       .select()
@@ -289,6 +334,27 @@ export class HybridQueueManager {
     // Inngest jobs are tracked through their own system
     // We can query completed Inngest jobs and update our records
     await this.syncInngestJobStatuses();
+    
+    // Check rollout health and trigger auto-rollback if needed
+    await this.checkRolloutHealth();
+  }
+
+  /**
+   * Check rollout health and trigger auto-rollback if needed
+   */
+  async checkRolloutHealth(): Promise<void> {
+    try {
+      const rollbackTriggered = await hybridRolloutManager.checkAndTriggerAutoRollback();
+      
+      if (rollbackTriggered) {
+        console.log(`[HybridQueue] Auto-rollback triggered due to high error rate`);
+        
+        // Optionally notify monitoring systems or send alerts
+        // This could integrate with Sentry, PostHog, or other monitoring tools
+      }
+    } catch (error) {
+      console.error('[HybridQueue] Error checking rollout health:', error);
+    }
   }
 
   /**

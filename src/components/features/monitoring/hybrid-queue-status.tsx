@@ -13,7 +13,6 @@ import {
   XCircle, 
   Loader2,
   RefreshCw,
-  TrendingUp,
   Activity
 } from 'lucide-react';
 import { HybridQueueManager } from '@/lib/progressive-capture/hybrid-queue-manager';
