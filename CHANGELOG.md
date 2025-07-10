@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0](https://github.com/bdougie/contributor.info/compare/v1.6.0...v1.7.0) (2025-07-10)
+
+
+### 🚀 Features
+
+* Implement Hybrid Progressive Capture System with GraphQL Integration ([#182](https://github.com/bdougie/contributor.info/issues/182)) ([7615479](https://github.com/bdougie/contributor.info/commit/7615479cee7a1689812dd2172f6089bcec04770a))
+* Improved user exp with data capture and inngest ([#179](https://github.com/bdougie/contributor.info/issues/179)) ([e480ace](https://github.com/bdougie/contributor.info/commit/e480ace682f6084f2a44d3a15128b861898000bd))
+
+
+### 📚 Documentation
+
+* add major release trigger methods to release process guide ([#183](https://github.com/bdougie/contributor.info/issues/183)) ([91d781d](https://github.com/bdougie/contributor.info/commit/91d781d6a2fced95774f5e49f9bb631348c3a209))
+
 ## [1.5.0](https://github.com/bdougie/contributor.info/compare/v1.4.0...v1.5.0) (2025-06-22)
 
 
