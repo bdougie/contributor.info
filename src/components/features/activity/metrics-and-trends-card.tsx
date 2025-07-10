@@ -230,7 +230,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
       const commentTotal = metrics.totalComments || 0;
       const engagementRatio = metrics.totalPRs > 0 ? (reviewTotal + commentTotal) / metrics.totalPRs : 0;
       
-      console.log(`📊 Data Quality Analysis for ${owner}/${repo}:`, {
+      console.log("📊 Data Quality Analysis for %s/%s:", owner, repo, {
         totalPRs: metrics.totalPRs,
         totalReviews: reviewTotal,
         totalComments: commentTotal,
