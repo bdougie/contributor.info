@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Database, CheckCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Database, CheckCircle, Zap, GitBranch, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DataProcessingIndicatorProps {
@@ -12,32 +13,43 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStage, setProcessingStage] = useState<string>('');
   const [recentlyCompleted, setRecentlyCompleted] = useState(false);
+  const [processor, setProcessor] = useState<'inngest' | 'github_actions' | 'hybrid' | null>(null);
+  const [estimatedTime, setEstimatedTime] = useState<number | null>(null);
 
   useEffect(() => {
     // Listen for progressive data updates
     const handleProgressiveUpdate = (event: CustomEvent) => {
-      const { repository: eventRepo, dataType } = event.detail;
+      const { repository: eventRepo, dataType, processor: eventProcessor } = event.detail;
       
       if (eventRepo === repository) {
         setIsProcessing(false);
         setRecentlyCompleted(true);
+        setProcessor(eventProcessor);
         setProcessingStage(`Updated ${dataType} data`);
+        setEstimatedTime(null);
         
         // Hide the completed state after 5 seconds
         setTimeout(() => {
           setRecentlyCompleted(false);
           setProcessingStage('');
+          setProcessor(null);
         }, 5000);
       }
     };
 
     // Listen for processing start events
     const handleProcessingStart = (event: CustomEvent) => {
-      const { repository: eventRepo } = event.detail;
+      const { repository: eventRepo, processor: eventProcessor, estimatedTime: eventEstimatedTime } = event.detail;
       
       if (eventRepo === repository) {
         setIsProcessing(true);
-        setProcessingStage('Updating repository data...');
+        setProcessor(eventProcessor);
+        setEstimatedTime(eventEstimatedTime);
+        setProcessingStage(
+          eventProcessor === 'inngest' ? 'Real-time processing...' :
+          eventProcessor === 'github_actions' ? 'Bulk processing...' :
+          'Hybrid processing...'
+        );
         setRecentlyCompleted(false);
       }
     };
@@ -56,35 +68,97 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
     return null;
   }
 
+  // Get processor-specific colors and icons
+  const getProcessorInfo = () => {
+    switch (processor) {
+      case 'inngest':
+        return {
+          color: 'blue',
+          icon: Zap,
+          label: 'Real-time',
+          bgClass: 'border-l-blue-500 bg-blue-50 dark:bg-blue-950/20',
+          iconClass: 'text-blue-600 dark:text-blue-400'
+        };
+      case 'github_actions':
+        return {
+          color: 'purple',
+          icon: GitBranch,
+          label: 'Bulk',
+          bgClass: 'border-l-purple-500 bg-purple-50 dark:bg-purple-950/20',
+          iconClass: 'text-purple-600 dark:text-purple-400'
+        };
+      case 'hybrid':
+        return {
+          color: 'indigo',
+          icon: Database,
+          label: 'Hybrid',
+          bgClass: 'border-l-indigo-500 bg-indigo-50 dark:bg-indigo-950/20',
+          iconClass: 'text-indigo-600 dark:text-indigo-400'
+        };
+      default:
+        return {
+          color: 'gray',
+          icon: Database,
+          label: 'Processing',
+          bgClass: 'border-l-gray-500 bg-gray-50 dark:bg-gray-950/20',
+          iconClass: 'text-gray-600 dark:text-gray-400'
+        };
+    }
+  };
+
+  const processorInfo = getProcessorInfo();
+  const ProcessorIcon = processorInfo.icon;
+
   return (
     <Card className={cn(
       "transition-all duration-300 ease-in-out border-l-4",
-      isProcessing && "border-l-blue-500 bg-blue-50 dark:bg-blue-950/20",
+      isProcessing && processorInfo.bgClass,
       recentlyCompleted && "border-l-green-500 bg-green-50 dark:bg-green-950/20",
       className
     )}>
       <CardContent className="py-3 px-4">
         <div className="flex items-center gap-3">
           {isProcessing && (
-            <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
+              <ProcessorIcon className={cn("h-3 w-3", processorInfo.iconClass)} />
+            </div>
           )}
           {recentlyCompleted && (
-            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              {processor && <ProcessorIcon className={cn("h-3 w-3", processorInfo.iconClass)} />}
+            </div>
           )}
           {!isProcessing && !recentlyCompleted && (
             <Database className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           )}
           
           <div className="flex-1">
-            <div className="text-sm font-medium">
-              {isProcessing && 'Updating Data'}
-              {recentlyCompleted && 'Data Updated'}
-            </div>
-            {processingStage && (
-              <div className="text-xs text-muted-foreground mt-0.5">
-                {processingStage}
+            <div className="flex items-center gap-2">
+              <div className="text-sm font-medium">
+                {isProcessing && 'Updating Data'}
+                {recentlyCompleted && 'Data Updated'}
               </div>
-            )}
+              {processor && (
+                <Badge variant="secondary" className="text-xs">
+                  {processorInfo.label}
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {processingStage && (
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {processingStage}
+                </div>
+              )}
+              {estimatedTime && isProcessing && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                  <Clock className="h-3 w-3" />
+                  <span>~{estimatedTime}s</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>

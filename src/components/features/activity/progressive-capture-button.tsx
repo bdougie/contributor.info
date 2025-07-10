@@ -1,11 +1,20 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Database, RefreshCw, AlertCircle } from 'lucide-react';
+import { Database, RefreshCw, AlertCircle, GitBranch, Zap } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ProgressiveCaptureTrigger } from '@/lib/progressive-capture/manual-trigger';
+import { HybridQueueManager } from '@/lib/progressive-capture/hybrid-queue-manager';
 import { toast } from 'sonner';
+
+interface ProcessorRouting {
+  inngestJobs: number;
+  actionsJobs: number;
+  processor: 'inngest' | 'github_actions' | 'hybrid';
+  reason: string;
+}
 
 interface ProgressiveCaptureButtonProps {
   owner: string;
@@ -26,6 +35,7 @@ export function ProgressiveCaptureButton({
   const [isProcessing, setIsProcessing] = useState(false);
   const [jobsQueued, setJobsQueued] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [routingInfo, setRoutingInfo] = useState<ProcessorRouting | null>(null);
 
   const handleTriggerCapture = async () => {
     setIsTriggering(true);
@@ -36,33 +46,50 @@ export function ProgressiveCaptureButton({
         description: `Analyzing ${owner}/${repo} for missing data`
       });
 
-      // Trigger the quick fix
+      // Get routing information from hybrid queue manager
+      const hybridManager = new HybridQueueManager();
+      const routing = await hybridManager.analyzeRouting(owner, repo);
+      setRoutingInfo(routing);
+
+      // Trigger the quick fix with hybrid routing
       await ProgressiveCaptureTrigger.quickFix(owner, repo);
       
-      // Simulate processing time and show progress
+      // Show processing state with routing info
       setIsTriggering(false);
       setIsProcessing(true);
-      setJobsQueued(5); // Rough estimate, would be returned from quickFix in real implementation
+      setJobsQueued(routing.inngestJobs + routing.actionsJobs);
+      
+      // Enhanced toast with processor information
+      const processorText = routing.processor === 'hybrid' 
+        ? `${routing.inngestJobs} real-time jobs, ${routing.actionsJobs} bulk jobs`
+        : routing.processor === 'inngest' 
+          ? 'Real-time processing'
+          : 'Bulk processing via GitHub Actions';
       
       toast.success('Data capture jobs queued!', {
-        description: 'Processing recent PRs, reviews, comments, and commit data'
+        description: `${processorText} • ${routing.reason}`
       });
 
-      // Simulate background processing
+      // Simulate background processing with realistic timing
+      const processingTime = routing.processor === 'inngest' ? 8000 : 
+                           routing.processor === 'github_actions' ? 15000 : 12000;
+      
       setTimeout(() => {
         setIsProcessing(false);
         setJobsQueued(null);
+        setRoutingInfo(null);
         toast.success('Data capture completed!', {
           description: 'Repository metrics have been updated with fresh data'
         });
         onRefreshNeeded?.();
-      }, 8000); // 8 seconds to simulate processing time
+      }, processingTime);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to trigger data capture';
       setError(errorMessage);
       setIsTriggering(false);
       setIsProcessing(false);
+      setRoutingInfo(null);
       toast.error('Data capture failed', {
         description: errorMessage
       });
@@ -85,6 +112,12 @@ export function ProgressiveCaptureButton({
           <Database className="h-4 w-4" />
         )}
         {isTriggering ? 'Starting...' : isProcessing ? 'Processing...' : 'Fix Data'}
+        {routingInfo && (
+          <Badge variant="secondary" className="ml-2">
+            {routingInfo.processor === 'inngest' ? 'Real-time' : 
+             routingInfo.processor === 'github_actions' ? 'Bulk' : 'Hybrid'}
+          </Badge>
+        )}
       </Button>
     );
   }
@@ -112,10 +145,37 @@ export function ProgressiveCaptureButton({
             <p className="text-sm text-muted-foreground mt-1">
               Processing data for {owner}/{repo}
             </p>
-            {jobsQueued !== null && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {jobsQueued} jobs queued for processing
-              </p>
+            {jobsQueued !== null && routingInfo && (
+              <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                <p>{jobsQueued} jobs queued for processing</p>
+                {routingInfo.processor === 'hybrid' ? (
+                  <div className="flex items-center justify-center gap-4">
+                    <div className="flex items-center gap-1">
+                      <Zap className="h-3 w-3 text-blue-500" />
+                      <span>{routingInfo.inngestJobs} real-time</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <GitBranch className="h-3 w-3 text-purple-500" />
+                      <span>{routingInfo.actionsJobs} bulk</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-1">
+                    {routingInfo.processor === 'inngest' ? (
+                      <>
+                        <Zap className="h-3 w-3 text-blue-500" />
+                        <span>Real-time processing</span>
+                      </>
+                    ) : (
+                      <>
+                        <GitBranch className="h-3 w-3 text-purple-500" />
+                        <span>Bulk processing</span>
+                      </>
+                    )}
+                  </div>
+                )}
+                <p className="text-xs opacity-75">{routingInfo.reason}</p>
+              </div>
             )}
           </div>
           <div className="space-y-2">
@@ -127,6 +187,9 @@ export function ProgressiveCaptureButton({
           </div>
           <div className="text-center">
             <p className="text-xs text-muted-foreground">
+              {routingInfo?.processor === 'inngest' && 'Real-time: '}
+              {routingInfo?.processor === 'github_actions' && 'Bulk processing: '}
+              {routingInfo?.processor === 'hybrid' && 'Hybrid processing: '}
               Fetching PRs • Reviews • Comments • File Changes
             </p>
           </div>
@@ -193,8 +256,18 @@ export function ProgressiveCaptureButton({
             Start Data Capture
           </Button>
         </div>
-        <div className="text-xs text-muted-foreground text-center">
-          Will fetch: Recent PRs • Reviews • Comments • File Changes • Commit Analysis
+        <div className="text-xs text-muted-foreground text-center space-y-1">
+          <p>Will fetch: Recent PRs • Reviews • Comments • File Changes • Commit Analysis</p>
+          <div className="flex items-center justify-center gap-4 pt-1">
+            <div className="flex items-center gap-1">
+              <Zap className="h-3 w-3 text-blue-500" />
+              <span>Real-time jobs</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <GitBranch className="h-3 w-3 text-purple-500" />
+              <span>Bulk processing</span>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

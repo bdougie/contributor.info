@@ -29,18 +29,29 @@ export class ProgressiveCaptureNotifications {
   /**
    * Show notification when background processing starts
    */
-  static showProcessingStarted(repository: string) {
+  static showProcessingStarted(
+    repository: string, 
+    processor?: 'inngest' | 'github_actions' | 'hybrid',
+    estimatedTime?: number
+  ) {
+    const processorText = processor === 'inngest' ? 'Real-time processing' :
+                         processor === 'github_actions' ? 'Bulk processing' :
+                         processor === 'hybrid' ? 'Hybrid processing' :
+                         'Processing';
+
+    const timeText = estimatedTime ? ` (~${estimatedTime}s)` : '';
+    
     const toastId = toast.loading(`Updating ${repository}...`, {
-      description: 'We are fetching data in the background',
+      description: `${processorText}${timeText} • We are fetching data in the background`,
       duration: Infinity, // Keep open until processing complete
     });
 
     this.notificationIds.set(`processing_${repository}`, toastId);
     
-    // Emit custom event for UI components
+    // Emit custom event for UI components with processor info
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('progressive-processing-started', {
-        detail: { repository }
+        detail: { repository, processor, estimatedTime }
       }));
     }
     
@@ -65,7 +76,11 @@ export class ProgressiveCaptureNotifications {
   /**
    * Show success notification when processing completes
    */
-  static showProcessingComplete(repository: string, updatedFeatures: string[]) {
+  static showProcessingComplete(
+    repository: string, 
+    updatedFeatures: string[],
+    processor?: 'inngest' | 'github_actions' | 'hybrid'
+  ) {
     const existingId = this.notificationIds.get(`processing_${repository}`);
     
     // Dismiss the loading notification
@@ -79,8 +94,15 @@ export class ProgressiveCaptureNotifications {
       ? updatedFeatures.join(', ')
       : 'repository data';
 
+    const processorText = processor === 'inngest' ? 'Real-time' :
+                         processor === 'github_actions' ? 'Bulk' :
+                         processor === 'hybrid' ? 'Hybrid' :
+                         '';
+
+    const processorSuffix = processorText ? ` • ${processorText} processing complete` : '';
+
     toast.success(`Updated ${repository}!`, {
-      description: `Fresh data available for: ${features}`,
+      description: `Fresh data available for: ${features}${processorSuffix}`,
       duration: 5000,
       action: {
         label: 'Refresh Page',
@@ -88,10 +110,10 @@ export class ProgressiveCaptureNotifications {
       }
     });
     
-    // Emit custom event for UI components
+    // Emit custom event for UI components with processor info
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('progressive-data-updated', {
-        detail: { repository, updatedFeatures }
+        detail: { repository, updatedFeatures, processor }
       }));
     }
   }

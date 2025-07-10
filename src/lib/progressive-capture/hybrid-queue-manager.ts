@@ -21,6 +21,13 @@ export interface HybridJob {
   status: 'pending' | 'processing' | 'completed' | 'failed';
 }
 
+export interface ProcessorRouting {
+  inngestJobs: number;
+  actionsJobs: number;
+  processor: 'inngest' | 'github_actions' | 'hybrid';
+  reason: string;
+}
+
 export class HybridQueueManager {
   private inngestManager: DataCaptureQueueManager;
   private actionsManager: GitHubActionsQueueManager;
@@ -348,6 +355,62 @@ export class HybridQueueManager {
       triggerSource: 'scheduled',
       maxItems: 1000
     });
+  }
+
+  /**
+   * Analyze routing for a repository without queueing jobs
+   * Used by UI components to show routing information
+   */
+  async analyzeRouting(owner: string, repo: string): Promise<ProcessorRouting> {
+    const repositoryName = `${owner}/${repo}`;
+    
+    // Simulate analysis of what would be done
+    const analysisData: JobData = {
+      repositoryId: `${owner}/${repo}`, // Simplified for demo
+      repositoryName,
+      timeRange: 7, // Analyze last week
+      triggerSource: 'manual',
+      maxItems: 100
+    };
+
+    // Determine routing for common job types
+    const jobTypes = ['pr-details', 'reviews', 'comments', 'recent-prs'];
+    let inngestJobs = 0;
+    let actionsJobs = 0;
+    let primaryProcessor: 'inngest' | 'github_actions' = 'inngest';
+    let reason = '';
+
+    for (const jobType of jobTypes) {
+      const processor = this.determineProcessor(jobType, analysisData);
+      if (processor === 'inngest') {
+        inngestJobs++;
+      } else {
+        actionsJobs++;
+      }
+    }
+
+    // Determine primary processor and reason
+    if (inngestJobs > 0 && actionsJobs > 0) {
+      primaryProcessor = 'inngest'; // Mixed routing still shows as hybrid
+      reason = `Recent data via real-time, historical via bulk processing`;
+    } else if (inngestJobs > 0) {
+      primaryProcessor = 'inngest';
+      reason = analysisData.triggerSource === 'manual' 
+        ? 'Manual trigger for recent data'
+        : `Small batch (${analysisData.maxItems || 0} items) for real-time processing`;
+    } else {
+      primaryProcessor = 'github_actions';
+      reason = analysisData.timeRange && analysisData.timeRange > 1 
+        ? `Historical data (${analysisData.timeRange} days) requires bulk processing`
+        : `Large batch (${analysisData.maxItems || 0} items) for bulk processing`;
+    }
+
+    return {
+      inngestJobs,
+      actionsJobs,
+      processor: inngestJobs > 0 && actionsJobs > 0 ? 'hybrid' : primaryProcessor,
+      reason
+    };
   }
 }
 
