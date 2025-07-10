@@ -5,6 +5,8 @@ import {
   capturePrReviews,
   capturePrComments,
   captureRepositorySync,
+  capturePrDetailsGraphQL,
+  captureRepositorySyncGraphQL,
 } from "../../src/lib/inngest/functions";
 
 // Create and export the Netlify handler
@@ -15,5 +17,8 @@ export const handler = serve({
     capturePrReviews,
     capturePrComments,
     captureRepositorySync,
+    // GraphQL versions for improved efficiency
+    capturePrDetailsGraphQL,
+    captureRepositorySyncGraphQL,
   ],
 });
