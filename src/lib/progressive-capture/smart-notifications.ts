@@ -208,7 +208,7 @@ export class SmartDataNotifications {
         return;
       }
       
-      const { inngestQueueManager } = await import('../inngest/queue-manager');
+      const { hybridQueueManager } = await import('./hybrid-queue-manager');
       
       if (process.env.NODE_ENV === 'development') {
         console.log(`🔧 Auto-fixing missing data for ${owner}/${repo}:`, missingData);
@@ -223,42 +223,21 @@ export class SmartDataNotifications {
       // Track that we're queuing jobs for this repository
       this.queuedJobs.set(repoKey, Date.now());
       
-      // Queue appropriate jobs based on what's missing
+      // Queue appropriate jobs based on what's missing using hybrid routing
       const promises: Promise<any>[] = [];
       
       if (missingData.includes('recent PRs')) {
         if (process.env.NODE_ENV === 'development') {
           console.log(`⏳ Queuing recent PRs job for ${owner}/${repo} with priority: ${priority}`);
         }
-        promises.push(inngestQueueManager.queueRecentPRsWithPriority(repositoryId, priority));
+        promises.push(hybridQueueManager.queueRecentDataCapture(repositoryId, `${owner}/${repo}`));
       }
       
-      if (missingData.includes('file changes')) {
+      if (missingData.includes('file changes') || missingData.includes('reviews') || missingData.includes('comments') || missingData.includes('commit analysis')) {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`⏳ Queuing file changes job for ${owner}/${repo} with priority: ${priority}`);
+          console.log(`⏳ Queuing historical data job for ${owner}/${repo} with priority: ${priority}`);
         }
-        promises.push(inngestQueueManager.queueMissingFileChangesWithPriority(repositoryId, 100, priority));
-      }
-      
-      if (missingData.includes('reviews')) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`⏳ Queuing reviews job for ${owner}/${repo} with priority: ${priority}`);
-        }
-        promises.push(inngestQueueManager.queueMissingReviewsWithPriority(repositoryId, 100, priority));
-      }
-      
-      if (missingData.includes('comments')) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`⏳ Queuing comments job for ${owner}/${repo} with priority: ${priority}`);
-        }
-        promises.push(inngestQueueManager.queueMissingComments(repositoryId, 100));
-      }
-      
-      if (missingData.includes('commit analysis')) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`⏳ Queuing commit analysis job for ${owner}/${repo} with priority: ${priority}`);
-        }
-        promises.push(inngestQueueManager.queueRecentCommitsAnalysisWithPriority(repositoryId, 60, priority));
+        promises.push(hybridQueueManager.queueHistoricalDataCapture(repositoryId, `${owner}/${repo}`, 30));
       }
       
       const results = await Promise.all(promises);
