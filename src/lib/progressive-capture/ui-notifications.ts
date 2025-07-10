@@ -32,18 +32,24 @@ export class ProgressiveCaptureNotifications {
   static showProcessingStarted(
     repository: string, 
     processor?: 'inngest' | 'github_actions' | 'hybrid',
-    estimatedTime?: number
+    estimatedTime?: number,
+    githubActionsUrl?: string
   ) {
     const processorText = processor === 'inngest' ? 'Real-time processing' :
                          processor === 'github_actions' ? 'Bulk processing' :
                          processor === 'hybrid' ? 'Hybrid processing' :
                          'Processing';
 
-    const timeText = estimatedTime ? ` (~${estimatedTime}s)` : '';
+    const timeText = estimatedTime ? ` (~${Math.round(estimatedTime/1000)}s)` : '';
+    const completionTime = estimatedTime ? new Date(Date.now() + estimatedTime).toLocaleTimeString() : null;
     
     const toastId = toast.loading(`Updating ${repository}...`, {
-      description: `${processorText}${timeText} • We are fetching data in the background`,
+      description: `${processorText}${timeText}${completionTime ? ` • Expected: ${completionTime}` : ''} • We are fetching data in the background`,
       duration: Infinity, // Keep open until processing complete
+      action: githubActionsUrl ? {
+        label: 'View Progress',
+        onClick: () => window.open(githubActionsUrl, '_blank')
+      } : undefined
     });
 
     this.notificationIds.set(`processing_${repository}`, toastId);
@@ -51,7 +57,7 @@ export class ProgressiveCaptureNotifications {
     // Emit custom event for UI components with processor info
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('progressive-processing-started', {
-        detail: { repository, processor, estimatedTime }
+        detail: { repository, processor, estimatedTime, githubActionsUrl }
       }));
     }
     

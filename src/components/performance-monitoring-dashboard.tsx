@@ -9,6 +9,7 @@ import { RefreshCw, AlertTriangle, CheckCircle, Clock, Database, Globe, Zap, Act
 import { supabase } from '@/lib/supabase';
 import { githubAPIMonitoring } from '@/lib/github-api-monitoring';
 import { HybridQueueStatus } from '@/components/features/monitoring/hybrid-queue-status';
+import { GitHubActionsMonitor } from '@/components/features/monitoring/github-actions-monitor';
 
 interface DatabaseMetrics {
   slowQueries: number;
@@ -379,6 +380,7 @@ export function PerformanceMonitoringDashboard() {
           <TabsTrigger value="database">Database</TabsTrigger>
           <TabsTrigger value="api">GitHub API</TabsTrigger>
           <TabsTrigger value="queues">Job Queues</TabsTrigger>
+          <TabsTrigger value="workflows">GitHub Actions</TabsTrigger>
           <TabsTrigger value="cdn">CDN</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
         </TabsList>
@@ -622,6 +624,14 @@ export function PerformanceMonitoringDashboard() {
             showTabs={true}
             autoRefresh={true}
             refreshInterval={30000}
+          />
+        </TabsContent>
+
+        <TabsContent value="workflows" className="space-y-4">
+          <GitHubActionsMonitor 
+            showAll={true}
+            autoRefresh={true}
+            refreshInterval={60000}
           />
         </TabsContent>
 
