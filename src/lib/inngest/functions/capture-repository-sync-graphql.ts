@@ -189,11 +189,9 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
       return data || [];
     });
 
-    // Step 5: Queue detailed capture for PRs missing data (with higher limits due to GraphQL efficiency)
-    const queuedJobs = await step.run("queue-detailed-capture", async () => {
-      const jobsQueued = {
-        details: 0,
-      };
+    // Step 5: Prepare GraphQL job queue data (no nested steps)
+    const jobsToQueue = await step.run("prepare-graphql-job-queue", async () => {
+      const jobs = [] as any[];
 
       // Higher limit for GraphQL detail jobs due to efficiency
       const MAX_DETAIL_JOBS = 50; // Higher than REST due to single-query efficiency
@@ -208,7 +206,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
 
         // Queue GraphQL detail jobs more liberally due to efficiency
         if (detailJobsQueued < MAX_DETAIL_JOBS) {
-          await step.sendEvent("pr-details-graphql", {
+          jobs.push({
             name: "capture/pr.details.graphql",
             data: {
               repositoryId,
@@ -217,7 +215,6 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
               priority,
             },
           });
-          jobsQueued.details++;
           detailJobsQueued++;
         }
 
@@ -227,10 +224,25 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         }
       }
 
+      return jobs;
+    });
+
+    // Step 6: Send GraphQL events for queued jobs (separate from preparation)
+    const queuedJobs = await step.run("send-graphql-queued-events", async () => {
+      const jobsQueued = {
+        details: 0,
+      };
+
+      // Send GraphQL detail job events
+      for (const job of jobsToQueue) {
+        await step.sendEvent("pr-details-graphql", job);
+        jobsQueued.details++;
+      }
+
       return jobsQueued;
     });
 
-    // Step 6: Update repository sync timestamp
+    // Step 7: Update repository sync timestamp
     await step.run("update-sync-timestamp", async () => {
       const { error } = await supabase
         .from('repositories')

@@ -181,12 +181,12 @@ export const captureRepositorySync = inngest.createFunction(
       return data || [];
     });
 
-    // Step 5: Queue detailed capture for PRs missing data (with limits)
-    const queuedJobs = await step.run("queue-detailed-capture", async () => {
-      const jobsQueued = {
-        reviews: 0,
-        comments: 0,
-        details: 0,
+    // Step 5: Prepare job queue data (no nested steps)
+    const jobsToQueue = await step.run("prepare-job-queue", async () => {
+      const jobs = {
+        details: [] as any[],
+        reviews: [] as any[],
+        comments: [] as any[],
       };
 
       // Limit the number of detail jobs to queue
@@ -203,10 +203,10 @@ export const captureRepositorySync = inngest.createFunction(
         
         if (!prData) continue;
 
-        // If PR has no file change data, queue details job (limited)
+        // If PR has no file change data, prepare details job (limited)
         if (detailJobsQueued < MAX_DETAIL_JOBS && 
             ((prData.additions === 0 && prData.deletions === 0) || prData.changed_files === 0)) {
-          await step.sendEvent("pr-details", {
+          jobs.details.push({
             name: "capture/pr.details",
             data: {
               repositoryId,
@@ -215,13 +215,12 @@ export const captureRepositorySync = inngest.createFunction(
               priority,
             },
           });
-          jobsQueued.details++;
           detailJobsQueued++;
         }
 
-        // Queue review capture (limited)
+        // Prepare review capture (limited)
         if (reviewJobsQueued < MAX_REVIEW_COMMENT_JOBS) {
-          await step.sendEvent("pr-reviews", {
+          jobs.reviews.push({
             name: "capture/pr.reviews",
             data: {
               repositoryId,
@@ -231,13 +230,12 @@ export const captureRepositorySync = inngest.createFunction(
               priority,
             },
           });
-          jobsQueued.reviews++;
           reviewJobsQueued++;
         }
 
-        // Queue comment capture (limited)
+        // Prepare comment capture (limited)
         if (commentJobsQueued < MAX_REVIEW_COMMENT_JOBS) {
-          await step.sendEvent("pr-comments", {
+          jobs.comments.push({
             name: "capture/pr.comments",
             data: {
               repositoryId,
@@ -247,7 +245,6 @@ export const captureRepositorySync = inngest.createFunction(
               priority,
             },
           });
-          jobsQueued.comments++;
           commentJobsQueued++;
         }
 
@@ -260,10 +257,39 @@ export const captureRepositorySync = inngest.createFunction(
         }
       }
 
+      return jobs;
+    });
+
+    // Step 6: Send events for queued jobs (separate from preparation)
+    const queuedJobs = await step.run("send-queued-events", async () => {
+      const jobsQueued = {
+        reviews: 0,
+        comments: 0,
+        details: 0,
+      };
+
+      // Send detail job events
+      for (const job of jobsToQueue.details) {
+        await step.sendEvent("pr-details", job);
+        jobsQueued.details++;
+      }
+
+      // Send review job events
+      for (const job of jobsToQueue.reviews) {
+        await step.sendEvent("pr-reviews", job);
+        jobsQueued.reviews++;
+      }
+
+      // Send comment job events
+      for (const job of jobsToQueue.comments) {
+        await step.sendEvent("pr-comments", job);
+        jobsQueued.comments++;
+      }
+
       return jobsQueued;
     });
 
-    // Step 6: Update repository sync timestamp
+    // Step 7: Update repository sync timestamp
     await step.run("update-sync-timestamp", async () => {
       const { error } = await supabase
         .from('repositories')
