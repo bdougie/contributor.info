@@ -73,8 +73,8 @@ class RolloutConsoleManager implements RolloutConsole {
       console.log(`🔄 Updated: ${new Date(config.updated_at).toLocaleString()}`);
       
       // Environment overrides
-      const envPercentage = process.env.HYBRID_ROLLOUT_PERCENTAGE;
-      const envEmergencyStop = process.env.HYBRID_EMERGENCY_STOP;
+      const envPercentage = import.meta.env?.HYBRID_ROLLOUT_PERCENTAGE || process.env.HYBRID_ROLLOUT_PERCENTAGE;
+      const envEmergencyStop = import.meta.env?.HYBRID_EMERGENCY_STOP || process.env.HYBRID_EMERGENCY_STOP;
       
       if (envPercentage || envEmergencyStop) {
         console.log('\n🔧 Environment Overrides:');

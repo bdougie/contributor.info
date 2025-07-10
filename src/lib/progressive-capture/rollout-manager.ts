@@ -72,7 +72,7 @@ export class HybridRolloutManager {
 
   constructor(featureName: string = 'hybrid_progressive_capture') {
     this.featureName = featureName;
-    this.emergencyStopOverride = process.env.HYBRID_EMERGENCY_STOP === 'true';
+    this.emergencyStopOverride = (import.meta.env?.HYBRID_EMERGENCY_STOP || process.env.HYBRID_EMERGENCY_STOP) === 'true';
   }
 
   /**

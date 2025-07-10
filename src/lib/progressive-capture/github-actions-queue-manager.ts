@@ -13,7 +13,7 @@ export interface GitHubActionsJobInput {
 }
 
 export class GitHubActionsQueueManager {
-  private readonly GITHUB_TOKEN = process.env.VITE_GITHUB_TOKEN || '';
+  private readonly GITHUB_TOKEN = import.meta.env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN || '';
   private readonly JOBS_REPO_OWNER = 'bdougie'; // Update this based on your setup
   private readonly JOBS_REPO_NAME = 'jobs';
 

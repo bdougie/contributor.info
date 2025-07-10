@@ -418,7 +418,7 @@ if (typeof window !== 'undefined') {
   (window as any).HybridMonitoring = HybridMonitoringDashboard;
   
   // Enable console tools in development
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env?.DEV) {
     console.log('📊 Hybrid monitoring dashboard available in console:');
     console.log('   HybridMonitoring.generateReport() - Full system report');
     console.log('   HybridMonitoring.getSystemStats() - Detailed stats');

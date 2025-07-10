@@ -144,14 +144,14 @@ export function startBackgroundProcessing(): void {
     setTimeout(async () => {
       processor.start();
       
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env?.DEV) {
         console.log('🔄 Background job processor started');
       }
       
       // Silently check for pending jobs - no user notification needed
       try {
         const stats = await queueManager.getQueueStats();
-        if (stats.pending > 0 && process.env.NODE_ENV === 'development') {
+        if (stats.pending > 0 && import.meta.env?.DEV) {
           console.log(`📋 ${stats.pending} jobs pending in queue`);
         }
       } catch (error) {
