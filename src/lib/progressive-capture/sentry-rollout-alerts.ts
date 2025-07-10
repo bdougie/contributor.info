@@ -15,6 +15,7 @@ export interface RolloutAlertContext {
   jobId?: string;
   errorRate?: number;
   autoRollbackEnabled?: boolean;
+  [key: string]: unknown; // Index signature for Sentry compatibility
 }
 
 export interface RolloutMetrics {
@@ -57,10 +58,13 @@ export class SentryRolloutAlerts {
    * Set rollout context for all subsequent alerts
    */
   setRolloutContext(context: Partial<RolloutAlertContext>): void {
-    this.rolloutContext = { ...this.rolloutContext, ...context };
+    this.rolloutContext = { 
+      ...this.rolloutContext, 
+      ...context 
+    } as RolloutAlertContext;
     
     // Update Sentry user context with rollout info
-    Sentry.setContext('rollout', this.rolloutContext);
+    Sentry.setContext('rollout', this.rolloutContext as Record<string, unknown>);
     
     // Set tags for filtering
     if (context.rolloutPercentage !== undefined) {
@@ -98,7 +102,7 @@ export class SentryRolloutAlerts {
       });
       
       if (this.rolloutContext) {
-        scope.setContext('rollout_context', this.rolloutContext);
+        scope.setContext('rollout_context', this.rolloutContext as Record<string, unknown>);
       }
       
       const message = `Rollout health degraded to ${healthScore}/100. Issues: ${issues.slice(0, 3).join(', ')}`;
@@ -135,7 +139,7 @@ export class SentryRolloutAlerts {
       });
       
       if (this.rolloutContext) {
-        scope.setContext('rollout_context', this.rolloutContext);
+        scope.setContext('rollout_context', this.rolloutContext as Record<string, unknown>);
       }
       
       const message = `High error rate detected: ${errorRate.toFixed(2)}% (threshold: ${threshold}%) on ${processor}`;
@@ -169,7 +173,7 @@ export class SentryRolloutAlerts {
       }
       
       if (this.rolloutContext) {
-        scope.setContext('rollout_context', this.rolloutContext);
+        scope.setContext('rollout_context', this.rolloutContext as Record<string, unknown>);
       }
       
       const message = `🚨 EMERGENCY ROLLBACK: ${context.reason} (${context.previousPercentage}% → ${context.newPercentage}%)`;
@@ -203,7 +207,7 @@ export class SentryRolloutAlerts {
       });
       
       if (this.rolloutContext) {
-        scope.setContext('rollout_context', this.rolloutContext);
+        scope.setContext('rollout_context', this.rolloutContext as Record<string, unknown>);
       }
       
       const changeDirection = newPercentage > previousPercentage ? '📈' : newPercentage < previousPercentage ? '📉' : '➡️';
@@ -235,7 +239,7 @@ export class SentryRolloutAlerts {
       });
       
       if (this.rolloutContext) {
-        scope.setContext('rollout_context', this.rolloutContext);
+        scope.setContext('rollout_context', this.rolloutContext as Record<string, unknown>);
       }
       
       const message = `${processor} processor issue: ${issueType}`;
@@ -267,7 +271,7 @@ export class SentryRolloutAlerts {
       });
       
       if (this.rolloutContext) {
-        scope.setContext('rollout_context', this.rolloutContext);
+        scope.setContext('rollout_context', this.rolloutContext as Record<string, unknown>);
       }
       
       const message = `Repository issue in ${repositoryName}: ${issueType}`;
@@ -305,7 +309,7 @@ export class SentryRolloutAlerts {
       });
       
       if (this.rolloutContext) {
-        scope.setContext('rollout_context', this.rolloutContext);
+        scope.setContext('rollout_context', this.rolloutContext as Record<string, unknown>);
       }
       
       const message = `Cost anomaly detected: ${anomalyType} - ${percentageChange.toFixed(1)}% change (${processor || 'combined'})`;
@@ -343,7 +347,7 @@ export class SentryRolloutAlerts {
       });
       
       if (this.rolloutContext) {
-        scope.setContext('rollout_context', this.rolloutContext);
+        scope.setContext('rollout_context', this.rolloutContext as Record<string, unknown>);
       }
       
       const message = `Performance degradation in ${metric}: ${degradationPercent.toFixed(1)}% change${processor ? ` (${processor})` : ''}`;
@@ -376,7 +380,7 @@ export class SentryRolloutAlerts {
       });
       
       if (this.rolloutContext) {
-        scope.setContext('rollout_context', this.rolloutContext);
+        scope.setContext('rollout_context', this.rolloutContext as Record<string, unknown>);
       }
       
       if (status === 'failed' && error) {
