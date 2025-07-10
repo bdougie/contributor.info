@@ -157,7 +157,8 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         number: pr.number,
         title: pr.title,
         body: null, // Basic PR list doesn't include body
-        state: pr.state?.toLowerCase(),
+        state: pr.state?.toLowerCase() === 'open' ? 'open' : 
+               pr.merged ? 'merged' : 'closed',
         author_id: contributorIds[index], // Now this is a proper UUID
         created_at: pr.createdAt,
         updated_at: pr.updatedAt,

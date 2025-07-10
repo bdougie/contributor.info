@@ -74,7 +74,8 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           number: pullRequest.number,
           title: pullRequest.title,
           body: pullRequest.body,
-          state: pullRequest.state?.toLowerCase(),
+          state: pullRequest.state?.toLowerCase() === 'open' ? 'open' : 
+                 pullRequest.merged ? 'merged' : 'closed',
           draft: pullRequest.isDraft || false,
           additions: pullRequest.additions || 0,
           deletions: pullRequest.deletions || 0,
