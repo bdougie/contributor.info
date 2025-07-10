@@ -1,10 +1,10 @@
 import { supabase } from '../supabase';
 import { ProgressiveCaptureNotifications } from './ui-notifications';
 
-// Lazy load Inngest queue manager to avoid Buffer issues in browser
-async function getInngestQueueManager() {
-  const { inngestQueueManager } = await import('../inngest/queue-manager');
-  return inngestQueueManager;
+// Lazy load Hybrid queue manager to avoid Buffer issues in browser
+async function getHybridQueueManager() {
+  const { hybridQueueManager } = await import('./hybrid-queue-manager');
+  return hybridQueueManager;
 }
 
 /**
@@ -14,7 +14,7 @@ async function getInngestQueueManager() {
 export async function bootstrapDataCaptureQueue(): Promise<void> {
 
   try {
-    const manager = await getInngestQueueManager();
+    const manager = await getHybridQueueManager();
     
     // 1. Find repositories with stale data (older than 3 days)
     const { data: staleRepos, error: staleError } = await supabase
@@ -28,11 +28,12 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
       console.error('[Bootstrap] Error finding stale repositories:', staleError);
     } else if (staleRepos) {
       for (const repo of staleRepos) {
-        await manager.queueRecentPRs(repo.id);
+        // Queue recent data capture (routes to Inngest for real-time processing)
+        await manager.queueRecentDataCapture(repo.id, `${repo.owner}/${repo.name}`);
       }
     }
 
-    // 2. Find repositories with missing file change data
+    // 2. Find repositories with missing file change data that need historical processing
     const { data: activeRepos, error: activeError } = await supabase
       .from('repositories')
       .select(`
@@ -48,11 +49,12 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
       console.error('[Bootstrap] Error finding active repositories:', activeError);
     } else if (activeRepos) {
       for (const repo of activeRepos) {
-        await manager.queueMissingFileChanges(repo.id, 25); // 25 PRs per repo
+        // Queue historical data capture (routes to GitHub Actions for bulk processing)
+        await manager.queueHistoricalDataCapture(repo.id, `${repo.owner}/${repo.name}`, 30);
       }
     }
 
-    // 3. Queue smart commit analysis for repositories with commits
+    // 3. Queue additional historical processing for repositories with commits
     const { data: reposWithCommits, error: commitsError } = await supabase
       .from('repositories')
       .select(`
@@ -67,30 +69,45 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
       console.error('[Bootstrap] Error finding repositories with commits:', commitsError);
     } else if (reposWithCommits) {
       for (const repo of reposWithCommits) {
-        await manager.queueRecentCommitsAnalysis(repo.id, 90); // Last 90 days
+        // Queue extended historical data capture for commit analysis
+        await manager.queueHistoricalDataCapture(repo.id, `${repo.owner}/${repo.name}`, 90);
       }
     }
 
     // 4. Show queue statistics
-    const stats = await manager.getQueueStats();
+    const stats = await manager.getHybridStats();
 
     // Show UI notification for bootstrap completion
-    if (stats.pending > 0) {
-      ProgressiveCaptureNotifications.showQueueStatus(stats);
+    if (stats.total.pending > 0) {
+      ProgressiveCaptureNotifications.showQueueStatus({
+        pending: stats.total.pending,
+        processing: stats.total.processing,
+        completed: stats.total.completed,
+        failed: stats.total.failed
+      });
     }
 
     console.log(`
-[Bootstrap] Queue Bootstrap Summary:
-- Queued recent PR jobs for ${staleRepos?.length || 0} stale repositories
-- Queued file change jobs for ${activeRepos?.length || 0} active repositories
-- Queued commit analysis jobs for ${reposWithCommits?.length || 0} repositories with commits
-- Total pending jobs: ${stats.pending}
-- 
-Next steps:
-1. Jobs will process automatically in the background
-2. Use ProgressiveCapture.processNext() to manually process jobs
-3. Monitor rate limits with ProgressiveCapture.rateLimits()
-4. Check YOLO coder analysis once commits are analyzed
+[Bootstrap] Hybrid Queue Bootstrap Summary:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Queued recent data jobs for ${staleRepos?.length || 0} stale repositories (→ Inngest)
+- Queued historical data jobs for ${activeRepos?.length || 0} active repositories (→ GitHub Actions)
+- Queued extended historical jobs for ${reposWithCommits?.length || 0} repositories with commits (→ GitHub Actions)
+
+📊 Queue Statistics:
+- Total pending jobs: ${stats.total.pending}
+- 🔄 Inngest: ${stats.inngest.pending} pending, ${stats.inngest.processing} processing
+- 🏗️ GitHub Actions: ${stats.github_actions.pending} pending, ${stats.github_actions.processing} processing
+
+🎯 Smart Routing Active:
+- Recent data (< 24 hours) → Inngest for real-time processing
+- Historical data (> 24 hours) → GitHub Actions for cost-effective bulk processing
+
+📋 Next Steps:
+1. Jobs will process automatically across both systems
+2. Monitor progress with: ProgressiveCapture.status()
+3. Check detailed monitoring with: ProgressiveCapture.monitoring()
+4. View routing analysis with: ProgressiveCapture.routingAnalysis()
     `);
 
   } catch (error) {
