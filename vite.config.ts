@@ -28,14 +28,19 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'react': path.resolve(__dirname, './node_modules/react'),
+      'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
     },
+    dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
     include: [
-      'react', 
+      'react',
       'react-dom',
       'react-router-dom',
       '@radix-ui/react-slot',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-dropdown-menu',
       'class-variance-authority',
       'clsx',
       'tailwind-merge'

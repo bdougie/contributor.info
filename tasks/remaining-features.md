@@ -45,10 +45,10 @@ From `HYBRID_PROGRESSIVE_CAPTURE_PLAN.md` Step 9:
 - [x] Rollback procedures
 
 #### Phase 3: Monitoring and Safety (Week 2) ⚠️ PARTIALLY COMPLETED
-- [ ] Real-time performance comparison dashboard
+- [ ] Real-time performance comparison dashboard - ../jobs/ops?
 - [x] Automatic rollback triggers
 - [x] Circuit breaker implementation (via rollout manager)
-- [ ] Alert system for rollout issues
+- [ ] Alert system for rollout issues - done with sentry?
 
 #### Phase 4: Gradual Deployment (Week 2-3)
 - [ ] 10% test repositories
