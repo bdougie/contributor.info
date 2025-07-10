@@ -68,7 +68,7 @@ Force a major release via GitHub Actions:
 1. Navigate to **Actions** tab in GitHub repository
 2. Select **Release** workflow
 3. Click **Run workflow** button
-4. Select branch: `release`
+4. Select branch: `main`
 5. Choose **Release type**: `major`
 6. Click **Run workflow** to execute
 
@@ -297,7 +297,7 @@ After each release:
 
 **Major Release Issues**
 - **No major version bump**: Ensure `BREAKING CHANGE:` or `!` syntax is correct
-- **Release workflow not triggered**: Verify push is to `release` branch, not `main`
+- **Release workflow not triggered**: Verify push is to `main` branch
 - **Manual trigger failed**: Check repository permissions and workflow dispatch settings
 - **Tag creation failed**: Ensure no duplicate tags exist and push permissions are granted
 
