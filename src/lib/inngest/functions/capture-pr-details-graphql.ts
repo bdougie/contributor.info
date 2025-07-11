@@ -178,7 +178,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           closed_at: pullRequest.closedAt,
           merged_at: pullRequest.mergedAt,
           merged: pullRequest.merged || false,
-          mergeable: pullRequest.mergeable === 'UNKNOWN' ? null : pullRequest.mergeable,
+          mergeable: pullRequest.mergeable === 'MERGEABLE' ? true : pullRequest.mergeable === 'CONFLICTING' ? false : null,
           merged_by_id: mergedById,
           base_branch: pullRequest.baseRefName,
           head_branch: pullRequest.headRefName,
