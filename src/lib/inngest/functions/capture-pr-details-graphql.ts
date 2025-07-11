@@ -6,6 +6,86 @@ import type { NonRetriableError } from 'inngest';
 // GraphQL client instance
 const graphqlClient = new GraphQLClient();
 
+// Helper function to ensure contributors exist and return their UUIDs
+async function ensureContributorExists(githubUser: any): Promise<string | null> {
+  if (!githubUser) {
+    console.log('ensureContributorExists: githubUser is null/undefined');
+    return null;
+  }
+
+  if (!githubUser.databaseId) {
+    console.log('ensureContributorExists: githubUser.databaseId is missing', {
+      login: githubUser.login,
+      keys: Object.keys(githubUser)
+    });
+    return null;
+  }
+
+  if (!githubUser.login) {
+    console.log('ensureContributorExists: githubUser.login is missing', {
+      databaseId: githubUser.databaseId,
+      keys: Object.keys(githubUser)
+    });
+    return null;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('contributors')
+      .upsert({
+        github_id: githubUser.databaseId,
+        username: githubUser.login,
+        display_name: githubUser.name || null,
+        email: githubUser.email || null,
+        avatar_url: githubUser.avatarUrl || null,
+        profile_url: `https://github.com/${githubUser.login}`,
+        // Only include fields that are actually requested in the GraphQL query
+        // Other fields like bio, company, etc. are not available in PR author data
+        bio: null,
+        company: null,
+        location: null,
+        blog: null,
+        public_repos: 0,
+        public_gists: 0,
+        followers: 0,
+        following: 0,
+        is_bot: false,
+        is_active: true,
+        first_seen_at: new Date().toISOString(),
+        last_updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'github_id',
+        ignoreDuplicates: false
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Error upserting contributor:', error, {
+        githubUser: {
+          databaseId: githubUser.databaseId,
+          login: githubUser.login,
+          name: githubUser.name,
+          email: githubUser.email,
+          avatarUrl: githubUser.avatarUrl
+        }
+      });
+      return null;
+    }
+
+    return data.id;
+  } catch (err) {
+    console.error('Exception in ensureContributorExists:', err, {
+      githubUser: {
+        databaseId: githubUser.databaseId,
+        login: githubUser.login,
+        keys: Object.keys(githubUser)
+      }
+    });
+    return null;
+  }
+}
+
 export const capturePrDetailsGraphQL = inngest.createFunction(
   {
     id: "capture-pr-details-graphql",
@@ -65,37 +145,45 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
         throw new Error(`No PR data returned for #${prNumber}`) as NonRetriableError;
       }
 
+      // First ensure the author exists and get their UUID
+      const authorId = await ensureContributorExists(pullRequest.author);
+      if (!authorId) {
+        throw new Error(`Failed to create/find author for PR #${prNumber}`) as NonRetriableError;
+      }
+
+      // Ensure merged_by contributor exists if present
+      let mergedById = null;
+      if (pullRequest.mergedBy) {
+        mergedById = await ensureContributorExists(pullRequest.mergedBy);
+      }
+
       // Store PR details
       const { data: prRecord, error: prError } = await supabase
         .from('pull_requests')
         .upsert({
           repository_id: repositoryId,
-          github_id: pullRequest.id?.toString() || pullRequest.databaseId?.toString(),
+          github_id: pullRequest.databaseId,
           number: pullRequest.number,
           title: pullRequest.title,
           body: pullRequest.body,
-          state: pullRequest.state?.toLowerCase(),
+          state: pullRequest.state?.toLowerCase() === 'open' ? 'open' : 'closed',
           draft: pullRequest.isDraft || false,
           additions: pullRequest.additions || 0,
           deletions: pullRequest.deletions || 0,
           changed_files: pullRequest.changedFiles || 0,
           commits: pullRequest.commits?.totalCount || 0,
-          author_id: pullRequest.author?.databaseId?.toString(),
-          author_login: pullRequest.author?.login,
-          author_avatar_url: pullRequest.author?.avatarUrl,
+          author_id: authorId,
           created_at: pullRequest.createdAt,
           updated_at: pullRequest.updatedAt,
           closed_at: pullRequest.closedAt,
           merged_at: pullRequest.mergedAt,
           merged: pullRequest.merged || false,
-          mergeable: pullRequest.mergeable,
-          merged_by_id: pullRequest.mergedBy?.databaseId?.toString(),
-          merged_by_login: pullRequest.mergedBy?.login,
-          base_ref: pullRequest.baseRefName,
-          head_ref: pullRequest.headRefName,
-          head_sha: pullRequest.headRef?.target?.oid,
+          mergeable: pullRequest.mergeable === 'MERGEABLE' ? true : pullRequest.mergeable === 'CONFLICTING' ? false : null,
+          merged_by_id: mergedById,
+          base_branch: pullRequest.baseRefName,
+          head_branch: pullRequest.headRefName,
         }, {
-          onConflict: 'repository_id,number'
+          onConflict: 'github_id'
         })
         .select('id')
         .single();
@@ -110,19 +198,24 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
 
       // Store reviews
       if (pullRequest.reviews?.nodes?.length > 0) {
-        const reviewsToStore = pullRequest.reviews.nodes.map((review: any) => ({
-          repository_id: repositoryId,
-          pull_request_id: prInternalId,
-          github_id: review.databaseId?.toString(),
-          pull_request_number: pullRequest.number,
-          state: review.state?.toLowerCase(),
-          body: review.body,
-          author_id: review.author?.databaseId?.toString(),
-          author_login: review.author?.login,
-          author_avatar_url: review.author?.avatarUrl,
-          submitted_at: review.submittedAt,
-          commit_id: review.commit?.oid,
-        }));
+        const reviewsToStore = [];
+        
+        for (const review of pullRequest.reviews.nodes) {
+          const reviewAuthorId = await ensureContributorExists(review.author);
+          if (reviewAuthorId) {
+            reviewsToStore.push({
+              repository_id: repositoryId,
+              pull_request_id: prInternalId,
+              github_id: review.databaseId,
+              pull_request_number: pullRequest.number,
+              state: review.state?.toLowerCase(),
+              body: review.body,
+              author_id: reviewAuthorId,
+              submitted_at: review.submittedAt,
+              commit_id: review.commit?.oid,
+            });
+          }
+        }
 
         const { data: reviews, error: reviewsError } = await supabase
           .from('reviews')
@@ -136,19 +229,24 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
 
       // Store issue comments (general PR comments)
       if (pullRequest.comments?.nodes?.length > 0) {
-        const issueCommentsToStore = pullRequest.comments.nodes.map((comment: any) => ({
-          repository_id: repositoryId,
-          pull_request_id: prInternalId,
-          github_id: comment.databaseId?.toString(),
-          pull_request_number: pullRequest.number,
-          body: comment.body,
-          author_id: comment.author?.databaseId?.toString(),
-          author_login: comment.author?.login,
-          author_avatar_url: comment.author?.avatarUrl,
-          created_at: comment.createdAt,
-          updated_at: comment.updatedAt,
-          type: 'issue_comment'
-        }));
+        const issueCommentsToStore = [];
+        
+        for (const comment of pullRequest.comments.nodes) {
+          const commenterId = await ensureContributorExists(comment.author);
+          if (commenterId) {
+            issueCommentsToStore.push({
+              repository_id: repositoryId,
+              pull_request_id: prInternalId,
+              github_id: comment.databaseId,
+              pull_request_number: pullRequest.number,
+              body: comment.body,
+              commenter_id: commenterId,
+              created_at: comment.createdAt,
+              updated_at: comment.updatedAt,
+              comment_type: 'issue_comment'
+            });
+          }
+        }
 
         const { data: issueComments, error: issueCommentsError } = await supabase
           .from('comments')
@@ -160,30 +258,41 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
         }
       }
 
-      // Store review comments (code comments)
-      if (pullRequest.reviewComments?.nodes?.length > 0) {
-        const reviewCommentsToStore = pullRequest.reviewComments.nodes.map((comment: any) => ({
-          repository_id: repositoryId,
-          pull_request_id: prInternalId,
-          github_id: comment.databaseId?.toString(),
-          pull_request_number: pullRequest.number,
-          review_id: comment.pullRequestReview?.databaseId?.toString(),
-          body: comment.body,
-          path: comment.path,
-          position: comment.position,
-          original_position: comment.originalPosition,
-          commit_id: comment.commit?.oid,
-          original_commit_id: comment.originalCommit?.oid,
-          diff_hunk: comment.diffHunk,
-          author_id: comment.author?.databaseId?.toString(),
-          author_login: comment.author?.login,
-          author_avatar_url: comment.author?.avatarUrl,
-          created_at: comment.createdAt,
-          updated_at: comment.updatedAt,
-          in_reply_to_id: comment.inReplyTo?.databaseId?.toString(),
-          type: 'review_comment'
-        }));
-
+      // Store review comments (code comments) - extract from reviews
+      const reviewCommentsToStore: any[] = [];
+      
+      if (pullRequest.reviews?.nodes?.length > 0) {
+        for (const review of pullRequest.reviews.nodes) {
+          if (review.comments?.nodes?.length > 0) {
+            for (const comment of review.comments.nodes) {
+              const commenterId = await ensureContributorExists(comment.author);
+              if (commenterId) {
+                reviewCommentsToStore.push({
+                  repository_id: repositoryId,
+                  pull_request_id: prInternalId,
+                  github_id: comment.databaseId,
+                  pull_request_number: pullRequest.number,
+                  review_id: review.databaseId,
+                  body: comment.body,
+                  path: comment.path,
+                  position: comment.position,
+                  original_position: comment.originalPosition,
+                  commit_id: comment.commit?.oid,
+                  original_commit_id: comment.originalCommit?.oid,
+                  diff_hunk: comment.diffHunk,
+                  commenter_id: commenterId,
+                  created_at: comment.createdAt,
+                  updated_at: comment.updatedAt,
+                  in_reply_to_id: comment.replyTo?.databaseId?.toString(),
+                  comment_type: 'review_comment'
+                });
+              }
+            }
+          }
+        }
+      }
+      
+      if (reviewCommentsToStore.length > 0) {
         const { data: reviewComments, error: reviewCommentsError } = await supabase
           .from('comments')
           .upsert(reviewCommentsToStore, { onConflict: 'github_id' })

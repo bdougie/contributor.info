@@ -1,14 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
-
-// Environment variables - direct access (with type assertion for build compatibility)
-const VITE_SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const VITE_SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+import { env } from './env';
 
 // Helper function to create the Supabase client
 export function createSupabaseClient() {
-  // Check required environment variables
-  const supabaseUrl = VITE_SUPABASE_URL;
-  const supabaseAnonKey = VITE_SUPABASE_ANON_KEY;
+  // Use universal environment access (works in both browser and server)
+  const supabaseUrl = env.SUPABASE_URL;
+  const supabaseAnonKey = env.SUPABASE_ANON_KEY;
   
   if (!supabaseUrl) {
     throw new Error('Missing environment variable: VITE_SUPABASE_URL');

@@ -1,25 +1,36 @@
 import { Inngest } from "inngest";
+import { env, serverEnv } from '../env';
 
 // Detect development environment
 const isDevelopment = () => {
   // Browser environment
   if (typeof window !== 'undefined') {
-    return window.location.hostname === 'localhost';
+    return window.location.hostname === 'localhost' || env.DEV;
   }
   
-  // Environment variables - direct access
-  const eventKey = ((import.meta as any).env?.VITE_INNGEST_EVENT_KEY || process.env.VITE_INNGEST_EVENT_KEY) || 'dev-key';
+  // Server environment
+  return env.MODE === 'development';
+};
+
+// Get event key safely based on context
+const getEventKey = () => {
+  // In browser context, Inngest client only needs basic functionality
+  // Event key is only needed for sending events, which happens server-side
+  if (typeof window !== 'undefined') {
+    return 'browser-client'; // Placeholder for browser client
+  }
   
-  return eventKey === 'dev-event-key' || eventKey === 'dev-key';
+  // Server context - access the real event key securely
+  return serverEnv.INNGEST_EVENT_KEY || 'dev-key';
 };
 
 // Create the Inngest client
 export const inngest = new Inngest({ 
-  id: "contributor-info",
+  id: env.INNGEST_APP_ID,
   // Set to development mode for local testing
   isDev: isDevelopment(),
-  // Add event key from environment
-  eventKey: ((import.meta as any).env?.VITE_INNGEST_EVENT_KEY || process.env.VITE_INNGEST_EVENT_KEY) || 'dev-key',
+  // Add event key from environment (server-side only)
+  eventKey: getEventKey(),
 });
 
 // Define event schemas for type safety

@@ -319,7 +319,7 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
       const totalJobs = 1 + 1 + (aiSummaryQueued ? 1 : 0); // Recent + Historical + AI Summary
       
       // Show subtle processing notification for manual triggers only
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env?.DEV) {
         ProgressiveCaptureNotifications.showProcessingStarted(`${owner}/${repo}`);
         
         console.log(`
@@ -427,7 +427,7 @@ if (typeof window !== 'undefined') {
   (window as any).cap = ProgressiveCaptureTrigger;
   
   // Enable console tools in development
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env?.DEV) {
     console.log('🔧 Progressive Data Capture tools available in console:');
     console.log('   ProgressiveCapture.* (full name)');
     console.log('   pc.* (short alias)');

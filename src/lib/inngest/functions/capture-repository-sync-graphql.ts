@@ -20,22 +20,25 @@ async function ensureContributorExists(githubUser: any): Promise<string | null> 
   const { data, error } = await supabase
     .from('contributors')
     .upsert({
-      github_id: githubUser.databaseId.toString(),
+      github_id: githubUser.databaseId,
       username: githubUser.login,
-      name: githubUser.name || null,
+      display_name: githubUser.name || null,
       email: githubUser.email || null,
       avatar_url: githubUser.avatarUrl || null,
+      profile_url: `https://github.com/${githubUser.login}`,
       bio: githubUser.bio || null,
       company: githubUser.company || null,
       location: githubUser.location || null,
       blog: githubUser.blog || null,
-      twitter_username: githubUser.twitter_username || null,
       public_repos: githubUser.public_repos || 0,
       public_gists: githubUser.public_gists || 0,
       followers: githubUser.followers || 0,
       following: githubUser.following || 0,
-      created_at: githubUser.createdAt || new Date().toISOString(),
-      updated_at: githubUser.updatedAt || new Date().toISOString(),
+      github_created_at: githubUser.createdAt || new Date().toISOString(),
+      is_bot: false, // GraphQL data doesn't include type, but we can infer from login
+      is_active: true,
+      first_seen_at: new Date().toISOString(),
+      last_updated_at: new Date().toISOString(),
     }, {
       onConflict: 'github_id',
       ignoreDuplicates: false
@@ -157,7 +160,8 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         number: pr.number,
         title: pr.title,
         body: null, // Basic PR list doesn't include body
-        state: pr.state?.toLowerCase(),
+        state: pr.state?.toLowerCase() === 'open' ? 'open' : 
+               pr.merged ? 'merged' : 'closed',
         author_id: contributorIds[index], // Now this is a proper UUID
         created_at: pr.createdAt,
         updated_at: pr.updatedAt,
@@ -169,8 +173,8 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         deletions: pr.deletions || 0,
         changed_files: pr.changedFiles || 0,
         commits: pr.commits?.totalCount || 0,
-        base_ref: pr.baseRefName || 'main',
-        head_ref: pr.headRefName || 'unknown',
+        base_branch: pr.baseRefName || 'main',
+        head_branch: pr.headRefName || 'unknown',
       }));
 
       const { data, error } = await supabase
@@ -188,11 +192,9 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
       return data || [];
     });
 
-    // Step 5: Queue detailed capture for PRs missing data (with higher limits due to GraphQL efficiency)
-    const queuedJobs = await step.run("queue-detailed-capture", async () => {
-      const jobsQueued = {
-        details: 0,
-      };
+    // Step 5: Prepare GraphQL job queue data (no nested steps)
+    const jobsToQueue = await step.run("prepare-graphql-job-queue", async () => {
+      const jobs = [] as any[];
 
       // Higher limit for GraphQL detail jobs due to efficiency
       const MAX_DETAIL_JOBS = 50; // Higher than REST due to single-query efficiency
@@ -207,7 +209,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
 
         // Queue GraphQL detail jobs more liberally due to efficiency
         if (detailJobsQueued < MAX_DETAIL_JOBS) {
-          await step.sendEvent("pr-details-graphql", {
+          jobs.push({
             name: "capture/pr.details.graphql",
             data: {
               repositoryId,
@@ -216,7 +218,6 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
               priority,
             },
           });
-          jobsQueued.details++;
           detailJobsQueued++;
         }
 
@@ -226,10 +227,22 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         }
       }
 
-      return jobsQueued;
+      return jobs;
     });
 
-    // Step 6: Update repository sync timestamp
+    // Step 6: Send GraphQL events for queued jobs
+    // Note: step.sendEvent must be called outside of step.run to avoid nested step tooling
+    let detailsQueued = 0;
+    for (const job of jobsToQueue) {
+      await step.sendEvent(`pr-details-graphql-${detailsQueued}`, job);
+      detailsQueued++;
+    }
+    
+    const queuedJobs = {
+      details: detailsQueued,
+    };
+
+    // Step 7: Update repository sync timestamp
     await step.run("update-sync-timestamp", async () => {
       const { error } = await supabase
         .from('repositories')

@@ -17,13 +17,13 @@ export class SmartDataNotifications {
   static async checkRepositoryAndNotify(owner: string, repo: string): Promise<void> {
     const repoKey = `${owner}/${repo}`;
     
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env?.DEV) {
       console.log(`🔍 Smart detection checking: ${repoKey}`);
     }
     
     // Don't check the same repo repeatedly
     if (this.checkedRepositories.has(repoKey)) {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env?.DEV) {
         console.log(`⏭️ Skipping ${repoKey} - already checked`);
       }
       return;
@@ -32,7 +32,7 @@ export class SmartDataNotifications {
     // Check cooldown
     const lastNotification = this.notificationCooldown.get(repoKey);
     if (lastNotification && Date.now() - lastNotification < this.COOLDOWN_DURATION) {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env?.DEV) {
         console.log(`⏭️ Skipping ${repoKey} - in cooldown period`);
       }
       return;
@@ -48,20 +48,20 @@ export class SmartDataNotifications {
         .single();
 
       if (repoError || !repoData) {
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env?.DEV) {
           console.log(`❌ Repository ${repoKey} not found in database:`, repoError?.message);
         }
         return;
       }
 
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env?.DEV) {
         console.log(`✅ Found ${repoKey} in database:`, { id: repoData.id, last_updated_at: repoData.last_updated_at });
       }
 
       // Check for missing data
       const missingData = await this.analyzeMissingData(repoData.id, repoData.last_updated_at);
       
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env?.DEV) {
         console.log(`📊 Missing data analysis for ${repoKey}:`, missingData);
       }
       
@@ -70,7 +70,7 @@ export class SmartDataNotifications {
         await this.autoFixMissingData(owner, repo, repoData.id, missingData);
         this.notificationCooldown.set(repoKey, Date.now());
       } else {
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env?.DEV) {
           console.log(`✅ No missing data detected for ${repoKey}`);
         }
       }
@@ -202,7 +202,7 @@ export class SmartDataNotifications {
       // Check if we recently queued jobs for this repository to prevent hot reload duplicates
       const lastQueued = this.queuedJobs.get(repoKey);
       if (lastQueued && Date.now() - lastQueued < this.QUEUE_COOLDOWN) {
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env?.DEV) {
           console.log(`⏭️ Skipping ${repoKey} - jobs were queued recently (${Math.floor((Date.now() - lastQueued) / 1000)}s ago)`);
         }
         return;
@@ -210,7 +210,7 @@ export class SmartDataNotifications {
       
       const { hybridQueueManager } = await import('./hybrid-queue-manager');
       
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env?.DEV) {
         console.log(`🔧 Auto-fixing missing data for ${owner}/${repo}:`, missingData);
       }
       
@@ -227,14 +227,14 @@ export class SmartDataNotifications {
       const promises: Promise<any>[] = [];
       
       if (missingData.includes('recent PRs')) {
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env?.DEV) {
           console.log(`⏳ Queuing recent PRs job for ${owner}/${repo} with priority: ${priority}`);
         }
         promises.push(hybridQueueManager.queueRecentDataCapture(repositoryId, `${owner}/${repo}`));
       }
       
       if (missingData.includes('file changes') || missingData.includes('reviews') || missingData.includes('comments') || missingData.includes('commit analysis')) {
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env?.DEV) {
           console.log(`⏳ Queuing historical data job for ${owner}/${repo} with priority: ${priority}`);
         }
         promises.push(hybridQueueManager.queueHistoricalDataCapture(repositoryId, `${owner}/${repo}`, 30));
@@ -243,7 +243,7 @@ export class SmartDataNotifications {
       const results = await Promise.all(promises);
       
       // Log in development only
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env?.DEV) {
         console.log(`✅ Auto-fix jobs queued for ${owner}/${repo}:`, results);
       }
       
@@ -328,7 +328,7 @@ export class SmartDataNotifications {
     this.checkedRepositories.delete(repoKey);
     this.notificationCooldown.delete(repoKey);
     
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env?.DEV) {
       console.log(`🔄 Force checking ${repoKey} (bypassing cooldown and already-checked status)`);
     }
     
@@ -359,7 +359,7 @@ export function setupSmartNotifications(): void {
     const checkCurrentRepository = () => {
       const path = window.location.pathname;
       
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env?.DEV) {
         console.log(`🔍 Route detection checking path: ${path}`);
       }
       
@@ -369,7 +369,7 @@ export function setupSmartNotifications(): void {
       if (match && match[1] !== 'login' && match[1] !== 'debug' && match[1] !== 'admin') {
         const [, owner, repo] = match;
         
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env?.DEV) {
           console.log(`✅ Repository detected: ${owner}/${repo} - scheduling auto-detection in 3 seconds`);
         }
         
@@ -378,7 +378,7 @@ export function setupSmartNotifications(): void {
           SmartDataNotifications.checkRepositoryAndNotify(owner, repo);
         }, 3000);
       } else {
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env?.DEV) {
           console.log(`⏭️ Path ${path} doesn't match repository pattern or is excluded`);
         }
       }
@@ -404,7 +404,7 @@ export function setupSmartNotifications(): void {
       setTimeout(checkCurrentRepository, 100);
     };
 
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env?.DEV) {
       console.log('🔔 Smart data detection enabled');
       
       // Expose for debugging
