@@ -203,7 +203,34 @@ export class HybridQueueManager {
       throw new Error(`Unknown job type for Inngest: ${jobType}`);
     }
 
-    // Send event to Inngest with rate limiting
+    // If we're in the browser, use the API endpoint
+    if (typeof window !== 'undefined') {
+      const response = await fetch('/api/queue-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          eventName,
+          data: {
+            jobId,
+            repositoryId: data.repositoryId,
+            repositoryName: data.repositoryName,
+            maxItems: Math.min(data.maxItems || this.INNGEST_MAX_ITEMS, this.INNGEST_MAX_ITEMS),
+            priority: 'medium',
+            ...data.metadata
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to queue event: ${response.statusText}`);
+      }
+      
+      return;
+    }
+    
+    // Server-side: send directly to Inngest
     await inngest.send({
       name: eventName,
       data: {
@@ -211,6 +238,7 @@ export class HybridQueueManager {
         repositoryId: data.repositoryId,
         repositoryName: data.repositoryName,
         maxItems: Math.min(data.maxItems || this.INNGEST_MAX_ITEMS, this.INNGEST_MAX_ITEMS),
+        priority: 'medium',
         ...data.metadata
       }
     });
