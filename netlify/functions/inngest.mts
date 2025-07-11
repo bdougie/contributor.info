@@ -1,4 +1,4 @@
-import { serve } from "inngest/netlify";
+import { serve } from "inngest/lambda";
 import type { Context } from "@netlify/functions";
 import { inngest } from "../../src/lib/inngest/client";
 import {

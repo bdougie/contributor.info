@@ -1,6 +1,6 @@
 // Local development Inngest function for testing
 import { Inngest } from "inngest";
-import { serve } from "inngest/netlify";
+import { serve } from "inngest/lambda";
 import type { Context } from "@netlify/functions";
 
 // Environment detection for local

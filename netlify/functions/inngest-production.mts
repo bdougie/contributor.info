@@ -1,7 +1,7 @@
 // Production-ready Inngest function for Netlify
 // Self-contained to avoid import issues with src directory
 import { Inngest } from "inngest";
-import { serve } from "inngest/netlify";
+import { serve } from "inngest/lambda";
 import { createClient } from '@supabase/supabase-js';
 import type { Context } from "@netlify/functions";
 

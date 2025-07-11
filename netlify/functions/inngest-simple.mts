@@ -1,6 +1,6 @@
 // Simple Inngest function for Netlify
 import { Inngest } from "inngest";
-import { serve } from "inngest/netlify";
+import { serve } from "inngest/lambda";
 
 // Detect development environment
 const isDevelopment = () => {
