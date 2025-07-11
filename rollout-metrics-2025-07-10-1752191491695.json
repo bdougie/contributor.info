@@ -1,0 +1,229 @@
+{
+  "timeWindow": {
+    "start": "2025-07-09T23:51:31.040Z",
+    "end": "2025-07-10T23:51:31.040Z"
+  },
+  "rolloutConfig": {
+    "id": "ed7ffc4b-4e7c-4afe-b114-a109ad5778f1",
+    "rollout_percentage": 10,
+    "rollout_strategy": "repository_size",
+    "max_error_rate": 5,
+    "auto_rollback_enabled": true,
+    "emergency_stop": false,
+    "target_repositories_count": 0,
+    "excluded_repositories_count": 0
+  },
+  "jobMetrics": {
+    "total": 57,
+    "byStatus": {
+      "processing": 54,
+      "failed": 3
+    },
+    "byProcessor": {
+      "inngest": 56,
+      "github_actions": 1
+    },
+    "byJobType": {
+      "recent-prs": 28,
+      "historical-pr-sync": 29
+    },
+    "avgProcessingTime": 215,
+    "processingTimes": [
+      231,
+      199
+    ],
+    "medianProcessingTime": 215,
+    "p95ProcessingTime": 229.4,
+    "successRate": 0,
+    "errorRate": 100
+  },
+  "processorMetrics": {
+    "inngest": {
+      "totalJobs": 52,
+      "successCount": 50,
+      "errorCount": 2,
+      "totalProcessingTime": 0,
+      "processingTimes": [],
+      "successRate": 96.15384615384616,
+      "errorRate": 3.8461538461538463,
+      "avgProcessingTime": 0
+    },
+    "github_actions": {
+      "totalJobs": 0,
+      "successCount": 0,
+      "errorCount": 0,
+      "totalProcessingTime": 0,
+      "processingTimes": [],
+      "successRate": 0,
+      "errorRate": 0,
+      "avgProcessingTime": 0
+    },
+    "combined": {
+      "totalJobs": 52,
+      "successCount": 50,
+      "errorCount": 2,
+      "totalProcessingTime": 0,
+      "processingTimes": [],
+      "successRate": 96.15384615384616,
+      "errorRate": 3.8461538461538463,
+      "avgProcessingTime": 0
+    }
+  },
+  "repositoryMetrics": {
+    "totalRepositories": 4,
+    "categorizedRepositories": 4,
+    "categoryDistribution": {
+      "enterprise": 1,
+      "test": 3
+    },
+    "activeRepositories": {},
+    "repositoryJobDistribution": {
+      "98b0e461-ea5c-4916-99c0-402fbff5950a": {
+        "inngest": 56,
+        "github_actions": 1,
+        "total": 57
+      }
+    },
+    "testRepositories": 3,
+    "activeRepositoriesCount": 1,
+    "repositoryParticipationRate": 25
+  },
+  "errorAnalysis": {
+    "totalErrors": 3,
+    "errorsByProcessor": {
+      "github_actions": 1,
+      "inngest": 2
+    },
+    "errorPatterns": {
+      "unknown": 5
+    },
+    "recentErrors": [
+      {
+        "processor": "inngest",
+        "error": "Failed to fetch",
+        "category": "unknown",
+        "timestamp": "2025-07-10T23:27:35.655946"
+      },
+      {
+        "processor": "inngest",
+        "error": "Failed to fetch",
+        "category": "unknown",
+        "timestamp": "2025-07-10T23:27:35.654633"
+      },
+      {
+        "processor": "github_actions",
+        "error": "{\n  \"message\": \"Bad credentials\",\n  \"documentation_url\": \"https://docs.github.com/rest\",\n  \"status\": \"401\"\n}\n",
+        "category": "unknown",
+        "timestamp": "2025-07-10T15:06:36.662196"
+      }
+    ],
+    "errorTrends": []
+  },
+  "performanceMetrics": {
+    "throughput": {
+      "inngest": {
+        "jobsPerHour": 0,
+        "itemsPerHour": 0
+      },
+      "github_actions": {
+        "jobsPerHour": 0,
+        "itemsPerHour": 0
+      }
+    },
+    "latency": {
+      "inngest": {
+        "avgMs": 0,
+        "p95Ms": 0,
+        "times": []
+      },
+      "github_actions": {
+        "avgMs": 0,
+        "p95Ms": 0,
+        "times": []
+      }
+    },
+    "efficiency": {
+      "inngest": {
+        "itemsPerJob": 0,
+        "successRate": 0
+      },
+      "github_actions": {
+        "itemsPerJob": 0,
+        "successRate": 0
+      }
+    }
+  },
+  "costAnalysis": {
+    "inngest": {
+      "jobCount": 56,
+      "estimatedCost": 0.0112,
+      "avgCostPerJob": 0.0002
+    },
+    "github_actions": {
+      "jobCount": 1,
+      "estimatedCost": 0,
+      "avgCostPerJob": 0,
+      "minutesUsed": 0
+    },
+    "savings": {
+      "vsInngestOnly": 0.00020000000000000052,
+      "percentage": 1.754385964912285,
+      "breakdown": {}
+    }
+  },
+  "trends": {
+    "jobVolume": {
+      "direction": "up",
+      "change": 100,
+      "absolute": 57
+    },
+    "errorRate": {
+      "direction": "up",
+      "change": 100,
+      "absolute": 5.263157894736842
+    },
+    "processingTime": {
+      "direction": "up",
+      "change": 100,
+      "absolute": 215
+    },
+    "inngestUsage": {
+      "direction": "up",
+      "change": 100,
+      "absolute": 56
+    },
+    "actionsUsage": {
+      "direction": "up",
+      "change": 100,
+      "absolute": 1
+    }
+  },
+  "summary": {
+    "timeWindow": "24 hours",
+    "timestamp": "2025-07-10T23:51:31.695Z",
+    "rolloutStatus": "active",
+    "rolloutPercentage": 10,
+    "totalJobs": 57,
+    "successRate": 0,
+    "errorRate": 100,
+    "processorDistribution": {
+      "inngest": {
+        "jobs": 56,
+        "percentage": 98.24561403508771
+      },
+      "github_actions": {
+        "jobs": 1,
+        "percentage": 1.7543859649122806
+      }
+    },
+    "repositoryParticipation": 25,
+    "activeRepositories": 1,
+    "avgProcessingTime": 215,
+    "estimatedSavings": 1.754385964912285,
+    "healthScore": 50,
+    "recommendations": [
+      "High error rate (100.0%) - consider reducing rollout percentage",
+      "Low success rate (0.0%) - investigate processor issues"
+    ]
+  }
+}

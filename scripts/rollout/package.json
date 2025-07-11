@@ -1,0 +1,16 @@
+{
+  "name": "rollout-scripts",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Rollout monitoring and analysis scripts",
+  "scripts": {
+    "metrics": "node metrics-aggregator.js",
+    "analyze": "node performance-analyzer.js",
+    "alert": "node alert-manager.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "@sentry/node": "^8.35.0",
+    "dotenv": "^16.4.5"
+  }
+}

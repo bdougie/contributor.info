@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { env } from '../env';
 
 export interface RolloutConfiguration {
   id: string;
@@ -72,7 +73,7 @@ export class HybridRolloutManager {
 
   constructor(featureName: string = 'hybrid_progressive_capture') {
     this.featureName = featureName;
-    this.emergencyStopOverride = process.env.HYBRID_EMERGENCY_STOP === 'true';
+    this.emergencyStopOverride = env.HYBRID_EMERGENCY_STOP === 'true';
   }
 
   /**
@@ -394,6 +395,7 @@ export class HybridRolloutManager {
       const windowStart = new Date(now.getTime() - (config.monitoring_window_hours * 60 * 60 * 1000));
 
       // Get or create metrics record for this window
+      // Check if we have a recent metrics record within the monitoring window
       const { data: existingMetrics, error: fetchError } = await supabase
         .from('rollout_metrics')
         .select('*')
@@ -401,7 +403,9 @@ export class HybridRolloutManager {
         .eq('repository_id', repositoryId)
         .eq('processor_type', processorType)
         .gte('metrics_window_start', windowStart.toISOString())
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
         console.error(`[RolloutManager] Error fetching metrics:`, fetchError);
@@ -476,11 +480,12 @@ export class HybridRolloutManager {
       }
 
       // Get metrics for error rate calculation
+      const windowStart = new Date(Date.now() - config.monitoring_window_hours * 60 * 60 * 1000);
       const { data: metrics, error: metricsError } = await supabase
         .from('rollout_metrics')
         .select('*')
         .eq('rollout_config_id', config.id)
-        .gte('created_at', new Date(Date.now() - config.monitoring_window_hours * 60 * 60 * 1000).toISOString());
+        .gte('created_at', windowStart.toISOString());
 
       if (metricsError) {
         console.error(`[RolloutManager] Error fetching metrics:`, metricsError);

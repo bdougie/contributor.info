@@ -16,22 +16,25 @@ async function ensureContributorExists(githubUser: any): Promise<string | null> 
   const { data, error } = await supabase
     .from('contributors')
     .upsert({
-      github_id: githubUser.id.toString(),
+      github_id: githubUser.id,
       username: githubUser.login,
-      name: githubUser.name || null,
+      display_name: githubUser.name || null,
       email: githubUser.email || null,
       avatar_url: githubUser.avatar_url || null,
+      profile_url: `https://github.com/${githubUser.login}`,
       bio: githubUser.bio || null,
       company: githubUser.company || null,
       location: githubUser.location || null,
       blog: githubUser.blog || null,
-      twitter_username: githubUser.twitter_username || null,
       public_repos: githubUser.public_repos || 0,
       public_gists: githubUser.public_gists || 0,
       followers: githubUser.followers || 0,
       following: githubUser.following || 0,
-      created_at: githubUser.created_at || new Date().toISOString(),
-      updated_at: githubUser.updated_at || new Date().toISOString(),
+      github_created_at: githubUser.created_at || new Date().toISOString(),
+      is_bot: githubUser.type === 'Bot' || githubUser.login.includes('[bot]'),
+      is_active: true,
+      first_seen_at: new Date().toISOString(),
+      last_updated_at: new Date().toISOString(),
     }, {
       onConflict: 'github_id',
       ignoreDuplicates: false
@@ -149,7 +152,8 @@ export const captureRepositorySync = inngest.createFunction(
         number: pr.number,
         title: pr.title,
         body: null, // PR body not available in simplified type
-        state: pr.state,
+        state: pr.state === 'open' ? 'open' : 
+               pr.merged ? 'merged' : 'closed',
         author_id: contributorIds[index], // Now this is a proper UUID
         created_at: pr.created_at,
         updated_at: pr.updated_at,
@@ -161,8 +165,8 @@ export const captureRepositorySync = inngest.createFunction(
         deletions: pr.deletions || 0,
         changed_files: pr.changed_files || 0,
         commits: pr.commits || 0,
-        base_ref: pr.base?.ref || 'main',
-        head_ref: pr.head?.ref || 'unknown',
+        base_branch: pr.base?.ref || 'main',
+        head_branch: pr.head?.ref || 'unknown',
       }));
 
       const { data, error } = await supabase
@@ -180,12 +184,12 @@ export const captureRepositorySync = inngest.createFunction(
       return data || [];
     });
 
-    // Step 5: Queue detailed capture for PRs missing data (with limits)
-    const queuedJobs = await step.run("queue-detailed-capture", async () => {
-      const jobsQueued = {
-        reviews: 0,
-        comments: 0,
-        details: 0,
+    // Step 5: Prepare job queue data (no nested steps)
+    const jobsToQueue = await step.run("prepare-job-queue", async () => {
+      const jobs = {
+        details: [] as any[],
+        reviews: [] as any[],
+        comments: [] as any[],
       };
 
       // Limit the number of detail jobs to queue
@@ -202,10 +206,10 @@ export const captureRepositorySync = inngest.createFunction(
         
         if (!prData) continue;
 
-        // If PR has no file change data, queue details job (limited)
+        // If PR has no file change data, prepare details job (limited)
         if (detailJobsQueued < MAX_DETAIL_JOBS && 
             ((prData.additions === 0 && prData.deletions === 0) || prData.changed_files === 0)) {
-          await step.sendEvent("pr-details", {
+          jobs.details.push({
             name: "capture/pr.details",
             data: {
               repositoryId,
@@ -214,13 +218,12 @@ export const captureRepositorySync = inngest.createFunction(
               priority,
             },
           });
-          jobsQueued.details++;
           detailJobsQueued++;
         }
 
-        // Queue review capture (limited)
+        // Prepare review capture (limited)
         if (reviewJobsQueued < MAX_REVIEW_COMMENT_JOBS) {
-          await step.sendEvent("pr-reviews", {
+          jobs.reviews.push({
             name: "capture/pr.reviews",
             data: {
               repositoryId,
@@ -230,13 +233,12 @@ export const captureRepositorySync = inngest.createFunction(
               priority,
             },
           });
-          jobsQueued.reviews++;
           reviewJobsQueued++;
         }
 
-        // Queue comment capture (limited)
+        // Prepare comment capture (limited)
         if (commentJobsQueued < MAX_REVIEW_COMMENT_JOBS) {
-          await step.sendEvent("pr-comments", {
+          jobs.comments.push({
             name: "capture/pr.comments",
             data: {
               repositoryId,
@@ -246,7 +248,6 @@ export const captureRepositorySync = inngest.createFunction(
               priority,
             },
           });
-          jobsQueued.comments++;
           commentJobsQueued++;
         }
 
@@ -259,10 +260,36 @@ export const captureRepositorySync = inngest.createFunction(
         }
       }
 
-      return jobsQueued;
+      return jobs;
     });
 
-    // Step 6: Update repository sync timestamp
+    // Step 6: Send events for queued jobs
+    // Note: step.sendEvent must be called outside of step.run to avoid nested step tooling
+    let detailsQueued = 0;
+    for (const job of jobsToQueue.details) {
+      await step.sendEvent(`pr-details-${detailsQueued}`, job);
+      detailsQueued++;
+    }
+
+    let reviewsQueued = 0;
+    for (const job of jobsToQueue.reviews) {
+      await step.sendEvent(`pr-reviews-${reviewsQueued}`, job);
+      reviewsQueued++;
+    }
+
+    let commentsQueued = 0;
+    for (const job of jobsToQueue.comments) {
+      await step.sendEvent(`pr-comments-${commentsQueued}`, job);
+      commentsQueued++;
+    }
+
+    const queuedJobs = {
+      reviews: reviewsQueued,
+      comments: commentsQueued,
+      details: detailsQueued,
+    };
+
+    // Step 7: Update repository sync timestamp
     await step.run("update-sync-timestamp", async () => {
       const { error } = await supabase
         .from('repositories')

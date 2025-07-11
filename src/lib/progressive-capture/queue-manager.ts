@@ -65,13 +65,13 @@ export class DataCaptureQueueManager {
     }
 
     if (!prsNeedingUpdate || prsNeedingUpdate.length === 0) {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env?.DEV) {
         console.log(`[Queue] No PRs needing file changes found for repository ${repositoryId}`);
       }
       return 0;
     }
 
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env?.DEV) {
       console.log(`[Queue] Found ${prsNeedingUpdate.length} PRs needing file changes (limit: ${limit}, priority: ${priority})`);
     }
 
@@ -365,7 +365,7 @@ export class DataCaptureQueueManager {
       if (error) {
         // If rate limit tracking fails (permissions, etc), allow operations
         // This prevents blocking the queue when rate limit tracking has issues
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env?.DEV) {
           console.warn('[Queue] Rate limit tracking unavailable, allowing operations:', error.code);
         }
         return true; // Permissive approach when tracking is unavailable
@@ -381,7 +381,7 @@ export class DataCaptureQueueManager {
       return safeToMake && withinHourlyLimit;
     } catch (err) {
       // If any error occurs, allow operations to continue
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env?.DEV) {
         console.warn('[Queue] Rate limit check failed, allowing operations:', err);
       }
       return true; // Permissive approach on errors
@@ -409,13 +409,13 @@ export class DataCaptureQueueManager {
 
       if (error) {
         // Silently fail rate limit tracking updates - they're not critical for functionality
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env?.DEV) {
           console.warn('[Queue] Rate limit tracking update failed:', error.code);
         }
       }
     } catch (err) {
       // Silently fail - rate limit tracking is nice-to-have, not critical
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env?.DEV) {
         console.warn('[Queue] Rate limit tracking update error:', err);
       }
     }
@@ -465,13 +465,13 @@ export class DataCaptureQueueManager {
     }
 
     if (!prsNeedingReviews || prsNeedingReviews.length === 0) {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env?.DEV) {
         console.log(`[Queue] No PRs needing reviews found for repository ${repositoryId}`);
       }
       return 0;
     }
 
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env?.DEV) {
       console.log(`[Queue] Found ${prsNeedingReviews.length} PRs needing reviews (limit: ${limit}, priority: ${priority})`);
     }
 
@@ -546,13 +546,13 @@ export class DataCaptureQueueManager {
     }
 
     if (!prsNeedingComments || prsNeedingComments.length === 0) {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env?.DEV) {
         console.log(`[Queue] No PRs needing comments found for repository ${repositoryId}`);
       }
       return 0;
     }
 
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env?.DEV) {
       console.log(`[Queue] Found ${prsNeedingComments.length} PRs needing comments (limit: ${limit})`);
     }
 

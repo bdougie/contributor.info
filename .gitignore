@@ -50,3 +50,8 @@ analyze-lighthouse.cjs
 
 # Local Netlify folder
 .netlify
+
+# Rollout metrics and analysis files
+rollout-metrics-*.json
+performance-analysis-*.json
+trend-analysis-*.json

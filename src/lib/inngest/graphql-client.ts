@@ -1,7 +1,15 @@
 import { graphql } from '@octokit/graphql';
+import { serverEnv } from '../env';
 
-// GitHub token from environment
-const GITHUB_TOKEN = (import.meta as any).env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
+// GitHub token from server environment - this runs in Inngest functions (server context)
+const GITHUB_TOKEN = (() => {
+  // In development, we might use the client token for testing
+  if (serverEnv.NODE_ENV === 'development') {
+    return process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN || '';
+  }
+  // In production, use the proper server token
+  return process.env.GITHUB_TOKEN || '';
+})();
 
 // GraphQL query for comprehensive PR details
 const GET_PR_DETAILS_QUERY = `
@@ -62,7 +70,7 @@ const GET_PR_DETAILS_QUERY = `
           }
         }
         
-        # Reviews with details
+        # Reviews with details including review comments
         reviews(first: 100) {
           totalCount
           nodes {
@@ -80,39 +88,34 @@ const GET_PR_DETAILS_QUERY = `
             commit {
               oid
             }
-          }
-        }
-        
-        # Review comments (code comments)
-        reviewComments(first: 100) {
-          totalCount
-          nodes {
-            databaseId
-            body
-            createdAt
-            updatedAt
-            position
-            originalPosition
-            diffHunk
-            path
-            author {
-              login
-              avatarUrl
-              ... on User {
+            # Review comments within each review
+            comments(first: 50) {
+              nodes {
                 databaseId
+                body
+                createdAt
+                updatedAt
+                position
+                outdated
+                diffHunk
+                path
+                author {
+                  login
+                  avatarUrl
+                  ... on User {
+                    databaseId
+                  }
+                }
+                replyTo {
+                  databaseId
+                }
+                commit {
+                  oid
+                }
+                originalCommit {
+                  oid
+                }
               }
-            }
-            inReplyTo {
-              databaseId
-            }
-            commit {
-              oid
-            }
-            originalCommit {
-              oid
-            }
-            pullRequestReview {
-              databaseId
             }
           }
         }
@@ -149,9 +152,9 @@ const GET_PR_DETAILS_QUERY = `
 
 // GraphQL query for recent PRs
 const GET_RECENT_PRS_QUERY = `
-  query GetRecentPRs($owner: String!, $repo: String!, $first: Int!, $since: DateTime) {
+  query GetRecentPRs($owner: String!, $repo: String!, $first: Int!) {
     repository(owner: $owner, name: $repo) {
-      pullRequests(first: $first, orderBy: {field: UPDATED_AT, direction: DESC}, filterBy: {since: $since}) {
+      pullRequests(first: $first, orderBy: {field: UPDATED_AT, direction: DESC}) {
         totalCount
         nodes {
           databaseId
@@ -288,7 +291,6 @@ export class GraphQLClient {
         owner,
         repo,
         first: Math.min(limit, 100), // GraphQL API limit
-        since
       }) as GraphQLResponse;
 
       this.metrics.queriesExecuted++;
@@ -297,7 +299,16 @@ export class GraphQLClient {
 
       console.log(`[GraphQL] Recent PRs query for ${owner}/${repo} (cost: ${result.rateLimit?.cost} points)`);
 
-      return result.repository?.pullRequests?.nodes || [];
+      const allPRs = result.repository?.pullRequests?.nodes || [];
+      
+      // Filter PRs updated since the given date (client-side filtering)
+      const sinceDate = new Date(since);
+      const filteredPRs = allPRs.filter((pr: any) => {
+        const updatedAt = new Date(pr.updatedAt);
+        return updatedAt >= sinceDate;
+      });
+
+      return filteredPRs;
     } catch (error: any) {
       this.metrics.fallbackCount++;
       console.error(`[GraphQL] Recent PRs query failed for ${owner}/${repo}:`, error.message);

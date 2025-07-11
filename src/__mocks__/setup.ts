@@ -158,6 +158,39 @@ vi.mock('d3-interpolate', () => ({
   default: vi.fn()
 }));
 
+// Mock Supabase client to avoid environment variable errors
+vi.mock('@/lib/supabase', () => ({
+  createSupabaseClient: vi.fn(() => ({
+    auth: {
+      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+      getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+      signInWithOAuth: vi.fn(() => Promise.resolve({ data: {}, error: null })),
+      signOut: vi.fn(() => Promise.resolve({ error: null }))
+    },
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({ data: [], error: null })),
+      insert: vi.fn(() => ({ data: [], error: null })),
+      update: vi.fn(() => ({ data: [], error: null })),
+      delete: vi.fn(() => ({ data: [], error: null }))
+    }))
+  })),
+  supabase: {
+    auth: {
+      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+      getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+      signInWithOAuth: vi.fn(() => Promise.resolve({ data: {}, error: null })),
+      signOut: vi.fn(() => Promise.resolve({ error: null }))
+    },
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({ data: [], error: null })),
+      insert: vi.fn(() => ({ data: [], error: null })),
+      update: vi.fn(() => ({ data: [], error: null })),
+      delete: vi.fn(() => ({ data: [], error: null }))
+    }))
+  },
+  debugAuthSession: vi.fn(() => Promise.resolve({ session: null, error: null }))
+}));
+
 // Mock OpenAI service to avoid real API calls
 vi.mock('@/lib/llm/openai-service', () => ({
   openAIService: {
