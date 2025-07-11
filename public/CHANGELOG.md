@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.2](https://github.com/bdougie/contributor.info/compare/v1.9.1...v1.9.2) (2025-07-11)
+
+
+### 🐛 Bug Fixes
+
+* build ([#188](https://github.com/bdougie/contributor.info/issues/188)) ([33ff4e7](https://github.com/bdougie/contributor.info/commit/33ff4e7428e04106d8434fa1a7b86d27d46e0c46))
+
 ## [1.9.1](https://github.com/bdougie/contributor.info/compare/v1.9.0...v1.9.1) (2025-07-11)
 
 

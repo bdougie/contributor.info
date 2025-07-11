@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.3](https://github.com/bdougie/contributor.info/compare/v1.9.2...v1.9.3) (2025-07-11)
+
+
+### 🐛 Bug Fixes
+
+* build ([2fd5c3b](https://github.com/bdougie/contributor.info/commit/2fd5c3bffa8dde0379bb3be9d903b0bc83a43a5d))
+* improve Inngest production mode detection and key handling ([5e8e601](https://github.com/bdougie/contributor.info/commit/5e8e601b2e2db6329246ab612af70be05e81c2de))
+
 ## [1.9.2](https://github.com/bdougie/contributor.info/compare/v1.9.1...v1.9.2) (2025-07-11)
 
 
