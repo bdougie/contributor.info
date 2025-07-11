@@ -69,12 +69,13 @@
   [headers.values]
     Content-Type = "application/wasm"
 
-# Redirect rules for SPA behavior
+# Redirect rules for SPA behavior (exclude functions and API routes)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
   force = false
+  conditions = {path = ["!/.netlify/functions/*", "!/api/*"]}
 
 # Font and image optimizations
 [[headers]]
