@@ -2,24 +2,34 @@
 import { Inngest } from "inngest";
 import type { Context } from "@netlify/functions";
 
-// Environment detection
-const isDevelopment = () => {
+// Environment detection - treat deploy previews as production for signing
+const isProduction = () => {
+  const context = process.env.CONTEXT;
   const nodeEnv = process.env.NODE_ENV;
-  const netlifyContext = process.env.CONTEXT;
   
-  if (netlifyContext === 'production' || nodeEnv === 'production') {
-    return false;
+  // Deploy previews should use production mode for proper signing
+  return context === 'production' || 
+         context === 'deploy-preview' || 
+         nodeEnv === 'production' ||
+         process.env.NETLIFY === 'true'; // All Netlify environments use production mode
+};
+
+// Get production environment variables
+const getProductionEnvVar = (key: string, fallbackKey?: string): string => {
+  // For production, use production-specific keys first
+  if (isProduction()) {
+    return process.env[`INNGEST_PRODUCTION_${key}`] || process.env[key] || (fallbackKey ? process.env[fallbackKey] : '') || '';
   }
-  
-  return nodeEnv !== 'production';
+  // For preview/dev, use existing keys
+  return process.env[key] || (fallbackKey ? process.env[fallbackKey] : '') || '';
 };
 
 // Create Inngest client with server-side keys
 const inngest = new Inngest({ 
   id: process.env.VITE_INNGEST_APP_ID || 'contributor-info',
-  isDev: isDevelopment(),
-  eventKey: process.env.INNGEST_EVENT_KEY || 'dev-key',
-  signingKey: process.env.INNGEST_SIGNING_KEY,
+  isDev: false, // Force production mode for proper request signing
+  eventKey: getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
+  signingKey: getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
 });
 
 export default async (req: Request, context: Context) => {
@@ -32,6 +42,14 @@ export default async (req: Request, context: Context) => {
   }
 
   try {
+    // Log environment info for debugging
+    console.log("API Queue Event - Environment:", {
+      context: process.env.CONTEXT,
+      isProduction: isProduction(),
+      hasEventKey: !!getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
+      hasSigningKey: !!getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY')
+    });
+
     // Parse the request body
     const body = await req.json();
     const { eventName, data } = body;
@@ -44,6 +62,8 @@ export default async (req: Request, context: Context) => {
         headers: { "Content-Type": "application/json" }
       });
     }
+
+    console.log("Sending event to Inngest:", { eventName, dataKeys: Object.keys(data) });
 
     // Send the event to Inngest server-side
     const result = await inngest.send({
