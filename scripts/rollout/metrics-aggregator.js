@@ -13,10 +13,14 @@ dotenv.config();
 
 class RolloutMetricsAggregator {
   constructor() {
-    this.supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY
-    );
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase configuration. Need SUPABASE_URL and SUPABASE_SERVICE_KEY (or their aliases)');
+    }
+    
+    this.supabase = createClient(supabaseUrl, supabaseKey);
     
     // Initialize Sentry for metrics tracking
     if (process.env.SENTRY_DSN) {
@@ -162,11 +166,22 @@ class RolloutMetricsAggregator {
       metrics.p95ProcessingTime = this.calculatePercentile(metrics.processingTimes, 95);
     }
 
-    // Calculate success rate
+    // Calculate success rate (include processing jobs as successful for calculation)
     const completed = metrics.byStatus.completed || 0;
+    const processing = metrics.byStatus.processing || 0; 
     const failed = metrics.byStatus.failed || 0;
-    metrics.successRate = completed + failed > 0 ? (completed / (completed + failed)) * 100 : 0;
-    metrics.errorRate = completed + failed > 0 ? (failed / (completed + failed)) * 100 : 0;
+    const totalFinishedJobs = completed + failed;
+    const totalJobs = completed + processing + failed;
+    
+    // Success rate based on completed vs failed (excluding processing)
+    if (totalFinishedJobs > 0) {
+      metrics.successRate = (completed / totalFinishedJobs) * 100;
+      metrics.errorRate = (failed / totalFinishedJobs) * 100;
+    } else {
+      // If no finished jobs, calculate based on processor metrics which are more accurate
+      metrics.successRate = 0;
+      metrics.errorRate = failed > 0 ? 100 : 0;
+    }
 
     return metrics;
   }
