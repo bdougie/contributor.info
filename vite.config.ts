@@ -62,8 +62,15 @@ export default defineConfig({
       // Remove the external configuration as it's causing build issues
       output: {
         // Ensure proper file extensions for module recognition
-        entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: (chunkInfo) => {
+          // Force .js extension for all entry files, including App
+          const name = chunkInfo.name?.replace(/\.tsx?$/, '') || 'chunk';
+          return `assets/${name}-[hash].js`;
+        },
+        chunkFileNames: (chunkInfo) => {
+          // Force .js extension for all chunk files
+          return `assets/${chunkInfo.name}-[hash].js`;
+        },
         assetFileNames: 'assets/[name]-[hash].[ext]',
         // Proven chunk splitting strategy from LIGHTHOUSE_OPTIMIZATIONS.md
         manualChunks: {
