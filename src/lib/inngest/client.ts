@@ -8,8 +8,17 @@ const isDevelopment = () => {
     return window.location.hostname === 'localhost' || env.DEV;
   }
   
-  // Server environment
-  return env.MODE === 'development';
+  // Server environment - check multiple indicators
+  const nodeEnv = process.env.NODE_ENV;
+  const netlifyContext = process.env.CONTEXT;
+  
+  // Explicitly check for production context
+  if (netlifyContext === 'production' || nodeEnv === 'production') {
+    return false;
+  }
+  
+  // Default to development for safety
+  return env.MODE === 'development' || nodeEnv !== 'production';
 };
 
 // Get event key safely based on context
@@ -21,7 +30,30 @@ const getEventKey = () => {
   }
   
   // Server context - access the real event key securely
-  return serverEnv.INNGEST_EVENT_KEY || 'dev-key';
+  const eventKey = serverEnv.INNGEST_EVENT_KEY || process.env.INNGEST_EVENT_KEY;
+  
+  // In production, ensure we have a real key
+  if (!isDevelopment() && (!eventKey || eventKey === 'dev-key')) {
+    console.warn('[Inngest] Production environment detected but no valid event key found');
+  }
+  
+  return eventKey || 'dev-key';
+};
+
+// Get signing key for production
+const getSigningKey = () => {
+  if (typeof window !== 'undefined') {
+    return undefined; // Not needed in browser
+  }
+  
+  const signingKey = serverEnv.INNGEST_SIGNING_KEY || process.env.INNGEST_SIGNING_KEY;
+  
+  // In production, we need a signing key
+  if (!isDevelopment() && !signingKey) {
+    console.warn('[Inngest] Production environment detected but no signing key found');
+  }
+  
+  return signingKey;
 };
 
 // Create the Inngest client
@@ -31,6 +63,8 @@ export const inngest = new Inngest({
   isDev: isDevelopment(),
   // Add event key from environment (server-side only)
   eventKey: getEventKey(),
+  // Add signing key for production verification
+  signingKey: getSigningKey(),
 });
 
 // Define event schemas for type safety
