@@ -129,7 +129,8 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.0.0",
     "zod": "^3.23.8",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "@vitejs/plugin-react": "^4.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.11.1",
@@ -149,7 +150,6 @@
     "@types/node": "^22.7.3",
     "@types/react": "^18.3.9",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
     "@vitest/coverage-v8": "^3.1.1",
     "@vitest/ui": "^3.1.1",
     "autoprefixer": "^10.4.20",
