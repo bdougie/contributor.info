@@ -3,9 +3,16 @@ import { Inngest } from "inngest";
 import { serve } from "inngest/lambda";
 import type { Context } from "@netlify/functions";
 
-// Environment detection
+// Environment detection - treat deploy previews as production for signing
 const isProduction = () => {
-  return process.env.CONTEXT === 'production' || process.env.NODE_ENV === 'production';
+  const context = process.env.CONTEXT;
+  const nodeEnv = process.env.NODE_ENV;
+  
+  // Deploy previews should use production mode for proper signing
+  return context === 'production' || 
+         context === 'deploy-preview' || 
+         nodeEnv === 'production' ||
+         process.env.NETLIFY === 'true'; // All Netlify environments use production mode
 };
 
 // Get production environment variables
@@ -21,7 +28,7 @@ const getProductionEnvVar = (key: string, fallbackKey?: string): string => {
 // Create Inngest client for production
 const inngest = new Inngest({ 
   id: process.env.VITE_INNGEST_APP_ID || 'contributor-info',
-  isDev: !isProduction(),
+  isDev: false, // Force production mode for proper request signing
   eventKey: getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
   signingKey: getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
 });
