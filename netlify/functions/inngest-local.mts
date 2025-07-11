@@ -3,11 +3,18 @@ import { Inngest } from "inngest";
 import { serve } from "inngest/netlify";
 import type { Context } from "@netlify/functions";
 
-// Force development mode for local testing
+// Environment detection for local
+const isDevelopment = () => {
+  return process.env.NODE_ENV !== 'production' || process.env.CONTEXT !== 'production';
+};
+
+// Create Inngest client for local development
 const inngest = new Inngest({ 
-  id: "contributor-info-local",
-  isDev: true, // Always in dev mode for local
-  // No keys needed for local development
+  id: process.env.VITE_INNGEST_APP_ID || "contributor-info-local",
+  isDev: isDevelopment(),
+  // Use local keys if available, otherwise fall back to existing keys
+  eventKey: process.env.INNGEST_LOCAL_EVENT_KEY || process.env.INNGEST_EVENT_KEY || 'dev-key',
+  signingKey: process.env.INNGEST_LOCAL_SIGNING_KEY || process.env.INNGEST_SIGNING_KEY,
 });
 
 // Test function to verify connection
