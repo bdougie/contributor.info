@@ -19,12 +19,10 @@ const isBrowser = typeof window !== 'undefined';
 function getEnvVar(viteKey: string, serverKey?: string): string {
   if (isBrowser) {
     // Browser: Only access VITE_* prefixed variables via import.meta.env
-    try {
-      return (import.meta as any).env?.[viteKey] || '';
-    } catch {
-      // Fallback if import.meta is not available
-      return '';
-    }
+    // Use optional chaining and fallback for production compatibility
+    const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
+    const value = metaEnv[viteKey];
+    return value || '';
   } else {
     // Server: Use process.env only (import.meta.env not available in CommonJS/Netlify Functions)
     return process.env[viteKey] || (serverKey ? process.env[serverKey] : '') || '';
@@ -64,33 +62,24 @@ export const env = {
   // Development mode detection
   get DEV() {
     if (isBrowser) {
-      try {
-        return (import.meta as any).env?.DEV || false;
-      } catch {
-        return false;
-      }
+      const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
+      return metaEnv.DEV || false;
     }
     return process.env.NODE_ENV === 'development';
   },
   
   get PROD() {
     if (isBrowser) {
-      try {
-        return (import.meta as any).env?.PROD || false;
-      } catch {
-        return false;
-      }
+      const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
+      return metaEnv.PROD || false;
     }
     return process.env.NODE_ENV === 'production';
   },
   
   get MODE() {
     if (isBrowser) {
-      try {
-        return (import.meta as any).env?.MODE || 'development';
-      } catch {
-        return 'development';
-      }
+      const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
+      return metaEnv.MODE || 'development';
     }
     return process.env.NODE_ENV || 'development';
   },
