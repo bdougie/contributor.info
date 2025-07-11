@@ -260,34 +260,31 @@ export const captureRepositorySync = inngest.createFunction(
       return jobs;
     });
 
-    // Step 6: Send events for queued jobs (separate from preparation)
-    const queuedJobs = await step.run("send-queued-events", async () => {
-      const jobsQueued = {
-        reviews: 0,
-        comments: 0,
-        details: 0,
-      };
+    // Step 6: Send events for queued jobs
+    // Note: step.sendEvent must be called outside of step.run to avoid nested step tooling
+    let detailsQueued = 0;
+    for (const job of jobsToQueue.details) {
+      await step.sendEvent(`pr-details-${detailsQueued}`, job);
+      detailsQueued++;
+    }
 
-      // Send detail job events
-      for (const job of jobsToQueue.details) {
-        await step.sendEvent("pr-details", job);
-        jobsQueued.details++;
-      }
+    let reviewsQueued = 0;
+    for (const job of jobsToQueue.reviews) {
+      await step.sendEvent(`pr-reviews-${reviewsQueued}`, job);
+      reviewsQueued++;
+    }
 
-      // Send review job events
-      for (const job of jobsToQueue.reviews) {
-        await step.sendEvent("pr-reviews", job);
-        jobsQueued.reviews++;
-      }
+    let commentsQueued = 0;
+    for (const job of jobsToQueue.comments) {
+      await step.sendEvent(`pr-comments-${commentsQueued}`, job);
+      commentsQueued++;
+    }
 
-      // Send comment job events
-      for (const job of jobsToQueue.comments) {
-        await step.sendEvent("pr-comments", job);
-        jobsQueued.comments++;
-      }
-
-      return jobsQueued;
-    });
+    const queuedJobs = {
+      reviews: reviewsQueued,
+      comments: commentsQueued,
+      details: detailsQueued,
+    };
 
     // Step 7: Update repository sync timestamp
     await step.run("update-sync-timestamp", async () => {

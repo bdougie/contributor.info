@@ -227,20 +227,17 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
       return jobs;
     });
 
-    // Step 6: Send GraphQL events for queued jobs (separate from preparation)
-    const queuedJobs = await step.run("send-graphql-queued-events", async () => {
-      const jobsQueued = {
-        details: 0,
-      };
-
-      // Send GraphQL detail job events
-      for (const job of jobsToQueue) {
-        await step.sendEvent("pr-details-graphql", job);
-        jobsQueued.details++;
-      }
-
-      return jobsQueued;
-    });
+    // Step 6: Send GraphQL events for queued jobs
+    // Note: step.sendEvent must be called outside of step.run to avoid nested step tooling
+    let detailsQueued = 0;
+    for (const job of jobsToQueue) {
+      await step.sendEvent(`pr-details-graphql-${detailsQueued}`, job);
+      detailsQueued++;
+    }
+    
+    const queuedJobs = {
+      details: detailsQueued,
+    };
 
     // Step 7: Update repository sync timestamp
     await step.run("update-sync-timestamp", async () => {
