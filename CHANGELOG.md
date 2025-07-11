@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0](https://github.com/bdougie/contributor.info/compare/v1.8.0...v1.9.0) (2025-07-11)
+
+
+### 🚀 Features
+
+*  Hybrid Rollout Manager Implementation - Live at 10% ([#186](https://github.com/bdougie/contributor.info/issues/186)) ([656df68](https://github.com/bdougie/contributor.info/commit/656df6836f9e7e56313154bc086b48e7e38503c2))
+
 ## [1.8.0](https://github.com/bdougie/contributor.info/compare/v1.7.1...v1.8.0) (2025-07-10)
 
 
