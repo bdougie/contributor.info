@@ -27,12 +27,27 @@
 [[headers]]
   for = "/*.jsx"
   [headers.values]
-    Content-Type = "text/javascript"
+    Content-Type = "text/javascript; charset=utf-8"
 
 [[headers]]
   for = "/*.tsx"
   [headers.values]
-    Content-Type = "text/javascript"
+    Content-Type = "text/javascript; charset=utf-8"
+
+[[headers]]
+  for = "/*.ts"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
+
+[[headers]]
+  for = "/assets/*.tsx"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
+
+[[headers]]
+  for = "/assets/*.ts"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
 
 [[headers]]
   for = "/*.css"
