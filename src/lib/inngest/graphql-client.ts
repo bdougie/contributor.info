@@ -70,7 +70,7 @@ const GET_PR_DETAILS_QUERY = `
           }
         }
         
-        # Reviews with details
+        # Reviews with details including review comments
         reviews(first: 100) {
           totalCount
           nodes {
@@ -88,39 +88,34 @@ const GET_PR_DETAILS_QUERY = `
             commit {
               oid
             }
-          }
-        }
-        
-        # Review comments (code comments)
-        reviewComments(first: 100) {
-          totalCount
-          nodes {
-            databaseId
-            body
-            createdAt
-            updatedAt
-            position
-            originalPosition
-            diffHunk
-            path
-            author {
-              login
-              avatarUrl
-              ... on User {
+            # Review comments within each review
+            comments(first: 50) {
+              nodes {
                 databaseId
+                body
+                createdAt
+                updatedAt
+                position
+                outdated
+                diffHunk
+                path
+                author {
+                  login
+                  avatarUrl
+                  ... on User {
+                    databaseId
+                  }
+                }
+                replyTo {
+                  databaseId
+                }
+                commit {
+                  oid
+                }
+                originalCommit {
+                  oid
+                }
               }
-            }
-            inReplyTo {
-              databaseId
-            }
-            commit {
-              oid
-            }
-            originalCommit {
-              oid
-            }
-            pullRequestReview {
-              databaseId
             }
           }
         }

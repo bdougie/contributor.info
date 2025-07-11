@@ -143,12 +143,12 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           github_id: comment.databaseId?.toString(),
           pull_request_number: pullRequest.number,
           body: comment.body,
-          author_id: comment.author?.databaseId?.toString(),
+          commenter_id: comment.author?.databaseId?.toString(),
           author_login: comment.author?.login,
           author_avatar_url: comment.author?.avatarUrl,
           created_at: comment.createdAt,
           updated_at: comment.updatedAt,
-          type: 'issue_comment'
+          comment_type: 'issue_comment'
         }));
 
         const { data: issueComments, error: issueCommentsError } = await supabase
@@ -161,30 +161,40 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
         }
       }
 
-      // Store review comments (code comments)
-      if (pullRequest.reviewComments?.nodes?.length > 0) {
-        const reviewCommentsToStore = pullRequest.reviewComments.nodes.map((comment: any) => ({
-          repository_id: repositoryId,
-          pull_request_id: prInternalId,
-          github_id: comment.databaseId?.toString(),
-          pull_request_number: pullRequest.number,
-          review_id: comment.pullRequestReview?.databaseId?.toString(),
-          body: comment.body,
-          path: comment.path,
-          position: comment.position,
-          original_position: comment.originalPosition,
-          commit_id: comment.commit?.oid,
-          original_commit_id: comment.originalCommit?.oid,
-          diff_hunk: comment.diffHunk,
-          author_id: comment.author?.databaseId?.toString(),
-          author_login: comment.author?.login,
-          author_avatar_url: comment.author?.avatarUrl,
-          created_at: comment.createdAt,
-          updated_at: comment.updatedAt,
-          in_reply_to_id: comment.inReplyTo?.databaseId?.toString(),
-          type: 'review_comment'
-        }));
-
+      // Store review comments (code comments) - extract from reviews
+      const reviewCommentsToStore: any[] = [];
+      
+      if (pullRequest.reviews?.nodes?.length > 0) {
+        for (const review of pullRequest.reviews.nodes) {
+          if (review.comments?.nodes?.length > 0) {
+            for (const comment of review.comments.nodes) {
+              reviewCommentsToStore.push({
+                repository_id: repositoryId,
+                pull_request_id: prInternalId,
+                github_id: comment.databaseId?.toString(),
+                pull_request_number: pullRequest.number,
+                review_id: review.databaseId?.toString(),
+                body: comment.body,
+                path: comment.path,
+                position: comment.position,
+                original_position: comment.originalPosition,
+                commit_id: comment.commit?.oid,
+                original_commit_id: comment.originalCommit?.oid,
+                diff_hunk: comment.diffHunk,
+                commenter_id: comment.author?.databaseId?.toString(),
+                author_login: comment.author?.login,
+                author_avatar_url: comment.author?.avatarUrl,
+                created_at: comment.createdAt,
+                updated_at: comment.updatedAt,
+                in_reply_to_id: comment.replyTo?.databaseId?.toString(),
+                comment_type: 'review_comment'
+              });
+            }
+          }
+        }
+      }
+      
+      if (reviewCommentsToStore.length > 0) {
         const { data: reviewComments, error: reviewCommentsError } = await supabase
           .from('comments')
           .upsert(reviewCommentsToStore, { onConflict: 'github_id' })
