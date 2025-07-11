@@ -16,22 +16,25 @@ async function ensureContributorExists(githubUser: any): Promise<string | null> 
   const { data, error } = await supabase
     .from('contributors')
     .upsert({
-      github_id: githubUser.id.toString(),
+      github_id: githubUser.id,
       username: githubUser.login,
-      name: githubUser.name || null,
+      display_name: githubUser.name || null,
       email: githubUser.email || null,
       avatar_url: githubUser.avatar_url || null,
+      profile_url: `https://github.com/${githubUser.login}`,
       bio: githubUser.bio || null,
       company: githubUser.company || null,
       location: githubUser.location || null,
       blog: githubUser.blog || null,
-      twitter_username: githubUser.twitter_username || null,
       public_repos: githubUser.public_repos || 0,
       public_gists: githubUser.public_gists || 0,
       followers: githubUser.followers || 0,
       following: githubUser.following || 0,
-      created_at: githubUser.created_at || new Date().toISOString(),
-      updated_at: githubUser.updated_at || new Date().toISOString(),
+      github_created_at: githubUser.created_at || new Date().toISOString(),
+      is_bot: githubUser.type === 'Bot' || githubUser.login.includes('[bot]'),
+      is_active: true,
+      first_seen_at: new Date().toISOString(),
+      last_updated_at: new Date().toISOString(),
     }, {
       onConflict: 'github_id',
       ignoreDuplicates: false

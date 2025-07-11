@@ -8,42 +8,82 @@ const graphqlClient = new GraphQLClient();
 
 // Helper function to ensure contributors exist and return their UUIDs
 async function ensureContributorExists(githubUser: any): Promise<string | null> {
-  if (!githubUser || !githubUser.databaseId) {
+  if (!githubUser) {
+    console.log('ensureContributorExists: githubUser is null/undefined');
     return null;
   }
 
-  const { data, error } = await supabase
-    .from('contributors')
-    .upsert({
-      github_id: githubUser.databaseId.toString(),
-      username: githubUser.login,
-      name: githubUser.name || null,
-      email: githubUser.email || null,
-      avatar_url: githubUser.avatarUrl || null,
-      bio: githubUser.bio || null,
-      company: githubUser.company || null,
-      location: githubUser.location || null,
-      blog: githubUser.blog || null,
-      twitter_username: githubUser.twitterUsername || null,
-      public_repos: githubUser.publicRepos || 0,
-      public_gists: githubUser.publicGists || 0,
-      followers: githubUser.followers || 0,
-      following: githubUser.following || 0,
-      created_at: githubUser.createdAt || new Date().toISOString(),
-      updated_at: githubUser.updatedAt || new Date().toISOString(),
-    }, {
-      onConflict: 'github_id',
-      ignoreDuplicates: false
-    })
-    .select('id')
-    .single();
-
-  if (error) {
-    console.error('Error upserting contributor:', error);
+  if (!githubUser.databaseId) {
+    console.log('ensureContributorExists: githubUser.databaseId is missing', {
+      login: githubUser.login,
+      keys: Object.keys(githubUser)
+    });
     return null;
   }
 
-  return data.id;
+  if (!githubUser.login) {
+    console.log('ensureContributorExists: githubUser.login is missing', {
+      databaseId: githubUser.databaseId,
+      keys: Object.keys(githubUser)
+    });
+    return null;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('contributors')
+      .upsert({
+        github_id: githubUser.databaseId,
+        username: githubUser.login,
+        display_name: githubUser.name || null,
+        email: githubUser.email || null,
+        avatar_url: githubUser.avatarUrl || null,
+        profile_url: `https://github.com/${githubUser.login}`,
+        // Only include fields that are actually requested in the GraphQL query
+        // Other fields like bio, company, etc. are not available in PR author data
+        bio: null,
+        company: null,
+        location: null,
+        blog: null,
+        public_repos: 0,
+        public_gists: 0,
+        followers: 0,
+        following: 0,
+        is_bot: false,
+        is_active: true,
+        first_seen_at: new Date().toISOString(),
+        last_updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'github_id',
+        ignoreDuplicates: false
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Error upserting contributor:', error, {
+        githubUser: {
+          databaseId: githubUser.databaseId,
+          login: githubUser.login,
+          name: githubUser.name,
+          email: githubUser.email,
+          avatarUrl: githubUser.avatarUrl
+        }
+      });
+      return null;
+    }
+
+    return data.id;
+  } catch (err) {
+    console.error('Exception in ensureContributorExists:', err, {
+      githubUser: {
+        databaseId: githubUser.databaseId,
+        login: githubUser.login,
+        keys: Object.keys(githubUser)
+      }
+    });
+    return null;
+  }
 }
 
 export const capturePrDetailsGraphQL = inngest.createFunction(
@@ -122,7 +162,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
         .from('pull_requests')
         .upsert({
           repository_id: repositoryId,
-          github_id: pullRequest.id?.toString() || pullRequest.databaseId?.toString(),
+          github_id: pullRequest.databaseId,
           number: pullRequest.number,
           title: pullRequest.title,
           body: pullRequest.body,
@@ -138,7 +178,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           closed_at: pullRequest.closedAt,
           merged_at: pullRequest.mergedAt,
           merged: pullRequest.merged || false,
-          mergeable: pullRequest.mergeable,
+          mergeable: pullRequest.mergeable === 'UNKNOWN' ? null : pullRequest.mergeable,
           merged_by_id: mergedById,
           base_branch: pullRequest.baseRefName,
           head_branch: pullRequest.headRefName,
@@ -166,7 +206,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
             reviewsToStore.push({
               repository_id: repositoryId,
               pull_request_id: prInternalId,
-              github_id: review.databaseId?.toString(),
+              github_id: review.databaseId,
               pull_request_number: pullRequest.number,
               state: review.state?.toLowerCase(),
               body: review.body,
@@ -197,7 +237,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
             issueCommentsToStore.push({
               repository_id: repositoryId,
               pull_request_id: prInternalId,
-              github_id: comment.databaseId?.toString(),
+              github_id: comment.databaseId,
               pull_request_number: pullRequest.number,
               body: comment.body,
               commenter_id: commenterId,
@@ -230,9 +270,9 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
                 reviewCommentsToStore.push({
                   repository_id: repositoryId,
                   pull_request_id: prInternalId,
-                  github_id: comment.databaseId?.toString(),
+                  github_id: comment.databaseId,
                   pull_request_number: pullRequest.number,
-                  review_id: review.databaseId?.toString(),
+                  review_id: review.databaseId,
                   body: comment.body,
                   path: comment.path,
                   position: comment.position,
