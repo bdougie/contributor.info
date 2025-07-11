@@ -62,4 +62,28 @@ const testFunction = inngest.createFunction(
 export const handler = serve({
   client: inngest,
   functions: [testFunction],
+  servePath: "/.netlify/functions/inngest-simple",
 });
+
+// Also export a default handler for GET requests
+export default async (req: Request) => {
+  // If it's a GET request to the root, show a simple status page
+  if (req.method === "GET" && !req.url.includes("?")) {
+    return new Response(JSON.stringify({
+      message: "Inngest endpoint is running",
+      path: "/.netlify/functions/inngest-simple",
+      functions: ["test-function"],
+      isDev: isDevelopment(),
+      hasKeys: {
+        eventKey: !!getEventKey(),
+        signingKey: !!getSigningKey()
+      }
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+  
+  // Otherwise, pass to the Inngest handler
+  return handler(req);
+};
