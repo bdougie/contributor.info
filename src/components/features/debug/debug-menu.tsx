@@ -204,38 +204,6 @@ export function DebugMenu() {
             >
               Clear SessionStorage
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={async () => {
-                try {
-                  const Sentry = await import('@sentry/react');
-                  Sentry.captureException(new Error('Test error from Debug Menu'));
-                  alert('Test error sent to Sentry!');
-                } catch (error) {
-                  alert('Sentry not available');
-                }
-              }}
-              className="min-w-0"
-            >
-              Test Sentry Error
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={async () => {
-                try {
-                  const Sentry = await import('@sentry/react');
-                  Sentry.captureMessage('Test message from Debug Menu', 'info');
-                  alert('Test message sent to Sentry!');
-                } catch (error) {
-                  alert('Sentry not available');
-                }
-              }}
-              className="min-w-0"
-            >
-              Test Sentry Message
-            </Button>
           </div>
         </div>
       </div>

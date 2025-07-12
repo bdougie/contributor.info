@@ -88,81 +88,21 @@ export function useAdminAuth(): AdminAuthState {
         if (error) {
           console.error('Error checking admin status:', error);
           
-          // Track auth error in Sentry using dynamic import
-          import('@sentry/react').then((Sentry) => {
-            Sentry.withScope((scope) => {
-              scope.setTag('component', 'auth');
-              scope.setTag('operation', 'admin_check');
-              scope.setContext('auth_context', {
-                githubId,
-                hasSession: !!session,
-                hasMetadata: !!session?.user?.user_metadata,
-                errorCode: error.code,
-                errorMessage: error.message
-              });
-              Sentry.captureException(error);
+          // Log auth error to database for monitoring
+          try {
+            await supabase.rpc('log_auth_error', {
+              p_auth_user_id: session.user.id,
+              p_github_user_id: parseInt(githubId),
+              p_github_username: session.user.user_metadata?.user_name,
+              p_error_type: 'admin_check_failed',
+              p_error_message: error.message,
+              p_error_code: error.code
             });
-          }).catch(() => {
-            // Sentry not available, just log to console
-            console.error('Failed to track auth error in Sentry');
-          });
-          
-          // Fallback: Try to create the user record if it doesn't exist
-          if (error.message?.includes('does not exist') || error.code === 'PGRST116') {
-            try {
-              console.log('Attempting to create missing app_users record for user:', githubId);
-              const githubUsername = session.user.user_metadata?.user_name;
-              const displayName = session.user.user_metadata?.full_name;
-              const avatarUrl = session.user.user_metadata?.avatar_url;
-              const email = session.user.email || session.user.user_metadata?.email;
-              
-              if (githubUsername) {
-                await supabase.rpc('upsert_app_user', {
-                  p_auth_user_id: session.user.id,
-                  p_github_username: githubUsername,
-                  p_github_user_id: parseInt(githubId),
-                  p_email: email,
-                  p_avatar_url: avatarUrl,
-                  p_display_name: displayName
-                });
-                
-                // Retry admin check after creating user record
-                const { data: retryResult, error: retryError } = await supabase
-                  .rpc('is_user_admin', { user_github_id: parseInt(githubId) });
-                
-                if (!retryError) {
-                  setAdminState({
-                    isAuthenticated: true,
-                    isAdmin: retryResult === true,
-                    isLoading: false,
-                    user: null,
-                    error: null,
-                  });
-                  return;
-                }
-              }
-            } catch (fallbackError) {
-              console.warn('Failed to create user record fallback:', fallbackError);
-              
-              // Track fallback failure in Sentry using dynamic import
-              import('@sentry/react').then((Sentry) => {
-                Sentry.withScope((scope) => {
-                  scope.setTag('component', 'auth');
-                  scope.setTag('operation', 'user_creation_fallback');
-                  scope.setContext('fallback_context', {
-                    githubId,
-                    githubUsername: session.user.user_metadata?.user_name,
-                    originalError: error.message
-                  });
-                  Sentry.captureException(fallbackError);
-                });
-              }).catch(() => {
-                // Sentry not available, just log to console
-                console.error('Failed to track fallback error in Sentry');
-              });
-            }
+          } catch (logError) {
+            console.warn('Failed to log auth error:', logError);
           }
           
+          // Simple fallback: assume not admin if check fails
           setAdminState({
             isAuthenticated: true,
             isAdmin: false,

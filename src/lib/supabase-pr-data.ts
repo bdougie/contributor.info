@@ -1,14 +1,14 @@
 import { supabase } from './supabase';
 import { fetchPullRequests } from './github';
 import type { PullRequest } from './types';
-import { trackDatabaseOperation, trackRateLimit } from './sentry/data-tracking';
+import { trackDatabaseOperation, trackRateLimit } from './simple-logging';
 import { 
   createLargeRepositoryResult, 
   createSuccessResult, 
   createNoDataResult,
   type DataResult 
 } from './errors/repository-errors';
-import * as Sentry from '@sentry/react';
+// Removed Sentry import - using simple logging instead
 
 /**
  * Fetch PR data from Supabase database first, fallback to GitHub API
@@ -407,27 +407,13 @@ export async function fetchPRDataWithFallback(
     // If everything fails, return no data result instead of throwing
     console.error('All data fetching methods failed:', githubError);
     
-    // Track complete data fetching failure in Sentry
-    Sentry.withScope((scope) => {
-      scope.setTag('error.category', 'complete_data_failure');
-      scope.setTag('repository.name', `${owner}/${repo}`);
-      scope.setTag('fallback.exhausted', true);
-      scope.setContext('data_fetching_failure', {
-        repository: `${owner}/${repo}`,
-        timeRange,
-        fallbackUsed,
-        cacheHit,
-        failureStage: 'all_methods_exhausted',
-        originalError: (githubError instanceof Error ? githubError.message : String(githubError)) || 'Unknown error'
-      });
-      
-      Sentry.captureException(githubError, {
-        level: 'warning',
-        extra: {
-          recovery_action: 'returned_empty_data_with_status',
-          user_impact: 'limited_functionality_maintained'
-        }
-      });
+    // Simple error logging without analytics
+    console.error('Complete data fetching failure:', {
+      repository: `${owner}/${repo}`,
+      timeRange,
+      fallbackUsed,
+      cacheHit,
+      originalError: (githubError instanceof Error ? githubError.message : String(githubError)) || 'Unknown error'
     });
     
     return createNoDataResult(`${owner}/${repo}`, []);

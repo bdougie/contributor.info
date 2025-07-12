@@ -43,37 +43,18 @@ export function AuthButton() {
         if (error) {
           console.warn('Failed to check admin status:', error);
           
-          // Fallback: Try to create the user record if it doesn't exist
-          if (error.message?.includes('does not exist') || error.code === 'PGRST116') {
-            try {
-              console.log('Attempting to create missing app_users record for user:', githubId);
-              const githubUsername = user.user_metadata?.user_name;
-              const displayName = user.user_metadata?.full_name;
-              const avatarUrl = user.user_metadata?.avatar_url;
-              const email = user.email || user.user_metadata?.email;
-              
-              if (githubUsername) {
-                await supabase.rpc('upsert_app_user', {
-                  p_auth_user_id: user.id,
-                  p_github_username: githubUsername,
-                  p_github_user_id: parseInt(githubId),
-                  p_email: email,
-                  p_avatar_url: avatarUrl,
-                  p_display_name: displayName
-                });
-                
-                // Retry admin check after creating user record
-                const { data: retryResult, error: retryError } = await supabase
-                  .rpc('is_user_admin', { user_github_id: parseInt(githubId) });
-                
-                if (!retryError) {
-                  setIsAdmin(retryResult === true);
-                  return;
-                }
-              }
-            } catch (fallbackError) {
-              console.warn('Failed to create user record fallback:', fallbackError);
-            }
+          // Log auth error to database for monitoring
+          try {
+            await supabase.rpc('log_auth_error', {
+              p_auth_user_id: user.id,
+              p_github_user_id: parseInt(githubId),
+              p_github_username: user.user_metadata?.user_name,
+              p_error_type: 'admin_check_failed',
+              p_error_message: error.message,
+              p_error_code: error.code
+            });
+          } catch (logError) {
+            console.warn('Failed to log auth error:', logError);
           }
           
           setIsAdmin(false);
