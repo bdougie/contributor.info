@@ -118,6 +118,7 @@ export function useGitHubAuth() {
         provider: 'github',
         options: {
           redirectTo: window.location.origin, // This ensures redirect to your domain root
+          scopes: 'public_repo read:user user:email',
         },
       });
       

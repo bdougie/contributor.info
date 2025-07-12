@@ -93,7 +93,7 @@ export function AuthButton() {
         provider: "github",
         options: {
           redirectTo,
-          scopes: "repo user",
+          scopes: "public_repo read:user user:email",
         },
       });
 
