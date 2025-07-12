@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { trackDatabaseOperation, trackCacheOperation, trackRateLimit, setApplicationContext } from '@/lib/sentry/data-tracking';
-import * as Sentry from '@sentry/react';
+import { trackDatabaseOperation, trackCacheOperation, trackRateLimit, setApplicationContext } from '@/lib/simple-logging';
 
 interface UseRepositorySummaryReturn {
   summary: string | null;
@@ -149,25 +148,8 @@ export function useRepositorySummary(
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
       setError(errorMessage);
       
-      // Enhanced error tracking with Sentry
-      Sentry.withScope((scope) => {
-        scope.setTag('component', 'ai-summary');
-        scope.setTag('repository', `${owner}/${repo}`);
-        scope.setContext('summary_error', {
-          owner,
-          repo,
-          pullRequestCount: pullRequests?.length || 0,
-          error: errorMessage
-        });
-        
-        if (errorMessage.includes('rate limit')) {
-          scope.setLevel('warning');
-        } else {
-          scope.setLevel('error');
-        }
-        
-        Sentry.captureException(err);
-      });
+      // Simple error logging without analytics
+      console.error('AI summary error:', errorMessage, { owner, repo });
     } finally {
       setLoading(false);
     }
@@ -175,16 +157,6 @@ export function useRepositorySummary(
 
   const refetch = async () => {
     if (!owner || !repo) return;
-
-    // Track manual refresh action
-    Sentry.addBreadcrumb({
-      category: 'user_action',
-      message: 'Manual AI summary refresh triggered',
-      level: 'info',
-      data: {
-        repository: `${owner}/${repo}`
-      }
-    });
 
     setLoading(true);
     setError(null);
@@ -253,33 +225,12 @@ export function useRepositorySummary(
       );
 
       setSummary(result);
-      
-      // Track successful regeneration
-      Sentry.addBreadcrumb({
-        category: 'ai_summary',
-        message: 'AI summary successfully regenerated',
-        level: 'info',
-        data: {
-          repository: `${owner}/${repo}`,
-          summaryLength: result?.length || 0
-        }
-      });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
       setError(errorMessage);
       
-      Sentry.withScope((scope) => {
-        scope.setTag('component', 'ai-summary');
-        scope.setTag('action', 'manual_refresh');
-        scope.setTag('repository', `${owner}/${repo}`);
-        scope.setContext('refresh_error', {
-          owner,
-          repo,
-          error: errorMessage
-        });
-        
-        Sentry.captureException(err);
-      });
+      // Simple error logging without analytics
+      console.error('AI summary refresh error:', errorMessage, { owner, repo });
     } finally {
       setLoading(false);
     }

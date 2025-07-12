@@ -1,9 +1,8 @@
 import { supabase } from './supabase';
 import type { PullRequest } from './types';
-import { trackRateLimit } from './sentry/data-tracking';
-import * as Sentry from '@sentry/react';
 import { env } from './env';
 import { githubApiRequest } from './github-rate-limit';
+import { trackRateLimit, startSpan } from './simple-logging';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
@@ -47,7 +46,7 @@ export async function searchGitHubRepositories(query: string, limit: number = 10
     headers.Authorization = `token ${token}`;
   }
 
-  return Sentry.startSpan(
+  return startSpan(
     {
       name: 'github.api.search_repositories',
       op: 'http.client',
@@ -102,16 +101,8 @@ export async function searchGitHubRepositories(query: string, limit: number = 10
           'github.success': true
         });
 
-        Sentry.addBreadcrumb({
-          category: 'github_api',
-          message: `Repository search completed: ${results.length} results for "${query}"`,
-          level: 'info',
-          data: {
-            query,
-            results_count: results.length,
-            limit
-          }
-        });
+        // Simple logging without analytics
+        console.log(`Repository search completed: ${results.length} results for "${query}"`);
 
         return results;
       } catch (error) {
@@ -120,26 +111,8 @@ export async function searchGitHubRepositories(query: string, limit: number = 10
           'error.type': error instanceof Error ? error.constructor.name : 'Unknown'
         });
 
-        Sentry.withScope((scope) => {
-          scope.setTag('component', 'github_api');
-          scope.setTag('api_endpoint', 'search_repositories');
-          scope.setContext('github_search', {
-            query,
-            limit,
-            hasToken: !!token,
-            tokenType: userToken ? 'user' : 'app'
-          });
-
-          if (error instanceof Error && error.message.includes('rate limit')) {
-            scope.setTag('error.category', 'rate_limit');
-            scope.setLevel('warning');
-          } else {
-            scope.setTag('error.category', 'search_error');
-            scope.setLevel('error');
-          }
-
-          Sentry.captureException(error);
-        });
+        // Simple error logging without analytics
+        console.error('GitHub search error:', error, { query, limit });
 
         console.error('Error searching GitHub repositories:', error);
         throw error;
@@ -236,7 +209,7 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
     headers.Authorization = `token ${token}`;
   }
 
-  return Sentry.startSpan(
+  return startSpan(
     {
       name: 'github.api.fetch_pull_requests',
       op: 'http.client',
@@ -422,16 +395,8 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
           'github.success': true
         });
 
-        Sentry.addBreadcrumb({
-          category: 'github_api',
-          message: `Successfully fetched ${detailedPRs.length} PRs for ${owner}/${repo}`,
-          level: 'info',
-          data: {
-            prs_count: detailedPRs.length,
-            time_range: timeRange,
-            pages_fetched: page - 1
-          }
-        });
+        // Simple logging without analytics
+        console.log(`Successfully fetched ${detailedPRs.length} PRs for ${owner}/${repo}`);
 
         return detailedPRs;
       } catch (error) {
@@ -440,36 +405,8 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
           'error.type': error instanceof Error ? error.constructor.name : 'Unknown'
         });
 
-        // Enhanced error context for GitHub API calls
-        Sentry.withScope((scope) => {
-          scope.setTag('component', 'github_api');
-          scope.setTag('api_endpoint', 'pull_requests');
-          scope.setContext('github_request', {
-            owner,
-            repo,
-            timeRange,
-            hasToken: !!token,
-            tokenType: userToken ? 'user' : 'app'
-          });
-
-          if (error instanceof Error) {
-            if (error.message.includes('rate limit')) {
-              scope.setTag('error.category', 'rate_limit');
-              scope.setLevel('warning');
-            } else if (error.message.includes('not found')) {
-              scope.setTag('error.category', 'repository_not_found');
-              scope.setLevel('info');
-            } else if (error.message.includes('token')) {
-              scope.setTag('error.category', 'authentication');
-              scope.setLevel('error');
-            } else {
-              scope.setTag('error.category', 'api_error');
-              scope.setLevel('error');
-            }
-          }
-
-          Sentry.captureException(error);
-        });
+        // Simple error logging without analytics
+        console.error('GitHub API error:', error, { owner, repo, timeRange });
 
         if (error instanceof Error) {
           throw error;
