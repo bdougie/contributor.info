@@ -36,6 +36,7 @@ const BulkAddRepos = lazy(() => import("@/components/features/debug/bulk-add-rep
 // Settings and Privacy components
 const SettingsPage = lazy(() => import("@/components/features/settings/settings-page").then(m => ({ default: m.SettingsPage })));
 const PrivacyPolicyPage = lazy(() => import("@/components/features/privacy/privacy-policy-page").then(m => ({ default: m.PrivacyPolicyPage })));
+const DataRequestPage = lazy(() => import("@/components/features/privacy/data-request-page").then(m => ({ default: m.DataRequestPage })));
 
 // Admin components
 const AdminMenu = lazy(() => import("@/components/features/admin").then(m => ({ default: m.AdminMenu })));
@@ -129,6 +130,7 @@ function App() {
                 } 
               />
               <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/privacy/data-request" element={<DataRequestPage />} />
               
               {/* Debug routes with Layout */}
               <Route
