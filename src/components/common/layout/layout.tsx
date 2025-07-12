@@ -115,6 +115,25 @@ export default function Layout() {
                       <ModeToggle />
                     </div>
                   </div>
+                  
+                  <div className="pt-4 border-t">
+                    <div className="flex space-x-4 text-xs text-muted-foreground">
+                      <Link
+                        to="/privacy"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="hover:text-primary transition-colors"
+                      >
+                        Privacy
+                      </Link>
+                      <Link
+                        to="/terms"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="hover:text-primary transition-colors"
+                      >
+                        Terms
+                      </Link>
+                    </div>
+                  </div>
                 </nav>
               </SheetContent>
             </Sheet>

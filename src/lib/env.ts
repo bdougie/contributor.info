@@ -52,6 +52,9 @@ export const env = {
   DUB_DOMAIN_DEV: getEnvVar('VITE_DUB_DOMAIN_DEV'),
   DUB_DOMAIN_PROD: getEnvVar('VITE_DUB_DOMAIN_PROD'),
   
+  // Email configuration
+  RESEND_API_KEY: getEnvVar('VITE_RESEND_API_KEY', 'RESEND_API_KEY'),
+  
   // Hybrid rollout configuration
   HYBRID_ROLLOUT_PERCENTAGE: getEnvVar('VITE_HYBRID_ROLLOUT_PERCENTAGE', 'HYBRID_ROLLOUT_PERCENTAGE'),
   HYBRID_EMERGENCY_STOP: getEnvVar('VITE_HYBRID_EMERGENCY_STOP', 'HYBRID_EMERGENCY_STOP'),
@@ -168,6 +171,15 @@ export const serverEnv = {
       return '';
     }
     return process.env.DUB_API_KEY || '';
+  },
+  
+  // Email service keys
+  get RESEND_API_KEY() {
+    if (isBrowser) {
+      console.error('🚨 SECURITY: Attempted to access server key from browser!');
+      return '';
+    }
+    return process.env.RESEND_API_KEY || '';
   },
   
   get CHROMATIC_PROJECT_TOKEN() {

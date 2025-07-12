@@ -33,6 +33,12 @@ const ShareableChartsPreview = lazy(() => import("@/components/features/debug/sh
 const DubTest = lazy(() => import("@/components/features/debug/dub-test").then(m => ({ default: m.DubTest })));
 const BulkAddRepos = lazy(() => import("@/components/features/debug/bulk-add-repos").then(m => ({ default: m.BulkAddRepos })));
 
+// Settings and Privacy components
+const SettingsPage = lazy(() => import("@/components/features/settings/settings-page").then(m => ({ default: m.SettingsPage })));
+const PrivacyPolicyPage = lazy(() => import("@/components/features/privacy/privacy-policy-page").then(m => ({ default: m.PrivacyPolicyPage })));
+const DataRequestPage = lazy(() => import("@/components/features/privacy/data-request-page").then(m => ({ default: m.DataRequestPage })));
+const TermsPage = lazy(() => import("@/components/features/privacy/terms-page").then(m => ({ default: m.TermsPage })));
+
 // Admin components
 const AdminMenu = lazy(() => import("@/components/features/admin").then(m => ({ default: m.AdminMenu })));
 const UserManagement = lazy(() => import("@/components/features/admin").then(m => ({ default: m.UserManagement })));
@@ -116,6 +122,17 @@ function App() {
               <Route index element={<Home />} />
               <Route path="/changelog" element={<ChangelogPage />} />
               <Route path="/docs" element={<DocsPage />} />
+              <Route 
+                path="/settings" 
+                element={
+                  <ProtectedRoute>
+                    <SettingsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/privacy/data-request" element={<DataRequestPage />} />
+              <Route path="/terms" element={<TermsPage />} />
               
               {/* Debug routes with Layout */}
               <Route
