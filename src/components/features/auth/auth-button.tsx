@@ -181,6 +181,10 @@ export function AuthButton() {
         )}
         
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate("/settings")}>
+          <Settings className="mr-2 h-4 w-4" />
+          Settings
+        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <a
             href="https://github.com/bdougie/contributor.info/discussions"
