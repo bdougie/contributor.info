@@ -179,7 +179,7 @@ jobs:
         run: npm ci
 
       - name: Build application
-        run: npm run build:prod
+        run: npm run build
 
       - name: Analyze bundle size
         run: |
