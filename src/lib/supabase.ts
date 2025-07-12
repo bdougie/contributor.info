@@ -8,11 +8,11 @@ export function createSupabaseClient() {
   const supabaseAnonKey = env.SUPABASE_ANON_KEY;
   
   if (!supabaseUrl) {
-    throw new Error('Missing environment variable: VITE_SUPABASE_URL');
+    throw new Error('Missing environment variable: SUPABASE_URL or VITE_SUPABASE_URL');
   }
 
   if (!supabaseAnonKey) {
-    throw new Error('Missing environment variable: VITE_SUPABASE_ANON_KEY');
+    throw new Error('Missing environment variable: SUPABASE_ANON_KEY or VITE_SUPABASE_ANON_KEY');
   }
   
   return createClient(

@@ -41,6 +41,16 @@ const inngest = new Inngest({
   signingKey: getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
 });
 
+// Log configuration for debugging
+console.log('Inngest Production Configuration:', {
+  appId: process.env.VITE_INNGEST_APP_ID || 'contributor-info',
+  hasEventKey: !!getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
+  hasSigningKey: !!getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
+  hasSupabaseUrl: !!process.env.SUPABASE_URL || !!process.env.VITE_SUPABASE_URL,
+  hasSupabaseKey: !!process.env.SUPABASE_ANON_KEY || !!process.env.VITE_SUPABASE_ANON_KEY,
+  hasGithubToken: !!process.env.GITHUB_TOKEN || !!process.env.VITE_GITHUB_TOKEN,
+});
+
 // Test function to verify connection
 const testFunction = inngest.createFunction(
   { id: "prod-test-function" },
