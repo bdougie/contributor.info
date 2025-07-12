@@ -6,4 +6,9 @@ test.describe('Critical User Flows', () => {
     await expect(page.locator('body')).toBeVisible();
     await expect(page.locator('input')).toBeVisible();
   });
+
+  test('repository page loads', async ({ page }) => {
+    await page.goto('/facebook/react');
+    await expect(page.locator('body')).toBeVisible();
+  });
 });
