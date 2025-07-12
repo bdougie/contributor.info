@@ -2,9 +2,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
-import { PHProvider } from './lib/posthog';
+// Analytics provider loaded dynamically
 import { MetaTagsProvider } from './components/common/layout';
-import { trackWebVitals, trackCustomMetrics } from './lib/web-vitals';
+// Web vitals tracking loaded dynamically
 
 // Dynamically import and initialize Sentry only when needed
 const initializeSentry = async () => {
@@ -73,18 +73,78 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   });
 }
 
-// Initialize performance tracking (defer slightly to not block initial render)
-setTimeout(() => {
-  trackWebVitals();
-  trackCustomMetrics();
-}, 100);
+// Initialize performance tracking after page interactive (non-blocking)
+const initializeWebVitals = async () => {
+  try {
+    // Wait for page to be fully interactive
+    await new Promise(resolve => {
+      if (document.readyState === 'complete') {
+        resolve(void 0);
+      } else {
+        window.addEventListener('load', () => resolve(void 0), { once: true });
+      }
+    });
+    
+    // Additional delay to not interfere with critical rendering
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    // Dynamically import and start web vitals tracking
+    const { trackWebVitals, trackCustomMetrics } = await import('./lib/web-vitals');
+    trackWebVitals();
+    trackCustomMetrics();
+  } catch (error) {
+    console.warn('Failed to initialize web vitals tracking:', error);
+  }
+};
 
-createRoot(document.getElementById('root')!).render(
+// Start web vitals initialization (non-blocking)
+initializeWebVitals();
+
+// Initialize app without analytics in critical path
+const rootElement = document.getElementById('root')!;
+const root = createRoot(rootElement);
+
+// Render immediately without analytics provider
+root.render(
   <StrictMode>
     <MetaTagsProvider>
-      <PHProvider>
-        <App />
-      </PHProvider>
+      <App />
     </MetaTagsProvider>
   </StrictMode>
 );
+
+// Add analytics after page becomes interactive
+const initializeAnalytics = async () => {
+  try {
+    // Wait for page to be interactive
+    await new Promise(resolve => {
+      if (document.readyState === 'complete') {
+        resolve(void 0);
+      } else {
+        window.addEventListener('load', () => resolve(void 0), { once: true });
+      }
+    });
+    
+    // Additional delay to ensure critical content is rendered
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Dynamically import and wrap with analytics
+    const { PHProvider } = await import('./lib/posthog');
+    
+    // Re-render with analytics provider
+    root.render(
+      <StrictMode>
+        <MetaTagsProvider>
+          <PHProvider>
+            <App />
+          </PHProvider>
+        </MetaTagsProvider>
+      </StrictMode>
+    );
+  } catch (error) {
+    console.warn('Failed to initialize analytics provider:', error);
+  }
+};
+
+// Start analytics initialization (non-blocking)
+initializeAnalytics();

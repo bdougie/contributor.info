@@ -1,5 +1,5 @@
 import path from 'path';
-import react from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
 
@@ -32,6 +32,20 @@ export default defineConfig({
       'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
     },
     dedupe: ['react', 'react-dom'],
+    // Narrow extensions list to reduce filesystem checks
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json']
+  },
+  server: {
+    // Warm up frequently used files for better dev performance
+    warmup: {
+      clientFiles: [
+        './src/main.tsx',
+        './src/App.tsx',
+        './src/components/ui/**/*',
+        './src/lib/supabase.ts',
+        './src/lib/github.ts'
+      ]
+    }
   },
   optimizeDeps: {
     include: [
