@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/react';
+// Removed Sentry import - using simple logging instead
 
 interface GitHubRateLimit {
   limit: number;
@@ -55,7 +55,8 @@ class GitHubAPIMonitoring {
       const utilizationRate = (rateLimit.limit - rateLimit.remaining) / rateLimit.limit;
       
       if (utilizationRate > this.RATE_LIMIT_WARNING_THRESHOLD) {
-        Sentry.captureMessage(`GitHub API rate limit warning for ${resource}`, {
+        // Simple error logging without analytics
+        console.error(`GitHub API rate limit warning for ${resource}`, {
           level: 'warning',
           tags: {
             component: 'github-api',
@@ -111,7 +112,8 @@ class GitHubAPIMonitoring {
         const errorText = await response.text();
         metrics.errorMessage = `HTTP ${response.status}: ${errorText}`;
         
-        Sentry.captureException(new Error(metrics.errorMessage), {
+        // Simple error logging without analytics
+        console.error(new Error(metrics.errorMessage), {
           tags: {
             component: 'github-api',
             endpoint: endpoint,
@@ -127,7 +129,8 @@ class GitHubAPIMonitoring {
 
       // Log slow requests
       if (duration > this.SLOW_REQUEST_THRESHOLD) {
-        Sentry.addBreadcrumb({
+        // Simple breadcrumb logging without analytics
+        console.log('GitHub API breadcrumb:', {
           message: 'Slow GitHub API request detected',
           category: 'performance',
           level: 'warning',
@@ -167,7 +170,8 @@ class GitHubAPIMonitoring {
 
       this.recordMetrics(metrics);
 
-      Sentry.captureException(error, {
+      // Simple error logging without analytics
+      console.error(error, {
         tags: {
           component: 'github-api',
           endpoint: endpoint,
@@ -220,7 +224,8 @@ class GitHubAPIMonitoring {
     }
 
     // Send to Sentry for monitoring
-    Sentry.addBreadcrumb({
+    // Simple breadcrumb logging without analytics
+    console.log('GitHub API breadcrumb:', {
       message: `GitHub API ${metrics.method} ${metrics.endpoint}`,
       category: 'http',
       level: metrics.statusCode >= 400 ? 'error' : 'info',
