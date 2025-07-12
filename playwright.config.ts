@@ -8,7 +8,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1, // Always use 1 worker to avoid resource conflicts
   reporter: 'html',
   
   // Reasonable timeouts for critical user flows only
@@ -18,8 +18,6 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
-    actionTimeout: 10000,
-    navigationTimeout: 15000,
   },
 
   // Only test Chromium for critical flows
@@ -30,13 +28,11 @@ export default defineConfig({
     },
   ],
 
-  // Simple server setup - let unit tests handle component testing
+  // Minimal server setup
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-    stderr: 'pipe',
-    stdout: 'pipe',
+    timeout: 60000,
   },
 });
