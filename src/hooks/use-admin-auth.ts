@@ -88,6 +88,45 @@ export function useAdminAuth(): AdminAuthState {
         if (error) {
           console.error('Error checking admin status:', error);
           
+          // Fallback: Try to create the user record if it doesn't exist
+          if (error.message?.includes('does not exist') || error.code === 'PGRST116') {
+            try {
+              console.log('Attempting to create missing app_users record for user:', githubId);
+              const githubUsername = session.user.user_metadata?.user_name;
+              const displayName = session.user.user_metadata?.full_name;
+              const avatarUrl = session.user.user_metadata?.avatar_url;
+              const email = session.user.email || session.user.user_metadata?.email;
+              
+              if (githubUsername) {
+                await supabase.rpc('upsert_app_user', {
+                  p_auth_user_id: session.user.id,
+                  p_github_id: parseInt(githubId),
+                  p_github_username: githubUsername,
+                  p_display_name: displayName,
+                  p_avatar_url: avatarUrl,
+                  p_email: email
+                });
+                
+                // Retry admin check after creating user record
+                const { data: retryResult, error: retryError } = await supabase
+                  .rpc('is_user_admin', { user_github_id: parseInt(githubId) });
+                
+                if (!retryError) {
+                  setAdminState({
+                    isAuthenticated: true,
+                    isAdmin: retryResult === true,
+                    isLoading: false,
+                    user: null,
+                    error: null,
+                  });
+                  return;
+                }
+              }
+            } catch (fallbackError) {
+              console.warn('Failed to create user record fallback:', fallbackError);
+            }
+          }
+          
           // Log auth error to database for monitoring
           try {
             await supabase.rpc('log_auth_error', {
