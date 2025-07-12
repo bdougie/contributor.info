@@ -61,9 +61,9 @@ test.describe('Homepage Search Functionality', () => {
     // Wait for navigation and verify we're on the correct repository page
     await expect(page).toHaveURL('/continuedev/continue');
     
-    // Wait for skeleton loading to finish, then verify content
+    // Wait for skeleton loading to finish, then verify content with more specific selector
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('text=continue')).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('h3:has-text("continuedev/continue")')).toBeVisible({ timeout: 20000 });
   });
 
   test('homepage loads and has expected elements', async ({ page }) => {
