@@ -28,6 +28,11 @@ const getProductionEnvVar = (key: string, fallbackKey?: string): string => {
   return process.env[key] || (fallbackKey ? process.env[fallbackKey] : '') || '';
 };
 
+// Ensure GITHUB_TOKEN is available for the GraphQL client
+if (!process.env.GITHUB_TOKEN && process.env.VITE_GITHUB_TOKEN) {
+  process.env.GITHUB_TOKEN = process.env.VITE_GITHUB_TOKEN;
+}
+
 // Create Inngest client for production
 const inngest = new Inngest({ 
   id: process.env.VITE_INNGEST_APP_ID || 'contributor-info',
