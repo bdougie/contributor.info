@@ -3,6 +3,9 @@ import { Inngest } from "inngest";
 import { serve } from "inngest/lambda";
 import type { Context } from "@netlify/functions";
 
+// Import function creator for production client
+import { createCaptureRepositorySyncGraphQL } from "./inngest-prod-functions";
+
 // Environment detection - treat deploy previews as production for signing
 const isProduction = () => {
   const context = process.env.CONTEXT;
@@ -60,73 +63,16 @@ const testFunction = inngest.createFunction(
   }
 );
 
-// Simple PR capture function
-const capturePrDetailsProd = inngest.createFunction(
-  { 
-    id: "prod-capture-pr-details",
-    name: "Production Capture PR Details",
-    concurrency: { limit: 5 },
-    retries: 3,
-  },
-  { event: "capture/pr.details" },
-  async ({ event, step }) => {
-    const { repositoryId, prNumber } = event.data;
-    
-    const result = await step.run("process-pr", async () => {
-      console.log(`[PROD] Processing PR #${prNumber} for repository ${repositoryId}`);
-      return {
-        repositoryId,
-        prNumber,
-        processed: true,
-        timestamp: new Date().toISOString(),
-        environment: isProduction() ? "production" : "preview"
-      };
-    });
-    
-    return {
-      success: true,
-      result
-    };
-  }
-);
-
-// Repository sync function
-const syncRepositoryProd = inngest.createFunction(
-  { 
-    id: "prod-sync-repository",
-    name: "Production Sync Repository",
-    concurrency: { limit: 3 },
-    retries: 3,
-  },
-  { event: "capture/repository.sync" },
-  async ({ event, step }) => {
-    const { repositoryId, days } = event.data;
-    
-    const result = await step.run("sync-data", async () => {
-      console.log(`[PROD] Syncing ${days} days of data for repository ${repositoryId}`);
-      return {
-        repositoryId,
-        days,
-        synced: true,
-        timestamp: new Date().toISOString(),
-        environment: isProduction() ? "production" : "preview"
-      };
-    });
-    
-    return {
-      success: true,
-      result
-    };
-  }
-);
+// Create production functions using our configured client
+const captureRepositorySyncGraphQL = createCaptureRepositorySyncGraphQL(inngest);
 
 // Create the serve handler
 const inngestHandler = serve({
   client: inngest,
   functions: [
     testFunction,
-    capturePrDetailsProd,
-    syncRepositoryProd
+    // For now, just include the GraphQL sync function that matches your event
+    captureRepositorySyncGraphQL
   ],
   servePath: "/.netlify/functions/inngest-prod"
 });
@@ -154,17 +100,13 @@ export default async (req: Request, context: Context) => {
           event: "test/prod.hello"
         },
         {
-          id: "prod-capture-pr-details", 
-          event: "capture/pr.details"
-        },
-        {
-          id: "prod-sync-repository",
-          event: "capture/repository.sync"
+          id: "capture-repository-sync-graphql",
+          event: "capture/repository.sync.graphql"
         }
       ],
       usage: {
         testEvent: 'Send: { "name": "test/prod.hello", "data": { "message": "Hello!" } }',
-        prEvent: 'Send: { "name": "capture/pr.details", "data": { "repositoryId": "123", "prNumber": "456" } }'
+        syncEvent: 'Send: { "name": "capture/repository.sync.graphql", "data": { "repositoryId": "123", "days": 30 } }'
       }
     }, null, 2), {
       status: 200,
