@@ -7,8 +7,8 @@ test.describe('Critical User Flows', () => {
     
     // Verify page loads with title
     await expect(page).toHaveTitle(/contributor\.info/i);    
-    // Verify main content is visible (any heading will do)
-    await expect(page.locator('h1, h2, h3')).toBeVisible();
+    // Verify main content is visible
+    await expect(page.locator('text=Analyze GitHub Repository Contributors')).toBeVisible();
     
     // Verify search input exists
     await expect(page.locator('input[placeholder*="Search"]')).toBeVisible();
