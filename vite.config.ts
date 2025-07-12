@@ -129,8 +129,7 @@ export default defineConfig({
           // Data and state - deferred
           'data': ['zustand', '@supabase/supabase-js'],
           
-          // Analytics - completely deferred
-          'analytics': ['posthog-js', '@sentry/react']
+          // Analytics - removed (no longer using PostHog/Sentry)
         },
       },
     },
@@ -154,8 +153,7 @@ export default defineConfig({
           dep.includes('react-core') || 
           dep.includes('react-ecosystem') ||
           dep.includes('charts-essential') || // Include essential PR contribution chart
-          (!dep.includes('analytics') && 
-           !dep.includes('charts-advanced') && 
+          (!dep.includes('charts-advanced') && 
            !dep.includes('ui-radix') &&
            !dep.includes('icons') &&
            !dep.includes('data') &&

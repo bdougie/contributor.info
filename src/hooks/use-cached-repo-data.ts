@@ -3,8 +3,8 @@ import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-co
 import { fetchPRDataWithFallback } from '@/lib/supabase-pr-data';
 import { calculateLotteryFactor } from '@/lib/utils';
 import type { RepoStats, LotteryFactor, DirectCommitsData, TimeRange } from '@/lib/types';
-import { trackCacheOperation, setApplicationContext } from '@/lib/sentry/data-tracking';
-import * as Sentry from '@sentry/react';
+import { trackCacheOperation, setApplicationContext, startSpan } from '@/lib/simple-logging';
+// Removed Sentry import - using simple logging instead
 
 // Cache interface
 interface RepoDataCache {
@@ -124,7 +124,7 @@ export function useCachedRepoData(
         setStats((prev) => ({ ...prev, loading: true, error: null }));
 
         // Start Sentry span for data fetching
-        const fetchResult = await Sentry.startSpan(
+        const fetchResult = await startSpan(
           {
             name: 'fetch-repository-data',
             op: 'data.fetch',
@@ -192,32 +192,14 @@ export function useCachedRepoData(
         setLotteryFactor(newLotteryFactor);
         setDirectCommitsData(newDirectCommitsData);
       } catch (error) {
-        // Enhanced error tracking with Sentry
-        Sentry.withScope((scope) => {
-          scope.setTag('component', 'use-cached-repo-data');
-          scope.setContext('repository_fetch', {
-            owner,
-            repo,
-            timeRange,
-            includeBots,
-            cacheKey
-          });
-          scope.setLevel('error');
-          
-          if (error instanceof Error) {
-            // Categorize the error for better tracking
-            if (error.message.includes('rate limit') || error.message.includes('403')) {
-              scope.setTag('error.category', 'rate_limit');
-            } else if (error.message.includes('not found') || error.message.includes('404')) {
-              scope.setTag('error.category', 'not_found');
-            } else if (error.message.includes('network') || error.message.includes('fetch')) {
-              scope.setTag('error.category', 'network');
-            } else {
-              scope.setTag('error.category', 'unknown');
-            }
-          }
-          
-          Sentry.captureException(error);
+        // Simple error logging without analytics
+        console.error('Repository fetch error:', {
+          owner,
+          repo,
+          timeRange,
+          includeBots,
+          cacheKey,
+          error: error instanceof Error ? error.message : String(error)
         });
 
         const errorStats = {

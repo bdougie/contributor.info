@@ -21,7 +21,7 @@ import { AvgTimeCard } from "./avg-time-card";
 import { VelocityCard } from "./velocity-card";
 import { calculatePrActivityMetrics, type ActivityMetrics } from "@/lib/insights/pr-activity-metrics";
 import { ProgressiveCaptureTrigger } from "@/lib/progressive-capture/manual-trigger";
-import * as Sentry from "@sentry/react";
+// Removed Sentry import - using simple logging instead
 
 interface MetricsAndTrendsCardProps {
   owner: string;
@@ -131,43 +131,15 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     if (!loading && hasLowDataQuality(metrics, trends) && metrics) {
       const statusMessage = getStatusMessage(metrics);
       
-      Sentry.withScope((scope) => {
-        scope.setTag('ui.component', 'metrics_and_trends_card');
-        scope.setTag('repository.name', `${owner}/${repo}`);
-        scope.setTag('status.type', metrics.status);
-        scope.setContext('user_experience', {
-          repository: `${owner}/${repo}`,
-          statusDisplayed: statusMessage.title,
-          statusDescription: statusMessage.description,
-          userCanRetry: metrics.status !== 'large_repository_protected',
-          timeRange,
-          component: 'MetricsAndTrendsCard'
-        });
-        
-        // Capture different severity levels based on status
-        if (metrics.status === 'large_repository_protected') {
-          Sentry.addBreadcrumb({
-            category: 'user_experience',
-            message: `User viewing protected repository: ${owner}/${repo}`,
-            level: 'info',
-            data: {
-              protection_active: true,
-              guidance_shown: true,
-              alternative_available: 'progressive_data_capture'
-            }
-          });
-        } else if (metrics.status === 'error') {
-          Sentry.captureMessage(`User experiencing data loading error for ${owner}/${repo}`, 'warning');
-        } else if (metrics.status === 'no_data') {
-          Sentry.addBreadcrumb({
-            category: 'user_experience',
-            message: `User viewing repository with no data: ${owner}/${repo}`,
-            level: 'info',
-            data: {
-              suggestion_shown: 'progressive_data_capture'
-            }
-          });
-        }
+      // Simple logging for user experience tracking
+      console.log('Metrics and trends user experience:', {
+        repository: `${owner}/${repo}`,
+        statusDisplayed: statusMessage.title,
+        statusDescription: statusMessage.description,
+        userCanRetry: metrics.status !== 'large_repository_protected',
+        timeRange,
+        component: 'MetricsAndTrendsCard',
+        status: metrics.status
       });
     }
   }, [loading, metrics, trends, owner, repo, timeRange]);
@@ -315,16 +287,11 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
               {metrics?.status !== 'large_repository_protected' && (
                 <Button 
                   onClick={async () => {
-                    // Track user retry action for monitoring
-                    Sentry.addBreadcrumb({
-                      category: 'user_action',
-                      message: `User triggered progressive data capture for ${owner}/${repo}`,
-                      level: 'info',
-                      data: {
-                        repository: `${owner}/${repo}`,
-                        status: metrics?.status || 'unknown',
-                        action: 'progressive_capture'
-                      }
+                    // Simple logging for user retry action
+                    console.log('User triggered progressive data capture:', {
+                      repository: `${owner}/${repo}`,
+                      status: metrics?.status || 'unknown',
+                      action: 'progressive_capture'
                     });
                     
                     try {

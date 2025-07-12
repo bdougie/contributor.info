@@ -42,6 +42,21 @@ export function AuthButton() {
 
         if (error) {
           console.warn('Failed to check admin status:', error);
+          
+          // Log auth error to database for monitoring
+          try {
+            await supabase.rpc('log_auth_error', {
+              p_auth_user_id: user.id,
+              p_github_user_id: parseInt(githubId),
+              p_github_username: user.user_metadata?.user_name,
+              p_error_type: 'admin_check_failed',
+              p_error_message: error.message,
+              p_error_code: error.code
+            });
+          } catch (logError) {
+            console.warn('Failed to log auth error:', logError);
+          }
+          
           setIsAdmin(false);
           return;
         }

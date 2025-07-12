@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { smartCommitAnalyzer } from './progressive-capture/smart-commit-analyzer';
-import { trackDatabaseOperation } from './sentry/data-tracking';
-import * as Sentry from '@sentry/react';
+import { trackDatabaseOperation } from './simple-logging';
+// Removed Sentry import - using simple logging instead
 
 /**
  * Smart database-first direct commits analysis
@@ -44,7 +44,8 @@ export async function fetchDirectCommitsWithDatabaseFallback(
           .single();
 
         if (repoError || !repoData) {
-          Sentry.addBreadcrumb({
+          // Simple breadcrumb logging without analytics
+          console.log('Direct commits breadcrumb:', {
             category: 'database',
             message: `Repository not found in database: ${owner}/${repo}`,
             level: 'info',
@@ -57,7 +58,8 @@ export async function fetchDirectCommitsWithDatabaseFallback(
         const result = await smartCommitAnalyzer.getDirectCommitsFromDatabase(repoData.id, timeRange);
         
         // Track analytics about the results
-        Sentry.addBreadcrumb({
+        // Simple breadcrumb logging without analytics
+        console.log('Direct commits breadcrumb:', {
           category: 'data_analysis',
           message: `Direct commits analysis completed for ${owner}/${repo}`,
           level: 'info',
@@ -71,15 +73,12 @@ export async function fetchDirectCommitsWithDatabaseFallback(
         return result;
 
       } catch (error) {
-        Sentry.withScope((scope) => {
-          scope.setTag('component', 'direct-commits');
-          scope.setContext('direct_commits_analysis', {
-            owner,
-            repo,
-            timeRange
-          });
-          scope.setLevel('warning');
-          Sentry.captureException(error);
+        // Simple error logging without analytics
+        console.error('Direct commits error:', {
+          owner,
+          repo,
+          timeRange,
+          error: error instanceof Error ? error.message : String(error)
         });
         
         return getEmptyDirectCommitsResult();

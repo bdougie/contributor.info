@@ -1,7 +1,12 @@
 import { supabase } from '../supabase';
 import { queueManager } from './queue-manager';
-import { trackDatabaseOperation, trackCacheOperation, trackDataSync } from '../sentry/data-tracking';
-import * as Sentry from '@sentry/react';
+import { trackDatabaseOperation, trackCacheOperation } from '../simple-logging';
+// Removed Sentry import - using simple logging instead
+
+// No-op replacement for trackDataSync
+const trackDataSync = (..._args: any[]) => {
+  // No-op: Data sync tracking removed
+};
 
 /**
  * Progressive capture processor for AI repository summaries
@@ -31,7 +36,8 @@ export class AISummaryProcessor {
         return false;
       }
 
-      Sentry.addBreadcrumb({
+      // Simple breadcrumb logging without analytics
+      console.log('AI Summary breadcrumb:', {
         category: 'ai_summary',
         message: 'AI summary regeneration queued',
         level: 'info',
@@ -40,7 +46,8 @@ export class AISummaryProcessor {
 
       return true;
     } catch (err) {
-      Sentry.captureException(err, {
+      // Simple error logging without analytics
+      console.error('AI Summary error:', err, {
         tags: { component: 'ai-summary-processor' },
         contexts: { ai_summary: { repositoryId, priority } }
       });
@@ -117,7 +124,8 @@ export class AISummaryProcessor {
       // Mark job as completed
       await queueManager.markJobCompleted(job.id);
 
-      Sentry.addBreadcrumb({
+      // Simple breadcrumb logging without analytics
+      console.log('AI Summary breadcrumb:', {
         category: 'ai_summary',
         message: 'AI summary generated successfully',
         level: 'info',
@@ -144,17 +152,12 @@ export class AISummaryProcessor {
       // Mark job as failed
       await queueManager.markJobFailed(job.id, errorMessage);
 
-      Sentry.withScope((scope) => {
-        scope.setTag('component', 'ai-summary-processor');
-        scope.setTag('job_type', 'ai_summary');
-        scope.setContext('job_details', {
-          jobId: job.id,
-          repositoryId: job.repository_id,
-          attempts: job.attempts,
-          error: errorMessage
-        });
-        
-        Sentry.captureException(error);
+      // Simple error logging without analytics
+      console.error('AI Summary processor error:', {
+        jobId: job.id,
+        repositoryId: job.repository_id,
+        attempts: job.attempts,
+        error: errorMessage
       });
 
       return false;
@@ -188,7 +191,8 @@ export class AISummaryProcessor {
         if (queued) queuedCount++;
       }
 
-      Sentry.addBreadcrumb({
+      // Simple breadcrumb logging without analytics
+      console.log('AI Summary breadcrumb:', {
         category: 'ai_summary',
         message: `Queued ${queuedCount} stale summaries for regeneration`,
         level: 'info',
@@ -197,7 +201,8 @@ export class AISummaryProcessor {
 
       return queuedCount;
     } catch (error) {
-      Sentry.captureException(error, {
+      // Simple error logging without analytics
+      console.error('AI Summary error:', error, {
         tags: { component: 'ai-summary-processor' },
         contexts: { ai_summary: { operation: 'queue_stale_summaries', days } }
       });
@@ -229,7 +234,8 @@ export class AISummaryProcessor {
         averageAge: 0
       };
     } catch (error) {
-      Sentry.captureException(error, {
+      // Simple error logging without analytics
+      console.error('AI Summary error:', error, {
         tags: { component: 'ai-summary-processor' },
         contexts: { ai_summary: { operation: 'analyze_coverage' } }
       });

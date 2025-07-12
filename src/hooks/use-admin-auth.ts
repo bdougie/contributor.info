@@ -87,6 +87,22 @@ export function useAdminAuth(): AdminAuthState {
 
         if (error) {
           console.error('Error checking admin status:', error);
+          
+          // Log auth error to database for monitoring
+          try {
+            await supabase.rpc('log_auth_error', {
+              p_auth_user_id: session.user.id,
+              p_github_user_id: parseInt(githubId),
+              p_github_username: session.user.user_metadata?.user_name,
+              p_error_type: 'admin_check_failed',
+              p_error_message: error.message,
+              p_error_code: error.code
+            });
+          } catch (logError) {
+            console.warn('Failed to log auth error:', logError);
+          }
+          
+          // Simple fallback: assume not admin if check fails
           setAdminState({
             isAuthenticated: true,
             isAdmin: false,

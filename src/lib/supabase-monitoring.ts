@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import * as Sentry from '@sentry/react';
+// Removed Sentry import - using simple logging instead
 
 // Performance monitoring configuration
 const MONITORING_CONFIG = {
@@ -67,7 +67,8 @@ class SupabaseMonitoring {
 
   private logPerformanceEntry(entry: PerformanceEntry) {
     if (entry.duration > MONITORING_CONFIG.slowQueryThreshold) {
-      Sentry.addBreadcrumb({
+      // Simple breadcrumb logging without analytics
+      console.log('Supabase breadcrumb:', {
         message: 'Slow Supabase operation detected',
         category: 'performance',
         level: 'warning',
@@ -99,11 +100,13 @@ class SupabaseMonitoring {
         },
       } as const;
 
-      Sentry.addBreadcrumb(breadcrumb);
+      // Simple breadcrumb logging without analytics
+      console.log('Supabase breadcrumb:', breadcrumb);
 
       // Log slow queries as warnings
       if (metrics.duration > MONITORING_CONFIG.slowQueryThreshold) {
-        Sentry.captureMessage(`Slow query detected: ${metrics.operation}`, {
+        // Simple error logging without analytics
+        console.error(`Slow query detected: ${metrics.operation}`, {
           level: 'warning',
           tags: {
             component: 'database',
@@ -120,7 +123,8 @@ class SupabaseMonitoring {
 
       // Log errors
       if (!metrics.success && metrics.errorMessage) {
-        Sentry.captureException(new Error(metrics.errorMessage), {
+        // Simple error logging without analytics
+        console.error(new Error(metrics.errorMessage), {
           tags: {
             component: 'database',
             operation: metrics.category,

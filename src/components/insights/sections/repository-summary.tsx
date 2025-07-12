@@ -5,7 +5,7 @@ import { useRepositorySummary } from "@/hooks/use-repository-summary";
 import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
 import { Markdown } from "@/components/common/layout";
 import { ErrorBoundary } from "@/components/error-boundary";
-import * as Sentry from '@sentry/react';
+// Removed Sentry import - using simple logging instead
 
 interface RepositorySummaryProps {
   owner: string;
@@ -18,8 +18,8 @@ function RepositorySummaryInternal({ owner, repo, timeRange }: RepositorySummary
   const { stats } = useCachedRepoData(owner, repo, timeRange, false);
   const { summary, loading, error, refetch } = useRepositorySummary(owner, repo, stats.pullRequests);
 
-  // Set Sentry context for better error tracking
-  Sentry.setContext('ai_summary_context', {
+  // Simple context tracking without analytics
+  console.log('AI summary context:', {
     repository: `${owner}/${repo}`,
     timeRange,
     hasStats: !!stats,
@@ -117,16 +117,13 @@ export function RepositorySummary({ owner, repo, timeRange }: RepositorySummaryP
       context={`AI Summary for ${owner}/${repo}`}
       fallback={<AISummaryErrorFallback error={new Error('AI Summary Error')} retry={() => window.location.reload()} />}
       onError={(error, errorInfo) => {
-        Sentry.withScope((scope) => {
-          scope.setTag('component', 'ai-summary');
-          scope.setTag('repository', `${owner}/${repo}`);
-          scope.setContext('ai_summary_error', {
-            owner,
-            repo,
-            timeRange,
-            componentStack: errorInfo.componentStack
-          });
-          Sentry.captureException(error);
+        // Simple error logging without analytics
+        console.error('AI summary error:', {
+          owner,
+          repo,
+          timeRange,
+          error: error.message,
+          componentStack: errorInfo.componentStack
         });
       }}
     >
