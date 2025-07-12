@@ -19,7 +19,7 @@ This is a React + TypeScript application that visualizes GitHub contributors and
 
 ## Design
 
-CSS is tailwind. 
+CSS is tailown. 
 
 All components should match the existing design language.
 
@@ -153,6 +153,7 @@ npx supabase status
 - no premmature optimizations without testing
 - use the supabase mcp server for migrations
 - `console.log(\`${owner}\`)` is a security vulnerability. We need to do `console.log(%s, owner)`
+- optimized for user experience with modern tooling and excellent dependency management. prioritize immediate value delivery over pure performance metrics.
 
 ## Known Issues
 

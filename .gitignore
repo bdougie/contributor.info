@@ -55,3 +55,8 @@ analyze-lighthouse.cjs
 rollout-metrics-*.json
 performance-analysis-*.json
 trend-analysis-*.json
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/

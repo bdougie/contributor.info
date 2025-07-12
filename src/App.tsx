@@ -4,9 +4,7 @@ import { ThemeProvider } from "@/components/common/theming";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { PWAInstallPrompt } from "@/components/ui/pwa-install-prompt";
-import '@/lib/progressive-capture/manual-trigger'; // Enable progressive capture tools
-import '@/lib/progressive-capture/smart-notifications'; // Enable smart data notifications
-import '@/lib/progressive-capture/background-processor'; // Enable automatic background processing
+// Progressive capture modules loaded dynamically after initial render
 import { Layout, Home, NotFound } from "@/components/common/layout";
 import { ProtectedRoute, AdminRoute } from "@/components/features/auth";
 
@@ -52,12 +50,22 @@ const PageSkeleton = () => (
 );
 
 function App() {
-  // Preload critical routes on app mount
+  // Preload critical routes and initialize progressive features after mount
   useEffect(() => {
-    // Preload the most commonly used routes after initial load
-    const preloadRoutes = async () => {
-      // Only preload after a short delay to not block initial render
+    const initializeDeferred = async () => {
+      // Only load after a short delay to not block initial render
       await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Load progressive capture system (non-blocking)
+      try {
+        await Promise.all([
+          import("@/lib/progressive-capture/manual-trigger"),
+          import("@/lib/progressive-capture/smart-notifications"), 
+          import("@/lib/progressive-capture/background-processor")
+        ]);
+      } catch (error) {
+        console.warn('Progressive capture features failed to load:', error);
+      }
       
       // Preload repo view (most common destination)
       import("@/components/features/repository/repo-view");
@@ -66,7 +74,7 @@ function App() {
       import("@/components/features/auth/login-page");
     };
     
-    preloadRoutes();
+    initializeDeferred();
   }, []);
 
   return (
