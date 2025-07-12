@@ -6,8 +6,7 @@ test.describe('Critical User Flows', () => {
     await page.goto('/');
     
     // Verify page loads with title
-    await expect(page).toHaveTitle(/contributor.info/);
-    
+    await expect(page).toHaveTitle(/contributor\.info/i);    
     // Verify main content is visible (any heading will do)
     await expect(page.locator('h1, h2, h3')).toBeVisible();
     
