@@ -76,7 +76,6 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 // Initialize performance tracking after page interactive (non-blocking)
 const initializeWebVitals = async () => {
   try {
-    
     // Wait for page to be fully interactive
     await new Promise(resolve => {
       if (document.readyState === 'complete') {
@@ -105,47 +104,18 @@ initializeWebVitals();
 const rootElement = document.getElementById('root')!;
 const root = createRoot(rootElement);
 
-// Add global error tracking for debugging
-window.addEventListener('error', (event) => {
-  console.error('Global error:', event.error);
-  window.jsErrors = window.jsErrors || [];
-  window.jsErrors.push({
-    message: event.error?.message || event.message,
-    filename: event.filename,
-    lineno: event.lineno,
-    stack: event.error?.stack
-  });
-});
-
-window.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection:', event.reason);
-  window.jsErrors = window.jsErrors || [];
-  window.jsErrors.push({
-    message: 'Unhandled promise rejection: ' + (event.reason?.message || event.reason),
-    type: 'promise'
-  });
-});
-
 // Render immediately without analytics provider
-try {
-  root.render(
-    <StrictMode>
-      <MetaTagsProvider>
-        <App />
-      </MetaTagsProvider>
-    </StrictMode>
-  );
-  console.log('React app rendered successfully');
-} catch (error) {
-  console.error('Failed to render React app:', error);
-  // Fallback rendering
-  rootElement.innerHTML = '<div style="padding: 20px;">App failed to load. Check console for errors.</div>';
-}
+root.render(
+  <StrictMode>
+    <MetaTagsProvider>
+      <App />
+    </MetaTagsProvider>
+  </StrictMode>
+);
 
 // Add analytics after page becomes interactive
 const initializeAnalytics = async () => {
   try {
-    
     // Wait for page to be interactive
     await new Promise(resolve => {
       if (document.readyState === 'complete') {

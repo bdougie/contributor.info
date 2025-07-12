@@ -25,15 +25,33 @@ test.describe('Homepage Search Functionality', () => {
       window.DISABLE_ANALYTICS = true;
       window.DISABLE_PROGRESSIVE_CAPTURE = true;
       
+      // Mock environment variables for Supabase
+      window.process = window.process || {};
+      window.process.env = window.process.env || {};
+      window.process.env.VITE_SUPABASE_URL = 'https://test.supabase.co';
+      window.process.env.VITE_SUPABASE_ANON_KEY = 'test-anon-key';
+      
+      // Mock import.meta.env for Vite
+      if (typeof window.importMeta === 'undefined') {
+        window.importMeta = {
+          env: {
+            VITE_SUPABASE_URL: 'https://test.supabase.co',
+            VITE_SUPABASE_ANON_KEY: 'test-anon-key',
+            MODE: 'test'
+          }
+        };
+      }
+      
       // Mock GitHub API to prevent resource exhaustion
       const originalFetch = window.fetch;
       window.fetch = async (url, options) => {
-        if (typeof url === 'string' && (url.includes('api.github.com') || url.includes('github.com'))) {
-          // Return minimal successful response for GitHub API calls
+        if (typeof url === 'string' && (url.includes('api.github.com') || url.includes('github.com') || url.includes('supabase.co'))) {
+          // Return minimal successful response for API calls
           return new Response(JSON.stringify({
             message: 'Mocked in e2e tests',
             total_count: 0,
-            items: []
+            items: [],
+            data: []
           }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
