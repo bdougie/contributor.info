@@ -1,15 +1,8 @@
 import { graphql } from '@octokit/graphql';
-import { serverEnv } from '../env';
 
 // GitHub token from server environment - this runs in Inngest functions (server context)
-const GITHUB_TOKEN = (() => {
-  // In development, we might use the client token for testing
-  if (serverEnv.NODE_ENV === 'development') {
-    return process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN || '';
-  }
-  // In production, use the proper server token
-  return process.env.GITHUB_TOKEN || '';
-})();
+// Note: In production Netlify functions, we need to ensure GITHUB_TOKEN is set as an env var
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN || '';
 
 // GraphQL query for comprehensive PR details
 const GET_PR_DETAILS_QUERY = `
@@ -222,7 +215,10 @@ export class GraphQLClient {
 
   constructor() {
     if (!GITHUB_TOKEN) {
-      throw new Error('GitHub token not found in environment variables');
+      const env = process.env.NODE_ENV || 'unknown';
+      const hasGithubToken = !!process.env.GITHUB_TOKEN;
+      const hasViteGithubToken = !!process.env.VITE_GITHUB_TOKEN;
+      throw new Error(`GitHub token not found in environment variables. Environment: ${env}, GITHUB_TOKEN exists: ${hasGithubToken}, VITE_GITHUB_TOKEN exists: ${hasViteGithubToken}`);
     }
 
     this.client = graphql.defaults({

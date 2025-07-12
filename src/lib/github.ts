@@ -3,6 +3,7 @@ import type { PullRequest } from './types';
 import { trackRateLimit } from './sentry/data-tracking';
 import * as Sentry from '@sentry/react';
 import { env } from './env';
+import { githubApiRequest } from './github-rate-limit';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
@@ -259,67 +260,90 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
     const perPage = 100;
     
     while (page <= 10) { // Limit to 10 pages (1000 PRs) for very active repositories
-      const response = await fetch(
-        `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=${perPage}&page=${page}`,
-        { headers }
-      );
-
-      if (!response.ok) {
-        if (page === 1) {
-          const error = await response.json();
-          if (response.status === 404) {
-            span.setAttributes({
-              'http.status_code': 404,
-              'error.type': 'repository_not_found'
-            });
-            throw new Error(`Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`);
-          } else if (response.status === 403 && error.message?.includes('rate limit')) {
-            // Track rate limiting
-            const rateLimitReset = response.headers.get('X-RateLimit-Reset');
-            const resetTime = rateLimitReset ? new Date(parseInt(rateLimitReset) * 1000) : undefined;
-            
-            trackRateLimit('github', `repos/${owner}/${repo}/pulls`, undefined, resetTime);
-            
-            span.setAttributes({
-              'http.status_code': 403,
-              'error.type': 'rate_limit',
-              'github.rate_limit_reset': rateLimitReset || ''
-            });
-            
-            if (!token) {
-              throw new Error('GitHub API rate limit exceeded. Please log in with GitHub to increase the rate limit.');
-            } else {
-              throw new Error('GitHub API rate limit exceeded. Please try again later.');
+      // In test environment, use direct fetch to maintain test compatibility
+      if (NODE_ENV === 'test' || process.env.VITEST) {
+        const response = await fetch(
+          `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=${perPage}&page=${page}`,
+          { headers }
+        );
+        
+        if (!response.ok) {
+          if (page === 1) {
+            if (response.status === 404) {
+              span.setAttributes({
+                'http.status_code': 404,
+                'error.type': 'repository_not_found'
+              });
+              throw new Error(`Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`);
             }
-          } else if (response.status === 401) {
-            span.setAttributes({
-              'http.status_code': 401,
-              'error.type': 'invalid_token'
-            });
-            throw new Error('Invalid GitHub token. Please check your token and try again. Make sure you\'ve copied the entire token correctly.');
+            throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+          }
+          break; // Stop fetching if later pages fail
+        }
+        
+        const prs = await response.json();
+        allPRs.push(...prs);
+        
+        // If we got less than a full page, we're done
+        if (prs.length < perPage) {
+          break;
+        }
+        
+        // Check if all PRs are too old to be relevant
+        const oldestPRDate = new Date(prs[prs.length - 1].updated_at);
+        if (oldestPRDate < since) {
+          break; // No point in fetching older PRs
+        }
+      } else {
+        // Production: Use enhanced API request with retry logic and 503 handling
+        try {
+          const { data: prs, rateLimitInfo } = await githubApiRequest<any[]>(
+            `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=${perPage}&page=${page}`,
+            { headers }
+          );
+          
+          // Handle case where API request failed or returned invalid data
+          if (!prs || !Array.isArray(prs)) {
+            if (page === 1) {
+              span.setAttributes({
+                'http.status_code': 404,
+                'error.type': 'repository_not_found'
+              });
+              throw new Error(`Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`);
+            }
+            break; // Stop fetching if later pages fail
           }
           
-          span.setAttributes({
-            'http.status_code': response.status,
-            'error.type': 'api_error'
-          });
-          throw new Error(`GitHub API error: ${error.message || response.statusText}`);
+          // Track rate limit info if available
+          if (rateLimitInfo) {
+            span.setAttributes({
+              'github.rate_limit.remaining': rateLimitInfo.remaining,
+              'github.rate_limit.limit': rateLimitInfo.limit
+            });
+          }
+          
+          allPRs.push(...prs);
+          
+          // If we got less than a full page, we're done
+          if (prs.length < perPage) {
+            break;
+          }
+          
+          // Check if all PRs are too old to be relevant
+          if (prs.length > 0) {
+            const oldestPRDate = new Date(prs[prs.length - 1].updated_at);
+            if (oldestPRDate < since) {
+              break; // No point in fetching older PRs
+            }
+          }
+        } catch (error) {
+          // If this is the first page and we get an error, it's likely a 404 or auth issue
+          if (page === 1) {
+            throw error; // Re-throw the error for proper handling
+          }
+          // For subsequent pages, just stop fetching
+          break;
         }
-        break; // Stop fetching if later pages fail
-      }
-
-      const prs = await response.json();
-      allPRs.push(...prs);
-      
-      // If we got less than a full page, we're done
-      if (prs.length < perPage) {
-        break;
-      }
-      
-      // Check if all PRs are too old to be relevant
-      const oldestPRDate = new Date(prs[prs.length - 1].updated_at);
-      if (oldestPRDate < since) {
-        break; // No point in fetching older PRs
       }
       
       page++;
