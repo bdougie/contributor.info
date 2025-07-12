@@ -8,12 +8,17 @@ let posthogInstance: any = null;
 let isPostHogInitialized = false;
 
 const initializePostHog = async () => {
+  // Only initialize in production with valid environment variables
+  if (!import.meta.env.PROD || !import.meta.env.VITE_POSTHOG_KEY) {
+    return;
+  }
+  
   if (typeof window !== 'undefined' && !isPostHogInitialized && !posthogInstance) {
     try {
       // Dynamic import to exclude from initial bundle
       const { default: posthog } = await import('posthog-js');
       
-      posthog.init(import.meta.env.VITE_POSTHOG_KEY || '', {
+      posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
         api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
         person_profiles: 'identified_only',
         capture_pageview: false, // We'll handle this manually
@@ -37,7 +42,7 @@ export function PHProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Only initialize PostHog in production to avoid React hooks conflicts in development
     // The React hooks error occurs because PostHog's dynamic imports can create React instance conflicts
-    if (import.meta.env.MODE === 'development') {
+    if (!import.meta.env.PROD) {
       console.log('PostHog disabled in development to prevent React hooks conflicts');
       return;
     }
@@ -75,20 +80,20 @@ export const usePostHog = () => {
   return useContext(PostHogContext);
 };
 
-// Export posthog for backward compatibility
+// Export posthog for backward compatibility (production only)
 export const posthog = {
   capture: (...args: any[]) => {
-    if (posthogInstance) {
+    if (import.meta.env.PROD && posthogInstance) {
       return posthogInstance.capture(...args);
     }
   },
   identify: (...args: any[]) => {
-    if (posthogInstance) {
+    if (import.meta.env.PROD && posthogInstance) {
       return posthogInstance.identify(...args);
     }
   },
   reset: (...args: any[]) => {
-    if (posthogInstance) {
+    if (import.meta.env.PROD && posthogInstance) {
       return posthogInstance.reset(...args);
     }
   }

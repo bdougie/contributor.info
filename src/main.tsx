@@ -6,9 +6,13 @@ import { MetaTagsProvider } from './components/common/layout';
 import { PHProvider } from './lib/posthog';
 // Web vitals tracking loaded dynamically
 
-// Dynamically import and initialize Sentry only when needed
+// Dynamically import and initialize Sentry only in production
 const initializeSentry = async () => {
-  if (!import.meta.env.VITE_SENTRY_DSN) return;
+  // Only initialize Sentry in production
+  if (!import.meta.env.PROD || !import.meta.env.VITE_SENTRY_DSN) {
+    console.log('Sentry disabled in development mode');
+    return;
+  }
   
   try {
     // Dynamic import to exclude from initial bundle
@@ -20,12 +24,12 @@ const initializeSentry = async () => {
         browserTracingIntegration(),
         // Replay integration will be added later
       ],
-      // Optimize performance monitoring
-      tracesSampleRate: import.meta.env.MODE === 'production' ? 0.01 : 1.0,
+      // Optimize performance monitoring for production
+      tracesSampleRate: 0.01,
       replaysSessionSampleRate: 0.01,
       replaysOnErrorSampleRate: 0.1,
       sendDefaultPii: false,
-      environment: import.meta.env.MODE,
+      environment: 'production',
       beforeSend: (event) => {
         // Filter out events that might impact performance
         return event;
@@ -41,8 +45,13 @@ const initializeSentry = async () => {
   }
 };
 
-// Initialize Sentry after all critical resources have loaded
+// Initialize Sentry after all critical resources have loaded (production only)
 const deferSentryInit = () => {
+  // Only defer Sentry initialization in production
+  if (!import.meta.env.PROD) {
+    return;
+  }
+  
   // Use requestIdleCallback if available for better performance
   if ('requestIdleCallback' in window) {
     window.requestIdleCallback(() => {
@@ -53,11 +62,13 @@ const deferSentryInit = () => {
   }
 };
 
-// Wait for the page to be fully interactive before loading Sentry
-if (document.readyState === 'complete') {
-  deferSentryInit();
-} else {
-  window.addEventListener('load', deferSentryInit, { once: true });
+// Wait for the page to be fully interactive before loading Sentry (production only)
+if (import.meta.env.PROD) {
+  if (document.readyState === 'complete') {
+    deferSentryInit();
+  } else {
+    window.addEventListener('load', deferSentryInit, { once: true });
+  }
 }
 
 // Register service worker for performance optimization
