@@ -70,10 +70,10 @@ jobs:
           playwright-results-${{ runner.os }}-
       
     - name: Install Playwright browsers
-      run: npx playwright install chromium --with-deps
+      run: npx playwright install --with-deps
       
     - name: Run Playwright tests
-      run: npm run test:e2e
+      run: npx playwright test
       
     - name: Upload Playwright Report
       uses: actions/upload-artifact@v4
