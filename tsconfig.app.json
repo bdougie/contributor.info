@@ -35,6 +35,7 @@
     "src/**/*.stories.ts",
     "src/**/*.stories.tsx",
     "src/**/__tests__/**/*",
-    "src/stories/**/*"
+    "src/stories/**/*",
+    "src/lib/test-utils.ts"
   ]
 }
