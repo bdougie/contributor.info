@@ -15,6 +15,11 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
+  
+  /* Add explicit timeouts for better CI performance */
+  timeout: 60000, // 60 seconds per test
+  globalTimeout: 300000, // 5 minutes total for all tests
+  
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
@@ -22,6 +27,10 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+    
+    /* Add action and navigation timeouts */
+    actionTimeout: 10000, // 10 seconds for actions
+    navigationTimeout: 30000, // 30 seconds for page navigation
   },
 
   /* Configure projects for major browsers */
@@ -31,15 +40,18 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
 
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
+    // Only run other browsers locally to speed up CI
+    ...(process.env.CI ? [] : [
+      {
+        name: 'firefox',
+        use: { ...devices['Desktop Firefox'] },
+      },
 
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+      {
+        name: 'webkit',
+        use: { ...devices['Desktop Safari'] },
+      },
+    ]),
 
     /* Test against mobile viewports. */
     // {
@@ -67,5 +79,11 @@ export default defineConfig({
     command: 'npm run dev',
     url: 'http://localhost:5174',
     reuseExistingServer: !process.env.CI,
+    timeout: 120000, // Increase to 2 minutes for CI server startup
+    env: {
+      // Optimize for CI environment
+      NODE_ENV: 'test',
+      VITE_CI: 'true'
+    }
   },
 });

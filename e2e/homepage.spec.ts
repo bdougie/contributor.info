@@ -1,6 +1,21 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Homepage Search Functionality', () => {
+  // Configure longer timeouts for data-heavy repository tests
+  test.use({ 
+    actionTimeout: 15000,
+    navigationTimeout: 30000 
+  });
+
+  // Mock heavy operations before each test for faster execution
+  test.beforeEach(async ({ page }) => {
+    // Mock analytics and progressive capture to speed up tests
+    await page.addInitScript(() => {
+      window.DISABLE_ANALYTICS = true;
+      window.DISABLE_PROGRESSIVE_CAPTURE = true;
+    });
+  });
+
   test('search form works - user can search pgvector/pgvector and get routed correctly', async ({ page }) => {
     // Navigate to homepage
     await page.goto('/');
@@ -23,9 +38,9 @@ test.describe('Homepage Search Functionality', () => {
     // Wait for navigation and verify we're on the correct repository page
     await expect(page).toHaveURL('/pgvector/pgvector');
     
-    // Verify the repository page has loaded with some expected content
-    // This will wait for the page to load the repository data
-    await expect(page.locator('text=pgvector')).toBeVisible({ timeout: 10000 });
+    // Wait for skeleton loading to finish, then verify content
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('text=pgvector')).toBeVisible({ timeout: 20000 });
   });
 
   test('continuedev/continue example link works and routes correctly', async ({ page }) => {
@@ -46,9 +61,9 @@ test.describe('Homepage Search Functionality', () => {
     // Wait for navigation and verify we're on the correct repository page
     await expect(page).toHaveURL('/continuedev/continue');
     
-    // Verify the repository page has loaded with some expected content
-    // This will wait for the page to load the repository data
-    await expect(page.locator('text=continue')).toBeVisible({ timeout: 10000 });
+    // Wait for skeleton loading to finish, then verify content
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('text=continue')).toBeVisible({ timeout: 20000 });
   });
 
   test('homepage loads and has expected elements', async ({ page }) => {

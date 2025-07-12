@@ -8,7 +8,8 @@ import { MetaTagsProvider } from './components/common/layout';
 
 // Dynamically import and initialize Sentry only when needed
 const initializeSentry = async () => {
-  if (!import.meta.env.VITE_SENTRY_DSN) return;
+  // Skip Sentry in CI/test environment for faster startup
+  if (!import.meta.env.VITE_SENTRY_DSN || import.meta.env.VITE_CI === 'true') return;
   
   try {
     // Dynamic import to exclude from initial bundle
@@ -76,6 +77,9 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 // Initialize performance tracking after page interactive (non-blocking)
 const initializeWebVitals = async () => {
   try {
+    // Skip web vitals in CI/test environment for faster tests
+    if (import.meta.env.VITE_CI === 'true') return;
+    
     // Wait for page to be fully interactive
     await new Promise(resolve => {
       if (document.readyState === 'complete') {
@@ -116,6 +120,9 @@ root.render(
 // Add analytics after page becomes interactive
 const initializeAnalytics = async () => {
   try {
+    // Skip analytics in CI/test environment for faster tests
+    if (import.meta.env.VITE_CI === 'true') return;
+    
     // Wait for page to be interactive
     await new Promise(resolve => {
       if (document.readyState === 'complete') {
