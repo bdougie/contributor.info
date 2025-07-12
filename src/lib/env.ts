@@ -34,8 +34,8 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
  */
 export const env = {
   // Supabase configuration
-  SUPABASE_URL: getEnvVar('VITE_SUPABASE_URL'),
-  SUPABASE_ANON_KEY: getEnvVar('VITE_SUPABASE_ANON_KEY'),
+  SUPABASE_URL: getEnvVar('VITE_SUPABASE_URL', 'SUPABASE_URL'),
+  SUPABASE_ANON_KEY: getEnvVar('VITE_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY'),
   
   // GitHub tokens
   GITHUB_TOKEN: getEnvVar('VITE_GITHUB_TOKEN', 'GITHUB_TOKEN'),
