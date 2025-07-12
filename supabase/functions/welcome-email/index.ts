@@ -19,74 +19,44 @@ const getWelcomeEmailHTML = (data: WelcomeEmailData) => `
     <style>
         body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background: #667eea; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: white; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }
         .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-        .footer { text-align: center; color: #666; font-size: 14px; margin-top: 30px; }
-        .feature { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 6px; }
-        .privacy-notice { background: #f0f4ff; border: 1px solid #d1e7ff; padding: 15px; border-radius: 6px; margin: 20px 0; font-size: 14px; }
-        .unsubscribe { background: #fafafa; padding: 15px; border-radius: 6px; margin: 20px 0; font-size: 13px; }
+        .footer { text-align: center; color: #6b7280; font-size: 13px; margin-top: 30px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎉 Welcome to Contributor.info!</h1>
-            <p>Discover amazing open source contributors and their impact</p>
+            <h1>Welcome to Contributor.info!</h1>
         </div>
         
         <div class="content">
-            <h2>Hi ${data.userName}!</h2>
+            <p>Hi ${data.userName},</p>
             
-            <p>Thanks for joining Contributor.info on ${data.signupDate}! You're now part of a community that celebrates open source contributions and helps discover amazing developers.</p>
+            <p>Your account has been successfully created. You can now:</p>
             
-            <div class="feature">
-                <h3>🔍 What you can do now:</h3>
-                <ul>
-                    <li><strong>Search repositories</strong> to find top contributors</li>
-                    <li><strong>Analyze contribution patterns</strong> with detailed insights</li>
-                    <li><strong>Track repository health</strong> and community metrics</li>
-                    <li><strong>Discover new projects</strong> and maintainers to follow</li>
-                </ul>
-            </div>
-            
-            <div class="feature">
-                <h3>📊 Featured insights:</h3>
-                <ul>
-                    <li>Contributor confidence scoring</li>
-                    <li>Pull request activity analysis</li>
-                    <li>Repository health metrics</li>
-                    <li>Time-based contribution trends</li>
-                </ul>
-            </div>
+            <ul>
+                <li>Search GitHub repositories</li>
+                <li>View contributor analytics</li>
+                <li>Track repository health metrics</li>
+            </ul>
             
             <div style="text-align: center;">
-                <a href="https://contributor.info" class="button">Start Exploring →</a>
+                <a href="https://contributor.info" class="button">Get Started</a>
             </div>
             
-            <div class="privacy-notice">
-                <h4>🔒 Your Privacy Matters</h4>
-                <p>We process your email address based on your consent when you signed up. You can manage your email preferences or withdraw consent at any time by visiting your <a href="https://contributor.info/settings/privacy">Privacy Settings</a>.</p>
-                <p>Read our <a href="https://contributor.info/privacy">Privacy Policy</a> for details on how we protect your data.</p>
-            </div>
+            <p>If you have any questions, feel free to reply to this email.</p>
             
-            <p>If you have any questions or feedback, just reply to this email. We'd love to hear from you!</p>
-            
-            <p>Happy contributing!<br>
+            <p>Best regards,<br>
             The Contributor.info Team</p>
         </div>
         
-        <div class="unsubscribe">
-            <p><strong>Email Preferences:</strong></p>
-            <p>• You received this welcome email because you signed up for Contributor.info</p>
-            <p>• <a href="https://contributor.info/settings/email-preferences">Manage email preferences</a></p>
-            <p>• <a href="https://contributor.info/unsubscribe?token={{unsubscribe_token}}">Unsubscribe from all emails</a></p>
-            <p>• <a href="https://contributor.info/privacy/data-request">Request your data or deletion</a></p>
-        </div>
-        
         <div class="footer">
-            <p>Built with ❤️ for the open source community</p>
-            <p>This email was sent in compliance with GDPR and privacy regulations</p>
+            <p>
+                <a href="https://contributor.info/settings/email-preferences">Email preferences</a> • 
+                <a href="https://contributor.info/privacy">Privacy policy</a>
+            </p>
         </div>
     </div>
 </body>
@@ -96,42 +66,24 @@ const getWelcomeEmailHTML = (data: WelcomeEmailData) => `
 const getWelcomeEmailText = (data: WelcomeEmailData) => `
 Welcome to Contributor.info!
 
-Hi ${data.userName}!
+Hi ${data.userName},
 
-Thanks for joining Contributor.info on ${data.signupDate}! You're now part of a community that celebrates open source contributions and helps discover amazing developers.
+Your account has been successfully created. You can now:
 
-What you can do now:
-• Search repositories to find top contributors
-• Analyze contribution patterns with detailed insights  
-• Track repository health and community metrics
-• Discover new projects and maintainers to follow
-
-Featured insights:
-• Contributor confidence scoring
-• Pull request activity analysis
-• Repository health metrics
-• Time-based contribution trends
+• Search GitHub repositories
+• View contributor analytics
+• Track repository health metrics
 
 Get started: https://contributor.info
 
-YOUR PRIVACY MATTERS
-We process your email address based on your consent when you signed up. You can manage your email preferences or withdraw consent at any time by visiting: https://contributor.info/settings/privacy
+If you have any questions, feel free to reply to this email.
 
-Read our Privacy Policy: https://contributor.info/privacy
-
-If you have any questions or feedback, just reply to this email. We'd love to hear from you!
-
-Happy contributing!
+Best regards,
 The Contributor.info Team
 
-EMAIL PREFERENCES:
-• You received this welcome email because you signed up for Contributor.info
-• Manage email preferences: https://contributor.info/settings/email-preferences
-• Unsubscribe from all emails: https://contributor.info/unsubscribe?token={{unsubscribe_token}}
-• Request your data or deletion: https://contributor.info/privacy/data-request
-
-This email was sent in compliance with GDPR and privacy regulations.
-Built with ❤️ for the open source community
+--
+Email preferences: https://contributor.info/settings/email-preferences
+Privacy policy: https://contributor.info/privacy
 `;
 
 // Main function
@@ -183,44 +135,17 @@ Deno.serve(async (req: Request) => {
 
     console.log('Processing welcome email request for:', { userEmail, userName, signupDate });
 
-    // GDPR COMPLIANCE: Check user consent before sending email
+    // GDPR COMPLIANCE: Welcome emails are transactional and sent under contractual necessity
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Check if user has consented to welcome emails
-    const { data: consentData, error: consentError } = await supabase
-      .rpc('user_has_email_consent', {
-        p_user_id: record.id,
-        p_email_type: 'welcome'
-      });
-
-    if (consentError) {
-      console.error('Error checking user consent:', consentError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to verify user consent' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!consentData) {
-      console.log('User has not consented to welcome emails, skipping send:', userEmail);
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Email send skipped - user has not consented to welcome emails',
-          reason: 'no_consent'
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Log GDPR processing activity
+    // Log GDPR processing activity under contractual necessity
     const { data: gdprLogId, error: gdprError } = await supabase
       .rpc('log_gdpr_processing', {
         p_user_id: record.id,
-        p_purpose: 'welcome_email',
-        p_legal_basis: 'consent',
+        p_purpose: 'welcome_email_transactional',
+        p_legal_basis: 'contract',
         p_data_categories: ['email', 'name'],
-        p_notes: `Sending welcome email to ${userEmail}`
+        p_notes: `Sending transactional welcome email to ${userEmail} - necessary for service setup`
       });
 
     if (gdprError) {
@@ -234,7 +159,7 @@ Deno.serve(async (req: Request) => {
       signupDate
     };
 
-    console.log('User has consented, sending welcome email to:', userEmail);
+    console.log('Sending transactional welcome email to:', userEmail);
 
     // Send email via Resend
     const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -246,11 +171,11 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         from: 'Contributor.info <welcome@contributor.info>',
         to: [userEmail],
-        subject: '🎉 Welcome to Contributor.info - Discover Amazing Open Source Contributors!',
+        subject: 'Welcome to Contributor.info',
         html: getWelcomeEmailHTML(emailData),
         text: getWelcomeEmailText(emailData),
         tags: [
-          { name: 'type', value: 'welcome' },
+          { name: 'type', value: 'transactional' },
           { name: 'user_id', value: record.id }
         ]
       }),
@@ -279,12 +204,12 @@ Deno.serve(async (req: Request) => {
           recipient_email: userEmail,
           resend_email_id: emailResult.id,
           sent_at: new Date().toISOString(),
-          legal_basis: 'consent',
+          legal_basis: 'contract',
           gdpr_log_id: gdprLogId,
           metadata: {
             user_name: userName,
             signup_date: signupDate,
-            consent_verified: true,
+            transactional: true,
             privacy_policy_version: '1.0'
           }
         });
@@ -307,7 +232,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Welcome email sent successfully',
+        message: 'Transactional welcome email sent successfully',
         email_id: emailResult.id 
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
