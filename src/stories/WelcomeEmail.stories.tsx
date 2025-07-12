@@ -7,7 +7,7 @@ interface WelcomeEmailData {
 }
 
 // Email template component for Storybook
-function WelcomeEmailTemplate({ userName, userEmail, signupDate }: WelcomeEmailData) {
+function WelcomeEmailTemplate({ userName }: Pick<WelcomeEmailData, 'userName'>) {
   const emailHTML = `
 <!DOCTYPE html>
 <html lang="en">
@@ -252,14 +252,6 @@ const meta: Meta<typeof WelcomeEmailTemplate> = {
     userName: {
       control: 'text',
       description: 'The name of the user'
-    },
-    userEmail: {
-      control: 'text',
-      description: 'The email address of the user'
-    },
-    signupDate: {
-      control: 'text',
-      description: 'The date the user signed up'
     }
   }
 };
@@ -269,32 +261,24 @@ type Story = StoryObj<typeof WelcomeEmailTemplate>;
 
 export const Default: Story = {
   args: {
-    userName: 'Brian Douglas',
-    userEmail: 'brian@dinnerpeople.app',
-    signupDate: 'January 12, 2025'
+    userName: 'Brian Douglas'
   }
 };
 
 export const LongName: Story = {
   args: {
-    userName: 'Christopher Alexander Thompson',
-    userEmail: 'christopher.thompson@example.com', 
-    signupDate: 'December 25, 2024'
+    userName: 'Christopher Alexander Thompson'
   }
 };
 
 export const ShortName: Story = {
   args: {
-    userName: 'Alex',
-    userEmail: 'alex@dev.com',
-    signupDate: 'March 15, 2025'
+    userName: 'Alex'
   }
 };
 
-export const DifferentEmail: Story = {
+export const DifferentName: Story = {
   args: {
-    userName: 'Sarah Chen',
-    userEmail: 'sarah.chen+github@company.org',
-    signupDate: 'February 8, 2025'
+    userName: 'Sarah Chen'
   }
 };
