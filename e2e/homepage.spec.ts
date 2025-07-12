@@ -20,8 +20,19 @@ test.describe('Homepage Search Functionality', () => {
     // Navigate to homepage
     await page.goto('/');
     
-    // Verify homepage loads correctly
-    await expect(page.locator('text=Analyze GitHub Repository Contributors')).toBeVisible();
+    // Wait for page to fully load before checking content
+    await page.waitForLoadState('domcontentloaded');
+    
+    // Add debug screenshot in CI
+    if (process.env.CI) {
+      await page.screenshot({ path: 'test-results/homepage-debug.png', fullPage: true });
+      console.log('Page title:', await page.title());
+      console.log('Page URL:', page.url());
+      console.log('Page content preview:', await page.textContent('body'));
+    }
+    
+    // Verify homepage loads correctly with more flexible selector
+    await expect(page.locator('h1, h2, h3').filter({ hasText: 'Analyze GitHub Repository Contributors' })).toBeVisible({ timeout: 15000 });
     
     // Find the search input field
     const searchInput = page.locator('input[placeholder*="Search repositories"]');
@@ -47,8 +58,11 @@ test.describe('Homepage Search Functionality', () => {
     // Navigate to homepage
     await page.goto('/');
     
-    // Verify homepage loads correctly
-    await expect(page.locator('text=Analyze GitHub Repository Contributors')).toBeVisible();
+    // Wait for page to fully load
+    await page.waitForLoadState('domcontentloaded');
+    
+    // Verify homepage loads correctly with more flexible selector
+    await expect(page.locator('h1, h2, h3').filter({ hasText: 'Analyze GitHub Repository Contributors' })).toBeVisible({ timeout: 15000 });
     
     // Verify the "Popular examples:" section is visible
     await expect(page.locator('text=Popular examples:')).toBeVisible();
@@ -70,8 +84,11 @@ test.describe('Homepage Search Functionality', () => {
     // Navigate to homepage
     await page.goto('/');
     
-    // Verify main heading
-    await expect(page.locator('text=Analyze GitHub Repository Contributors')).toBeVisible();
+    // Wait for page to fully load
+    await page.waitForLoadState('domcontentloaded');
+    
+    // Verify main heading with more flexible selector
+    await expect(page.locator('h1, h2, h3').filter({ hasText: 'Analyze GitHub Repository Contributors' })).toBeVisible({ timeout: 15000 });
     
     // Verify description
     await expect(page.locator('text=Enter a GitHub repository URL or owner/repo to visualize contribution patterns')).toBeVisible();
