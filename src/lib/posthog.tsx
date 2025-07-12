@@ -35,7 +35,14 @@ const initializePostHog = async () => {
 
 export function PHProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    // Defer PostHog initialization until after all critical resources load
+    // Only initialize PostHog in production to avoid React hooks conflicts in development
+    // The React hooks error occurs because PostHog's dynamic imports can create React instance conflicts
+    if (import.meta.env.MODE === 'development') {
+      console.log('PostHog disabled in development to prevent React hooks conflicts');
+      return;
+    }
+
+    // Production: Defer PostHog initialization until after all critical resources load
     const deferPostHogInit = () => {
       // Use requestIdleCallback if available for better performance
       if ('requestIdleCallback' in window) {
