@@ -256,6 +256,93 @@ Privacy policy: https://contributor.info/privacy
 GitHub: https://github.com/bdougie/contributor.info
 `;
 
+// Audience management functions
+const ensureAudienceExists = async (resendApiKey: string) => {
+  // List existing audiences
+  const audiencesResponse = await fetch('https://api.resend.com/audiences', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${resendApiKey}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!audiencesResponse.ok) {
+    console.error('Failed to list audiences:', audiencesResponse.status, await audiencesResponse.text());
+    throw new Error(`Failed to list audiences: ${audiencesResponse.status}`);
+  }
+
+  const audiences = await audiencesResponse.json();
+  console.log('Existing audiences:', audiences.data?.length || 0);
+
+  // Check if "Welcomed Users" audience exists
+  const existingAudience = audiences.data?.find(
+    (audience: any) => audience.name === 'Welcomed Users'
+  );
+
+  if (existingAudience) {
+    console.log('Found existing "Welcomed Users" audience:', existingAudience.id);
+    return existingAudience.id;
+  }
+
+  // Create "Welcomed Users" audience if it doesn't exist
+  console.log('Creating "Welcomed Users" audience...');
+  const createResponse = await fetch('https://api.resend.com/audiences', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${resendApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: 'Welcomed Users'
+    }),
+  });
+
+  if (!createResponse.ok) {
+    console.error('Failed to create audience:', createResponse.status, await createResponse.text());
+    throw new Error(`Failed to create audience: ${createResponse.status}`);
+  }
+
+  const newAudience = await createResponse.json();
+  console.log('Created new "Welcomed Users" audience:', newAudience.id);
+  return newAudience.id;
+};
+
+const addUserToAudience = async (resendApiKey: string, audienceId: string, userEmail: string, userName: string) => {
+  console.log(`Adding user ${userEmail} to audience ${audienceId}...`);
+  
+  const contactResponse = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${resendApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email: userEmail,
+      first_name: userName.split(' ')[0] || userName,
+      last_name: userName.split(' ').slice(1).join(' ') || '',
+      unsubscribed: false
+    }),
+  });
+
+  if (!contactResponse.ok) {
+    const errorText = await contactResponse.text();
+    console.error('Failed to add user to audience:', contactResponse.status, errorText);
+    
+    // Don't throw if user already exists (409 conflict)
+    if (contactResponse.status === 409) {
+      console.log('User already exists in audience');
+      return null;
+    }
+    
+    throw new Error(`Failed to add user to audience: ${contactResponse.status} ${errorText}`);
+  }
+
+  const contact = await contactResponse.json();
+  console.log('Successfully added user to audience:', contact.id);
+  return contact.id;
+};
+
 // Main function
 Deno.serve(async (req: Request) => {
   try {
@@ -339,7 +426,7 @@ Deno.serve(async (req: Request) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Contributor.info <welcome@contributor.info>',
+        from: 'contributor.info <no-reply@updates.contributor.info>',
         to: [userEmail],
         subject: 'Welcome to Contributor.info',
         html: getWelcomeEmailHTML(emailData),
@@ -364,6 +451,19 @@ Deno.serve(async (req: Request) => {
     const emailResult = await emailResponse.json();
     console.log('Welcome email sent successfully:', emailResult);
 
+    // AUDIENCE MANAGEMENT: Add user to Resend audience
+    let audienceId = null;
+    let contactId = null;
+    
+    try {
+      audienceId = await ensureAudienceExists(resendApiKey);
+      contactId = await addUserToAudience(resendApiKey, audienceId, userEmail, userName);
+      console.log('User successfully added to audience:', { audienceId, contactId });
+    } catch (audienceError) {
+      // Don't fail the main function if audience management fails
+      console.warn('Failed to manage audience - email sent but user not added to audience:', audienceError);
+    }
+
     // GDPR COMPLIANCE: Log the email send for audit trail
     try {
       await supabase
@@ -380,7 +480,9 @@ Deno.serve(async (req: Request) => {
             user_name: userName,
             signup_date: signupDate,
             transactional: true,
-            privacy_policy_version: '1.0'
+            privacy_policy_version: '1.0',
+            audience_id: audienceId,
+            contact_id: contactId
           }
         });
         
