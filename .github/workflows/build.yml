@@ -47,23 +47,33 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
-    # Add browser caching for faster CI runs
+    # Enhanced caching for faster CI runs
     - name: Cache Playwright browsers
       uses: actions/cache@v4
       with:
-        path: ~/.cache/ms-playwright
+        path: |
+          ~/.cache/ms-playwright
+          ~/.cache/playwright
         key: playwright-browsers-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
         restore-keys: |
           playwright-browsers-${{ runner.os }}-
+          playwright-browsers-
+    
+    - name: Cache Playwright test results
+      uses: actions/cache@v4
+      with:
+        path: |
+          test-results
+          playwright-report
+        key: playwright-results-${{ runner.os }}-${{ github.sha }}
+        restore-keys: |
+          playwright-results-${{ runner.os }}-
       
     - name: Install Playwright browsers
       run: npx playwright install chromium --with-deps
       
     - name: Run Playwright tests
       run: npm run test:e2e
-      env:
-        NODE_ENV: test
-        VITE_CI: true
       
     - name: Upload Playwright Report
       uses: actions/upload-artifact@v4

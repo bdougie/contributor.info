@@ -80,10 +80,5 @@ export default defineConfig({
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120000, // Increase to 2 minutes for CI server startup
-    env: {
-      // Optimize for CI environment
-      NODE_ENV: 'test',
-      VITE_CI: 'true'
-    }
   },
 });

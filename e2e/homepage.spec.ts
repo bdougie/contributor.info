@@ -23,12 +23,41 @@ test.describe('Homepage Search Functionality', () => {
     // Wait for page to fully load before checking content
     await page.waitForLoadState('domcontentloaded');
     
-    // Add debug screenshot in CI
+    // Add comprehensive debugging in CI
     if (process.env.CI) {
-      await page.screenshot({ path: 'test-results/homepage-debug.png', fullPage: true });
-      console.log('Page title:', await page.title());
+      console.log('=== CI DEBUG START ===');
       console.log('Page URL:', page.url());
-      console.log('Page content preview:', await page.textContent('body'));
+      console.log('Page title:', await page.title());
+      
+      // Check for JavaScript errors
+      page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
+      page.on('pageerror', error => console.log('BROWSER ERROR:', error.message));
+      
+      // Get full page content
+      const bodyContent = await page.textContent('body');
+      console.log('Body content length:', bodyContent?.length || 0);
+      console.log('Body content preview (first 500 chars):', bodyContent?.substring(0, 500) || 'EMPTY');
+      
+      // Check if React app is mounted
+      const reactRoot = await page.locator('#root').textContent();
+      console.log('React root content length:', reactRoot?.length || 0);
+      
+      // Look for specific elements
+      const headings = await page.locator('h1, h2, h3, h4, h5, h6').count();
+      console.log('Number of headings found:', headings);
+      
+      if (headings > 0) {
+        const headingTexts = await page.locator('h1, h2, h3, h4, h5, h6').allTextContents();
+        console.log('Heading texts:', headingTexts);
+      }
+      
+      // Check for buttons
+      const buttons = await page.locator('button').count();
+      console.log('Number of buttons found:', buttons);
+      
+      // Take screenshot
+      await page.screenshot({ path: 'test-results/homepage-debug.png', fullPage: true });
+      console.log('=== CI DEBUG END ===');
     }
     
     // Verify homepage loads correctly with more flexible selector

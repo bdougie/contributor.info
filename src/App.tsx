@@ -56,18 +56,15 @@ function App() {
       // Only load after a short delay to not block initial render
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Skip progressive capture in CI/test environment for faster tests
-      if (import.meta.env.VITE_CI !== 'true') {
-        // Load progressive capture system (non-blocking)
-        try {
-          await Promise.all([
-            import("@/lib/progressive-capture/manual-trigger"),
-            import("@/lib/progressive-capture/smart-notifications"), 
-            import("@/lib/progressive-capture/background-processor")
-          ]);
-        } catch (error) {
-          console.warn('Progressive capture features failed to load:', error);
-        }
+      // Load progressive capture system (non-blocking)
+      try {
+        await Promise.all([
+          import("@/lib/progressive-capture/manual-trigger"),
+          import("@/lib/progressive-capture/smart-notifications"), 
+          import("@/lib/progressive-capture/background-processor")
+        ]);
+      } catch (error) {
+        console.warn('Progressive capture features failed to load:', error);
       }
       
       // Preload repo view (most common destination)
