@@ -297,13 +297,13 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
       } else {
         // Production: Use enhanced API request with retry logic and 503 handling
         try {
-          const { data: prs, rateLimitInfo } = await githubApiRequest(
+          const { data: prs, rateLimitInfo } = await githubApiRequest<any[]>(
             `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=${perPage}&page=${page}`,
             { headers }
           );
           
-          // Handle case where API request failed
-          if (!prs) {
+          // Handle case where API request failed or returned invalid data
+          if (!prs || !Array.isArray(prs)) {
             if (page === 1) {
               span.setAttributes({
                 'http.status_code': 404,
@@ -330,9 +330,11 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
           }
           
           // Check if all PRs are too old to be relevant
-          const oldestPRDate = new Date(prs[prs.length - 1].updated_at);
-          if (oldestPRDate < since) {
-            break; // No point in fetching older PRs
+          if (prs.length > 0) {
+            const oldestPRDate = new Date(prs[prs.length - 1].updated_at);
+            if (oldestPRDate < since) {
+              break; // No point in fetching older PRs
+            }
           }
         } catch (error) {
           // If this is the first page and we get an error, it's likely a 404 or auth issue
