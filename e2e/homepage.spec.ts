@@ -9,10 +9,39 @@ test.describe('Homepage Search Functionality', () => {
 
   // Mock heavy operations before each test for faster execution
   test.beforeEach(async ({ page }) => {
+    // Set up error handlers before page loads
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        console.log('BROWSER ERROR:', msg.text());
+      }
+    });
+    page.on('pageerror', error => {
+      console.log('BROWSER PAGE ERROR:', error.message);
+      console.log('BROWSER ERROR STACK:', error.stack);
+    });
+    
     // Mock analytics and progressive capture to speed up tests
     await page.addInitScript(() => {
       window.DISABLE_ANALYTICS = true;
       window.DISABLE_PROGRESSIVE_CAPTURE = true;
+      
+      // Mock GitHub API to prevent resource exhaustion
+      const originalFetch = window.fetch;
+      window.fetch = async (url, options) => {
+        if (typeof url === 'string' && (url.includes('api.github.com') || url.includes('github.com'))) {
+          // Return minimal successful response for GitHub API calls
+          return new Response(JSON.stringify({
+            message: 'Mocked in e2e tests',
+            total_count: 0,
+            items: []
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+        // Let other requests through normally
+        return originalFetch(url, options);
+      };
     });
   });
 
@@ -20,8 +49,11 @@ test.describe('Homepage Search Functionality', () => {
     // Navigate to homepage
     await page.goto('/');
     
-    // Wait for page to fully load before checking content
-    await page.waitForLoadState('domcontentloaded');
+    // Wait for all resources including JS modules to load
+    await page.waitForLoadState('networkidle');
+    
+    // Give React time to mount
+    await page.waitForTimeout(2000);
     
     // Add comprehensive debugging in CI
     if (process.env.CI) {
@@ -29,9 +61,11 @@ test.describe('Homepage Search Functionality', () => {
       console.log('Page URL:', page.url());
       console.log('Page title:', await page.title());
       
-      // Check for JavaScript errors
-      page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
-      page.on('pageerror', error => console.log('BROWSER ERROR:', error.message));
+      // Check for any unhandled script errors
+      const jsErrors = await page.evaluate(() => {
+        return window.jsErrors || [];
+      });
+      console.log('JavaScript errors:', jsErrors);
       
       // Get full page content
       const bodyContent = await page.textContent('body');
@@ -41,6 +75,21 @@ test.describe('Homepage Search Functionality', () => {
       // Check if React app is mounted
       const reactRoot = await page.locator('#root').textContent();
       console.log('React root content length:', reactRoot?.length || 0);
+      
+      // Check if main.tsx script loaded
+      const scripts = await page.evaluate(() => {
+        return Array.from(document.scripts).map(script => ({
+          src: script.src,
+          type: script.type
+        }));
+      });
+      console.log('Scripts loaded:', scripts);
+      
+      // Check if React is available
+      const reactAvailable = await page.evaluate(() => {
+        return typeof window.React !== 'undefined' || document.querySelector('[data-reactroot]') !== null;
+      });
+      console.log('React available:', reactAvailable);
       
       // Look for specific elements
       const headings = await page.locator('h1, h2, h3, h4, h5, h6').count();
