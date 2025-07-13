@@ -346,6 +346,81 @@ export class HybridMonitoringDashboard {
   }
 
   /**
+   * Get recent job errors for debugging
+   */
+  static async getJobErrors(limit: number = 20): Promise<{
+    errors: Array<{
+      id: string;
+      job_type: string;
+      processor_type: string;
+      repository_id: string;
+      error: string;
+      created_at: string;
+      metadata: any;
+    }>;
+    errorSummary: Record<string, number>;
+    topErrors: Array<{ error: string; count: number }>;
+  }> {
+    try {
+      const { data: failedJobs } = await supabase
+        .from('progressive_capture_jobs')
+        .select('*')
+        .eq('status', 'failed')
+        .not('error', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (!failedJobs || failedJobs.length === 0) {
+        return {
+          errors: [],
+          errorSummary: {},
+          topErrors: []
+        };
+      }
+
+      // Categorize errors
+      const errorSummary: Record<string, number> = {};
+      const errorCounts: Record<string, number> = {};
+
+      failedJobs.forEach(job => {
+        // Categorize by processor type
+        errorSummary[job.processor_type] = (errorSummary[job.processor_type] || 0) + 1;
+        
+        // Count specific errors
+        const errorKey = job.error?.substring(0, 100) || 'Unknown error';
+        errorCounts[errorKey] = (errorCounts[errorKey] || 0) + 1;
+      });
+
+      // Get top errors
+      const topErrors = Object.entries(errorCounts)
+        .map(([error, count]) => ({ error, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      return {
+        errors: failedJobs.map(job => ({
+          id: job.id,
+          job_type: job.job_type,
+          processor_type: job.processor_type,
+          repository_id: job.repository_id,
+          error: job.error,
+          created_at: job.created_at,
+          metadata: job.metadata
+        })),
+        errorSummary,
+        topErrors
+      };
+    } catch (error) {
+      console.error('[Monitoring] Error fetching job errors:', error);
+      return {
+        errors: [],
+        errorSummary: {},
+        topErrors: []
+      };
+    }
+  }
+
+  /**
    * Generate a formatted monitoring report
    */
   static async generateReport(): Promise<string> {
