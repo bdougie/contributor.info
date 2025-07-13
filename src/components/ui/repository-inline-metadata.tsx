@@ -19,8 +19,8 @@ export function RepositoryInlineMetadata({
   if (loading) {
     return (
       <div className="flex items-center gap-2">
-        <div className="w-6 h-4 bg-muted animate-pulse rounded"></div>
-        <div className="w-3 h-3 bg-muted animate-pulse rounded-full"></div>
+        <div className="w-6 h-5 bg-muted animate-pulse rounded flex items-center"></div>
+        <div className="w-2 h-2 bg-muted animate-pulse rounded-full"></div>
       </div>
     );
   }
@@ -66,7 +66,7 @@ export function RepositoryInlineMetadata({
       <div className={`flex items-center gap-2 ${className || ''}`}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div>
+            <div className="flex items-center">
               <RepositorySizeBadge size={metadata.size} />
             </div>
           </TooltipTrigger>
@@ -77,7 +77,7 @@ export function RepositoryInlineMetadata({
         
         <Tooltip>
           <TooltipTrigger asChild>
-            <div>
+            <div className="flex items-center justify-center h-5">
               <DataFreshnessIndicator 
                 freshness={metadata.dataFreshness}
                 lastUpdate={metadata.lastDataUpdate}

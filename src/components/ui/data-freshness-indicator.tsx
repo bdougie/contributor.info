@@ -45,11 +45,11 @@ export function DataFreshnessIndicator({
 
   return (
     <div 
-      className={cn("flex items-center gap-1.5", className)}
+      className={cn("flex items-center justify-center gap-1.5", className)}
       title={tooltipText}
     >
       <Circle 
-        className={cn("w-2 h-2 fill-current", config.color)} 
+        className={cn("w-2.5 h-2.5 fill-current", config.color)} 
       />
       {showLabel && (
         <span className={cn("text-xs font-medium", config.color)}>

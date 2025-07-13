@@ -31,7 +31,7 @@ export function RepositorySizeBadge({ size, className }: RepositorySizeBadgeProp
     return (
       <Badge 
         variant="secondary" 
-        className={cn("text-xs font-medium", className)}
+        className={cn("text-xs font-medium h-5 flex items-center px-2", className)}
         title="Repository size not yet classified"
       >
         ?
@@ -44,7 +44,7 @@ export function RepositorySizeBadge({ size, className }: RepositorySizeBadgeProp
   return (
     <Badge 
       className={cn(
-        "text-xs font-medium border-0",
+        "text-xs font-medium border-0 h-5 flex items-center px-2",
         config.color,
         className
       )}
