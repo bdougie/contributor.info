@@ -8,9 +8,9 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "start": "npx concurrently -k -s first -n \"VITE,NETLIFY,INNGEST\" -c \"green,blue,magenta\" \"vite --port 5174\" \"netlify dev\" \"npx inngest-cli@latest dev -u http://127.0.0.1:8888/.netlify/functions/inngest\"",
+    "start": "npx concurrently -k -s first -n \"VITE,NETLIFY,INNGEST\" -c \"green,blue,magenta\" \"vite --port 5174\" \"netlify dev\" \"npx inngest-cli@latest dev -u http://127.0.0.1:8888/.netlify/functions/inngest-local\"",
     "dev": "vite",
-    "dev:inngest": "npx inngest-cli@latest dev -u http://127.0.0.1:8888/.netlify/functions/inngest",
+    "dev:inngest": "npx inngest-cli@latest dev -u http://127.0.0.1:8888/.netlify/functions/inngest-local",
     "build": "tsc -b && vite build",
     "optimize-images": "node scripts/convert-images.js",
     "build:test": "npm test && tsc -b && vite build",
