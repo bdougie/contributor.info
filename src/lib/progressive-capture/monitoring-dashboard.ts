@@ -407,7 +407,12 @@ export class HybridMonitoringDashboard {
         errorSummary[job.processor_type] = (errorSummary[job.processor_type] || 0) + 1;
         
         // Count specific errors
-        const errorKey = job.error?.substring(0, 100) || 'Unknown error';
+        const errorMessage = typeof job.error === 'string' 
+          ? job.error 
+          : job.error 
+            ? JSON.stringify(job.error) 
+            : 'Unknown error';
+        const errorKey = errorMessage.substring(0, 100);
         errorCounts[errorKey] = (errorCounts[errorKey] || 0) + 1;
       });
 
