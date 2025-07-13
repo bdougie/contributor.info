@@ -453,3 +453,6 @@ export async function hasRecentPRData(
     return false;
   }
 }
+
+// Re-export the new smart strategy function
+export { fetchPRDataWithSmartStrategy } from './supabase-pr-data-v2';

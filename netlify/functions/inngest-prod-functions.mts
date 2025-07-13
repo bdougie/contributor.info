@@ -61,6 +61,56 @@ async function ensureContributorExists(githubUser: any): Promise<string | null> 
   return data.id;
 }
 
+// Import RepositorySizeClassifier for classification functions
+import { RepositorySizeClassifier } from "../../src/lib/repository-size-classifier";
+
+// Export function creator for single repository classification
+export function createClassifySingleRepository(inngest: any) {
+  return inngest.createFunction(
+    {
+      id: 'classify-single-repository',
+      name: 'Classify Single Repository',
+      retries: 3,
+    },
+    { event: 'classify/repository.single' },
+    async ({ event, step }: any) => {
+      const { repositoryId, owner, repo } = event.data;
+
+      // Initialize classifier
+      const githubToken = process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
+      if (!githubToken) {
+        throw new Error('GitHub token not configured');
+      }
+
+      const classifier = new RepositorySizeClassifier(githubToken);
+
+      // Step 1: Classify and update the repository
+      const classification = await step.run('classify-repository', async () => {
+        console.log(`Classifying repository: ${owner}/${repo}`);
+        
+        try {
+          // Use the classifier to classify and update the repository
+          const size = await classifier.classifyAndUpdateRepository(repositoryId, owner, repo);
+          
+          console.log(`Repository ${owner}/${repo} classified as: ${size}`);
+          return size;
+        } catch (error: any) {
+          console.error(`Failed to classify repository ${owner}/${repo}:`, error);
+          throw error;
+        }
+      });
+
+      return {
+        success: true,
+        repositoryId,
+        repository: `${owner}/${repo}`,
+        classification,
+        timestamp: new Date().toISOString()
+      };
+    }
+  );
+}
+
 // Export function creator that accepts the production Inngest client
 export function createCaptureRepositorySyncGraphQL(inngest: any) {
   return inngest.createFunction(

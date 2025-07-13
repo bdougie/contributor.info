@@ -30,29 +30,29 @@ Currently, large repositories like kubernetes/kubernetes are "protected" from re
 
 ## Implementation Plan
 
-### Phase 1: Database Schema Enhancement (Priority: HIGH)
+### Phase 1: Database Schema Enhancement (Priority: HIGH) ✅
 **Timeline**: 1-2 days
 
 #### Tasks
-- [ ] Create migration to add columns to `tracked_repositories`:
+- [x] Create migration to add columns to `tracked_repositories`:
   - `size` enum ('small', 'medium', 'large', 'xl') 
   - `priority` enum ('high', 'medium', 'low') default 'low'
   - `metrics` jsonb for storing repo statistics
   - `size_calculated_at` timestamp
-- [ ] Update Supabase types
-- [ ] Add RLS policies for new columns
-- [ ] Create indexes for efficient size-based queries
+- [x] Update Supabase types
+- [x] Add RLS policies for new columns
+- [x] Create indexes for efficient size-based queries
 
 #### Acceptance Criteria
 - Migration runs successfully
 - New columns accessible via Supabase client
 - No breaking changes to existing functionality
 
-### Phase 2: Repository Size Classification Service (Priority: HIGH)
+### Phase 2: Repository Size Classification Service (Priority: HIGH) ✅
 **Timeline**: 2-3 days
 
 #### Tasks
-- [ ] Create `RepositorySizeClassifier` service:
+- [x] Create `RepositorySizeClassifier` service:
   ```typescript
   interface RepoMetrics {
     stars: number;
@@ -62,26 +62,26 @@ Currently, large repositories like kubernetes/kubernetes are "protected" from re
     activeContributors: number;
   }
   ```
-- [ ] Implement size calculation logic:
+- [x] Implement size calculation logic:
   - Small: <1k stars, <100 PRs/month
   - Medium: 1k-10k stars, 100-500 PRs/month
   - Large: 10k-50k stars, 500-2000 PRs/month
   - XL: >50k stars, >2000 PRs/month
-- [ ] Add LLM-powered classification for edge cases
-- [ ] Create background job to classify unclassified repos
-- [ ] Add size classification on repository track
+- [x] Add LLM-powered classification for edge cases
+- [x] Create background job to classify unclassified repos
+- [x] Add size classification on repository track
 
 #### Acceptance Criteria
 - Service correctly classifies test repositories
 - Classification runs automatically on new repos
 - Metrics stored in database for future reference
 
-### Phase 3: Smart Data Fetching Logic (Priority: HIGH)
+### Phase 3: Smart Data Fetching Logic (Priority: HIGH) ✅
 **Timeline**: 3-4 days
 
 #### Tasks
-- [ ] Refactor `getSupabasePRData` to remove hardcoded protection
-- [ ] Implement size-based fetching strategy:
+- [x] Refactor `getSupabasePRData` to remove hardcoded protection
+- [x] Implement size-based fetching strategy:
   ```typescript
   interface FetchStrategy {
     small: { days: 30, immediate: true },
@@ -90,12 +90,12 @@ Currently, large repositories like kubernetes/kubernetes are "protected" from re
     xl: { days: 3, immediate: true, chunked: true, rateLimit: true }
   }
   ```
-- [ ] Add logic for "no cached data" scenario:
+- [x] Add logic for "no cached data" scenario:
   - Fetch limited live data based on size
   - Always trigger background capture
   - Return partial data immediately
-- [ ] Implement progressive data merging
-- [ ] Add telemetry for fetch performance
+- [x] Implement progressive data merging
+- [x] Add telemetry for fetch performance
 
 #### Acceptance Criteria
 - All repositories return some data immediately
@@ -103,18 +103,18 @@ Currently, large repositories like kubernetes/kubernetes are "protected" from re
 - Background captures triggered appropriately
 - Performance metrics show improvement
 
-### Phase 4: Background Capture Optimization (Priority: MEDIUM)
+### Phase 4: Background Capture Optimization (Priority: MEDIUM) ✅
 **Timeline**: 2-3 days
 
 #### Tasks
-- [ ] Fix GitHub Actions workflows (404 errors)
-- [ ] Implement capture queue prioritization:
+- [x] Fix GitHub Actions workflows (404 errors)
+- [x] Implement capture queue prioritization:
   - High priority + Small: Immediate full capture
   - High priority + Large: Chunked capture
   - Low priority: Batch processing
-- [ ] Add job status reporting from workflows
-- [ ] Create monitoring dashboard for capture health
-- [ ] Implement auto-retry for failed captures
+- [x] Add job status reporting from workflows
+- [x] Create monitoring dashboard for capture health
+- [x] Implement auto-retry for failed captures
 
 #### Acceptance Criteria
 - GitHub Actions success rate >80%
@@ -122,25 +122,43 @@ Currently, large repositories like kubernetes/kubernetes are "protected" from re
 - Failed jobs automatically retried
 - Clear visibility into capture status
 
-### Phase 5: User Experience Enhancements (Priority: MEDIUM)
+#### Implementation Summary
+- Created GitHub Actions workflows in the same repository instead of external `bdougie/jobs`
+- Implemented smart queue prioritization based on repository size and priority
+- Added comprehensive job status reporting with real-time updates
+- Created monitoring dashboard at `/dev/capture-monitor`
+- Implemented auto-retry service with exponential backoff and permanent failure detection
+
+### Phase 5: User Experience Enhancements (Priority: MEDIUM) ✅
 **Timeline**: 2 days
 
 #### Tasks
-- [ ] Add repository size badges (S/M/L/XL)
-- [ ] Implement data freshness indicators:
+- [x] Add repository size badges (S/M/L/XL)
+- [x] Implement data freshness indicators:
   - Green: <1 day old
   - Yellow: 1-7 days old  
   - Red: >7 days old
-- [ ] Add loading states during background fetch
-- [ ] Create "Load more history" button for partial data
-- [ ] Show capture progress for repos being processed
-- [ ] Add manual refresh with size-appropriate limits
+- [x] Add loading states during background fetch
+- [x] add console error on failed retries
+- [x] Create "Load more history" button for partial data
+- [x] Show capture progress for repos being processed
+- [x] Add manual refresh with size-appropriate limits
 
 #### Acceptance Criteria
 - Users can see repository size at a glance
 - Data freshness is clearly communicated
 - Loading states don't block UI interaction
 - Manual refresh respects size limits
+
+#### Implementation Summary
+- Added `RepositorySizeBadge` component with S/M/L/XL indicators and tooltips explaining size criteria
+- Implemented `DataFreshnessIndicator` with green/yellow/red status dots and relative time tooltips
+- Enhanced `DataProcessingIndicator` with detailed progress bars, error states, and processor-specific styling
+- Added comprehensive console error logging for retry failures with structured data including repository info, error details, and retry counts
+- Created intelligent "Load more history" button that appears for stale data on large repos, with size-appropriate time range expansion
+- Enhanced progress tracking with step-by-step updates, percentage completion, and error handling
+- Added manual refresh button with size-appropriate limits (XL: 3 days, Large: 7 days, Medium: 14 days, Small: 30 days)
+- All components integrate seamlessly with existing `useRepositoryMetadata` hook and respect repository size classifications
 
 ### Phase 6: Example Repository Updates (Priority: LOW)
 **Timeline**: 1 day

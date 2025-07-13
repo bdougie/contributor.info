@@ -3,6 +3,8 @@ import { inngest } from '../inngest/client';
 import { GitHubActionsQueueManager } from './github-actions-queue-manager';
 import { DataCaptureQueueManager } from './queue-manager';
 import { hybridRolloutManager } from './rollout-manager';
+import { queuePrioritizationService } from './queue-prioritization';
+import { autoRetryService } from './auto-retry-service';
 
 // Import rollout console for global availability
 import './rollout-console';
@@ -56,8 +58,26 @@ export class HybridQueueManager {
     let processor: 'inngest' | 'github_actions';
     let rolloutApplied = false;
 
-    if (isEligible) {
-      // Use hybrid routing logic
+    // Get repository metadata for prioritization
+    const repoMetadata = await queuePrioritizationService.getRepositoryMetadata(data.repositoryId);
+    
+    if (isEligible && repoMetadata) {
+      // Use prioritization service to determine routing
+      const priority = queuePrioritizationService.calculatePriorityScore(
+        repoMetadata,
+        data.triggerSource || 'automatic'
+      );
+      
+      processor = priority.processor;
+      rolloutApplied = true;
+      
+      // Override data with priority-based values
+      data.timeRange = data.timeRange || priority.timeRange;
+      data.maxItems = data.maxItems || priority.maxItems;
+      
+      console.log(`[HybridQueue] Repository ${data.repositoryName} eligible for hybrid routing → ${processor} (score: ${priority.score})`);
+    } else if (isEligible) {
+      // Use original hybrid routing logic if no metadata
       processor = this.determineProcessor(jobType, data);
       rolloutApplied = true;
       console.log(`[HybridQueue] Repository ${data.repositoryName} eligible for hybrid routing → ${processor}`);
@@ -205,7 +225,7 @@ export class HybridQueueManager {
 
     // If we're in the browser, use the API endpoint
     if (typeof window !== 'undefined') {
-      const response = await fetch('/api/queue-event', {
+      const response = await fetch('/.netlify/functions/queue-event', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -362,6 +382,12 @@ export class HybridQueueManager {
     // Inngest jobs are tracked through their own system
     // We can query completed Inngest jobs and update our records
     await this.syncInngestJobStatuses();
+    
+    // Rebalance queue if needed
+    await queuePrioritizationService.rebalanceQueue();
+    
+    // Check for failed jobs and retry them
+    await autoRetryService.retryFailedJobs();
     
     // Check rollout health and trigger auto-rollback if needed
     await this.checkRolloutHealth();

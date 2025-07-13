@@ -11,7 +11,7 @@ export interface TrendData {
   unit?: string;
   insight?: string;
   // Status information for proper error handling
-  status?: 'success' | 'large_repository_protected' | 'no_data' | 'error';
+  status?: 'success' | 'large_repository_protected' | 'no_data' | 'error' | 'partial_data';
   message?: string;
   repositoryName?: string;
 }
@@ -254,7 +254,7 @@ export async function calculateTrendMetrics(
  */
 function getEmptyTrends(
   periodLabel: string, 
-  status: 'success' | 'large_repository_protected' | 'no_data' | 'error' = 'no_data',
+  status: 'success' | 'large_repository_protected' | 'no_data' | 'error' | 'partial_data' = 'no_data',
   message?: string,
   repositoryName?: string
 ): TrendData[] {
