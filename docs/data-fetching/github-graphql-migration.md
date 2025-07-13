@@ -2,7 +2,9 @@
 
 ## Overview
 
-Successfully migrated from GitHub's REST API to GraphQL API for progressive data capture, achieving 2-5x efficiency improvements and better rate limit utilization.
+Partially migrated from GitHub's REST API to GraphQL API using a hybrid approach for progressive data capture, achieving 2-5x efficiency improvements where implemented while maintaining simplicity for other operations.
+
+**Migration Status**: Intentional Partial Implementation - See [API Strategy](./api-strategy.md) for details.
 
 ## Implementation Results
 
@@ -159,17 +161,25 @@ GraphQL foundation enables:
 
 ### ✅ Completed:
 - Core GraphQL client implementation
-- Primary Inngest functions migrated
-- GitHub Actions scripts updated
+- Primary Inngest functions migrated (PR details, repository sync)
+- GitHub Actions scripts updated (PR details, historical sync)
 - Rate limit optimization
 - Error handling and fallbacks
 - Performance monitoring
+- Hybrid client with automatic GraphQL/REST selection
+
+### 📋 Intentionally Kept on REST:
+- PR reviews capture (both Inngest and scripts)
+- PR comments capture (both Inngest and scripts)
+- Rationale: Simpler implementation, acceptable performance
+- See [API Strategy](./api-strategy.md) for detailed reasoning
 
 ### 🎯 Production Impact:
-- **Immediate**: 2-5x rate limit efficiency
+- **Immediate**: 2-5x rate limit efficiency for migrated operations
 - **Scalability**: Can handle larger repositories without rate limit issues
-- **Cost**: Additional 20-40% savings beyond hybrid architecture
-- **Reliability**: Reduced failure rates from atomic queries
+- **Cost**: Additional 20-40% savings on migrated operations
+- **Reliability**: Reduced failure rates from atomic queries where implemented
+- **Flexibility**: Hybrid approach allows optimal API selection per use case
 
 ## References
 

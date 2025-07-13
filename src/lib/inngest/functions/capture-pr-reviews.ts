@@ -3,6 +3,17 @@ import { supabase } from '../../supabase';
 import { getOctokit } from '../github-client';
 import type { DatabaseReview } from '../types';
 
+/**
+ * Captures PR reviews using GitHub REST API
+ * 
+ * Note: This function intentionally uses REST API instead of GraphQL because:
+ * 1. Reviews have simpler pagination patterns with REST
+ * 2. Performance is acceptable with current rate limits
+ * 3. REST provides more predictable response structure for reviews
+ * 
+ * For GraphQL implementation details, see the hybrid client at:
+ * scripts/progressive-capture/lib/hybrid-github-client.js
+ */
 export const capturePrReviews = inngest.createFunction(
   {
     id: "capture-pr-reviews",
