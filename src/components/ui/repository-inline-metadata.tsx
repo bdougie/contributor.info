@@ -32,13 +32,13 @@ export function RepositoryInlineMetadata({
   const getSizeTooltip = () => {
     switch (metadata.size) {
       case 'xl':
-        return 'Extra Large Repository\n\n• >50k stars, >2k PRs/month\n• Uses aggressive rate limiting\n• Chunked processing (3-day windows)\n• Background capture prioritized';
+        return 'Extra Large Repository\n\n• High activity level\n• Uses aggressive rate limiting\n• Chunked processing (3-day windows)\n• Background capture prioritized';
       case 'large':
-        return 'Large Repository\n\n• 10k-50k stars, 500-2k PRs/month\n• Chunked processing (7-day windows)\n• Balanced rate limiting\n• Efficient background processing';
+        return 'Large Repository\n\n• Significant activity level\n• Chunked processing (7-day windows)\n• Balanced rate limiting\n• Background processing optimized';
       case 'medium':
-        return 'Medium Repository\n\n• 1k-10k stars, 100-500 PRs/month\n• Standard processing approach\n• 14-day data windows\n• Good performance balance';
+        return 'Medium Repository\n\n• Moderate activity level\n• Standard processing approach\n• 14-day data windows\n• Balanced resource usage';
       case 'small':
-        return 'Small Repository\n\n• <1k stars, <100 PRs/month\n• Fast, comprehensive processing\n• 30-day data windows\n• Real-time updates available';
+        return 'Small Repository\n\n• Lower activity level\n• Comprehensive processing\n• 30-day data windows\n• Real-time updates available';
       default:
         return 'Repository Size Unknown\n\nClassification pending...\nWill be determined on next data fetch.';
     }
