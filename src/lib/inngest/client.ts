@@ -136,4 +136,14 @@ export type DataCaptureEvents = {
       totalCount: number;
     };
   };
+  "classify/repository.size": {
+    data: Record<string, never>; // No data needed for scheduled job
+  };
+  "classify/repository.single": {
+    data: {
+      repositoryId: string;
+      owner: string;
+      repo: string;
+    };
+  };
 };

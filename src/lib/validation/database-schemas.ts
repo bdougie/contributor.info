@@ -487,6 +487,32 @@ export const contributorOrganizationSelectSchema = contributorOrganizationCreate
 });
 
 /**
+ * Repository size enum schema
+ */
+export const repositorySizeSchema = z.enum(['small', 'medium', 'large', 'xl'], {
+  errorMap: () => ({ message: 'Repository size must be one of: small, medium, large, xl' }),
+});
+
+/**
+ * Repository priority enum schema
+ */
+export const repositoryPrioritySchema = z.enum(['high', 'medium', 'low'], {
+  errorMap: () => ({ message: 'Repository priority must be one of: high, medium, low' }),
+});
+
+/**
+ * Repository metrics schema for size classification
+ */
+export const repositoryMetricsSchema = z.object({
+  stars: nonNegativeIntSchema,
+  forks: nonNegativeIntSchema,
+  monthlyPRs: nonNegativeIntSchema,
+  monthlyCommits: nonNegativeIntSchema,
+  activeContributors: nonNegativeIntSchema,
+  lastCalculated: z.coerce.date(),
+}).nullable();
+
+/**
  * Tracked repositories table schema
  */
 export const trackedRepositoryCreateSchema = z.object({
@@ -497,6 +523,10 @@ export const trackedRepositoryCreateSchema = z.object({
   sync_frequency_hours: z.number().int().min(1, 'Sync frequency must be at least 1 hour').default(24),
   include_forks: z.boolean().default(false),
   include_bots: z.boolean().default(false),
+  size: repositorySizeSchema.nullable(),
+  priority: repositoryPrioritySchema.default('low'),
+  metrics: repositoryMetricsSchema,
+  size_calculated_at: z.coerce.date().nullable(),
 });
 
 export const trackedRepositoryUpdateSchema = trackedRepositoryCreateSchema.partial();
@@ -568,6 +598,10 @@ export type ContributorOrganizationSelect = z.infer<typeof contributorOrganizati
 export type TrackedRepositoryCreate = z.infer<typeof trackedRepositoryCreateSchema>;
 export type TrackedRepositoryUpdate = z.infer<typeof trackedRepositoryUpdateSchema>;
 export type TrackedRepositorySelect = z.infer<typeof trackedRepositorySelectSchema>;
+
+export type RepositorySize = z.infer<typeof repositorySizeSchema>;
+export type RepositoryPriority = z.infer<typeof repositoryPrioritySchema>;
+export type RepositoryMetrics = z.infer<typeof repositoryMetricsSchema>;
 
 // Bulk operation types
 export type BulkContributorInsert = z.infer<typeof bulkContributorInsertSchema>;
