@@ -1,0 +1,70 @@
+name: Historical Comments Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository_id:
+        description: 'Repository UUID from database'
+        required: true
+        type: string
+      repository_name:
+        description: 'Repository name (owner/repo)'
+        required: true
+        type: string
+      time_range:
+        description: 'Number of days to sync'
+        default: '30'
+        type: string
+      max_items:
+        description: 'Maximum items to process'
+        default: '1000'
+        type: string
+      job_id:
+        description: 'Job ID for tracking'
+        required: false
+        type: string
+
+jobs:
+  sync-comments:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run comments sync
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SUPABASE_TOKEN: ${{ secrets.SUPABASE_TOKEN }}
+          JOB_ID: ${{ inputs.job_id }}
+        run: |
+          node scripts/sync-historical-comments.js \
+            --repository-id="${{ inputs.repository_id }}" \
+            --repository-name="${{ inputs.repository_name }}" \
+            --time-range=${{ inputs.time_range }} \
+            --max-items=${{ inputs.max_items }} \
+            --job-id="${{ inputs.job_id }}"
+      
+      - name: Report job status
+        if: always() && inputs.job_id
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SUPABASE_TOKEN: ${{ secrets.SUPABASE_TOKEN }}
+        run: |
+          node scripts/report-job-status.js \
+            --job-id="${{ inputs.job_id }}" \
+            --status="${{ job.status }}" \
+            --conclusion="${{ job.conclusion }}"
