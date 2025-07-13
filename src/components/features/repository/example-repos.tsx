@@ -1,34 +1,32 @@
 import { Button } from "@/components/ui/button";
+import { getAllExampleRepos } from "@/lib/example-repositories";
 
 interface ExampleReposProps {
   onSelect: (repo: string) => void;
 }
 
 export function ExampleRepos({ onSelect }: ExampleReposProps) {
-  const examples = [
-    "continuedev/continue",
-    "kubernetes/kubernetes",
-    "facebook/react",
-    "etcd-io/etcd",
-    "vitejs/vite",
-  ];
+  // Get all example repos from the centralized library
+  const examples = getAllExampleRepos();
 
   return (
-    <div className="flex flex-wrap gap-2 mt-4 w-full">
-      <div className="w-full text-sm text-muted-foreground mb-1">
+    <div className="mt-4 w-full">
+      <div className="text-sm text-muted-foreground mb-2">
         Popular examples:
       </div>
-      {examples.map((example) => (
-        <Button
-          key={example}
-          variant="outline"
-          size="sm"
-          onClick={() => onSelect(example)}
-          className="text-xs sm:text-sm"
-        >
-          {example}
-        </Button>
-      ))}
+      <div className="flex flex-wrap gap-2">
+        {examples.map((repo) => (
+          <Button
+            key={repo}
+            variant="outline"
+            size="sm"
+            onClick={() => onSelect(repo)}
+            className="text-xs sm:text-sm"
+          >
+            {repo}
+          </Button>
+        ))}
+      </div>
     </div>
   );
 }
