@@ -1,22 +1,28 @@
-import type { Context } from "@netlify/functions";
+import type { Handler } from "@netlify/functions";
 import { inngest } from "../../src/lib/inngest/client";
 
 /**
  * API endpoint to queue Inngest events from the browser
  * This is necessary because browser code cannot directly send to Inngest
  */
-const queueEventHandler = async (req: Request, _context: Context) => {
+export const handler: Handler = async (event) => {
   // Only allow POST requests
-  if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      body: 'Method not allowed'
+    };
   }
 
   try {
-    const body = await req.json();
+    const body = JSON.parse(event.body || '{}');
     const { eventName, data } = body;
 
     if (!eventName || !data) {
-      return new Response('Missing eventName or data', { status: 400 });
+      return {
+        statusCode: 400,
+        body: 'Missing eventName or data'
+      };
     }
 
     // Send event to Inngest
@@ -25,25 +31,28 @@ const queueEventHandler = async (req: Request, _context: Context) => {
       data
     });
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      id: result.ids?.[0] || 'unknown' 
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        success: true, 
+        id: result.ids?.[0] || 'unknown' 
+      })
+    };
 
   } catch (error) {
     console.error('Failed to queue event:', error);
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      })
+    };
   }
 };
-
-export default queueEventHandler;
-export const handler = queueEventHandler;
