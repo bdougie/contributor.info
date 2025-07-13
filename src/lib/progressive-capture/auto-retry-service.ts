@@ -44,6 +44,28 @@ export class AutoRetryService {
         .or(`metadata->retry_count.is.null,metadata->retry_count.lt.${this.defaultConfig.maxRetries}`)
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()); // Last 24 hours
 
+      // Also check for jobs that have exceeded max retries and log them
+      const { data: exhaustedJobs } = await supabase
+        .from('progressive_capture_jobs')
+        .select('*')
+        .eq('status', 'failed')
+        .gte('metadata->retry_count', this.defaultConfig.maxRetries)
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+      if (exhaustedJobs && exhaustedJobs.length > 0) {
+        console.error(`[AutoRetry] ❌ ${exhaustedJobs.length} jobs have exhausted all retry attempts:`, 
+          exhaustedJobs.map(job => ({
+            jobId: job.id,
+            jobType: job.job_type,
+            repositoryName: job.metadata?.repository_name,
+            error: job.error,
+            retryCount: job.metadata?.retry_count,
+            processorType: job.processor_type,
+            createdAt: job.created_at
+          }))
+        );
+      }
+
       if (!failedJobs || failedJobs.length === 0) {
         console.log('[AutoRetry] No failed jobs to retry');
         return;
@@ -55,7 +77,11 @@ export class AutoRetryService {
         await this.processFailedJob(job);
       }
     } catch (error) {
-      console.error('[AutoRetry] Error checking failed jobs:', error);
+      console.error('[AutoRetry] ❌ Critical error checking failed jobs:', {
+        error,
+        timestamp: new Date().toISOString(),
+        service: 'AutoRetryService'
+      });
     }
   }
 
@@ -80,7 +106,14 @@ export class AutoRetryService {
 
       // Check if job has permanent failures that shouldn't be retried
       if (this.isPermanentFailure(job.error)) {
-        console.log(`[AutoRetry] Job ${job.id} has permanent failure, skipping retry`);
+        console.error(`[AutoRetry] ❌ Job ${job.id} has permanent failure, marking as permanently failed:`, {
+          jobId: job.id,
+          jobType: job.job_type,
+          repositoryId: job.repository_id,
+          error: job.error,
+          retryCount,
+          repositoryName: job.metadata?.repository_name
+        });
         await this.markJobAsPermanentlyFailed(job.id);
         return;
       }
@@ -124,7 +157,16 @@ export class AutoRetryService {
       });
 
     } catch (error) {
-      console.error(`[AutoRetry] Error processing failed job ${job.id}:`, error);
+      console.error(`[AutoRetry] ❌ Error processing failed job ${job.id}:`, {
+        jobId: job.id,
+        jobType: job.job_type,
+        repositoryId: job.repository_id,
+        repositoryName: job.metadata?.repository_name,
+        currentError: error,
+        originalError: job.error,
+        retryCount: job.metadata?.retry_count || 0,
+        processorType: job.processor_type
+      });
     }
   }
 

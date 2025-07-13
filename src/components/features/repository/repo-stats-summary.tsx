@@ -9,6 +9,14 @@ import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
 import { useRepoStats } from "@/hooks/use-repo-stats";
 import { useTimeFormatter } from "@/hooks/use-time-formatter";
 import { LotteryFactor } from "@/lib/types";
+import { RepositoryInlineMetadata } from "@/components/ui/repository-inline-metadata";
+import { Button } from "@/components/ui/button";
+import { Clock, ChevronDown, RefreshCw } from "lucide-react";
+import { useRepositoryMetadata } from "@/hooks/use-repository-metadata";
+import { useTimeRangeStore } from "@/lib/time-range-store";
+import { useState, useMemo, useEffect } from "react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 // Define type for the extended lottery factor with additional properties
 interface ExtendedLotteryFactorType extends LotteryFactor {
@@ -16,11 +24,24 @@ interface ExtendedLotteryFactorType extends LotteryFactor {
   rating: string;
 }
 
+// Type guard for ExtendedLotteryFactorType
+const isExtendedLotteryFactor = (factor: any): factor is ExtendedLotteryFactorType => {
+  return factor && 
+         typeof factor === 'object' && 
+         typeof factor.score === 'number' && 
+         typeof factor.rating === 'string';
+};
+
+interface RepoStatsSummaryProps {
+  owner?: string;
+  repo?: string;
+}
+
 /**
  * Component that displays repository statistics summary
  * Demonstrates using useRepoStats hook instead of directly accessing context
  */
-export function RepoStatsSummary() {
+export function RepoStatsSummary({ owner, repo }: RepoStatsSummaryProps) {
   // Use our custom hooks
   const {
     stats,
@@ -31,6 +52,9 @@ export function RepoStatsSummary() {
   } = useRepoStats();
 
   const { formatRelativeTime } = useTimeFormatter();
+  const { metadata } = useRepositoryMetadata(owner, repo);
+  const { timeRange, setTimeRange } = useTimeRangeStore();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Get filtered data based on bot inclusion setting
   const includeBots = true; // This could be a prop or state
@@ -71,19 +95,145 @@ export function RepoStatsSummary() {
   const mergedPRs = filteredPRs.filter((pr) => pr.merged_at).length;
   const mergeRate = totalPRs > 0 ? (mergedPRs / totalPRs) * 100 : 0;
 
-  // Get the most recent PR
-  const mostRecentPR = filteredPRs.sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )[0];
+  // Determine if we should show "Load more history" button
+  const shouldShowLoadMore = () => {
+    // Show if data is stale/old and we have a smaller timeRange for larger repos
+    const isStaleData = metadata?.dataFreshness === 'stale' || metadata?.dataFreshness === 'old';
+    const isLargeRepo = metadata?.size === 'large' || metadata?.size === 'xl';
+    const hasLimitedTimeRange = parseInt(timeRange) < 90; // Less than 3 months
+    
+    return isStaleData && isLargeRepo && hasLimitedTimeRange;
+  };
+
+  // Get next appropriate time range based on repository size
+  const getNextTimeRange = () => {
+    const currentDays = parseInt(timeRange);
+    const repoSize = metadata?.size;
+    
+    if (repoSize === 'xl') {
+      // XL repos: 3 -> 7 -> 14 days max
+      if (currentDays <= 3) return '7';
+      if (currentDays <= 7) return '14';
+      return timeRange; // Don't go beyond 14 for XL
+    } else if (repoSize === 'large') {
+      // Large repos: 7 -> 14 -> 30 days max
+      if (currentDays <= 7) return '14';
+      if (currentDays <= 14) return '30';
+      return timeRange; // Don't go beyond 30 for large
+    }
+    
+    // Default progression for other sizes
+    if (currentDays <= 7) return '14';
+    if (currentDays <= 14) return '30';
+    if (currentDays <= 30) return '90';
+    return timeRange;
+  };
+
+  const handleLoadMoreHistory = () => {
+    const nextRange = getNextTimeRange();
+    if (nextRange !== timeRange) {
+      setTimeRange(nextRange);
+    }
+  };
+
+  // Get size-appropriate refresh time range
+  const getSizeAppropriateRefreshRange = () => {
+    const repoSize = metadata?.size;
+    
+    if (repoSize === 'xl') {
+      return '3'; // XL repos: only 3 days for manual refresh
+    } else if (repoSize === 'large') {
+      return '7'; // Large repos: 7 days for manual refresh
+    } else if (repoSize === 'medium') {
+      return '14'; // Medium repos: 14 days for manual refresh
+    }
+    
+    return '30'; // Small repos or unknown: 30 days
+  };
+
+  const handleManualRefresh = async () => {
+    if (!owner || !repo || isRefreshing) return;
+    
+    setIsRefreshing(true);
+    
+    try {
+      // Get the appropriate time range for this repository size
+      const refreshTimeRange = getSizeAppropriateRefreshRange();
+      
+      // Emit a custom event to trigger data refresh
+      const refreshEvent = new CustomEvent('manual-repository-refresh', {
+        detail: {
+          repository: `${owner}/${repo}`,
+          timeRange: refreshTimeRange,
+          repositorySize: metadata?.size,
+          triggerSource: 'manual'
+        }
+      });
+      
+      window.dispatchEvent(refreshEvent);
+      
+      // Show a toast with size-appropriate message
+      const sizeInfo = metadata?.size ? ` (${metadata.size.toUpperCase()} repo, ${refreshTimeRange} days)` : '';
+      toast.success(`Refreshing data${sizeInfo}...`);
+      
+    } catch (error) {
+      console.error('Manual refresh failed:', error);
+      toast.error('Failed to refresh data');
+      setIsRefreshing(false);
+    }
+  };
+  
+  // Handle cleanup of refresh timeout
+  useEffect(() => {
+    let refreshTimeout: NodeJS.Timeout;
+    
+    if (isRefreshing) {
+      refreshTimeout = setTimeout(() => {
+        setIsRefreshing(false);
+      }, 2000);
+    }
+    
+    return () => {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+    };
+  }, [isRefreshing]);
+
+  // Get the most recent PR - memoized for performance
+  const mostRecentPR = useMemo(() => {
+    return filteredPRs.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0];
+  }, [filteredPRs]);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Repository Statistics</CardTitle>
-        <CardDescription>
-          Summary of repository activity and health metrics
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <span>Repository Statistics</span>
+              {owner && repo && (
+                <RepositoryInlineMetadata owner={owner} repo={repo} />
+              )}
+            </CardTitle>
+            <CardDescription>
+              Summary of repository activity and health metrics
+            </CardDescription>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="h-8 w-8 p-0"
+            title={`Refresh data (${getSizeAppropriateRefreshRange()} days for ${metadata?.size || 'unknown'} size repo)`}
+          >
+            <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="grid gap-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -116,13 +266,13 @@ export function RepoStatsSummary() {
               Lottery Factor
             </h3>
             <div className="text-2xl font-bold">
-              {lotteryFactor
-                ? (lotteryFactor as ExtendedLotteryFactorType).score.toFixed(1)
+              {isExtendedLotteryFactor(lotteryFactor)
+                ? lotteryFactor.score.toFixed(1)
                 : "N/A"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {lotteryFactor
-                ? (lotteryFactor as ExtendedLotteryFactorType).rating
+              {isExtendedLotteryFactor(lotteryFactor)
+                ? lotteryFactor.rating
                 : "Not calculated"}
             </p>
           </div>
@@ -138,6 +288,30 @@ export function RepoStatsSummary() {
               {directCommitsData.yoloCoderStats.length !== 1 ? "s have" : " has"} pushed
               commits directly to the main branch, bypassing code review.
             </p>
+          </div>
+        )}
+
+        {shouldShowLoadMore() && (
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <h3 className="text-sm font-medium mb-1">Limited History Available</h3>
+                <p className="text-xs text-muted-foreground">
+                  Showing {timeRange} days of data. Load more history to see additional activity.
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleLoadMoreHistory}
+                className="flex items-center gap-2"
+                disabled={getNextTimeRange() === timeRange}
+              >
+                <Clock className="h-3 w-3" />
+                Load More
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
         )}
 
