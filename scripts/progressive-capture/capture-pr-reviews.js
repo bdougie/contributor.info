@@ -57,7 +57,11 @@ class PRReviewsCaptureScript extends BaseCaptureScript {
     this.log(`Processing reviews for PR #${pr.number}...`);
     
     try {
-      // Fetch PR reviews
+      // Fetch PR reviews using REST API
+      // Note: This script intentionally uses REST API for reviews.
+      // While GraphQL is available via hybridClient.getPRReviews(),
+      // REST provides simpler pagination for batch processing.
+      // See docs/data-fetching/api-strategy.md for details.
       const { data: reviews } = await this.octokit.rest.pulls.listReviews({
         owner,
         repo,

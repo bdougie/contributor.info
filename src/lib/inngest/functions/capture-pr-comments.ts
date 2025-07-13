@@ -3,6 +3,18 @@ import { supabase } from '../../supabase';
 import { getOctokit } from '../github-client';
 import type { DatabaseComment } from '../types';
 
+/**
+ * Captures PR comments (both issue and review comments) using GitHub REST API
+ * 
+ * Note: This function intentionally uses REST API instead of GraphQL because:
+ * 1. Two REST calls (issue + review comments) are still efficient
+ * 2. REST provides cleaner separation between comment types
+ * 3. Comment threading is simpler to handle with REST responses
+ * 4. Current performance meets our requirements
+ * 
+ * For GraphQL implementation details, see the hybrid client at:
+ * scripts/progressive-capture/lib/hybrid-github-client.js
+ */
 export const capturePrComments = inngest.createFunction(
   {
     id: "capture-pr-comments",
