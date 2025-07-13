@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { RepositorySize } from '@/lib/validation/database-schemas';
 
@@ -37,7 +37,7 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
     return 'old'; // > 7 days
   };
 
-  const fetchMetadata = async () => {
+  const fetchMetadata = useCallback(async () => {
     if (!owner || !repo) {
       setMetadata(null);
       return;
@@ -104,11 +104,11 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
     } finally {
       setLoading(false);
     }
-  };
+  }, [owner, repo]);
 
   useEffect(() => {
     fetchMetadata();
-  }, [owner, repo]);
+  }, [fetchMetadata]);
 
   return {
     metadata,

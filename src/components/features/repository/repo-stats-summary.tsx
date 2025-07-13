@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, ChevronDown, RefreshCw } from "lucide-react";
 import { useRepositoryMetadata } from "@/hooks/use-repository-metadata";
 import { useTimeRangeStore } from "@/lib/time-range-store";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +23,14 @@ interface ExtendedLotteryFactorType extends LotteryFactor {
   score: number;
   rating: string;
 }
+
+// Type guard for ExtendedLotteryFactorType
+const isExtendedLotteryFactor = (factor: any): factor is ExtendedLotteryFactorType => {
+  return factor && 
+         typeof factor === 'object' && 
+         typeof factor.score === 'number' && 
+         typeof factor.rating === 'string';
+};
 
 interface RepoStatsSummaryProps {
   owner?: string;
@@ -168,23 +176,37 @@ export function RepoStatsSummary({ owner, repo }: RepoStatsSummaryProps) {
       const sizeInfo = metadata?.size ? ` (${metadata.size.toUpperCase()} repo, ${refreshTimeRange} days)` : '';
       toast.success(`Refreshing data${sizeInfo}...`);
       
-      // Simulate refresh delay
-      setTimeout(() => {
-        setIsRefreshing(false);
-      }, 2000);
-      
     } catch (error) {
       console.error('Manual refresh failed:', error);
       toast.error('Failed to refresh data');
       setIsRefreshing(false);
     }
   };
+  
+  // Handle cleanup of refresh timeout
+  useEffect(() => {
+    let refreshTimeout: NodeJS.Timeout;
+    
+    if (isRefreshing) {
+      refreshTimeout = setTimeout(() => {
+        setIsRefreshing(false);
+      }, 2000);
+    }
+    
+    return () => {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+    };
+  }, [isRefreshing]);
 
-  // Get the most recent PR
-  const mostRecentPR = filteredPRs.sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )[0];
+  // Get the most recent PR - memoized for performance
+  const mostRecentPR = useMemo(() => {
+    return filteredPRs.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0];
+  }, [filteredPRs]);
 
   return (
     <Card>
@@ -244,13 +266,13 @@ export function RepoStatsSummary({ owner, repo }: RepoStatsSummaryProps) {
               Lottery Factor
             </h3>
             <div className="text-2xl font-bold">
-              {lotteryFactor
-                ? (lotteryFactor as ExtendedLotteryFactorType).score.toFixed(1)
+              {isExtendedLotteryFactor(lotteryFactor)
+                ? lotteryFactor.score.toFixed(1)
                 : "N/A"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {lotteryFactor
-                ? (lotteryFactor as ExtendedLotteryFactorType).rating
+              {isExtendedLotteryFactor(lotteryFactor)
+                ? lotteryFactor.rating
                 : "Not calculated"}
             </p>
           </div>

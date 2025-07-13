@@ -22,6 +22,8 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   useEffect(() => {
+    let completionTimeout: NodeJS.Timeout;
+    
     // Listen for progressive data updates
     const handleProgressiveUpdate = (event: CustomEvent) => {
       const { repository: eventRepo, dataType, processor: eventProcessor } = event.detail;
@@ -37,8 +39,13 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
         setHasError(false);
         setErrorMessage('');
         
+        // Clear any existing timeout
+        if (completionTimeout) {
+          clearTimeout(completionTimeout);
+        }
+        
         // Hide the completed state after 5 seconds
-        setTimeout(() => {
+        completionTimeout = setTimeout(() => {
           setRecentlyCompleted(false);
           setProcessingStage('');
           setProcessor(null);
@@ -96,6 +103,11 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
       window.removeEventListener('progressive-data-updated', handleProgressiveUpdate as EventListener);
       window.removeEventListener('progressive-processing-started', handleProcessingStart as EventListener);
       window.removeEventListener('progressive-processing-progress', handleProgressUpdate as EventListener);
+      
+      // Clean up timeout on unmount
+      if (completionTimeout) {
+        clearTimeout(completionTimeout);
+      }
     };
   }, [repository]);
 
