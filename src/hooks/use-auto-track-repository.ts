@@ -52,11 +52,7 @@ export function useAutoTrackRepository({
             .single()
 
           if (insertError) {
-            console.error('Failed to track repository:', {
-              owner,
-              repo,
-              error: insertError
-            })
+            console.error('Failed to track repository %s/%s:', owner, repo, insertError)
             return
           }
 
@@ -65,16 +61,20 @@ export function useAutoTrackRepository({
             
             // Trigger size classification for newly tracked repository
             // This will happen in the background
-            inngest.send({
-              name: 'classify/repository.single',
-              data: {
-                repositoryId: newRepo.id,
-                owner,
-                repo
-              }
-            }).catch(error => {
-              console.error('Failed to trigger repository classification:', error)
-            })
+            try {
+              await inngest.send({
+                name: 'classify/repository.single',
+                data: {
+                  repositoryId: newRepo.id,
+                  owner,
+                  repo
+                }
+              })
+            } catch (error) {
+              console.error('Failed to trigger repository classification for %s/%s:', owner, repo, error)
+              // Classification failure is non-critical, repository is still tracked
+              // The classification can be retried later via manual trigger
+            }
           }
         } else {
           hasTrackedRef.current = true
@@ -82,16 +82,19 @@ export function useAutoTrackRepository({
           // Check if the repository needs classification or reclassification
           if (!existing.size || !existing.size_calculated_at) {
             // Repository has never been classified
-            inngest.send({
-              name: 'classify/repository.single',
-              data: {
-                repositoryId: existing.id,
-                owner,
-                repo
-              }
-            }).catch(error => {
-              console.error('Failed to trigger repository classification:', error)
-            })
+            try {
+              await inngest.send({
+                name: 'classify/repository.single',
+                data: {
+                  repositoryId: existing.id,
+                  owner,
+                  repo
+                }
+              })
+            } catch (error) {
+              console.error('Failed to trigger repository classification for %s/%s:', owner, repo, error)
+              // Classification failure is non-critical, can be retried later
+            }
           } else {
             // Check if classification is older than 30 days
             const thirtyDaysAgo = new Date()
@@ -99,21 +102,24 @@ export function useAutoTrackRepository({
             
             if (new Date(existing.size_calculated_at) < thirtyDaysAgo) {
               // Trigger reclassification
-              inngest.send({
-                name: 'classify/repository.single',
-                data: {
-                  repositoryId: existing.id,
-                  owner,
-                  repo
-                }
-              }).catch(error => {
-                console.error('Failed to trigger repository reclassification:', error)
-              })
+              try {
+                await inngest.send({
+                  name: 'classify/repository.single',
+                  data: {
+                    repositoryId: existing.id,
+                    owner,
+                    repo
+                  }
+                })
+              } catch (error) {
+                console.error('Failed to trigger repository reclassification for %s/%s:', owner, repo, error)
+                // Reclassification failure is non-critical, existing data is still valid
+              }
             }
           }
         }
       } catch (error) {
-        console.error('Error in auto-track repository:', error)
+        console.error('Error in auto-track repository %s/%s:', owner, repo, error)
       }
     }
 
