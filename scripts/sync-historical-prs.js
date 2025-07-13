@@ -49,7 +49,9 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 if (!githubToken) {
-  console.warn('No GitHub token provided. API rate limits will be very restrictive.');
+  console.error('GITHUB_TOKEN environment variable is required. Unauthenticated requests have a rate limit of only 60 requests per hour.');
+  console.error('Please set GITHUB_TOKEN with a valid GitHub personal access token.');
+  process.exit(1);
 }
 
 const octokit = new Octokit({ auth: githubToken });
