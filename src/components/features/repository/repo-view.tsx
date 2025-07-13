@@ -29,6 +29,7 @@ import { createChartShareUrl, getDubConfig } from "@/lib/dub";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { DataProcessingIndicator } from "./data-processing-indicator";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { RepositoryInlineMetadata } from "@/components/ui/repository-inline-metadata";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -217,8 +218,9 @@ export default function RepoView() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-2xl">
-                  {owner}/{repo}
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <span>{owner}/{repo}</span>
+                  <RepositoryInlineMetadata owner={owner} repo={repo} />
                 </CardTitle>
                 <CardDescription>
                   Contribution analysis of recent pull requests

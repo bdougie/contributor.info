@@ -129,25 +129,36 @@ Currently, large repositories like kubernetes/kubernetes are "protected" from re
 - Created monitoring dashboard at `/dev/capture-monitor`
 - Implemented auto-retry service with exponential backoff and permanent failure detection
 
-### Phase 5: User Experience Enhancements (Priority: MEDIUM)
+### Phase 5: User Experience Enhancements (Priority: MEDIUM) ✅
 **Timeline**: 2 days
 
 #### Tasks
-- [ ] Add repository size badges (S/M/L/XL)
-- [ ] Implement data freshness indicators:
+- [x] Add repository size badges (S/M/L/XL)
+- [x] Implement data freshness indicators:
   - Green: <1 day old
   - Yellow: 1-7 days old  
   - Red: >7 days old
-- [ ] Add loading states during background fetch
-- [ ] Create "Load more history" button for partial data
-- [ ] Show capture progress for repos being processed
-- [ ] Add manual refresh with size-appropriate limits
+- [x] Add loading states during background fetch
+- [x] add console error on failed retries
+- [x] Create "Load more history" button for partial data
+- [x] Show capture progress for repos being processed
+- [x] Add manual refresh with size-appropriate limits
 
 #### Acceptance Criteria
 - Users can see repository size at a glance
 - Data freshness is clearly communicated
 - Loading states don't block UI interaction
 - Manual refresh respects size limits
+
+#### Implementation Summary
+- Added `RepositorySizeBadge` component with S/M/L/XL indicators and tooltips explaining size criteria
+- Implemented `DataFreshnessIndicator` with green/yellow/red status dots and relative time tooltips
+- Enhanced `DataProcessingIndicator` with detailed progress bars, error states, and processor-specific styling
+- Added comprehensive console error logging for retry failures with structured data including repository info, error details, and retry counts
+- Created intelligent "Load more history" button that appears for stale data on large repos, with size-appropriate time range expansion
+- Enhanced progress tracking with step-by-step updates, percentage completion, and error handling
+- Added manual refresh button with size-appropriate limits (XL: 3 days, Large: 7 days, Medium: 14 days, Small: 30 days)
+- All components integrate seamlessly with existing `useRepositoryMetadata` hook and respect repository size classifications
 
 ### Phase 6: Example Repository Updates (Priority: LOW)
 **Timeline**: 1 day
