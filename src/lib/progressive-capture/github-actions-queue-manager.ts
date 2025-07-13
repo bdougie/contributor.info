@@ -17,7 +17,7 @@ export interface GitHubActionsJobInput {
 export class GitHubActionsQueueManager {
   private readonly GITHUB_TOKEN = env.GITHUB_TOKEN;
   private readonly JOBS_REPO_OWNER = 'bdougie';
-  private readonly JOBS_REPO_NAME = 'contributor.info';
+  private readonly JOBS_REPO_NAME = 'jobs';
 
   /**
    * Dispatch a workflow to GitHub Actions
