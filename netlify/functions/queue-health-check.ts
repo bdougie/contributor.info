@@ -29,7 +29,8 @@ export const handler: Handler = async () => {
     });
     
     // Check if we have too many failures
-    const failureRate = stats.total.failed / (stats.total.completed + stats.total.failed + 1);
+    const totalJobs = stats.total.completed + stats.total.failed;
+    const failureRate = totalJobs > 0 ? stats.total.failed / totalJobs : 0;
     if (failureRate > 0.3) {
       console.warn('[QueueHealthCheck] High failure rate detected:', failureRate);
       // Could trigger alerts or notifications here

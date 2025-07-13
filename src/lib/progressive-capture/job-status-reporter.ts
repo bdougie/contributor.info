@@ -33,13 +33,26 @@ export class JobStatusReporter {
   async reportStatus(update: JobStatusUpdate): Promise<void> {
     try {
       const updates: any = {
-        status: update.status,
-        metadata: update.metadata || {}
+        status: update.status
       };
+      
+      // Only set metadata if provided, to avoid overwriting existing data
+      if (update.metadata && Object.keys(update.metadata).length > 0) {
+        updates.metadata = update.metadata;
+      }
 
-      // Add timestamps based on status
-      if (update.status === 'processing' && !updates.started_at) {
-        updates.started_at = new Date().toISOString();
+      // Add timestamps based on status - only set started_at if not already set in database
+      if (update.status === 'processing') {
+        // First check if job already has a started_at timestamp
+        const { data: existingJob } = await supabase
+          .from('progressive_capture_jobs')
+          .select('started_at')
+          .eq('id', update.jobId)
+          .single();
+        
+        if (!existingJob?.started_at) {
+          updates.started_at = new Date().toISOString();
+        }
       }
       
       if (update.status === 'completed' || update.status === 'failed') {
@@ -54,6 +67,14 @@ export class JobStatusReporter {
       // Add workflow information if provided
       if (update.workflowRunId) {
         updates.workflow_run_id = update.workflowRunId;
+      }
+      
+      // Add workflow URL to metadata if provided
+      if (update.workflowRunUrl) {
+        updates.metadata = {
+          ...updates.metadata,
+          workflow_run_url: update.workflowRunUrl
+        };
       }
 
       // Merge metadata
@@ -140,6 +161,12 @@ export class JobStatusReporter {
         .eq('job_id', jobId)
         .single();
 
+      // Handle potential null/undefined started_at
+      if (!job.started_at) {
+        console.warn(`[JobStatusReporter] Job ${jobId} has no started_at timestamp`);
+        return null;
+      }
+      
       const metrics: JobMetrics = {
         startTime: new Date(job.started_at)
       };

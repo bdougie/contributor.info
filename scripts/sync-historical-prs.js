@@ -17,12 +17,22 @@ const { values } = parseArgs({
 
 const repositoryId = values['repository-id'];
 const repositoryName = values['repository-name'];
-const timeRange = parseInt(values['time-range'] || '30');
-const maxItems = parseInt(values['max-items'] || '1000');
+const timeRange = parseInt(values['time-range'] || '30', 10);
+const maxItems = parseInt(values['max-items'] || '1000', 10);
 const jobId = values['job-id'];
 
 if (!repositoryId || !repositoryName) {
   console.error('Missing required arguments: --repository-id and --repository-name');
+  process.exit(1);
+}
+
+if (isNaN(timeRange) || timeRange <= 0) {
+  console.error('Invalid time-range value. Must be a positive number.');
+  process.exit(1);
+}
+
+if (isNaN(maxItems) || maxItems <= 0) {
+  console.error('Invalid max-items value. Must be a positive number.');
   process.exit(1);
 }
 
@@ -37,6 +47,11 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+if (!githubToken) {
+  console.warn('No GitHub token provided. API rate limits will be very restrictive.');
+}
+
 const octokit = new Octokit({ auth: githubToken });
 
 async function updateProgress(processed, total, currentItem) {

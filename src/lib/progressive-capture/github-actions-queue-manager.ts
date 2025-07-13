@@ -159,7 +159,7 @@ export class GitHubActionsQueueManager {
         // Use the job status reporter for consistent updates
         await jobStatusReporter.reportStatus({
           jobId: job.id,
-          status: status as 'pending' | 'processing' | 'completed' | 'failed',
+          status: status,
           workflowRunId: matchingRun.id,
           workflowRunUrl: matchingRun.html_url,
           metadata: {
@@ -184,7 +184,7 @@ export class GitHubActionsQueueManager {
   /**
    * Map GitHub Actions status to our job status
    */
-  private mapGitHubStatusToJobStatus(status: string, conclusion: string | null): string {
+  private mapGitHubStatusToJobStatus(status: string, conclusion: string | null): 'pending' | 'processing' | 'completed' | 'failed' {
     if (status === 'completed') {
       switch (conclusion) {
         case 'success':
