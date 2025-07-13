@@ -1,0 +1,296 @@
+import { supabase } from '../supabase';
+import { hybridQueueManager } from './hybrid-queue-manager';
+import { jobStatusReporter } from './job-status-reporter';
+
+export interface RetryConfig {
+  maxRetries: number;
+  retryDelayMs: number;
+  backoffMultiplier: number;
+}
+
+export interface RetryableJob {
+  id: string;
+  job_type: string;
+  repository_id: string;
+  processor_type: 'inngest' | 'github_actions';
+  metadata: any;
+  error?: string;
+  retry_count?: number;
+  last_retry_at?: string;
+}
+
+/**
+ * Service for automatically retrying failed capture jobs
+ */
+export class AutoRetryService {
+  private readonly defaultConfig: RetryConfig = {
+    maxRetries: 3,
+    retryDelayMs: 60000, // 1 minute
+    backoffMultiplier: 2
+  };
+
+  /**
+   * Check for failed jobs and retry them
+   */
+  async retryFailedJobs(): Promise<void> {
+    try {
+      console.log('[AutoRetry] Checking for failed jobs to retry...');
+      
+      // Get failed jobs that haven't exceeded max retries
+      const { data: failedJobs } = await supabase
+        .from('progressive_capture_jobs')
+        .select('*')
+        .eq('status', 'failed')
+        .or(`metadata->retry_count.is.null,metadata->retry_count.lt.${this.defaultConfig.maxRetries}`)
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()); // Last 24 hours
+
+      if (!failedJobs || failedJobs.length === 0) {
+        console.log('[AutoRetry] No failed jobs to retry');
+        return;
+      }
+
+      console.log(`[AutoRetry] Found ${failedJobs.length} failed jobs to process`);
+
+      for (const job of failedJobs) {
+        await this.processFailedJob(job);
+      }
+    } catch (error) {
+      console.error('[AutoRetry] Error checking failed jobs:', error);
+    }
+  }
+
+  /**
+   * Process a single failed job for retry
+   */
+  private async processFailedJob(job: RetryableJob): Promise<void> {
+    try {
+      const retryCount = job.metadata?.retry_count || 0;
+      const lastRetryAt = job.metadata?.last_retry_at;
+      
+      // Check if we should retry based on backoff timing
+      if (lastRetryAt) {
+        const timeSinceLastRetry = Date.now() - new Date(lastRetryAt).getTime();
+        const requiredDelay = this.calculateBackoffDelay(retryCount);
+        
+        if (timeSinceLastRetry < requiredDelay) {
+          console.log(`[AutoRetry] Job ${job.id} not ready for retry (${timeSinceLastRetry}ms < ${requiredDelay}ms)`);
+          return;
+        }
+      }
+
+      // Check if job has permanent failures that shouldn't be retried
+      if (this.isPermanentFailure(job.error)) {
+        console.log(`[AutoRetry] Job ${job.id} has permanent failure, skipping retry`);
+        await this.markJobAsPermanentlyFailed(job.id);
+        return;
+      }
+
+      console.log(`[AutoRetry] Retrying job ${job.id} (attempt ${retryCount + 1})`);
+
+      // Update job metadata with retry information
+      await supabase
+        .from('progressive_capture_jobs')
+        .update({
+          metadata: {
+            ...job.metadata,
+            retry_count: retryCount + 1,
+            last_retry_at: new Date().toISOString(),
+            retry_history: [
+              ...(job.metadata?.retry_history || []),
+              {
+                attempt: retryCount + 1,
+                timestamp: new Date().toISOString(),
+                previous_error: job.error
+              }
+            ]
+          }
+        })
+        .eq('id', job.id);
+
+      // Create a new job with the same parameters
+      const newJob = await this.createRetryJob(job);
+      
+      console.log(`[AutoRetry] Created retry job ${newJob.id} for failed job ${job.id}`);
+      
+      // Mark original job as retried
+      await jobStatusReporter.reportStatus({
+        jobId: job.id,
+        status: 'failed',
+        metadata: {
+          retried: true,
+          retry_job_id: newJob.id,
+          final_retry_count: retryCount + 1
+        }
+      });
+
+    } catch (error) {
+      console.error(`[AutoRetry] Error processing failed job ${job.id}:`, error);
+    }
+  }
+
+  /**
+   * Calculate backoff delay based on retry count
+   */
+  private calculateBackoffDelay(retryCount: number): number {
+    return this.defaultConfig.retryDelayMs * Math.pow(this.defaultConfig.backoffMultiplier, retryCount);
+  }
+
+  /**
+   * Check if an error is permanent and shouldn't be retried
+   */
+  private isPermanentFailure(error?: string): boolean {
+    if (!error) return false;
+    
+    const permanentErrors = [
+      'Repository not found',
+      'Invalid repository format',
+      'Unauthorized',
+      'Rate limit exceeded',
+      'Repository is private',
+      'Repository is archived'
+    ];
+    
+    return permanentErrors.some(permError => 
+      error.toLowerCase().includes(permError.toLowerCase())
+    );
+  }
+
+  /**
+   * Mark a job as permanently failed (no more retries)
+   */
+  private async markJobAsPermanentlyFailed(jobId: string): Promise<void> {
+    await jobStatusReporter.reportStatus({
+      jobId,
+      status: 'failed',
+      metadata: {
+        permanent_failure: true,
+        no_retry_reason: 'Permanent error detected'
+      }
+    });
+  }
+
+  /**
+   * Create a new job for retry
+   */
+  private async createRetryJob(originalJob: RetryableJob): Promise<any> {
+    // Extract job data from original
+    const jobData = {
+      repositoryId: originalJob.repository_id,
+      repositoryName: originalJob.metadata?.repository_name,
+      timeRange: originalJob.metadata?.time_range_days,
+      maxItems: originalJob.metadata?.max_items,
+      triggerSource: 'automatic' as const,
+      metadata: {
+        retry_of: originalJob.id,
+        retry_attempt: (originalJob.metadata?.retry_count || 0) + 1,
+        original_error: originalJob.error
+      }
+    };
+
+    // Queue the retry job
+    return await hybridQueueManager.queueJob(originalJob.job_type, jobData);
+  }
+
+  /**
+   * Get retry statistics
+   */
+  async getRetryStats(): Promise<{
+    totalRetries: number;
+    successfulRetries: number;
+    failedRetries: number;
+    averageRetryCount: number;
+    permanentFailures: number;
+  }> {
+    try {
+      const { data: jobs } = await supabase
+        .from('progressive_capture_jobs')
+        .select('metadata')
+        .not('metadata->retry_count', 'is', null)
+        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()); // Last 7 days
+
+      if (!jobs) {
+        return {
+          totalRetries: 0,
+          successfulRetries: 0,
+          failedRetries: 0,
+          averageRetryCount: 0,
+          permanentFailures: 0
+        };
+      }
+
+      const stats = jobs.reduce((acc, job) => {
+        const retryCount = job.metadata?.retry_count || 0;
+        acc.totalRetries += retryCount;
+        
+        if (job.metadata?.permanent_failure) {
+          acc.permanentFailures++;
+        }
+        
+        return acc;
+      }, {
+        totalRetries: 0,
+        permanentFailures: 0
+      });
+
+      // Get successful retry jobs
+      const { data: successfulJobs } = await supabase
+        .from('progressive_capture_jobs')
+        .select('id')
+        .eq('status', 'completed')
+        .not('metadata->retry_of', 'is', null);
+
+      const successfulRetries = successfulJobs?.length || 0;
+      const failedRetries = stats.totalRetries - successfulRetries;
+      const averageRetryCount = jobs.length > 0 ? stats.totalRetries / jobs.length : 0;
+
+      return {
+        totalRetries: stats.totalRetries,
+        successfulRetries,
+        failedRetries,
+        averageRetryCount,
+        permanentFailures: stats.permanentFailures
+      };
+    } catch (error) {
+      console.error('[AutoRetry] Error getting retry stats:', error);
+      return {
+        totalRetries: 0,
+        successfulRetries: 0,
+        failedRetries: 0,
+        averageRetryCount: 0,
+        permanentFailures: 0
+      };
+    }
+  }
+
+  /**
+   * Configure retry settings for specific job types
+   */
+  async configureRetryPolicy(
+    jobType: string,
+    config: Partial<RetryConfig>
+  ): Promise<void> {
+    // This could be stored in a database table for persistence
+    console.log(`[AutoRetry] Configuring retry policy for ${jobType}:`, config);
+    
+    // For now, we'll use the default config
+    // In a production system, this would update a retry_policies table
+  }
+
+  /**
+   * Start the auto-retry service (should be called periodically)
+   */
+  async start(intervalMs: number = 300000): Promise<NodeJS.Timeout> {
+    console.log('[AutoRetry] Starting auto-retry service');
+    
+    // Run immediately
+    this.retryFailedJobs();
+    
+    // Then run periodically
+    return setInterval(() => {
+      this.retryFailedJobs();
+    }, intervalMs);
+  }
+}
+
+// Export singleton instance
+export const autoRetryService = new AutoRetryService();

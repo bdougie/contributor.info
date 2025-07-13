@@ -1,0 +1,261 @@
+# Smart Data Fetching Architecture
+
+## Overview
+
+The Smart Data Fetching system transforms how contributor.info handles repository data by implementing intelligent size-based fetching strategies and progressive data loading. This ensures all repositories are usable regardless of size, eliminating the previous "protected repository" blocking.
+
+## Key Components
+
+### 1. Repository Size Classification
+
+The system classifies repositories into four size categories based on multiple metrics:
+
+- **Small**: <1k stars, <100 PRs/month
+- **Medium**: 1k-10k stars, 100-500 PRs/month  
+- **Large**: 10k-50k stars, 500-2000 PRs/month
+- **XL**: >50k stars, >2000 PRs/month
+
+Classification happens automatically when a repository is tracked and is stored in the `tracked_repositories` table.
+
+### 2. Fetch Strategy Engine
+
+Each repository size has an optimized fetching strategy:
+
+```typescript
+const fetchStrategies = {
+  small: {
+    cachedDays: 30,
+    liveDays: 30,
+    maxItems: 1000,
+    chunked: false
+  },
+  medium: {
+    cachedDays: 14,
+    liveDays: 14,
+    maxItems: 500,
+    chunked: false
+  },
+  large: {
+    cachedDays: 7,
+    liveDays: 7,
+    maxItems: 2000,
+    chunked: true,
+    chunkSize: 7
+  },
+  xl: {
+    cachedDays: 3,
+    liveDays: 3,
+    maxItems: 1000,
+    chunked: true,
+    chunkSize: 3,
+    rateLimit: 'aggressive'
+  }
+}
+```
+
+### 3. Progressive Data Loading
+
+The system implements a three-tier data loading approach:
+
+1. **Immediate Cache**: Serve any available cached data instantly
+2. **Live Fetch**: Fetch limited recent data based on repository size
+3. **Background Capture**: Queue comprehensive historical data capture
+
+### 4. Hybrid API Strategy
+
+The system uses both GraphQL and REST APIs strategically:
+
+- **GraphQL**: For efficient bulk fetching of recent data
+- **REST**: For detailed historical data and fallback scenarios
+
+## Phase 3 Implementation Details
+
+### Database Schema Enhancement
+
+Added to `tracked_repositories` table:
+- `size` - Repository size classification
+- `priority` - User-defined priority level
+- `metrics` - JSONB field storing classification metrics
+- `size_calculated_at` - Timestamp of last classification
+
+### Repository Size Classifier
+
+Location: `src/lib/repository-size-classifier.ts`
+
+Key features:
+- Fetches repository metrics from GitHub API
+- Calculates composite score based on multiple factors
+- Handles edge cases with fallback classification
+- Stores metrics for future reference
+
+### Smart Data Fetching Logic
+
+Location: `src/lib/supabase-pr-data-v2.ts`
+
+Key improvements:
+- Removed hardcoded protection list
+- Implements size-based strategy selection
+- Always returns some data (no blocking)
+- Triggers background capture when needed
+- Includes telemetry for performance monitoring
+
+### Progressive Data Merge
+
+Location: `src/lib/progressive-data-merge.ts`
+
+Handles merging of data from multiple sources:
+- Deduplicates entries by GitHub ID
+- Preserves most recent data
+- Maintains data integrity
+- Handles partial data gracefully
+
+## Phase 4 Implementation Details
+
+### Background Capture Optimization
+
+The background capture system now includes intelligent job management and monitoring.
+
+### Queue Prioritization
+
+Location: `src/lib/progressive-capture/queue-prioritization.ts`
+
+Priority scoring system (0-100 points):
+- Repository priority: 10-40 points
+- Repository size: 10-30 points (inverse relationship)
+- Trigger source: 5-20 points
+- Activity level: 0-10 points
+
+### Job Status Reporting
+
+Location: `src/lib/progressive-capture/job-status-reporter.ts`
+
+Comprehensive job tracking:
+- Real-time status updates
+- Progress tracking with metrics
+- Performance measurement
+- Historical job data
+
+### Auto-Retry Service
+
+Location: `src/lib/progressive-capture/auto-retry-service.ts`
+
+Intelligent retry logic:
+- Exponential backoff (1min, 2min, 4min)
+- Maximum 3 retry attempts
+- Permanent failure detection
+- Retry statistics tracking
+
+### Monitoring Dashboard
+
+Location: `src/components/CaptureHealthMonitor.tsx`
+Route: `/dev/capture-monitor`
+
+Real-time monitoring features:
+- Queue statistics for both processors
+- Active job tracking with progress
+- Historical job performance
+- Auto-refresh capability
+
+### GitHub Actions Integration
+
+Created workflows for bulk data processing:
+- `historical-pr-sync.yml`
+- `historical-reviews-sync.yml`
+- `historical-comments-sync.yml`
+- `bulk-file-changes.yml`
+
+These workflows run in the same repository, eliminating external dependencies.
+
+## Data Flow
+
+### User Requests Repository Data
+
+```mermaid
+graph TD
+    A[User Request] --> B{Cached Data?}
+    B -->|Yes| C[Return Cache]
+    B -->|No| D{Size Classification}
+    D --> E[Fetch Live Data]
+    E --> F[Return Partial Data]
+    F --> G[Queue Background Job]
+    G --> H{Select Processor}
+    H -->|Small/Recent| I[Inngest]
+    H -->|Large/Historical| J[GitHub Actions]
+    I --> K[Update Database]
+    J --> K
+    K --> L[Notify User]
+```
+
+### Background Job Processing
+
+1. Job enters queue with priority score
+2. Processor selection based on size/type
+3. Status reporting throughout lifecycle
+4. Auto-retry on failure with backoff
+5. Metrics calculation on completion
+
+## Performance Optimizations
+
+### Caching Strategy
+- Repository metadata cached for 24 hours
+- Size classification cached for 30 days
+- PR data cached based on repository size
+
+### Rate Limit Management
+- Aggressive caching for XL repositories
+- Chunked processing for large datasets
+- Prioritized queue processing
+
+### Error Handling
+- Graceful degradation on API failures
+- Partial data serving when possible
+- Automatic retry with exponential backoff
+- Permanent failure detection
+
+## Monitoring and Observability
+
+### Telemetry Points
+- Fetch performance metrics
+- Cache hit/miss rates
+- Background job success rates
+- API rate limit usage
+
+### Health Checks
+- Queue health monitoring
+- Processor load balancing
+- Failure rate tracking
+- Auto-rollback on high error rates
+
+## Configuration
+
+### Environment Variables
+```bash
+# Supabase Configuration
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_TOKEN=your-service-role-key
+
+# GitHub Configuration  
+GITHUB_TOKEN=your-github-token
+```
+
+### Repository Priority Management
+Repositories can be marked as high priority through:
+- Admin interface
+- API endpoints
+- Automatic detection (e.g., example repos)
+
+## Future Enhancements
+
+### Planned Improvements
+1. GHArchive integration for historical data
+2. Predictive pre-fetching for trending repos
+3. User-configurable fetch preferences
+4. WebSocket updates for real-time data
+5. Machine learning for size classification
+
+### Scalability Considerations
+- Horizontal scaling of background processors
+- Redis caching layer for hot data
+- CDN integration for static assets
+- Database read replicas for heavy queries

@@ -47,6 +47,7 @@ const SpamTestTool = lazy(() => import("@/components/features/admin").then(m => 
 const BulkSpamAnalysis = lazy(() => import("@/components/features/admin").then(m => ({ default: m.BulkSpamAnalysis })));
 const MaintainerManagement = lazy(() => import("@/components/features/admin/maintainer-management").then(m => ({ default: m.MaintainerManagement })));
 const ConfidenceAnalyticsDashboard = lazy(() => import("@/components/features/admin/confidence-analytics-dashboard").then(m => ({ default: m.ConfidenceAnalyticsDashboard })));
+const CaptureHealthMonitor = lazy(() => import("@/components/CaptureHealthMonitor").then(m => ({ default: m.CaptureHealthMonitor })));
 
 // Loading fallback component
 const PageSkeleton = () => (
@@ -212,6 +213,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <BulkAddRepos />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dev/capture-monitor"
+                element={
+                  <ProtectedRoute>
+                    <CaptureHealthMonitor />
                   </ProtectedRoute>
                 }
               />

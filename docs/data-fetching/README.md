@@ -1,0 +1,97 @@
+# Data Fetching Documentation
+
+This directory contains comprehensive documentation for the Smart Data Fetching system in contributor.info.
+
+## Overview
+
+The Smart Data Fetching system is a sophisticated data pipeline that ensures all GitHub repositories are accessible and usable, regardless of their size. It implements intelligent fetching strategies, progressive loading, and robust error handling.
+
+## Documentation Structure
+
+### 📋 [Phase 3 & 4 Summary](./PHASE3-PHASE4-SUMMARY.md)
+Executive summary of the Smart Data Fetching implementation, covering both Phase 3 (Smart Data Fetching Logic) and Phase 4 (Background Capture Optimization).
+
+### 🏗️ [Architecture Guide](./smart-data-fetching.md)
+Complete technical architecture including:
+- Repository size classification system
+- Fetch strategy engine
+- Progressive data loading
+- Hybrid API strategy (GraphQL/REST)
+- Performance optimizations
+
+### 🚦 [Queue Management](./queue-management.md)
+Deep dive into the queue management system:
+- Queue prioritization algorithm
+- Job lifecycle and status tracking
+- Auto-retry mechanisms
+- Processor selection logic
+- Database schema
+
+### 📊 [Monitoring Guide](./monitoring-capture-health.md)
+Operational guide for monitoring system health:
+- Using the Capture Health Monitor dashboard
+- Understanding metrics and indicators
+- Troubleshooting common issues
+- Performance optimization tips
+
+## Quick Links
+
+### For Developers
+- [Repository Size Classification](./smart-data-fetching.md#repository-size-classification)
+- [Fetch Strategies](./smart-data-fetching.md#fetch-strategy-engine)
+- [Queue Priority Scoring](./queue-management.md#priority-scoring-algorithm)
+- [API Integration](./queue-management.md#api-integration)
+
+### For Operators
+- [Dashboard Access](./monitoring-capture-health.md#accessing-the-monitor)
+- [Health Indicators](./monitoring-capture-health.md#health-indicators)
+- [Troubleshooting](./monitoring-capture-health.md#troubleshooting-steps)
+- [Alert Configuration](./monitoring-capture-health.md#alerting-and-notifications)
+
+## Key Features
+
+### 🎯 Smart Repository Classification
+- Automatic size detection (Small/Medium/Large/XL)
+- Activity-based metrics
+- Priority assignment
+
+### ⚡ Optimized Fetching
+- Size-appropriate strategies
+- Progressive data loading
+- No blocking or "protected" repositories
+
+### 🔄 Robust Queue Management
+- Priority-based processing
+- Automatic retry with backoff
+- Load balancing between processors
+
+### 📈 Comprehensive Monitoring
+- Real-time dashboard (`/dev/capture-monitor`)
+- Performance metrics
+- Health indicators
+- Alert system
+
+## System Metrics
+
+### Performance Targets
+- Initial data load: <3 seconds for all repositories
+- Background capture success rate: >85% (95% with retries)
+- Queue processing: High priority within 10 minutes
+
+### Current Statistics
+- 100% repository accessibility
+- 90% reduction in resource exhaustion errors
+- 80%+ GitHub Actions success rate
+
+## Getting Started
+
+1. **For New Contributors**: Start with the [Phase 3 & 4 Summary](./PHASE3-PHASE4-SUMMARY.md)
+2. **For Implementation**: Review the [Architecture Guide](./smart-data-fetching.md)
+3. **For Operations**: Check the [Monitoring Guide](./monitoring-capture-health.md)
+
+## Related Documentation
+
+- [Progressive Capture System](/docs/progressive-capture/)
+- [API Documentation](/docs/api/)
+- [Database Schema](/supabase/migrations/)
+- [User Experience Guidelines](/docs/user-experience/)

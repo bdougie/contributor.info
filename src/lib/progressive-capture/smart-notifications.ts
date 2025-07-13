@@ -366,7 +366,10 @@ export function setupSmartNotifications(): void {
       // Match patterns like /kubernetes/kubernetes or /owner/repo/contributions
       const match = path.match(/\/([^\/]+)\/([^\/]+)(?:\/|$)/);
       
-      if (match && match[1] !== 'login' && match[1] !== 'debug' && match[1] !== 'admin') {
+      // Exclude non-repository routes
+      const excludedPrefixes = ['login', 'debug', 'admin', 'dev', 'api', 'auth', 'oauth'];
+      
+      if (match && !excludedPrefixes.includes(match[1])) {
         const [, owner, repo] = match;
         
         if (import.meta.env?.DEV) {
