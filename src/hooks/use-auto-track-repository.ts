@@ -51,7 +51,16 @@ export function useAutoTrackRepository({
             .select()
             .single()
 
-          if (!insertError && newRepo) {
+          if (insertError) {
+            console.error('Failed to track repository:', {
+              owner,
+              repo,
+              error: insertError
+            })
+            return
+          }
+
+          if (newRepo) {
             hasTrackedRef.current = true
             
             // Trigger size classification for newly tracked repository
