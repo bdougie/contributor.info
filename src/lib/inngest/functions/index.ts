@@ -6,3 +6,6 @@ export { captureRepositorySync } from './capture-repository-sync';
 // GraphQL versions for improved efficiency
 export { capturePrDetailsGraphQL } from './capture-pr-details-graphql';
 export { captureRepositorySyncGraphQL } from './capture-repository-sync-graphql';
+
+// Repository size classification
+export { classifyRepositorySize, classifySingleRepository } from './classify-repository-size';
