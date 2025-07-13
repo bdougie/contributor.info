@@ -9,6 +9,7 @@ export interface PullRequest {
   closed_at?: string | null;
   additions: number;
   deletions: number;
+  changed_files?: number;
   repository_owner: string;
   repository_name: string;
   user: {

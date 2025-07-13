@@ -29,8 +29,10 @@ const getEventKey = () => {
     return 'browser-client'; // Placeholder for browser client
   }
   
-  // Server context - access the real event key securely
-  const eventKey = serverEnv.INNGEST_EVENT_KEY || process.env.INNGEST_EVENT_KEY;
+  // Server context - prefer production keys to match production endpoint
+  const eventKey = process.env.INNGEST_PRODUCTION_EVENT_KEY ||
+                   serverEnv.INNGEST_EVENT_KEY || 
+                   process.env.INNGEST_EVENT_KEY;
   
   // In production, ensure we have a real key
   if (!isDevelopment() && (!eventKey || eventKey === 'dev-key')) {
@@ -46,7 +48,10 @@ const getSigningKey = () => {
     return undefined; // Not needed in browser
   }
   
-  const signingKey = serverEnv.INNGEST_SIGNING_KEY || process.env.INNGEST_SIGNING_KEY;
+  // Prefer production signing key to match production endpoint
+  const signingKey = process.env.INNGEST_PRODUCTION_SIGNING_KEY ||
+                     serverEnv.INNGEST_SIGNING_KEY || 
+                     process.env.INNGEST_SIGNING_KEY;
   
   // In production, we need a signing key
   if (!isDevelopment() && !signingKey) {

@@ -28,7 +28,7 @@ export class NoDataAvailableError extends Error {
 
 export interface DataResult<T> {
   data: T;
-  status: 'success' | 'large_repository_protected' | 'no_data' | 'error';
+  status: 'success' | 'large_repository_protected' | 'no_data' | 'error' | 'partial_data';
   message?: string;
   repositoryName?: string;
 }
@@ -69,6 +69,22 @@ export function createNoDataResult<T>(
     data: fallbackData,
     status: 'no_data',
     message: `No recent data found for ${repositoryName}. Try using progressive data capture to populate the database.`,
+    repositoryName
+  };
+}
+
+/**
+ * Creates a partial data result when only limited data is available
+ */
+export function createPartialDataResult<T>(
+  repositoryName: string,
+  partialData: T,
+  reason: string
+): DataResult<T> {
+  return {
+    data: partialData,
+    status: 'partial_data',
+    message: reason,
     repositoryName
   };
 }

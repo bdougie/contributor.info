@@ -8,6 +8,8 @@ import {
   captureRepositorySync,
   capturePrDetailsGraphQL,
   captureRepositorySyncGraphQL,
+  classifyRepositorySize,
+  classifySingleRepository,
 } from "../../src/lib/inngest/functions";
 
 // Create the Inngest serve handler
@@ -21,6 +23,9 @@ const inngestHandler = serve({
     // GraphQL versions for improved efficiency
     capturePrDetailsGraphQL,
     captureRepositorySyncGraphQL,
+    // Classification functions
+    classifyRepositorySize,
+    classifySingleRepository,
   ],
   servePath: "/.netlify/functions/inngest",
 });
@@ -38,7 +43,9 @@ export default async (req: Request, context: Context) => {
         "capture-pr-comments",
         "capture-repository-sync",
         "capture-pr-details-graphql",
-        "capture-repository-sync-graphql"
+        "capture-repository-sync-graphql",
+        "classify-repository-size",
+        "classify-single-repository"
       ],
       environment: {
         context: process.env.CONTEXT || "unknown",
