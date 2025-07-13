@@ -68,10 +68,15 @@ export class HybridMonitoringDashboard {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
     try {
-      const { data: jobs } = await supabase
+      const { data: jobs, error } = await supabase
         .from('progressive_capture_jobs')
         .select('*')
         .gte('created_at', twentyFourHoursAgo.toISOString());
+
+      if (error) {
+        console.error('[Monitoring] Database error fetching jobs:', error);
+        throw error;
+      }
 
       if (!jobs || jobs.length === 0) {
         const emptyMetrics: JobMetrics = {
@@ -216,11 +221,16 @@ export class HybridMonitoringDashboard {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
     try {
-      const { data: jobs } = await supabase
+      const { data: jobs, error } = await supabase
         .from('progressive_capture_jobs')
         .select('processor_type, status')
         .gte('created_at', twentyFourHoursAgo.toISOString())
         .eq('status', 'completed');
+
+      if (error) {
+        console.error('[Monitoring] Database error fetching completed jobs:', error);
+        throw error;
+      }
 
       if (!jobs || jobs.length === 0) {
         return {
@@ -285,10 +295,15 @@ export class HybridMonitoringDashboard {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
     try {
-      const { data: jobs } = await supabase
+      const { data: jobs, error } = await supabase
         .from('progressive_capture_jobs')
         .select('processor_type, time_range_days, metadata')
         .gte('created_at', twentyFourHoursAgo.toISOString());
+
+      if (error) {
+        console.error('[Monitoring] Database error fetching jobs for routing analysis:', error);
+        throw error;
+      }
 
       if (!jobs || jobs.length === 0) {
         return {
@@ -362,13 +377,18 @@ export class HybridMonitoringDashboard {
     topErrors: Array<{ error: string; count: number }>;
   }> {
     try {
-      const { data: failedJobs } = await supabase
+      const { data: failedJobs, error } = await supabase
         .from('progressive_capture_jobs')
         .select('*')
         .eq('status', 'failed')
         .not('error', 'is', null)
         .order('created_at', { ascending: false })
         .limit(limit);
+
+      if (error) {
+        console.error('[Monitoring] Database error fetching failed jobs:', error);
+        throw error;
+      }
 
       if (!failedJobs || failedJobs.length === 0) {
         return {

@@ -25,7 +25,7 @@ async function analyzeGitHubActionsErrors() {
 
   try {
     // Get recent failed jobs from the database
-    const { data: failedJobs, error } = await supabase
+    const { data: failedJobs, error: failedJobsError } = await supabase
       .from('progressive_capture_jobs')
       .select('*')
       .eq('processor_type', 'github_actions')
@@ -33,8 +33,8 @@ async function analyzeGitHubActionsErrors() {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (error) {
-      console.error('❌ Error fetching failed jobs:', error);
+    if (failedJobsError) {
+      console.error('❌ Error fetching failed jobs:', failedJobsError);
       return;
     }
 
@@ -46,13 +46,18 @@ async function analyzeGitHubActionsErrors() {
       console.log('3. The workflow is not reporting failures back to the database\n');
 
       // Check for jobs that might have errors in metadata
-      const { data: allJobs } = await supabase
+      const { data: allJobs, error: allJobsError } = await supabase
         .from('progressive_capture_jobs')
         .select('*')
         .eq('processor_type', 'github_actions')
         .not('metadata->error', 'is', null)
         .order('created_at', { ascending: false })
         .limit(20);
+
+      if (allJobsError) {
+        console.error('❌ Error fetching jobs with metadata errors:', allJobsError);
+        return;
+      }
 
       if (allJobs && allJobs.length > 0) {
         console.log(`Found ${allJobs.length} GitHub Actions jobs with errors in metadata:\n`);
@@ -120,11 +125,16 @@ async function analyzeGitHubActionsErrors() {
     console.log('\n📈 System Metrics:');
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
-    const { data: metricsData } = await supabase
+    const { data: metricsData, error: metricsError } = await supabase
       .from('progressive_capture_jobs')
       .select('processor_type, status')
       .eq('processor_type', 'github_actions')
       .gte('created_at', twentyFourHoursAgo.toISOString());
+
+    if (metricsError) {
+      console.error('❌ Error fetching metrics:', metricsError);
+      return;
+    }
 
     if (metricsData && metricsData.length > 0) {
       const total = metricsData.length;
