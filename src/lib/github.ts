@@ -194,7 +194,7 @@ async function fetchPRComments(owner: string, repo: string, prNumber: number, he
   }
 }
 
-export async function fetchPullRequests(owner: string, repo: string, timeRange: string = '30'): Promise<PullRequest[]> {
+export async function fetchPullRequests(owner: string, repo: string, timeRange: string = '30', limit?: number): Promise<PullRequest[]> {
   const headers: HeadersInit = {
     'Accept': 'application/vnd.github.v3+json',
   };
@@ -233,6 +233,10 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
     const perPage = 100;
     
     while (page <= 10) { // Limit to 10 pages (1000 PRs) for very active repositories
+      // Check if we've reached the limit
+      if (limit && allPRs.length >= limit) {
+        break;
+      }
       // In test environment, use direct fetch to maintain test compatibility
       if (NODE_ENV === 'test' || process.env.VITEST) {
         const response = await fetch(
@@ -255,7 +259,15 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
         }
         
         const prs = await response.json();
-        allPRs.push(...prs);
+        
+        // If we have a limit, only take what we need
+        if (limit && allPRs.length + prs.length > limit) {
+          const remaining = limit - allPRs.length;
+          allPRs.push(...prs.slice(0, remaining));
+          break;
+        } else {
+          allPRs.push(...prs);
+        }
         
         // If we got less than a full page, we're done
         if (prs.length < perPage) {
@@ -295,7 +307,14 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
             });
           }
           
-          allPRs.push(...prs);
+          // If we have a limit, only take what we need
+          if (limit && allPRs.length + prs.length > limit) {
+            const remaining = limit - allPRs.length;
+            allPRs.push(...prs.slice(0, remaining));
+            break;
+          } else {
+            allPRs.push(...prs);
+          }
           
           // If we got less than a full page, we're done
           if (prs.length < perPage) {
