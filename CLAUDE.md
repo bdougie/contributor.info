@@ -154,6 +154,7 @@ npx supabase status
 - use the supabase mcp server for migrations
 - `console.log(\`${owner}\`)` is a security vulnerability. We need to do `console.log(%s, owner)`
 - optimized for user experience with modern tooling and excellent dependency management. prioritize immediate value delivery over pure performance metrics.
+- never use any in typescript
 
 ## Known Issues
 
@@ -200,3 +201,4 @@ When implementing features that load data or process information in the backgrou
 - Automatic detection and improvement of data quality
 - Subtle, helpful notifications (not technical jargon)
 - Graceful error handling and fallbacks
+```
