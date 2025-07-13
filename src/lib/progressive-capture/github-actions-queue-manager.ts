@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { env } from '../env';
+import { jobStatusReporter } from './job-status-reporter';
 
 export interface GitHubActionsJobInput {
   workflow: string;
@@ -15,7 +16,7 @@ export interface GitHubActionsJobInput {
 
 export class GitHubActionsQueueManager {
   private readonly GITHUB_TOKEN = env.GITHUB_TOKEN;
-  private readonly JOBS_REPO_OWNER = 'bdougie'; // Update this based on your setup
+  private readonly JOBS_REPO_OWNER = 'bdougie';
   private readonly JOBS_REPO_NAME = 'jobs';
 
   /**
@@ -53,6 +54,17 @@ export class GitHubActionsQueueManager {
       // Record the job in our tracking table
       if (job.inputs.job_id) {
         await this.recordJobDispatch(job.inputs.job_id, job.workflow);
+        
+        // Report status via the reporter service
+        await jobStatusReporter.reportStatus({
+          jobId: job.inputs.job_id,
+          status: 'processing',
+          metadata: {
+            workflow: job.workflow,
+            dispatched_at: new Date().toISOString(),
+            github_api_response: 'success'
+          }
+        });
       }
 
       return { success: true };
@@ -144,22 +156,25 @@ export class GitHubActionsQueueManager {
       if (matchingRun) {
         const status = this.mapGitHubStatusToJobStatus(matchingRun.status, matchingRun.conclusion);
         
-        await supabase
-          .from('progressive_capture_jobs')
-          .update({
-            status,
-            workflow_run_id: matchingRun.id,
-            completed_at: matchingRun.conclusion ? new Date().toISOString() : null,
-            metadata: supabase.rpc('jsonb_merge', {
-              target: 'metadata',
-              source: JSON.stringify({
-                github_status: matchingRun.status,
-                github_conclusion: matchingRun.conclusion,
-                run_url: matchingRun.html_url
-              })
-            })
-          })
-          .eq('id', job.id);
+        // Use the job status reporter for consistent updates
+        await jobStatusReporter.reportStatus({
+          jobId: job.id,
+          status: status,
+          workflowRunId: matchingRun.id,
+          workflowRunUrl: matchingRun.html_url,
+          metadata: {
+            github_status: matchingRun.status,
+            github_conclusion: matchingRun.conclusion,
+            run_url: matchingRun.html_url,
+            run_number: matchingRun.run_number,
+            attempt: matchingRun.run_attempt
+          }
+        });
+        
+        // Calculate metrics if completed
+        if (status === 'completed' || status === 'failed') {
+          await jobStatusReporter.calculateMetrics(job.id);
+        }
       }
     } catch (error) {
       console.error(`[GitHubActions] Error checking status for job ${job.id}:`, error);
@@ -169,7 +184,7 @@ export class GitHubActionsQueueManager {
   /**
    * Map GitHub Actions status to our job status
    */
-  private mapGitHubStatusToJobStatus(status: string, conclusion: string | null): string {
+  private mapGitHubStatusToJobStatus(status: string, conclusion: string | null): 'pending' | 'processing' | 'completed' | 'failed' {
     if (status === 'completed') {
       switch (conclusion) {
         case 'success':

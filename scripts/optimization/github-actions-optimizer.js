@@ -14,6 +14,15 @@ const { Octokit } = require('@octokit/rest');
 
 class GitHubActionsOptimizer {
   constructor() {
+    // Check for required environment variables
+    if (!process.env.GITHUB_TOKEN) {
+      throw new Error('GITHUB_TOKEN environment variable is required. Unauthenticated requests have a rate limit of only 60 requests per hour.');
+    }
+    
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+      throw new Error('SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables are required.');
+    }
+    
     this.supabase = createClient(
       process.env.SUPABASE_URL,
       process.env.SUPABASE_SERVICE_KEY
