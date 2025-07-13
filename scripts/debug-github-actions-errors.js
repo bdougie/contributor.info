@@ -8,7 +8,6 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { HybridMonitoringDashboard } from '../src/lib/progressive-capture/monitoring-dashboard.js';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -117,22 +116,36 @@ async function analyzeGitHubActionsErrors() {
     console.log('4. Ensure the CLI scripts in the jobs repository have correct dependencies');
     console.log('5. Check if the Supabase connection from GitHub Actions is working');
 
-    // Get monitoring report
+    // Get system metrics directly from database
     console.log('\n📈 System Metrics:');
-    const stats = await HybridMonitoringDashboard.getSystemStats();
-    console.log(`Total Jobs: ${stats.current.total.pending + stats.current.total.processing + stats.current.total.completed + stats.current.total.failed}`);
-    console.log(`Success Rate: ${stats.metrics.github_actions.successRate.toFixed(1)}%`);
-    console.log(`Error Rate: ${(100 - stats.metrics.github_actions.successRate).toFixed(1)}%`);
-    console.log(`Health Score: ${stats.health.overall}`);
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    
+    const { data: metricsData } = await supabase
+      .from('progressive_capture_jobs')
+      .select('processor_type, status')
+      .eq('processor_type', 'github_actions')
+      .gte('created_at', twentyFourHoursAgo.toISOString());
 
-    if (stats.health.issues.length > 0) {
-      console.log('\n⚠️ Health Issues:');
-      stats.health.issues.forEach(issue => console.log(`  - ${issue}`));
-    }
-
-    if (stats.health.recommendations.length > 0) {
-      console.log('\n💡 Recommendations:');
-      stats.health.recommendations.forEach(rec => console.log(`  - ${rec}`));
+    if (metricsData && metricsData.length > 0) {
+      const total = metricsData.length;
+      const completed = metricsData.filter(j => j.status === 'completed').length;
+      const failed = metricsData.filter(j => j.status === 'failed').length;
+      const processing = metricsData.filter(j => j.status === 'processing').length;
+      const pending = metricsData.filter(j => j.status === 'pending').length;
+      
+      const successRate = total > 0 ? (completed / total) * 100 : 0;
+      const errorRate = total > 0 ? (failed / total) * 100 : 0;
+      
+      console.log(`Total Jobs: ${total}`);
+      console.log(`Success Rate: ${successRate.toFixed(1)}%`);
+      console.log(`Error Rate: ${errorRate.toFixed(1)}%`);
+      console.log(`Status breakdown: ${completed} completed, ${failed} failed, ${processing} processing, ${pending} pending`);
+      
+      if (errorRate > 50) {
+        console.log('\n⚠️ High error rate detected - check GitHub Actions configuration');
+      }
+    } else {
+      console.log('No GitHub Actions jobs found in the last 24 hours');
     }
 
   } catch (error) {
