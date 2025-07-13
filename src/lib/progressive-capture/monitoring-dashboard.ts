@@ -68,10 +68,15 @@ export class HybridMonitoringDashboard {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
     try {
-      const { data: jobs } = await supabase
+      const { data: jobs, error } = await supabase
         .from('progressive_capture_jobs')
         .select('*')
         .gte('created_at', twentyFourHoursAgo.toISOString());
+
+      if (error) {
+        console.error('[Monitoring] Database error fetching jobs:', error);
+        throw error;
+      }
 
       if (!jobs || jobs.length === 0) {
         const emptyMetrics: JobMetrics = {
@@ -216,11 +221,16 @@ export class HybridMonitoringDashboard {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
     try {
-      const { data: jobs } = await supabase
+      const { data: jobs, error } = await supabase
         .from('progressive_capture_jobs')
         .select('processor_type, status')
         .gte('created_at', twentyFourHoursAgo.toISOString())
         .eq('status', 'completed');
+
+      if (error) {
+        console.error('[Monitoring] Database error fetching completed jobs:', error);
+        throw error;
+      }
 
       if (!jobs || jobs.length === 0) {
         return {
@@ -285,10 +295,15 @@ export class HybridMonitoringDashboard {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
     try {
-      const { data: jobs } = await supabase
+      const { data: jobs, error } = await supabase
         .from('progressive_capture_jobs')
         .select('processor_type, time_range_days, metadata')
         .gte('created_at', twentyFourHoursAgo.toISOString());
+
+      if (error) {
+        console.error('[Monitoring] Database error fetching jobs for routing analysis:', error);
+        throw error;
+      }
 
       if (!jobs || jobs.length === 0) {
         return {
@@ -341,6 +356,91 @@ export class HybridMonitoringDashboard {
         suboptimalRouting: 0,
         routingAccuracy: 0,
         suggestions: ['Error analyzing routing effectiveness']
+      };
+    }
+  }
+
+  /**
+   * Get recent job errors for debugging
+   */
+  static async getJobErrors(limit: number = 20): Promise<{
+    errors: Array<{
+      id: string;
+      job_type: string;
+      processor_type: string;
+      repository_id: string;
+      error: string;
+      created_at: string;
+      metadata: any;
+    }>;
+    errorSummary: Record<string, number>;
+    topErrors: Array<{ error: string; count: number }>;
+  }> {
+    try {
+      const { data: failedJobs, error } = await supabase
+        .from('progressive_capture_jobs')
+        .select('*')
+        .eq('status', 'failed')
+        .not('error', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('[Monitoring] Database error fetching failed jobs:', error);
+        throw error;
+      }
+
+      if (!failedJobs || failedJobs.length === 0) {
+        return {
+          errors: [],
+          errorSummary: {},
+          topErrors: []
+        };
+      }
+
+      // Categorize errors
+      const errorSummary: Record<string, number> = {};
+      const errorCounts: Record<string, number> = {};
+
+      failedJobs.forEach(job => {
+        // Categorize by processor type
+        errorSummary[job.processor_type] = (errorSummary[job.processor_type] || 0) + 1;
+        
+        // Count specific errors
+        const errorMessage = typeof job.error === 'string' 
+          ? job.error 
+          : job.error 
+            ? JSON.stringify(job.error) 
+            : 'Unknown error';
+        const errorKey = errorMessage.substring(0, 100);
+        errorCounts[errorKey] = (errorCounts[errorKey] || 0) + 1;
+      });
+
+      // Get top errors
+      const topErrors = Object.entries(errorCounts)
+        .map(([error, count]) => ({ error, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      return {
+        errors: failedJobs.map(job => ({
+          id: job.id,
+          job_type: job.job_type,
+          processor_type: job.processor_type,
+          repository_id: job.repository_id,
+          error: job.error,
+          created_at: job.created_at,
+          metadata: job.metadata
+        })),
+        errorSummary,
+        topErrors
+      };
+    } catch (error) {
+      console.error('[Monitoring] Error fetching job errors:', error);
+      return {
+        errors: [],
+        errorSummary: {},
+        topErrors: []
       };
     }
   }
