@@ -57,7 +57,11 @@ class PRCommentsCaptureScript extends BaseCaptureScript {
     this.log(`Processing comments for PR #${pr.number}...`);
     
     try {
-      // Fetch issue comments (general PR comments)
+      // Fetch issue comments using REST API
+      // Note: This script intentionally uses REST API for comments.
+      // While GraphQL is available via hybridClient.getPRComments(),
+      // REST provides cleaner separation between comment types.
+      // See docs/data-fetching/api-strategy.md for details.
       const { data: issueComments } = await this.octokit.rest.issues.listComments({
         owner,
         repo,
