@@ -234,7 +234,7 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
     
     while (page <= 10) { // Limit to 10 pages (1000 PRs) for very active repositories
       // Check if we've reached the limit
-      if (limit && allPRs.length >= limit) {
+      if (limit !== undefined && allPRs.length >= limit) {
         break;
       }
       // In test environment, use direct fetch to maintain test compatibility

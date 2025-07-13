@@ -1,6 +1,7 @@
 import { RepositorySize } from '../validation/database-schemas';
 
 interface FetchMetrics {
+  fetchId: string;
   repository: string;
   size: RepositorySize | null;
   strategy: 'cache' | 'live' | 'partial' | 'emergency';
@@ -14,20 +15,23 @@ interface FetchMetrics {
 
 class FetchPerformanceTelemetry {
   private metrics: FetchMetrics[] = [];
-  private startTimes: Map<string, number> = new Map();
+  private startTimes: Map<string, { repository: string; startTime: number }> = new Map();
 
-  startFetch(repository: string): void {
-    this.startTimes.set(repository, Date.now());
+  startFetch(repository: string): string {
+    const fetchId = `${repository}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    this.startTimes.set(fetchId, { repository, startTime: Date.now() });
+    return fetchId;
   }
 
-  endFetch(metrics: Omit<FetchMetrics, 'duration'>): void {
-    const startTime = this.startTimes.get(metrics.repository);
-    if (!startTime) return;
+  endFetch(fetchId: string, metrics: Omit<FetchMetrics, 'duration' | 'fetchId'>): void {
+    const fetchData = this.startTimes.get(fetchId);
+    if (!fetchData) return;
 
-    const duration = Date.now() - startTime;
-    this.startTimes.delete(metrics.repository);
+    const duration = Date.now() - fetchData.startTime;
+    this.startTimes.delete(fetchId);
 
     const fullMetrics: FetchMetrics = {
+      fetchId,
       ...metrics,
       duration
     };
@@ -103,11 +107,12 @@ class FetchPerformanceTelemetry {
 export const fetchTelemetry = new FetchPerformanceTelemetry();
 
 // Helper functions for easy tracking
-export function trackFetchStart(repository: string): void {
-  fetchTelemetry.startFetch(repository);
+export function trackFetchStart(repository: string): string {
+  return fetchTelemetry.startFetch(repository);
 }
 
 export function trackFetchEnd(
+  fetchId: string,
   repository: string,
   size: RepositorySize | null,
   strategy: 'cache' | 'live' | 'partial' | 'emergency',
@@ -117,7 +122,7 @@ export function trackFetchEnd(
   cacheAge?: number,
   error?: string
 ): void {
-  fetchTelemetry.endFetch({
+  fetchTelemetry.endFetch(fetchId, {
     repository,
     size,
     strategy,

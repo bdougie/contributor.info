@@ -71,7 +71,7 @@ export function calculateDataCompleteness(prs: PullRequest[]): {
   prs.forEach(pr => {
     if (pr.reviews && pr.reviews.length > 0) withReviews++;
     if (pr.comments && pr.comments.length > 0) withComments++;
-    if (pr.additions > 0 || pr.deletions > 0 || pr.changed_files > 0) withDetails++;
+    if (pr.additions > 0 || pr.deletions > 0 || (pr.changed_files && pr.changed_files > 0)) withDetails++;
   });
   
   // Calculate completeness score

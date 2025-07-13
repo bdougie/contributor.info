@@ -12,7 +12,6 @@ import { getFetchStrategy, calculateFetchWindow, shouldUseCachedData } from './f
 import { RepositorySize } from './validation/database-schemas';
 import { inngest } from './inngest/client';
 import { trackFetchStart, trackFetchEnd } from './telemetry/fetch-performance';
-import { mergeProgressivePRData, identifyDataGaps } from './progressive-data-merge';
 
 interface TrackedRepositoryInfo {
   id: string;
@@ -32,12 +31,9 @@ export async function fetchPRDataWithSmartStrategy(
   timeRange: string = '30'
 ): Promise<DataResult<PullRequest[]>> {
   
-  let fallbackUsed = false;
-  let cacheHit = false;
-  let partialData = false;
   
   const repoName = `${owner}/${repo}`;
-  trackFetchStart(repoName);
+  const fetchId = trackFetchStart(repoName);
   
   return trackDatabaseOperation(
     'fetchPRDataWithSmartStrategy',
@@ -46,7 +42,7 @@ export async function fetchPRDataWithSmartStrategy(
       
       try {
         // Step 1: Get repository info including size classification
-        const { data: trackedRepo, error: trackedError } = await supabase
+        const { data: trackedRepo } = await supabase
           .from('tracked_repositories')
           .select('id, repository_id, size, priority, size_calculated_at')
           .eq('organization_name', owner)
@@ -56,12 +52,10 @@ export async function fetchPRDataWithSmartStrategy(
         // Get repository ID (fallback to repositories table if not tracked)
         let repositoryId: string | null = null;
         let repoSize: RepositorySize | null = null;
-        let repoPriority: 'high' | 'medium' | 'low' | null = null;
         
         if (trackedRepo) {
           repositoryId = trackedRepo.repository_id;
           repoSize = trackedRepo.size;
-          repoPriority = trackedRepo.priority;
           
           // Trigger classification if not done yet
           if (!repoSize && trackedRepo.id) {
@@ -72,11 +66,11 @@ export async function fetchPRDataWithSmartStrategy(
                 owner,
                 repo
               }
-            }).catch(() => {}); // Fire and forget
+            }).catch(err => console.error('Failed to enqueue classification job:', err)); // Fire and forget
           }
         } else {
           // Fallback to direct repository lookup
-          const { data: repoData, error: repoError } = await supabase
+          const { data: repoData } = await supabase
             .from('repositories')
             .select('id')
             .eq('owner', owner)
@@ -94,7 +88,6 @@ export async function fetchPRDataWithSmartStrategy(
 
         // Step 3: Try to get cached data first
         if (repositoryId) {
-          cacheHit = true;
           
           const { data: dbPRs, error: dbError } = await supabase
             .from('pull_requests')
@@ -167,11 +160,10 @@ export async function fetchPRDataWithSmartStrategy(
             if (shouldUseCachedData(cacheAge, strategy)) {
               // Cache is fresh enough - return it
               const cacheAgeHours = cacheAge ? (Date.now() - cacheAge.getTime()) / (1000 * 60 * 60) : undefined;
-              trackFetchEnd(repoName, repoSize, 'cache', transformedPRs.length, true, false, cacheAgeHours);
+              trackFetchEnd(fetchId, repoName, repoSize, 'cache', transformedPRs.length, true, false, cacheAgeHours);
               return createSuccessResult(transformedPRs);
             } else {
               // Cache is stale but we have some data
-              partialData = true;
               
               // For large/XL repos with stale cache, trigger background update
               if (strategy.triggerCapture && trackedRepo?.id) {
@@ -183,13 +175,13 @@ export async function fetchPRDataWithSmartStrategy(
                     priority: strategy.capturePriority,
                     reason: 'stale_cache'
                   }
-                }).catch(() => {});
+                }).catch(err => console.error('Failed to enqueue stale cache background sync:', err));
               }
               
               // Return partial data for XL repos to avoid rate limits
               if (repoSize === 'xl') {
                 const cacheAgeHours = cacheAge ? (Date.now() - cacheAge.getTime()) / (1000 * 60 * 60) : undefined;
-                trackFetchEnd(repoName, repoSize, 'partial', transformedPRs.length, true, true, cacheAgeHours);
+                trackFetchEnd(fetchId, repoName, repoSize, 'partial', transformedPRs.length, true, true, cacheAgeHours);
                 return createPartialDataResult(
                   `${owner}/${repo}`,
                   transformedPRs,
@@ -201,10 +193,9 @@ export async function fetchPRDataWithSmartStrategy(
         }
 
         // Step 4: Fetch live data based on strategy
-        fallbackUsed = true;
         
         // For XL repos with no cache, fetch minimal data
-        if (repoSize === 'xl' && !partialData) {
+        if (repoSize === 'xl') {
           const minimalPRs = await fetchPullRequests(
             owner, 
             repo, 
@@ -222,10 +213,10 @@ export async function fetchPRDataWithSmartStrategy(
                 priority: 'critical',
                 reason: 'no_cache_xl_repo'
               }
-            }).catch(() => {});
+            }).catch(err => console.error('Failed to enqueue background capture for XL repo:', err));
           }
           
-          trackFetchEnd(repoName, repoSize, 'partial', minimalPRs.length, false, true);
+          trackFetchEnd(fetchId, repoName, repoSize, 'partial', minimalPRs.length, false, true);
           return createPartialDataResult(
             `${owner}/${repo}`,
             minimalPRs,
@@ -251,10 +242,10 @@ export async function fetchPRDataWithSmartStrategy(
               priority: strategy.capturePriority,
               reason: 'partial_time_range'
             }
-          }).catch(() => {});
+          }).catch(err => console.error('Failed to enqueue partial time range background capture:', err));
         }
         
-        trackFetchEnd(repoName, repoSize, 'live', githubPRs.length, false, strategy.triggerCapture && effectiveDays < requestedDays);
+        trackFetchEnd(fetchId, repoName, repoSize, 'live', githubPRs.length, false, strategy.triggerCapture && effectiveDays < requestedDays);
         return createSuccessResult(githubPRs);
         
       } catch (error) {
@@ -307,7 +298,7 @@ export async function fetchPRDataWithSmartStrategy(
 
               if (emergencyData && emergencyData.length > 0) {
                 const emergencyPRs = transformDatabasePRs(emergencyData, owner, repo);
-                trackFetchEnd(repoName, null, 'emergency', emergencyPRs.length, true, false);
+                trackFetchEnd(fetchId, repoName, null, 'emergency', emergencyPRs.length, true, false);
                 return createPartialDataResult(
                   `${owner}/${repo}`,
                   emergencyPRs,
@@ -323,12 +314,10 @@ export async function fetchPRDataWithSmartStrategy(
         console.error('Data fetching error:', {
           repository: `${owner}/${repo}`,
           timeRange,
-          fallbackUsed,
-          cacheHit,
           error: error instanceof Error ? error.message : String(error)
         });
         
-        trackFetchEnd(repoName, null, 'emergency', 0, false, false, undefined, error instanceof Error ? error.message : 'Unknown error');
+        trackFetchEnd(fetchId, repoName, null, 'emergency', 0, false, false, undefined, error instanceof Error ? error.message : 'Unknown error');
         return createNoDataResult(`${owner}/${repo}`, []);
       }
     },
@@ -336,9 +325,7 @@ export async function fetchPRDataWithSmartStrategy(
       operation: 'fetch',
       table: 'pull_requests',
       repository: `${owner}/${repo}`,
-      fallbackUsed,
-      cacheHit,
-      partialData
+      timeRange: timeRange
     }
   );
 }
