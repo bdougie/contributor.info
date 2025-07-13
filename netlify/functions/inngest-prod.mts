@@ -3,8 +3,8 @@ import { Inngest } from "inngest";
 import { serve } from "inngest/lambda";
 import type { Context } from "@netlify/functions";
 
-// Import function creator for production client
-import { createCaptureRepositorySyncGraphQL } from "./inngest-prod-functions";
+// Import function creators for production client
+import { createCaptureRepositorySyncGraphQL, createClassifySingleRepository } from "./inngest-prod-functions";
 
 // Environment detection - treat deploy previews as production for signing
 const isProduction = () => {
@@ -80,14 +80,16 @@ const testFunction = inngest.createFunction(
 
 // Create production functions using our configured client
 const captureRepositorySyncGraphQL = createCaptureRepositorySyncGraphQL(inngest);
+const classifySingleRepository = createClassifySingleRepository(inngest);
 
 // Create the serve handler
 const inngestHandler = serve({
   client: inngest,
   functions: [
     testFunction,
-    // For now, just include the GraphQL sync function that matches your event
-    captureRepositorySyncGraphQL
+    // Include both GraphQL sync and classification functions
+    captureRepositorySyncGraphQL,
+    classifySingleRepository
   ],
   servePath: "/.netlify/functions/inngest-prod"
 });
@@ -117,11 +119,16 @@ export default async (req: Request, context: Context) => {
         {
           id: "capture-repository-sync-graphql",
           event: "capture/repository.sync.graphql"
+        },
+        {
+          id: "classify-single-repository",
+          event: "classify/repository.single"
         }
       ],
       usage: {
         testEvent: 'Send: { "name": "test/prod.hello", "data": { "message": "Hello!" } }',
-        syncEvent: 'Send: { "name": "capture/repository.sync.graphql", "data": { "repositoryId": "123", "days": 30 } }'
+        syncEvent: 'Send: { "name": "capture/repository.sync.graphql", "data": { "repositoryId": "123", "days": 30 } }',
+        classifyEvent: 'Send: { "name": "classify/repository.single", "data": { "repositoryId": "123", "owner": "owner", "repo": "repo" } }'
       }
     }, null, 2), {
       status: 200,
