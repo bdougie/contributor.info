@@ -19,7 +19,7 @@
 # Redirect GitHub webhook to function
 [[redirects]]
   from = "/api/github/webhook"
-  to = "/.netlify/functions/github-webhook"
+  to = "/.netlify/functions/github-webhook-simple"
   status = 200
   force = true
 
