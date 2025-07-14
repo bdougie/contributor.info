@@ -5,18 +5,19 @@ interface ExampleReposProps {
 }
 
 export function ExampleRepos({ onSelect }: ExampleReposProps) {
-  // Prioritized list - add new repos here in order of importance
+  // Prioritized list showcasing size diversity - ordered by demonstration value
   const examples = [
-    // Priority demos
-    "continuedev/continue",    // AI code assistant - primary demo
-    "vitejs/vite",            // Popular frontend tooling
-    "facebook/react",         // Well-known library
+    // Medium repositories - ideal for demos
+    "continuedev/continue",    // Medium: AI code assistant (TypeScript) - primary demo
+    "argoproj/argo-cd",       // Medium: DevOps tool (Go) - shows enterprise usage
+    "pgvector/pgvector",      // Medium: Vector search (C) - AI/ML context
     
-    // Large scale projects (use with caution)
-    "kubernetes/kubernetes",   // Protected from resource exhaustion
-    "etcd-io/etcd",           // Distributed systems example
+    // Large repositories - performance examples
+    "vitejs/vite",            // Large: Frontend tooling (TypeScript) - very popular
+    "etcd-io/etcd",           // Large: Distributed systems (Go) - infrastructure
     
-    // Add new demo repos here as needed
+    // Well-known projects across different sizes
+    "better-auth/better-auth", // Medium: Auth framework (TypeScript) - modern tooling
   ];
 
   return (
