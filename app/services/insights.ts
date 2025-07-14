@@ -142,10 +142,13 @@ async function getContributorExpertise(contributorId: string): Promise<string[]>
     'documentation',
   ];
 
-  // Return random 3 areas for demo
-  return expertiseAreas
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 3);
+  // Use Fisher-Yates shuffle for proper randomization
+  const shuffled = [...expertiseAreas];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.slice(0, 3);
 }
 
 /**
@@ -155,7 +158,15 @@ function calculateActiveHours(prs: any[]): string {
   if (prs.length === 0) return 'Unknown';
 
   // Analyze PR creation times to find patterns
-  const hours = prs.map(pr => new Date(pr.created_at).getHours());
+  const hours = prs
+    .filter(pr => pr.created_at)
+    .map(pr => {
+      const date = new Date(pr.created_at);
+      return isNaN(date.getTime()) ? null : date.getHours();
+    })
+    .filter(hour => hour !== null) as number[];
+  
+  if (hours.length === 0) return 'Unknown';
   
   // Find most common hour range
   const hourCounts = new Map<number, number>();

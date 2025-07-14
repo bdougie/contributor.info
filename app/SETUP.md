@@ -136,9 +136,9 @@ The webhook handler is already configured as a Netlify Function at:
 
    **Required Variables:**
    ```
-   GITHUB_APP_ID = your_app_id_here
-   GITHUB_APP_PRIVATE_KEY = your_base64_encoded_private_key
-   GITHUB_APP_WEBHOOK_SECRET = your_webhook_secret_here
+   GITHUB_APP_ID=your_app_id_here
+   GITHUB_APP_PRIVATE_KEY=your_base64_encoded_private_key
+   GITHUB_APP_WEBHOOK_SECRET=your_webhook_secret_here
    ```
 
    **Optional Variables (for future OAuth flow):**

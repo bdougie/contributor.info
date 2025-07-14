@@ -260,7 +260,7 @@ async function checkIfClosedByPR(issue: any, repository: any) {
       .from('pull_requests')
       .select('*')
       .eq('repository_id', repository.id)
-      .or(`title.ilike.%#${issue.number}%,body.ilike.%#${issue.number}%`)
+      .or(`title.ilike.*#${issue.number}*,body.ilike.*#${issue.number}*`)
       .eq('state', 'closed');
 
     if (linkedPRs && linkedPRs.length > 0) {

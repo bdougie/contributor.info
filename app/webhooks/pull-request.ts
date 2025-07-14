@@ -170,6 +170,7 @@ async function storePRInsights(data: {
       .from('pr_insights')
       .upsert({
         pull_request_id: pr.id,
+        github_pr_id: data.pullRequest.id,
         contributor_stats: data.contributorInsights,
         suggested_reviewers: data.reviewerSuggestions,
         similar_issues: data.similarIssues,

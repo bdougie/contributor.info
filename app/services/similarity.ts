@@ -49,7 +49,7 @@ export async function findSimilarIssues(
         
         githubIssues = data.filter(issue => !issue.pull_request);
       } catch (error) {
-        console.log('Could not fetch issues from GitHub:', error);
+        console.error('Could not fetch issues from GitHub:', error);
       }
     }
 
