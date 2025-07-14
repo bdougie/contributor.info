@@ -1,5 +1,17 @@
 # Testing the GitHub App Webhook
 
+## Important: Deploy Preview vs Production
+
+If you're testing from a **deploy preview**:
+1. Use the deploy preview URL (e.g., `https://deploy-preview-123--contributor-info.netlify.app`)
+2. Functions are NOT available at the production domain during preview
+3. Update your GitHub App webhook URL to the deploy preview URL for testing
+4. Environment variables must be set for "All deploy contexts" in Netlify
+
+For **production** testing:
+1. Merge to main branch first
+2. Use the production URL: `https://contributor.info`
+
 ## 1. Test the Webhook Endpoint
 
 Visit this URL in your browser:
