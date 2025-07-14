@@ -144,10 +144,10 @@ async function getJobStatistics() {
     
     console.log('Overall:');
     console.log(`  Total jobs: ${total}`);
-    console.log(`  Completed: ${completed} (${((completed/total)*100).toFixed(1)}%)`);
-    console.log(`  Failed: ${failed} (${((failed/total)*100).toFixed(1)}%)`);
-    console.log(`  Processing: ${processing} (${((processing/total)*100).toFixed(1)}%)`);
-    console.log(`  Pending: ${pending} (${((pending/total)*100).toFixed(1)}%)`);
+    console.log(`  Completed: ${completed} (${total ? ((completed/total)*100).toFixed(1) : '0.0'}%)`);
+    console.log(`  Failed: ${failed} (${total ? ((failed/total)*100).toFixed(1) : '0.0'}%)`);
+    console.log(`  Processing: ${processing} (${total ? ((processing/total)*100).toFixed(1) : '0.0'}%)`);
+    console.log(`  Pending: ${pending} (${total ? ((pending/total)*100).toFixed(1) : '0.0'}%)`);
     
     // Display by processor
     console.log('\nBy processor:');
@@ -163,8 +163,8 @@ async function getJobStatistics() {
     
     // Calculate error rate
     if (total > 0) {
-      const errorRate = ((failed / total) * 100).toFixed(1);
-      const successRate = ((completed / total) * 100).toFixed(1);
+      const errorRate = total ? ((failed / total) * 100).toFixed(1) : '0.0';
+      const successRate = total ? ((completed / total) * 100).toFixed(1) : '0.0';
       
       console.log('\n📈 Key Metrics:');
       console.log(`  Success rate: ${successRate}%`);

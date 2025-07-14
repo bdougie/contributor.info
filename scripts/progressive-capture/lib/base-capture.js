@@ -143,8 +143,8 @@ export class BaseCaptureScript {
         }
       }
       
-      // Exit with error code
-      process.exit(1);
+      // Re-throw the error to let the caller handle it
+      throw error;
     }
   }
 

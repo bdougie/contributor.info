@@ -145,6 +145,8 @@ export class ProgressTracker {
   }
 
   async updateJobStatus(status, error = null) {
+    // TODO: Refactor to use JobStatusReporter from src/lib/progressive-capture/job-status-reporter.ts
+    // This would require converting these scripts to TypeScript or creating a shared JavaScript module
     try {
       const updateData = {
         status,

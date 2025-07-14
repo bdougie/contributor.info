@@ -67,22 +67,29 @@ async function markStuckJobsAsFailed() {
       const batch = stuckJobs.slice(i, i + batchSize);
       const jobIds = batch.map(job => job.id);
       
-      const { error: updateError } = await supabase
-        .from('progressive_capture_jobs')
-        .update({
-          status: 'failed',
-          error: 'Job timed out - marked as failed by fix-stuck-jobs script',
-          completed_at: new Date().toISOString(),
-          metadata: supabase.rpc('jsonb_merge', {
-            target: 'metadata',
-            source: JSON.stringify({ 
-              fixed_by_script: true,
-              fixed_at: new Date().toISOString(),
-              original_duration_hours: Math.floor((Date.now() - new Date(batch[0].started_at).getTime()) / (1000 * 60 * 60))
-            })
+      // Merge metadata properly
+      const updatedMetadata = batch.map(job => ({
+        ...job.metadata,
+        fixed_by_script: true,
+        fixed_at: new Date().toISOString(),
+        original_duration_hours: Math.floor((Date.now() - new Date(job.started_at).getTime()) / (1000 * 60 * 60))
+      }));
+      
+      // Update each job with its merged metadata
+      const updatePromises = batch.map((job, index) => 
+        supabase
+          .from('progressive_capture_jobs')
+          .update({
+            status: 'failed',
+            error: 'Job timed out - marked as failed by fix-stuck-jobs script',
+            completed_at: new Date().toISOString(),
+            metadata: updatedMetadata[index]
           })
-        })
-        .in('id', jobIds);
+          .eq('id', job.id)
+      );
+      
+      const results = await Promise.all(updatePromises);
+      const updateError = results.find(result => result.error)?.error;
       
       if (updateError) {
         console.error(`❌ Error updating batch ${i / batchSize + 1}:`, updateError);
