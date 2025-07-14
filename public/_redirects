@@ -1,1 +1,8 @@
+# API routes - must come first
+/api/hello /.netlify/functions/hello 200
+/api/github/webhook /.netlify/functions/github-webhook-simple 200
+/api/github/webhook-test /.netlify/functions/github-webhook-test 200
+/api/github/callback /.netlify/functions/github-callback 200
+
+# SPA fallback - must come last
 /* /index.html 200
