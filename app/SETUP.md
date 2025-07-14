@@ -237,3 +237,25 @@ After deployment, update your GitHub App settings:
 2. Check App ID is correct
 3. Ensure private key hasn't expired
 4. Verify installation ID is valid
+
+### Environment Variable Size Limit (4KB Error)
+
+If you encounter "Your environment variables exceed the 4KB limit" error, use Netlify Blobs:
+
+1. First, add an admin key to your Netlify environment variables:
+   - Add `ADMIN_KEY` with a secure random value
+
+2. Deploy your site with the new functions
+
+3. Upload your private key to Netlify Blobs:
+   ```bash
+   export ADMIN_KEY=your-admin-key-value
+   ./scripts/upload-private-key.sh ~/Downloads/contributor-info.*.pem
+   ```
+
+4. Verify by visiting `/api/github/webhook-test` - you should see:
+   ```json
+   "hasPrivateKeyInBlob": true
+   ```
+
+This approach stores the private key in Netlify Blobs, avoiding the 4KB environment variable limit entirely.

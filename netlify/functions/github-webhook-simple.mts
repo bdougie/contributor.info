@@ -1,5 +1,6 @@
 import type { Handler } from '@netlify/functions';
 import crypto from 'crypto';
+import { getPrivateKey } from './utils/get-private-key.mjs';
 
 /**
  * Simplified GitHub webhook handler for debugging
@@ -7,28 +8,7 @@ import crypto from 'crypto';
  */
 export const handler: Handler = async (event) => {
   // Get private key from various sources
-  let privateKey: string | undefined;
-  
-  // Try split key parts first
-  if (process.env.GITHUB_PEM_PART1) {
-    const keyParts = [
-      process.env.GITHUB_PEM_PART1,
-      process.env.GITHUB_PEM_PART2,
-      process.env.GITHUB_PEM_PART3,
-      process.env.GITHUB_PEM_PART4,
-      process.env.GITHUB_PEM_PART5
-    ].filter(Boolean);
-    
-    privateKey = keyParts.join('').replace(/\\n/g, '\n');
-  } 
-  // Fall back to encoded format
-  else if (process.env.GITHUB_APP_PRIVATE_KEY_ENCODED) {
-    privateKey = process.env.GITHUB_APP_PRIVATE_KEY_ENCODED.replace(/\\n/g, '\n');
-  }
-  // Fall back to regular format
-  else {
-    privateKey = process.env.GITHUB_APP_PRIVATE_KEY;
-  }
+  const privateKey = await getPrivateKey();
 
   console.log('Webhook received:', {
     method: event.httpMethod,
