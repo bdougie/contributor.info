@@ -82,6 +82,13 @@ function getPrivateKey(): string {
     return Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY_ENCODED, 'base64').toString();
   }
   
+  // Try base64 format (single line without headers)
+  if (process.env.GITHUB_APP_PRIVATE_KEY_BASE64) {
+    const keyContent = process.env.GITHUB_APP_PRIVATE_KEY_BASE64;
+    // Reconstruct the PEM format
+    return `-----BEGIN RSA PRIVATE KEY-----\n${keyContent.match(/.{1,64}/g)?.join('\n')}\n-----END RSA PRIVATE KEY-----`;
+  }
+  
   // Try regular base64 format
   if (process.env.GITHUB_APP_PRIVATE_KEY) {
     return Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY, 'base64').toString();

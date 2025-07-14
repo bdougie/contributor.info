@@ -40,6 +40,14 @@ export async function getPrivateKey(): Promise<string | undefined> {
     return process.env.GITHUB_APP_PRIVATE_KEY_ENCODED.replace(/\\n/g, '\n');
   }
   
+  // Try base64 format (single line without headers)
+  if (process.env.GITHUB_APP_PRIVATE_KEY_BASE64) {
+    console.log('Using private key from GITHUB_APP_PRIVATE_KEY_BASE64');
+    const keyContent = process.env.GITHUB_APP_PRIVATE_KEY_BASE64;
+    // Reconstruct the PEM format
+    return `-----BEGIN RSA PRIVATE KEY-----\n${keyContent.match(/.{1,64}/g)?.join('\n')}\n-----END RSA PRIVATE KEY-----`;
+  }
+  
   // Try regular format
   if (process.env.GITHUB_APP_PRIVATE_KEY) {
     console.log('Using private key from GITHUB_APP_PRIVATE_KEY');
@@ -83,6 +91,7 @@ export async function hasPrivateKey(): Promise<{
     hasSplitKey: splitKeyParts > 0,
     splitKeyParts,
     hasEncodedKey: !!process.env.GITHUB_APP_PRIVATE_KEY_ENCODED,
-    hasRegularKey: !!process.env.GITHUB_APP_PRIVATE_KEY
+    hasRegularKey: !!process.env.GITHUB_APP_PRIVATE_KEY,
+    hasBase64Key: !!process.env.GITHUB_APP_PRIVATE_KEY_BASE64
   };
 }

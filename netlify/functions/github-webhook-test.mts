@@ -13,6 +13,7 @@ export const handler: Handler = async (event) => {
     hasAppId: !!process.env.GITHUB_APP_ID,
     hasPrivateKey: privateKeyStatus.hasRegularKey,
     hasPrivateKeyEncoded: privateKeyStatus.hasEncodedKey,
+    hasPrivateKeyBase64: privateKeyStatus.hasBase64Key,
     hasSplitKey: privateKeyStatus.hasSplitKey,
     splitKeyParts: privateKeyStatus.splitKeyParts,
     hasPrivateKeyInBlob: privateKeyStatus.hasBlob,
