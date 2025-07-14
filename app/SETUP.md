@@ -128,6 +128,8 @@ The webhook handler is already configured as a Netlify Function at:
 
 ### Environment Variables in Netlify
 
+⚠️ **IMPORTANT**: Due to Netlify's 4KB limit on function environment variables, you MUST add these at the **site level**, not the function level.
+
 1. Go to your Netlify site dashboard
 2. Navigate to **Site settings** → **Environment variables**
 3. Add the following variables (click "Add a variable" for each):
@@ -148,6 +150,7 @@ The webhook handler is already configured as a Netlify Function at:
 4. For the private key:
    - Copy your base64-encoded key: `base64 -i private-key.pem | tr -d '\n' | pbcopy`
    - Paste the single-line result as the value
+   - Note: The base64 key will be ~2.3KB. If you get a "4KB limit exceeded" error, see TROUBLESHOOTING.md
 
 5. Deploy your site:
    ```bash

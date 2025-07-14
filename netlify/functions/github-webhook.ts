@@ -1,9 +1,19 @@
 import type { Handler } from '@netlify/functions';
 import crypto from 'crypto';
 
+// Import with .js extension for ESM compatibility
+const ENV_CONFIG = {
+  app_id: process.env.GITHUB_APP_ID || '',
+  private_key: process.env.GITHUB_APP_PRIVATE_KEY ? 
+    Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY, 'base64').toString() : '',
+  webhook_secret: process.env.GITHUB_APP_WEBHOOK_SECRET || '',
+  client_id: process.env.GITHUB_APP_CLIENT_ID || '',
+  client_secret: process.env.GITHUB_APP_CLIENT_SECRET || '',
+};
+
 /**
  * GitHub webhook handler for Netlify Functions
- * Receives webhook events from GitHub and processes them
+ * Receives webhook events from GitHub and routes them to appropriate handlers
  */
 export const handler: Handler = async (event) => {
   // Only handle POST requests
@@ -14,23 +24,12 @@ export const handler: Handler = async (event) => {
     };
   }
 
-  // Log environment check (without exposing the actual private key)
-  console.log('GitHub App webhook received');
-  console.log('Environment check:', {
-    hasAppId: !!process.env.GITHUB_APP_ID,
-    hasPrivateKey: !!process.env.GITHUB_APP_PRIVATE_KEY,
-    privateKeyLength: process.env.GITHUB_APP_PRIVATE_KEY?.length || 0,
-    hasWebhookSecret: !!process.env.GITHUB_APP_WEBHOOK_SECRET,
-  });
-
   try {
     // Verify webhook signature
     const signature = event.headers['x-hub-signature-256'];
     const eventType = event.headers['x-github-event'];
-    const deliveryId = event.headers['x-github-delivery'];
     
     if (!signature || !eventType) {
-      console.error('Missing required headers');
       return {
         statusCode: 400,
         body: JSON.stringify({ error: 'Missing required headers' }),
@@ -38,12 +37,7 @@ export const handler: Handler = async (event) => {
     }
 
     // Verify the webhook payload
-    const isValid = verifyWebhookSignature(
-      event.body || '', 
-      signature,
-      process.env.GITHUB_APP_WEBHOOK_SECRET || ''
-    );
-    
+    const isValid = verifyWebhookSignature(event.body || '', signature);
     if (!isValid) {
       console.error('Invalid webhook signature');
       return {
@@ -55,37 +49,38 @@ export const handler: Handler = async (event) => {
     const payload = JSON.parse(event.body || '{}');
     
     // Log webhook receipt
-    console.log({
-      event: eventType,
-      delivery: deliveryId,
-      repository: payload.repository?.full_name || 'unknown',
-      action: payload.action,
-      installation: payload.installation?.id,
+    console.log(`Received ${eventType} webhook for ${payload.repository?.full_name || 'unknown repo'}`);
+
+    // Queue the event for async processing
+    await inngest.send({
+      name: 'github.webhook.received',
+      data: {
+        event: eventType,
+        payload,
+        installation_id: payload.installation?.id,
+        repository: payload.repository?.full_name,
+      },
     });
 
-    // For now, just acknowledge receipt
-    // TODO: Process events asynchronously via queue
-    
+    // Route to appropriate handler based on event type
     switch (eventType) {
-      case 'ping':
-        console.log('GitHub App ping received');
-        return {
-          statusCode: 200,
-          body: JSON.stringify({ message: 'Pong!' }),
-        };
-        
-      case 'installation':
-        console.log(`Installation ${payload.action}:`, payload.installation?.account?.login);
-        break;
-        
       case 'pull_request':
-        console.log(`PR ${payload.action}:`, `#${payload.pull_request?.number}`);
+        await handlePullRequestEvent(payload);
         break;
         
       case 'issues':
-        console.log(`Issue ${payload.action}:`, `#${payload.issue?.number}`);
+        await handleIssuesEvent(payload);
         break;
         
+      case 'installation':
+        await handleInstallationEvent(payload);
+        break;
+        
+      case 'installation_repositories':
+        await handleInstallationRepositoriesEvent(payload);
+        break;
+        
+      // Add more event handlers as needed
       default:
         console.log(`Unhandled event type: ${eventType}`);
     }
@@ -93,11 +88,7 @@ export const handler: Handler = async (event) => {
     // Return success immediately (process async)
     return {
       statusCode: 200,
-      body: JSON.stringify({ 
-        message: 'Webhook received',
-        event: eventType,
-        delivery: deliveryId,
-      }),
+      body: JSON.stringify({ message: 'Webhook received' }),
     };
     
   } catch (error) {
@@ -117,13 +108,13 @@ export const handler: Handler = async (event) => {
 /**
  * Verify GitHub webhook signature
  */
-function verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
-  if (!secret) {
+function verifyWebhookSignature(payload: string, signature: string): boolean {
+  if (!ENV_CONFIG.webhook_secret) {
     console.warn('No webhook secret configured');
     return false;
   }
 
-  const hmac = crypto.createHmac('sha256', secret);
+  const hmac = crypto.createHmac('sha256', ENV_CONFIG.webhook_secret);
   const digest = `sha256=${hmac.update(payload).digest('hex')}`;
   
   // Use timingSafeEqual to prevent timing attacks
