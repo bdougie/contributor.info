@@ -15,6 +15,9 @@ export class ProgressTracker {
     this.totalItems = totalItems;
     
     try {
+      // First update job status to processing
+      await this.updateJobStatus('processing');
+      
       // Create progress record in database
       const { data: progress, error } = await this.supabase
         .from('progressive_capture_progress')
@@ -31,12 +34,18 @@ export class ProgressTracker {
 
       if (error) {
         console.error('Failed to create progress record:', error);
+        console.error('Job ID:', this.jobId);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        // Don't fail the job, but log warning
+        console.warn('Continuing without progress tracking');
       } else {
         this.progressId = progress.id;
-        console.log(`Progress tracking started for job ${this.jobId}`);
+        console.log(`Progress tracking started for job ${this.jobId} with progress ID ${this.progressId}`);
       }
     } catch (error) {
       console.error('Failed to start progress tracking:', error);
+      // Don't fail the job, but log warning
+      console.warn('Continuing without progress tracking');
     }
   }
 
@@ -148,13 +157,22 @@ export class ProgressTracker {
         updateData.error = error;
       }
 
-      await this.supabase
+      const { error: updateError } = await this.supabase
         .from('progressive_capture_jobs')
         .update(updateData)
         .eq('id', this.jobId);
         
+      if (updateError) {
+        console.error(`Failed to update job ${this.jobId} to status ${status}:`, updateError);
+        throw updateError;
+      }
+      
+      console.log(`Successfully updated job ${this.jobId} to status: ${status}`);
+      
     } catch (error) {
       console.error('Failed to update job status:', error);
+      // Re-throw to ensure calling code knows the update failed
+      throw error;
     }
   }
 
