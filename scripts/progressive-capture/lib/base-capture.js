@@ -49,8 +49,15 @@ export class BaseCaptureScript {
   }
 
   async run() {
+    let jobCompleted = false;
     try {
       console.log(`Starting ${this.constructor.name} for repository ${this.repositoryName}`);
+      console.log(`Job ID: ${this.jobId}`);
+      
+      // Validate job ID
+      if (!this.jobId) {
+        throw new Error('Job ID is required but not provided');
+      }
       
       await this.progressTracker.start(this.getTotalItems());
       
@@ -78,7 +85,9 @@ export class BaseCaptureScript {
         }
       }
       
+      // Mark job as completed
       await this.progressTracker.complete();
+      jobCompleted = true;
       
       console.log(`Completed: ${processed} processed, ${failed} failed`);
       
@@ -123,7 +132,18 @@ export class BaseCaptureScript {
       
     } catch (error) {
       console.error('Script execution failed:', error);
-      await this.progressTracker.fail(error);
+      console.error('Error stack:', error.stack);
+      
+      // Only mark as failed if job wasn't already completed
+      if (!jobCompleted) {
+        try {
+          await this.progressTracker.fail(error);
+        } catch (failError) {
+          console.error('Failed to mark job as failed:', failError);
+        }
+      }
+      
+      // Re-throw the error to let the caller handle it
       throw error;
     }
   }
