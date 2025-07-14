@@ -16,24 +16,22 @@
 [functions.github-webhook]
   node_bundler = "esbuild"
 
-# Redirect GitHub webhook to function
+# Specific API routes (these must come first)
 [[redirects]]
   from = "/api/github/webhook"
   to = "/.netlify/functions/github-webhook-simple"
   status = 200
   force = true
 
-# Redirect GitHub OAuth callback to function (for future use)
-[[redirects]]
-  from = "/api/github/callback"
-  to = "/.netlify/functions/github-callback"
-  status = 200
-  force = true
-
-# Test endpoint for webhook
 [[redirects]]
   from = "/api/github/webhook-test"
   to = "/.netlify/functions/github-webhook-test"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/github/callback"
+  to = "/.netlify/functions/github-callback"
   status = 200
   force = true
 
