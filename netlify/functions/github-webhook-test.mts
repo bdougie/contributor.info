@@ -8,6 +8,7 @@ export const handler: Handler = async (event) => {
   const environment = {
     hasAppId: !!process.env.GITHUB_APP_ID,
     hasPrivateKey: !!process.env.GITHUB_APP_PRIVATE_KEY,
+    hasPrivateKeyEncoded: !!process.env.GITHUB_APP_PRIVATE_KEY_ENCODED,
     hasWebhookSecret: !!process.env.GITHUB_APP_WEBHOOK_SECRET,
     hasClientId: !!process.env.GITHUB_APP_CLIENT_ID,
     hasClientSecret: !!process.env.GITHUB_APP_CLIENT_SECRET,

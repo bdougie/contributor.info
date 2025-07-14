@@ -18,6 +18,12 @@
 
 # Specific API routes (these must come first)
 [[redirects]]
+  from = "/api/hello"
+  to = "/.netlify/functions/hello"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/github/webhook"
   to = "/.netlify/functions/github-webhook-simple"
   status = 200

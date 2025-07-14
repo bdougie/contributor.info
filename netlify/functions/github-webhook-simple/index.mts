@@ -1,1 +1,0 @@
-export { handler } from '../github-webhook-simple.mts';
