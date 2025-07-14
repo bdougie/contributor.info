@@ -2,6 +2,16 @@
 
 This document outlines the recommended Row Level Security policies for the Contributor.info database schema.
 
+## Changelog
+
+### January 2025 - Security Advisory Fixes
+- Enabled RLS on `rate_limit_tracking`, `data_capture_queue`, and `commits` tables
+- Added appropriate access policies following existing patterns:
+  - `rate_limit_tracking`: Public read access, service role management
+  - `data_capture_queue`: Service role only (internal queue)
+  - `commits`: Public read, authenticated write, service role delete
+- Resolved security advisories identified by Supabase linter
+
 ## Overview
 
 Row Level Security (RLS) provides fine-grained access control at the database level. For Contributor.info, we need policies that:
@@ -567,6 +577,40 @@ ON sync_logs FOR ALL TO service_role USING (true) WITH CHECK (true);
 -- Optional: Allow authenticated users to read sync logs
 CREATE POLICY "Authenticated users can read sync_logs"
 ON sync_logs FOR SELECT TO authenticated USING (true);
+
+-- =====================================================
+-- ADDITIONAL TABLES (Added Jan 2025)
+-- =====================================================
+
+-- Rate Limit Tracking
+ALTER TABLE rate_limit_tracking ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "public_read_rate_limit_tracking"
+ON rate_limit_tracking FOR SELECT USING (true);
+
+CREATE POLICY "service_manage_rate_limit_tracking"
+ON rate_limit_tracking FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- Data Capture Queue (Internal use only)
+ALTER TABLE data_capture_queue ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "service_manage_data_capture_queue"
+ON data_capture_queue FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- Commits
+ALTER TABLE commits ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "public_read_commits"
+ON commits FOR SELECT USING (true);
+
+CREATE POLICY "auth_insert_commits"
+ON commits FOR INSERT TO authenticated WITH CHECK (true);
+
+CREATE POLICY "auth_update_commits"
+ON commits FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "service_delete_commits"
+ON commits FOR DELETE TO service_role USING (true);
 ```
 
 ## Testing RLS Policies
