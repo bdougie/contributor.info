@@ -266,6 +266,35 @@ WHERE j.completed_at IS NOT NULL
 GROUP BY t.size;
 ```
 
+### Command-Line Monitoring Tools
+
+The system includes several command-line tools for monitoring and maintenance:
+
+#### 1. Monitor Stuck Jobs
+```bash
+node scripts/progressive-capture/monitor-stuck-jobs.js
+```
+- Shows all jobs stuck in "processing" state for >1 hour
+- Displays job statistics for the last 24 hours
+- Calculates error rates and success metrics
+
+#### 2. Fix Stuck Jobs
+```bash
+node scripts/progressive-capture/fix-stuck-jobs.js
+```
+- Interactive tool to fix stuck jobs
+- Options to mark stuck jobs as failed
+- Creates monitoring records for tracking
+- Cleans up orphaned progress records
+
+#### 3. Test Job Completion
+```bash
+node scripts/progressive-capture/test-job-completion.js
+```
+- Tests the job completion pipeline
+- Verifies progress tracking works correctly
+- Useful for debugging job lifecycle issues
+
 ### Export Capabilities
 
 Export monitoring data for analysis:
