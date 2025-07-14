@@ -11,6 +11,27 @@ The Smart Data Fetching system is a sophisticated data pipeline that ensures all
 ### 🎯 [Implementation Status](./implementation-status.md) **NEW**
 Complete project status summary showing all 6 phases completed, success metrics achieved, and future opportunities.
 
+### 🔧 [Hybrid Rollout Configuration](./hybrid-rollout-configuration.md) **NEW**
+Complete guide to the hybrid data fetching rollout system:
+- Current 25% rollout status and configuration
+- Managing rollout with console commands
+- Routing logic between Inngest and GitHub Actions
+- Monitoring and scaling procedures
+
+### 🐛 [Inngest Troubleshooting](./inngest-troubleshooting.md) **NEW**
+Comprehensive troubleshooting guide for Inngest issues:
+- Common problems and solutions
+- Debugging tools and scripts
+- Local vs production configuration
+- Emergency procedures
+
+### 📋 [Rollout Quick Reference](./rollout-quick-reference.md) **NEW**
+Quick command reference for rollout management:
+- Console commands cheat sheet
+- Test commands and monitoring
+- Emergency procedures
+- Key metrics and targets
+
 ### 📋 [Phase 3 & 4 Summary](./PHASE3-PHASE4-SUMMARY.md)
 Executive summary of the Smart Data Fetching implementation, covering both Phase 3 (Smart Data Fetching Logic) and Phase 4 (Background Capture Optimization).
 

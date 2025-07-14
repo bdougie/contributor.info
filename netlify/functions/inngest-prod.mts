@@ -6,6 +6,16 @@ import type { Context } from "@netlify/functions";
 // Import function creators for production client
 import { createCaptureRepositorySyncGraphQL, createClassifySingleRepository } from "./inngest-prod-functions";
 
+// Import all capture functions from the main library
+import {
+  capturePrDetails,
+  capturePrReviews,
+  capturePrComments,
+  captureRepositorySync,
+  capturePrDetailsGraphQL,
+  classifyRepositorySize
+} from "../../src/lib/inngest/functions";
+
 // Environment detection - treat deploy previews as production for signing
 const isProduction = () => {
   const context = process.env.CONTEXT;
@@ -87,9 +97,17 @@ const inngestHandler = serve({
   client: inngest,
   functions: [
     testFunction,
-    // Include both GraphQL sync and classification functions
+    // GraphQL functions (preferred)
     captureRepositorySyncGraphQL,
-    classifySingleRepository
+    capturePrDetailsGraphQL,
+    // REST functions
+    capturePrDetails,
+    capturePrReviews,
+    capturePrComments,
+    captureRepositorySync,
+    // Classification functions
+    classifySingleRepository,
+    classifyRepositorySize
   ],
   servePath: "/.netlify/functions/inngest-prod"
 });
@@ -112,18 +130,15 @@ export default async (req: Request, context: Context) => {
         hasSigningKey: !!getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
       },
       functions: [
-        {
-          id: "prod-test-function",
-          event: "test/prod.hello"
-        },
-        {
-          id: "capture-repository-sync-graphql",
-          event: "capture/repository.sync.graphql"
-        },
-        {
-          id: "classify-single-repository",
-          event: "classify/repository.single"
-        }
+        { id: "prod-test-function", event: "test/prod.hello" },
+        { id: "capture-repository-sync-graphql", event: "capture/repository.sync.graphql" },
+        { id: "capture-pr-details-graphql", event: "capture/pr.details.graphql" },
+        { id: "capture-pr-details", event: "capture/pr.details" },
+        { id: "capture-pr-reviews", event: "capture/pr.reviews" },
+        { id: "capture-pr-comments", event: "capture/pr.comments" },
+        { id: "capture-repository-sync", event: "capture/repository.sync" },
+        { id: "classify-single-repository", event: "classify/repository.single" },
+        { id: "classify-repository-size", event: "classify/repository.size" }
       ],
       usage: {
         testEvent: 'Send: { "name": "test/prod.hello", "data": { "message": "Hello!" } }',
