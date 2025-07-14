@@ -44,6 +44,9 @@ export interface RolloutConsole {
   
   // Help
   help(): void;
+  
+  // Utility
+  clearCache(): void;
 }
 
 class RolloutConsoleManager implements RolloutConsole {
@@ -636,12 +639,43 @@ ROLLBACK PROCEDURES:
   rollout.enableAutoRollback()        - Enable automatic rollback
   rollout.disableAutoRollback()       - Disable automatic rollback
 
+UTILITIES:
+  rollout.clearCache()                - Clear browser cache and reload
+
 EXAMPLES:
   rollout.setRollout(10)              - Start with 10% rollout
   rollout.addToWhitelist(['repo-id']) - Add test repository
   rollout.emergencyStop('High errors')- Emergency stop with reason
   rollout.checkHealth()               - Check if rollback needed
     `);
+  }
+
+  /**
+   * Clear browser cache and reload
+   */
+  clearCache(): void {
+    console.log('🧹 Clearing browser cache...');
+    try {
+      // Clear localStorage
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.clear();
+        console.log('✅ localStorage cleared');
+      }
+      
+      // Clear sessionStorage
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        sessionStorage.clear();
+        console.log('✅ sessionStorage cleared');
+      }
+      
+      console.log('🔄 Reloading page...');
+      // Small delay to ensure console messages are visible
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (error) {
+      console.error('❌ Error clearing cache:', error);
+    }
   }
 }
 
