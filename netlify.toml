@@ -6,12 +6,48 @@
   NODE_VERSION = "20"
   NPM_VERSION = "10"
 
+# Deploy contexts
+[context.production.environment]
+  # Production-specific env vars can go here
+
+[context.deploy-preview.environment]
+  # Deploy preview specific env vars
+  CONTEXT = "deploy-preview"
+
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
 [functions.inngest]
   node_bundler = "esbuild"
+
+[functions.github-webhook]
+  node_bundler = "esbuild"
+
+# Specific API routes (these must come first)
+[[redirects]]
+  from = "/api/hello"
+  to = "/.netlify/functions/hello"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/github/webhook"
+  to = "/.netlify/functions/github-webhook-simple"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/github/webhook-test"
+  to = "/.netlify/functions/github-webhook-test"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/github/callback"
+  to = "/.netlify/functions/github-callback"
+  status = 200
+  force = true
 
 # Headers for proper MIME types
 [[headers]]
