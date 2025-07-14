@@ -105,6 +105,16 @@ node scripts/diagnose-inngest.js
 node scripts/check-repository-eligibility.js [repo-id]
 ```
 
+### Clear Browser Cache
+```javascript
+// Quick fix for stale configuration
+localStorage.clear()
+location.reload()
+
+// Or use rollout console
+rollout.clearCache()
+```
+
 ### Emergency Stop
 ```javascript
 // Stop all hybrid routing
@@ -116,3 +126,15 @@ rollout.status()
 // Resume when fixed
 rollout.resume()
 ```
+
+## Troubleshooting
+
+### Events Not Sending?
+1. Clear browser cache: `localStorage.clear(); location.reload()`
+2. Check you're on `http://localhost:8888` (not `:5173`)
+3. Verify `npm start` is running (not just `netlify dev`)
+
+### Functions Not Running?
+1. Check http://localhost:8288/functions shows 9 functions
+2. Verify event names match function triggers
+3. Look for errors in Netlify dev console

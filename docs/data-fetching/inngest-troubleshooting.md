@@ -121,7 +121,7 @@ open http://localhost:8288/functions
 3. **Wrong endpoint in npm start**:
    ```json
    // package.json - verify this points to correct function
-   "start": "... \"npx inngest-cli@latest dev -u http://127.0.0.1:8888/.netlify/functions/inngest-local\""
+   "start": "... \"npx inngest-cli@latest dev -u http://127.0.0.1:8888/.netlify/functions/inngest-local-full\""
    ```
 
 **Solutions**:
@@ -143,6 +143,62 @@ open http://localhost:8288/functions
    # Check .env file has all required vars
    cat .env | grep -E "(GITHUB|SUPABASE|INNGEST)"
    ```
+
+### 4. Browser Cache Issues (localStorage)
+
+**Symptoms**:
+- Events not being sent after configuration changes
+- Old endpoint configuration persisted
+- App using outdated settings
+
+**Common Causes**:
+- Browser caching old Inngest configuration
+- localStorage persisting outdated settings
+- Configuration changes not picked up
+
+**Solutions**:
+
+**A. Quick Fix - Clear and Reload**:
+```javascript
+// In browser console
+localStorage.clear();
+location.reload();
+```
+
+**B. For Production - Version-Based Cache Clearing**:
+```javascript
+// Add to your app initialization
+const APP_VERSION = '2.0.0'; // Increment when needed
+const STORAGE_VERSION_KEY = 'app_version';
+
+const currentVersion = localStorage.getItem(STORAGE_VERSION_KEY);
+if (currentVersion !== APP_VERSION) {
+  localStorage.clear();
+  localStorage.setItem(STORAGE_VERSION_KEY, APP_VERSION);
+  console.log('Cleared cache for version:', APP_VERSION);
+}
+```
+
+**C. URL Parameter Method**:
+```javascript
+// Add to app initialization
+if (new URLSearchParams(window.location.search).get('clear-cache') === 'true') {
+  localStorage.clear();
+  window.location.href = window.location.origin;
+}
+// Usage: https://contributor.info?clear-cache=true
+```
+
+**D. Rollout Console Method**:
+```javascript
+// In browser console
+rollout.clearCache = () => {
+  localStorage.clear();
+  console.log('✅ Cache cleared');
+  location.reload();
+};
+rollout.clearCache();
+```
 
 ### 4. Rate Limiting Issues
 
