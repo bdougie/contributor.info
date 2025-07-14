@@ -7,14 +7,23 @@ Netlify has a 4KB limit on environment variables per function. The GitHub App pr
 
 ### Solution
 
-#### Option 1: Use Netlify Environment Variables (Recommended)
-Instead of storing the private key in the function's environment, use Netlify's site-wide environment variables:
+#### Option 1: Use Newline-Encoded Private Key (Recommended)
+Store the private key with encoded newlines to reduce size:
 
-1. **DO NOT** add environment variables to individual functions
-2. Add them at the **site level** in Netlify:
-   - Go to Site settings → Environment variables
-   - Add your variables there
-   - They will be available to all functions automatically
+1. **Encode your private key**:
+   ```bash
+   node scripts/encode-private-key.mjs path/to/your.private-key.pem
+   ```
+
+2. **Copy the encoded output** (will be ~1.7KB instead of 2.3KB)
+
+3. **In Netlify**, set:
+   - `GITHUB_APP_PRIVATE_KEY_ENCODED` = the encoded string
+   - Remove the old `GITHUB_APP_PRIVATE_KEY` variable
+
+4. **Clear other large variables**:
+   - Check if you have duplicate or unused environment variables
+   - Remove any test/development variables
 
 #### Option 2: Split the Private Key
 If you must use function-level env vars, split the private key:

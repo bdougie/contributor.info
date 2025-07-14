@@ -6,6 +6,11 @@ import crypto from 'crypto';
  * This version doesn't require the private key for basic webhook receipt
  */
 export const handler: Handler = async (event) => {
+  // Decode private key if using encoded format
+  const privateKey = process.env.GITHUB_APP_PRIVATE_KEY_ENCODED 
+    ? process.env.GITHUB_APP_PRIVATE_KEY_ENCODED.replace(/\\n/g, '\n')
+    : process.env.GITHUB_APP_PRIVATE_KEY;
+
   console.log('Webhook received:', {
     method: event.httpMethod,
     path: event.path,
@@ -36,6 +41,8 @@ export const handler: Handler = async (event) => {
     console.log('Environment check:', {
       hasAppId: !!process.env.GITHUB_APP_ID,
       hasWebhookSecret,
+      hasPrivateKey: !!privateKey,
+      privateKeyLength: privateKey?.length || 0,
       appId: process.env.GITHUB_APP_ID,
     });
 
