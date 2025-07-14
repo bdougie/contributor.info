@@ -147,10 +147,28 @@ The webhook handler is already configured as a Netlify Function at:
    GITHUB_APP_CLIENT_SECRET = your_client_secret_here
    ```
 
-4. For the private key:
+4. For the private key, you have three options:
+   
+   **Option A: Base64 Encoded (Recommended)**
    - Copy your base64-encoded key: `base64 -i private-key.pem | tr -d '\n' | pbcopy`
-   - Paste the single-line result as the value
-   - Note: The base64 key will be ~2.3KB. If you get a "4KB limit exceeded" error, see TROUBLESHOOTING.md
+   - Paste the single-line result as the value of `GITHUB_APP_PRIVATE_KEY_ENCODED`
+   
+   **Option B: Split Key Parts (For 4KB limit issues)**
+   - If your key exceeds Netlify's 4KB environment variable limit, split it:
+   ```bash
+   # Split the base64 key into parts
+   base64 -i private-key.pem | tr -d '\n' > key.b64
+   split -b 800 key.b64 keypart-
+   ```
+   - Add each part as a separate environment variable:
+     - `GITHUB_PEM_PART1` = contents of keypart-aa
+     - `GITHUB_PEM_PART2` = contents of keypart-ab
+     - `GITHUB_PEM_PART3` = contents of keypart-ac (if needed)
+     - etc.
+   
+   **Option C: Regular Format (Not recommended for Netlify)**
+   - Use `GITHUB_APP_PRIVATE_KEY` with the raw PEM format
+   - Note: This often causes issues with newlines in Netlify's UI
 
 5. Deploy your site:
    ```bash

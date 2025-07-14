@@ -58,10 +58,41 @@ export const APP_CONFIG = {
 /**
  * Environment configuration
  */
+/**
+ * Get private key from various sources
+ */
+function getPrivateKey(): string {
+  // Try split key parts first
+  if (process.env.GITHUB_PEM_PART1) {
+    const keyParts = [
+      process.env.GITHUB_PEM_PART1,
+      process.env.GITHUB_PEM_PART2,
+      process.env.GITHUB_PEM_PART3,
+      process.env.GITHUB_PEM_PART4,
+      process.env.GITHUB_PEM_PART5
+    ].filter(Boolean);
+    
+    // Join parts and decode from base64
+    const base64Key = keyParts.join('');
+    return Buffer.from(base64Key, 'base64').toString();
+  }
+  
+  // Try encoded format
+  if (process.env.GITHUB_APP_PRIVATE_KEY_ENCODED) {
+    return Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY_ENCODED, 'base64').toString();
+  }
+  
+  // Try regular base64 format
+  if (process.env.GITHUB_APP_PRIVATE_KEY) {
+    return Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY, 'base64').toString();
+  }
+  
+  return '';
+}
+
 export const ENV_CONFIG = {
   app_id: process.env.GITHUB_APP_ID || '',
-  private_key: process.env.GITHUB_APP_PRIVATE_KEY ? 
-    Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY, 'base64').toString() : '',
+  private_key: getPrivateKey(),
   webhook_secret: process.env.GITHUB_APP_WEBHOOK_SECRET || '',
   client_id: process.env.GITHUB_APP_CLIENT_ID || '',
   client_secret: process.env.GITHUB_APP_CLIENT_SECRET || '',
