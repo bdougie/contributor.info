@@ -9,3 +9,6 @@ export { captureRepositorySyncGraphQL } from './capture-repository-sync-graphql'
 
 // Repository size classification
 export { classifyRepositorySize, classifySingleRepository } from './classify-repository-size';
+
+// Embedding generation for issues and PRs
+export { generateEmbeddings, batchGenerateEmbeddings } from './generate-embeddings';

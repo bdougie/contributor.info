@@ -1,5 +1,9 @@
 import type { Handler } from '@netlify/functions';
 import crypto from 'crypto';
+import { handlePullRequestEvent } from '../../app/webhooks/pull-request';
+import { handleIssuesEvent } from '../../app/webhooks/issues';
+import { handleIssueCommentEvent } from '../../app/webhooks/issue-comment';
+import { handleInstallationEvent } from '../../app/webhooks/installation';
 
 /**
  * GitHub webhook handler for Netlify Functions
@@ -63,31 +67,42 @@ export const handler: Handler = async (event) => {
       installation: payload.installation?.id,
     });
 
-    // For now, just acknowledge receipt
-    // TODO: Process events asynchronously via queue
-    
-    switch (eventType) {
-      case 'ping':
-        console.log('GitHub App ping received');
-        return {
-          statusCode: 200,
-          body: JSON.stringify({ message: 'Pong!' }),
-        };
-        
-      case 'installation':
-        console.log(`Installation ${payload.action}:`, payload.installation?.account?.login);
-        break;
-        
-      case 'pull_request':
-        console.log(`PR ${payload.action}:`, `#${payload.pull_request?.number}`);
-        break;
-        
-      case 'issues':
-        console.log(`Issue ${payload.action}:`, `#${payload.issue?.number}`);
-        break;
-        
-      default:
-        console.log(`Unhandled event type: ${eventType}`);
+    // Process events asynchronously
+    try {
+      switch (eventType) {
+        case 'ping':
+          console.log('GitHub App ping received');
+          return {
+            statusCode: 200,
+            body: JSON.stringify({ message: 'Pong!' }),
+          };
+          
+        case 'installation':
+          console.log(`Installation ${payload.action}:`, payload.installation?.account?.login);
+          await handleInstallationEvent(payload);
+          break;
+          
+        case 'pull_request':
+          console.log(`PR ${payload.action}:`, `#${payload.pull_request?.number}`);
+          await handlePullRequestEvent(payload);
+          break;
+          
+        case 'issues':
+          console.log(`Issue ${payload.action}:`, `#${payload.issue?.number}`);
+          await handleIssuesEvent(payload);
+          break;
+          
+        case 'issue_comment':
+          console.log(`Issue comment ${payload.action} on #${payload.issue?.number}`);
+          await handleIssueCommentEvent(payload);
+          break;
+          
+        default:
+          console.log(`Unhandled event type: ${eventType}`);
+      }
+    } catch (handlerError) {
+      console.error(`Error in ${eventType} handler:`, handlerError);
+      // Don't throw - we still want to return 200 to GitHub
     }
 
     // Return success immediately (process async)
