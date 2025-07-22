@@ -5,6 +5,22 @@ import { findContextualIssues } from '../services/issue-context';
 import { formatContextComment } from '../services/comments';
 
 /**
+ * Check if a comment contains the .issues command
+ */
+export function containsIssuesCommand(commentBody: string): boolean {
+  const normalizedBody = commentBody.toLowerCase().trim();
+  
+  // Check if comment starts with .issues
+  if (normalizedBody.startsWith('.issues')) {
+    return true;
+  }
+  
+  // Check if .issues appears on its own line
+  const lines = normalizedBody.split('\n');
+  return lines.some(line => line.trim().startsWith('.issues'));
+}
+
+/**
  * Handle issue comment webhook events
  */
 export async function handleIssueCommentEvent(event: IssueCommentEvent) {
@@ -13,10 +29,8 @@ export async function handleIssueCommentEvent(event: IssueCommentEvent) {
     return;
   }
 
-  const commentBody = event.comment.body.toLowerCase().trim();
-  
   // Check if comment contains .issues command
-  if (!commentBody.startsWith('.issues') && !commentBody.includes('\n.issues')) {
+  if (!containsIssuesCommand(event.comment.body)) {
     return;
   }
 
@@ -98,6 +112,19 @@ export async function handleIssueCommentEvent(event: IssueCommentEvent) {
     });
 
     console.log(`Posted context comment ${postedComment.id} on PR #${event.issue.number}`);
+
+    // Delete the command comment to keep PR clean
+    try {
+      await octokit.issues.deleteComment({
+        owner: event.repository.owner.login,
+        repo: event.repository.name,
+        comment_id: event.comment.id,
+      });
+      console.log(`Deleted command comment ${event.comment.id}`);
+    } catch (deleteError) {
+      console.error('Failed to delete command comment:', deleteError);
+      // Continue even if deletion fails
+    }
 
     // Update command record
     const processingTime = Date.now() - startTime;

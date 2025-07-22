@@ -13,6 +13,7 @@ The `.issues` command is a GitHub App feature that provides contextual analysis 
    - Related recent work (issues and PRs)
    - Potential conflicts with open PRs
    - Similar historical changes
+4. **Cleanup**: Automatically deletes the `.issues` command comment to keep the PR clean
 
 ## Technical Implementation
 
