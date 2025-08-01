@@ -42,19 +42,29 @@ export async function findContextualIssues(
   const prEmbedding = await generateEmbedding(prText);
   
   // Find similar issues using vector similarity
-  const { data: similarIssues } = await supabase.rpc('find_similar_issues', {
+  const { data: similarIssues, error: issuesError } = await supabase.rpc('find_similar_issues', {
     query_embedding: prEmbedding,
     match_count: 30,
     repo_id: repositoryId,
   });
   
+  if (issuesError) {
+    console.error('Error finding similar issues:', issuesError);
+    throw new Error(`Failed to find similar issues: ${issuesError.message}`);
+  }
+  
   // Find similar PRs using vector similarity
-  const { data: similarPRs } = await supabase.rpc('find_similar_pull_requests', {
+  const { data: similarPRs, error: prsError } = await supabase.rpc('find_similar_pull_requests', {
     query_embedding: prEmbedding,
     match_count: 20,
     repo_id: repositoryId,
     exclude_pr_id: pullRequestId,
   });
+  
+  if (prsError) {
+    console.error('Error finding similar PRs:', prsError);
+    throw new Error(`Failed to find similar PRs: ${prsError.message}`);
+  }
   
   // Process and score all items
   const contextualItems: ContextualItem[] = [];
@@ -62,7 +72,7 @@ export async function findContextualIssues(
   // Process issues
   if (similarIssues) {
     for (const issue of similarIssues) {
-      const fileOverlap = await calculateFileOverlap(issue.id, changedFiles, 'issue');
+      const fileOverlap = await calculateFileOverlap(issue.id, 'issue');
       const item = await processContextualItem(issue, fileOverlap, 'issue', prTitle);
       if (item.similarity_score > 0.3) { // Threshold for relevance
         contextualItems.push(item);
@@ -73,7 +83,7 @@ export async function findContextualIssues(
   // Process PRs
   if (similarPRs) {
     for (const pr of similarPRs) {
-      const fileOverlap = await calculateFileOverlap(pr.id, changedFiles, 'pull_request');
+      const fileOverlap = await calculateFileOverlap(pr.id, 'pull_request');
       const item = await processContextualItem(pr, fileOverlap, 'pull_request', prTitle);
       if (item.similarity_score > 0.3) {
         contextualItems.push(item);
@@ -96,7 +106,6 @@ export async function findContextualIssues(
  */
 async function calculateFileOverlap(
   itemId: string,
-  prFiles: string[],
   itemType: 'issue' | 'pull_request'
 ): Promise<number> {
   if (itemType === 'issue') {
@@ -104,7 +113,7 @@ async function calculateFileOverlap(
     const { data: linkedPRs } = await supabase
       .from('pull_requests')
       .select('id')
-      .or(`body.ilike.%#${itemId}%,title.ilike.%#${itemId}%`)
+      .or(`body.ilike.*#${itemId}*,title.ilike.*#${itemId}*`)
       .limit(5);
       
     if (!linkedPRs || linkedPRs.length === 0) {

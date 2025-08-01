@@ -17,6 +17,7 @@ RETURNS TABLE (
   html_url text
 )
 LANGUAGE plpgsql
+STABLE
 AS $$
 BEGIN
   RETURN QUERY
@@ -56,6 +57,7 @@ RETURNS TABLE (
   html_url text
 )
 LANGUAGE plpgsql
+STABLE
 AS $$
 BEGIN
   RETURN QUERY

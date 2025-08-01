@@ -77,14 +77,32 @@ export async function handleIssueCommentEvent(event: IssueCommentEvent) {
       return;
     }
 
-    // Get PR files changed from GitHub API
-    const { data: files } = await octokit.pulls.listFiles({
-      owner: event.repository.owner.login,
-      repo: event.repository.name,
-      pull_number: event.issue.number,
-    });
-
-    const changedFiles = files.map(f => f.filename);
+    // Get PR files changed from GitHub API with pagination
+    const changedFiles: string[] = [];
+    let page = 1;
+    let hasMorePages = true;
+    
+    while (hasMorePages) {
+      const { data: files } = await octokit.pulls.listFiles({
+        owner: event.repository.owner.login,
+        repo: event.repository.name,
+        pull_number: event.issue.number,
+        per_page: 100,
+        page,
+      });
+      
+      changedFiles.push(...files.map(f => f.filename));
+      
+      // Check if there are more pages
+      hasMorePages = files.length === 100;
+      page++;
+      
+      // Safety limit to prevent infinite loops
+      if (page > 10) {
+        console.warn(`PR #${event.issue.number} has more than 1000 files, stopping pagination`);
+        break;
+      }
+    }
 
     // Find contextual issues and PRs
     const contextualItems = await findContextualIssues({

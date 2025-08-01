@@ -72,7 +72,7 @@ export async function generateAndStoreEmbeddings(items: EmbeddingItem[]): Promis
         
         const table = item.type === 'issue' ? 'issues' : 'pull_requests';
         
-        await supabase
+        const { error: updateError } = await supabase
           .from(table)
           .update({
             embedding,
@@ -80,6 +80,11 @@ export async function generateAndStoreEmbeddings(items: EmbeddingItem[]): Promis
             content_hash: contentHash,
           })
           .eq('id', item.id);
+          
+        if (updateError) {
+          console.error(`Failed to store embedding for ${item.type} ${item.id}:`, updateError);
+          throw new Error(`Failed to store embedding: ${updateError.message}`);
+        }
           
         console.log(`Generated embedding for ${item.type} ${item.id}`);
       } catch (error) {

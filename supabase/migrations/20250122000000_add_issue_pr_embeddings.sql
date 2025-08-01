@@ -15,11 +15,11 @@ ADD COLUMN IF NOT EXISTS content_hash TEXT;
 
 -- Create indexes for vector similarity search
 CREATE INDEX IF NOT EXISTS idx_issues_embedding 
-ON issues USING ivfflat (embedding vector_cosine_ops)
+ON issues USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)
 WHERE embedding IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_pull_requests_embedding 
-ON pull_requests USING ivfflat (embedding vector_cosine_ops)
+ON pull_requests USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)
 WHERE embedding IS NOT NULL;
 
 -- Create table to track .issues command usage
