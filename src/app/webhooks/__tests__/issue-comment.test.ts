@@ -32,9 +32,13 @@ vi.mock('../../../lib/supabase', () => ({
         upsert: vi.fn().mockReturnThis(),
       };
       
-      // Special handling for pull_requests table
+      // Special handling for different tables
       if (table === 'pull_requests') {
-        chainObj.single = vi.fn().mockResolvedValue({ data: { id: 'pr-123', repository_id: 'repo-123' } });
+        chainObj.single = vi.fn().mockResolvedValue({ data: { id: 'pr-123', repository_id: 1 } });
+      } else if (table === 'comment_commands') {
+        chainObj.single = vi.fn().mockResolvedValue({ data: { id: 'cmd-123' } });
+      } else if (table === 'contributors') {
+        chainObj.single = vi.fn().mockResolvedValue({ data: { id: 'contributor-123' } });
       }
       
       return chainObj;
@@ -106,9 +110,12 @@ describe('handleIssueCommentEvent', () => {
   it('processes .issues command and deletes the comment', async () => {
     const mockEvent = createMockEvent('.issues');
     const { githubAppAuth } = await import('../../../../app/lib/auth');
-    const mockOctokit = await githubAppAuth.getInstallationOctokit(123);
-
+    
     await handleIssueCommentEvent(mockEvent);
+
+    // Get the mock functions from the mocked module
+    const mockGetInstallationOctokit = vi.mocked(githubAppAuth.getInstallationOctokit);
+    const mockOctokit = mockGetInstallationOctokit.mock.results[0].value;
 
     // Verify comment was posted
     expect(mockOctokit.issues.createComment).toHaveBeenCalledWith({
