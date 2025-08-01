@@ -1,0 +1,145 @@
+name: Tier Labeler
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  label-tier:
+    # Only run on merged PRs
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine and apply tier label
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = context.payload.pull_request;
+            
+            // Skip if PR already has a tier label
+            const existingLabels = pr.labels.map(l => l.name);
+            if (existingLabels.some(label => label.match(/^tier [1-3]$/))) {
+              console.log('PR already has a tier label, skipping...');
+              return;
+            }
+            
+            // Extract conventional commit prefix
+            function getConventionalPrefix(title) {
+              const match = title.match(/^([a-z]+)(?:\s|$|:)/);
+              return match ? match[1] : '';
+            }
+            
+            // Determine tier based on PR characteristics
+            function determineTier(pr, commentCount) {
+              const prefix = getConventionalPrefix(pr.title);
+              
+              // If no conventional commit prefix, skip
+              if (!prefix) {
+                console.log('No conventional commit format, skipping...');
+                return null;
+              }
+              
+              // Tier 4 (unlabeled): fix, test, docs, style, refactor, perf, build, ci, revert, chore, improve
+              const tier4Prefixes = ['fix', 'test', 'docs', 'style', 'refactor', 'perf', 'build', 'ci', 'revert', 'chore', 'improve'];
+              if (tier4Prefixes.includes(prefix)) {
+                return 'tier 4';
+              }
+              
+              // Calculate metrics
+              const totalChanges = pr.additions + pr.deletions;
+              const impactScore = (commentCount * 100) + totalChanges;
+              const fileCount = pr.changed_files;
+              
+              // Check for major keywords
+              const hasMajorKeywords = /major|milestone|launch/i.test(pr.title);
+              
+              // Tier 1: High impact (15+ comments or major keywords)
+              if (commentCount >= 15 || hasMajorKeywords) {
+                return 'tier 1';
+              }
+              
+              // Tier 2: Medium impact (less than 15 comments but other significant factors)
+              if (impactScore > 1500 || 
+                  fileCount > 10 || 
+                  prefix === 'feat') {
+                return 'tier 2';
+              }
+              
+              // Tier 3: Lower impact
+              return 'tier 3';
+            }
+            
+            // Get comment count
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number
+            });
+            
+            const commentCount = comments.data.length;
+            
+            // Determine tier
+            const tier = determineTier(pr, commentCount);
+            
+            if (!tier) {
+              console.log('Could not determine tier, skipping...');
+              return;
+            }
+            
+            console.log(`PR #${pr.number}: "${pr.title}"`);
+            console.log(`Changes: +${pr.additions} -${pr.deletions} (${pr.changed_files} files)`);
+            console.log(`Comments: ${commentCount}`);
+            console.log(`Assigned tier: ${tier}`);
+            
+            // Apply label (skip tier 4 as they remain unlabeled)
+            if (tier !== 'tier 4') {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: [tier]
+              });
+              console.log(`✓ Label "${tier}" added`);
+            } else {
+              console.log('Tier 4 - will remain unlabeled');
+            }
+
+      - name: Create tier labels if missing
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const labels = [
+              { name: 'tier 1', color: 'ff0000', description: 'Major features and milestones' },
+              { name: 'tier 2', color: 'ff9900', description: 'Important features and enhancements' },
+              { name: 'tier 3', color: 'ffcc00', description: 'Smaller improvements and updates' }
+            ];
+            
+            for (const label of labels) {
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name
+                });
+              } catch (error) {
+                if (error.status === 404) {
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label.name,
+                    color: label.color,
+                    description: label.description
+                  });
+                  console.log(`Created label: ${label.name}`);
+                }
+              }
+            }
