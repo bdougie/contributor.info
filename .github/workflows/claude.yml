@@ -49,14 +49,19 @@ jobs:
           # Optional: Trigger when specific user is assigned to an issue
           # assignee_trigger: "claude-bot"
           
-          # Optional: Allow Claude to run specific commands
-          # allowed_tools: "Bash(npm install),Bash(npm run build),Bash(npm run test:*),Bash(npm run lint:*)"
+          # Allow Claude to run specific commands
+          allowed_tools: "Bash(npm run build),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test)"
           
-          # Optional: Add custom instructions for Claude to customize its behavior for your project
-          # custom_instructions: |
-          #   Follow our coding standards
-          #   Ensure all new code has tests
-          #   Use TypeScript for new files
+          # Add custom instructions for Claude to customize its behavior for your project
+          custom_instructions: |
+            This is a React + TypeScript project for GitHub contributor visualization.
+            Follow the coding standards in CLAUDE.md:
+            - Do not import React unless using specific React features (hooks, types, etc.)
+            - Use Tailwind CSS for styling
+            - Use vitest for testing, never jest
+            - Never use 'any' in TypeScript
+            - Mock Supabase in tests
+            - PR descriptions should be 200 words or less in markdown with headers
           
           # Optional: Custom environment variables for Claude
           # claude_env: |
