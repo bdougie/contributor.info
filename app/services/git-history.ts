@@ -9,13 +9,6 @@ interface FileContributor {
   last_commit_at: string;
 }
 
-interface CommitFile {
-  filename: string;
-  additions: number;
-  deletions: number;
-  changes: number;
-  status: string;
-}
 
 /**
  * Index git history for a repository
@@ -43,14 +36,66 @@ export async function indexGitHistory(
     // Determine the date to start indexing from
     const sinceDate = since || new Date(Date.now() - 180 * 24 * 60 * 60 * 1000); // 6 months ago
     
-    // Track file contributors
+    // Configuration for chunked processing
+    const CHUNK_SIZE = 50; // Process and flush every 50 commits
+    const MAX_COMMITS = 1000; // Overall limit
+    
+    // Track file contributors - will be flushed periodically
     const fileContributors = new Map<string, Map<string, FileContributor>>();
     
     let page = 1;
     let hasMoreCommits = true;
     let processedCommits = 0;
+    let totalFlushedRecords = 0;
     
-    while (hasMoreCommits && processedCommits < 1000) { // Limit to 1000 commits
+    // Helper function to flush file contributors to database
+    const flushFileContributors = async () => {
+      if (fileContributors.size === 0) return;
+      
+      const allFileContributors: Array<{
+        repository_id: string;
+        file_path: string;
+        contributor_id: string;
+        commit_count: number;
+        last_commit_at: string;
+      }> = [];
+      
+      for (const [, contributors] of fileContributors.entries()) {
+        for (const [, data] of contributors.entries()) {
+          allFileContributors.push({
+            repository_id: dbRepo.id,
+            file_path: data.file_path,
+            contributor_id: data.contributor_id,
+            commit_count: data.commit_count,
+            last_commit_at: data.last_commit_at,
+          });
+        }
+      }
+      
+      // Insert in batches of 100
+      for (let i = 0; i < allFileContributors.length; i += 100) {
+        const batch = allFileContributors.slice(i, i + 100);
+        
+        const { error } = await supabase
+          .from('file_contributors')
+          .upsert(batch, {
+            onConflict: 'repository_id,file_path,contributor_id',
+          });
+        
+        if (error) {
+          console.error('Error inserting file contributors:', error);
+        } else {
+          totalFlushedRecords += batch.length;
+        }
+      }
+      
+      console.log(`Flushed ${allFileContributors.length} file contributor records`);
+      
+      // Clear the map to free memory
+      fileContributors.clear();
+    };
+    
+    while (hasMoreCommits && processedCommits < MAX_COMMITS) {
       try {
         const { data: commits } = await octokit.repos.listCommits({
           owner: repository.owner.login,
@@ -78,13 +123,15 @@ export async function indexGitHistory(
             });
             
             // Get or create contributor
-            const { data: contributor } = await supabase
+            let contributorId: string;
+            
+            const { data: existingContributor } = await supabase
               .from('contributors')
               .select('id')
               .eq('github_login', commit.author.login)
               .single();
             
-            if (!contributor) {
+            if (!existingContributor) {
               // Create contributor if doesn't exist
               const { data: newContributor } = await supabase
                 .from('contributors')
@@ -98,7 +145,9 @@ export async function indexGitHistory(
                 .single();
               
               if (!newContributor) continue;
-              contributor.id = newContributor.id;
+              contributorId = newContributor.id;
+            } else {
+              contributorId = existingContributor.id;
             }
             
             // Process files in the commit
@@ -114,9 +163,9 @@ export async function indexGitHistory(
                 const fileMap = fileContributors.get(file.filename)!;
                 
                 // Update or create contributor entry for this file
-                const existing = fileMap.get(contributor.id) || {
+                const existing = fileMap.get(contributorId) || {
                   file_path: file.filename,
-                  contributor_id: contributor.id,
+                  contributor_id: contributorId,
                   commit_count: 0,
                   last_commit_at: commit.commit.author?.date || new Date().toISOString(),
                 };
@@ -124,11 +173,16 @@ export async function indexGitHistory(
                 existing.commit_count++;
                 existing.last_commit_at = commit.commit.author?.date || existing.last_commit_at;
                 
-                fileMap.set(contributor.id, existing);
+                fileMap.set(contributorId, existing);
               }
             }
             
             processedCommits++;
+            
+            // Flush data periodically to avoid memory buildup
+            if (processedCommits % CHUNK_SIZE === 0) {
+              await flushFileContributors();
+            }
             
             // Add small delay to avoid rate limiting
             if (processedCommits % 10 === 0) {
@@ -147,39 +201,11 @@ export async function indexGitHistory(
       }
     }
     
-    console.log(`Processed ${processedCommits} commits, found ${fileContributors.size} files`);
-    
-    // Batch insert file contributors
-    const allFileContributors: any[] = [];
-    
-    Array.from(fileContributors.entries()).forEach(([filePath, contributors]) => {
-      Array.from(contributors.entries()).forEach(([contributorId, data]) => {
-        allFileContributors.push({
-          repository_id: dbRepo.id,
-          file_path: data.file_path,
-          contributor_id: data.contributor_id,
-          commit_count: data.commit_count,
-          last_commit_at: data.last_commit_at,
-        });
-      });
-    });
-    
-    // Insert in batches of 100
-    for (let i = 0; i < allFileContributors.length; i += 100) {
-      const batch = allFileContributors.slice(i, i + 100);
-      
-      const { error } = await supabase
-        .from('file_contributors')
-        .upsert(batch, {
-          onConflict: 'repository_id,file_path,contributor_id',
-        });
-      
-      if (error) {
-        console.error('Error inserting file contributors:', error);
-      }
-    }
+    // Final flush for any remaining data
+    await flushFileContributors();
     
     console.log(`Git history indexing completed for ${repository.full_name}`);
+    console.log(`Processed ${processedCommits} commits, flushed ${totalFlushedRecords} file contributor records`);
     
   } catch (error) {
     console.error('Error indexing git history:', error);
@@ -227,11 +253,32 @@ export async function findFileContributors(
       return new Map();
     }
     
-    // Aggregate by contributor
-    const contributorMap = new Map<string, any>();
+    // Define the return type for contributor map entries
+    type ContributorMapEntry = {
+      login: string;
+      name: string;
+      avatarUrl: string;
+      fileCount: number;
+      totalCommits: number;
+    };
     
-    for (const fc of fileContributors) {
-      const contributor = (fc as any).contributors;
+    // Aggregate by contributor
+    const contributorMap = new Map<string, ContributorMapEntry>();
+    
+    // Type the query result
+    type FileContributorResult = {
+      contributor_id: string;
+      commit_count: number;
+      contributors: {
+        id: string;
+        github_login: string;
+        name: string | null;
+        avatar_url: string;
+      };
+    };
+    
+    for (const fc of fileContributors as FileContributorResult[]) {
+      const contributor = fc.contributors;
       if (!contributor) continue;
       
       const existing = contributorMap.get(contributor.github_login) || {
@@ -243,7 +290,7 @@ export async function findFileContributors(
       };
       
       existing.fileCount++;
-      existing.totalCommits += (fc as any).commit_count;
+      existing.totalCommits += fc.commit_count;
       
       contributorMap.set(contributor.github_login, existing);
     }
