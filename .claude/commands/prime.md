@@ -17,5 +17,5 @@ This command loads essential context for a new agent session by examining the co
 - Codebase structure all: !`eza . --tree`
 - Project README: @README.md
 - Documentation: 
-  - @ai_docs/cc_hooks_docs.md
-  - @ai_docs/uv-single-file-scripts.md
+  - @docs
+  - scripts/
