@@ -20,6 +20,92 @@ interface FileEmbedding {
 }
 
 /**
+ * Retry configuration
+ */
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  initialDelay: 1000, // 1 second
+  maxDelay: 10000, // 10 seconds
+  backoffMultiplier: 2,
+};
+
+/**
+ * Sleep utility for retries
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Execute a function with exponential backoff retry
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  operation: string,
+  config = RETRY_CONFIG
+): Promise<T> {
+  let lastError: Error | unknown;
+  let delay = config.initialDelay;
+  
+  for (let attempt = 1; attempt <= config.maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      console.warn(`${operation} failed (attempt ${attempt}/${config.maxRetries}):`, error);
+      
+      if (attempt < config.maxRetries) {
+        // Check if error is retryable
+        if (isRetryableError(error)) {
+          console.log(`Retrying ${operation} in ${delay}ms...`);
+          await sleep(delay);
+          delay = Math.min(delay * config.backoffMultiplier, config.maxDelay);
+        } else {
+          // Non-retryable error, fail immediately
+          throw error;
+        }
+      }
+    }
+  }
+  
+  console.error(`${operation} failed after ${config.maxRetries} attempts`);
+  throw lastError;
+}
+
+/**
+ * Check if an error is retryable
+ */
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    
+    // Network errors
+    if (message.includes('network') || 
+        message.includes('timeout') ||
+        message.includes('econnrefused') ||
+        message.includes('etimedout')) {
+      return true;
+    }
+    
+    // Rate limit errors
+    if (message.includes('rate limit') ||
+        message.includes('too many requests') ||
+        message.includes('429')) {
+      return true;
+    }
+    
+    // Temporary server errors
+    if (message.includes('502') ||
+        message.includes('503') ||
+        message.includes('504')) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
  * Process a single file to generate its embedding
  */
 async function processFileEmbedding(
@@ -34,12 +120,18 @@ async function processFileEmbedding(
       return null;
     }
     
-    // Fetch file content
-    const { data: fileData } = await octokit.repos.getContent({
-      owner: repository.owner.login,
-      repo: repository.name,
-      path: filePath,
-    });
+    // Fetch file content with retry
+    const fileData = await withRetry(
+      async () => {
+        const { data } = await octokit.repos.getContent({
+          owner: repository.owner.login,
+          repo: repository.name,
+          path: filePath,
+        });
+        return data;
+      },
+      `Fetching content for ${filePath}`
+    );
     
     if ('content' in fileData && fileData.type === 'file') {
       // Decode base64 content
@@ -51,13 +143,25 @@ async function processFileEmbedding(
         .digest('hex');
       
       // Check if we already have an embedding for this exact content
-      const { data: existing } = await supabase
-        .from('file_embeddings')
-        .select('id')
-        .eq('repository_id', repositoryId)
-        .eq('file_path', filePath)
-        .eq('content_hash', contentHash)
-        .single();
+      const existing = await withRetry(
+        async () => {
+          const { data, error } = await supabase
+            .from('file_embeddings')
+            .select('id')
+            .eq('repository_id', repositoryId)
+            .eq('file_path', filePath)
+            .eq('content_hash', contentHash)
+            .single();
+          
+          // Supabase returns an error for no rows found, which is expected
+          if (error && error.code !== 'PGRST116') {
+            throw error;
+          }
+          
+          return data;
+        },
+        `Checking existing embedding for ${filePath}`
+      );
       
       if (existing) {
         console.log(`Skipping ${filePath} - embedding already exists`);
@@ -67,8 +171,11 @@ async function processFileEmbedding(
       // Prepare content for embedding (truncate if too long)
       const embeddingContent = prepareContentForEmbedding(filePath, content);
       
-      // Generate embedding
-      const embedding = await generateEmbedding(embeddingContent);
+      // Generate embedding with retry
+      const embedding = await withRetry(
+        async () => generateEmbedding(embeddingContent),
+        `Generating embedding for ${filePath}`
+      );
       
       return {
         repository_id: repositoryId,
@@ -82,6 +189,7 @@ async function processFileEmbedding(
     return null;
   } catch (error) {
     console.error(`Error processing file ${filePath}:`, error);
+    // Return null to continue processing other files
     return null;
   }
 }
@@ -125,17 +233,25 @@ export async function generateFileEmbeddings(
       
       // Insert batch embeddings immediately to avoid memory buildup
       if (batchEmbeddings.length > 0) {
-        const { error } = await supabase
-          .from('file_embeddings')
-          .upsert(batchEmbeddings, {
-            onConflict: 'repository_id,file_path',
-          });
-        
-        if (error) {
+        await withRetry(
+          async () => {
+            const { error } = await supabase
+              .from('file_embeddings')
+              .upsert(batchEmbeddings, {
+                onConflict: 'repository_id,file_path',
+              });
+            
+            if (error) {
+              throw error;
+            }
+            
+            console.log(`Inserted ${batchEmbeddings.length} embeddings`);
+          },
+          `Inserting ${batchEmbeddings.length} embeddings`
+        ).catch(error => {
           console.error('Error inserting file embeddings:', error);
-        } else {
-          console.log(`Inserted ${batchEmbeddings.length} embeddings`);
-        }
+          // Continue processing even if this batch fails
+        });
       }
       
       // Add delay to avoid rate limiting
