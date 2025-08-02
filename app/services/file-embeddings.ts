@@ -189,8 +189,8 @@ export async function findSimilarFiles(
         similarFiles.set(
           inputFile.file_path,
           similar
-            .filter((s: any) => s.file_path !== inputFile.file_path)
-            .map((s: any) => ({
+            .filter((s: { file_path: string; similarity: number }) => s.file_path !== inputFile.file_path)
+            .map((s: { file_path: string; similarity: number }) => ({
               path: s.file_path,
               similarity: s.similarity,
             }))

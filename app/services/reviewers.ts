@@ -9,6 +9,9 @@ import {
 import { findFileContributors, getExpertiseFromFiles } from './git-history';
 import { findSimilarFiles } from './file-embeddings';
 
+// Type for the octokit client
+type OctokitClient = Awaited<ReturnType<typeof githubAppAuth.getInstallationOctokit>>;
+
 export interface ReviewerSuggestion {
   login: string;
   name?: string;
@@ -161,7 +164,7 @@ interface ReviewerCandidate {
 /**
  * Get files changed in a PR
  */
-async function getChangedFiles(pr: PullRequest, repo: Repository, octokit?: any): Promise<string[]> {
+async function getChangedFiles(pr: PullRequest, repo: Repository, octokit?: OctokitClient): Promise<string[]> {
   try {
     if (!octokit) {
       console.error('No octokit client available for getting changed files');
@@ -181,7 +184,7 @@ async function getChangedFiles(pr: PullRequest, repo: Repository, octokit?: any)
         page,
       });
       
-      changedFiles.push(...files.map((f: any) => f.filename));
+      changedFiles.push(...files.map((f: { filename: string }) => f.filename));
       
       // Check if there are more pages
       hasMorePages = files.length === 100;
@@ -205,14 +208,20 @@ async function getChangedFiles(pr: PullRequest, repo: Repository, octokit?: any)
  * Find code owners for changed files
  */
 interface CodeOwnersResult {
-  owners: any[];
+  owners: Array<{
+    login: string;
+    name?: string;
+    avatarUrl?: string;
+    ownership?: number;
+    matchedFiles?: string[];
+  }>;
   hasCodeOwners: boolean;
 }
 
 async function findCodeOwners(
   files: string[], 
   repo: Repository, 
-  octokit?: any,
+  octokit?: OctokitClient,
   prAuthor?: string
 ): Promise<CodeOwnersResult> {
   try {
@@ -293,7 +302,12 @@ async function findCodeOwners(
 /**
  * Find reviewers who frequently review PRs from this author
  */
-async function findFrequentReviewers(authorLogin: string, repo: Repository): Promise<any[]> {
+async function findFrequentReviewers(authorLogin: string, repo: Repository): Promise<Array<{
+  login: string;
+  name?: string;
+  avatarUrl?: string;
+  count: number;
+}>> {
   try {
     // Query database for past reviews
     const { data: reviews } = await supabase
@@ -310,7 +324,12 @@ async function findFrequentReviewers(authorLogin: string, repo: Repository): Pro
       .limit(20);
     
     // Count reviews per reviewer
-    const reviewerCounts = new Map<string, any>();
+    const reviewerCounts = new Map<string, {
+      login: string;
+      name?: string;
+      avatarUrl?: string;
+      count: number;
+    }>();
     
     reviews?.forEach(review => {
       const reviewer = review.contributors;
@@ -342,7 +361,14 @@ async function findFrequentReviewers(authorLogin: string, repo: Repository): Pro
 /**
  * Find subject matter experts based on file types and areas
  */
-async function findSubjectMatterExperts(files: string[], repo: Repository): Promise<any[]> {
+async function findSubjectMatterExperts(files: string[], repo: Repository): Promise<Array<{
+  login: string;
+  name?: string;
+  avatarUrl?: string;
+  expertise: string[];
+  score: number;
+  directContributor: boolean;
+}>> {
   try {
     // Get repository ID
     const { data: dbRepo } = await supabase
@@ -375,7 +401,14 @@ async function findSubjectMatterExperts(files: string[], repo: Repository): Prom
     const expertise = getExpertiseFromFiles(files);
     
     // Combine and score experts
-    const experts: any[] = [];
+    const experts: Array<{
+      login: string;
+      name?: string;
+      avatarUrl?: string;
+      expertise: string[];
+      score: number;
+      directContributor: boolean;
+    }> = [];
     
     // Add direct file contributors as experts
     for (const [login, contributor] of fileContributors) {
@@ -417,7 +450,12 @@ async function findSubjectMatterExperts(files: string[], repo: Repository): Prom
 /**
  * Get detailed stats for a reviewer
  */
-async function getReviewerStats(login: string, repo: Repository): Promise<any> {
+async function getReviewerStats(login: string, repo: Repository): Promise<{
+  reviewsGiven: number;
+  avgResponseTime: string;
+  expertise: string[];
+  lastActive: string;
+}> {
   try {
     // Query database for reviewer stats
     const { data: contributor } = await supabase
@@ -443,7 +481,7 @@ async function getReviewerStats(login: string, repo: Repository): Promise<any> {
     
     // Calculate average response time
     const responseTimes: number[] = [];
-    contributor.reviews?.forEach((review: any) => {
+    contributor.reviews?.forEach((review: { created_at: string; submitted_at: string }) => {
       if (review.created_at && review.submitted_at) {
         const created = new Date(review.created_at);
         const submitted = new Date(review.submitted_at);
