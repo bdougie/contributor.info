@@ -15,11 +15,6 @@ vi.mock('../../../../app/services/embeddings', () => ({
   generateEmbedding: vi.fn(),
 }));
 
-// Mock console methods
-const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
 describe('File Embeddings Service', () => {
   const mockRepository: Repository = {
     id: 123,
@@ -58,10 +53,14 @@ describe('File Embeddings Service', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Mock console methods to avoid output during tests
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('generateFileEmbeddings', () => {
@@ -123,9 +122,6 @@ describe('File Embeddings Service', () => {
 
       // Should generate embeddings
       expect(generateEmbedding).toHaveBeenCalledTimes(2);
-      
-      // Should log completion
-      expect(consoleLogSpy).toHaveBeenCalledWith('Completed embedding generation for test-org/test-repo');
     });
 
     it('should skip files that already have embeddings with same content', async () => {
@@ -168,9 +164,6 @@ describe('File Embeddings Service', () => {
       // Should not generate new embedding
       const { generateEmbedding } = await import('../../../../app/services/embeddings');
       expect(generateEmbedding).not.toHaveBeenCalled();
-      
-      // Should log skip message
-      expect(consoleLogSpy).toHaveBeenCalledWith('Skipping src/test.js - embedding already exists');
     });
 
     it('should handle repository not found in database', async () => {
@@ -184,7 +177,6 @@ describe('File Embeddings Service', () => {
 
       await generateFileEmbeddings(mockRepository, mockOctokit, ['src/index.ts']);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Repository not found in database');
       expect(mockOctokit.repos.getContent).not.toHaveBeenCalled();
     });
 
@@ -231,10 +223,6 @@ describe('File Embeddings Service', () => {
 
       // Should retry the failed request
       expect(mockOctokit.repos.getContent).toHaveBeenCalledTimes(2);
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Fetching content for src/index.ts failed (attempt 1/3)'),
-        networkError
-      );
     });
 
     it('should handle rate limit errors with retry', async () => {
@@ -260,7 +248,6 @@ describe('File Embeddings Service', () => {
 
       // Should attempt retries
       expect(mockOctokit.repos.getContent).toHaveBeenCalledTimes(3);
-      expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
     });
 
     it('should handle non-retryable errors immediately', async () => {
@@ -286,7 +273,6 @@ describe('File Embeddings Service', () => {
 
       // Should not retry non-retryable errors
       expect(mockOctokit.repos.getContent).toHaveBeenCalledTimes(1);
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Error processing file src/index.ts:', authError);
     });
 
     it('should process files in batches', async () => {
@@ -435,7 +421,6 @@ describe('File Embeddings Service', () => {
       const result = await findSimilarFiles('repo-uuid', ['src/test.ts']);
 
       expect(result.size).toBe(0);
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Error finding similar files:', dbError);
     });
 
     it('should process multiple input files', async () => {

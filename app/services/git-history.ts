@@ -315,7 +315,7 @@ export function getExpertiseFromFiles(filePaths: string[]): string[] {
     }
     
     // Backend/API
-    if (path.includes('/api/') || path.includes('/server/') || path.match(/\.(py|rb|java|go)$/)) {
+    if (path.includes('/api/') || path.includes('/server/') || path.match(/^api\//) || path.match(/\.(py|rb|java|go)$/)) {
       expertise.add('backend');
     }
     
