@@ -7,12 +7,11 @@ export interface ContributorInsights {
   avatarUrl: string;
   totalPRs: number;
   mergedPRs: number;
+  reviewsGiven: number;
+  commentsLeft: number;
   firstTimeApprovalRate: number;
   expertise: string[];
-  activeHours: string;
   lastActive: string;
-  repositories: number;
-  totalContributions: number;
 }
 
 /**
@@ -39,6 +38,12 @@ export async function generatePRInsights(
             state,
             submitted_at
           )
+        ),
+        reviews (
+          id
+        ),
+        comments (
+          id
         )
       `)
       .eq('github_login', authorLogin)
@@ -51,12 +56,11 @@ export async function generatePRInsights(
         avatarUrl: pullRequest.user.avatar_url,
         totalPRs: 1,
         mergedPRs: 0,
+        reviewsGiven: 0,
+        commentsLeft: 0,
         firstTimeApprovalRate: 0,
         expertise: [],
-        activeHours: 'Unknown',
         lastActive: 'Now',
-        repositories: 1,
-        totalContributions: 1,
       };
     }
 
@@ -64,6 +68,8 @@ export async function generatePRInsights(
     const prs = contributor.pull_requests || [];
     const mergedPRs = prs.filter((pr: any) => pr.merged_at).length;
     const totalPRs = prs.length;
+    const reviewsGiven = contributor.reviews?.length || 0;
+    const commentsLeft = contributor.comments?.length || 0;
 
     // Calculate first-time approval rate
     const prsWithReviews = prs.filter((pr: any) => pr.reviews?.length > 0);
@@ -80,17 +86,8 @@ export async function generatePRInsights(
     // Get expertise from most touched files/areas
     const expertise = await getContributorExpertise(contributor.id);
 
-    // Calculate active hours from PR creation times
-    const activeHours = calculateActiveHours(prs);
-
     // Get last activity
     const lastActive = calculateLastActive(contributor.last_active_at);
-
-    // Count unique repositories
-    const { count: repoCount } = await supabase
-      .from('pull_requests')
-      .select('repository_id', { count: 'exact', head: true })
-      .eq('contributor_id', contributor.id);
 
     return {
       login: contributor.github_login,
@@ -98,12 +95,11 @@ export async function generatePRInsights(
       avatarUrl: contributor.avatar_url,
       totalPRs,
       mergedPRs,
+      reviewsGiven,
+      commentsLeft,
       firstTimeApprovalRate,
       expertise,
-      activeHours,
       lastActive,
-      repositories: repoCount || 1,
-      totalContributions: contributor.total_contributions || totalPRs,
     };
 
   } catch (error) {
@@ -115,12 +111,11 @@ export async function generatePRInsights(
       avatarUrl: pullRequest.user.avatar_url,
       totalPRs: 1,
       mergedPRs: 0,
+      reviewsGiven: 0,
+      commentsLeft: 0,
       firstTimeApprovalRate: 0,
       expertise: [],
-      activeHours: 'Unknown',
       lastActive: 'Now',
-      repositories: 1,
-      totalContributions: 1,
     };
   }
 }
@@ -129,77 +124,63 @@ export async function generatePRInsights(
  * Get contributor's areas of expertise based on their contributions
  */
 async function getContributorExpertise(contributorId: string): Promise<string[]> {
-  // This would analyze the files they've touched, languages used, etc.
-  // For now, return mock data
-  const expertiseAreas = [
-    'frontend',
-    'backend',
-    'API',
-    'auth',
-    'database',
-    'DevOps',
-    'testing',
-    'documentation',
-  ];
+  try {
+    // Get files the contributor has worked on
+    const { data: fileContributions } = await supabase
+      .from('file_contributors')
+      .select('file_path')
+      .eq('contributor_id', contributorId)
+      .order('commit_count', { ascending: false })
+      .limit(50);
 
-  // Use Fisher-Yates shuffle for proper randomization
-  const shuffled = [...expertiseAreas];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled.slice(0, 3);
-}
-
-/**
- * Calculate active hours from PR creation times
- */
-function calculateActiveHours(prs: any[]): string {
-  if (prs.length === 0) return 'Unknown';
-
-  // Analyze PR creation times to find patterns
-  const hours = prs
-    .filter(pr => pr.created_at)
-    .map(pr => {
-      const date = new Date(pr.created_at);
-      return isNaN(date.getTime()) ? null : date.getHours();
-    })
-    .filter(hour => hour !== null) as number[];
-  
-  if (hours.length === 0) return 'Unknown';
-  
-  // Find most common hour range
-  const hourCounts = new Map<number, number>();
-  hours.forEach(hour => {
-    hourCounts.set(hour, (hourCounts.get(hour) || 0) + 1);
-  });
-
-  // Find peak hours
-  let maxCount = 0;
-  let peakHour = 9;
-  hourCounts.forEach((count, hour) => {
-    if (count > maxCount) {
-      maxCount = count;
-      peakHour = hour;
+    if (!fileContributions || fileContributions.length === 0) {
+      return [];
     }
-  });
 
-  // Format as range
-  const startHour = Math.max(0, peakHour - 4);
-  const endHour = Math.min(23, peakHour + 4);
-  
-  return `${formatHour(startHour)}-${formatHour(endHour)} UTC`;
+    // Analyze file paths to determine expertise
+    const expertise = new Set<string>();
+    
+    for (const fc of fileContributions) {
+      const path = fc.file_path.toLowerCase();
+      
+      // Frontend
+      if (path.match(/\.(tsx?|jsx?|vue|svelte)$/)) {
+        expertise.add('frontend');
+      }
+      
+      // Backend/API
+      if (path.includes('/api/') || path.includes('/server/') || path.match(/\.(py|rb|java|go)$/)) {
+        expertise.add('backend');
+      }
+      
+      // Database
+      if (path.match(/\.(sql|migration)/) || path.includes('/migrations/')) {
+        expertise.add('database');
+      }
+      
+      // Testing
+      if (path.match(/\b(test|spec)\b/) || path.includes('__tests__') || path.includes('.test.') || path.includes('.spec.')) {
+        expertise.add('testing');
+      }
+      
+      // DevOps
+      if (path.match(/\.(yml|yaml)$/) || path.includes('.github/')) {
+        expertise.add('devops');
+      }
+      
+      // Documentation
+      if (path.match(/\.(md|mdx|rst)$/)) {
+        expertise.add('documentation');
+      }
+    }
+    
+    return Array.from(expertise).slice(0, 3);
+  } catch (error) {
+    console.error('Error getting contributor expertise:', error);
+    return [];
+  }
 }
 
-/**
- * Format hour as 12-hour time
- */
-function formatHour(hour: number): string {
-  if (hour === 0) return '12am';
-  if (hour === 12) return '12pm';
-  if (hour < 12) return `${hour}am`;
-  return `${hour - 12}pm`;
-}
 
 /**
  * Calculate how long ago the contributor was last active

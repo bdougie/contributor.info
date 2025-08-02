@@ -6,6 +6,11 @@ import {
   getSuggestedReviewersFromCodeOwners,
   CodeOwnerSuggestion 
 } from './codeowners';
+import { findFileContributors, getExpertiseFromFiles } from './git-history';
+import { findSimilarFiles } from './file-embeddings';
+
+// Type for the octokit client
+type OctokitClient = Awaited<ReturnType<typeof githubAppAuth.getInstallationOctokit>>;
 
 export interface ReviewerSuggestion {
   login: string;
@@ -159,7 +164,7 @@ interface ReviewerCandidate {
 /**
  * Get files changed in a PR
  */
-async function getChangedFiles(pr: PullRequest, repo: Repository, octokit?: any): Promise<string[]> {
+async function getChangedFiles(pr: PullRequest, repo: Repository, octokit?: OctokitClient): Promise<string[]> {
   try {
     if (!octokit) {
       console.error('No octokit client available for getting changed files');
@@ -179,7 +184,7 @@ async function getChangedFiles(pr: PullRequest, repo: Repository, octokit?: any)
         page,
       });
       
-      changedFiles.push(...files.map((f: any) => f.filename));
+      changedFiles.push(...files.map((f: { filename: string }) => f.filename));
       
       // Check if there are more pages
       hasMorePages = files.length === 100;
@@ -203,14 +208,20 @@ async function getChangedFiles(pr: PullRequest, repo: Repository, octokit?: any)
  * Find code owners for changed files
  */
 interface CodeOwnersResult {
-  owners: any[];
+  owners: Array<{
+    login: string;
+    name?: string;
+    avatarUrl?: string;
+    ownership?: number;
+    matchedFiles?: string[];
+  }>;
   hasCodeOwners: boolean;
 }
 
 async function findCodeOwners(
   files: string[], 
   repo: Repository, 
-  octokit?: any,
+  octokit?: OctokitClient,
   prAuthor?: string
 ): Promise<CodeOwnersResult> {
   try {
@@ -291,7 +302,12 @@ async function findCodeOwners(
 /**
  * Find reviewers who frequently review PRs from this author
  */
-async function findFrequentReviewers(authorLogin: string, repo: Repository): Promise<any[]> {
+async function findFrequentReviewers(authorLogin: string, repo: Repository): Promise<Array<{
+  login: string;
+  name?: string;
+  avatarUrl?: string;
+  count: number;
+}>> {
   try {
     // Query database for past reviews
     const { data: reviews } = await supabase
@@ -308,7 +324,12 @@ async function findFrequentReviewers(authorLogin: string, repo: Repository): Pro
       .limit(20);
     
     // Count reviews per reviewer
-    const reviewerCounts = new Map<string, any>();
+    const reviewerCounts = new Map<string, {
+      login: string;
+      name?: string;
+      avatarUrl?: string;
+      count: number;
+    }>();
     
     reviews?.forEach(review => {
       const reviewer = review.contributors;
@@ -340,43 +361,101 @@ async function findFrequentReviewers(authorLogin: string, repo: Repository): Pro
 /**
  * Find subject matter experts based on file types and areas
  */
-async function findSubjectMatterExperts(files: string[], repo: Repository): Promise<any[]> {
-  // Determine expertise areas from files
-  const expertiseNeeded = new Set<string>();
-  
-  files.forEach(file => {
-    if (file.includes('auth')) expertiseNeeded.add('auth');
-    if (file.includes('api')) expertiseNeeded.add('API');
-    if (file.includes('.tsx') || file.includes('.jsx')) expertiseNeeded.add('frontend');
-    if (file.includes('test')) expertiseNeeded.add('testing');
-    if (file.includes('.sql') || file.includes('migration')) expertiseNeeded.add('database');
-  });
-  
-  // Mock implementation - would query database for experts
-  const experts = [
-    {
-      login: 'charlie-expert',
-      name: 'Charlie Expert',
-      avatarUrl: 'https://github.com/charlie-expert.png',
-      expertise: ['auth', 'security'],
-    },
-    {
-      login: 'diana-senior',
-      name: 'Diana Senior',
-      avatarUrl: 'https://github.com/diana-senior.png',
-      expertise: ['API', 'backend'],
-    },
-  ];
-  
-  return experts.filter(expert => 
-    expert.expertise.some(exp => expertiseNeeded.has(exp))
-  );
+async function findSubjectMatterExperts(files: string[], repo: Repository): Promise<Array<{
+  login: string;
+  name?: string;
+  avatarUrl?: string;
+  expertise: string[];
+  score: number;
+  directContributor: boolean;
+}>> {
+  try {
+    // Get repository ID
+    const { data: dbRepo } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('github_id', repo.id)
+      .single();
+    
+    if (!dbRepo) {
+      return [];
+    }
+    
+    // Find contributors who have worked on these files
+    const fileContributors = await findFileContributors(dbRepo.id, files);
+    
+    // Find contributors who have worked on similar files
+    const similarFiles = await findSimilarFiles(dbRepo.id, files);
+    const similarFilePaths: string[] = [];
+    
+    for (const [_, similar] of similarFiles) {
+      similarFilePaths.push(...similar.map(s => s.path));
+    }
+    
+    // Get contributors for similar files
+    const similarFileContributors = similarFilePaths.length > 0
+      ? await findFileContributors(dbRepo.id, similarFilePaths)
+      : new Map();
+    
+    // Determine expertise based on files
+    const expertise = getExpertiseFromFiles(files);
+    
+    // Combine and score experts
+    const experts: Array<{
+      login: string;
+      name?: string;
+      avatarUrl?: string;
+      expertise: string[];
+      score: number;
+      directContributor: boolean;
+    }> = [];
+    
+    // Add direct file contributors as experts
+    for (const [login, contributor] of fileContributors) {
+      experts.push({
+        login,
+        name: contributor.name,
+        avatarUrl: contributor.avatarUrl,
+        expertise,
+        score: contributor.totalCommits * 0.1, // Score based on commit count
+        directContributor: true,
+      });
+    }
+    
+    // Add similar file contributors with lower score
+    for (const [login, contributor] of similarFileContributors) {
+      if (!fileContributors.has(login)) {
+        experts.push({
+          login,
+          name: contributor.name,
+          avatarUrl: contributor.avatarUrl,
+          expertise,
+          score: contributor.totalCommits * 0.05, // Lower score for similar files
+          directContributor: false,
+        });
+      }
+    }
+    
+    // Sort by score and return top experts
+    return experts
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+    
+  } catch (error) {
+    console.error('Error finding subject matter experts:', error);
+    return [];
+  }
 }
 
 /**
  * Get detailed stats for a reviewer
  */
-async function getReviewerStats(login: string, repo: Repository): Promise<any> {
+async function getReviewerStats(login: string, repo: Repository): Promise<{
+  reviewsGiven: number;
+  avgResponseTime: string;
+  expertise: string[];
+  lastActive: string;
+}> {
   try {
     // Query database for reviewer stats
     const { data: contributor } = await supabase
@@ -402,7 +481,7 @@ async function getReviewerStats(login: string, repo: Repository): Promise<any> {
     
     // Calculate average response time
     const responseTimes: number[] = [];
-    contributor.reviews?.forEach((review: any) => {
+    contributor.reviews?.forEach((review: { created_at: string; submitted_at: string }) => {
       if (review.created_at && review.submitted_at) {
         const created = new Date(review.created_at);
         const submitted = new Date(review.submitted_at);
@@ -419,10 +498,21 @@ async function getReviewerStats(login: string, repo: Repository): Promise<any> {
                            avgHours < 24 ? `${Math.round(avgHours)} hours` :
                            `${Math.round(avgHours / 24)} days`;
     
+    // Get expertise based on files they've contributed to
+    const { data: fileContributions } = await supabase
+      .from('file_contributors')
+      .select('file_path')
+      .eq('contributor_id', contributor.id)
+      .eq('repository_id', repo.id)
+      .limit(50);
+    
+    const filePaths = fileContributions?.map(fc => fc.file_path) || [];
+    const expertise = getExpertiseFromFiles(filePaths);
+    
     return {
       reviewsGiven: contributor.reviews?.length || 0,
       avgResponseTime,
-      expertise: ['frontend', 'auth', 'API'], // Mock data
+      expertise: expertise.length > 0 ? expertise : ['general'],
       lastActive: calculateLastActive(contributor.last_active_at),
     };
     

@@ -1,8 +1,9 @@
-import { PullRequest, Repository } from '../types/github';
+import { PullRequest, Repository, Issue } from '../types/github';
 import { ContributorInsights } from './insights';
 import { SimilarIssue } from './similarity';
 import { ReviewerSuggestion } from './reviewers';
 import { ContextualItem } from './issue-context';
+import { ContributorConfig } from './contributor-config';
 
 interface CommentData {
   pullRequest: PullRequest;
@@ -11,132 +12,82 @@ interface CommentData {
   similarIssues: SimilarIssue[];
   reviewerSuggestions: ReviewerSuggestion[];
   hasCodeOwners?: boolean;
+  config?: ContributorConfig;
+}
+
+/**
+ * Format a username based on mention settings
+ */
+function formatUsername(username: string, config?: ContributorConfig): string {
+  // Input validation
+  if (!username || typeof username !== 'string') {
+    throw new Error('Invalid username provided');
+  }
+  
+  // Basic sanitization for markdown injection
+  // Remove characters that could break markdown links
+  const sanitizedUsername = username.replace(/[[\]()]/g, '');
+  
+  const allowMentions = config?.features?.github_mentions ?? false;
+  return allowMentions ? `@${sanitizedUsername}` : `[${sanitizedUsername}](https://github.com/${sanitizedUsername})`;
 }
 
 /**
  * Format a PR comment with insights
  */
 export function formatPRComment(data: CommentData): string {
-  const { contributorInsights, similarIssues, reviewerSuggestions } = data;
+  const { contributorInsights, similarIssues, reviewerSuggestions, config } = data;
   
-  let comment = `## 🎯 Contributor Insights
+  let comment = `## contributor.info stats
 
-**@${contributorInsights.login}** has contributed:
-- 📊 ${contributorInsights.totalPRs} PRs (${contributorInsights.mergedPRs} merged, ${contributorInsights.firstTimeApprovalRate}% first-time approval rate)
-- 🏆 Primary expertise: ${contributorInsights.expertise.join(', ') || 'Various areas'}
-- 🕐 Active hours: ${contributorInsights.activeHours}
-- 🔄 Last active: ${contributorInsights.lastActive}
+| Metric | Value |
+|--------|-------|
+| **PRs** | ${contributorInsights.mergedPRs}/${contributorInsights.totalPRs} merged |
+| **Reviews** | ${contributorInsights.reviewsGiven} given |
+| **Comments** | ${contributorInsights.commentsLeft} |
+| **Approval Rate** | ${contributorInsights.firstTimeApprovalRate}% |
 `;
-
-  // Add similar issues section if any found
-  if (similarIssues.length > 0) {
-    comment += `
-### 🔍 Related Issues & Context
-`;
-    
-    // Group by relationship type
-    const implementsIssues = similarIssues.filter(i => i.relationship === 'implements');
-    const fixesIssues = similarIssues.filter(i => i.relationship === 'fixes');
-    const relatedIssues = similarIssues.filter(i => i.relationship === 'relates_to' || i.relationship === 'similar');
-    
-    if (implementsIssues.length > 0) {
-      comment += `**This PR implements:**\n`;
-      implementsIssues.forEach(({ issue, reasons }) => {
-        comment += `- 🎯 **#${issue.number}** "${issue.title}"\n`;
-      });
-    }
-    
-    if (fixesIssues.length > 0) {
-      comment += `\n**This PR may fix:**\n`;
-      fixesIssues.forEach(({ issue, reasons }) => {
-        const priority = issue.labels?.find((l: any) => l.name.includes('priority'))?.name || '';
-        comment += `- ✅ **#${issue.number}** "${issue.title}"${priority ? ` (${priority})` : ''}\n`;
-      });
-    }
-    
-    if (relatedIssues.length > 0) {
-      comment += `\n**Related issues:**\n`;
-      relatedIssues.forEach(({ issue, reasons, similarityScore }) => {
-        const state = issue.state === 'closed' ? '(Closed)' : '(Open)';
-        comment += `- 🔄 **#${issue.number}** "${issue.title}" ${state}\n`;
-        if (reasons.length > 0) {
-          comment += `  - ${reasons.join(', ')}\n`;
-        }
-      });
-    }
-  }
 
   // Add reviewer suggestions
   if (reviewerSuggestions.length > 0) {
     comment += `
-### 💡 Suggested Reviewers
-Based on code ownership and expertise:\n`;
-    
+## Suggested Reviewers
+`;
     reviewerSuggestions.forEach(reviewer => {
-      comment += `- **@${reviewer.login}**`;
-      if (reviewer.name) {
-        comment += ` (${reviewer.name})`;
-      }
-      comment += ` - ${reviewer.reasons.join(', ')}`;
-      if (reviewer.stats.avgResponseTime !== 'Unknown') {
-        comment += ` (avg response: ${reviewer.stats.avgResponseTime})`;
-      }
-      comment += '\n';
+      const mainReason = reviewer.reasons[0] || 'Code expertise';
+      comment += `- **${formatUsername(reviewer.login, config)}** - ${mainReason}\n`;
     });
-  } else if (data.hasCodeOwners === false) {
-    // No reviewers found and no CODEOWNERS file
-    comment += `
-### 💡 Reviewer Suggestions
-
-No CODEOWNERS file found in this repository. Consider creating one to automatically suggest reviewers for PRs.
-
-<details>
-<summary>How to set up CODEOWNERS</summary>
-
-Create \`.github/CODEOWNERS\` or \`CODEOWNERS\` in your repository root:
-
-\`\`\`
-# Frontend team owns all TypeScript files
-*.ts @frontend-team
-*.tsx @frontend-team
-
-# Specific user owns the auth module
-/src/auth/ @alice
-
-# Multiple owners for API
-/api/ @bob @carol
-\`\`\`
-
-[Learn more about CODEOWNERS →](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)
-</details>
-`;
   }
 
-  // Add potential impact section if issues are being fixed
-  const fixedIssues = similarIssues.filter(i => i.relationship === 'fixes');
-  if (fixedIssues.length > 0) {
+  // Add related issues (simplified)
+  const fixesIssues = similarIssues.filter(i => i.relationship === 'fixes');
+  const relatedIssues = similarIssues.filter(i => 
+    ['relates_to', 'similar', 'implements'].includes(i.relationship)
+  );
+  
+  if (fixesIssues.length > 0) {
     comment += `
-### 📈 Potential Impact
+## May Fix
 `;
-    
-    // Count affected users (mock data for now)
-    const affectedUsers = fixedIssues.length * 3;
-    comment += `- **Fixes ${fixedIssues.length} issue${fixedIssues.length > 1 ? 's' : ''}** potentially affecting ${affectedUsers}+ users\n`;
-    
-    // List enabled features
-    const enabledFeatures = similarIssues
-      .filter(i => i.reasons.some(r => r.includes('Enables')))
-      .map(i => `#${i.issue.number}`);
-    
-    if (enabledFeatures.length > 0) {
-      comment += `- **Enables**: ${enabledFeatures.join(', ')}\n`;
-    }
+    fixesIssues.forEach(({ issue }) => {
+      comment += `- [#${issue.number}](${issue.html_url}) ${issue.title}\n`;
+    });
+  }
+  
+  if (relatedIssues.length > 0) {
+    comment += `
+## Related
+`;
+    relatedIssues.slice(0, 3).forEach(({ issue }) => {
+      comment += `- [#${issue.number}](${issue.html_url}) ${issue.title}\n`;
+    });
   }
 
-  // Add footer
+  // Footer with repository-specific dashboard link
+  const repoUrl = `https://contributor.info/${data.repository.full_name}`;
   comment += `
 ---
-*Generated by [contributor.info](https://contributor.info) • [Install on more repos](https://github.com/apps/contributor-info) • [Get full analytics](https://contributor.info/upgrade)*`;
+*This comment was generated by [contributor.info](${repoUrl}) - providing contributor insights and reviewer suggestions. [Install on your repositories](https://github.com/apps/contributor-info)*`;
 
   return comment;
 }
@@ -145,12 +96,13 @@ Create \`.github/CODEOWNERS\` or \`CODEOWNERS\` in your repository root:
  * Format a minimal PR comment (for users who prefer less detail)
  */
 export function formatMinimalPRComment(data: CommentData): string {
-  const { contributorInsights, reviewerSuggestions, similarIssues } = data;
+  const { contributorInsights, reviewerSuggestions, similarIssues, config, repository } = data;
+  const repoUrl = `https://contributor.info/${repository.full_name}`;
   
-  let comment = `**@${contributorInsights.login}**: ${contributorInsights.mergedPRs}/${contributorInsights.totalPRs} PRs merged`;
+  let comment = `**${formatUsername(contributorInsights.login, config)}**: ${contributorInsights.mergedPRs}/${contributorInsights.totalPRs} PRs merged`;
   
   if (reviewerSuggestions.length > 0) {
-    comment += ` • Suggested reviewers: ${reviewerSuggestions.slice(0, 2).map(r => `@${r.login}`).join(', ')}`;
+    comment += ` • Suggested reviewers: ${reviewerSuggestions.slice(0, 2).map(r => formatUsername(r.login, config)).join(', ')}`;
   }
   
   const fixCount = similarIssues.filter(i => i.relationship === 'fixes').length;
@@ -158,7 +110,12 @@ export function formatMinimalPRComment(data: CommentData): string {
     comment += ` • Fixes ${fixCount} issue${fixCount > 1 ? 's' : ''}`;
   }
   
-  comment += ` • [Details](https://contributor.info)`;
+  comment += ` • [Details](${repoUrl})`;
+  
+  // Footer with repository-specific dashboard link
+  comment += `
+---
+*This comment was generated by [contributor.info](${repoUrl}) - providing contributor insights and reviewer suggestions. [Install on your repositories](https://github.com/apps/contributor-info)*`;
   
   return comment;
 }
@@ -167,22 +124,24 @@ export function formatMinimalPRComment(data: CommentData): string {
  * Format a welcome message for first-time contributors
  */
 export function formatWelcomeComment(contributor: string, repository: Repository): string {
+  const repoUrl = `https://contributor.info/${repository.full_name}`;
   return `## 👋 Welcome @${contributor}!
 
 Thank you for your first contribution to **${repository.full_name}**! 
 
-We use [contributor.info](https://contributor.info) to help identify the best reviewers for your PR and provide context about related issues. Your PR will be reviewed soon!
+We use [contributor.info](${repoUrl}) to help identify the best reviewers for your PR and provide context about related issues. Your PR will be reviewed soon!
 
 If you have any questions, feel free to ask in the comments below.
 
 ---
-*Generated by [contributor.info](https://contributor.info)*`;
+*This comment was generated by [contributor.info](${repoUrl}) - providing contributor insights and reviewer suggestions. [Install on your repositories](https://github.com/apps/contributor-info)*`;
 }
 
 /**
  * Format an error message when insights can't be generated
  */
-export function formatErrorComment(): string {
+export function formatErrorComment(repository?: Repository): string {
+  const repoUrl = repository ? `https://contributor.info/${repository.full_name}` : 'https://contributor.info';
   return `## 🎯 Contributor Insights
 
 We're currently experiencing issues generating insights for this PR. The review process will continue as normal.
@@ -190,11 +149,11 @@ We're currently experiencing issues generating insights for this PR. The review 
 If this persists, please contact support at support@contributor.info.
 
 ---
-*[contributor.info](https://contributor.info)*`;
+*This comment was generated by [contributor.info](${repoUrl}) - providing contributor insights and reviewer suggestions. [Install on your repositories](https://github.com/apps/contributor-info)*`;
 }
 
 interface ContextCommentData {
-  pullRequest: any; // GitHub Issue object (which represents the PR)
+  pullRequest: Issue; // GitHub Issue object (which represents the PR)
   repository: Repository;
   contextualItems: ContextualItem[];
   changedFiles: string[];
@@ -204,7 +163,8 @@ interface ContextCommentData {
  * Format a comment response to the .issues command
  */
 export function formatContextComment(data: ContextCommentData): string {
-  const { contextualItems, changedFiles } = data;
+  const { contextualItems, changedFiles, repository } = data;
+  const repoUrl = `https://contributor.info/${repository.full_name}`;
   
   if (contextualItems.length === 0) {
     return `## 📋 Issue Context Analysis
@@ -217,7 +177,7 @@ This might be because:
 - The changes are too unique to match existing work
 
 ---
-*Generated by [contributor.info](https://contributor.info) • Use \`.issues\` in any PR comment to analyze context*`;
+*Generated by [contributor.info](${repoUrl}) • Use \`.issues\` in any PR comment to analyze context*`;
   }
 
   let comment = `## 📋 Issue Context Analysis
@@ -297,7 +257,7 @@ Based on the files changed in this PR, here are related issues and pull requests
 
   // Add footer
   comment += `---
-*Generated based on semantic analysis of ${contextualItems.length} related items • [Learn more](https://contributor.info/docs/issue-context)*`;
+*This comment was generated by [contributor.info](${repoUrl}) - providing contributor insights and reviewer suggestions. [Install on your repositories](https://github.com/apps/contributor-info)*`;
 
   return comment;
 }
