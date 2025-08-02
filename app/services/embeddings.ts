@@ -45,13 +45,13 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     });
     
     // Extract data from the tensor
-    // @ts-ignore - Transformers.js types are not fully accurate
-    const embeddings = output.data || output.tolist()[0];
+    // @ts-expect-error - Transformers.js types are not fully accurate
+    const embeddings = output.data || output.tolist?.()?.[0] || [];
     
     // Convert to array and return
     return Array.from(embeddings);
   } catch (error) {
-    console.error('Error generating embedding:', error);
+    console.error('Error generating embedding: %s', error);
     throw error;
   }
 }
@@ -60,7 +60,8 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  * Create content hash for change detection
  */
 export function createContentHash(title: string, body?: string | null): string {
-  const content = `${title}\n${body || ''}`;
+  // Use JSON.stringify to safely handle any special characters
+  const content = JSON.stringify({ title, body: body || '' });
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 
@@ -99,13 +100,13 @@ export async function generateAndStoreEmbeddings(items: EmbeddingItem[]): Promis
           .eq('id', item.id);
           
         if (updateError) {
-          console.error(`Failed to store embedding for ${item.type} ${item.id}:`, updateError);
+          console.error('Failed to store embedding for %s %s: %s', item.type, item.id, updateError);
           throw new Error(`Failed to store embedding: ${updateError.message}`);
         }
           
         console.log(`Generated embedding for ${item.type} ${item.id}`);
       } catch (error) {
-        console.error(`Failed to generate embedding for ${item.type} ${item.id}:`, error);
+        console.error('Failed to generate embedding for %s %s: %s', item.type, item.id, error);
       }
     }));
     

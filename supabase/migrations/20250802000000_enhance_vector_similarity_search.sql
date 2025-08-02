@@ -4,7 +4,7 @@
 
 -- Enhanced function to find similar issues with similarity threshold
 CREATE OR REPLACE FUNCTION find_similar_issues(
-  query_embedding vector(1536),
+  query_embedding vector(384),
   match_count int DEFAULT 5,
   repo_id uuid DEFAULT NULL,
   similarity_threshold float DEFAULT 0.7,
@@ -61,7 +61,7 @@ $$;
 -- Enhanced function for cross-repository similarity search
 -- Useful for finding similar issues across an organization's repositories
 CREATE OR REPLACE FUNCTION find_similar_issues_cross_repo(
-  query_embedding vector(1536),
+  query_embedding vector(384),
   organization_name text,
   match_count int DEFAULT 5,
   similarity_threshold float DEFAULT 0.7,
@@ -122,7 +122,7 @@ $$;
 -- Function to find the most similar issue for a given text input
 -- This is useful for duplicate detection
 CREATE OR REPLACE FUNCTION find_most_similar_issue(
-  query_embedding vector(1536),
+  query_embedding vector(384),
   repo_id uuid,
   exclude_issue_id uuid DEFAULT NULL
 )

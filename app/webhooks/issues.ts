@@ -125,6 +125,8 @@ async function handleIssueOpened(event: IssuesEvent) {
 
   } catch (error) {
     console.error('Error handling issue opened:', error);
+    // Re-throw to allow webhook retry
+    throw error;
   }
 }
 
@@ -150,7 +152,7 @@ async function handleIssueClosed(event: IssuesEvent) {
     }
 
   } catch (error) {
-    console.error('Error handling issue closed:', error);
+    console.error('Error handling issue closed: %s', error);
   }
 }
 
@@ -170,7 +172,7 @@ async function handleIssueReopened(event: IssuesEvent) {
       .eq('github_id', event.issue.id);
 
   } catch (error) {
-    console.error('Error handling issue reopened:', error);
+    console.error('Error handling issue reopened: %s', error);
   }
 }
 
@@ -198,7 +200,7 @@ async function handleIssueEdited(event: IssuesEvent) {
     });
 
   } catch (error) {
-    console.error('Error handling issue edited:', error);
+    console.error('Error handling issue edited: %s', error);
   }
 }
 
@@ -216,7 +218,7 @@ async function handleIssueLabeled(event: IssuesEvent) {
       .eq('github_id', event.issue.id);
 
   } catch (error) {
-    console.error('Error handling issue labeled:', error);
+    console.error('Error handling issue labeled: %s', error);
   }
 }
 
@@ -237,7 +239,7 @@ async function handleIssueAssigned(event: IssuesEvent) {
       .eq('github_id', event.issue.id);
 
   } catch (error) {
-    console.error('Error handling issue assigned:', error);
+    console.error('Error handling issue assigned: %s', error);
   }
 }
 
@@ -271,7 +273,7 @@ async function checkForDuplicateIssues(issue: any, repositoryId: string) {
     }
 
   } catch (error) {
-    console.error('Error checking for duplicates:', error);
+    console.error('Error checking for duplicates: %s', error);
   }
 }
 
@@ -306,7 +308,7 @@ async function checkIfClosedByPR(issue: any, repository: any) {
     }
 
   } catch (error) {
-    console.error('Error checking if closed by PR:', error);
+    console.error('Error checking if closed by PR: %s', error);
   }
 }
 

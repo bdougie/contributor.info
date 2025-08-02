@@ -59,7 +59,7 @@ export async function createIssueComment(
     
     console.log(`Posted comment on issue #${issueNumber} in ${owner}/${repo}`);
   } catch (error) {
-    console.error('Error creating issue comment:', error);
+    console.error('Error creating issue comment: %s', error);
     throw error;
   }
 }
@@ -84,7 +84,7 @@ export async function createPullRequestComment(
     
     console.log(`Posted comment on PR #${pullNumber} in ${owner}/${repo}`);
   } catch (error) {
-    console.error('Error creating PR comment:', error);
+    console.error('Error creating PR comment: %s', error);
     throw error;
   }
 }
@@ -107,7 +107,7 @@ export async function getIssue(
     
     return data;
   } catch (error) {
-    console.error('Error fetching issue:', error);
+    console.error('Error fetching issue: %s', error);
     throw error;
   }
 }
@@ -144,7 +144,7 @@ export async function listRepositoryIssues(
     
     return data;
   } catch (error) {
-    console.error('Error listing issues:', error);
+    console.error('Error listing issues: %s', error);
     throw error;
   }
 }

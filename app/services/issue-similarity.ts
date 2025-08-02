@@ -44,13 +44,13 @@ export async function generateIssueEmbedding(
     });
     
     // Extract data from the tensor
-    // @ts-ignore - Transformers.js types are not fully accurate
-    const embeddings = output.data || output.tolist()[0];
+    // @ts-expect-error - Transformers.js types are not fully accurate
+    const embeddings = output.data || output.tolist?.()?.[0] || [];
     
     // Convert to array and return
     return Array.from(embeddings);
   } catch (error) {
-    console.error('Error generating embedding:', error);
+    console.error('Error generating embedding: %s', error);
     throw error;
   }
 }
@@ -59,7 +59,8 @@ export async function generateIssueEmbedding(
  * Calculate content hash for change detection
  */
 export function calculateContentHash(title: string, body: string | null): string {
-  const content = `${title}|${body || ''}`;
+  // Use JSON.stringify to safely handle any special characters
+  const content = JSON.stringify({ title, body: body || '' });
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 
@@ -81,7 +82,7 @@ export async function storeIssueEmbedding(
     .eq('id', issueId);
 
   if (error) {
-    console.error('Error storing issue embedding:', error);
+    console.error('Error storing issue embedding: %s', error);
     throw error;
   }
 }
@@ -107,7 +108,7 @@ export async function findSimilarIssues(
     });
 
     if (error) {
-      console.error('Error finding similar issues:', error);
+      console.error('Error finding similar issues: %s', error);
       return [];
     }
 
