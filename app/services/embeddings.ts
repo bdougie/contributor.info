@@ -1,7 +1,13 @@
 import { supabase } from '../../src/lib/supabase';
+import { pipeline, env } from '@xenova/transformers';
 import crypto from 'crypto';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+// Configure Transformers.js
+env.allowLocalModels = false;
+env.useBrowserCache = false;
+
+// Shared embedding pipeline
+let embeddingPipeline: Awaited<ReturnType<typeof pipeline>> | null = null;
 
 export interface EmbeddingItem {
   id: string;
@@ -11,39 +17,47 @@ export interface EmbeddingItem {
 }
 
 /**
- * Generate embedding for issue or PR content
+ * Get or initialize the embedding pipeline
+ */
+async function getEmbeddingPipeline() {
+  if (!embeddingPipeline) {
+    console.log('Loading MiniLM embedding model...');
+    embeddingPipeline = await pipeline(
+      'feature-extraction',
+      'Xenova/all-MiniLM-L6-v2'
+    );
+    console.log('MiniLM model loaded successfully');
+  }
+  return embeddingPipeline;
+}
+
+/**
+ * Generate embedding for issue or PR content using MiniLM
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  if (!OPENAI_API_KEY) {
-    throw new Error('OpenAI API key not configured');
+  try {
+    const embedder = await getEmbeddingPipeline();
+    
+    // Generate embeddings - pass empty options object to satisfy TypeScript
+    const output = await embedder(text, {} as any) as any;
+    
+    // Extract data from the tensor
+    const embeddings = output.data || output.tolist?.()?.[0] || [];
+    
+    // Convert to array and return
+    return Array.from(embeddings);
+  } catch (error) {
+    console.error('Error generating embedding: %s', error);
+    throw error;
   }
-
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'text-embedding-3-small',
-      input: text,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenAI API error: ${error}`);
-  }
-
-  const data = await response.json();
-  return data.data[0].embedding;
 }
 
 /**
  * Create content hash for change detection
  */
 export function createContentHash(title: string, body?: string | null): string {
-  const content = `${title}\n${body || ''}`;
+  // Use JSON.stringify to safely handle any special characters
+  const content = JSON.stringify({ title, body: body || '' });
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 
@@ -82,13 +96,13 @@ export async function generateAndStoreEmbeddings(items: EmbeddingItem[]): Promis
           .eq('id', item.id);
           
         if (updateError) {
-          console.error(`Failed to store embedding for ${item.type} ${item.id}:`, updateError);
+          console.error('Failed to store embedding for %s %s: %s', item.type, item.id, updateError);
           throw new Error(`Failed to store embedding: ${updateError.message}`);
         }
           
         console.log(`Generated embedding for ${item.type} ${item.id}`);
       } catch (error) {
-        console.error(`Failed to generate embedding for ${item.type} ${item.id}:`, error);
+        console.error('Failed to generate embedding for %s %s: %s', item.type, item.id, error);
       }
     }));
     

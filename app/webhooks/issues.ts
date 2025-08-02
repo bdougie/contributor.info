@@ -1,6 +1,8 @@
 import { IssuesEvent } from '../types/github';
 import { supabase } from '../../src/lib/supabase';
 import { inngest } from '../../src/lib/inngest/client';
+import { processNewIssue, formatSimilarIssuesComment } from '../services/issue-similarity';
+import { createIssueComment } from '../services/github-api';
 
 /**
  * Handle issue webhook events
@@ -63,7 +65,7 @@ async function handleIssueOpened(event: IssuesEvent) {
       .single();
 
     // Store the issue
-    await supabase
+    const { data: issueData } = await supabase
       .from('issues')
       .upsert({
         github_id: event.issue.id,
@@ -82,9 +84,40 @@ async function handleIssueOpened(event: IssuesEvent) {
         })),
         comments_count: event.issue.comments,
         is_pull_request: !!event.issue.pull_request,
-      });
+      })
+      .select('id')
+      .single();
 
-    // Queue for similarity calculation with existing PRs
+    // Process issue for similarity and generate embeddings
+    if (!issueData) {
+      console.error('Failed to create issue record in database');
+      return;
+    }
+
+    const similarIssues = await processNewIssue({
+      id: issueData.id,
+      github_id: event.issue.id,
+      number: event.issue.number,
+      title: event.issue.title,
+      body: event.issue.body,
+      repository_id: repository.id,
+      html_url: event.issue.html_url,
+    });
+
+    // Post comment if similar issues found
+    if (similarIssues.length > 0) {
+      const comment = formatSimilarIssuesComment(similarIssues);
+      if (comment) {
+        await createIssueComment(
+          event.repository.owner.login,
+          event.repository.name,
+          event.issue.number,
+          comment
+        );
+      }
+    }
+
+    // Queue for additional analysis
     await inngest.send({
       name: 'github.issue.analyze',
       data: {
@@ -95,11 +128,10 @@ async function handleIssueOpened(event: IssuesEvent) {
       },
     });
 
-    // Check if this might be a duplicate
-    await checkForDuplicateIssues(event.issue, repository.id);
-
   } catch (error) {
     console.error('Error handling issue opened:', error);
+    // Re-throw to allow webhook retry
+    throw error;
   }
 }
 
@@ -125,7 +157,7 @@ async function handleIssueClosed(event: IssuesEvent) {
     }
 
   } catch (error) {
-    console.error('Error handling issue closed:', error);
+    console.error('Error handling issue closed: %o', error);
   }
 }
 
@@ -145,7 +177,7 @@ async function handleIssueReopened(event: IssuesEvent) {
       .eq('github_id', event.issue.id);
 
   } catch (error) {
-    console.error('Error handling issue reopened:', error);
+    console.error('Error handling issue reopened: %s', error);
   }
 }
 
@@ -173,7 +205,7 @@ async function handleIssueEdited(event: IssuesEvent) {
     });
 
   } catch (error) {
-    console.error('Error handling issue edited:', error);
+    console.error('Error handling issue edited: %s', error);
   }
 }
 
@@ -191,7 +223,7 @@ async function handleIssueLabeled(event: IssuesEvent) {
       .eq('github_id', event.issue.id);
 
   } catch (error) {
-    console.error('Error handling issue labeled:', error);
+    console.error('Error handling issue labeled: %s', error);
   }
 }
 
@@ -212,7 +244,7 @@ async function handleIssueAssigned(event: IssuesEvent) {
       .eq('github_id', event.issue.id);
 
   } catch (error) {
-    console.error('Error handling issue assigned:', error);
+    console.error('Error handling issue assigned: %s', error);
   }
 }
 
@@ -246,7 +278,7 @@ async function checkForDuplicateIssues(issue: any, repositoryId: string) {
     }
 
   } catch (error) {
-    console.error('Error checking for duplicates:', error);
+    console.error('Error checking for duplicates: %s', error);
   }
 }
 
@@ -281,7 +313,7 @@ async function checkIfClosedByPR(issue: any, repository: any) {
     }
 
   } catch (error) {
-    console.error('Error checking if closed by PR:', error);
+    console.error('Error checking if closed by PR: %s', error);
   }
 }
 
