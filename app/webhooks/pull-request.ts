@@ -1,10 +1,16 @@
 import { PullRequestEvent } from '../types/github';
 import { githubAppAuth } from '../lib/auth';
 import { generatePRInsights } from '../services/insights';
-import { formatPRComment } from '../services/comments';
+import { formatPRComment, formatMinimalPRComment } from '../services/comments';
 import { findSimilarIssues } from '../services/similarity';
 import { suggestReviewers } from '../services/reviewers';
 import { supabase } from '../../src/lib/supabase';
+import { 
+  fetchContributorConfig, 
+  isFeatureEnabled,
+  isUserExcluded,
+  generateCodeOwnersSuggestion
+} from '../services/contributor-config';
 
 /**
  * Handle pull request webhook events
@@ -39,21 +45,71 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
 
     const octokit = await githubAppAuth.getInstallationOctokit(installationId);
 
-    // Generate insights in parallel
-    const [contributorInsights, similarIssues, reviewerSuggestions] = await Promise.all([
-      generatePRInsights(event.pull_request, event.repository),
-      findSimilarIssues(event.pull_request, event.repository),
-      suggestReviewers(event.pull_request, event.repository),
-    ]);
+    // Fetch configuration
+    const config = await fetchContributorConfig(
+      octokit,
+      event.repository.owner.login,
+      event.repository.name
+    );
 
-    // Format the comment
-    const comment = formatPRComment({
-      pullRequest: event.pull_request,
-      repository: event.repository,
-      contributorInsights,
-      similarIssues,
-      reviewerSuggestions,
-    });
+    // Check if PR author is excluded
+    if (isUserExcluded(config, event.pull_request.user.login, 'author')) {
+      console.log(`PR author ${event.pull_request.user.login} is excluded from comments`);
+      return;
+    }
+
+    // Check if auto-comment is enabled
+    if (!isFeatureEnabled(config, 'auto_comment')) {
+      console.log('Auto-comment is disabled in .contributor config');
+      return;
+    }
+
+    // Generate insights in parallel (only fetch what's enabled)
+    const insightsPromises = [
+      generatePRInsights(event.pull_request, event.repository),
+    ];
+
+    if (isFeatureEnabled(config, 'similar_issues')) {
+      insightsPromises.push(findSimilarIssues(event.pull_request, event.repository));
+    } else {
+      insightsPromises.push(Promise.resolve([]));
+    }
+
+    if (isFeatureEnabled(config, 'reviewer_suggestions')) {
+      insightsPromises.push(suggestReviewers(event.pull_request, event.repository, installationId));
+    } else {
+      insightsPromises.push(Promise.resolve({ suggestions: [], hasCodeOwners: false }));
+    }
+
+    const [contributorInsights, similarIssues, reviewerSuggestionsResult] = await Promise.all(insightsPromises);
+
+    // Extract suggestions and hasCodeOwners flag
+    const hasCodeOwners = reviewerSuggestionsResult?.hasCodeOwners || false;
+    const reviewerSuggestions = reviewerSuggestionsResult?.suggestions || [];
+
+    // Filter out excluded reviewers
+    const filteredReviewers = reviewerSuggestions.filter(
+      reviewer => !isUserExcluded(config, reviewer.login, 'reviewer')
+    );
+
+    // Format the comment based on style preference
+    const comment = config.comment_style === 'minimal' 
+      ? formatMinimalPRComment({
+          pullRequest: event.pull_request,
+          repository: event.repository,
+          contributorInsights,
+          similarIssues,
+          reviewerSuggestions: filteredReviewers,
+          hasCodeOwners,
+        })
+      : formatPRComment({
+          pullRequest: event.pull_request,
+          repository: event.repository,
+          contributorInsights,
+          similarIssues,
+          reviewerSuggestions: filteredReviewers,
+          hasCodeOwners,
+        });
 
     // Post the comment
     const { data: postedComment } = await octokit.issues.createComment({

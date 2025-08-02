@@ -10,6 +10,7 @@ interface CommentData {
   contributorInsights: ContributorInsights;
   similarIssues: SimilarIssue[];
   reviewerSuggestions: ReviewerSuggestion[];
+  hasCodeOwners?: boolean;
 }
 
 /**
@@ -82,6 +83,33 @@ Based on code ownership and expertise:\n`;
       }
       comment += '\n';
     });
+  } else if (data.hasCodeOwners === false) {
+    // No reviewers found and no CODEOWNERS file
+    comment += `
+### 💡 Reviewer Suggestions
+
+No CODEOWNERS file found in this repository. Consider creating one to automatically suggest reviewers for PRs.
+
+<details>
+<summary>How to set up CODEOWNERS</summary>
+
+Create \`.github/CODEOWNERS\` or \`CODEOWNERS\` in your repository root:
+
+\`\`\`
+# Frontend team owns all TypeScript files
+*.ts @frontend-team
+*.tsx @frontend-team
+
+# Specific user owns the auth module
+/src/auth/ @alice
+
+# Multiple owners for API
+/api/ @bob @carol
+\`\`\`
+
+[Learn more about CODEOWNERS →](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)
+</details>
+`;
   }
 
   // Add potential impact section if issues are being fixed
