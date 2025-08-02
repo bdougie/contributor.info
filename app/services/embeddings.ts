@@ -1,7 +1,13 @@
 import { supabase } from '../../src/lib/supabase';
+import { pipeline, env } from '@xenova/transformers';
 import crypto from 'crypto';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+// Configure Transformers.js
+env.allowLocalModels = false;
+env.useBrowserCache = false;
+
+// Shared embedding pipeline
+let embeddingPipeline: Awaited<ReturnType<typeof pipeline>> | null = null;
 
 export interface EmbeddingItem {
   id: string;
@@ -11,32 +17,43 @@ export interface EmbeddingItem {
 }
 
 /**
- * Generate embedding for issue or PR content
+ * Get or initialize the embedding pipeline
+ */
+async function getEmbeddingPipeline() {
+  if (!embeddingPipeline) {
+    console.log('Loading MiniLM embedding model...');
+    embeddingPipeline = await pipeline(
+      'feature-extraction',
+      'Xenova/all-MiniLM-L6-v2'
+    );
+    console.log('MiniLM model loaded successfully');
+  }
+  return embeddingPipeline;
+}
+
+/**
+ * Generate embedding for issue or PR content using MiniLM
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  if (!OPENAI_API_KEY) {
-    throw new Error('OpenAI API key not configured');
+  try {
+    const embedder = await getEmbeddingPipeline();
+    
+    // Generate embeddings with mean pooling and normalization
+    const output = await embedder(text, {
+      pooling: 'mean',
+      normalize: true,
+    });
+    
+    // Extract data from the tensor
+    // @ts-ignore - Transformers.js types are not fully accurate
+    const embeddings = output.data || output.tolist()[0];
+    
+    // Convert to array and return
+    return Array.from(embeddings);
+  } catch (error) {
+    console.error('Error generating embedding:', error);
+    throw error;
   }
-
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'text-embedding-3-small',
-      input: text,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenAI API error: ${error}`);
-  }
-
-  const data = await response.json();
-  return data.data[0].embedding;
 }
 
 /**
