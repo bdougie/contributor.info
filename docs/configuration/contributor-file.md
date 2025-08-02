@@ -26,7 +26,8 @@ version: 1
 features:
   reviewer_suggestions: true  # Suggest reviewers based on CODEOWNERS and history
   similar_issues: true       # Show related issues on new issues
-  auto_comment: true         # Post insights automatically on PRs
+  auto_comment: true         # Post insights automatically when PRs are marked "ready for review"
+  github_mentions: false     # Use @mentions (true) or profile links (false) in comments
 
 # Comment style: "detailed" or "minimal"
 comment_style: detailed
@@ -56,7 +57,8 @@ notifications:
   "features": {
     "reviewer_suggestions": true,
     "similar_issues": true,
-    "auto_comment": true
+    "auto_comment": true,
+    "github_mentions": false
   },
   "comment_style": "detailed",
   "exclude_authors": [],
@@ -99,7 +101,12 @@ Controls which features are enabled for your repository.
 **`auto_comment`**
 - **Type**: Boolean
 - **Default**: `true`
-- **Description**: Automatically post insights comments on pull requests
+- **Description**: Automatically post insights comments when pull requests are marked as "ready for review". Comments are not posted on draft PRs or when PRs are initially opened as drafts.
+
+**`github_mentions`**
+- **Type**: Boolean
+- **Default**: `false`
+- **Description**: Use @mentions (true) or profile links (false) for usernames in comments. When false, usernames are formatted as links to avoid notifications.
 
 #### `comment_style` (optional)
 - **Type**: String
@@ -277,6 +284,22 @@ Based on code ownership and expertise:
 ```markdown
 **@john-doe**: 42/45 PRs merged • Suggested reviewers: @alice-frontend, @bob-security • Fixes 1 issue • [Details](https://contributor.info)
 ```
+
+## PR Comment Behavior
+
+The contributor.info app will automatically post insights comments on pull requests when:
+
+1. **A draft PR is marked as "ready for review"** - This is the primary trigger for comments
+2. **The `auto_comment` feature is enabled** (default: true)
+3. **The PR author is not in the `exclude_authors` list**
+
+Comments are **NOT** posted when:
+- A PR is opened directly (non-draft)
+- A PR is still in draft status
+- A PR is already marked as ready (to avoid duplicate comments)
+- The `auto_comment` feature is disabled
+
+This ensures that comments appear at the most relevant time - when a PR is ready for review and feedback.
 
 ## Validation and Error Handling
 
