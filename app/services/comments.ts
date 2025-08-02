@@ -19,194 +19,57 @@ interface CommentData {
 export function formatPRComment(data: CommentData): string {
   const { contributorInsights, similarIssues, reviewerSuggestions } = data;
   
-  let comment = `## 🎯 Contributor Insights
+  let comment = `## Contributor Stats
 
-<table>
-<tr>
-<td width="80">
-<img src="https://github.com/${contributorInsights.login}.png" width="64" height="64" />
-</td>
-<td>
-<strong><a href="https://github.com/${contributorInsights.login}">@${contributorInsights.login}</a></strong><br/>
-📊 <strong>${contributorInsights.totalPRs}</strong> PRs (<strong>${contributorInsights.mergedPRs}</strong> merged)<br/>
-💬 <strong>${contributorInsights.reviewsGiven}</strong> reviews • <strong>${contributorInsights.commentsLeft}</strong> comments<br/>
-✅ <strong>${contributorInsights.firstTimeApprovalRate}%</strong> first-time approval rate
-</td>
-</tr>
-</table>
-
-<details>
-<summary>📈 Contribution Stats</summary>
-
-- 🔨 **Pull Requests**: ${contributorInsights.totalPRs} total (${contributorInsights.mergedPRs} merged)
-- 👀 **Code Reviews**: ${contributorInsights.reviewsGiven} reviews given
-- 💭 **Comments**: ${contributorInsights.commentsLeft} comments on issues/PRs
-- 🏆 **Expertise**: ${contributorInsights.expertise.length > 0 
-  ? contributorInsights.expertise.map(exp => `\`${exp}\``).join(' ') 
-  : 'Various areas'}
-- 🔄 **Last active**: ${contributorInsights.lastActive}
-
-</details>
+| Metric | Value |
+|--------|-------|
+| **PRs** | ${contributorInsights.mergedPRs}/${contributorInsights.totalPRs} merged |
+| **Reviews** | ${contributorInsights.reviewsGiven} given |
+| **Comments** | ${contributorInsights.commentsLeft} |
+| **Approval Rate** | ${contributorInsights.firstTimeApprovalRate}% |
 `;
 
-  // Add similar issues section if any found
-  if (similarIssues.length > 0) {
-    comment += `
-### 🔍 Related Issues & Context
-`;
-    
-    // Group by relationship type
-    const implementsIssues = similarIssues.filter(i => i.relationship === 'implements');
-    const fixesIssues = similarIssues.filter(i => i.relationship === 'fixes');
-    const relatedIssues = similarIssues.filter(i => i.relationship === 'relates_to' || i.relationship === 'similar');
-    
-    if (implementsIssues.length > 0) {
-      comment += `\n#### 🎯 This PR implements:\n`;
-      implementsIssues.forEach(({ issue, reasons }) => {
-        const labels = issue.labels?.map((l: any) => `\`${l.name}\``).join(' ') || '';
-        comment += `- **[#${issue.number}](${issue.html_url})** ${issue.title} ${labels}\n`;
-      });
-    }
-    
-    if (fixesIssues.length > 0) {
-      comment += `\n#### ✅ This PR may fix:\n`;
-      fixesIssues.forEach(({ issue, reasons }) => {
-        const priority = issue.labels?.find((l: any) => l.name.includes('priority'))?.name || '';
-        const labels = issue.labels?.map((l: any) => `\`${l.name}\``).join(' ') || '';
-        comment += `- **[#${issue.number}](${issue.html_url})** ${issue.title} ${labels}\n`;
-      });
-    }
-    
-    if (relatedIssues.length > 0) {
-      const showAll = relatedIssues.length <= 3;
-      comment += `\n#### 🔄 Related issues:\n`;
-      
-      if (showAll) {
-        relatedIssues.forEach(({ issue, reasons, similarityScore }) => {
-          const state = issue.state === 'closed' ? '`closed`' : '`open`';
-          comment += `- **[#${issue.number}](${issue.html_url})** ${issue.title} ${state}\n`;
-        });
-      } else {
-        // Show first 3, rest in collapsible
-        relatedIssues.slice(0, 3).forEach(({ issue }) => {
-          const state = issue.state === 'closed' ? '`closed`' : '`open`';
-          comment += `- **[#${issue.number}](${issue.html_url})** ${issue.title} ${state}\n`;
-        });
-        
-        comment += `\n<details>\n<summary>View ${relatedIssues.length - 3} more related issues</summary>\n\n`;
-        relatedIssues.slice(3).forEach(({ issue, reasons }) => {
-          const state = issue.state === 'closed' ? '`closed`' : '`open`';
-          comment += `- **[#${issue.number}](${issue.html_url})** ${issue.title} ${state}\n`;
-          if (reasons.length > 0) {
-            comment += `  - ${reasons.join(', ')}\n`;
-          }
-        });
-        comment += `</details>`;
-      }
-    }
-  }
-
-  // Add reviewer suggestions with enhanced formatting
+  // Add reviewer suggestions
   if (reviewerSuggestions.length > 0) {
     comment += `
-### 💡 Suggested Reviewers
-Based on code ownership and expertise:
-
-<table>
-<tr><th>Reviewer</th><th>Expertise</th><th>Stats</th></tr>`;
-    
-    reviewerSuggestions.forEach(reviewer => {
-      const expertiseBadges = reviewer.stats.expertise
-        .map(exp => `\`${exp}\``)
-        .join(' ');
-      
-      comment += `
-<tr>
-<td>
-<img src="${reviewer.avatarUrl}" width="20" height="20" align="center" />
-<strong><a href="https://github.com/${reviewer.login}">@${reviewer.login}</a></strong>
-${reviewer.name ? `<br/><sub>${reviewer.name}</sub>` : ''}
-</td>
-<td>${expertiseBadges}</td>
-<td>
-📊 ${reviewer.stats.reviewsGiven} reviews<br/>
-⏱️ ${reviewer.stats.avgResponseTime} avg response<br/>
-🕐 ${reviewer.stats.lastActive}
-</td>
-</tr>`;
-    });
-    
-    comment += `
-</table>
-
-<details>
-<summary>Why these reviewers?</summary>
-
+## Suggested Reviewers
 `;
     reviewerSuggestions.forEach(reviewer => {
-      comment += `**@${reviewer.login}**: ${reviewer.reasons.join(', ')}\n\n`;
+      const mainReason = reviewer.reasons[0] || 'Code expertise';
+      comment += `- **@${reviewer.login}** - ${mainReason}\n`;
     });
-    comment += `</details>`;
-  } else if (data.hasCodeOwners === false) {
-    // No reviewers found and no CODEOWNERS file
-    comment += `
-### 💡 Reviewer Suggestions
-
-No CODEOWNERS file found in this repository. Consider creating one to automatically suggest reviewers for PRs.
-
-<details>
-<summary>How to set up CODEOWNERS</summary>
-
-Create \`.github/CODEOWNERS\` or \`CODEOWNERS\` in your repository root:
-
-\`\`\`
-# Frontend team owns all TypeScript files
-*.ts @frontend-team
-*.tsx @frontend-team
-
-# Specific user owns the auth module
-/src/auth/ @alice
-
-# Multiple owners for API
-/api/ @bob @carol
-\`\`\`
-
-[Learn more about CODEOWNERS →](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)
-</details>
-`;
   }
 
-  // Add potential impact section if issues are being fixed
-  const fixedIssues = similarIssues.filter(i => i.relationship === 'fixes');
-  if (fixedIssues.length > 0) {
+  // Add related issues (simplified)
+  const fixesIssues = similarIssues.filter(i => i.relationship === 'fixes');
+  const relatedIssues = similarIssues.filter(i => 
+    i.relationship === 'relates_to' || 
+    i.relationship === 'similar' || 
+    i.relationship === 'implements'
+  );
+  
+  if (fixesIssues.length > 0) {
     comment += `
-### 📈 Potential Impact
+## May Fix
 `;
-    
-    // Count affected users (mock data for now)
-    const affectedUsers = fixedIssues.length * 3;
-    comment += `- **Fixes ${fixedIssues.length} issue${fixedIssues.length > 1 ? 's' : ''}** potentially affecting ${affectedUsers}+ users\n`;
-    
-    // List enabled features
-    const enabledFeatures = similarIssues
-      .filter(i => i.reasons.some(r => r.includes('Enables')))
-      .map(i => `#${i.issue.number}`);
-    
-    if (enabledFeatures.length > 0) {
-      comment += `- **Enables**: ${enabledFeatures.join(', ')}\n`;
-    }
+    fixesIssues.forEach(({ issue }) => {
+      comment += `- [#${issue.number}](${issue.html_url}) ${issue.title}\n`;
+    });
+  }
+  
+  if (relatedIssues.length > 0) {
+    comment += `
+## Related
+`;
+    relatedIssues.slice(0, 3).forEach(({ issue }) => {
+      comment += `- [#${issue.number}](${issue.html_url}) ${issue.title}\n`;
+    });
   }
 
-  // Add footer with interactive elements
+  // Minimal footer
   comment += `
 ---
-<sub>
-
-📊 **[View full analytics →](https://contributor.info/github/${data.repository.full_name}/pulls/${data.pullRequest.number})**
-
-*Generated by [contributor.info](https://contributor.info) • [Install on more repos](https://github.com/apps/contributor-info) • [Configure settings](https://github.com/${data.repository.full_name}/blob/${data.repository.default_branch}/.contributor)*
-
-</sub>`;
+*[contributor.info](https://contributor.info)*`;
 
   return comment;
 }
