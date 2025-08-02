@@ -247,59 +247,65 @@ function prepareContentForEmbedding(filePath: string, content: string): string {
 }
 
 /**
+ * Set of file extensions that are considered code files
+ */
+const CODE_EXTENSIONS = new Set([
+  'js', 'jsx', 'ts', 'tsx', 'py', 'rb', 'java', 'go', 'rs',
+  'cpp', 'c', 'h', 'hpp', 'cs', 'php', 'swift', 'kt', 'scala',
+  'r', 'vue', 'svelte', 'sql', 'sh', 'bash', 'ps1', 'yaml', 'yml',
+  'json', 'xml', 'html', 'css', 'scss', 'sass', 'less'
+]);
+
+/**
  * Check if a file is a code file
  */
 function isCodeFile(filePath: string): boolean {
-  const codeExtensions = new Set([
-    'js', 'jsx', 'ts', 'tsx', 'py', 'rb', 'java', 'go', 'rs',
-    'cpp', 'c', 'h', 'hpp', 'cs', 'php', 'swift', 'kt', 'scala',
-    'r', 'vue', 'svelte', 'sql', 'sh', 'bash', 'ps1', 'yaml', 'yml',
-    'json', 'xml', 'html', 'css', 'scss', 'sass', 'less'
-  ]);
-  
   const ext = filePath.split('.').pop()?.toLowerCase();
-  return ext ? codeExtensions.has(ext) : false;
+  return ext ? CODE_EXTENSIONS.has(ext) : false;
 }
+
+/**
+ * Map of file extensions to their descriptions
+ */
+const FILE_TYPE_MAP: Record<string, string> = {
+  js: 'JavaScript',
+  jsx: 'React JavaScript',
+  ts: 'TypeScript',
+  tsx: 'React TypeScript',
+  py: 'Python',
+  rb: 'Ruby',
+  java: 'Java',
+  go: 'Go',
+  rs: 'Rust',
+  cpp: 'C++',
+  c: 'C',
+  cs: 'C#',
+  php: 'PHP',
+  swift: 'Swift',
+  kt: 'Kotlin',
+  scala: 'Scala',
+  r: 'R',
+  vue: 'Vue.js',
+  svelte: 'Svelte',
+  sql: 'SQL',
+  sh: 'Shell Script',
+  bash: 'Bash Script',
+  yaml: 'YAML Configuration',
+  yml: 'YAML Configuration',
+  json: 'JSON',
+  xml: 'XML',
+  html: 'HTML',
+  css: 'CSS',
+  scss: 'SCSS',
+  sass: 'Sass',
+  less: 'Less',
+};
 
 /**
  * Get file type description
  */
 function getFileType(ext: string): string {
-  const typeMap: Record<string, string> = {
-    js: 'JavaScript',
-    jsx: 'React JavaScript',
-    ts: 'TypeScript',
-    tsx: 'React TypeScript',
-    py: 'Python',
-    rb: 'Ruby',
-    java: 'Java',
-    go: 'Go',
-    rs: 'Rust',
-    cpp: 'C++',
-    c: 'C',
-    cs: 'C#',
-    php: 'PHP',
-    swift: 'Swift',
-    kt: 'Kotlin',
-    scala: 'Scala',
-    r: 'R',
-    vue: 'Vue.js',
-    svelte: 'Svelte',
-    sql: 'SQL',
-    sh: 'Shell Script',
-    bash: 'Bash Script',
-    yaml: 'YAML Configuration',
-    yml: 'YAML Configuration',
-    json: 'JSON',
-    xml: 'XML',
-    html: 'HTML',
-    css: 'CSS',
-    scss: 'SCSS',
-    sass: 'Sass',
-    less: 'Less',
-  };
-  
-  return typeMap[ext] || 'Unknown';
+  return FILE_TYPE_MAP[ext] || 'Unknown';
 }
 
 /**
