@@ -16,6 +16,11 @@ ALTER TABLE file_embeddings ADD COLUMN IF NOT EXISTS purge_after TIMESTAMP WITH 
 CREATE INDEX IF NOT EXISTS idx_file_contributors_purge_after ON file_contributors(purge_after);
 CREATE INDEX IF NOT EXISTS idx_file_embeddings_purge_after ON file_embeddings(purge_after);
 
+-- Add indexes on the actual filter columns for better performance
+CREATE INDEX IF NOT EXISTS idx_file_contributors_last_commit ON file_contributors(last_commit_at);
+CREATE INDEX IF NOT EXISTS idx_file_embeddings_last_indexed ON file_embeddings(last_indexed_at);
+CREATE INDEX IF NOT EXISTS idx_pr_insights_generated_at ON pr_insights(generated_at);
+
 -- Create a function to purge old data (alternative to Edge Function)
 CREATE OR REPLACE FUNCTION purge_old_file_data()
 RETURNS TABLE (
@@ -71,7 +76,7 @@ BEGIN
   
   RETURN QUERY SELECT contributors_count, embeddings_count, insights_count;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 -- Create a table to log purge activities
 CREATE TABLE IF NOT EXISTS data_purge_log (

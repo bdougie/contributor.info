@@ -67,14 +67,14 @@ CREATE TABLE IF NOT EXISTS github_app_installation_settings (
 );
 
 -- Create indexes for performance
-CREATE INDEX idx_file_contributors_repo_path ON file_contributors(repository_id, file_path);
-CREATE INDEX idx_file_contributors_contributor ON file_contributors(contributor_id);
-CREATE INDEX idx_file_contributors_repo_contributor ON file_contributors(repository_id, contributor_id);
-CREATE INDEX idx_file_contributors_last_commit ON file_contributors(last_commit_at DESC);
+CREATE INDEX IF NOT EXISTS idx_file_contributors_repo_path ON file_contributors(repository_id, file_path);
+CREATE INDEX IF NOT EXISTS idx_file_contributors_contributor ON file_contributors(contributor_id);
+CREATE INDEX IF NOT EXISTS idx_file_contributors_repo_contributor ON file_contributors(repository_id, contributor_id);
+CREATE INDEX IF NOT EXISTS idx_file_contributors_last_commit ON file_contributors(last_commit_at DESC);
 
-CREATE INDEX idx_file_embeddings_repo_path ON file_embeddings(repository_id, file_path);
-CREATE INDEX idx_file_embeddings_language ON file_embeddings(repository_id, language);
-CREATE INDEX idx_file_embeddings_vector ON file_embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX IF NOT EXISTS idx_file_embeddings_repo_path ON file_embeddings(repository_id, file_path);
+CREATE INDEX IF NOT EXISTS idx_file_embeddings_language ON file_embeddings(repository_id, language);
+CREATE INDEX IF NOT EXISTS idx_file_embeddings_vector ON file_embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -86,15 +86,19 @@ END;
 $$ language 'plpgsql';
 
 -- Create triggers for updated_at
+DROP TRIGGER IF EXISTS update_file_contributors_updated_at ON file_contributors;
 CREATE TRIGGER update_file_contributors_updated_at BEFORE UPDATE ON file_contributors
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_file_embeddings_updated_at ON file_embeddings;
 CREATE TRIGGER update_file_embeddings_updated_at BEFORE UPDATE ON file_embeddings
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_github_app_installations_updated_at ON github_app_installations;
 CREATE TRIGGER update_github_app_installations_updated_at BEFORE UPDATE ON github_app_installations
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_github_app_installation_settings_updated_at ON github_app_installation_settings;
 CREATE TRIGGER update_github_app_installation_settings_updated_at BEFORE UPDATE ON github_app_installation_settings
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -205,10 +209,11 @@ CREATE TABLE IF NOT EXISTS pr_insights (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_pr_insights_pr ON pr_insights(pull_request_id);
-CREATE INDEX idx_pr_insights_github_pr ON pr_insights(github_pr_id);
+CREATE INDEX IF NOT EXISTS idx_pr_insights_pr ON pr_insights(pull_request_id);
+CREATE INDEX IF NOT EXISTS idx_pr_insights_github_pr ON pr_insights(github_pr_id);
 
 -- Add trigger for pr_insights
+DROP TRIGGER IF EXISTS update_pr_insights_updated_at ON pr_insights;
 CREATE TRIGGER update_pr_insights_updated_at BEFORE UPDATE ON pr_insights
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 

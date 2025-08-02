@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import { minimatch } from 'minimatch';
+import minimatch from 'minimatch';
 
 export interface CodeOwner {
   pattern: string;
@@ -70,6 +70,10 @@ export async function fetchCodeOwners(
       };
     }
   } catch (error) {
+    if (error instanceof Error && 'status' in error && (error as { status: number }).status !== 404) {
+      console.error('Error fetching CODEOWNERS from .github/', error);
+      throw error;
+    }
     // File not found, continue to check root
   }
 
@@ -89,6 +93,10 @@ export async function fetchCodeOwners(
       };
     }
   } catch (error) {
+    if (error instanceof Error && 'status' in error && (error as { status: number }).status !== 404) {
+      console.error('Error fetching CODEOWNERS from root/', error);
+      throw error;
+    }
     // File not found
   }
 

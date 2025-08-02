@@ -46,7 +46,8 @@ export async function fetchContributorConfig(
       // Try to parse as YAML first, then JSON
       let config: ContributorConfig;
       try {
-        config = yaml.load(content) as ContributorConfig;
+        const parsed = yaml.load(content);
+        config = (parsed || {}) as ContributorConfig;
       } catch {
         // If YAML parsing fails, try JSON
         config = JSON.parse(content);
