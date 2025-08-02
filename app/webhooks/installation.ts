@@ -1,6 +1,9 @@
 import { InstallationEvent, InstallationRepositoriesEvent } from '../types/github';
 import { supabase } from '../../src/lib/supabase';
 import { inngest } from '../../src/lib/inngest/client';
+import { githubAppAuth } from '../lib/auth';
+import { indexGitHistory } from '../services/git-history';
+import { generateFileEmbeddings } from '../services/file-embeddings';
 
 /**
  * Handle GitHub App installation events
@@ -236,6 +239,53 @@ async function handleRepositoriesAdded(installation: any, repositories: any[]) {
             is_private: repo.private,
           },
         });
+
+        // Index git history and generate embeddings in the background
+        try {
+          const octokit = await githubAppAuth.getInstallationOctokit(installation.id);
+          
+          // Index git history
+          indexGitHistory(repo, octokit).catch(error => {
+            console.error(`Failed to index git history for ${repo.full_name}:`, error);
+          });
+
+          // Generate embeddings for recent files
+          octokit.repos.listCommits({
+            owner: repo.owner?.login || repo.full_name.split('/')[0],
+            repo: repo.name,
+            per_page: 10,
+          }).then(async ({ data: commits }) => {
+            const files = new Set<string>();
+            
+            for (const commit of commits) {
+              try {
+                const { data: commitData } = await octokit.repos.getCommit({
+                  owner: repo.owner?.login || repo.full_name.split('/')[0],
+                  repo: repo.name,
+                  ref: commit.sha,
+                });
+                
+                commitData.files?.forEach(file => {
+                  if (file.filename) {
+                    files.add(file.filename);
+                  }
+                });
+              } catch (error) {
+                console.error(`Error fetching commit ${commit.sha}:`, error);
+              }
+            }
+
+            if (files.size > 0) {
+              generateFileEmbeddings(repo, octokit, Array.from(files)).catch(error => {
+                console.error(`Failed to generate embeddings for ${repo.full_name}:`, error);
+              });
+            }
+          }).catch(error => {
+            console.error(`Failed to fetch commits for ${repo.full_name}:`, error);
+          });
+        } catch (error) {
+          console.error(`Failed to get octokit client for installation ${installation.id}:`, error);
+        }
       }
     }
 

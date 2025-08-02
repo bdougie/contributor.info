@@ -6,6 +6,8 @@ import {
   getSuggestedReviewersFromCodeOwners,
   CodeOwnerSuggestion 
 } from './codeowners';
+import { findFileContributors, getExpertiseFromFiles } from './git-history';
+import { findSimilarFiles } from './file-embeddings';
 
 export interface ReviewerSuggestion {
   login: string;
@@ -341,36 +343,75 @@ async function findFrequentReviewers(authorLogin: string, repo: Repository): Pro
  * Find subject matter experts based on file types and areas
  */
 async function findSubjectMatterExperts(files: string[], repo: Repository): Promise<any[]> {
-  // Determine expertise areas from files
-  const expertiseNeeded = new Set<string>();
-  
-  files.forEach(file => {
-    if (file.includes('auth')) expertiseNeeded.add('auth');
-    if (file.includes('api')) expertiseNeeded.add('API');
-    if (file.includes('.tsx') || file.includes('.jsx')) expertiseNeeded.add('frontend');
-    if (file.includes('test')) expertiseNeeded.add('testing');
-    if (file.includes('.sql') || file.includes('migration')) expertiseNeeded.add('database');
-  });
-  
-  // Mock implementation - would query database for experts
-  const experts = [
-    {
-      login: 'charlie-expert',
-      name: 'Charlie Expert',
-      avatarUrl: 'https://github.com/charlie-expert.png',
-      expertise: ['auth', 'security'],
-    },
-    {
-      login: 'diana-senior',
-      name: 'Diana Senior',
-      avatarUrl: 'https://github.com/diana-senior.png',
-      expertise: ['API', 'backend'],
-    },
-  ];
-  
-  return experts.filter(expert => 
-    expert.expertise.some(exp => expertiseNeeded.has(exp))
-  );
+  try {
+    // Get repository ID
+    const { data: dbRepo } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('github_id', repo.id)
+      .single();
+    
+    if (!dbRepo) {
+      return [];
+    }
+    
+    // Find contributors who have worked on these files
+    const fileContributors = await findFileContributors(dbRepo.id, files);
+    
+    // Find contributors who have worked on similar files
+    const similarFiles = await findSimilarFiles(dbRepo.id, files);
+    const similarFilePaths: string[] = [];
+    
+    for (const [_, similar] of similarFiles) {
+      similarFilePaths.push(...similar.map(s => s.path));
+    }
+    
+    // Get contributors for similar files
+    const similarFileContributors = similarFilePaths.length > 0
+      ? await findFileContributors(dbRepo.id, similarFilePaths)
+      : new Map();
+    
+    // Determine expertise based on files
+    const expertise = getExpertiseFromFiles(files);
+    
+    // Combine and score experts
+    const experts: any[] = [];
+    
+    // Add direct file contributors as experts
+    for (const [login, contributor] of fileContributors) {
+      experts.push({
+        login,
+        name: contributor.name,
+        avatarUrl: contributor.avatarUrl,
+        expertise,
+        score: contributor.totalCommits * 0.1, // Score based on commit count
+        directContributor: true,
+      });
+    }
+    
+    // Add similar file contributors with lower score
+    for (const [login, contributor] of similarFileContributors) {
+      if (!fileContributors.has(login)) {
+        experts.push({
+          login,
+          name: contributor.name,
+          avatarUrl: contributor.avatarUrl,
+          expertise,
+          score: contributor.totalCommits * 0.05, // Lower score for similar files
+          directContributor: false,
+        });
+      }
+    }
+    
+    // Sort by score and return top experts
+    return experts
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+    
+  } catch (error) {
+    console.error('Error finding subject matter experts:', error);
+    return [];
+  }
 }
 
 /**
@@ -419,10 +460,21 @@ async function getReviewerStats(login: string, repo: Repository): Promise<any> {
                            avgHours < 24 ? `${Math.round(avgHours)} hours` :
                            `${Math.round(avgHours / 24)} days`;
     
+    // Get expertise based on files they've contributed to
+    const { data: fileContributions } = await supabase
+      .from('file_contributors')
+      .select('file_path')
+      .eq('contributor_id', contributor.id)
+      .eq('repository_id', repo.id)
+      .limit(50);
+    
+    const filePaths = fileContributions?.map(fc => fc.file_path) || [];
+    const expertise = getExpertiseFromFiles(filePaths);
+    
     return {
       reviewsGiven: contributor.reviews?.length || 0,
       avgResponseTime,
-      expertise: ['frontend', 'auth', 'API'], // Mock data
+      expertise: expertise.length > 0 ? expertise : ['general'],
       lastActive: calculateLastActive(contributor.last_active_at),
     };
     

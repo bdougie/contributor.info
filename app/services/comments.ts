@@ -21,11 +21,32 @@ export function formatPRComment(data: CommentData): string {
   
   let comment = `## 🎯 Contributor Insights
 
-**@${contributorInsights.login}** has contributed:
-- 📊 ${contributorInsights.totalPRs} PRs (${contributorInsights.mergedPRs} merged, ${contributorInsights.firstTimeApprovalRate}% first-time approval rate)
-- 🏆 Primary expertise: ${contributorInsights.expertise.join(', ') || 'Various areas'}
-- 🕐 Active hours: ${contributorInsights.activeHours}
-- 🔄 Last active: ${contributorInsights.lastActive}
+<table>
+<tr>
+<td width="80">
+<img src="https://github.com/${contributorInsights.login}.png" width="64" height="64" />
+</td>
+<td>
+<strong><a href="https://github.com/${contributorInsights.login}">@${contributorInsights.login}</a></strong><br/>
+📊 <strong>${contributorInsights.totalPRs}</strong> PRs (<strong>${contributorInsights.mergedPRs}</strong> merged)<br/>
+💬 <strong>${contributorInsights.reviewsGiven}</strong> reviews • <strong>${contributorInsights.commentsLeft}</strong> comments<br/>
+✅ <strong>${contributorInsights.firstTimeApprovalRate}%</strong> first-time approval rate
+</td>
+</tr>
+</table>
+
+<details>
+<summary>📈 Contribution Stats</summary>
+
+- 🔨 **Pull Requests**: ${contributorInsights.totalPRs} total (${contributorInsights.mergedPRs} merged)
+- 👀 **Code Reviews**: ${contributorInsights.reviewsGiven} reviews given
+- 💭 **Comments**: ${contributorInsights.commentsLeft} comments on issues/PRs
+- 🏆 **Expertise**: ${contributorInsights.expertise.length > 0 
+  ? contributorInsights.expertise.map(exp => `\`${exp}\``).join(' ') 
+  : 'Various areas'}
+- 🔄 **Last active**: ${contributorInsights.lastActive}
+
+</details>
 `;
 
   // Add similar issues section if any found
@@ -40,49 +61,92 @@ export function formatPRComment(data: CommentData): string {
     const relatedIssues = similarIssues.filter(i => i.relationship === 'relates_to' || i.relationship === 'similar');
     
     if (implementsIssues.length > 0) {
-      comment += `**This PR implements:**\n`;
+      comment += `\n#### 🎯 This PR implements:\n`;
       implementsIssues.forEach(({ issue, reasons }) => {
-        comment += `- 🎯 **#${issue.number}** "${issue.title}"\n`;
+        const labels = issue.labels?.map((l: any) => `\`${l.name}\``).join(' ') || '';
+        comment += `- **[#${issue.number}](${issue.html_url})** ${issue.title} ${labels}\n`;
       });
     }
     
     if (fixesIssues.length > 0) {
-      comment += `\n**This PR may fix:**\n`;
+      comment += `\n#### ✅ This PR may fix:\n`;
       fixesIssues.forEach(({ issue, reasons }) => {
         const priority = issue.labels?.find((l: any) => l.name.includes('priority'))?.name || '';
-        comment += `- ✅ **#${issue.number}** "${issue.title}"${priority ? ` (${priority})` : ''}\n`;
+        const labels = issue.labels?.map((l: any) => `\`${l.name}\``).join(' ') || '';
+        comment += `- **[#${issue.number}](${issue.html_url})** ${issue.title} ${labels}\n`;
       });
     }
     
     if (relatedIssues.length > 0) {
-      comment += `\n**Related issues:**\n`;
-      relatedIssues.forEach(({ issue, reasons, similarityScore }) => {
-        const state = issue.state === 'closed' ? '(Closed)' : '(Open)';
-        comment += `- 🔄 **#${issue.number}** "${issue.title}" ${state}\n`;
-        if (reasons.length > 0) {
-          comment += `  - ${reasons.join(', ')}\n`;
-        }
-      });
+      const showAll = relatedIssues.length <= 3;
+      comment += `\n#### 🔄 Related issues:\n`;
+      
+      if (showAll) {
+        relatedIssues.forEach(({ issue, reasons, similarityScore }) => {
+          const state = issue.state === 'closed' ? '`closed`' : '`open`';
+          comment += `- **[#${issue.number}](${issue.html_url})** ${issue.title} ${state}\n`;
+        });
+      } else {
+        // Show first 3, rest in collapsible
+        relatedIssues.slice(0, 3).forEach(({ issue }) => {
+          const state = issue.state === 'closed' ? '`closed`' : '`open`';
+          comment += `- **[#${issue.number}](${issue.html_url})** ${issue.title} ${state}\n`;
+        });
+        
+        comment += `\n<details>\n<summary>View ${relatedIssues.length - 3} more related issues</summary>\n\n`;
+        relatedIssues.slice(3).forEach(({ issue, reasons }) => {
+          const state = issue.state === 'closed' ? '`closed`' : '`open`';
+          comment += `- **[#${issue.number}](${issue.html_url})** ${issue.title} ${state}\n`;
+          if (reasons.length > 0) {
+            comment += `  - ${reasons.join(', ')}\n`;
+          }
+        });
+        comment += `</details>`;
+      }
     }
   }
 
-  // Add reviewer suggestions
+  // Add reviewer suggestions with enhanced formatting
   if (reviewerSuggestions.length > 0) {
     comment += `
 ### 💡 Suggested Reviewers
-Based on code ownership and expertise:\n`;
+Based on code ownership and expertise:
+
+<table>
+<tr><th>Reviewer</th><th>Expertise</th><th>Stats</th></tr>`;
     
     reviewerSuggestions.forEach(reviewer => {
-      comment += `- **@${reviewer.login}**`;
-      if (reviewer.name) {
-        comment += ` (${reviewer.name})`;
-      }
-      comment += ` - ${reviewer.reasons.join(', ')}`;
-      if (reviewer.stats.avgResponseTime !== 'Unknown') {
-        comment += ` (avg response: ${reviewer.stats.avgResponseTime})`;
-      }
-      comment += '\n';
+      const expertiseBadges = reviewer.stats.expertise
+        .map(exp => `\`${exp}\``)
+        .join(' ');
+      
+      comment += `
+<tr>
+<td>
+<img src="${reviewer.avatarUrl}" width="20" height="20" align="center" />
+<strong><a href="https://github.com/${reviewer.login}">@${reviewer.login}</a></strong>
+${reviewer.name ? `<br/><sub>${reviewer.name}</sub>` : ''}
+</td>
+<td>${expertiseBadges}</td>
+<td>
+📊 ${reviewer.stats.reviewsGiven} reviews<br/>
+⏱️ ${reviewer.stats.avgResponseTime} avg response<br/>
+🕐 ${reviewer.stats.lastActive}
+</td>
+</tr>`;
     });
+    
+    comment += `
+</table>
+
+<details>
+<summary>Why these reviewers?</summary>
+
+`;
+    reviewerSuggestions.forEach(reviewer => {
+      comment += `**@${reviewer.login}**: ${reviewer.reasons.join(', ')}\n\n`;
+    });
+    comment += `</details>`;
   } else if (data.hasCodeOwners === false) {
     // No reviewers found and no CODEOWNERS file
     comment += `
@@ -133,10 +197,16 @@ Create \`.github/CODEOWNERS\` or \`CODEOWNERS\` in your repository root:
     }
   }
 
-  // Add footer
+  // Add footer with interactive elements
   comment += `
 ---
-*Generated by [contributor.info](https://contributor.info) • [Install on more repos](https://github.com/apps/contributor-info) • [Get full analytics](https://contributor.info/upgrade)*`;
+<sub>
+
+📊 **[View full analytics →](https://contributor.info/github/${data.repository.full_name}/pulls/${data.pullRequest.number})**
+
+*Generated by [contributor.info](https://contributor.info) • [Install on more repos](https://github.com/apps/contributor-info) • [Configure settings](https://github.com/${data.repository.full_name}/blob/${data.repository.default_branch}/.contributor)*
+
+</sub>`;
 
   return comment;
 }
