@@ -16,13 +16,13 @@ import {
  * Handle pull request webhook events
  */
 export async function handlePullRequestEvent(event: PullRequestEvent) {
-  // Only process opened or ready_for_review events
-  if (event.action !== 'opened' && event.action !== 'ready_for_review') {
+  // Only process ready_for_review events
+  if (event.action !== 'ready_for_review') {
     return;
   }
 
-  // Skip draft PRs unless they're marked ready
-  if (event.pull_request.draft && event.action !== 'ready_for_review') {
+  // Skip if PR is still a draft (shouldn't happen with ready_for_review, but double-check)
+  if (event.pull_request.draft) {
     return;
   }
 
