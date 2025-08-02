@@ -159,7 +159,7 @@ async function getContributorExpertise(contributorId: string): Promise<string[]>
       }
       
       // Testing
-      if (path.includes('test') || path.includes('spec')) {
+      if (path.match(/\b(test|spec)\b/) || path.includes('__tests__') || path.includes('.test.') || path.includes('.spec.')) {
         expertise.add('testing');
       }
       

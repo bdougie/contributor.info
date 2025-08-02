@@ -22,14 +22,14 @@ export async function indexGitHistory(
   
   try {
     // Get or create repository record
-    const { data: dbRepo } = await supabase
+    const { data: dbRepo, error } = await supabase
       .from('repositories')
       .select('id')
       .eq('github_id', repository.id)
       .single();
     
-    if (!dbRepo) {
-      console.error('Repository not found in database');
+    if (error || !dbRepo) {
+      console.error('Error fetching repository from database:', error?.message || 'Repository not found');
       return;
     }
     

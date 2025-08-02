@@ -245,6 +245,14 @@ async function handleRepositoriesAdded(installation: any, repositories: any[]) {
           const octokit = await githubAppAuth.getInstallationOctokit(installation.id);
           
           // Index git history
+          // Ensure owner is properly set before calling indexGitHistory
+          if (!repo.owner?.login) {
+            repo.owner = {
+              login: repo.full_name.split('/')[0],
+              id: 0,
+              type: 'User'
+            };
+          }
           indexGitHistory(repo, octokit).catch(error => {
             console.error(`Failed to index git history for ${repo.full_name}:`, error);
           });
