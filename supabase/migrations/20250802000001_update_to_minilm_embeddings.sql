@@ -142,7 +142,7 @@ BEGIN
   LEFT JOIN contributors c ON i.author_id = c.id
   WHERE 
     i.embedding IS NOT NULL
-    AND r.full_name LIKE (organization_name || '/%')
+    AND r.full_name ILIKE (organization_name || '/%')
     AND (exclude_issue_id IS NULL OR i.id != exclude_issue_id)
     AND (1 - (i.embedding <=> query_embedding)) >= similarity_threshold
   ORDER BY i.embedding <=> query_embedding

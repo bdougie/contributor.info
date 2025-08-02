@@ -1,16 +1,47 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Mock all dependencies BEFORE importing anything that uses them
+vi.mock('../../../lib/supabase', () => ({
+  supabase: {
+    from: vi.fn((table: string) => {
+      const chainObj = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: { id: 'test-id' }, error: null }),
+        upsert: vi.fn().mockReturnThis()
+      };
+      return chainObj;
+    }),
+    rpc: vi.fn().mockResolvedValue({ data: [], error: null })
+  }
+}));
+
+vi.mock('../../../lib/inngest/client', () => ({
+  inngest: {
+    send: vi.fn().mockResolvedValue({})
+  }
+}));
+
+vi.mock('../../../../app/services/issue-similarity', () => ({
+  processNewIssue: vi.fn(),
+  formatSimilarIssuesComment: vi.fn()
+}));
+
+vi.mock('../../../../app/services/github-api', () => ({
+  createIssueComment: vi.fn()
+}));
+
+// Import after mocking
 import { handleIssuesEvent } from '../../../../app/webhooks/issues';
 import { IssuesEvent } from '../../../../app/types/github';
 import { supabase } from '../../../lib/supabase';
 import { inngest } from '../../../lib/inngest/client';
 import * as issueSimilarity from '../../../../app/services/issue-similarity';
 import * as githubApi from '../../../../app/services/github-api';
-
-// Mock all dependencies
-vi.mock('../../../lib/supabase');
-vi.mock('../../../lib/inngest/client');
-vi.mock('../../../../app/services/issue-similarity');
-vi.mock('../../../../app/services/github-api');
 
 describe('Issues Webhook Integration', () => {
   const mockRepository = {

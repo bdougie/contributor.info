@@ -3,7 +3,7 @@ import { pipeline, env } from '@xenova/transformers';
 import crypto from 'crypto';
 
 // Configure Transformers.js to use local models
-env.allowLocalModels = false;
+env.allowLocalModels = true;
 env.useBrowserCache = false;
 
 // Initialize the embedding pipeline (will be loaded on first use)

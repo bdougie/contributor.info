@@ -89,6 +89,11 @@ async function handleIssueOpened(event: IssuesEvent) {
       .single();
 
     // Process issue for similarity and generate embeddings
+    if (!issueData) {
+      console.error('Failed to create issue record in database');
+      return;
+    }
+
     const similarIssues = await processNewIssue({
       id: issueData.id,
       github_id: event.issue.id,
@@ -152,7 +157,7 @@ async function handleIssueClosed(event: IssuesEvent) {
     }
 
   } catch (error) {
-    console.error('Error handling issue closed: %s', error);
+    console.error('Error handling issue closed: %o', error);
   }
 }
 

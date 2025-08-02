@@ -1,17 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { 
-  generateIssueEmbedding, 
-  calculateContentHash, 
-  storeIssueEmbedding,
-  findSimilarIssues,
-  processNewIssue,
-  formatSimilarIssuesComment,
-  calculateDiscussionScore
-} from '../../../../app/services/issue-similarity';
-import { supabase } from '../../../lib/supabase';
 
-// Mock dependencies
-vi.mock('../../../lib/supabase');
+// Mock dependencies BEFORE importing anything that uses them
+vi.mock('../../../lib/supabase', () => ({
+  supabase: {
+    from: vi.fn((table: string) => {
+      const chainObj = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: { id: 'test-id' }, error: null }),
+        upsert: vi.fn().mockReturnThis()
+      };
+      return chainObj;
+    }),
+    rpc: vi.fn().mockResolvedValue({ data: [], error: null })
+  }
+}));
+
 vi.mock('@xenova/transformers', () => ({
   pipeline: vi.fn(() => Promise.resolve((text: string, options: any) => ({
     data: new Float32Array(384).fill(0.1), // Mock 384-dimensional embedding
@@ -22,6 +30,18 @@ vi.mock('@xenova/transformers', () => ({
     useBrowserCache: false
   }
 }));
+
+// Import after mocking
+import { 
+  generateIssueEmbedding, 
+  calculateContentHash, 
+  storeIssueEmbedding,
+  findSimilarIssues,
+  processNewIssue,
+  formatSimilarIssuesComment,
+  calculateDiscussionScore
+} from '../../../../app/services/issue-similarity';
+import { supabase } from '../../../lib/supabase';
 
 describe('Issue Similarity Service', () => {
   beforeEach(() => {
