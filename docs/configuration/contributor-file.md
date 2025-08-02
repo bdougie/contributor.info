@@ -27,6 +27,7 @@ features:
   reviewer_suggestions: true  # Suggest reviewers based on CODEOWNERS and history
   similar_issues: true       # Show related issues on new issues
   auto_comment: true         # Post insights automatically on PRs
+  github_mentions: false     # Use @mentions (true) or profile links (false) in comments
 
 # Comment style: "detailed" or "minimal"
 comment_style: detailed
@@ -56,7 +57,8 @@ notifications:
   "features": {
     "reviewer_suggestions": true,
     "similar_issues": true,
-    "auto_comment": true
+    "auto_comment": true,
+    "github_mentions": false
   },
   "comment_style": "detailed",
   "exclude_authors": [],
@@ -100,6 +102,11 @@ Controls which features are enabled for your repository.
 - **Type**: Boolean
 - **Default**: `true`
 - **Description**: Automatically post insights comments on pull requests
+
+**`github_mentions`**
+- **Type**: Boolean
+- **Default**: `false`
+- **Description**: Use @mentions (true) or profile links (false) for usernames in comments. When false, usernames are formatted as links to avoid notifications.
 
 #### `comment_style` (optional)
 - **Type**: String

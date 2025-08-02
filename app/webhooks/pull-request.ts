@@ -1,9 +1,9 @@
-import { PullRequestEvent } from '../types/github';
+import { PullRequestEvent, PullRequest, Repository } from '../types/github';
 import { githubAppAuth } from '../lib/auth';
-import { generatePRInsights } from '../services/insights';
+import { generatePRInsights, ContributorInsights } from '../services/insights';
 import { formatPRComment, formatMinimalPRComment } from '../services/comments';
-import { findSimilarIssues } from '../services/similarity';
-import { suggestReviewers } from '../services/reviewers';
+import { findSimilarIssues, SimilarIssue } from '../services/similarity';
+import { suggestReviewers, ReviewerSuggestion } from '../services/reviewers';
 import { supabase } from '../../src/lib/supabase';
 import { 
   fetchContributorConfig, 
@@ -101,6 +101,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
           similarIssues,
           reviewerSuggestions: filteredReviewers,
           hasCodeOwners,
+          config,
         })
       : formatPRComment({
           pullRequest: event.pull_request,
@@ -109,6 +110,7 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
           similarIssues,
           reviewerSuggestions: filteredReviewers,
           hasCodeOwners,
+          config,
         });
 
     // Post the comment
@@ -183,14 +185,16 @@ async function checkIfShouldComment(event: PullRequestEvent): Promise<boolean> {
 /**
  * Store PR insights in the database
  */
-async function storePRInsights(data: {
-  pullRequest: any;
-  repository: any;
-  contributorInsights: any;
-  similarIssues: any[];
-  reviewerSuggestions: any[];
+interface StorePRInsightsData {
+  pullRequest: PullRequest;
+  repository: Repository;
+  contributorInsights: ContributorInsights;
+  similarIssues: SimilarIssue[];
+  reviewerSuggestions: ReviewerSuggestion[];
   commentId: number;
-}) {
+}
+
+async function storePRInsights(data: StorePRInsightsData) {
   try {
     // First, ensure the repository exists in our database
     const { data: repo } = await supabase

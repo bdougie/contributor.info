@@ -7,6 +7,7 @@ export interface ContributorConfig {
     reviewer_suggestions?: boolean;
     similar_issues?: boolean;
     auto_comment?: boolean;
+    github_mentions?: boolean;
   };
   comment_style?: 'detailed' | 'minimal';
   exclude_authors?: string[];
@@ -19,6 +20,7 @@ const DEFAULT_CONFIG: ContributorConfig = {
     reviewer_suggestions: true,
     similar_issues: true,
     auto_comment: true,
+    github_mentions: false,
   },
   comment_style: 'detailed',
   exclude_authors: [],
@@ -67,16 +69,24 @@ export async function fetchContributorConfig(
 /**
  * Validate config and merge with defaults
  */
-function validateAndMergeConfig(config: any): ContributorConfig {
+function validateAndMergeConfig(config: unknown): ContributorConfig {
+  // Type guard to ensure config is an object
+  if (!config || typeof config !== 'object') {
+    return DEFAULT_CONFIG;
+  }
+  
+  // Cast to a partial config type for safer access
+  const inputConfig = config as Partial<ContributorConfig>;
+  
   const validated: ContributorConfig = {
-    version: config.version || DEFAULT_CONFIG.version,
+    version: inputConfig.version || DEFAULT_CONFIG.version,
     features: {
       ...DEFAULT_CONFIG.features,
-      ...config.features,
+      ...(inputConfig.features || {}),
     },
-    comment_style: config.comment_style || DEFAULT_CONFIG.comment_style,
-    exclude_authors: Array.isArray(config.exclude_authors) ? config.exclude_authors : [],
-    exclude_reviewers: Array.isArray(config.exclude_reviewers) ? config.exclude_reviewers : [],
+    comment_style: inputConfig.comment_style || DEFAULT_CONFIG.comment_style,
+    exclude_authors: Array.isArray(inputConfig.exclude_authors) ? inputConfig.exclude_authors : [],
+    exclude_reviewers: Array.isArray(inputConfig.exclude_reviewers) ? inputConfig.exclude_reviewers : [],
   };
 
   // Validate comment_style
