@@ -2,6 +2,7 @@ import { inngest } from '../client';
 import { supabase } from '../../supabase';
 import { getOctokit } from '../github-client';
 import type { DatabaseComment } from '../types';
+import { SyncLogger } from '../sync-logger';
 
 /**
  * Captures PR comments (both issue and review comments) using GitHub REST API
@@ -32,6 +33,17 @@ export const capturePrComments = inngest.createFunction(
   { event: "capture/pr.comments" },
   async ({ event, step }) => {
     const { repositoryId, prNumber, prId } = event.data;
+    const syncLogger = new SyncLogger();
+    let apiCallsUsed = 0;
+
+    // Step 0: Initialize sync log
+    const syncLogId = await step.run("init-sync-log", async () => {
+      return await syncLogger.start('pr_comments', repositoryId, {
+        prNumber,
+        prId,
+        source: 'inngest'
+      });
+    });
 
     // Step 1: Get repository details
     const repository = await step.run("get-repository", async () => {
@@ -52,7 +64,9 @@ export const capturePrComments = inngest.createFunction(
       const octokit = getOctokit();
       
       try {
+        console.log(`Fetching comments for PR #${prNumber} in ${repository.owner}/${repository.name}`);
         // Fetch PR review comments
+        apiCallsUsed++;
         const { data: prCommentsData } = await octokit.rest.pulls.listComments({
           owner: repository.owner,
           repo: repository.name,
@@ -60,6 +74,7 @@ export const capturePrComments = inngest.createFunction(
         });
 
         // Fetch issue comments (general PR comments)
+        apiCallsUsed++;
         const { data: issueCommentsData } = await octokit.rest.issues.listComments({
           owner: repository.owner,
           repo: repository.name,
@@ -164,11 +179,22 @@ export const capturePrComments = inngest.createFunction(
           });
         }
 
+        console.log(`Found ${prCommentsData.length} review comments and ${issueCommentsData.length} issue comments`);
+        
+        await syncLogger.update({
+          github_api_calls_used: apiCallsUsed,
+          metadata: {
+            prCommentsFound: prCommentsData.length,
+            issueCommentsFound: issueCommentsData.length
+          }
+        });
+
         return {
           prComments: processedPrComments,
           issueComments: processedIssueComments,
         };
       } catch (error: unknown) {
+        console.error(`Error fetching comments for PR #${prNumber}:`, error);
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
           console.warn(`PR #${prNumber} not found, skipping comments`);
@@ -198,6 +224,11 @@ export const capturePrComments = inngest.createFunction(
         });
 
       if (error) {
+        await syncLogger.fail(`Failed to store comments: ${error.message}`, {
+          records_processed: allComments.length,
+          records_failed: allComments.length,
+          github_api_calls_used: apiCallsUsed
+        });
         throw new Error(`Failed to store comments: ${error.message}`);
       }
 
@@ -216,6 +247,20 @@ export const capturePrComments = inngest.createFunction(
       if (error) {
         console.warn(`Failed to update PR timestamp: ${error.message}`);
       }
+    });
+
+    // Complete sync log
+    await step.run("complete-sync-log", async () => {
+      await syncLogger.complete({
+        records_processed: storedCount,
+        records_inserted: storedCount,
+        github_api_calls_used: apiCallsUsed,
+        metadata: {
+          reviewCommentsCount: commentsData.prComments.length,
+          issueCommentsCount: commentsData.issueComments.length,
+          totalCommentsCount: storedCount
+        }
+      });
     });
 
     return {

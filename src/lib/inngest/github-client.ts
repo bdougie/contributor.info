@@ -21,7 +21,7 @@ export async function getGitHubHeaders(): Promise<Record<string, string>> {
   // For server-side operations (like Inngest), use the server token
   if (SERVER_GITHUB_TOKEN) {
     headers['Authorization'] = `token ${SERVER_GITHUB_TOKEN}`;
-    console.log('Using server-side GitHub token for Inngest');
+    console.log('Using server-side GitHub token for Inngest (token exists:', !!SERVER_GITHUB_TOKEN, ')');
     return headers;
   }
 
@@ -54,6 +54,9 @@ export async function makeGitHubRequest(endpoint: string): Promise<any> {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: response.statusText }));
+    console.error(`GitHub API error: ${response.status} - ${error.message || response.statusText}`);
+    console.error(`Endpoint: ${endpoint}`);
+    console.error(`Has auth token: ${!!headers['Authorization']}`);
     const apiError = new Error(`GitHub API error: ${error.message || response.statusText}`);
     (apiError as any).status = response.status;
     throw apiError;

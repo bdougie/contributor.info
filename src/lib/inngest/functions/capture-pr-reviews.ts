@@ -2,6 +2,7 @@ import { inngest } from '../client';
 import { supabase } from '../../supabase';
 import { getOctokit } from '../github-client';
 import type { DatabaseReview } from '../types';
+import { SyncLogger } from '../sync-logger';
 
 /**
  * Captures PR reviews using GitHub REST API
@@ -31,6 +32,17 @@ export const capturePrReviews = inngest.createFunction(
   { event: "capture/pr.reviews" },
   async ({ event, step }) => {
     const { repositoryId, prNumber, prId } = event.data;
+    const syncLogger = new SyncLogger();
+    let apiCallsUsed = 0;
+
+    // Step 0: Initialize sync log
+    const syncLogId = await step.run("init-sync-log", async () => {
+      return await syncLogger.start('pr_reviews', repositoryId, {
+        prNumber,
+        prId,
+        source: 'inngest'
+      });
+    });
 
     // Step 1: Get repository details
     const repository = await step.run("get-repository", async () => {
@@ -51,6 +63,8 @@ export const capturePrReviews = inngest.createFunction(
       const octokit = getOctokit();
       
       try {
+        console.log(`Fetching reviews for PR #${prNumber} in ${repository.owner}/${repository.name}`);
+        apiCallsUsed++;
         const { data: reviewsData } = await octokit.rest.pulls.listReviews({
           owner: repository.owner,
           repo: repository.name,
@@ -104,8 +118,19 @@ export const capturePrReviews = inngest.createFunction(
           });
         }
 
+        console.log(`Found ${reviewsData.length} reviews for PR #${prNumber}`);
+        
+        await syncLogger.update({
+          github_api_calls_used: apiCallsUsed,
+          metadata: {
+            reviewsFound: reviewsData.length,
+            reviewsWithUsers: processedReviews.length
+          }
+        });
+
         return processedReviews;
       } catch (error: unknown) {
+        console.error(`Error fetching reviews for PR #${prNumber}:`, error);
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
           console.warn(`PR #${prNumber} not found, skipping reviews`);
@@ -133,6 +158,11 @@ export const capturePrReviews = inngest.createFunction(
         });
 
       if (error) {
+        await syncLogger.fail(`Failed to store reviews: ${error.message}`, {
+          records_processed: reviews.length,
+          records_failed: reviews.length,
+          github_api_calls_used: apiCallsUsed
+        });
         throw new Error(`Failed to store reviews: ${error.message}`);
       }
 
@@ -151,6 +181,18 @@ export const capturePrReviews = inngest.createFunction(
       if (error) {
         console.warn(`Failed to update PR timestamp: ${error.message}`);
       }
+    });
+
+    // Complete sync log
+    await step.run("complete-sync-log", async () => {
+      await syncLogger.complete({
+        records_processed: storedCount,
+        records_inserted: storedCount,
+        github_api_calls_used: apiCallsUsed,
+        metadata: {
+          reviewsCount: storedCount
+        }
+      });
     });
 
     return {
