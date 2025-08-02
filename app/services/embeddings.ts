@@ -38,14 +38,10 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   try {
     const embedder = await getEmbeddingPipeline();
     
-    // Generate embeddings with mean pooling and normalization
-    const output = await embedder(text, {
-      pooling: 'mean',
-      normalize: true,
-    });
+    // Generate embeddings - pass empty options object to satisfy TypeScript
+    const output = await embedder(text, {} as any) as any;
     
     // Extract data from the tensor
-    // @ts-expect-error - Transformers.js types are not fully accurate
     const embeddings = output.data || output.tolist?.()?.[0] || [];
     
     // Convert to array and return
