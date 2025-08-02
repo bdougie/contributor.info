@@ -1,0 +1,220 @@
+# App Stats - Reviewer Suggestions Feature
+
+## Overview
+
+The App Stats Reviewer Suggestions feature is part of the contributor.info GitHub App that automatically suggests the most appropriate reviewers for pull requests. This intelligent system analyzes multiple data sources to provide actionable insights that help maintainers assign the right reviewers quickly and efficiently.
+
+## What It Does
+
+When a pull request is opened in a repository with the contributor.info GitHub App installed, the system:
+
+1. **Analyzes Changed Files**: Examines all files modified in the PR to understand the scope of changes
+2. **Parses CODEOWNERS**: Reads and interprets your repository's CODEOWNERS file to identify designated code owners
+3. **Reviews Git History**: Analyzes historical contributions to identify subject matter experts for specific files or areas
+4. **Suggests Reviewers**: Provides a prioritized list of up to 3 suggested reviewers with explanations for each suggestion
+5. **Posts Insights**: Automatically comments on the PR with reviewer suggestions and contributor insights
+
+## How It Works
+
+### 1. CODEOWNERS Integration
+
+The system first looks for a CODEOWNERS file in your repository:
+- Checks `.github/CODEOWNERS` (primary location)
+- Falls back to `CODEOWNERS` in repository root
+- Parses ownership patterns and matches them against changed files
+
+**Supported CODEOWNERS Patterns:**
+```
+# Global ownership
+* @admin-team
+
+# Directory ownership
+/frontend/ @frontend-team
+/api/ @backend-team @alice
+
+# File type ownership
+*.sql @database-team
+*.ts @frontend-team
+
+# Specific file ownership
+README.md @docs-team
+/src/auth/ @security-team @bob
+```
+
+### 2. File Matching and Scoring
+
+The system matches each changed file against CODEOWNERS patterns:
+- **Exact Path Match**: Files that exactly match ownership patterns get the highest weight
+- **Directory Match**: Files in owned directories are matched to their owners
+- **Pattern Match**: Wildcard and glob patterns are evaluated using minimatch library
+- **Ownership Calculation**: Percentage of owned files is calculated for each potential reviewer
+
+### 3. Historical Analysis
+
+Beyond CODEOWNERS, the system analyzes git history to find:
+- **Frequent Contributors**: Developers who have modified similar files recently
+- **Subject Matter Experts**: Contributors with deep knowledge in specific areas based on commit patterns
+- **Active Reviewers**: Team members who frequently review PRs from the author
+
+### 4. Intelligent Scoring
+
+Reviewers are scored using a weighted algorithm:
+- **Code Ownership**: 40% weight for CODEOWNERS matches
+- **Review History**: 30% weight for past review activity
+- **File Expertise**: 20% weight for subject matter expertise
+- **Recent Activity**: 10% weight for recent contributions
+
+### 5. Smart Filtering
+
+The system automatically excludes:
+- The PR author (can't review their own PR)
+- Bot accounts and service accounts
+- Users specified in `.contributor` exclude lists
+- Inactive team members (configurable threshold)
+
+## Benefits for Teams
+
+### For Maintainers
+- **Faster Review Assignment**: No need to manually identify appropriate reviewers
+- **Better Code Quality**: Ensures domain experts review relevant changes
+- **Reduced Bottlenecks**: Distributes review load more evenly across the team
+- **Onboarding Support**: Helps new maintainers understand code ownership
+
+### For Contributors
+- **Faster Feedback**: PRs are routed to the right reviewers immediately
+- **Learning Opportunities**: See who the experts are in different areas
+- **Better Context**: Understand the impact and scope of their changes
+- **Improved Collaboration**: Connect with relevant team members
+
+### For Organizations
+- **Knowledge Distribution**: Prevents knowledge silos by surfacing expertise
+- **Process Standardization**: Consistent reviewer suggestion across all repositories
+- **Compliance Support**: Ensures security-sensitive changes get appropriate review
+- **Analytics**: Track review patterns and identify process improvements
+
+## Example Output
+
+When the feature is active, you'll see comments like this on pull requests:
+
+```markdown
+## 🎯 Contributor Insights
+
+**@john-doe** has contributed:
+- 📊 45 PRs (42 merged, 93% first-time approval rate)
+- 🏆 Primary expertise: Frontend, API integration
+- 🕐 Active hours: 9 AM - 5 PM UTC
+- 🔄 Last active: 2 hours ago
+
+### 💡 Suggested Reviewers
+Based on code ownership and expertise:
+
+- **@alice-frontend** (Alice Smith) - Owns 75% of modified files (avg response: 4 hours)
+- **@bob-security** (Bob Johnson) - Expert in auth, security (avg response: 1 day)
+- **@carol-api** (Carol Wilson) - Reviewed 12 similar PRs (avg response: 6 hours)
+
+### 🔍 Related Issues & Context
+**This PR may fix:**
+- ✅ **#123** "Login button not working on mobile" (high priority)
+- ✅ **#456** "Authentication flow needs improvement"
+
+---
+*Generated by [contributor.info](https://contributor.info) • [Install on more repos](https://github.com/apps/contributor-info)*
+```
+
+## Configuration Options
+
+The feature can be customized using a `.contributor` file in your repository root. See the [Configuration Guide](/docs/configuration/contributor-file.md) for detailed options including:
+
+- Enabling/disabling reviewer suggestions
+- Excluding specific users from suggestions
+- Choosing between detailed and minimal comment styles
+- Configuring response time thresholds
+
+## Privacy and Data Handling
+
+The reviewer suggestion feature:
+- **Analyzes public data only**: Uses publicly available git history and file contents
+- **Respects privacy**: Never stores sensitive information or file contents permanently
+- **Auto-purges data**: File indexes are automatically deleted after 30 days
+- **Configurable**: Teams can opt-out or customize behavior per repository
+
+See our [Data Retention Policy](/docs/privacy/data-retention-policy.md) for complete details.
+
+## Getting Started
+
+### Prerequisites
+- Repository must have the contributor.info GitHub App installed
+- App must have read access to repository contents
+- For private repositories, appropriate permissions are required
+
+### Setup Steps
+
+1. **Install the GitHub App**: Visit [github.com/apps/contributor-info](https://github.com/apps/contributor-info)
+2. **Create CODEOWNERS** (recommended): Add a CODEOWNERS file to maximize accuracy
+3. **Configure preferences** (optional): Add a `.contributor` file to customize behavior
+4. **Open a PR**: The feature activates automatically on new pull requests
+
+### No CODEOWNERS File?
+
+If your repository doesn't have a CODEOWNERS file, the system will:
+- Fall back to git history analysis
+- Suggest creating a CODEOWNERS file
+- Provide a helpful template to get started
+
+## Advanced Features
+
+### Semantic File Analysis
+The system uses AI embeddings to understand file relationships:
+- **Content Similarity**: Identifies reviewers who have worked on semantically similar code
+- **Cross-Module Expertise**: Finds experts even when file paths don't match exactly
+- **Architecture Understanding**: Recognizes related components across the codebase
+
+### Team Integration
+Works seamlessly with GitHub teams:
+- **Team Mentions**: Supports `@org/team-name` in CODEOWNERS
+- **Member Resolution**: Automatically suggests individual team members
+- **Load Balancing**: Distributes suggestions across team members
+
+### Multi-Repository Support
+For organizations with multiple repositories:
+- **Consistent Configuration**: Use the same `.contributor` file format across repos
+- **Cross-Repo Expertise**: Identifies experts based on contributions across all accessible repos
+- **Centralized Management**: Configure organization-wide defaults
+
+## Troubleshooting
+
+### Common Issues
+
+**No reviewer suggestions appearing:**
+- Check that the GitHub App has repository access
+- Verify your CODEOWNERS file syntax
+- Ensure the repository has recent commit history
+
+**Incorrect suggestions:**
+- Update your CODEOWNERS file with more specific patterns
+- Use the `.contributor` file to exclude inappropriate reviewers
+- Review git history to ensure accurate contributor data
+
+**Too many/too few suggestions:**
+- Adjust the comment style in `.contributor` file (detailed vs minimal)
+- Use exclude lists to filter out specific users
+- Contact support for custom scoring adjustments
+
+### Getting Help
+
+- **Documentation**: Browse our complete [documentation library](/docs/)
+- **GitHub Issues**: Report bugs at [github.com/bdougie/contributor.info/issues](https://github.com/bdougie/contributor.info/issues)
+- **Discussions**: Join conversations in our GitHub Discussions
+
+## Roadmap
+
+Upcoming enhancements:
+- **Machine Learning**: Improved reviewer matching using ML models
+- **Time Zone Awareness**: Consider reviewer availability and time zones
+- **Workload Balancing**: Factor in current review queue size
+- **Custom Scoring**: Allow teams to define custom scoring criteria
+- **Integration APIs**: REST APIs for custom integrations
+
+---
+
+*Last updated: February 2025*
