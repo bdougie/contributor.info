@@ -6,6 +6,11 @@ import { createHash } from 'crypto';
 // Import the existing embedding service
 import { generateEmbedding } from '../services/embeddings';
 
+// Constants
+const FILE_PROCESSING_BATCH_SIZE = 10;
+const EMBEDDING_INSERT_BATCH_SIZE = 50;
+const RATE_LIMIT_DELAY_MS = 1000;
+
 interface FileEmbedding {
   repository_id: string;
   file_path: string;
@@ -15,8 +20,72 @@ interface FileEmbedding {
 }
 
 /**
- * Generate embeddings for repository files
+ * Process a single file to generate its embedding
  */
+async function processFileEmbedding(
+  filePath: string,
+  repository: Repository,
+  octokit: Octokit,
+  repositoryId: string
+): Promise<FileEmbedding | null> {
+  try {
+    // Skip non-code files
+    if (!isCodeFile(filePath)) {
+      return null;
+    }
+    
+    // Fetch file content
+    const { data: fileData } = await octokit.repos.getContent({
+      owner: repository.owner.login,
+      repo: repository.name,
+      path: filePath,
+    });
+    
+    if ('content' in fileData && fileData.type === 'file') {
+      // Decode base64 content
+      const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+      
+      // Generate content hash
+      const contentHash = createHash('sha256')
+        .update(content)
+        .digest('hex');
+      
+      // Check if we already have an embedding for this exact content
+      const { data: existing } = await supabase
+        .from('file_embeddings')
+        .select('id')
+        .eq('repository_id', repositoryId)
+        .eq('file_path', filePath)
+        .eq('content_hash', contentHash)
+        .single();
+      
+      if (existing) {
+        console.log(`Skipping ${filePath} - embedding already exists`);
+        return null;
+      }
+      
+      // Prepare content for embedding (truncate if too long)
+      const embeddingContent = prepareContentForEmbedding(filePath, content);
+      
+      // Generate embedding
+      const embedding = await generateEmbedding(embeddingContent);
+      
+      return {
+        repository_id: repositoryId,
+        file_path: filePath,
+        embedding,
+        content_hash: contentHash,
+        last_indexed_at: new Date().toISOString(),
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error(`Error processing file ${filePath}:`, error);
+    return null;
+  }
+}
+
 export async function generateFileEmbeddings(
   repository: Repository,
   octokit: Octokit,
@@ -37,98 +106,52 @@ export async function generateFileEmbeddings(
       return;
     }
     
-    const embeddings: FileEmbedding[] = [];
-    
     // Process files in batches
-    for (let i = 0; i < filePaths.length; i += 10) {
-      const batch = filePaths.slice(i, i + 10);
+    for (let i = 0; i < filePaths.length; i += FILE_PROCESSING_BATCH_SIZE) {
+      const batch = filePaths.slice(i, i + FILE_PROCESSING_BATCH_SIZE);
+      const batchEmbeddings: FileEmbedding[] = [];
       
-      await Promise.all(
-        batch.map(async (filePath) => {
-          try {
-            // Skip non-code files
-            if (!isCodeFile(filePath)) {
-              return;
-            }
-            
-            // Fetch file content
-            const { data: fileData } = await octokit.repos.getContent({
-              owner: repository.owner.login,
-              repo: repository.name,
-              path: filePath,
-            });
-            
-            if ('content' in fileData && fileData.type === 'file') {
-              // Decode base64 content
-              const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
-              
-              // Generate content hash
-              const contentHash = createHash('sha256')
-                .update(content)
-                .digest('hex');
-              
-              // Check if we already have an embedding for this exact content
-              const { data: existing } = await supabase
-                .from('file_embeddings')
-                .select('id')
-                .eq('repository_id', dbRepo.id)
-                .eq('file_path', filePath)
-                .eq('content_hash', contentHash)
-                .single();
-              
-              if (existing) {
-                console.log(`Skipping ${filePath} - embedding already exists`);
-                return;
-              }
-              
-              // Prepare content for embedding (truncate if too long)
-              const embeddingContent = prepareContentForEmbedding(filePath, content);
-              
-              // Generate embedding
-              const embedding = await generateEmbedding(embeddingContent);
-              
-              embeddings.push({
-                repository_id: dbRepo.id,
-                file_path: filePath,
-                embedding,
-                content_hash: contentHash,
-                last_indexed_at: new Date().toISOString(),
-              });
-            }
-          } catch (error) {
-            console.error(`Error processing file ${filePath}:`, error);
-          }
-        })
+      // Process batch and collect embeddings
+      const results = await Promise.all(
+        batch.map(filePath => processFileEmbedding(filePath, repository, octokit, dbRepo.id))
       );
       
+      // Filter out null results
+      for (const embedding of results) {
+        if (embedding) {
+          batchEmbeddings.push(embedding);
+        }
+      }
+      
+      // Insert batch embeddings immediately to avoid memory buildup
+      if (batchEmbeddings.length > 0) {
+        const { error } = await supabase
+          .from('file_embeddings')
+          .upsert(batchEmbeddings, {
+            onConflict: 'repository_id,file_path',
+          });
+        
+        if (error) {
+          console.error('Error inserting file embeddings:', error);
+        } else {
+          console.log(`Inserted ${batchEmbeddings.length} embeddings`);
+        }
+      }
+      
       // Add delay to avoid rate limiting
-      if (i + 10 < filePaths.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      if (i + FILE_PROCESSING_BATCH_SIZE < filePaths.length) {
+        await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY_MS));
       }
     }
     
-    // Insert embeddings in batches
-    for (let i = 0; i < embeddings.length; i += 50) {
-      const batch = embeddings.slice(i, i + 50);
-      
-      const { error } = await supabase
-        .from('file_embeddings')
-        .upsert(batch, {
-          onConflict: 'repository_id,file_path',
-        });
-      
-      if (error) {
-        console.error('Error inserting file embeddings:', error);
-      }
-    }
-    
-    console.log(`Generated ${embeddings.length} embeddings for ${repository.full_name}`);
+    console.log(`Completed embedding generation for ${repository.full_name}`);
     
   } catch (error) {
     console.error('Error generating file embeddings:', error);
     throw error;
   }
 }
+
 
 /**
  * Find similar files using vector similarity

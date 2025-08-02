@@ -62,9 +62,7 @@ export function formatPRComment(data: CommentData): string {
   // Add related issues (simplified)
   const fixesIssues = similarIssues.filter(i => i.relationship === 'fixes');
   const relatedIssues = similarIssues.filter(i => 
-    i.relationship === 'relates_to' || 
-    i.relationship === 'similar' || 
-    i.relationship === 'implements'
+    ['relates_to', 'similar', 'implements'].includes(i.relationship)
   );
   
   if (fixesIssues.length > 0) {
