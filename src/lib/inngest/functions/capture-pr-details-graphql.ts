@@ -3,8 +3,15 @@ import { supabase } from '../../supabase';
 import { GraphQLClient } from '../graphql-client';
 import type { NonRetriableError } from 'inngest';
 
-// GraphQL client instance
-const graphqlClient = new GraphQLClient();
+// GraphQL client instance - lazy initialization to avoid module load failures
+let graphqlClient: GraphQLClient | null = null;
+
+function getGraphQLClient(): GraphQLClient {
+  if (!graphqlClient) {
+    graphqlClient = new GraphQLClient();
+  }
+  return graphqlClient;
+}
 
 // Helper function to ensure contributors exist and return their UUIDs
 async function ensureContributorExists(githubUser: any): Promise<string | null> {
@@ -119,7 +126,8 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
     // Step 2: Fetch comprehensive PR data with GraphQL
     const prData = await step.run("fetch-pr-all-data", async () => {
       try {
-        const result = await graphqlClient.getPRDetails(
+        const client = getGraphQLClient();
+        const result = await client.getPRDetails(
           repository.owner,
           repository.name,
           parseInt(prNumber)

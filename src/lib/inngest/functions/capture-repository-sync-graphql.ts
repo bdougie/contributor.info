@@ -8,8 +8,15 @@ const MAX_PRS_PER_SYNC = 150; // Higher than REST due to efficiency
 const LARGE_REPO_THRESHOLD = 1000;
 const DEFAULT_DAYS_LIMIT = 30;
 
-// GraphQL client instance
-const graphqlClient = new GraphQLClient();
+// GraphQL client instance - lazy initialization to avoid module load failures
+let graphqlClient: GraphQLClient | null = null;
+
+function getGraphQLClient(): GraphQLClient {
+  if (!graphqlClient) {
+    graphqlClient = new GraphQLClient();
+  }
+  return graphqlClient;
+}
 
 // Helper function to ensure contributors exist and return their UUIDs
 async function ensureContributorExists(githubUser: any): Promise<string | null> {
@@ -114,7 +121,8 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
       const since = new Date(Date.now() - effectiveDays * 24 * 60 * 60 * 1000).toISOString();
       
       try {
-        const prs = await graphqlClient.getRecentPRs(
+        const client = getGraphQLClient();
+        const prs = await client.getRecentPRs(
           repository.owner, 
           repository.name, 
           since, 
@@ -124,7 +132,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         console.log(`✅ GraphQL recent PRs query successful for ${repository.owner}/${repository.name} (${prs.length} PRs found)`);
         
         // Log rate limit info
-        const rateLimit = graphqlClient.getRateLimit();
+        const rateLimit = client.getRateLimit();
         if (rateLimit) {
           console.log(`📊 GraphQL rate limit: ${rateLimit.remaining}/${rateLimit.limit} remaining (cost: ${rateLimit.cost} points)`);
         }
@@ -273,8 +281,9 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
     });
 
     // Get final metrics
-    const metrics = graphqlClient.getMetrics();
-    const rateLimit = graphqlClient.getRateLimit();
+    const client = getGraphQLClient();
+    const metrics = client.getMetrics();
+    const rateLimit = client.getRateLimit();
 
     return {
       success: true,
