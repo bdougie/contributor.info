@@ -1,6 +1,11 @@
 import { PullRequest, Repository } from '../types/github';
 import { supabase } from '../../src/lib/supabase';
 import { githubAppAuth } from '../lib/auth';
+import { 
+  fetchCodeOwners, 
+  getSuggestedReviewersFromCodeOwners,
+  CodeOwnerSuggestion 
+} from './codeowners';
 
 export interface ReviewerSuggestion {
   login: string;
@@ -19,18 +24,40 @@ export interface ReviewerSuggestion {
 /**
  * Suggest reviewers for a pull request
  */
+export interface ReviewerSuggestionsResult {
+  suggestions: ReviewerSuggestion[];
+  hasCodeOwners: boolean;
+}
+
 export async function suggestReviewers(
   pullRequest: PullRequest,
-  repository: Repository
-): Promise<ReviewerSuggestion[]> {
+  repository: Repository,
+  installationId?: number
+): Promise<ReviewerSuggestionsResult> {
   try {
     const suggestions: ReviewerSuggestion[] = [];
+    let hasCodeOwners = false;
+    
+    // Get octokit client if we have installation ID
+    let octokit;
+    if (installationId) {
+      octokit = await githubAppAuth.getInstallationOctokit(installationId);
+    }
     
     // Get files changed in the PR
-    const changedFiles = await getChangedFiles(pullRequest, repository);
+    const changedFiles = await getChangedFiles(pullRequest, repository, octokit);
     
     // 1. Find code owners
-    const codeOwners = await findCodeOwners(changedFiles, repository);
+    const codeOwnersResult = await findCodeOwners(
+      changedFiles, 
+      repository, 
+      octokit,
+      pullRequest.user.login
+    );
+    
+    // Track if CODEOWNERS exists (will be set in findCodeOwners)
+    hasCodeOwners = codeOwnersResult.hasCodeOwners || false;
+    const codeOwners = codeOwnersResult.owners || [];
     
     // 2. Find frequent reviewers
     const frequentReviewers = await findFrequentReviewers(pullRequest.user.login, repository);
@@ -104,11 +131,17 @@ export async function suggestReviewers(
       });
     }
     
-    return suggestions.slice(0, 3); // Return top 3
+    return {
+      suggestions: suggestions.slice(0, 3), // Return top 3
+      hasCodeOwners
+    };
     
   } catch (error) {
     console.error('Error suggesting reviewers:', error);
-    return [];
+    return {
+      suggestions: [],
+      hasCodeOwners: false
+    };
   }
 }
 
@@ -126,23 +159,40 @@ interface ReviewerCandidate {
 /**
  * Get files changed in a PR
  */
-async function getChangedFiles(pr: PullRequest, repo: Repository): Promise<string[]> {
+async function getChangedFiles(pr: PullRequest, repo: Repository, octokit?: any): Promise<string[]> {
   try {
-    // In a real implementation, fetch from GitHub API
-    // For now, return mock data based on PR title
-    const files: string[] = [];
+    if (!octokit) {
+      console.error('No octokit client available for getting changed files');
+      return [];
+    }
+
+    const changedFiles: string[] = [];
+    let page = 1;
+    let hasMorePages = true;
     
-    if (pr.title.toLowerCase().includes('auth')) {
-      files.push('src/auth/login.ts', 'src/auth/middleware.ts');
-    }
-    if (pr.title.toLowerCase().includes('api')) {
-      files.push('src/api/routes.ts', 'src/api/handlers.ts');
-    }
-    if (pr.title.toLowerCase().includes('frontend')) {
-      files.push('src/components/App.tsx', 'src/pages/Home.tsx');
+    while (hasMorePages) {
+      const { data: files } = await octokit.pulls.listFiles({
+        owner: repo.owner.login,
+        repo: repo.name,
+        pull_number: pr.number,
+        per_page: 100,
+        page,
+      });
+      
+      changedFiles.push(...files.map((f: any) => f.filename));
+      
+      // Check if there are more pages
+      hasMorePages = files.length === 100;
+      page++;
+      
+      // Safety limit to prevent infinite loops
+      if (page > 10) {
+        console.warn(`PR #${pr.number} has more than 1000 files, stopping pagination`);
+        break;
+      }
     }
     
-    return files.length > 0 ? files : ['src/index.ts'];
+    return changedFiles;
   } catch (error) {
     console.error('Error getting changed files:', error);
     return [];
@@ -152,29 +202,90 @@ async function getChangedFiles(pr: PullRequest, repo: Repository): Promise<strin
 /**
  * Find code owners for changed files
  */
-async function findCodeOwners(files: string[], repo: Repository): Promise<any[]> {
-  // In a real implementation, this would:
-  // 1. Check CODEOWNERS file
-  // 2. Analyze git blame for recent contributors
-  // 3. Check who has made most commits to these files
-  
-  // Mock implementation
-  const owners = [
-    {
-      login: 'alice-dev',
-      name: 'Alice Developer',
-      avatarUrl: 'https://github.com/alice-dev.png',
-      ownership: 67,
-    },
-    {
-      login: 'bob-reviewer',
-      name: 'Bob Reviewer',
-      avatarUrl: 'https://github.com/bob-reviewer.png',
-      ownership: 45,
-    },
-  ];
-  
-  return owners;
+interface CodeOwnersResult {
+  owners: any[];
+  hasCodeOwners: boolean;
+}
+
+async function findCodeOwners(
+  files: string[], 
+  repo: Repository, 
+  octokit?: any,
+  prAuthor?: string
+): Promise<CodeOwnersResult> {
+  try {
+    // Get octokit client if not provided
+    if (!octokit) {
+      const installation = await supabase
+        .from('github_app_installations')
+        .select('installation_id')
+        .eq('repository_id', repo.id)
+        .single();
+        
+      if (installation?.data) {
+        octokit = await githubAppAuth.getInstallationOctokit(installation.data.installation_id);
+      }
+    }
+    
+    if (!octokit) {
+      console.log('No octokit client available for CODEOWNERS lookup');
+      return { owners: [], hasCodeOwners: false };
+    }
+
+    // Fetch CODEOWNERS file
+    const { owners: codeOwners, source } = await fetchCodeOwners(
+      octokit,
+      repo.owner.login,
+      repo.name
+    );
+
+    if (codeOwners.length === 0) {
+      console.log('No CODEOWNERS file found');
+      return { owners: [], hasCodeOwners: false };
+    }
+
+    // Get suggested reviewers from CODEOWNERS
+    const suggestions = getSuggestedReviewersFromCodeOwners(
+      files,
+      codeOwners,
+      prAuthor
+    );
+
+    // Convert to expected format and fetch additional user data
+    const ownersWithData = [];
+    
+    for (const suggestion of suggestions) {
+      try {
+        // Get user data from GitHub
+        const { data: userData } = await octokit.users.getByUsername({
+          username: suggestion.username,
+        });
+
+        ownersWithData.push({
+          login: suggestion.username,
+          name: userData.name || suggestion.username,
+          avatarUrl: userData.avatar_url,
+          ownership: suggestion.ownershipPercentage,
+          matchedFiles: suggestion.matchedFiles,
+        });
+      } catch (error) {
+        // User might not exist or be accessible
+        console.log(`Could not fetch data for user ${suggestion.username}`);
+        ownersWithData.push({
+          login: suggestion.username,
+          name: suggestion.username,
+          avatarUrl: `https://github.com/${suggestion.username}.png`,
+          ownership: suggestion.ownershipPercentage,
+          matchedFiles: suggestion.matchedFiles,
+        });
+      }
+    }
+
+    return { owners: ownersWithData, hasCodeOwners: true };
+  } catch (error) {
+    console.error('Error finding code owners:', error);
+    return { owners: [], hasCodeOwners: false };
+  }
 }
 
 /**
