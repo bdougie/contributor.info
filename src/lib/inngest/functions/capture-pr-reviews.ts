@@ -36,7 +36,7 @@ export const capturePrReviews = inngest.createFunction(
     let apiCallsUsed = 0;
 
     // Step 0: Initialize sync log
-    const syncLogId = await step.run("init-sync-log", async () => {
+    await step.run("init-sync-log", async () => {
       return await syncLogger.start('pr_reviews', repositoryId, {
         prNumber,
         prId,

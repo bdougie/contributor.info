@@ -8,12 +8,14 @@ export class SyncLogger {
   private syncLogId: string | null = null;
   
   async start(syncType: string, repositoryId: string, metadata?: SyncLogMetadata): Promise<string> {
+    console.log(`[SyncLogger] Starting sync log for ${syncType} on repository ${repositoryId}`);
+    
     const { data, error } = await supabase
       .from('sync_logs')
       .insert({
         sync_type: syncType,
         repository_id: repositoryId,
-        status: 'in_progress',
+        status: 'started',
         started_at: new Date().toISOString(),
         metadata: metadata || {}
       })
@@ -21,10 +23,11 @@ export class SyncLogger {
       .single();
 
     if (error) {
-      console.error('Failed to create sync log:', error);
+      console.error('[SyncLogger] Failed to create sync log:', error);
       throw error;
     }
 
+    console.log(`[SyncLogger] Created sync log with ID: ${data.id}`);
     this.syncLogId = data.id;
     return data.id;
   }

@@ -3,7 +3,7 @@ import { Inngest } from "inngest";
 import { serve } from "inngest/lambda";
 import type { Context } from "@netlify/functions";
 
-// Import all capture functions
+// Import all capture functions (excluding embeddings to avoid transformers issue)
 import {
   capturePrDetails,
   capturePrReviews,
@@ -12,8 +12,9 @@ import {
   capturePrDetailsGraphQL,
   captureRepositorySyncGraphQL,
   classifyRepositorySize,
-  classifySingleRepository
-} from "../../src/lib/inngest/functions";
+  classifySingleRepository,
+  updatePrActivity
+} from "../../src/lib/inngest/functions/index-without-embeddings";
 
 // Ensure GITHUB_TOKEN is available
 if (!process.env.GITHUB_TOKEN && process.env.VITE_GITHUB_TOKEN) {
@@ -77,7 +78,9 @@ const inngestHandler = serve({
     captureRepositorySyncGraphQL,
     // Classification functions
     classifyRepositorySize,
-    classifySingleRepository
+    classifySingleRepository,
+    // PR activity updates
+    updatePrActivity
   ],
   servePath: "/.netlify/functions/inngest-local-full",
   landingPage: true

@@ -207,15 +207,31 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         
         if (!prData) continue;
 
-        // Queue GraphQL detail jobs more liberally due to efficiency
-        if (detailJobsQueued < MAX_DETAIL_JOBS) {
+        // Check if this PR needs comment/review data
+        const { count: existingComments } = await supabase
+          .from('comments')
+          .select('*', { count: 'exact', head: true })
+          .eq('pull_request_id', pr.id);
+
+        const { count: existingReviews } = await supabase
+          .from('reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('pull_request_id', pr.id);
+
+        // Queue if: PR is open, has recent activity, or has no comments/reviews yet
+        const isOpen = prData.state === 'OPEN';
+        const hasNoComments = (existingComments || 0) === 0;
+        const hasNoReviews = (existingReviews || 0) === 0;
+        const isRecent = new Date(prData.updatedAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+        if (detailJobsQueued < MAX_DETAIL_JOBS && (isOpen || hasNoComments || hasNoReviews || isRecent)) {
           jobs.push({
             name: "capture/pr.details.graphql",
             data: {
               repositoryId,
               prNumber: pr.number.toString(),
               prId: pr.id,
-              priority,
+              priority: isOpen ? 'high' : priority,
             },
           });
           detailJobsQueued++;
