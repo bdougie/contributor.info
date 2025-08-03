@@ -66,6 +66,7 @@ interface ReviewsResponse {
         };
         nodes: Array<{
           author: { login: string } | null;
+          submittedAt: string;
         }>;
       };
     };
@@ -82,6 +83,7 @@ interface CommentsResponse {
         };
         nodes: Array<{
           author: { login: string } | null;
+          createdAt: string;
         }>;
       };
     };
@@ -148,6 +150,7 @@ const GET_PR_REVIEWS_QUERY = `
             author {
               login
             }
+            submittedAt
           }
         }
       }
@@ -171,6 +174,7 @@ const GET_PR_COMMENTS_QUERY = `
             author {
               login
             }
+            createdAt
           }
         }
       }
@@ -236,7 +240,8 @@ async function executeGraphQLQuery<T>(
 async function fetchAllPRReviews(
   owner: string,
   repo: string,
-  prNumber: number
+  prNumber: number,
+  sinceDate: Date
 ): Promise<Map<string, number>> {
   const reviewerCounts = new Map<string, number>();
   let cursor: string | null = null;
@@ -255,9 +260,9 @@ async function fetchAllPRReviews(
 
     const { reviews } = data.repository.pullRequest;
     
-    // Count reviews by author
+    // Count reviews by author, filtering by date
     for (const review of reviews.nodes) {
-      if (review.author?.login) {
+      if (review.author?.login && new Date(review.submittedAt) >= sinceDate) {
         const currentCount = reviewerCounts.get(review.author.login) || 0;
         reviewerCounts.set(review.author.login, currentCount + 1);
       }
@@ -276,7 +281,8 @@ async function fetchAllPRReviews(
 async function fetchAllPRComments(
   owner: string,
   repo: string,
-  prNumber: number
+  prNumber: number,
+  sinceDate: Date
 ): Promise<Map<string, number>> {
   const commenterCounts = new Map<string, number>();
   let cursor: string | null = null;
@@ -295,9 +301,9 @@ async function fetchAllPRComments(
 
     const { comments } = data.repository.pullRequest;
     
-    // Count comments by author
+    // Count comments by author, filtering by date
     for (const comment of comments.nodes) {
-      if (comment.author?.login) {
+      if (comment.author?.login && new Date(comment.createdAt) >= sinceDate) {
         const currentCount = commenterCounts.get(comment.author.login) || 0;
         commenterCounts.set(comment.author.login, currentCount + 1);
       }
@@ -384,7 +390,7 @@ export async function fetchContributorStats(
           // If there are more than 100 reviews, fetch the rest
           if (pr.reviews.totalCount > 100) {
             console.log('PR #%d has %d reviews, fetching remaining...', pr.number, pr.reviews.totalCount);
-            const additionalReviewerCounts = await fetchAllPRReviews(owner, repo, pr.number);
+            const additionalReviewerCounts = await fetchAllPRReviews(owner, repo, pr.number, thirtyDaysAgo);
             
             // Merge additional counts with existing counts
             for (const [login, count] of additionalReviewerCounts) {
@@ -398,7 +404,9 @@ export async function fetchContributorStats(
               }
               // Note: We already counted first 100, so we add the full count from pagination
               // and subtract what we already counted to avoid double-counting
-              const existingCount = pr.reviews.nodes.filter(r => r.author?.login === login).length;
+              const existingCount = pr.reviews.nodes.filter(r => 
+                r.author?.login === login && new Date(r.submittedAt) >= thirtyDaysAgo
+              ).length;
               contributorMap.get(login)!.reviewsCount += (count - existingCount);
             }
           }
@@ -426,7 +434,7 @@ export async function fetchContributorStats(
           // If there are more than 100 comments, fetch the rest
           if (pr.comments.totalCount > 100) {
             console.log('PR #%d has %d comments, fetching remaining...', pr.number, pr.comments.totalCount);
-            const additionalCommenterCounts = await fetchAllPRComments(owner, repo, pr.number);
+            const additionalCommenterCounts = await fetchAllPRComments(owner, repo, pr.number, thirtyDaysAgo);
             
             // Merge additional counts with existing counts
             for (const [login, count] of additionalCommenterCounts) {
@@ -440,7 +448,9 @@ export async function fetchContributorStats(
               }
               // Note: We already counted first 100, so we add the full count from pagination
               // and subtract what we already counted to avoid double-counting
-              const existingCount = pr.comments.nodes.filter(c => c.author?.login === login).length;
+              const existingCount = pr.comments.nodes.filter(c => 
+                c.author?.login === login && new Date(c.createdAt) >= thirtyDaysAgo
+              ).length;
               contributorMap.get(login)!.commentsCount += (count - existingCount);
             }
           }
