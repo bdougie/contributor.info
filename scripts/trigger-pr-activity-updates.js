@@ -15,7 +15,7 @@ async function triggerUpdates() {
   
   // Get repository ID from environment variables (passed from GitHub Actions)
   const repositoryId = process.env.REPOSITORY_ID;
-  const days = parseInt(process.env.DAYS) || 7;
+  const days = process.env.DAYS ? parseInt(process.env.DAYS, 10) : 7;
   
   if (repositoryId) {
     // Update specific repository
