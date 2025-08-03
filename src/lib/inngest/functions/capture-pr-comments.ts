@@ -85,7 +85,7 @@ export const capturePrComments = inngest.createFunction(
         const processedPrComments: DatabaseComment[] = [];
         const processedIssueComments: DatabaseComment[] = [];
         
-        for (const comment of prCommentsData) {
+        for (const comment of prCommentsData as any[]) {
           if (!comment.user) continue;
           
           // Find or create the commenter in contributors table
@@ -135,7 +135,7 @@ export const capturePrComments = inngest.createFunction(
           });
         }
         
-        for (const comment of issueCommentsData) {
+        for (const comment of issueCommentsData as any[]) {
           if (!comment.user) continue;
           
           // Find or create the commenter in contributors table
@@ -179,13 +179,13 @@ export const capturePrComments = inngest.createFunction(
           });
         }
 
-        console.log(`Found ${prCommentsData.length} review comments and ${issueCommentsData.length} issue comments`);
+        console.log(`Found ${processedPrComments.length} review comments and ${processedIssueComments.length} issue comments`);
         
         await syncLogger.update({
           github_api_calls_used: apiCallsUsed,
           metadata: {
-            prCommentsFound: prCommentsData.length,
-            issueCommentsFound: issueCommentsData.length
+            prCommentsFound: processedPrComments.length,
+            issueCommentsFound: processedIssueComments.length
           }
         });
 

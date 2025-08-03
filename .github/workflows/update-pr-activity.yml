@@ -39,6 +39,7 @@ jobs:
           INNGEST_EVENT_KEY: ${{ secrets.INNGEST_EVENT_KEY }}
           INNGEST_PRODUCTION_EVENT_KEY: ${{ secrets.INNGEST_PRODUCTION_EVENT_KEY }}
           API_ENDPOINT: ${{ secrets.API_ENDPOINT || 'https://contributor.info/api/queue-event' }}
+          UPDATE_DELAY_MS: ${{ vars.UPDATE_DELAY_MS || '1000' }}
         run: |
           node --eval "
           const { config } = require('dotenv');
@@ -60,7 +61,7 @@ jobs:
             
             if (repositoryId) {
               // Update specific repository
-              console.log(\`📦 Updating single repository: \${repositoryId}\`);
+              console.log('📦 Updating single repository: %s', repositoryId);
               await sendUpdateEvent(repositoryId, days);
             } else {
               // Update all tracked repositories
@@ -74,14 +75,15 @@ jobs:
                 process.exit(1);
               }
               
-              console.log(\`📦 Found \${repos?.length || 0} tracked repositories to update\`);
+              console.log('📦 Found %d tracked repositories to update', repos?.length || 0);
               
               for (const repo of repos || []) {
                 const { owner, name } = repo.repositories;
-                console.log(\`  - Updating \${owner}/\${name}...\`);
+                console.log('  - Updating %s/%s...', owner, name);
                 await sendUpdateEvent(repo.repository_id, days);
                 // Small delay to avoid overwhelming the API
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                const delayMs = parseInt(process.env.UPDATE_DELAY_MS || '1000');
+                await new Promise(resolve => setTimeout(resolve, delayMs));
               }
             }
             
@@ -102,19 +104,19 @@ jobs:
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': \`Bearer \${process.env.INNGEST_EVENT_KEY || process.env.INNGEST_PRODUCTION_EVENT_KEY}\`
+                  'Authorization': 'Bearer ' + (process.env.INNGEST_EVENT_KEY || process.env.INNGEST_PRODUCTION_EVENT_KEY)
                 },
                 body: JSON.stringify(eventData)
               });
               
               if (!response.ok) {
-                throw new Error(\`HTTP error! status: \${response.status}\`);
+                throw new Error('HTTP error! status: ' + response.status);
               }
               
               const result = await response.json();
-              console.log(\`    ✓ Event ID: \${result.eventId}\`);
+              console.log('    ✓ Event ID: %s', result.eventId);
             } catch (error) {
-              console.error(\`    ✗ Failed to send event: \${error.message}\`);
+              console.error('    ✗ Failed to send event: %s', error.message);
               throw error;
             }
           }

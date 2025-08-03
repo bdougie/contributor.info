@@ -21,6 +21,15 @@ export const updatePrActivity = inngest.createFunction(
   { event: "update/pr.activity" },
   async ({ event, step }) => {
     const { repositoryId, days = 7 } = event.data;
+    
+    // Input validation
+    if (!repositoryId || typeof repositoryId !== 'string') {
+      throw new Error('Invalid repositoryId: must be a non-empty string');
+    }
+    
+    if (typeof days !== 'number' || days < 1 || days > 365) {
+      throw new Error('Invalid days parameter: must be a number between 1 and 365');
+    }
 
     // Step 1: Find PRs that might have new activity
     const prsToUpdate = await step.run("find-prs-needing-update", async () => {

@@ -74,7 +74,7 @@ export const capturePrReviews = inngest.createFunction(
         // Process each review and ensure reviewers exist in contributors table
         const processedReviews: DatabaseReview[] = [];
         
-        for (const review of reviewsData) {
+        for (const review of reviewsData as any[]) {
           if (!review.user) continue; // Skip reviews without user data
           
           // Find or create the reviewer in contributors table
@@ -118,12 +118,12 @@ export const capturePrReviews = inngest.createFunction(
           });
         }
 
-        console.log(`Found ${reviewsData.length} reviews for PR #${prNumber}`);
+        console.log(`Found ${(reviewsData as any[]).length} reviews for PR #${prNumber}`);
         
         await syncLogger.update({
           github_api_calls_used: apiCallsUsed,
           metadata: {
-            reviewsFound: reviewsData.length,
+            reviewsFound: (reviewsData as any[]).length,
             reviewsWithUsers: processedReviews.length
           }
         });
