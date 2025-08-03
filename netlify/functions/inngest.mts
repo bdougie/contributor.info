@@ -10,7 +10,7 @@ import {
   captureRepositorySyncGraphQL,
   classifyRepositorySize,
   classifySingleRepository,
-} from "../../src/lib/inngest/functions";
+} from "../../src/lib/inngest/functions/index-without-embeddings";
 
 // Create the Inngest serve handler
 const inngestHandler = serve({

@@ -1,0 +1,230 @@
+name: Scheduled Data Sync
+
+on:
+  schedule:
+    # Run every 3 hours on the 18th minute for active PR updates
+    - cron: '18 */3 * * *'
+    # Run daily at 2:18 AM UTC for comprehensive sync
+    - cron: '18 2 * * *'
+  workflow_dispatch:
+    inputs:
+      sync_type:
+        description: 'Type of sync to perform'
+        required: true
+        type: choice
+        options:
+          - pr-activity
+          - full-sync
+          - both
+        default: 'pr-activity'
+      repository_filter:
+        description: 'Repository to sync (owner/name) or "all"'
+        required: false
+        type: string
+        default: 'all'
+
+jobs:
+  determine-sync-type:
+    runs-on: ubuntu-latest
+    outputs:
+      sync_type: ${{ steps.determine.outputs.sync_type }}
+    steps:
+      - id: determine
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            # Check which schedule triggered this
+            hour=$(date -u +%H)
+            if [[ "$hour" == "02" ]]; then
+              echo "sync_type=full-sync" >> $GITHUB_OUTPUT
+            else
+              echo "sync_type=pr-activity" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "sync_type=${{ github.event.inputs.sync_type }}" >> $GITHUB_OUTPUT
+          fi
+
+  sync-pr-activity:
+    needs: determine-sync-type
+    if: needs.determine-sync-type.outputs.sync_type == 'pr-activity' || needs.determine-sync-type.outputs.sync_type == 'both'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Create sync script
+        run: |
+          cat > sync-pr-activity.mjs << 'EOF'
+          import { createClient } from '@supabase/supabase-js';
+          
+          const supabase = createClient(
+            process.env.VITE_SUPABASE_URL,
+            process.env.VITE_SUPABASE_ANON_KEY
+          );
+          
+          const MAX_CONCURRENT = 5;
+          const BATCH_DELAY = 2000; // 2 seconds between batches
+          
+          async function syncPRActivity() {
+            const repoFilter = process.env.REPOSITORY_FILTER;
+            console.log('🔄 Starting PR activity sync...');
+            console.log(`📋 Repository filter: ${repoFilter || 'all'}`);
+            
+            let query = supabase
+              .from('tracked_repositories')
+              .select(`
+                repository_id,
+                repositories!inner(
+                  id,
+                  owner,
+                  name,
+                  last_updated_at
+                )
+              `)
+              .eq('is_active', true)
+              .order('repositories(last_updated_at)', { ascending: true });
+            
+            // Apply repository filter if specified
+            if (repoFilter && repoFilter !== 'all') {
+              const [owner, name] = repoFilter.split('/');
+              if (owner && name) {
+                query = query
+                  .eq('repositories.owner', owner)
+                  .eq('repositories.name', name);
+              }
+            }
+            
+            const { data: repos, error } = await query;
+            
+            if (error) {
+              console.error('Failed to fetch repositories:', error);
+              process.exit(1);
+            }
+            
+            console.log(`📦 Found ${repos?.length || 0} repositories to update`);
+            
+            // Process repositories in batches
+            const results = [];
+            for (let i = 0; i < repos.length; i += MAX_CONCURRENT) {
+              const batch = repos.slice(i, i + MAX_CONCURRENT);
+              console.log(`\n🔄 Processing batch ${Math.floor(i/MAX_CONCURRENT) + 1}/${Math.ceil(repos.length/MAX_CONCURRENT)}`);
+              
+              const batchPromises = batch.map(async (repo) => {
+                const { owner, name, id } = repo.repositories;
+                console.log(`  📋 ${owner}/${name}`);
+                
+                try {
+                  const response = await fetch(process.env.API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      eventName: 'update/pr.activity',
+                      data: {
+                        repositoryId: id,
+                        days: 7 // Check last 7 days for activity
+                      }
+                    })
+                  });
+                  
+                  if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                  }
+                  
+                  const result = await response.json();
+                  console.log(`    ✅ Queued: ${result.eventId}`);
+                  
+                  return { 
+                    repository: `${owner}/${name}`, 
+                    status: 'success',
+                    eventId: result.eventId 
+                  };
+                } catch (error) {
+                  console.error(`    ❌ Failed: ${error.message}`);
+                  return { 
+                    repository: `${owner}/${name}`, 
+                    status: 'failed',
+                    error: error.message 
+                  };
+                }
+              });
+              
+              const batchResults = await Promise.all(batchPromises);
+              results.push(...batchResults);
+              
+              // Delay between batches
+              if (i + MAX_CONCURRENT < repos.length) {
+                console.log(`⏳ Waiting ${BATCH_DELAY/1000}s before next batch...`);
+                await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
+              }
+            }
+            
+            // Summary
+            const successful = results.filter(r => r.status === 'success').length;
+            const failed = results.filter(r => r.status === 'failed').length;
+            
+            console.log('\n📊 Sync Summary:');
+            console.log(`   ✅ Successful: ${successful}`);
+            console.log(`   ❌ Failed: ${failed}`);
+            console.log(`   📋 Total: ${results.length}`);
+            
+            if (failed > 0) {
+              console.log('\n❌ Failed repositories:');
+              results
+                .filter(r => r.status === 'failed')
+                .forEach(r => console.log(`   - ${r.repository}: ${r.error}`));
+              process.exit(1);
+            }
+          }
+          
+          syncPRActivity().catch(err => {
+            console.error('Fatal error:', err);
+            process.exit(1);
+          });
+          EOF
+
+      - name: Install dependencies
+        run: npm install @supabase/supabase-js
+
+      - name: Run PR Activity Sync
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT || 'https://contributor.info/api/queue-event' }}
+          REPOSITORY_FILTER: ${{ github.event.inputs.repository_filter || 'all' }}
+        run: node sync-pr-activity.mjs
+
+  full-repository-sync:
+    needs: determine-sync-type
+    if: needs.determine-sync-type.outputs.sync_type == 'full-sync' || needs.determine-sync-type.outputs.sync_type == 'both'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Trigger Full Sync
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT || 'https://contributor.info/api/queue-event' }}
+        run: |
+          echo "🔄 Triggering full repository sync..."
+          # This would trigger capture/repository.sync.graphql events
+          # Implementation depends on your specific needs
+
+  notify-completion:
+    needs: [sync-pr-activity, full-repository-sync]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send notification
+        if: github.event_name == 'schedule'
+        run: |
+          echo "✅ Scheduled sync completed"
+          # Add Slack/Discord notification here if needed

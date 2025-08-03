@@ -7,6 +7,18 @@
  * 3. Server secrets are never exposed to browser bundles
  */
 
+// Type for import.meta.env
+interface ImportMetaEnv {
+  DEV?: boolean;
+  PROD?: boolean;
+  MODE?: string;
+  [key: string]: string | boolean | undefined;
+}
+
+interface ImportMeta {
+  env?: ImportMetaEnv;
+}
+
 // Detect runtime environment
 const isServer = typeof window === 'undefined';
 const isBrowser = typeof window !== 'undefined';
@@ -20,9 +32,9 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
   if (isBrowser) {
     // Browser: Only access VITE_* prefixed variables via import.meta.env
     // Use optional chaining and fallback for production compatibility
-    const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
+    const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
     const value = metaEnv[viteKey];
-    return value || '';
+    return typeof value === 'string' ? value : '';
   } else {
     // Server: Use process.env only (import.meta.env not available in CommonJS/Netlify Functions)
     return process.env[viteKey] || (serverKey ? process.env[serverKey] : '') || '';
@@ -65,7 +77,7 @@ export const env = {
   // Development mode detection
   get DEV() {
     if (isBrowser) {
-      const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
+      const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
       return metaEnv.DEV || false;
     }
     return process.env.NODE_ENV === 'development';
@@ -73,7 +85,7 @@ export const env = {
   
   get PROD() {
     if (isBrowser) {
-      const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
+      const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
       return metaEnv.PROD || false;
     }
     return process.env.NODE_ENV === 'production';
@@ -81,7 +93,7 @@ export const env = {
   
   get MODE() {
     if (isBrowser) {
-      const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
+      const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
       return metaEnv.MODE || 'development';
     }
     return process.env.NODE_ENV || 'development';
