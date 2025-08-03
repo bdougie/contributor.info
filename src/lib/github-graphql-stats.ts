@@ -104,7 +104,7 @@ async function getGraphQLHeaders(): Promise<HeadersInit> {
  */
 async function executeGraphQLQuery<T>(
   query: string,
-  variables: Record<string, any>
+  variables: Record<string, string | number | null | undefined>
 ): Promise<T> {
   const headers = await getGraphQLHeaders();
   
@@ -137,7 +137,7 @@ export async function fetchContributorStats(
   owner: string,
   repo: string
 ): Promise<RepositoryContributorStats> {
-  console.log(`Fetching contributor stats for ${owner}/${repo}...`);
+  console.log('Fetching contributor stats for %s/%s...', owner, repo);
   
   const contributorMap = new Map<string, ContributorStats>();
   let cursor: string | null = null;
@@ -209,7 +209,7 @@ export async function fetchContributorStats(
       hasNextPage = pullRequests.pageInfo.hasNextPage;
       cursor = pullRequests.pageInfo.endCursor;
       
-      console.log(`Processed ${pullRequests.nodes.length} PRs, ${contributorMap.size} contributors found so far`);
+      console.log('Processed %d PRs, %d contributors found so far', pullRequests.nodes.length, contributorMap.size);
       
     } catch (error) {
       console.error('Error fetching page:', error);
@@ -217,7 +217,7 @@ export async function fetchContributorStats(
     }
   }
 
-  console.log(`Completed fetching stats for ${owner}/${repo}: ${contributorMap.size} contributors`);
+  console.log('Completed fetching stats for %s/%s: %d contributors', owner, repo, contributorMap.size);
 
   return {
     owner,
@@ -232,7 +232,7 @@ export async function fetchContributorStats(
 export async function updateContributorStatsInDatabase(
   stats: RepositoryContributorStats
 ): Promise<void> {
-  console.log(`Updating database for ${stats.owner}/${stats.repo}...`);
+  console.log('Updating database for %s/%s...', stats.owner, stats.repo);
 
   // First, get the repository ID from Supabase
   const { data: repoData, error: repoError } = await supabase
@@ -243,7 +243,7 @@ export async function updateContributorStatsInDatabase(
     .single();
 
   if (repoError || !repoData) {
-    throw new Error(`Repository ${stats.owner}/${stats.repo} not found in database`);
+    throw new Error('Repository not found in database');
   }
 
   const repositoryId = repoData.id;
@@ -272,19 +272,19 @@ export async function updateContributorStatsInDatabase(
           .insert({
             username: contributor.login,
             display_name: contributor.login,
-            github_id: 0, // We don't have GitHub ID from GraphQL, could be fetched separately if needed
+            github_id: 0, // GitHub ID not available from GraphQL query, using 0 as placeholder
           })
           .select('id')
           .single();
 
         if (insertError) {
-          console.error(`Failed to create contributor ${contributor.login}:`, insertError);
+          console.error('Failed to create contributor %s:', contributor.login, insertError);
           continue;
         }
 
         contributorId = newContributor.id;
       } else if (contributorError) {
-        console.error(`Error fetching contributor ${contributor.login}:`, contributorError);
+        console.error('Error fetching contributor %s:', contributor.login, contributorError);
         continue;
       } else {
         contributorId = existingContributor.id;
@@ -312,18 +312,18 @@ export async function updateContributorStatsInDatabase(
         });
 
       if (upsertError) {
-        console.error(`Failed to update stats for ${contributor.login}:`, upsertError);
+        console.error('Failed to update stats for %s:', contributor.login, upsertError);
       } else {
-        console.log(`Updated stats for ${contributor.login}: ${contributor.pullRequestsCount} PRs, ${contributor.reviewsCount} reviews, ${contributor.commentsCount} comments`);
+        console.log('Updated stats for %s: %d PRs, %d reviews, %d comments', contributor.login, contributor.pullRequestsCount, contributor.reviewsCount, contributor.commentsCount);
       }
 
     } catch (error) {
-      console.error(`Error processing contributor ${contributor.login}:`, error);
+      console.error('Error processing contributor %s:', contributor.login, error);
       continue;
     }
   }
 
-  console.log(`Database update completed for ${stats.owner}/${stats.repo}`);
+  console.log('Database update completed for %s/%s', stats.owner, stats.repo);
 }
 
 /**
@@ -355,14 +355,14 @@ export async function syncRepositoryContributorStats(
   repo: string
 ): Promise<void> {
   try {
-    console.log(`Starting sync for ${owner}/${repo}`);
+    console.log('Starting sync for %s/%s', owner, repo);
     
     const stats = await fetchContributorStats(owner, repo);
     await updateContributorStatsInDatabase(stats);
     
-    console.log(`Successfully synced contributor stats for ${owner}/${repo}`);
+    console.log('Successfully synced contributor stats for %s/%s', owner, repo);
   } catch (error) {
-    console.error(`Failed to sync contributor stats for ${owner}/${repo}:`, error);
+    console.error('Failed to sync contributor stats for %s/%s:', owner, repo, error);
     throw error;
   }
 }

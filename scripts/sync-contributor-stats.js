@@ -103,7 +103,7 @@ function calculateWeightedScore(
  * Fetch contributor statistics for a repository using GraphQL
  */
 async function fetchContributorStats(owner, repo) {
-  console.log(`Fetching contributor stats for ${owner}/${repo}...`);
+  console.log('Fetching contributor stats for %s/%s...', owner, repo);
   
   const contributorMap = new Map();
   let cursor = null;
@@ -172,7 +172,7 @@ async function fetchContributorStats(owner, repo) {
       hasNextPage = pullRequests.pageInfo.hasNextPage;
       cursor = pullRequests.pageInfo.endCursor;
       
-      console.log(`Processed ${pullRequests.nodes.length} PRs, ${contributorMap.size} contributors found so far`);
+      console.log('Processed %d PRs, %d contributors found so far', pullRequests.nodes.length, contributorMap.size);
       
     } catch (error) {
       console.error('Error fetching page:', error);
@@ -180,7 +180,7 @@ async function fetchContributorStats(owner, repo) {
     }
   }
 
-  console.log(`Completed fetching stats for ${owner}/${repo}: ${contributorMap.size} contributors`);
+  console.log('Completed fetching stats for %s/%s: %d contributors', owner, repo, contributorMap.size);
 
   return {
     owner,
@@ -193,7 +193,7 @@ async function fetchContributorStats(owner, repo) {
  * Update Supabase database with contributor statistics
  */
 async function updateContributorStatsInDatabase(stats) {
-  console.log(`Updating database for ${stats.owner}/${stats.repo}...`);
+  console.log('Updating database for %s/%s...', stats.owner, stats.repo);
 
   // First, get the repository ID from Supabase
   const { data: repoData, error: repoError } = await supabase
@@ -204,7 +204,7 @@ async function updateContributorStatsInDatabase(stats) {
     .single();
 
   if (repoError || !repoData) {
-    throw new Error(`Repository ${stats.owner}/${stats.repo} not found in database`);
+    throw new Error('Repository not found in database');
   }
 
   const repositoryId = repoData.id;
@@ -233,19 +233,19 @@ async function updateContributorStatsInDatabase(stats) {
           .insert({
             username: contributor.login,
             display_name: contributor.login,
-            github_id: 0, // We don't have GitHub ID from GraphQL, could be fetched separately if needed
+            github_id: 0, // GitHub ID not available from GraphQL query, using 0 as placeholder
           })
           .select('id')
           .single();
 
         if (insertError) {
-          console.error(`Failed to create contributor ${contributor.login}:`, insertError);
+          console.error('Failed to create contributor %s:', contributor.login, insertError);
           continue;
         }
 
         contributorId = newContributor.id;
       } else if (contributorError) {
-        console.error(`Error fetching contributor ${contributor.login}:`, contributorError);
+        console.error('Error fetching contributor %s:', contributor.login, contributorError);
         continue;
       } else {
         contributorId = existingContributor.id;
@@ -273,18 +273,18 @@ async function updateContributorStatsInDatabase(stats) {
         });
 
       if (upsertError) {
-        console.error(`Failed to update stats for ${contributor.login}:`, upsertError);
+        console.error('Failed to update stats for %s:', contributor.login, upsertError);
       } else {
-        console.log(`Updated stats for ${contributor.login}: ${contributor.pullRequestsCount} PRs, ${contributor.reviewsCount} reviews, ${contributor.commentsCount} comments`);
+        console.log('Updated stats for %s: %d PRs, %d reviews, %d comments', contributor.login, contributor.pullRequestsCount, contributor.reviewsCount, contributor.commentsCount);
       }
 
     } catch (error) {
-      console.error(`Error processing contributor ${contributor.login}:`, error);
+      console.error('Error processing contributor %s:', contributor.login, error);
       continue;
     }
   }
 
-  console.log(`Database update completed for ${stats.owner}/${stats.repo}`);
+  console.log('Database update completed for %s/%s', stats.owner, stats.repo);
 }
 
 /**
@@ -292,14 +292,14 @@ async function updateContributorStatsInDatabase(stats) {
  */
 async function syncRepositoryContributorStats(owner, repo) {
   try {
-    console.log(`Starting sync for ${owner}/${repo}`);
+    console.log('Starting sync for %s/%s', owner, repo);
     
     const stats = await fetchContributorStats(owner, repo);
     await updateContributorStatsInDatabase(stats);
     
-    console.log(`Successfully synced contributor stats for ${owner}/${repo}`);
+    console.log('Successfully synced contributor stats for %s/%s', owner, repo);
   } catch (error) {
-    console.error(`Failed to sync contributor stats for ${owner}/${repo}:`, error);
+    console.error('Failed to sync contributor stats for %s/%s:', owner, repo, error);
     throw error;
   }
 }
@@ -313,7 +313,7 @@ async function syncAllTrackedRepositories() {
   
   if (specificOwner && specificRepo) {
     // Sync specific repository
-    console.log(`📦 Syncing specific repository: ${specificOwner}/${specificRepo}`);
+    console.log('📦 Syncing specific repository: %s/%s', specificOwner, specificRepo);
     await syncSingleRepository(specificOwner, specificRepo);
   } else {
     // Sync all tracked repositories
@@ -334,7 +334,7 @@ async function syncAllTrackedRepositories() {
       process.exit(1);
     }
     
-    console.log(`📦 Found ${repos?.length || 0} tracked repositories to sync`);
+    console.log('📦 Found %d tracked repositories to sync', repos?.length || 0);
     
     if (!repos || repos.length === 0) {
       console.log('⚠️  No active tracked repositories found');
@@ -343,20 +343,20 @@ async function syncAllTrackedRepositories() {
     
     for (const repo of repos) {
       const { owner, name, full_name } = repo.repositories;
-      console.log(`  - Syncing ${full_name}...`);
+      console.log('  - Syncing %s...', full_name);
       
       try {
         await syncSingleRepository(owner, name);
-        console.log(`    ✅ Successfully synced ${full_name}`);
+        console.log('    ✅ Successfully synced %s', full_name);
       } catch (error) {
-        console.error(`    ❌ Failed to sync ${full_name}:`, error.message);
+        console.error('    ❌ Failed to sync %s:', full_name, error.message);
         // Continue with other repositories even if one fails
       }
       
       // Small delay to avoid overwhelming the GitHub API
       const delayMs = parseInt(process.env.SYNC_DELAY_MS || '2000');
       if (delayMs > 0) {
-        console.log(`    ⏳ Waiting ${delayMs}ms before next repository...`);
+        console.log('    ⏳ Waiting %dms before next repository...', delayMs);
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
@@ -372,14 +372,14 @@ async function syncSingleRepository(owner, repo) {
     await syncRepositoryContributorStats(owner, repo);
     
     const duration = Date.now() - startTime;
-    console.log(`    ⏱️  Sync took ${(duration / 1000).toFixed(2)}s`);
+    console.log('    ⏱️  Sync took %ss', (duration / 1000).toFixed(2));
     
     // Log sync completion to database
     await logSyncOperation(owner, repo, 'completed', duration);
     
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`    ❌ Sync failed after ${(duration / 1000).toFixed(2)}s:`, error.message);
+    console.error('    ❌ Sync failed after %ss:', (duration / 1000).toFixed(2), error.message);
     
     // Log sync failure to database
     await logSyncOperation(owner, repo, 'failed', duration, error.message);
