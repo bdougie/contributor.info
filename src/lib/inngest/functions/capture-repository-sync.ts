@@ -194,7 +194,8 @@ export const captureRepositorySync = inngest.createFunction(
 
       // Limit the number of detail jobs to queue
       const MAX_DETAIL_JOBS = 20;
-      const MAX_REVIEW_COMMENT_JOBS = 10;
+      // Increased limit for reviews/comments to ensure complete data capture
+      const MAX_REVIEW_COMMENT_JOBS = 50;
       
       let detailJobsQueued = 0;
       let reviewJobsQueued = 0;
