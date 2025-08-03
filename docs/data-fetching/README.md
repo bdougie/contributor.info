@@ -35,6 +35,13 @@ Quick command reference for rollout management:
 ### 📋 [Phase 3 & 4 Summary](./PHASE3-PHASE4-SUMMARY.md)
 Executive summary of the Smart Data Fetching implementation, covering both Phase 3 (Smart Data Fetching Logic) and Phase 4 (Background Capture Optimization).
 
+### ⚙️ [GitHub Actions Workflows](./github-actions-workflows.md) **NEW**
+User-friendly guide to the automated workflows:
+- Sync Contributor Stats - Monthly rankings data collection
+- Update PR Activity - Recent activity processing
+- Manual trigger instructions
+- Monitoring and troubleshooting
+
 ### 🏗️ [Architecture Guide](./smart-data-fetching.md)
 Complete technical architecture including:
 - Repository size classification system

@@ -1,10 +1,15 @@
 import { ContributorOfTheMonth } from "./contributor-of-the-month";
-import { useContributorOfMonth } from "@/hooks/use-contributor-of-month";
-import { ContributorRanking as LibContributorRanking } from "@/lib/contributors/types";
+import { useMonthlyContributorRankings } from "@/hooks/use-monthly-contributor-rankings";
 import { ContributorRanking, MonthlyContributor } from "@/lib/types";
+import { useParams } from "react-router-dom";
 
 export default function ContributorOfTheMonthWrapper() {
-  const rankings = useContributorOfMonth();
+  const { owner = '', repo = '' } = useParams<{ owner: string; repo: string }>();
+  const { rankings, loading } = useMonthlyContributorRankings(owner, repo);
+
+  if (loading) {
+    return <div className="animate-pulse h-64 bg-gray-100 rounded-lg" />;
+  }
 
   if (!rankings || rankings.length === 0) {
     return null;
@@ -16,15 +21,15 @@ export default function ContributorOfTheMonthWrapper() {
   const isWinnerPhase = dayOfMonth >= 1 && dayOfMonth <= 7;
   
   // Transform the data to match the expected format
-  const monthlyContributors: MonthlyContributor[] = rankings.map((ranking: LibContributorRanking) => ({
-    login: ranking.contributor.username,
-    avatar_url: ranking.contributor.avatarUrl,
+  const monthlyContributors: MonthlyContributor[] = rankings.map((ranking) => ({
+    login: ranking.username,
+    avatar_url: ranking.avatarUrl,
     activity: {
-      pullRequests: ranking.contributor.pullRequests,
-      reviews: ranking.contributor.reviews,
-      comments: ranking.contributor.comments,
+      pullRequests: ranking.pullRequestsCount,
+      reviews: ranking.reviewsCount,
+      comments: ranking.commentsCount,
       totalScore: ranking.weightedScore,
-      firstContributionDate: ranking.contributor.earliestContribution.toISOString(),
+      firstContributionDate: new Date().toISOString(), // Not available in monthly rankings
     },
     rank: ranking.rank,
     isWinner: ranking.rank === 1 && isWinnerPhase,
