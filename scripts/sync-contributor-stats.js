@@ -5,9 +5,16 @@ import { createClient } from '@supabase/supabase-js';
 
 config();
 
+// Use service role key for write access to bypass RLS policies
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.warn('⚠️  Warning: SUPABASE_SERVICE_ROLE_KEY not found, using anon key which may not have write permissions');
+}
+
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
+  supabaseKey
 );
 
 const GITHUB_GRAPHQL_API = 'https://api.github.com/graphql';
@@ -588,9 +595,13 @@ async function logSyncOperation(owner, repo, status, duration, errorMessage = nu
 function validateEnvironment() {
   const required = [
     'VITE_SUPABASE_URL',
-    'VITE_SUPABASE_ANON_KEY',
     'VITE_GITHUB_TOKEN'
   ];
+  
+  // Check for either anon key or service role key
+  if (!process.env.VITE_SUPABASE_ANON_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    required.push('VITE_SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY');
+  }
   
   const missing = required.filter(key => !process.env[key]);
   
@@ -598,6 +609,11 @@ function validateEnvironment() {
     console.error('❌ Missing required environment variables:', missing.join(', '));
     console.error('Please ensure these are set in your environment or .env file');
     process.exit(1);
+  }
+  
+  // Recommend service role key for write access
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.log('💡 Tip: Set SUPABASE_SERVICE_ROLE_KEY for write access to the database');
   }
 }
 

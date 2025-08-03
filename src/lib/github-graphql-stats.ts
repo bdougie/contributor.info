@@ -1,10 +1,16 @@
 import { supabase } from './supabase';
-import { env } from './env';
+import { createClient } from '@supabase/supabase-js';
+import { env, serverEnv } from './env';
 
 const GITHUB_GRAPHQL_API = 'https://api.github.com/graphql';
 
 // Use universal environment access
 const VITE_GITHUB_TOKEN = env.GITHUB_TOKEN;
+
+// Create admin client for write operations if service role key is available
+const adminSupabase = serverEnv.SUPABASE_SERVICE_ROLE_KEY 
+  ? createClient(env.SUPABASE_URL, serverEnv.SUPABASE_SERVICE_ROLE_KEY)
+  : null;
 
 export interface ContributorStats {
   login: string;
@@ -445,8 +451,15 @@ export async function updateContributorStatsInDatabase(
 ): Promise<void> {
   console.log('Updating database for %s/%s...', stats.owner, stats.repo);
 
+  // Use admin client if available for write operations
+  const dbClient = adminSupabase || supabase;
+  
+  if (!adminSupabase) {
+    console.warn('⚠️  Using regular client - write operations may fail due to RLS policies');
+  }
+
   // First, get the repository ID from Supabase
-  const { data: repoData, error: repoError } = await supabase
+  const { data: repoData, error: repoError } = await dbClient
     .from('repositories')
     .select('id')
     .eq('owner', stats.owner)
@@ -468,7 +481,7 @@ export async function updateContributorStatsInDatabase(
   for (const contributor of stats.contributors) {
     try {
       // First, ensure the contributor exists in the contributors table
-      const { data: existingContributor, error: contributorError } = await supabase
+      const { data: existingContributor, error: contributorError } = await dbClient
         .from('contributors')
         .select('id')
         .eq('username', contributor.login)
@@ -478,7 +491,7 @@ export async function updateContributorStatsInDatabase(
 
       if (contributorError && contributorError.code === 'PGRST116') {
         // Contributor doesn't exist, create them
-        const { data: newContributor, error: insertError } = await supabase
+        const { data: newContributor, error: insertError } = await dbClient
           .from('contributors')
           .insert({
             username: contributor.login,
@@ -502,7 +515,7 @@ export async function updateContributorStatsInDatabase(
       }
 
       // Update or insert monthly rankings
-      const { error: upsertError } = await supabase
+      const { error: upsertError } = await dbClient
         .from('monthly_rankings')
         .upsert({
           month: currentMonth,
