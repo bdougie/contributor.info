@@ -19,6 +19,28 @@ export interface RepositoryContributorStats {
   contributors: ContributorStats[];
 }
 
+interface GraphQLResponse {
+  repository: {
+    pullRequests: {
+      pageInfo: {
+        hasNextPage: boolean;
+        endCursor: string;
+      };
+      nodes: Array<{
+        author: { login: string } | null;
+        reviews: {
+          nodes: Array<{ author: { login: string } | null }>;
+          totalCount: number;
+        };
+        comments: {
+          nodes: Array<{ author: { login: string } | null }>;
+          totalCount: number;
+        };
+      }>;
+    };
+  };
+}
+
 /**
  * GraphQL query to fetch PR review and comment counts for contributors
  */
@@ -123,33 +145,16 @@ export async function fetchContributorStats(
 
   while (hasNextPage) {
     try {
-      const data = await executeGraphQLQuery<{
-        repository: {
-          pullRequests: {
-            pageInfo: {
-              hasNextPage: boolean;
-              endCursor: string;
-            };
-            nodes: Array<{
-              author: { login: string } | null;
-              reviews: {
-                nodes: Array<{ author: { login: string } | null }>;
-                totalCount: number;
-              };
-              comments: {
-                nodes: Array<{ author: { login: string } | null }>;
-                totalCount: number;
-              };
-            }>;
-          };
-        };
-      }>(GET_CONTRIBUTOR_STATS_QUERY, {
-        owner,
-        name: repo,
-        cursor,
-      });
+      const response: GraphQLResponse = await executeGraphQLQuery<GraphQLResponse>(
+        GET_CONTRIBUTOR_STATS_QUERY,
+        {
+          owner,
+          name: repo,
+          cursor,
+        }
+      );
 
-      const pullRequests = data.repository.pullRequests;
+      const { pullRequests } = response.repository;
       
       // Process each PR to collect contributor stats
       for (const pr of pullRequests.nodes) {
