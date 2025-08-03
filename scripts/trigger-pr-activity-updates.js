@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-const { config } = require('dotenv');
-const { createClient } = require('@supabase/supabase-js');
+import { config } from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
 
 config();
 
@@ -26,7 +26,7 @@ async function triggerUpdates() {
     const { data: repos, error } = await supabase
       .from('tracked_repositories')
       .select('repository_id, repositories!inner(owner, name)')
-      .eq('is_active', true);
+      .eq('tracking_enabled', true);
       
     if (error) {
       console.error('Failed to fetch tracked repositories:', error);
