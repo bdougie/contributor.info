@@ -23,6 +23,7 @@ const GITHUB_TOKEN = process.env.VITE_GITHUB_TOKEN;
 /**
  * GraphQL query to fetch PR review and comment counts for contributors
  * Fetches first 100 reviews/comments directly, uses pagination for larger PRs
+ * Filters to last 30 days of activity
  */
 const GET_CONTRIBUTOR_STATS_QUERY = `
   query GetContributorStats($owner: String!, $name: String!, $cursor: String) {
@@ -37,12 +38,15 @@ const GET_CONTRIBUTOR_STATS_QUERY = `
           author {
             login
           }
+          updatedAt
+          createdAt
           reviews(first: 100) {
             totalCount
             nodes {
               author {
                 login
               }
+              submittedAt
             }
           }
           comments(first: 100) {
@@ -51,6 +55,7 @@ const GET_CONTRIBUTOR_STATS_QUERY = `
               author {
                 login
               }
+              createdAt
             }
           }
         }
@@ -224,7 +229,12 @@ function calculateWeightedScore(
  * Fetch contributor statistics for a repository using GraphQL
  */
 async function fetchContributorStats(owner, repo) {
-  console.log('Fetching contributor stats for %s/%s...', owner, repo);
+  // Calculate date 30 days ago
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const sinceDate = thirtyDaysAgo.toISOString();
+  
+  console.log('Fetching contributor stats for %s/%s since %s...', owner, repo, sinceDate);
   
   const contributorMap = new Map();
   let cursor = null;
@@ -242,8 +252,13 @@ async function fetchContributorStats(owner, repo) {
       
       // Process each PR to collect contributor stats
       for (const pr of pullRequests.nodes) {
-        // Count PR author
-        if (pr.author?.login) {
+        // Skip PRs that haven't been updated in the last 30 days
+        if (new Date(pr.updatedAt) < thirtyDaysAgo) {
+          continue;
+        }
+        
+        // Count PR author only if PR was created in the last 30 days
+        if (pr.author?.login && new Date(pr.createdAt) >= thirtyDaysAgo) {
           const login = pr.author.login;
           if (!contributorMap.has(login)) {
             contributorMap.set(login, {
@@ -260,7 +275,8 @@ async function fetchContributorStats(owner, repo) {
         if (pr.reviews.totalCount > 0) {
           // First, count reviews from the initial nodes
           for (const review of pr.reviews.nodes) {
-            if (review.author?.login) {
+            // Only count reviews submitted in the last 30 days
+            if (review.author?.login && new Date(review.submittedAt) >= thirtyDaysAgo) {
               const login = review.author.login;
               if (!contributorMap.has(login)) {
                 contributorMap.set(login, {
@@ -301,7 +317,8 @@ async function fetchContributorStats(owner, repo) {
         if (pr.comments.totalCount > 0) {
           // First, count comments from the initial nodes
           for (const comment of pr.comments.nodes) {
-            if (comment.author?.login) {
+            // Only count comments created in the last 30 days
+            if (comment.author?.login && new Date(comment.createdAt) >= thirtyDaysAgo) {
               const login = comment.author.login;
               if (!contributorMap.has(login)) {
                 contributorMap.set(login, {
