@@ -1,0 +1,128 @@
+name: Update PR Activity
+
+on:
+  schedule:
+    # Run every 6 hours on the 18th minute
+    - cron: '18 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      repository_id:
+        description: 'Repository ID to update (optional - updates all if not specified)'
+        required: false
+        type: string
+      days:
+        description: 'Number of days to look back for PR updates'
+        required: false
+        type: number
+        default: 7
+
+jobs:
+  update-pr-activity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm install dotenv @supabase/supabase-js
+
+      - name: Trigger PR Activity Updates
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          INNGEST_EVENT_KEY: ${{ secrets.INNGEST_EVENT_KEY }}
+          INNGEST_PRODUCTION_EVENT_KEY: ${{ secrets.INNGEST_PRODUCTION_EVENT_KEY }}
+          API_ENDPOINT: ${{ secrets.API_ENDPOINT || 'https://contributor.info/api/queue-event' }}
+          UPDATE_DELAY_MS: ${{ vars.UPDATE_DELAY_MS || '1000' }}
+        run: |
+          node --eval "
+          const { config } = require('dotenv');
+          const { createClient } = require('@supabase/supabase-js');
+          
+          config();
+          
+          const supabase = createClient(
+            process.env.VITE_SUPABASE_URL,
+            process.env.VITE_SUPABASE_ANON_KEY
+          );
+          
+          async function triggerUpdates() {
+            console.log('🔄 Starting PR activity update job...');
+            
+            // Get repository ID from input or update all tracked repositories
+            const repositoryId = '${{ github.event.inputs.repository_id }}';
+            const days = parseInt('${{ github.event.inputs.days }}') || 7;
+            
+            if (repositoryId) {
+              // Update specific repository
+              console.log('📦 Updating single repository: %s', repositoryId);
+              await sendUpdateEvent(repositoryId, days);
+            } else {
+              // Update all tracked repositories
+              const { data: repos, error } = await supabase
+                .from('tracked_repositories')
+                .select('repository_id, repositories!inner(owner, name)')
+                .eq('is_active', true);
+                
+              if (error) {
+                console.error('Failed to fetch tracked repositories:', error);
+                process.exit(1);
+              }
+              
+              console.log('📦 Found %d tracked repositories to update', repos?.length || 0);
+              
+              for (const repo of repos || []) {
+                const { owner, name } = repo.repositories;
+                console.log('  - Updating %s/%s...', owner, name);
+                await sendUpdateEvent(repo.repository_id, days);
+                // Small delay to avoid overwhelming the API
+                const delayMs = parseInt(process.env.UPDATE_DELAY_MS || '1000');
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+              }
+            }
+            
+            console.log('✅ All update events sent successfully!');
+          }
+          
+          async function sendUpdateEvent(repositoryId, days) {
+            const eventData = {
+              eventName: 'update/pr.activity',
+              data: {
+                repositoryId,
+                days
+              }
+            };
+            
+            try {
+              const response = await fetch(process.env.API_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer ' + (process.env.INNGEST_EVENT_KEY || process.env.INNGEST_PRODUCTION_EVENT_KEY)
+                },
+                body: JSON.stringify(eventData)
+              });
+              
+              if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+              }
+              
+              const result = await response.json();
+              console.log('    ✓ Event ID: %s', result.eventId);
+            } catch (error) {
+              console.error('    ✗ Failed to send event: %s', error.message);
+              throw error;
+            }
+          }
+          
+          triggerUpdates().catch(err => {
+            console.error('Fatal error:', err);
+            process.exit(1);
+          });
+          "

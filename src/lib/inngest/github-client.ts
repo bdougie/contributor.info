@@ -3,6 +3,11 @@ import { serverEnv } from '../env';
 
 const GITHUB_API_BASE = 'https://api.github.com';
 
+// Define error interface for GitHub API errors
+interface GitHubApiError extends Error {
+  status?: number;
+}
+
 // Server-side GitHub token for Inngest functions
 const SERVER_GITHUB_TOKEN = (() => {
   // In development, we might use the client token for testing
@@ -21,7 +26,7 @@ export async function getGitHubHeaders(): Promise<Record<string, string>> {
   // For server-side operations (like Inngest), use the server token
   if (SERVER_GITHUB_TOKEN) {
     headers['Authorization'] = `token ${SERVER_GITHUB_TOKEN}`;
-    console.log('Using server-side GitHub token for Inngest');
+    console.log('Using server-side GitHub token for Inngest (token exists:', !!SERVER_GITHUB_TOKEN, ')');
     return headers;
   }
 
@@ -42,7 +47,7 @@ export async function getGitHubHeaders(): Promise<Record<string, string>> {
   return headers;
 }
 
-export async function makeGitHubRequest(endpoint: string): Promise<any> {
+export async function makeGitHubRequest<T = unknown>(endpoint: string): Promise<T> {
   const headers = await getGitHubHeaders();
   
   // Add delay to prevent rate limiting (respectful API usage)
@@ -54,8 +59,11 @@ export async function makeGitHubRequest(endpoint: string): Promise<any> {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: response.statusText }));
-    const apiError = new Error(`GitHub API error: ${error.message || response.statusText}`);
-    (apiError as any).status = response.status;
+    console.error(`GitHub API error: ${response.status} - ${error.message || response.statusText}`);
+    console.error(`Endpoint: ${endpoint}`);
+    console.error(`Has auth token: ${!!headers['Authorization']}`);
+    const apiError = new Error(`GitHub API error: ${error.message || response.statusText}`) as GitHubApiError;
+    apiError.status = response.status;
     throw apiError;
   }
 

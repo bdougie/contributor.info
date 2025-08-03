@@ -3,11 +3,48 @@ import { supabase } from '../../supabase';
 import { GraphQLClient } from '../graphql-client';
 import type { NonRetriableError } from 'inngest';
 
-// GraphQL client instance
-const graphqlClient = new GraphQLClient();
+// Type definitions for GitHub user data
+interface GitHubUser {
+  databaseId: number;
+  login: string;
+  name?: string | null;
+  email?: string | null;
+  avatarUrl?: string | null;
+}
+
+// Type definition for review comment
+interface ReviewComment {
+  repository_id: string;
+  pull_request_id: string;
+  github_id: number;
+  pull_request_number: number;
+  review_id?: number;
+  body: string;
+  path?: string;
+  position?: number | null;
+  original_position?: number | null;
+  commit_id?: string;
+  original_commit_id?: string;
+  diff_hunk?: string;
+  commenter_id: string;
+  created_at: string;
+  updated_at: string;
+  in_reply_to_id?: string;
+  comment_type: 'review_comment';
+}
+
+// GraphQL client instance - lazy initialization to avoid module load failures
+let graphqlClient: GraphQLClient | null = null;
+
+function getGraphQLClient(): GraphQLClient {
+  if (!graphqlClient) {
+    graphqlClient = new GraphQLClient();
+  }
+  return graphqlClient;
+}
 
 // Helper function to ensure contributors exist and return their UUIDs
-async function ensureContributorExists(githubUser: any): Promise<string | null> {
+async function ensureContributorExists(githubUser: GitHubUser | null | undefined): Promise<string | null> {
   if (!githubUser) {
     console.log('ensureContributorExists: githubUser is null/undefined');
     return null;
@@ -119,7 +156,8 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
     // Step 2: Fetch comprehensive PR data with GraphQL
     const prData = await step.run("fetch-pr-all-data", async () => {
       try {
-        const result = await graphqlClient.getPRDetails(
+        const client = getGraphQLClient();
+        const result = await client.getPRDetails(
           repository.owner,
           repository.name,
           parseInt(prNumber)
@@ -198,10 +236,15 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
 
       // Store reviews
       if (pullRequest.reviews?.nodes?.length > 0) {
-        const reviewsToStore = [];
+        // Create all review authors in parallel
+        const reviewAuthorPromises = pullRequest.reviews.nodes.map((review: any) => 
+          ensureContributorExists(review.author)
+        );
+        const reviewAuthorIds = await Promise.all(reviewAuthorPromises);
         
-        for (const review of pullRequest.reviews.nodes) {
-          const reviewAuthorId = await ensureContributorExists(review.author);
+        const reviewsToStore: any[] = [];
+        pullRequest.reviews.nodes.forEach((review: any, index: number) => {
+          const reviewAuthorId = reviewAuthorIds[index];
           if (reviewAuthorId) {
             reviewsToStore.push({
               repository_id: repositoryId,
@@ -215,24 +258,31 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
               commit_id: review.commit?.oid,
             });
           }
-        }
+        });
 
         const { data: reviews, error: reviewsError } = await supabase
           .from('reviews')
           .upsert(reviewsToStore, { onConflict: 'github_id' })
           .select('id');
 
-        if (!reviewsError) {
-          reviewsStored = reviews?.length || 0;
+        if (reviewsError) {
+          console.error('Failed to store reviews:', reviewsError);
+          throw new Error(`Failed to store reviews: ${reviewsError.message}`);
         }
+        reviewsStored = reviews?.length || 0;
       }
 
       // Store issue comments (general PR comments)
       if (pullRequest.comments?.nodes?.length > 0) {
-        const issueCommentsToStore = [];
+        // Create all comment authors in parallel
+        const commenterPromises = pullRequest.comments.nodes.map((comment: any) => 
+          ensureContributorExists(comment.author)
+        );
+        const commenterIds = await Promise.all(commenterPromises);
         
-        for (const comment of pullRequest.comments.nodes) {
-          const commenterId = await ensureContributorExists(comment.author);
+        const issueCommentsToStore: any[] = [];
+        pullRequest.comments.nodes.forEach((comment: any, index: number) => {
+          const commenterId = commenterIds[index];
           if (commenterId) {
             issueCommentsToStore.push({
               repository_id: repositoryId,
@@ -246,50 +296,66 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
               comment_type: 'issue_comment'
             });
           }
-        }
+        });
 
         const { data: issueComments, error: issueCommentsError } = await supabase
           .from('comments')
           .upsert(issueCommentsToStore, { onConflict: 'github_id' })
           .select('id');
 
-        if (!issueCommentsError) {
-          commentsStored += issueComments?.length || 0;
+        if (issueCommentsError) {
+          console.error('Failed to store issue comments:', issueCommentsError);
+          throw new Error(`Failed to store issue comments: ${issueCommentsError.message}`);
         }
+        commentsStored += issueComments?.length || 0;
       }
 
       // Store review comments (code comments) - extract from reviews
-      const reviewCommentsToStore: any[] = [];
+      const reviewCommentsToStore: ReviewComment[] = [];
       
       if (pullRequest.reviews?.nodes?.length > 0) {
+        // Collect all review comment authors for parallel processing
+        const allReviewCommentAuthors: Array<{comment: any, review: any}> = [];
+        
         for (const review of pullRequest.reviews.nodes) {
           if (review.comments?.nodes?.length > 0) {
             for (const comment of review.comments.nodes) {
-              const commenterId = await ensureContributorExists(comment.author);
-              if (commenterId) {
-                reviewCommentsToStore.push({
-                  repository_id: repositoryId,
-                  pull_request_id: prInternalId,
-                  github_id: comment.databaseId,
-                  pull_request_number: pullRequest.number,
-                  review_id: review.databaseId,
-                  body: comment.body,
-                  path: comment.path,
-                  position: comment.position,
-                  original_position: comment.originalPosition,
-                  commit_id: comment.commit?.oid,
-                  original_commit_id: comment.originalCommit?.oid,
-                  diff_hunk: comment.diffHunk,
-                  commenter_id: commenterId,
-                  created_at: comment.createdAt,
-                  updated_at: comment.updatedAt,
-                  in_reply_to_id: comment.replyTo?.databaseId?.toString(),
-                  comment_type: 'review_comment'
-                });
-              }
+              allReviewCommentAuthors.push({ comment, review });
             }
           }
         }
+        
+        // Create all review comment authors in parallel
+        const reviewCommentAuthorPromises = allReviewCommentAuthors.map(({ comment }) => 
+          ensureContributorExists(comment.author)
+        );
+        const reviewCommentAuthorIds = await Promise.all(reviewCommentAuthorPromises);
+        
+        // Build review comments with the resolved author IDs
+        allReviewCommentAuthors.forEach(({ comment, review }, index) => {
+          const commenterId = reviewCommentAuthorIds[index];
+          if (commenterId) {
+            reviewCommentsToStore.push({
+              repository_id: repositoryId,
+              pull_request_id: prInternalId,
+              github_id: comment.databaseId,
+              pull_request_number: pullRequest.number,
+              review_id: review.databaseId,
+              body: comment.body,
+              path: comment.path,
+              position: comment.position,
+              original_position: comment.originalPosition,
+              commit_id: comment.commit?.oid,
+              original_commit_id: comment.originalCommit?.oid,
+              diff_hunk: comment.diffHunk,
+              commenter_id: commenterId,
+              created_at: comment.createdAt,
+              updated_at: comment.updatedAt,
+              in_reply_to_id: comment.replyTo?.databaseId?.toString(),
+              comment_type: 'review_comment'
+            });
+          }
+        });
       }
       
       if (reviewCommentsToStore.length > 0) {
@@ -298,9 +364,11 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           .upsert(reviewCommentsToStore, { onConflict: 'github_id' })
           .select('id');
 
-        if (!reviewCommentsError) {
-          commentsStored += reviewComments?.length || 0;
+        if (reviewCommentsError) {
+          console.error('Failed to store review comments:', reviewCommentsError);
+          throw new Error(`Failed to store review comments: ${reviewCommentsError.message}`);
         }
+        commentsStored += reviewComments?.length || 0;
       }
 
       return {
