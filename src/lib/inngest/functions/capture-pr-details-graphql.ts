@@ -33,6 +33,42 @@ interface ReviewComment {
   comment_type: 'review_comment';
 }
 
+// GraphQL response types
+interface GraphQLReview {
+  databaseId: number;
+  state: string;
+  body: string;
+  author: GitHubUser | null;
+  submittedAt: string;
+  commit?: { oid: string };
+  comments?: {
+    nodes: GraphQLReviewComment[];
+  };
+}
+
+interface GraphQLReviewComment {
+  databaseId: number;
+  author: GitHubUser | null;
+  body: string;
+  path: string;
+  position: number | null;
+  originalPosition: number | null;
+  commit?: { oid: string };
+  originalCommit?: { oid: string };
+  diffHunk: string;
+  createdAt: string;
+  updatedAt: string;
+  replyTo?: { databaseId: number };
+}
+
+interface GraphQLComment {
+  databaseId: number;
+  author: GitHubUser | null;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // GraphQL client instance - lazy initialization to avoid module load failures
 let graphqlClient: GraphQLClient | null = null;
 
@@ -165,13 +201,14 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
         
         console.log(`✅ GraphQL query successful for PR #${prNumber} (cost: ${result.rateLimit?.cost || 'unknown'} points)`);
         return result;
-      } catch (error: any) {
+      } catch (error) {
         // Log GraphQL-specific errors
-        if (error.message?.includes('rate limit')) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('rate limit')) {
           throw new Error(`GraphQL rate limit exceeded for ${repository.owner}/${repository.name}#${prNumber}`);
         }
         
-        console.warn(`GraphQL failed for PR #${prNumber}, falling back to REST:`, error.message);
+        console.warn(`GraphQL failed for PR #${prNumber}, falling back to REST:`, errorMessage);
         throw error; // This will trigger the fallback to REST version
       }
     });
@@ -237,13 +274,23 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
       // Store reviews
       if (pullRequest.reviews?.nodes?.length > 0) {
         // Create all review authors in parallel
-        const reviewAuthorPromises = pullRequest.reviews.nodes.map((review: any) => 
+        const reviewAuthorPromises = pullRequest.reviews.nodes.map((review: GraphQLReview) => 
           ensureContributorExists(review.author)
         );
         const reviewAuthorIds = await Promise.all(reviewAuthorPromises);
         
-        const reviewsToStore: any[] = [];
-        pullRequest.reviews.nodes.forEach((review: any, index: number) => {
+        const reviewsToStore: Array<{
+          repository_id: string;
+          pull_request_id: string;
+          github_id: number;
+          pull_request_number: number;
+          state: string;
+          body: string;
+          author_id: string;
+          submitted_at: string;
+          commit_id?: string;
+        }> = [];
+        pullRequest.reviews.nodes.forEach((review: GraphQLReview, index: number) => {
           const reviewAuthorId = reviewAuthorIds[index];
           if (reviewAuthorId) {
             reviewsToStore.push({
@@ -275,13 +322,23 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
       // Store issue comments (general PR comments)
       if (pullRequest.comments?.nodes?.length > 0) {
         // Create all comment authors in parallel
-        const commenterPromises = pullRequest.comments.nodes.map((comment: any) => 
+        const commenterPromises = pullRequest.comments.nodes.map((comment: GraphQLComment) => 
           ensureContributorExists(comment.author)
         );
         const commenterIds = await Promise.all(commenterPromises);
         
-        const issueCommentsToStore: any[] = [];
-        pullRequest.comments.nodes.forEach((comment: any, index: number) => {
+        const issueCommentsToStore: Array<{
+          repository_id: string;
+          pull_request_id: string;
+          github_id: number;
+          pull_request_number: number;
+          body: string;
+          commenter_id: string;
+          created_at: string;
+          updated_at: string;
+          comment_type: 'issue_comment';
+        }> = [];
+        pullRequest.comments.nodes.forEach((comment: GraphQLComment, index: number) => {
           const commenterId = commenterIds[index];
           if (commenterId) {
             issueCommentsToStore.push({
@@ -315,7 +372,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
       
       if (pullRequest.reviews?.nodes?.length > 0) {
         // Collect all review comment authors for parallel processing
-        const allReviewCommentAuthors: Array<{comment: any, review: any}> = [];
+        const allReviewCommentAuthors: Array<{comment: GraphQLReviewComment, review: GraphQLReview}> = [];
         
         for (const review of pullRequest.reviews.nodes) {
           if (review.comments?.nodes?.length > 0) {

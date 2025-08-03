@@ -4,6 +4,21 @@ import { getOctokit } from '../github-client';
 import type { DatabaseReview } from '../types';
 import { SyncLogger } from '../sync-logger';
 
+// Extended GitHub Review type with user details
+interface GitHubReviewWithUser {
+  id: number;
+  user: {
+    id: number;
+    login: string;
+    avatar_url?: string;
+    type?: string;
+  } | null;
+  state: string;
+  body: string;
+  submitted_at: string;
+  commit_id: string;
+}
+
 /**
  * Captures PR reviews using GitHub REST API
  * 
@@ -74,7 +89,7 @@ export const capturePrReviews = inngest.createFunction(
         // Process each review and ensure reviewers exist in contributors table
         const processedReviews: DatabaseReview[] = [];
         
-        for (const review of reviewsData as any[]) {
+        for (const review of reviewsData as GitHubReviewWithUser[]) {
           if (!review.user) continue; // Skip reviews without user data
           
           // Find or create the reviewer in contributors table
@@ -118,12 +133,12 @@ export const capturePrReviews = inngest.createFunction(
           });
         }
 
-        console.log(`Found ${(reviewsData as any[]).length} reviews for PR #${prNumber}`);
+        console.log(`Found ${(reviewsData as GitHubReviewWithUser[]).length} reviews for PR #${prNumber}`);
         
         await syncLogger.update({
           github_api_calls_used: apiCallsUsed,
           metadata: {
-            reviewsFound: (reviewsData as any[]).length,
+            reviewsFound: (reviewsData as GitHubReviewWithUser[]).length,
             reviewsWithUsers: processedReviews.length
           }
         });

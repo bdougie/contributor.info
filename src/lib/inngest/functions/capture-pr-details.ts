@@ -92,7 +92,7 @@ export const capturePrDetails = inngest.createFunction(
           .single();
           
         const result = await Promise.race([dbPromise, timeoutPromise]);
-        const { data: contributor, error } = result as { data: any; error: any };
+        const { data: contributor, error } = result as { data: { id: string } | null; error: Error | null };
 
         if (error) {
           console.warn(`Failed to upsert merged_by contributor ${githubPrData.merged_by.login}:`, error);
@@ -128,7 +128,7 @@ export const capturePrDetails = inngest.createFunction(
         .eq('id', prId);
         
       const result = await Promise.race([updatePromise, timeoutPromise]);
-      const { error } = result as { error: any };
+      const { error } = result as { error: Error | null };
 
       if (error) {
         throw new Error(`Failed to update PR: ${error.message}`);
