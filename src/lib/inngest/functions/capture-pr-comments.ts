@@ -4,6 +4,40 @@ import { getOctokit } from '../github-client';
 import type { DatabaseComment } from '../types';
 import { SyncLogger } from '../sync-logger';
 
+// Extended types for PR comments from GitHub API
+interface GitHubPRComment {
+  id: number;
+  user: {
+    id: number;
+    login: string;
+    avatar_url?: string;
+    type?: string;
+  } | null;
+  body: string;
+  created_at: string;
+  updated_at: string;
+  in_reply_to_id?: number;
+  path?: string;
+  line?: number;
+  position?: number;
+  original_position?: number;
+  diff_hunk?: string;
+  commit_id?: string;
+}
+
+interface GitHubIssueComment {
+  id: number;
+  user: {
+    id: number;
+    login: string;
+    avatar_url?: string;
+    type?: string;
+  } | null;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
 /**
  * Captures PR comments (both issue and review comments) using GitHub REST API
  * 
@@ -85,7 +119,7 @@ export const capturePrComments = inngest.createFunction(
         const processedPrComments: DatabaseComment[] = [];
         const processedIssueComments: DatabaseComment[] = [];
         
-        for (const comment of prCommentsData as any[]) {
+        for (const comment of prCommentsData as GitHubPRComment[]) {
           if (!comment.user) continue;
           
           // Find or create the commenter in contributors table
@@ -135,7 +169,7 @@ export const capturePrComments = inngest.createFunction(
           });
         }
         
-        for (const comment of issueCommentsData as any[]) {
+        for (const comment of issueCommentsData as GitHubIssueComment[]) {
           if (!comment.user) continue;
           
           // Find or create the commenter in contributors table
