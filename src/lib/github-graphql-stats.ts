@@ -27,50 +27,131 @@ interface GraphQLResponse {
         endCursor: string;
       };
       nodes: Array<{
+        number: number;
         author: { login: string } | null;
         reviews: {
-          nodes: Array<{ author: { login: string } | null }>;
           totalCount: number;
+          nodes: Array<{ author: { login: string } | null }>;
         };
         comments: {
-          nodes: Array<{ author: { login: string } | null }>;
           totalCount: number;
+          nodes: Array<{ author: { login: string } | null }>;
         };
       }>;
     };
   };
 }
 
+interface ReviewsResponse {
+  repository: {
+    pullRequest: {
+      reviews: {
+        pageInfo: {
+          hasNextPage: boolean;
+          endCursor: string;
+        };
+        nodes: Array<{
+          author: { login: string } | null;
+        }>;
+      };
+    };
+  };
+}
+
+interface CommentsResponse {
+  repository: {
+    pullRequest: {
+      comments: {
+        pageInfo: {
+          hasNextPage: boolean;
+          endCursor: string;
+        };
+        nodes: Array<{
+          author: { login: string } | null;
+        }>;
+      };
+    };
+  };
+}
+
 /**
  * GraphQL query to fetch PR review and comment counts for contributors
+ * Fetches first 100 reviews/comments directly, uses pagination for larger PRs
  */
 const GET_CONTRIBUTOR_STATS_QUERY = `
   query GetContributorStats($owner: String!, $name: String!, $cursor: String) {
     repository(owner: $owner, name: $name) {
-      pullRequests(first: 100, after: $cursor, states: [OPEN, CLOSED, MERGED]) {
+      pullRequests(first: 50, after: $cursor, states: [OPEN, CLOSED, MERGED]) {
         pageInfo {
           hasNextPage
           endCursor
         }
         nodes {
+          number
           author {
             login
           }
           reviews(first: 100) {
+            totalCount
             nodes {
               author {
                 login
               }
             }
-            totalCount
           }
           comments(first: 100) {
+            totalCount
             nodes {
               author {
                 login
               }
             }
-            totalCount
+          }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * GraphQL query to fetch all reviews for a specific PR
+ */
+const GET_PR_REVIEWS_QUERY = `
+  query GetPRReviews($owner: String!, $name: String!, $number: Int!, $cursor: String) {
+    repository(owner: $owner, name: $name) {
+      pullRequest(number: $number) {
+        reviews(first: 100, after: $cursor) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+          nodes {
+            author {
+              login
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * GraphQL query to fetch all comments for a specific PR
+ */
+const GET_PR_COMMENTS_QUERY = `
+  query GetPRComments($owner: String!, $name: String!, $number: Int!, $cursor: String) {
+    repository(owner: $owner, name: $name) {
+      pullRequest(number: $number) {
+        comments(first: 100, after: $cursor) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+          nodes {
+            author {
+              login
+            }
           }
         }
       }
@@ -131,6 +212,86 @@ async function executeGraphQLQuery<T>(
 }
 
 /**
+ * Fetch all reviews for a specific PR with pagination
+ */
+async function fetchAllPRReviews(
+  owner: string,
+  repo: string,
+  prNumber: number
+): Promise<Map<string, number>> {
+  const reviewerCounts = new Map<string, number>();
+  let cursor: string | null = null;
+  let hasNextPage = true;
+
+  while (hasNextPage) {
+    const data: ReviewsResponse = await executeGraphQLQuery<ReviewsResponse>(
+      GET_PR_REVIEWS_QUERY,
+      {
+        owner,
+        name: repo,
+        number: prNumber,
+        cursor,
+      }
+    );
+
+    const { reviews } = data.repository.pullRequest;
+    
+    // Count reviews by author
+    for (const review of reviews.nodes) {
+      if (review.author?.login) {
+        const currentCount = reviewerCounts.get(review.author.login) || 0;
+        reviewerCounts.set(review.author.login, currentCount + 1);
+      }
+    }
+
+    hasNextPage = reviews.pageInfo.hasNextPage;
+    cursor = reviews.pageInfo.endCursor;
+  }
+
+  return reviewerCounts;
+}
+
+/**
+ * Fetch all comments for a specific PR with pagination
+ */
+async function fetchAllPRComments(
+  owner: string,
+  repo: string,
+  prNumber: number
+): Promise<Map<string, number>> {
+  const commenterCounts = new Map<string, number>();
+  let cursor: string | null = null;
+  let hasNextPage = true;
+
+  while (hasNextPage) {
+    const data: CommentsResponse = await executeGraphQLQuery<CommentsResponse>(
+      GET_PR_COMMENTS_QUERY,
+      {
+        owner,
+        name: repo,
+        number: prNumber,
+        cursor,
+      }
+    );
+
+    const { comments } = data.repository.pullRequest;
+    
+    // Count comments by author
+    for (const comment of comments.nodes) {
+      if (comment.author?.login) {
+        const currentCount = commenterCounts.get(comment.author.login) || 0;
+        commenterCounts.set(comment.author.login, currentCount + 1);
+      }
+    }
+
+    hasNextPage = comments.pageInfo.hasNextPage;
+    cursor = comments.pageInfo.endCursor;
+  }
+
+  return commenterCounts;
+}
+
+/**
  * Fetch contributor statistics for a repository using GraphQL
  */
 export async function fetchContributorStats(
@@ -172,35 +333,85 @@ export async function fetchContributorStats(
           contributorMap.get(login)!.pullRequestsCount += 1;
         }
 
-        // Count reviewers
-        for (const review of pr.reviews.nodes) {
-          if (review.author?.login) {
-            const login = review.author.login;
-            if (!contributorMap.has(login)) {
-              contributorMap.set(login, {
-                login,
-                reviewsCount: 0,
-                commentsCount: 0,
-                pullRequestsCount: 0,
-              });
+        // Process reviews
+        if (pr.reviews.totalCount > 0) {
+          // First, count reviews from the initial nodes
+          for (const review of pr.reviews.nodes) {
+            if (review.author?.login) {
+              const login = review.author.login;
+              if (!contributorMap.has(login)) {
+                contributorMap.set(login, {
+                  login,
+                  reviewsCount: 0,
+                  commentsCount: 0,
+                  pullRequestsCount: 0,
+                });
+              }
+              contributorMap.get(login)!.reviewsCount += 1;
             }
-            contributorMap.get(login)!.reviewsCount += 1;
+          }
+          
+          // If there are more than 100 reviews, fetch the rest
+          if (pr.reviews.totalCount > 100) {
+            console.log('PR #%d has %d reviews, fetching remaining...', pr.number, pr.reviews.totalCount);
+            const additionalReviewerCounts = await fetchAllPRReviews(owner, repo, pr.number);
+            
+            // Merge additional counts with existing counts
+            for (const [login, count] of additionalReviewerCounts) {
+              if (!contributorMap.has(login)) {
+                contributorMap.set(login, {
+                  login,
+                  reviewsCount: 0,
+                  commentsCount: 0,
+                  pullRequestsCount: 0,
+                });
+              }
+              // Note: We already counted first 100, so we add the full count from pagination
+              // and subtract what we already counted to avoid double-counting
+              const existingCount = pr.reviews.nodes.filter(r => r.author?.login === login).length;
+              contributorMap.get(login)!.reviewsCount += (count - existingCount);
+            }
           }
         }
 
-        // Count commenters
-        for (const comment of pr.comments.nodes) {
-          if (comment.author?.login) {
-            const login = comment.author.login;
-            if (!contributorMap.has(login)) {
-              contributorMap.set(login, {
-                login,
-                reviewsCount: 0,
-                commentsCount: 0,
-                pullRequestsCount: 0,
-              });
+        // Process comments
+        if (pr.comments.totalCount > 0) {
+          // First, count comments from the initial nodes
+          for (const comment of pr.comments.nodes) {
+            if (comment.author?.login) {
+              const login = comment.author.login;
+              if (!contributorMap.has(login)) {
+                contributorMap.set(login, {
+                  login,
+                  reviewsCount: 0,
+                  commentsCount: 0,
+                  pullRequestsCount: 0,
+                });
+              }
+              contributorMap.get(login)!.commentsCount += 1;
             }
-            contributorMap.get(login)!.commentsCount += 1;
+          }
+          
+          // If there are more than 100 comments, fetch the rest
+          if (pr.comments.totalCount > 100) {
+            console.log('PR #%d has %d comments, fetching remaining...', pr.number, pr.comments.totalCount);
+            const additionalCommenterCounts = await fetchAllPRComments(owner, repo, pr.number);
+            
+            // Merge additional counts with existing counts
+            for (const [login, count] of additionalCommenterCounts) {
+              if (!contributorMap.has(login)) {
+                contributorMap.set(login, {
+                  login,
+                  reviewsCount: 0,
+                  commentsCount: 0,
+                  pullRequestsCount: 0,
+                });
+              }
+              // Note: We already counted first 100, so we add the full count from pagination
+              // and subtract what we already counted to avoid double-counting
+              const existingCount = pr.comments.nodes.filter(c => c.author?.login === login).length;
+              contributorMap.get(login)!.commentsCount += (count - existingCount);
+            }
           }
         }
       }
