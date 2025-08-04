@@ -361,9 +361,17 @@ async function processRepository(backfillData) {
           timestamp: new Date().toISOString()
         });
         
-        // Check if we should continue
-        if (backfillData.consecutive_errors >= 3) {
-          console.error('❌ Too many consecutive errors, pausing backfill');
+        // Check if we should continue - fetch latest error count from DB
+        const { data: currentState } = await supabase
+          .from('progressive_backfill_state')
+          .select('consecutive_errors')
+          .eq('id', backfillData.id)
+          .single();
+          
+        const currentErrors = currentState?.consecutive_errors || backfillData.consecutive_errors;
+        
+        if (currentErrors >= 3) {
+          console.error(`❌ Too many consecutive errors (${currentErrors}), pausing backfill`);
           await tracker.pauseBackfill('too_many_errors');
           break;
         }
