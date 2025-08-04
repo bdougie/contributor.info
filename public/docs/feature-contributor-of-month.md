@@ -21,9 +21,15 @@ Rankings reset monthly, creating fresh opportunities for all contributors to be 
 ## Display Modes
 
 ### Winner Announcement Phase
+![Contributor of the month winner](/docs/images/features/contributor-of-month/winner-display.png)
+*Monthly recognition for top contributors*
+
 At month-end, the system displays the top contributor with special recognition including their avatar, contribution statistics, and achievement badges. Winners receive prominent placement and celebration messaging.
 
 ### Leaderboard Phase
+![Monthly leaderboard](/docs/images/features/contributor-of-month/leaderboard.png)
+*Track top contributors throughout the month*
+
 During active contribution periods, the feature shows a live leaderboard of the top 5 contributors with real-time updates as contributions are made throughout the month.
 
 ### Activity States

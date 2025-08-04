@@ -20,6 +20,9 @@ The urgency algorithm considers:
 - **Draft Status**: Draft PRs receive lower urgency
 
 ## Information Displayed
+![Needs attention scoring](/docs/images/insights/needs-attention/scoring-display.png)
+*Visual scoring system for repository attention needs*
+
 
 Each PR card shows:
 - Pull request number and title

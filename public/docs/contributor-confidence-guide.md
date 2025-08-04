@@ -46,6 +46,9 @@ The algorithm applies intelligent adjustments based on repository characteristic
 - **Maturity Factors**: Newer repositories get adjusted scoring to account for limited historical data
 
 ## Confidence Levels & Meanings
+![Confidence level indicators](/docs/images/guides/contributor-confidence/confidence-indicators.png)
+*Color-coded confidence levels for contributors*
+
 
 ### 🔴 Intimidating (0-30%)
 **"Your project can be Intimidating"**

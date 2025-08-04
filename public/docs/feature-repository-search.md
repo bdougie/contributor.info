@@ -7,6 +7,9 @@ The search system allows you to analyze any public GitHub repository by entering
 ## Search Methods
 
 ### URL Input
+![Repository search input](/docs/images/features/repository-search/search-input.png)
+*Enter repository URLs or owner/repo format*
+
 Enter complete GitHub repository URLs:
 ```
 https://github.com/facebook/react
@@ -25,6 +28,9 @@ etcd-io/etcd
 The system automatically validates repository existence and accessibility, providing clear error messages for private repositories, non-existent repos, or invalid formats.
 
 ## Featured Repositories
+![Homepage with featured repositories](/docs/images/features/repository-search/homepage-featured.png)
+*Featured repositories showcase popular open source projects*
+
 
 ### Example Repository Gallery
 The home page includes curated examples of popular open source projects that demonstrate different contributor patterns and project types:
@@ -40,6 +46,9 @@ Click any featured repository to immediately jump to its analysis without manual
 ## Repository Insights Navigation
 
 ### Multi-Tab Analysis
+![Multi-tab navigation](/docs/images/features/repository-search/multi-tab-navigation.png)
+*Navigate between Contributions, Health, Distribution, and Feed tabs*
+
 Once a repository is loaded, navigate between different analysis views:
 
 - **Contributions**: Main activity overview with PR metrics and contributor activity

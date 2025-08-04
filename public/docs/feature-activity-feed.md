@@ -7,6 +7,9 @@ The activity feed presents a timeline of repository events including pull reques
 ## Feed Components
 
 ### Pull Request Timeline
+![Pull request activity timeline](/docs/images/features/activity-feed/pr-timeline.png)
+*Real-time feed of repository activity*
+
 The feed displays PR events in reverse chronological order with key details:
 
 - **PR Creation**: New pull requests with title, author, and creation timestamp
@@ -37,6 +40,9 @@ The feed refreshes automatically to show the latest activity without requiring m
 ## Activity Insights
 
 ### Velocity Indicators
+![Velocity metrics](/docs/images/features/activity-feed/velocity-indicators.png)
+*Track development velocity and trends*
+
 Each feed item includes context that helps assess project velocity:
 
 - **PR Throughput**: Daily and weekly PR processing rates

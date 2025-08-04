@@ -25,6 +25,9 @@ Additional capabilities unlocked through GitHub authentication:
 ## Authentication Process
 
 ### GitHub OAuth Integration
+![GitHub login button](/docs/images/features/authentication/github-login-button.png)
+*Sign in with GitHub for enhanced features*
+
 Secure authentication through GitHub's official OAuth flow:
 
 - **Permission transparency**: Clear explanation of requested permissions and their purposes

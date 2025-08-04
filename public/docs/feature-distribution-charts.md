@@ -7,6 +7,9 @@ Distribution charts show the breakdown of pull request activity across different
 ## Key Visualizations
 
 ### Language Distribution Treemap
+![Language distribution treemap](/docs/images/features/distribution-charts/language-treemap.png)
+*Interactive treemap showing code distribution by language*
+
 - **Size-based representation**: Languages are displayed as rectangles sized by contribution volume
 - **Color-coded categories**: Different colors represent various programming languages and file types
 - **Interactive exploration**: Click on language blocks to filter and focus on specific technologies
@@ -26,6 +29,9 @@ The distribution view includes a unique quadrant-based analysis that categorizes
 Each language block shows detailed metrics including pull request count, contributor count, and average contribution size. This helps identify which technologies are most actively maintained and where expertise is concentrated.
 
 ### Contribution Patterns
+![Contribution patterns analysis](/docs/images/features/distribution-charts/contribution-patterns.png)
+*Visualize how contributions are distributed*
+
 The quadrant view reveals team workflow patterns and helps identify contributors who focus on different types of work. Some contributors may specialize in high-impact features while others focus on maintenance and documentation.
 
 ## Filtering and Time Ranges
