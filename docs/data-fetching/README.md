@@ -49,6 +49,13 @@ User-friendly guide to the automated workflows:
 - Manual trigger instructions
 - Monitoring and troubleshooting
 
+### 🔄 [Progressive Backfill Implementation](./progressive-backfill-implementation.md) **NEW**
+Technical guide to the progressive backfill system:
+- Chunked processing for large repositories (25-50 PRs per chunk)
+- Automatic progress tracking and resumability
+- Rate limit management and dynamic chunk sizing
+- Error handling with GitHub issue creation
+
 ### 🏗️ [Architecture Guide](./smart-data-fetching.md)
 Complete technical architecture including:
 - Repository size classification system
@@ -94,6 +101,8 @@ Scripts for testing and improving review/comment data capture:
 - [Fetch Strategies](./smart-data-fetching.md#fetch-strategy-engine)
 - [Queue Priority Scoring](./queue-management.md#priority-scoring-algorithm)
 - [API Integration](./queue-management.md#api-integration)
+- [Progressive Backfill System](./progressive-backfill-implementation.md)
+- [GitHub Actions Migration](../implementations/github-actions-migration-summary.md)
 
 ### For Operators
 - [Dashboard Access](./monitoring-capture-health.md#accessing-the-monitor)

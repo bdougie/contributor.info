@@ -1,6 +1,6 @@
 import { supabase } from '../supabase';
 import { inngest } from '../inngest/client';
-import { GitHubActionsQueueManager } from './github-actions-queue-manager';
+import { GitHubActionsQueueManager, GitHubActionsJobInput } from './github-actions-queue-manager';
 import { DataCaptureQueueManager } from './queue-manager';
 import { hybridRolloutManager } from './rollout-manager';
 import { queuePrioritizationService } from './queue-prioritization';
@@ -42,7 +42,6 @@ export class HybridQueueManager {
   
   // Configuration
   private readonly SMALL_BATCH_SIZE = 50;
-  private readonly ACTIONS_MAX_ITEMS = 1000;
 
   constructor() {
     this.inngestManager = new DataCaptureQueueManager();
@@ -287,7 +286,7 @@ export class HybridQueueManager {
     }
 
     // Dispatch workflow based on type
-    let inputs: Record<string, string> = {
+    let inputs: GitHubActionsJobInput['inputs'] = {
       repository_id: data.repositoryId,
       repository_name: data.repositoryName,
       job_id: jobId
