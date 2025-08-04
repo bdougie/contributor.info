@@ -49,7 +49,7 @@ export async function fetchPRDataSmart(
       // Check if repository exists
       const { data: repoData, error: repoError } = await supabase
         .from('repositories')
-        .select('id, owner, name')
+        .select('id, owner, name, updated_at')
         .eq('owner', owner)
         .eq('name', repo)
         .single();
