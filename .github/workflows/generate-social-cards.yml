@@ -18,7 +18,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'scripts/generate-social-cards.js'
+      - 'scripts/assets/generate-social-cards.js'
       - 'src/components/social-cards/**'
 
 jobs:
@@ -68,7 +68,7 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           BASE_URL: 'http://localhost:4173'
           REPO_COUNT: ${{ github.event.inputs.repo_count || '3' }}
-        run: node scripts/generate-social-cards.js
+        run: node scripts/assets/generate-social-cards.js
       
       - name: Upload artifacts on failure
         if: failure()
