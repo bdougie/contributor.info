@@ -1,7 +1,7 @@
 import { inngest } from "../client";
 import { supabase } from "../../supabase";
 import { NonRetriableError } from "inngest";
-import { getGraphQLClient } from "../../github/graphql-client";
+import { getGraphQLClient } from "../graphql-client";
 
 // Constants
 const MAX_PRS_PER_SYNC = 150;
@@ -161,7 +161,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
     });
 
     // Step 4: Log repository size info
-    const repoSize = await step.run("check-repository-size", async () => {
+    await step.run("check-repository-size", async () => {
       const { count: prCount } = await supabase
         .from('pull_requests')
         .select('*', { count: 'exact', head: true })

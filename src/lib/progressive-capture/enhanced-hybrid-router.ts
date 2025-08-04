@@ -1,5 +1,4 @@
 import { supabase } from '../supabase';
-import { queuePrioritizationService } from './queue-prioritization';
 
 export interface RoutingDecision {
   processor: 'inngest' | 'github_actions';

@@ -197,11 +197,51 @@ export interface RateLimitInfo {
 
 export interface GraphQLResponse {
   repository: any;
-  rateLimit: RateLimitInfo;
+  rateLimit?: RateLimitInfo;
 }
 
 export interface PRDetailsResponse extends GraphQLResponse {
   pullRequest: any;
+}
+
+export interface PaginatedPRsResponse {
+  repository: {
+    pullRequests: {
+      pageInfo: {
+        hasNextPage: boolean;
+        endCursor: string | null;
+      };
+      nodes: Array<{
+        id: string;
+        databaseId: number;
+        number: number;
+        title: string;
+        body: string;
+        state: string;
+        isDraft: boolean;
+        createdAt: string;
+        updatedAt: string;
+        closedAt: string | null;
+        mergedAt: string | null;
+        merged: boolean;
+        additions: number;
+        deletions: number;
+        changedFiles: number;
+        baseRefName: string;
+        headRefName: string;
+        author: {
+          login: string;
+          avatarUrl: string;
+          databaseId?: number;
+        } | null;
+        commits: {
+          totalCount: number;
+        };
+        cursor?: string;
+      }>;
+    };
+  };
+  rateLimit?: RateLimitInfo;
 }
 
 export class GraphQLClient {
@@ -246,13 +286,13 @@ export class GraphQLClient {
       // Track metrics
       this.metrics.queriesExecuted++;
       this.metrics.totalPointsUsed += result.rateLimit?.cost || 0;
-      this.lastRateLimit = result.rateLimit;
+      this.lastRateLimit = result.rateLimit || null;
       
       // Log performance
       console.log(`[GraphQL] PR #${prNumber} query completed in ${duration}ms (cost: ${result.rateLimit?.cost} points)`);
       
       // Warn if approaching rate limits
-      if (result.rateLimit?.remaining < 1000) {
+      if (result.rateLimit && result.rateLimit.remaining < 1000) {
         console.warn(`[GraphQL] Rate limit low: ${result.rateLimit.remaining} points remaining`);
       }
 
@@ -291,7 +331,7 @@ export class GraphQLClient {
 
       this.metrics.queriesExecuted++;
       this.metrics.totalPointsUsed += result.rateLimit?.cost || 0;
-      this.lastRateLimit = result.rateLimit;
+      this.lastRateLimit = result.rateLimit || null;
 
       console.log(`[GraphQL] Recent PRs query for ${owner}/${repo} (cost: ${result.rateLimit?.cost} points)`);
 
@@ -371,7 +411,7 @@ export class GraphQLClient {
     try {
       const startTime = Date.now();
       
-      const response = await this.client({
+      const response = await this.client<PaginatedPRsResponse>({
         query: PAGINATED_PRS_QUERY,
         owner,
         repo,
@@ -389,7 +429,7 @@ export class GraphQLClient {
       // Update metrics
       this.metrics.queriesExecuted++;
       if (response.rateLimit) {
-        this.updateRateLimit(response.rateLimit);
+        this.lastRateLimit = response.rateLimit;
       }
 
       // Return PRs with cursor info
@@ -440,4 +480,14 @@ export class GraphQLClient {
       fallbackCount: 0
     };
   }
+}
+
+// Singleton instance for reuse
+let graphqlClient: GraphQLClient | null = null;
+
+export function getGraphQLClient(): GraphQLClient {
+  if (!graphqlClient) {
+    graphqlClient = new GraphQLClient();
+  }
+  return graphqlClient;
 }
