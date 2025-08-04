@@ -66,7 +66,7 @@ jobs:
           node scripts/github-actions/progressive-backfill.js \
             --chunk-size="${CHUNK_SIZE:-25}" \
             ${REPOSITORY_ID:+--repository-id="$REPOSITORY_ID"} \
-            ${DRY_RUN:+--dry-run}
+            $([[ "$DRY_RUN" == "true" ]] && echo "--dry-run")
             
       - name: Report job status
         if: always()

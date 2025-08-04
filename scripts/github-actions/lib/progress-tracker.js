@@ -95,11 +95,28 @@ export class ProgressTracker {
    */
   async pauseBackfill(reason) {
     try {
+      // First get the current metadata
+      const { data: currentState, error: fetchError } = await this.supabase
+        .from('progressive_backfill_state')
+        .select('metadata')
+        .eq('id', this.backfillStateId)
+        .single();
+      
+      if (fetchError) {
+        throw new Error(`Failed to fetch current state: ${fetchError.message}`);
+      }
+      
+      const updatedMetadata = {
+        ...(currentState?.metadata || {}),
+        pause_reason: reason,
+        paused_at: new Date().toISOString()
+      };
+      
       const { error } = await this.supabase
         .from('progressive_backfill_state')
         .update({
           status: 'paused',
-          metadata: this.supabase.sql`metadata || jsonb_build_object('pause_reason', ${reason}, 'paused_at', ${new Date().toISOString()})`,
+          metadata: updatedMetadata,
           updated_at: new Date().toISOString()
         })
         .eq('id', this.backfillStateId);
@@ -120,11 +137,27 @@ export class ProgressTracker {
    */
   async completeBackfill() {
     try {
+      // Get current metadata
+      const { data: currentState, error: fetchError } = await this.supabase
+        .from('progressive_backfill_state')
+        .select('metadata')
+        .eq('id', this.backfillStateId)
+        .single();
+      
+      if (fetchError) {
+        throw new Error(`Failed to fetch current state: ${fetchError.message}`);
+      }
+      
+      const updatedMetadata = {
+        ...(currentState?.metadata || {}),
+        completed_at: new Date().toISOString()
+      };
+      
       const { error } = await this.supabase
         .from('progressive_backfill_state')
         .update({
           status: 'completed',
-          metadata: this.supabase.sql`metadata || jsonb_build_object('completed_at', ${new Date().toISOString()})`,
+          metadata: updatedMetadata,
           updated_at: new Date().toISOString()
         })
         .eq('id', this.backfillStateId);
@@ -168,12 +201,28 @@ export class ProgressTracker {
    */
   async resumeBackfill() {
     try {
+      // Get current metadata
+      const { data: currentState, error: fetchError } = await this.supabase
+        .from('progressive_backfill_state')
+        .select('metadata')
+        .eq('id', this.backfillStateId)
+        .single();
+      
+      if (fetchError) {
+        throw new Error(`Failed to fetch current state: ${fetchError.message}`);
+      }
+      
+      const updatedMetadata = {
+        ...(currentState?.metadata || {}),
+        resumed_at: new Date().toISOString()
+      };
+      
       const { error } = await this.supabase
         .from('progressive_backfill_state')
         .update({
           status: 'active',
           consecutive_errors: 0, // Reset consecutive errors on resume
-          metadata: this.supabase.sql`metadata || jsonb_build_object('resumed_at', ${new Date().toISOString()})`,
+          metadata: updatedMetadata,
           updated_at: new Date().toISOString()
         })
         .eq('id', this.backfillStateId)

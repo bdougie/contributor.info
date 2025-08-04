@@ -5,6 +5,7 @@ import { program } from 'commander';
 import { ChunkCalculator } from './lib/chunk-calculator.js';
 import { ProgressTracker } from './lib/progress-tracker.js';
 import { getGraphQLClient } from './lib/graphql-client.js';
+import { ChunkRecovery } from './lib/chunk-recovery.js';
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -28,11 +29,42 @@ program
 
 const options = program.opts();
 
+// Validate required environment variables
+const requiredEnvVars = [
+  'VITE_SUPABASE_URL',
+  'SUPABASE_SERVICE_KEY',
+  'GITHUB_TOKEN'
+];
+
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingVars.length > 0) {
+  console.error(`❌ Missing required environment variables: ${missingVars.join(', ')}`);
+  process.exit(1);
+}
+
+// Debug: Log raw arguments and parsed options
+console.log('DEBUG: process.argv: %s', JSON.stringify(process.argv));
+console.log('DEBUG: Raw options from commander: %s', JSON.stringify(options));
+console.log('DEBUG: program.chunkSize = %s', program.chunkSize);
+console.log('DEBUG: program._optionValues = %s', JSON.stringify(program._optionValues));
+
 async function main() {
   console.log('🚀 Starting progressive backfill process...');
   console.log(`Options: ${JSON.stringify(options)}`);
 
   try {
+    // First, recover any stuck chunks from previous runs
+    console.log('🔧 Checking for stuck chunks from previous runs...');
+    const recovery = new ChunkRecovery(supabase);
+    try {
+      const recoveryResults = await recovery.recoverStuckChunks(30); // 30 minute threshold
+      if (recoveryResults.foundStuckChunks > 0) {
+        console.log(`   Recovered ${recoveryResults.recoveredChunks}/${recoveryResults.foundStuckChunks} stuck chunks`);
+      }
+    } catch (error) {
+      console.warn('   Warning: Could not check for stuck chunks:', error.message);
+    }
+
     // Get repositories that need backfilling
     const repositories = await getRepositoriesForBackfill(options.repositoryId);
     
@@ -204,12 +236,28 @@ async function processRepository(backfillData) {
   const maxChunks = options.maxChunks || 10;
 
   while (chunksProcessed < maxChunks) {
-    // Check rate limit
-    const rateLimit = await getRateLimitInfo();
-    if (rateLimit.remaining < 100) {
-      console.log('⚠️  Rate limit too low, pausing backfill');
-      await tracker.pauseBackfill('rate_limit_low');
-      break;
+    // Check GraphQL rate limit with proper cost estimation
+    try {
+      const client = getGraphQLClient();
+      // PR queries typically cost 1 point per node, estimate based on chunk size
+      const estimatedCost = Math.ceil(chunkSize * 1.2); // 20% buffer
+      const rateLimit = await client.checkRateLimitBeforeQuery(estimatedCost, 500);
+      
+      console.log(`   GraphQL Rate limit: ${rateLimit.remaining}/${rateLimit.limit} (${rateLimit.percentageUsed.toFixed(1)}% used)`);
+      console.log(`   Estimated queries remaining: ${rateLimit.estimatedQueriesRemaining}`);
+      
+      if (rateLimit.remaining < 500 || rateLimit.estimatedQueriesRemaining < 5) {
+        console.log('⚠️  GraphQL rate limit too low, pausing backfill');
+        await tracker.pauseBackfill('graphql_rate_limit_low');
+        break;
+      }
+    } catch (error) {
+      if (error.type === 'RATE_LIMIT_LOW' || error.type === 'INSUFFICIENT_RATE_LIMIT') {
+        console.log(`⚠️  ${error.message}`);
+        await tracker.pauseBackfill('graphql_rate_limit_low');
+        break;
+      }
+      throw error;
     }
 
     // Get next chunk to process
@@ -225,7 +273,7 @@ async function processRepository(backfillData) {
     if (!options.dryRun) {
       try {
         // Process the chunk
-        await processChunk(repo, chunk, backfillData.id);
+        await processChunk(repo, chunk, backfillData, chunksProcessed + 1);
         
         // Update progress
         await tracker.updateProgress(chunk.length, chunk[chunk.length - 1].cursor);
@@ -269,19 +317,52 @@ async function getNextChunk(backfillData, repo, chunkSize) {
 
     return prs;
   } catch (error) {
+    // Handle GraphQL rate limit errors gracefully
+    if (error.type === 'RATE_LIMITED') {
+      console.error(`GraphQL rate limit hit. Reset at: ${error.resetAt}`);
+      console.error(`Wait time: ${Math.ceil(error.waitTime / 1000 / 60)} minutes`);
+    }
     console.error(`Failed to fetch PR chunk: ${error.message}`);
     throw error;
   }
 }
 
-async function processChunk(repo, prs, backfillStateId) {
+async function processChunk(repo, prs, backfillData, chunkNumber) {
+  // Get atomic chunk number from database to prevent race conditions
+  let actualChunkNumber;
+  try {
+    const { data: chunkData, error: chunkError } = await supabase
+      .rpc('get_next_chunk_number', { p_backfill_state_id: backfillData.id });
+    
+    if (chunkError) {
+      // Fallback to count-based approach if function doesn't exist yet
+      console.warn('Atomic chunk number not available, using count-based approach');
+      const { count: existingChunks } = await supabase
+        .from('backfill_chunks')
+        .select('*', { count: 'exact', head: true })
+        .eq('backfill_state_id', backfillData.id);
+      
+      actualChunkNumber = (existingChunks || 0) + chunkNumber;
+    } else {
+      actualChunkNumber = chunkData;
+    }
+  } catch (error) {
+    // Fallback for backwards compatibility
+    const { count: existingChunks } = await supabase
+      .from('backfill_chunks')
+      .select('*', { count: 'exact', head: true })
+      .eq('backfill_state_id', backfillData.id);
+    
+    actualChunkNumber = (existingChunks || 0) + chunkNumber;
+  }
+  
   // Create chunk record
   const { data: chunkRecord, error: chunkError } = await supabase
     .from('backfill_chunks')
     .insert({
       repository_id: repo.id,
-      backfill_state_id: backfillStateId,
-      chunk_number: Date.now(), // Simple incrementing number
+      backfill_state_id: backfillData.id,
+      chunk_number: actualChunkNumber,
       pr_numbers: prs.map(pr => pr.number),
       status: 'processing',
       started_at: new Date().toISOString()
@@ -298,7 +379,7 @@ async function processChunk(repo, prs, backfillStateId) {
     const processedPRs = await storePRsInDatabase(repo.id, prs);
     
     // Update chunk as completed
-    await supabase
+    const { error: updateError } = await supabase
       .from('backfill_chunks')
       .update({
         status: 'completed',
@@ -307,11 +388,16 @@ async function processChunk(repo, prs, backfillStateId) {
       })
       .eq('id', chunkRecord.id);
 
+    if (updateError) {
+      console.error(`Warning: Failed to update chunk status: ${updateError.message}`);
+      // Don't throw here - PRs were processed successfully
+    }
+
     console.log(`   ✅ Stored ${processedPRs} PRs in database`);
     return processedPRs;
   } catch (error) {
     // Update chunk as failed
-    await supabase
+    const { error: updateError } = await supabase
       .from('backfill_chunks')
       .update({
         status: 'failed',
@@ -320,6 +406,10 @@ async function processChunk(repo, prs, backfillStateId) {
       })
       .eq('id', chunkRecord.id);
 
+    if (updateError) {
+      console.error(`Warning: Failed to update failed chunk status: ${updateError.message}`);
+    }
+
     throw error;
   }
 }
@@ -327,9 +417,16 @@ async function processChunk(repo, prs, backfillStateId) {
 async function storePRsInDatabase(repositoryId, prs) {
   // This is a simplified version - in production, you'd want to handle
   // contributors, reviews, comments, etc.
+  
+  // Validate that all PRs have databaseId
+  const invalidPRs = prs.filter(pr => !pr.databaseId);
+  if (invalidPRs.length > 0) {
+    throw new Error(`${invalidPRs.length} PRs missing databaseId: ${invalidPRs.map(pr => pr.number).join(', ')}`);
+  }
+
   const prRecords = prs.map(pr => ({
     repository_id: repositoryId,
-    github_id: pr.id,
+    github_id: pr.databaseId.toString(), // Always use databaseId for consistency
     number: pr.number,
     title: pr.title,
     body: pr.body,

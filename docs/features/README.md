@@ -16,6 +16,10 @@ Features documentation helps developers:
 - **[App Stats Reviewer Suggestions](./app-stats-reviewer-suggestions.md)** - AI-powered reviewer recommendation system
 - **[Issue Context Command](./issue-context-command.md)** - Automated issue context generation
 
+### 🔄 Data Synchronization
+- **[Progressive Backfill](./progressive-backfill.md)** - Sync large repositories without rate limits
+- **[Backfill Enhancements](./backfill-enhancements.md)** - Atomic chunks, GraphQL limits, auto-recovery
+
 ## Feature Categories
 
 ### 🎯 Core Features
