@@ -1,0 +1,1 @@
+// This file intentionally left empty - Netlify will use inngest-prod.mts directly

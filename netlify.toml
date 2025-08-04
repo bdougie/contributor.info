@@ -18,6 +18,9 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+[functions.inngest-prod]
+  node_bundler = "zisi"
+
 [functions.inngest]
   node_bundler = "esbuild"
 
@@ -25,6 +28,12 @@
   node_bundler = "esbuild"
 
 # Specific API routes (these must come first)
+[[redirects]]
+  from = "/api/inngest"
+  to = "/.netlify/functions/inngest-prod"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/api/hello"
   to = "/.netlify/functions/hello"
