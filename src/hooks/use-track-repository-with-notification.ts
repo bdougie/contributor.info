@@ -34,6 +34,8 @@ export function useTrackRepositoryWithNotification({
       return
     }
 
+    let isMounted = true
+
     const checkAndTrackRepository = async () => {
       try {
         // Check if repository exists in our database
@@ -43,6 +45,8 @@ export function useTrackRepositoryWithNotification({
           .eq('owner', owner)
           .eq('name', repo)
           .single()
+
+        if (!isMounted) return
 
         if (repoError && repoError.code === 'PGRST116') {
           // Repository not found - this is a new repository
@@ -81,6 +85,7 @@ export function useTrackRepositoryWithNotification({
 
           // If repository is not tracked, add it
           if (!existing) {
+            if (!isMounted) return
             setState(prev => ({ ...prev, isTracking: true }))
             
             const { data: newRepo, error: insertError } = await supabase
@@ -98,10 +103,12 @@ export function useTrackRepositoryWithNotification({
 
             if (insertError) {
               console.error('Failed to track repository:', insertError)
-              toast.error('Failed to set up repository', {
-                description: 'Please try refreshing the page.',
-                duration: 6000
-              })
+              if (isMounted) {
+                toast.error('Failed to set up repository', {
+                  description: 'Please try refreshing the page.',
+                  duration: 6000
+                })
+              }
               return
             }
 
@@ -134,11 +141,13 @@ export function useTrackRepositoryWithNotification({
                 ])
 
                 // Show processing notification
-                ProgressiveCaptureNotifications.showProcessingStarted(
-                  `${owner}/${repo}`,
-                  'inngest',
-                  60000 // 1 minute estimate
-                )
+                if (isMounted) {
+                  ProgressiveCaptureNotifications.showProcessingStarted(
+                    `${owner}/${repo}`,
+                    'inngest',
+                    60000 // 1 minute estimate
+                  )
+                }
               } catch (error) {
                 console.error('Failed to trigger repository sync:', error)
               }
@@ -146,6 +155,7 @@ export function useTrackRepositoryWithNotification({
           } else {
             // Repository is tracked but no data yet
             hasCheckedRef.current = true
+            if (!isMounted) return
             setState(prev => ({ ...prev, isTracking: true }))
             
             // Trigger data sync
@@ -166,6 +176,7 @@ export function useTrackRepositoryWithNotification({
         } else if (repoData) {
           // Repository exists in our database
           hasCheckedRef.current = true
+          if (!isMounted) return
           setState(prev => ({ ...prev, hasData: true }))
           
           // Check if we have recent PR data
@@ -178,10 +189,12 @@ export function useTrackRepositoryWithNotification({
 
           if (!prError && (!prData || prData.length === 0)) {
             // Repository exists but has no data - trigger sync
-            toast.info(`Refreshing ${owner}/${repo}...`, {
-              description: "We're updating this repository with the latest data.",
-              duration: 6000
-            })
+            if (isMounted) {
+              toast.info(`Refreshing ${owner}/${repo}...`, {
+                description: "We're updating this repository with the latest data.",
+                duration: 6000
+              })
+            }
             
             try {
               await inngest.send({
@@ -204,6 +217,10 @@ export function useTrackRepositoryWithNotification({
     }
 
     checkAndTrackRepository()
+
+    return () => {
+      isMounted = false
+    }
   }, [owner, repo, enabled])
 
   // Reset tracking flag when repository changes

@@ -166,7 +166,9 @@ export default function RepoView() {
                 <h2 className="text-2xl font-semibold text-destructive mb-2">
                   Error
                 </h2>
-                <p className="text-muted-foreground">{stats.error}</p>
+                <p className="text-muted-foreground">
+                  We encountered an issue loading repository data. Please try again later.
+                </p>
               </div>
             </CardContent>
           </Card>
