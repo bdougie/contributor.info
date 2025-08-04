@@ -3,19 +3,19 @@ import { fetchPRDataSmart, hasAnyPRData } from '../supabase-pr-data-smart';
 import type { PullRequest } from '../types';
 import { supabase } from '../supabase';
 import { trackDatabaseOperation } from '../simple-logging';
-import { inngest } from '../inngest/client';
+import { sendInngestEvent } from '../inngest/client-safe';
 import { toast } from 'sonner';
 
 // Mock dependencies
 vi.mock('../supabase');
 vi.mock('../simple-logging');
-vi.mock('../inngest/client');
+vi.mock('../inngest/client-safe');
 vi.mock('sonner');
 
 describe('fetchPRDataSmart', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(inngest.send).mockResolvedValue({ ids: ['mock-event-id'] });
+    vi.mocked(sendInngestEvent).mockResolvedValue({ ids: ['mock-event-id'] });
     vi.mocked(trackDatabaseOperation).mockImplementation((name, operation) => operation());
   });
 
@@ -201,7 +201,7 @@ describe('fetchPRDataSmart', () => {
       });
 
       // Should not trigger background sync for fresh data
-      expect(vi.mocked(inngest.send)).not.toHaveBeenCalled();
+      expect(vi.mocked(sendInngestEvent)).not.toHaveBeenCalled();
     });
   });
 
@@ -286,7 +286,7 @@ describe('fetchPRDataSmart', () => {
       expect(result.metadata?.isStale).toBe(true);
 
       // Should trigger background sync for stale data
-      expect(vi.mocked(inngest.send)).toHaveBeenCalledWith({
+      expect(vi.mocked(sendInngestEvent)).toHaveBeenCalledWith({
         name: 'capture/repository.sync',
         data: {
           owner: 'pytorch',
@@ -345,7 +345,7 @@ describe('fetchPRDataSmart', () => {
       expect(result.message).toBe('Data is being gathered. This usually takes 1-2 minutes.');
 
       // Should trigger high priority sync for empty data
-      expect(vi.mocked(inngest.send)).toHaveBeenCalledWith({
+      expect(vi.mocked(sendInngestEvent)).toHaveBeenCalledWith({
         name: 'capture/repository.sync',
         data: {
           owner: 'pytorch',

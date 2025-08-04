@@ -9,10 +9,8 @@ vi.mock('@/lib/supabase', () => ({
   }
 }));
 
-vi.mock('@/lib/inngest/client', () => ({
-  inngest: {
-    send: vi.fn()
-  }
+vi.mock('@/lib/inngest/client-safe', () => ({
+  sendInngestEvent: vi.fn()
 }));
 
 vi.mock('@/lib/progressive-capture/ui-notifications', () => ({
@@ -40,12 +38,12 @@ describe('useTrackRepositoryWithNotification', () => {
     
     // Get mock references
     const { supabase } = await import('@/lib/supabase');
-    const { inngest } = await import('@/lib/inngest/client');
+    const { sendInngestEvent } = await import('@/lib/inngest/client-safe');
     const { toast } = await import('sonner');
     const { ProgressiveCaptureNotifications } = await import('@/lib/progressive-capture/ui-notifications');
     
     mockSupabaseFrom = vi.mocked(supabase.from);
-    mockInngestSend = vi.mocked(inngest.send);
+    mockInngestSend = vi.mocked(sendInngestEvent);
     mockToastInfo = vi.mocked(toast.info);
     mockToastError = vi.mocked(toast.error);
     mockShowProcessingStarted = vi.mocked(ProgressiveCaptureNotifications.showProcessingStarted);
