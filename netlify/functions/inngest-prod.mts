@@ -112,8 +112,8 @@ const inngestHandler = serve({
   servePath: "/.netlify/functions/inngest-prod"
 });
 
-// Export the Netlify handler
-export default async (req: Request, context: Context) => {
+// Create the main handler function
+const mainHandler = async (req: Request, context: Context) => {
   const url = new URL(req.url);
   
   // Handle GET requests with a detailed status page
@@ -158,5 +158,6 @@ export default async (req: Request, context: Context) => {
   return inngestHandler(req, context);
 };
 
-// Also export as handler for compatibility
-export const handler = inngestHandler;
+// Export both default and named handler for maximum compatibility
+export default mainHandler;
+export const handler = mainHandler;
