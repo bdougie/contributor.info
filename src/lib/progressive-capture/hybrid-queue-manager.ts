@@ -225,7 +225,7 @@ export class HybridQueueManager {
 
     // If we're in the browser, use the API endpoint
     if (typeof window !== 'undefined') {
-      const response = await fetch('/.netlify/functions/queue-event', {
+      const response = await fetch('/api/queue-event', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
