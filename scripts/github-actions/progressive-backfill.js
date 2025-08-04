@@ -28,6 +28,10 @@ program
 
 const options = program.opts();
 
+// Debug: Log raw arguments and parsed options
+console.log('DEBUG: process.argv:', process.argv);
+console.log('DEBUG: Raw options from commander:', options);
+
 async function main() {
   console.log('🚀 Starting progressive backfill process...');
   console.log(`Options: ${JSON.stringify(options)}`);
