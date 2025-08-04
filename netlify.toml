@@ -19,7 +19,7 @@
   node_bundler = "esbuild"
 
 [functions.inngest-prod]
-  node_bundler = "zisi"
+  node_bundler = "esbuild"
 
 [functions.inngest]
   node_bundler = "esbuild"
