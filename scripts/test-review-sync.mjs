@@ -71,6 +71,19 @@ async function testReviewSync() {
         .select('id')
         .eq('pull_request_id', pr.id);
 
+      // Handle potential errors
+      if (revError || comError) {
+        console.log(`PR #${pr.number}: "${pr.title.slice(0, 50)}..."`);
+        if (revError) {
+          console.log(`  ⚠️  Error fetching reviews: ${revError.message}`);
+        }
+        if (comError) {
+          console.log(`  ⚠️  Error fetching comments: ${comError.message}`);
+        }
+        console.log(`  Created: ${new Date(pr.created_at).toLocaleDateString()}\n`);
+        continue;
+      }
+
       const reviewCount = reviews?.length || 0;
       const commentCount = comments?.length || 0;
 
@@ -80,7 +93,7 @@ async function testReviewSync() {
     }
 
     // Check overall stats
-    const { data: stats } = await supabase
+    const { data: stats, error: statsError } = await supabase
       .from('repositories')
       .select(`
         id,
@@ -92,9 +105,14 @@ async function testReviewSync() {
       .single();
 
     console.log('\n📊 Repository Statistics:');
-    console.log('Total PRs:', stats?.pull_requests?.length || 0);
-    console.log('Total Reviews:', stats?.reviews?.length || 0);
-    console.log('Total Comments:', stats?.comments?.length || 0);
+    
+    if (statsError) {
+      console.log('⚠️  Error fetching repository statistics:', statsError.message);
+    } else {
+      console.log('Total PRs:', stats?.pull_requests?.length || 0);
+      console.log('Total Reviews:', stats?.reviews?.length || 0);
+      console.log('Total Comments:', stats?.comments?.length || 0);
+    }
 
   } catch (error) {
     console.error('Error:', error);
