@@ -341,7 +341,7 @@ async function storePRsInDatabase(repositoryId, prs) {
   // contributors, reviews, comments, etc.
   const prRecords = prs.map(pr => ({
     repository_id: repositoryId,
-    github_id: pr.id,
+    github_id: pr.databaseId ? pr.databaseId.toString() : pr.id,
     number: pr.number,
     title: pr.title,
     body: pr.body,
