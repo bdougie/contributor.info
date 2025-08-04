@@ -48,6 +48,81 @@ class GraphQLClient {
     const data = await this.query(query);
     return data.rateLimit;
   }
+
+  async getRepositoryPRsPage(owner, name, pageSize = 100, cursor = null, direction = 'DESC') {
+    const query = `
+      query($owner: String!, $name: String!, $first: Int!, $after: String, $orderBy: IssueOrder!) {
+        repository(owner: $owner, name: $name) {
+          pullRequests(first: $first, after: $after, orderBy: $orderBy) {
+            edges {
+              cursor
+              node {
+                id
+                number
+                title
+                body
+                state
+                createdAt
+                updatedAt
+                closedAt
+                mergedAt
+                merged
+                additions
+                deletions
+                changedFiles
+                baseRefName
+                headRefName
+                url
+                author {
+                  login
+                  ... on User {
+                    id
+                    databaseId
+                    avatarUrl
+                  }
+                  ... on Bot {
+                    id
+                    databaseId
+                    avatarUrl
+                  }
+                }
+                commits(first: 1) {
+                  totalCount
+                }
+              }
+            }
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      owner,
+      name,
+      first: pageSize,
+      after: cursor,
+      orderBy: {
+        field: 'CREATED_AT',
+        direction: direction
+      }
+    };
+
+    const data = await this.query(query, variables);
+    
+    if (!data.repository) {
+      throw new Error(`Repository ${owner}/${name} not found`);
+    }
+
+    // Transform to match expected format
+    return data.repository.pullRequests.edges.map(edge => ({
+      ...edge.node,
+      cursor: edge.cursor
+    }));
+  }
 }
 
 export function getGraphQLClient() {
