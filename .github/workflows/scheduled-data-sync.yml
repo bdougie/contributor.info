@@ -86,7 +86,7 @@ jobs:
                   last_updated_at
                 )
               `)
-              .eq('is_active', true)
+              .eq('tracking_enabled', true)
               .order('repositories(last_updated_at)', { ascending: true });
             
             // Apply repository filter if specified
