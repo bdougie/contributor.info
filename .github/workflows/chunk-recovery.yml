@@ -1,0 +1,89 @@
+name: Chunk Recovery
+
+on:
+  schedule:
+    # Run every 2 hours to check for stuck chunks
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      stuck_threshold:
+        description: 'Minutes after which a chunk is considered stuck'
+        required: false
+        type: string
+        default: '30'
+      cleanup_days:
+        description: 'Clean up completed chunks older than this many days'
+        required: false
+        type: string
+        default: '30'
+      dry_run:
+        description: 'Run without making changes'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  recover-chunks:
+    name: Recover Stuck Chunks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: |
+          npm ci
+          
+      - name: Run chunk recovery
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          STUCK_THRESHOLD: ${{ inputs.stuck_threshold }}
+          CLEANUP_DAYS: ${{ inputs.cleanup_days }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          node scripts/github-actions/recover-stuck-chunks.js \
+            --stuck-threshold="${STUCK_THRESHOLD:-30}" \
+            --cleanup-days="${CLEANUP_DAYS:-30}" \
+            $([[ "$DRY_RUN" == "true" ]] && echo "--dry-run")
+            
+      - name: Report recovery results
+        if: always()
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          node -e "
+          const { createClient } = require('@supabase/supabase-js');
+          const supabase = createClient(
+            process.env.VITE_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_KEY
+          );
+          
+          (async () => {
+            // Log the recovery job execution
+            await supabase
+              .from('sync_logs')
+              .insert({
+                operation: 'chunk_recovery',
+                status: process.env.JOB_STATUS === 'success' ? 'success' : 'error',
+                details: {
+                  workflow_run_id: '${{ github.run_id }}',
+                  workflow_run_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}',
+                  scheduled: true
+                }
+              });
+          })();
+          "
