@@ -41,7 +41,7 @@ jobs:
             export REPO_OWNER
             export REPO_NAME
           fi
-          node scripts/sync-contributor-stats.js
+          node scripts/data-sync/sync-contributor-stats.js
 
       - name: Log sync completion
         if: always()
