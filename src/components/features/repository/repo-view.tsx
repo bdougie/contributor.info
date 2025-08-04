@@ -30,6 +30,7 @@ import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { DataProcessingIndicator } from "./data-processing-indicator";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { RepositoryInlineMetadata } from "@/components/ui/repository-inline-metadata";
+import { useTrackRepositoryWithNotification } from "@/hooks/use-track-repository-with-notification";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -41,6 +42,13 @@ export default function RepoView() {
   const [hasSearchedOnce, setHasSearchedOnce] = useState(false);
   const dubConfig = getDubConfig();
   const { isLoggedIn } = useGitHubAuth();
+  
+  // Auto-track repository with user notifications
+  const trackingState = useTrackRepositoryWithNotification({
+    owner,
+    repo,
+    enabled: Boolean(owner && repo)
+  });
 
   // Determine current tab based on URL
   const getCurrentTab = () => {
@@ -141,25 +149,29 @@ export default function RepoView() {
                            stats.error.includes('does not exist') ||
                            stats.error.includes('404');
     
-    if (isRepoNotFound) {
+    // If it's a new repository being tracked, don't show error
+    if (isRepoNotFound && trackingState.isNewRepository) {
+      // Continue to show the normal view with skeleton loaders
+      // The tracking notification will inform the user
+    } else if (isRepoNotFound) {
       return <RepoNotFound />;
+    } else {
+      // For other errors, show the generic error card
+      return (
+        <div className="container mx-auto py-2">
+          <Card>
+            <CardContent className="p-8">
+              <div className="text-center">
+                <h2 className="text-2xl font-semibold text-destructive mb-2">
+                  Error
+                </h2>
+                <p className="text-muted-foreground">{stats.error}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
     }
-
-    // For other errors, show the generic error card
-    return (
-      <div className="container mx-auto py-2">
-        <Card>
-          <CardContent className="p-8">
-            <div className="text-center">
-              <h2 className="text-2xl font-semibold text-destructive mb-2">
-                Error
-              </h2>
-              <p className="text-muted-foreground">{stats.error}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
   }
 
   const repoTitle = `${owner}/${repo} - Contributor Analysis`;
@@ -260,12 +272,34 @@ export default function RepoView() {
               </TabsList>
             </Tabs>
 
-            {/* Show data processing indicator */}
+            {/* Show data processing indicator or new repository message */}
             {owner && repo && (
-              <DataProcessingIndicator 
-                repository={`${owner}/${repo}`} 
-                className="mt-4" 
-              />
+              <>
+                <DataProcessingIndicator 
+                  repository={`${owner}/${repo}`} 
+                  className="mt-4" 
+                />
+                {trackingState.isNewRepository && !stats.loading && (
+                  <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                          Welcome to {owner}/{repo}!
+                        </h3>
+                        <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
+                          This is a new repository. We're gathering contributor data and it will be ready in about 1-2 minutes. 
+                          You can explore the interface while we work in the background.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             <div className="mt-6">
