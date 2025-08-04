@@ -14,6 +14,7 @@ Troubleshooting documentation helps developers:
 
 ### 🔧 Build & Deployment Issues
 - **[GitHub Actions Errors](./github-actions-errors.md)** - Workflow failures and debugging
+- **[Backfill Issues](./backfill-issues.md)** - Progressive backfill troubleshooting
 
 ## Quick Troubleshooting Checklist
 

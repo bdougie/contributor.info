@@ -65,7 +65,8 @@
     "eval:maintainer": "tsx scripts/utilities/run-maintainer-eval.ts",
     "eval:benchmark": "tsx scripts/utilities/run-maintainer-eval.ts --benchmark",
     "eval:conservative": "tsx scripts/utilities/run-maintainer-eval.ts --config conservative",
-    "eval:aggressive": "tsx scripts/utilities/run-maintainer-eval.ts --config aggressive"
+    "eval:aggressive": "tsx scripts/utilities/run-maintainer-eval.ts --config aggressive",
+    "recover:chunks": "node scripts/github-actions/recover-stuck-chunks.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
