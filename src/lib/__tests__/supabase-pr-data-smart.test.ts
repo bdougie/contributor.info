@@ -1,25 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock dependencies before imports - use full relative paths like other tests
-vi.mock('../../lib/supabase', () => ({
-  supabase: {
-    auth: {
-      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
-      getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
-      signInWithOAuth: vi.fn(() => Promise.resolve({ data: {}, error: null })),
-      signOut: vi.fn(() => Promise.resolve({ error: null }))
-    },
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({ data: [], error: null })),
-      insert: vi.fn(() => ({ data: [], error: null })),
-      update: vi.fn(() => ({ data: [], error: null })),
-      delete: vi.fn(() => ({ data: [], error: null }))
-    }))
-  },
-  createSupabaseClient: vi.fn(),
-  debugAuthSession: vi.fn(() => Promise.resolve({ session: null, error: null }))
-}));
-
+// Mock dependencies before imports
 vi.mock('../simple-logging');
 vi.mock('../inngest/client-safe');
 vi.mock('sonner');

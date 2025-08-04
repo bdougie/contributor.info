@@ -158,8 +158,72 @@ vi.mock('d3-interpolate', () => ({
   default: vi.fn()
 }));
 
-// Note: Individual test files should mock their specific dependencies
-// following the pattern used in git-history.test.ts and other tests
+// Mock Supabase globally for all tests to avoid environment variable errors
+vi.mock('../lib/supabase', () => ({
+  createSupabaseClient: vi.fn(() => ({
+    auth: {
+      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+      getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+      signInWithOAuth: vi.fn(() => Promise.resolve({ data: {}, error: null })),
+      signOut: vi.fn(() => Promise.resolve({ error: null }))
+    },
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({ data: [], error: null })),
+      insert: vi.fn(() => ({ data: [], error: null })),
+      update: vi.fn(() => ({ data: [], error: null })),
+      delete: vi.fn(() => ({ data: [], error: null }))
+    }))
+  })),
+  supabase: {
+    auth: {
+      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+      getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+      signInWithOAuth: vi.fn(() => Promise.resolve({ data: {}, error: null })),
+      signOut: vi.fn(() => Promise.resolve({ error: null }))
+    },
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({ data: [], error: null })),
+      insert: vi.fn(() => ({ data: [], error: null })),
+      update: vi.fn(() => ({ data: [], error: null })),
+      delete: vi.fn(() => ({ data: [], error: null }))
+    }))
+  },
+  debugAuthSession: vi.fn(() => Promise.resolve({ session: null, error: null }))
+}));
+
+// Mock env module to provide test environment variables
+vi.mock('../lib/env', () => ({
+  env: {
+    SUPABASE_URL: 'https://test.supabase.co',
+    SUPABASE_ANON_KEY: 'test-anon-key',
+    GITHUB_TOKEN: 'test-github-token',
+    INNGEST_APP_ID: 'test-contributor-info',
+    OPENAI_API_KEY: '',
+    POSTHOG_KEY: '',
+    POSTHOG_HOST: '',
+    SENTRY_DSN: '',
+    DUB_CO_KEY: '',
+    DUB_DOMAIN_DEV: '',
+    DUB_DOMAIN_PROD: '',
+    RESEND_API_KEY: '',
+    HYBRID_ROLLOUT_PERCENTAGE: '',
+    HYBRID_EMERGENCY_STOP: '',
+    HYBRID_ROLLOUT_STRATEGY: '',
+    HYBRID_AUTO_ROLLBACK: '',
+    HYBRID_MAX_ERROR_RATE: '',
+    DEV: true,
+    PROD: false,
+    MODE: 'test',
+    isServer: false,
+    isBrowser: true,
+  },
+  clientEnv: {
+    SUPABASE_URL: 'https://test.supabase.co',
+    SUPABASE_ANON_KEY: 'test-anon-key',
+  },
+  serverEnv: {},
+  validateEnvironment: () => true
+}));
 
 // Mock OpenAI service to avoid real API calls
 vi.mock('@/lib/llm/openai-service', () => ({
