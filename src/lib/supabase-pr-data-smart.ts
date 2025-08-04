@@ -188,9 +188,16 @@ export async function fetchPRDataSmart(
         }))
       }));
 
-      // Check data freshness - since we don't have updated_at, assume stale if no data
+      // Check data freshness
       const isEmpty = transformedPRs.length === 0;
-      const isStale = isEmpty; // Consider stale if no data
+      
+      // Check if repository data is stale (older than 6 hours)
+      const STALE_THRESHOLD_MS = 6 * 60 * 60 * 1000; // 6 hours
+      const now = Date.now();
+      const lastUpdateMs = repoData.updated_at ? new Date(repoData.updated_at).getTime() : 0;
+      const isRepositoryStale = (now - lastUpdateMs) > STALE_THRESHOLD_MS;
+      
+      const isStale = isEmpty || isRepositoryStale;
 
       // Trigger background sync if needed
       if (triggerBackgroundSync && (isEmpty || isStale)) {
@@ -220,7 +227,7 @@ export async function fetchPRDataSmart(
       if (transformedPRs.length > 0) {
         return createSuccessResult(transformedPRs, {
           isStale,
-          lastUpdate: null,
+          lastUpdate: repoData.updated_at,
           dataCompleteness: calculateDataCompleteness(transformedPRs)
         });
       }

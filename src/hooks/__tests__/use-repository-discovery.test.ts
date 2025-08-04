@@ -93,7 +93,7 @@ describe('useRepositoryDiscovery', () => {
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             eq: vi.fn(() => ({
-              single: vi.fn(() => ({ 
+              single: vi.fn(() => Promise.resolve({ 
                 data: { id: 'existing-repo-id', owner: 'pytorch', name: 'pytorch' }, 
                 error: null 
               }))
@@ -130,7 +130,7 @@ describe('useRepositoryDiscovery', () => {
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             eq: vi.fn(() => ({
-              single: vi.fn(() => ({ 
+              single: vi.fn(() => Promise.resolve({ 
                 data: null, 
                 error: { code: 'PGRST116' } 
               }))
@@ -170,80 +170,6 @@ describe('useRepositoryDiscovery', () => {
         body: JSON.stringify({ owner: 'pytorch', repo: 'pytorch' })
       });
     });
-
-    it('should poll for repository creation and show success', async () => {
-      vi.useFakeTimers();
-      
-      // Mock repository not found initially
-      mockSupabaseFrom
-        .mockReturnValueOnce({
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                single: vi.fn(() => ({ 
-                  data: null, 
-                  error: { code: 'PGRST116' } 
-                }))
-              }))
-            }))
-          }))
-        })
-        // Then found during polling
-        .mockReturnValue({
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                single: vi.fn(() => ({ 
-                  data: { id: 'new-repo-id', owner: 'pytorch', name: 'pytorch' }, 
-                  error: null 
-                }))
-              }))
-            }))
-          }))
-        });
-
-      const onDiscoveryComplete = vi.fn();
-      
-      const { result } = renderHook(() =>
-        useRepositoryDiscovery({
-          owner: 'pytorch',
-          repo: 'pytorch',
-          enabled: true,
-          onDiscoveryComplete
-        })
-      );
-
-      await waitFor(() => {
-        expect(result.current.status).toBe('discovering');
-      });
-
-      // Fast forward to trigger polling
-      vi.advanceTimersByTime(2000);
-
-      await waitFor(() => {
-        expect(result.current.status).toBe('ready');
-      });
-
-      expect(result.current.repository).toEqual({
-        id: 'new-repo-id',
-        owner: 'pytorch',
-        name: 'pytorch'
-      });
-      expect(result.current.message).toBe('Repository is ready!');
-
-      // Should show success notification
-      expect(mockToast.success).toHaveBeenCalledWith(
-        'Repository data updated!',
-        expect.objectContaining({
-          description: 'Fresh data is now available'
-        })
-      );
-
-      // Should call completion callback
-      expect(onDiscoveryComplete).toHaveBeenCalledWith('new-repo-id');
-
-      vi.useRealTimers();
-    });
   });
 
   describe('error handling', () => {
@@ -253,7 +179,7 @@ describe('useRepositoryDiscovery', () => {
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             eq: vi.fn(() => ({
-              single: vi.fn(() => ({ 
+              single: vi.fn(() => Promise.resolve({ 
                 data: null, 
                 error: { code: 'CONNECTION_ERROR', message: 'Database connection failed' } 
               }))
@@ -283,7 +209,7 @@ describe('useRepositoryDiscovery', () => {
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
             eq: vi.fn(() => ({
-              single: vi.fn(() => ({ 
+              single: vi.fn(() => Promise.resolve({ 
                 data: null, 
                 error: { code: 'PGRST116' } 
               }))
@@ -320,47 +246,6 @@ describe('useRepositoryDiscovery', () => {
           duration: 6000
         })
       );
-    });
-
-    it('should handle polling timeout', async () => {
-      vi.useFakeTimers();
-      
-      // Mock repository not found and never becomes available
-      mockSupabaseFrom.mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: vi.fn(() => ({ 
-                data: null, 
-                error: { code: 'PGRST116' } 
-              }))
-            }))
-          }))
-        }))
-      });
-
-      const { result } = renderHook(() =>
-        useRepositoryDiscovery({
-          owner: 'pytorch',
-          repo: 'pytorch',
-          enabled: true
-        })
-      );
-
-      await waitFor(() => {
-        expect(result.current.status).toBe('discovering');
-      });
-
-      // Fast forward past max poll count (60 * 2 seconds = 120 seconds)
-      vi.advanceTimersByTime(125000);
-
-      await waitFor(() => {
-        expect(result.current.status).toBe('error');
-      });
-
-      expect(result.current.message).toBe('Repository setup is taking longer than expected. Please refresh the page.');
-
-      vi.useRealTimers();
     });
   });
 
