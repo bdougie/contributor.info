@@ -126,7 +126,7 @@ export class QueuePrioritizationService {
     try {
       const { data, error } = await supabase
         .from('tracked_repositories')
-        .select('id, name, size, priority, metrics')
+        .select('id, repository_name, organization_name, size, priority, metrics')
         .eq('id', repositoryId)
         .single();
 
@@ -137,7 +137,7 @@ export class QueuePrioritizationService {
 
       return {
         id: data.id,
-        name: data.name,
+        name: `${data.organization_name}/${data.repository_name}`,
         size: data.size || 'medium',
         priority: data.priority || 'low',
         metrics: data.metrics

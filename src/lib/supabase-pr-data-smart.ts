@@ -49,7 +49,7 @@ export async function fetchPRDataSmart(
       // Check if repository exists
       const { data: repoData, error: repoError } = await supabase
         .from('repositories')
-        .select('id, owner, name, created_at, updated_at')
+        .select('id, owner, name')
         .eq('owner', owner)
         .eq('name', repo)
         .single();
@@ -188,10 +188,9 @@ export async function fetchPRDataSmart(
         }))
       }));
 
-      // Check data freshness
-      const lastUpdate = repoData.updated_at ? new Date(repoData.updated_at) : null;
-      const isStale = !lastUpdate || (Date.now() - lastUpdate.getTime() > 6 * 60 * 60 * 1000); // 6 hours
+      // Check data freshness - since we don't have updated_at, assume stale if no data
       const isEmpty = transformedPRs.length === 0;
+      const isStale = isEmpty; // Consider stale if no data
 
       // Trigger background sync if needed
       if (triggerBackgroundSync && (isEmpty || isStale)) {
@@ -221,7 +220,7 @@ export async function fetchPRDataSmart(
       if (transformedPRs.length > 0) {
         return createSuccessResult(transformedPRs, {
           isStale,
-          lastUpdate: lastUpdate?.toISOString(),
+          lastUpdate: null,
           dataCompleteness: calculateDataCompleteness(transformedPRs)
         });
       }
