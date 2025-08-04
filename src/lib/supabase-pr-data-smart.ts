@@ -57,7 +57,7 @@ export async function fetchPRDataSmart(
       if (repoError || !repoData) {
         // Repository not in database - it needs to be tracked first
         if (triggerBackgroundSync) {
-          // Add to tracking (handled by useTrackRepositoryWithNotification)
+          // Add to tracking (handled by useRepositoryDiscovery)
           if (showNotifications) {
             toast.info(`Setting up ${owner}/${repo}...`, {
               description: "We're gathering data for this repository. This usually takes 1-2 minutes.",
