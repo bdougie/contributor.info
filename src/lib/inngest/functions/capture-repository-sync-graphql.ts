@@ -77,7 +77,19 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
     const { repositoryId, days, priority, reason } = event.data;
     const effectiveDays = Math.min(days || DEFAULT_DAYS_LIMIT, DEFAULT_DAYS_LIMIT);
 
-    // Step 1: Get repository details and check if it was recently processed
+    // Step 1: Check if repository has active backfill
+    const hasActiveBackfill = await step.run("check-active-backfill", async () => {
+      const { data } = await supabase
+        .from('progressive_backfill_state')
+        .select('status')
+        .eq('repository_id', repositoryId)
+        .eq('status', 'active')
+        .single();
+      
+      return !!data;
+    });
+
+    // Step 2: Get repository details and check if it was recently processed
     const repository = await step.run("get-repository", async () => {
       const { data, error } = await supabase
         .from('repositories')
@@ -89,12 +101,12 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
       }
 
-      // Check if repository was synced recently (within 12 hours for GraphQL - more frequent due to efficiency)
-      if (data.last_updated_at) {
+      // Skip sync time check if repository has active backfill or manual trigger
+      if (data.last_updated_at && !hasActiveBackfill && reason !== 'manual') {
         const lastSyncTime = new Date(data.last_updated_at).getTime();
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
         
-        if (hoursSinceSync < 12 && reason !== 'manual') {
+        if (hoursSinceSync < 12) {
           throw new Error(`Repository ${data.owner}/${data.name} was synced ${Math.round(hoursSinceSync)} hours ago. Skipping to prevent excessive API usage.`) as NonRetriableError;
         }
       }
