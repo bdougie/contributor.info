@@ -23,13 +23,13 @@ fetch('https://api.github.com/rate_limit', {
   const remaining = data.rate.remaining;
   const limit = data.rate.limit;
   
-  // GitHub Actions output format
+  // GitHub Actions output format (only output variables to stdout)
   console.log(`remaining=${remaining}`);
   console.log(`limit=${limit}`);
   
-  // Warning if rate limit is low
+  // Warning if rate limit is low (send to stderr to avoid corrupting output)
   if (remaining < 500) {
-    console.log(`::warning::Low rate limit remaining: ${remaining}`);
+    console.error(`::warning::Low rate limit remaining: ${remaining}`);
   }
   
   // Log for debugging
