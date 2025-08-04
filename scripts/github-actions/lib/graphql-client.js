@@ -58,6 +58,7 @@ class GraphQLClient {
               cursor
               node {
                 id
+                databaseId
                 number
                 title
                 body

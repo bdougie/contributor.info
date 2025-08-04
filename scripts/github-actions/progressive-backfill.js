@@ -31,6 +31,8 @@ const options = program.opts();
 // Debug: Log raw arguments and parsed options
 console.log('DEBUG: process.argv:', process.argv);
 console.log('DEBUG: Raw options from commander:', options);
+console.log('DEBUG: program.chunkSize =', program.chunkSize);
+console.log('DEBUG: program._optionValues =', program._optionValues);
 
 async function main() {
   console.log('🚀 Starting progressive backfill process...');
