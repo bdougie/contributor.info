@@ -13,7 +13,7 @@ export interface RolloutConfiguration {
   monitoring_window_hours: number;
   auto_rollback_enabled: boolean;
   emergency_stop: boolean;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -515,9 +515,9 @@ export class HybridRolloutManager {
         }
       }
 
-      const totalJobs = metrics?.reduce((sum, m) => sum + m.total_jobs, 0) || 0;
-      const totalErrors = metrics?.reduce((sum, m) => sum + m.error_count, 0) || 0;
-      const totalSuccesses = metrics?.reduce((sum, m) => sum + m.success_count, 0) || 0;
+      const totalJobs = metrics?.reduce((sum: number, m: RolloutMetrics) => sum + m.total_jobs, 0) || 0;
+      const totalErrors = metrics?.reduce((sum: number, m: RolloutMetrics) => sum + m.error_count, 0) || 0;
+      const totalSuccesses = metrics?.reduce((sum: number, m: RolloutMetrics) => sum + m.success_count, 0) || 0;
 
       const errorRate = totalJobs > 0 ? (totalErrors / totalJobs) * 100 : 0;
       const successRate = totalJobs > 0 ? (totalSuccesses / totalJobs) * 100 : 0;

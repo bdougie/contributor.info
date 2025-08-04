@@ -36,6 +36,7 @@
     "src/**/*.stories.tsx",
     "src/**/__tests__/**/*",
     "src/stories/**/*",
-    "src/lib/test-utils.ts"
+    "src/lib/test-utils.ts",
+    "netlify/functions/**/*"
   ]
 }
