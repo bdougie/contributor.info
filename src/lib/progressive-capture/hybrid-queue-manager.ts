@@ -236,8 +236,10 @@ export class HybridQueueManager {
             jobId,
             repositoryId: data.repositoryId,
             repositoryName: data.repositoryName,
+            days: data.timeRange || 7, // Map timeRange to days, default to 7
             maxItems: Math.min(data.maxItems || this.INNGEST_MAX_ITEMS, this.INNGEST_MAX_ITEMS),
             priority: 'medium',
+            reason: data.triggerSource || 'automatic',
             ...data.metadata
           }
         })
@@ -257,8 +259,10 @@ export class HybridQueueManager {
         jobId,
         repositoryId: data.repositoryId,
         repositoryName: data.repositoryName,
+        days: data.timeRange || 7, // Map timeRange to days, default to 7
         maxItems: Math.min(data.maxItems || this.INNGEST_MAX_ITEMS, this.INNGEST_MAX_ITEMS),
         priority: 'medium',
+        reason: data.triggerSource || 'automatic',
         ...data.metadata
       }
     });
