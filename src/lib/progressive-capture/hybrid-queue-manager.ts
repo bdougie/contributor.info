@@ -5,6 +5,7 @@ import { DataCaptureQueueManager } from './queue-manager';
 import { hybridRolloutManager } from './rollout-manager';
 import { queuePrioritizationService } from './queue-prioritization';
 import { autoRetryService } from './auto-retry-service';
+import { mapQueueDataToEventData } from '../inngest/types/event-data';
 
 // Import rollout console for global availability
 import './rollout-console';
@@ -52,6 +53,14 @@ export class HybridQueueManager {
    * Queue a job using the hybrid routing logic with rollout controls
    */
   async queueJob(jobType: string, data: JobData): Promise<HybridJob> {
+    // Validate required fields
+    if (!data.repositoryId) {
+      throw new Error('repositoryId is required for queueing jobs');
+    }
+    if (!data.repositoryName) {
+      throw new Error('repositoryName is required for queueing jobs');
+    }
+
     // Check if repository is eligible for hybrid rollout
     const isEligible = await hybridRolloutManager.isRepositoryEligible(data.repositoryId);
     
@@ -223,6 +232,12 @@ export class HybridQueueManager {
       throw new Error(`Unknown job type for Inngest: ${jobType}`);
     }
 
+    // Map queue data to properly typed event data
+    const eventData = mapQueueDataToEventData(jobType, {
+      ...data,
+      jobId
+    });
+
     // If we're in the browser, use the API endpoint
     if (typeof window !== 'undefined') {
       const response = await fetch('/api/queue-event', {
@@ -232,16 +247,7 @@ export class HybridQueueManager {
         },
         body: JSON.stringify({
           eventName,
-          data: {
-            jobId,
-            repositoryId: data.repositoryId,
-            repositoryName: data.repositoryName,
-            days: data.timeRange || 7, // Map timeRange to days, default to 7
-            maxItems: Math.min(data.maxItems || this.INNGEST_MAX_ITEMS, this.INNGEST_MAX_ITEMS),
-            priority: 'medium',
-            reason: data.triggerSource || 'automatic',
-            ...data.metadata
-          }
+          data: eventData
         })
       });
 
@@ -255,16 +261,7 @@ export class HybridQueueManager {
     // Server-side: send directly to Inngest
     await inngest.send({
       name: eventName,
-      data: {
-        jobId,
-        repositoryId: data.repositoryId,
-        repositoryName: data.repositoryName,
-        days: data.timeRange || 7, // Map timeRange to days, default to 7
-        maxItems: Math.min(data.maxItems || this.INNGEST_MAX_ITEMS, this.INNGEST_MAX_ITEMS),
-        priority: 'medium',
-        reason: data.triggerSource || 'automatic',
-        ...data.metadata
-      }
+      data: eventData
     });
   }
 
