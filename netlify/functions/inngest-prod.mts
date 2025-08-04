@@ -4,7 +4,7 @@ import { serve } from "inngest/lambda";
 import type { Context } from "@netlify/functions";
 
 // Import function creators for production client
-import { createCaptureRepositorySyncGraphQL, createClassifySingleRepository } from "./inngest-prod-functions";
+import { createCaptureRepositorySyncGraphQL, createClassifySingleRepository } from "./inngest-prod-functions.mjs";
 
 // Import all capture functions from the main library
 import {

@@ -12,7 +12,7 @@ interface HealthCheckResult {
 async function checkSupabase(): Promise<HealthCheckResult> {
   try {
     // Simple query to check database connectivity
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('sync_logs')
       .select('id')
       .limit(1);
@@ -203,7 +203,7 @@ async function checkGitHubAPI(): Promise<HealthCheckResult> {
   }
 }
 
-export default async (req: Request, context: Context) => {
+export default async (_req: Request, _context: Context) => {
   // Run all health checks in parallel
   const [supabaseHealth, inngestHealth, githubHealth] = await Promise.all([
     checkSupabase(),
