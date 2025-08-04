@@ -53,6 +53,7 @@ jobs:
           echo "$output" >> $GITHUB_OUTPUT
           
       - name: Run progressive backfill
+        id: backfill
         if: steps.rate_limit.outputs.remaining > 100
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -67,6 +68,37 @@ jobs:
             --chunk-size="${CHUNK_SIZE:-25}" \
             ${REPOSITORY_ID:+--repository-id="$REPOSITORY_ID"} \
             $([[ "$DRY_RUN" == "true" ]] && echo "--dry-run")
+            
+      - name: Check for processing errors
+        if: always() && steps.backfill.conclusion == 'success'
+        id: check_errors
+        run: |
+          if [[ "${{ steps.backfill.outputs.has_critical_errors }}" == "true" ]]; then
+            echo "⚠️  Critical errors occurred during processing"
+            echo "error_count=${{ steps.backfill.outputs.error_count }}"
+            echo "should_report=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.backfill.outputs.error_count }}" -gt "0" ]]; then
+            echo "⚠️  Non-critical errors occurred during processing"
+            echo "error_count=${{ steps.backfill.outputs.error_count }}"
+            echo "should_report=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ No errors during processing"
+            echo "should_report=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Report processing errors to GitHub Issues
+        if: steps.check_errors.outputs.should_report == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY_ID: ${{ inputs.repository_id }}
+          ERROR_SUMMARY: ${{ steps.backfill.outputs.error_summary }}
+        run: |
+          node scripts/github-actions/report-failure.js \
+            --job-type="progressive_backfill_errors" \
+            --repository-id="${REPOSITORY_ID}" \
+            --workflow-name="${{ github.workflow }}" \
+            --workflow-url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --error-message="Processing errors occurred: ${{ steps.backfill.outputs.error_count }} total errors. Error summary: ${ERROR_SUMMARY}"
             
       - name: Report job status
         if: always()
