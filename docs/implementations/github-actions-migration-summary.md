@@ -153,6 +153,14 @@ WHERE bp.status = 'in_progress';
 3. **Enhanced UI**: Real-time progress visualization
 4. **API Optimization**: GraphQL migration for 10x efficiency
 
+## Related Documentation
+
+- [Progressive Backfill Implementation](../data-fetching/progressive-backfill-implementation.md) - Technical implementation details
+- [Hybrid Progressive Capture Implementation](../data-fetching/hybrid-progressive-capture-implementation.md) - Complete hybrid system architecture
+- [GitHub Actions Workflows](../data-fetching/github-actions-workflows.md) - User guide for workflows
+- [Hybrid Rollout Configuration](../data-fetching/hybrid-rollout-configuration.md) - Rollout management guide
+- [Inngest Timeout Optimizations](../data-fetching/inngest-timeout-optimizations.md) - Previous optimization attempts
+
 ## Conclusion
 
 This migration successfully addresses the scalability challenges of processing large GitHub repositories while maintaining system reliability and providing excellent observability. The progressive backfill system ensures that even GitHub's largest repositories can be fully indexed without timeout issues or data loss.

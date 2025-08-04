@@ -40,6 +40,7 @@ Implementation documentation helps developers:
 - **[Database Fallback Implementation](./database-fallback-implementation.md)** - Resilient data access
 - **[Progressive Capture Job System Fixes](./progressive-capture-job-system-fixes.md)** - Background processing improvements
 - **[Resend Integration](./resend-integration.md)** - Email service integration
+- **[GitHub Actions Migration Summary](./github-actions-migration-summary.md)** - Migration from Inngest to GitHub Actions for large repository processing
 
 ### 🔍 Monitoring & Observability
 - **[Sentry Monitoring Setup](./sentry-monitoring-setup.md)** - Error tracking and performance monitoring

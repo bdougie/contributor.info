@@ -102,6 +102,14 @@ For existing repositories without historical data:
 - `supabase/migrations/20240615_backfill_progress.sql` - Database schema
 - `src/lib/progressive-capture/backfill-manager.ts` - Orchestration logic
 
+## Related Documentation
+
+- [GitHub Actions Migration Summary](../implementations/github-actions-migration-summary.md) - Complete migration overview
+- [Hybrid Progressive Capture Implementation](./hybrid-progressive-capture-implementation.md) - Hybrid architecture details
+- [GitHub Actions Workflows](./github-actions-workflows.md) - Workflow usage guide
+- [Smart Data Fetching](./smart-data-fetching.md) - Overall data fetching architecture
+- [Queue Management](./queue-management.md) - Queue prioritization and processing
+
 ## Future Enhancements
 
 - Parallel processing for multiple repositories
