@@ -127,7 +127,7 @@ export class QueuePrioritizationService {
       const { data, error } = await supabase
         .from('tracked_repositories')
         .select('id, repository_name, organization_name, size, priority, metrics')
-        .eq('id', repositoryId)
+        .eq('repository_id', repositoryId)
         .single();
 
       if (error || !data) {

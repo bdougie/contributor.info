@@ -84,7 +84,7 @@ describe('fetchPRDataSmart', () => {
         owner: 'pytorch',
         name: 'pytorch',
         created_at: '2024-01-01T00:00:00Z',
-        updated_at: new Date().toISOString() // Fresh data
+        last_updated_at: new Date().toISOString() // Fresh data
       };
 
       const mockPRData = [
@@ -196,7 +196,7 @@ describe('fetchPRDataSmart', () => {
       // Should include metadata
       expect(result.metadata).toEqual({
         isStale: false,
-        lastUpdate: mockRepoData.updated_at,
+        lastUpdate: mockRepoData.last_updated_at,
         dataCompleteness: expect.any(Number)
       });
 
@@ -215,7 +215,7 @@ describe('fetchPRDataSmart', () => {
         owner: 'pytorch',
         name: 'pytorch',
         created_at: '2024-01-01T00:00:00Z',
-        updated_at: staleDate.toISOString()
+        last_updated_at: staleDate.toISOString()
       };
 
       const mockPRData = [
@@ -305,7 +305,7 @@ describe('fetchPRDataSmart', () => {
         owner: 'pytorch',
         name: 'pytorch',
         created_at: '2024-01-01T00:00:00Z',
-        updated_at: new Date().toISOString()
+        last_updated_at: new Date().toISOString()
       };
 
       const mockRepoSelect = vi.fn(() => ({
@@ -393,7 +393,7 @@ describe('fetchPRDataSmart', () => {
         owner: 'pytorch',
         name: 'pytorch',
         created_at: '2024-01-01T00:00:00Z',
-        updated_at: new Date().toISOString()
+        last_updated_at: new Date().toISOString()
       };
 
       const mockRepoSelect = vi.fn(() => ({
@@ -438,7 +438,7 @@ describe('fetchPRDataSmart', () => {
         owner: 'pytorch',
         name: 'pytorch',
         created_at: '2024-01-01T00:00:00Z',
-        updated_at: new Date().toISOString()
+        last_updated_at: new Date().toISOString()
       };
 
       const mockPRData = [
@@ -528,7 +528,7 @@ describe('fetchPRDataSmart', () => {
         owner: 'pytorch',
         name: 'pytorch',
         created_at: '2024-01-01T00:00:00Z',
-        updated_at: new Date().toISOString()
+        last_updated_at: new Date().toISOString()
       };
 
       const mockPRData = [
@@ -607,7 +607,7 @@ describe('fetchPRDataSmart', () => {
         owner: 'pytorch',
         name: 'pytorch',
         created_at: '2024-01-01T00:00:00Z',
-        updated_at: new Date().toISOString()
+        last_updated_at: new Date().toISOString()
       };
 
       const mockRepoSelect = vi.fn(() => ({
@@ -663,7 +663,7 @@ describe('fetchPRDataSmart', () => {
         owner: 'pytorch',
         name: 'pytorch',
         created_at: '2024-01-01T00:00:00Z',
-        updated_at: new Date().toISOString()
+        last_updated_at: new Date().toISOString()
       };
 
       const mockPRData = [
