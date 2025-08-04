@@ -29,6 +29,14 @@ program
 
 const options = program.opts();
 
+// Track errors that occur during processing
+const errorSummary = {
+  totalErrors: 0,
+  criticalErrors: [],
+  warningErrors: [],
+  repositories: {}
+};
+
 // Validate required environment variables
 const requiredEnvVars = [
   'VITE_SUPABASE_URL',
@@ -63,6 +71,12 @@ async function main() {
       }
     } catch (error) {
       console.warn('   Warning: Could not check for stuck chunks:', error.message);
+      errorSummary.warningErrors.push({
+        type: 'stuck_chunks_check_failed',
+        message: error.message,
+        timestamp: new Date().toISOString()
+      });
+      errorSummary.totalErrors++;
     }
 
     // Get repositories that need backfilling
@@ -81,8 +95,21 @@ async function main() {
     }
 
     console.log('✅ Progressive backfill complete!');
+    
+    // Report error summary
+    await reportErrorSummary();
+    
   } catch (error) {
     console.error('❌ Fatal error in progressive backfill:', error);
+    errorSummary.criticalErrors.push({
+      type: 'fatal_error',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+    errorSummary.totalErrors++;
+    
+    // Report error summary before exiting
+    await reportErrorSummary();
     process.exit(1);
   }
 }
@@ -215,17 +242,45 @@ async function findRepositoriesNeedingBackfill() {
 
 async function processRepository(backfillData) {
   const repo = backfillData.repositories;
+  
+  // Defensive checks
+  if (!repo || !repo.owner || !repo.name) {
+    console.error('❌ Invalid repository data provided');
+    errorSummary.criticalErrors.push({
+      type: 'invalid_repository_data',
+      message: 'Repository missing required fields (owner/name)',
+      repository: repo ? `${repo.owner || 'unknown'}/${repo.name || 'unknown'}` : 'unknown',
+      timestamp: new Date().toISOString()
+    });
+    errorSummary.totalErrors++;
+    return;
+  }
+  
   console.log(`\n🔄 Processing ${repo.owner}/${repo.name}`);
   console.log(`   Progress: ${backfillData.processed_prs}/${backfillData.total_prs} PRs (${Math.round((backfillData.processed_prs / backfillData.total_prs) * 100)}%)`);
 
-  // Initialize helpers
-  const calculator = new ChunkCalculator({
-    prCount: backfillData.total_prs,
-    rateLimit: await getRateLimitInfo(),
-    priority: 'medium'
-  });
-
-  const tracker = new ProgressTracker(supabase, backfillData.id);
+  // Initialize helpers with error handling
+  let calculator, tracker;
+  
+  try {
+    const rateLimit = await getRateLimitInfo();
+    calculator = new ChunkCalculator({
+      prCount: backfillData.total_prs,
+      rateLimit: rateLimit,
+      priority: 'medium'
+    });
+    tracker = new ProgressTracker(supabase, backfillData.id);
+  } catch (error) {
+    console.error(`❌ Failed to initialize helpers: ${error.message}`);
+    errorSummary.criticalErrors.push({
+      repository: `${repo.owner}/${repo.name}`,
+      type: 'initialization_failed',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+    errorSummary.totalErrors++;
+    return;
+  }
 
   // Calculate optimal chunk size
   const chunkSize = options.chunkSize || calculator.calculateOptimalChunkSize();
@@ -282,6 +337,29 @@ async function processRepository(backfillData) {
       } catch (error) {
         console.error(`❌ Error processing chunk: ${error.message}`);
         await tracker.recordError(error.message);
+        
+        // Track error in summary
+        if (!errorSummary.repositories[`${repo.owner}/${repo.name}`]) {
+          errorSummary.repositories[`${repo.owner}/${repo.name}`] = {
+            errors: [],
+            chunksProcessed: 0,
+            chunksFailed: 0
+          };
+        }
+        errorSummary.repositories[`${repo.owner}/${repo.name}`].errors.push({
+          type: 'chunk_processing_failed',
+          message: error.message,
+          chunkNumber: chunksProcessed + 1,
+          timestamp: new Date().toISOString()
+        });
+        errorSummary.repositories[`${repo.owner}/${repo.name}`].chunksFailed++;
+        errorSummary.totalErrors++;
+        errorSummary.criticalErrors.push({
+          repository: `${repo.owner}/${repo.name}`,
+          type: 'chunk_processing_failed',
+          message: error.message,
+          timestamp: new Date().toISOString()
+        });
         
         // Check if we should continue
         if (backfillData.consecutive_errors >= 3) {
@@ -418,9 +496,22 @@ async function storePRsInDatabase(repositoryId, prs) {
   // This is a simplified version - in production, you'd want to handle
   // contributors, reviews, comments, etc.
   
+  // Defensive check for empty PR array
+  if (!prs || prs.length === 0) {
+    console.warn('No PRs to store');
+    return 0;
+  }
+  
   // Validate that all PRs have databaseId
   const invalidPRs = prs.filter(pr => !pr.databaseId);
   if (invalidPRs.length > 0) {
+    // Log detailed info about invalid PRs
+    console.error('Invalid PRs detected:', invalidPRs.map(pr => ({
+      number: pr.number,
+      title: pr.title?.substring(0, 50),
+      hasId: !!pr.databaseId,
+      id: pr.databaseId
+    })));
     throw new Error(`${invalidPRs.length} PRs missing databaseId: ${invalidPRs.map(pr => pr.number).join(', ')}`);
   }
 
@@ -446,23 +537,95 @@ async function storePRsInDatabase(repositoryId, prs) {
   }));
 
   // Upsert PRs (update if exists, insert if not)
-  const { data, error } = await supabase
-    .from('pull_requests')
-    .upsert(prRecords, {
-      onConflict: 'repository_id,number',
-      ignoreDuplicates: false
-    });
+  try {
+    const { data, error } = await supabase
+      .from('pull_requests')
+      .upsert(prRecords, {
+        onConflict: 'repository_id,number',
+        ignoreDuplicates: false
+      });
 
-  if (error) {
-    throw new Error(`Failed to store PRs: ${error.message}`);
+    if (error) {
+      // Check for common Supabase errors
+      if (error.message?.includes('duplicate key')) {
+        console.warn('Some PRs already exist, this is expected');
+        // Don't throw for duplicates, just log
+        return prRecords.length;
+      }
+      throw new Error(`Failed to store PRs: ${error.message}`);
+    }
+
+    return prRecords.length;
+  } catch (error) {
+    // Add context to error
+    if (error.message?.includes('fetch failed') || error.message?.includes('ECONNREFUSED')) {
+      throw new Error(`Network error connecting to Supabase: ${error.message}`);
+    }
+    throw error;
   }
-
-  return prRecords.length;
 }
 
 async function getRateLimitInfo() {
   const client = getGraphQLClient();
   return client.getRateLimit();
+}
+
+async function reportErrorSummary() {
+  if (errorSummary.totalErrors === 0) {
+    console.log('\n✅ No errors encountered during this run');
+    return;
+  }
+
+  console.log('\n⚠️  ERROR SUMMARY');
+  console.log(`Total errors: ${errorSummary.totalErrors}`);
+  console.log(`Critical errors: ${errorSummary.criticalErrors.length}`);
+  console.log(`Warnings: ${errorSummary.warningErrors.length}`);
+
+  // Write error summary to a file for the workflow to read
+  const fs = await import('fs/promises');
+  const errorFile = process.env.GITHUB_OUTPUT || './error-summary.json';
+  
+  try {
+    // Format for GitHub Actions output
+    if (process.env.GITHUB_OUTPUT) {
+      await fs.appendFile(errorFile, `error_count=${errorSummary.totalErrors}\n`);
+      await fs.appendFile(errorFile, `has_critical_errors=${errorSummary.criticalErrors.length > 0}\n`);
+      await fs.appendFile(errorFile, `error_summary=${JSON.stringify(errorSummary)}\n`);
+    } else {
+      // For local testing
+      await fs.writeFile(errorFile, JSON.stringify(errorSummary, null, 2));
+    }
+  } catch (writeError) {
+    console.error('Failed to write error summary:', writeError);
+  }
+
+  // Log details
+  if (errorSummary.criticalErrors.length > 0) {
+    console.log('\n❌ CRITICAL ERRORS:');
+    errorSummary.criticalErrors.forEach(err => {
+      console.log(`   - [${err.timestamp}] ${err.repository || 'System'}: ${err.message}`);
+    });
+  }
+
+  if (errorSummary.warningErrors.length > 0) {
+    console.log('\n⚠️  WARNINGS:');
+    errorSummary.warningErrors.forEach(err => {
+      console.log(`   - [${err.timestamp}] ${err.type}: ${err.message}`);
+    });
+  }
+
+  // Log repository-specific errors
+  const reposWithErrors = Object.keys(errorSummary.repositories);
+  if (reposWithErrors.length > 0) {
+    console.log('\n📊 REPOSITORY ERROR BREAKDOWN:');
+    reposWithErrors.forEach(repo => {
+      const repoData = errorSummary.repositories[repo];
+      console.log(`   ${repo}: ${repoData.chunksFailed} chunks failed`);
+      repoData.errors.forEach(err => {
+        console.log(`      - Chunk ${err.chunkNumber}: ${err.message}`);
+      });
+    });
+  }
 }
 
 // Run the script
