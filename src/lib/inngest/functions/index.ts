@@ -7,9 +7,6 @@ export { captureRepositorySync } from './capture-repository-sync';
 export { capturePrDetailsGraphQL } from './capture-pr-details-graphql';
 export { captureRepositorySyncGraphQL } from './capture-repository-sync-graphql';
 
-// Enhanced sync with backfill support
-export { captureRepositorySyncEnhanced } from './capture-repository-sync-enhanced';
-
 // Repository size classification
 export { classifyRepositorySize, classifySingleRepository } from './classify-repository-size';
 
