@@ -83,8 +83,8 @@ class ProgressiveCaptureTrigger {
     // Queue comprehensive data capture jobs
     await queueManager.queueRecentPRs(repoId);
     await queueManager.queueMissingFileChanges(repoId, 10);
-    await queueManager.queueMissingReviews(repoId, 20);
-    await queueManager.queueMissingComments(repoId, 20);
+    await queueManager.queueMissingReviews(repoId, 50); // Increased from 20 to 50
+    await queueManager.queueMissingComments(repoId, 50); // Increased from 20 to 50
     await queueManager.queueRecentCommitsAnalysis(repoId, 90);
   }
 }
@@ -261,10 +261,16 @@ const handleRetry = () => {
 - `review-comment-processor.ts` - Specialized data processors
 - `ui-notifications.ts` - Smart user notifications
 
+**Enhanced Review/Comment Processing (January 2025)**:
+- Increased `MAX_REVIEW_COMMENT_JOBS` from 10 to 50 PRs per repository sync
+- Resolves issue where feed "Reviewed" and "Commented" toggles showed no results
+- New backfill scripts available for existing repositories with missing data
+
 **Benefits**:
 - Prevents API overwhelm with intelligent queuing
 - Background processing during user interaction
 - Real-time progress notifications
+- More comprehensive review and comment data capture
 
 ### 3. Smart UI Components
 

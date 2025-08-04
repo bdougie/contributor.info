@@ -3,10 +3,10 @@ import { supabase } from '../supabase';
 import { ProgressiveCaptureNotifications } from '../progressive-capture/ui-notifications';
 
 // Rate limiting configuration
-const RATE_LIMIT_CONFIG = {
+export const RATE_LIMIT_CONFIG = {
   MAX_PRS_PER_REPO: 100,
   MAX_JOBS_PER_BATCH: 10,
-  MAX_REVIEW_COMMENT_JOBS: 20,
+  MAX_REVIEW_COMMENT_JOBS: 50, // Increased to ensure complete review/comment data capture
   LARGE_REPO_THRESHOLD: 1000,
   COOLDOWN_HOURS: 24,
   DEFAULT_DAYS_LIMIT: 30,
