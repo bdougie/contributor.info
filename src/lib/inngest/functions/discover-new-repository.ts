@@ -1,6 +1,6 @@
 import { inngest } from '../client';
 import { createSupabaseAdmin } from '../../supabase-admin';
-import type { NonRetriableError } from 'inngest';
+import { NonRetriableError } from 'inngest';
 
 interface GitHubRepository {
   id: number;

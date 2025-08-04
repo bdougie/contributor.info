@@ -8,8 +8,8 @@ import { env, serverEnv } from './env';
  */
 export function createSupabaseAdmin() {
   const supabaseUrl = env.SUPABASE_URL;
-  // Check for SERVICE_KEY (local), SUPABASE_TOKEN (Netlify), or SUPABASE_SERVICE_ROLE_KEY
-  const serviceRoleKey = serverEnv.SERVICE_KEY || serverEnv.SUPABASE_TOKEN || serverEnv.SUPABASE_SERVICE_ROLE_KEY;
+  // Check for SUPABASE_TOKEN (Netlify) or SUPABASE_SERVICE_ROLE_KEY
+  const serviceRoleKey = serverEnv.SUPABASE_TOKEN || serverEnv.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!supabaseUrl) {
     throw new Error('Missing SUPABASE_URL');
