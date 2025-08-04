@@ -12,6 +12,8 @@
     "dev": "vite",
     "dev:inngest": "npx inngest-cli@latest dev -u http://127.0.0.1:8888/.netlify/functions/inngest-local",
     "build": "tsc -b && vite build",
+    "typecheck:functions": "tsc --project tsconfig.functions.json --noEmit",
+    "typecheck:functions:strict": "# Run this locally to check function types - not in build due to Inngest type incompatibilities",
     "optimize-images": "node scripts/convert-images.js",
     "build:test": "npm test && tsc -b && vite build",
     "build:lighthouse": "tsc -b && vite build --mode production && node scripts/check-build-clean.js",

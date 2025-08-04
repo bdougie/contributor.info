@@ -37,6 +37,12 @@
 
 # Specific API routes (these must come first)
 [[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/health-check"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/inngest"
   to = "/.netlify/functions/inngest-prod"
   status = 200

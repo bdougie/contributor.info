@@ -4,7 +4,7 @@ import { serve } from "inngest/lambda";
 import type { Context } from "@netlify/functions";
 
 // Import function creators for production client
-import { createCaptureRepositorySyncGraphQL, createClassifySingleRepository } from "./inngest-prod-functions";
+import { createCaptureRepositorySyncGraphQL, createClassifySingleRepository } from "./inngest-prod-functions.mjs";
 
 // Import all capture functions from the main library
 import {
@@ -14,7 +14,7 @@ import {
   captureRepositorySync,
   capturePrDetailsGraphQL,
   classifyRepositorySize
-} from "../../src/lib/inngest/functions";
+} from "../../src/lib/inngest/functions/index-without-embeddings";
 
 // Environment detection - treat deploy previews as production for signing
 const isProduction = () => {
@@ -158,6 +158,6 @@ const mainHandler = async (req: Request, context: Context) => {
   return inngestHandler(req, context);
 };
 
-// Export both default and named handler for maximum compatibility
+// Export default as the wrapper and handler as the raw inngest handler
 export default mainHandler;
-export const handler = mainHandler;
+export const handler = inngestHandler;
