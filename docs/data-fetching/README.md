@@ -65,6 +65,13 @@ Operational guide for monitoring system health:
 - Troubleshooting common issues
 - Performance optimization tips
 
+### 🔧 [Data Analysis Scripts](./data-analysis-scripts.md) **NEW**
+Scripts for testing and improving review/comment data capture:
+- Test review/comment data presence (`test-review-sync.mjs`)
+- Backfill missing data for existing repositories (`backfill-reviews-comments.mjs`)
+- When and how to use each script
+- Troubleshooting data capture issues
+
 ## Quick Links
 
 ### For Developers
@@ -114,6 +121,7 @@ Operational guide for monitoring system health:
 - ✅ 90% reduction in resource exhaustion errors
 - ✅ 85%+ background capture success rate (95% with retries)
 - ✅ All 6 implementation phases completed January 2025
+- ✅ Enhanced review/comment capture (up to 50 PRs per sync, previously 10)
 
 ## Getting Started
 

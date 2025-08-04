@@ -126,6 +126,14 @@ curl -H "Authorization: token $VITE_GITHUB_TOKEN" \
   - Use GraphQL API for complex queries
   - Cache frequently accessed data
 
+#### Missing Review/Comment Data
+- **Symptoms**: Feed "Reviewed" and "Commented" toggles show no results
+- **Causes**: Limited data capture in older syncs (only first 10 PRs were processed)
+- **Solutions**:
+  - Use `scripts/backfill-reviews-comments.mjs` to capture missing data
+  - Test data presence with `scripts/test-review-sync.mjs`
+  - New repository syncs now capture up to 50 PRs per sync
+
 #### Data Consistency Issues
 - **Symptoms**: Stale data, missing records, duplicate entries
 - **Causes**: Race conditions, failed transactions, sync errors
@@ -186,6 +194,23 @@ curl -H "Authorization: token $GITHUB_TOKEN" \
 curl -I -H "Authorization: token $GITHUB_TOKEN" \
   https://api.github.com/repos/owner/repo
 ```
+
+### Data Analysis Scripts
+```bash
+# Test review/comment data presence for a repository
+node scripts/test-review-sync.mjs owner repo
+
+# Backfill missing reviews/comments for existing PRs
+node scripts/backfill-reviews-comments.mjs owner repo [limit]
+
+# Example: Backfill data for continuedev/continue, checking 100 most recent PRs
+node scripts/backfill-reviews-comments.mjs continuedev continue 100
+```
+
+**When to use these scripts**:
+- Feed toggles for "Reviewed" or "Commented" show no results
+- Repository was synced before January 2025 (limited to 10 PRs)
+- You want to verify review/comment data coverage
 
 ## Error Monitoring & Alerting
 
