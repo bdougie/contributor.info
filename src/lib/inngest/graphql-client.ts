@@ -313,6 +313,102 @@ export class GraphQLClient {
   }
 
   /**
+   * Get a page of repository PRs using cursor-based pagination
+   * Used for progressive backfill to get historical PRs efficiently
+   */
+  async getRepositoryPRsPage(
+    owner: string, 
+    repo: string, 
+    pageSize: number = 25, 
+    cursor: string | null = null,
+    direction: 'ASC' | 'DESC' = 'DESC'
+  ): Promise<any[]> {
+    const PAGINATED_PRS_QUERY = `
+      query GetPaginatedPRs($owner: String!, $repo: String!, $first: Int!, $after: String, $orderBy: IssueOrder!) {
+        repository(owner: $owner, name: $repo) {
+          pullRequests(first: $first, after: $after, orderBy: $orderBy) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              id
+              databaseId
+              number
+              title
+              body
+              state
+              isDraft
+              createdAt
+              updatedAt
+              closedAt
+              mergedAt
+              merged
+              additions
+              deletions
+              changedFiles
+              baseRefName
+              headRefName
+              author {
+                login
+                avatarUrl
+                ... on User {
+                  databaseId
+                }
+                ... on Bot {
+                  databaseId
+                }
+              }
+              commits {
+                totalCount
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      const startTime = Date.now();
+      
+      const response = await this.client({
+        query: PAGINATED_PRS_QUERY,
+        owner,
+        repo,
+        first: pageSize,
+        after: cursor,
+        orderBy: {
+          field: 'CREATED_AT',
+          direction
+        }
+      });
+
+      const duration = Date.now() - startTime;
+      console.log(`[GraphQL] Fetched page of ${response.repository.pullRequests.nodes.length} PRs in ${duration}ms`);
+
+      // Update metrics
+      this.metrics.queriesExecuted++;
+      if (response.rateLimit) {
+        this.updateRateLimit(response.rateLimit);
+      }
+
+      // Return PRs with cursor info
+      const prs = response.repository.pullRequests.nodes;
+      const pageInfo = response.repository.pullRequests.pageInfo;
+      
+      // Add cursor to last PR for tracking
+      if (prs.length > 0 && pageInfo.endCursor) {
+        prs[prs.length - 1].cursor = pageInfo.endCursor;
+      }
+
+      return prs;
+    } catch (error: any) {
+      console.error(`[GraphQL] Paginated PRs query failed for ${owner}/${repo}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Get current rate limit status
    */
   getRateLimit(): RateLimitInfo | null {

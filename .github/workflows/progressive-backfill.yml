@@ -1,0 +1,120 @@
+name: Progressive Repository Backfill
+
+on:
+  schedule:
+    # Run every 30 minutes
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      repository_id:
+        description: 'Repository ID to backfill (optional, will process all active backfills if not specified)'
+        required: false
+        type: string
+      chunk_size:
+        description: 'Number of PRs to process per chunk'
+        required: false
+        type: string
+        default: '25'
+      dry_run:
+        description: 'Run without making changes (for testing)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  backfill:
+    name: Progressive Backfill
+    runs-on: ubuntu-latest
+    timeout-minutes: 15 # Prevent runaway jobs
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: |
+          npm ci
+          
+      - name: Check rate limit before processing
+        id: rate_limit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node -e "
+          const getGraphQLClient = require('./src/lib/github/graphql-client.js').getGraphQLClient;
+          const client = getGraphQLClient();
+          const rateLimit = client.getRateLimit();
+          console.log('::set-output name=remaining::' + rateLimit.remaining);
+          console.log('::set-output name=limit::' + rateLimit.limit);
+          if (rateLimit.remaining < 500) {
+            console.log('::warning::Low rate limit remaining: ' + rateLimit.remaining);
+          }
+          "
+          
+      - name: Run progressive backfill
+        if: steps.rate_limit.outputs.remaining > 100
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          REPOSITORY_ID: ${{ inputs.repository_id }}
+          CHUNK_SIZE: ${{ inputs.chunk_size }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          node scripts/github-actions/progressive-backfill.js \
+            --chunk-size="${CHUNK_SIZE:-25}" \
+            ${REPOSITORY_ID:+--repository-id="$REPOSITORY_ID"} \
+            ${DRY_RUN:+--dry-run}
+            
+      - name: Report job status
+        if: always()
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          JOB_ID: ${{ github.run_id }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          node -e "
+          const { createClient } = require('@supabase/supabase-js');
+          const supabase = createClient(
+            process.env.VITE_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_KEY
+          );
+          
+          (async () => {
+            await supabase
+              .from('progressive_capture_jobs')
+              .update({
+                status: process.env.JOB_STATUS === 'success' ? 'completed' : 'failed',
+                completed_at: new Date().toISOString(),
+                metadata: {
+                  workflow_run_id: process.env.JOB_ID,
+                  workflow_run_url: \`https://github.com/\${process.env.GITHUB_REPOSITORY}/actions/runs/\${process.env.JOB_ID}\`
+                }
+              })
+              .eq('metadata->workflow_type', 'progressive_backfill')
+              .eq('status', 'processing');
+          })();
+          "
+          
+      - name: Report failure to GitHub Issues
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY_ID: ${{ inputs.repository_id }}
+        run: |
+          node scripts/github-actions/report-failure.js \
+            --job-type="progressive_backfill" \
+            --repository-id="${REPOSITORY_ID}" \
+            --workflow-name="${{ github.workflow }}" \
+            --workflow-url="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"

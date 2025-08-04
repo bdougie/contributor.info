@@ -6,6 +6,7 @@ import { hybridRolloutManager } from './rollout-manager';
 import { queuePrioritizationService } from './queue-prioritization';
 import { autoRetryService } from './auto-retry-service';
 import { mapQueueDataToEventData } from '../inngest/types/event-data';
+import { enhancedHybridRouter } from './enhanced-hybrid-router';
 
 // Import rollout console for global availability
 import './rollout-console';
@@ -66,29 +67,31 @@ export class HybridQueueManager {
     let processor: 'inngest' | 'github_actions';
     let rolloutApplied = false;
 
-    // Get repository metadata for prioritization
-    const repoMetadata = await queuePrioritizationService.getRepositoryMetadata(data.repositoryId);
-    
-    if (isEligible && repoMetadata) {
-      // Use prioritization service to determine routing
-      const priority = queuePrioritizationService.calculatePriorityScore(
-        repoMetadata,
-        data.triggerSource || 'automatic'
-      );
+    // Use enhanced hybrid router for better routing decisions
+    if (isEligible) {
+      // Use enhanced router for all routing decisions
+      const routingDecision = await enhancedHybridRouter.routeJob({
+        job_type: jobType,
+        repository_id: data.repositoryId,
+        repository_name: data.repositoryName,
+        time_range: data.timeRange,
+        max_items: data.maxItems,
+        priority: data.metadata?.priority || 'medium',
+        trigger_source: data.triggerSource
+      });
       
-      processor = priority.processor;
+      processor = routingDecision.processor;
       rolloutApplied = true;
       
-      // Override data with priority-based values
-      data.timeRange = data.timeRange || priority.timeRange;
-      data.maxItems = data.maxItems || priority.maxItems;
-      
-      console.log(`[HybridQueue] Repository ${data.repositoryName} eligible for hybrid routing → ${processor} (score: ${priority.score})`);
-    } else if (isEligible) {
-      // Use original hybrid routing logic if no metadata
-      processor = this.determineProcessor(jobType, data);
-      rolloutApplied = true;
       console.log(`[HybridQueue] Repository ${data.repositoryName} eligible for hybrid routing → ${processor}`);
+      console.log(`[HybridQueue] Routing reason: ${routingDecision.reason} (confidence: ${routingDecision.confidence})`);
+      
+      // Check if we should initiate backfill for large repos
+      const repo = await this.getRepositoryInfo(data.repositoryId);
+      if (repo && await enhancedHybridRouter.shouldInitiateBackfill(repo)) {
+        console.log(`[HybridQueue] Initiating progressive backfill for ${data.repositoryName}`);
+        // The backfill will be initiated by the sync function
+      }
     } else {
       // Fallback to Inngest-only for non-eligible repositories
       processor = 'inngest';
@@ -270,10 +273,12 @@ export class HybridQueueManager {
   private async queueWithGitHubActions(jobId: string, jobType: string, data: JobData): Promise<void> {
     // Map job types to workflow files
     const workflowMapping: Record<string, string> = {
-      'historical-pr-sync': 'historical-pr-sync.yml', // Uses GraphQL version
-      'historical-reviews-sync': 'historical-reviews-sync.yml',
-      'historical-comments-sync': 'historical-comments-sync.yml',
-      'bulk-file-changes': 'bulk-file-changes.yml'
+      'progressive_backfill': 'progressive-backfill.yml',
+      'historical-pr-sync': 'progressive-backfill.yml', // Use progressive backfill for all historical sync
+      'pr-details': 'capture-pr-details-graphql.yml',
+      'historical-reviews-sync': 'capture-pr-details-graphql.yml', // PR details includes reviews
+      'historical-comments-sync': 'capture-pr-details-graphql.yml', // PR details includes comments
+      'bulk-file-changes': 'capture-pr-details-graphql.yml' // Can handle file changes too
     };
 
     const workflow = workflowMapping[jobType];
@@ -281,16 +286,29 @@ export class HybridQueueManager {
       throw new Error(`Unknown job type for GitHub Actions: ${jobType}`);
     }
 
-    // Dispatch workflow
+    // Dispatch workflow based on type
+    let inputs: Record<string, string> = {
+      repository_id: data.repositoryId,
+      repository_name: data.repositoryName,
+      job_id: jobId
+    };
+
+    // Add specific inputs based on workflow type
+    if (workflow === 'progressive-backfill.yml') {
+      inputs.chunk_size = '25'; // Default chunk size
+    } else if (workflow === 'capture-pr-details-graphql.yml') {
+      // For PR details, we need PR numbers
+      if (data.prNumbers && data.prNumbers.length > 0) {
+        inputs.pr_numbers = data.prNumbers.join(',');
+      } else {
+        // If no PR numbers provided, skip this job
+        throw new Error('PR numbers required for capture-pr-details workflow');
+      }
+    }
+
     const result = await this.actionsManager.dispatchWorkflow({
       workflow,
-      inputs: {
-        repository_id: data.repositoryId,
-        repository_name: data.repositoryName,
-        time_range: data.timeRange?.toString() || '30',
-        max_items: data.maxItems?.toString() || this.ACTIONS_MAX_ITEMS.toString(),
-        job_id: jobId
-      }
+      inputs
     });
 
     if (!result.success) {
@@ -531,6 +549,29 @@ export class HybridQueueManager {
       processor: inngestJobs > 0 && actionsJobs > 0 ? 'hybrid' : primaryProcessor,
       reason
     };
+  }
+
+  /**
+   * Get repository information
+   */
+  private async getRepositoryInfo(repositoryId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('repositories')
+        .select('id, owner, name, pull_request_count')
+        .eq('id', repositoryId)
+        .single();
+
+      if (error) {
+        console.error('[HybridQueue] Error fetching repository info:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('[HybridQueue] Exception fetching repository info:', error);
+      return null;
+    }
   }
 }
 
