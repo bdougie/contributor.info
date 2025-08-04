@@ -1,16 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Mock dependencies before imports
+vi.mock('../supabase');
+vi.mock('../simple-logging');
+vi.mock('../inngest/client-safe');
+vi.mock('sonner');
+
 import { fetchPRDataSmart, hasAnyPRData } from '../supabase-pr-data-smart';
 import type { PullRequest } from '../types';
 import { supabase } from '../supabase';
 import { trackDatabaseOperation } from '../simple-logging';
 import { sendInngestEvent } from '../inngest/client-safe';
 import { toast } from 'sonner';
-
-// Mock dependencies
-vi.mock('../supabase');
-vi.mock('../simple-logging');
-vi.mock('../inngest/client-safe');
-vi.mock('sonner');
 
 describe('fetchPRDataSmart', () => {
   beforeEach(() => {
