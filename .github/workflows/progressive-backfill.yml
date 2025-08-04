@@ -49,16 +49,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          node -e "
-          const getGraphQLClient = require('./src/lib/github/graphql-client.js').getGraphQLClient;
-          const client = getGraphQLClient();
-          const rateLimit = client.getRateLimit();
-          console.log('::set-output name=remaining::' + rateLimit.remaining);
-          console.log('::set-output name=limit::' + rateLimit.limit);
-          if (rateLimit.remaining < 500) {
-            console.log('::warning::Low rate limit remaining: ' + rateLimit.remaining);
-          }
-          "
+          output=$(node scripts/github-actions/check-rate-limit.js)
+          echo "$output" >> $GITHUB_OUTPUT
           
       - name: Run progressive backfill
         if: steps.rate_limit.outputs.remaining > 100
