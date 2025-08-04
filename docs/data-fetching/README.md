@@ -25,6 +25,13 @@ Comprehensive troubleshooting guide for Inngest issues:
 - Local vs production configuration
 - Emergency procedures
 
+### 🔒 [Inngest Client-Safe Event Sending](./inngest-client-safe.md) **NEW**
+Guide to the client-safe wrapper for Inngest events:
+- Browser-safe event sending without exposing keys
+- Unified API for client and server contexts
+- Migration guide from direct inngest.send() usage
+- Security benefits and implementation details
+
 ### 📋 [Rollout Quick Reference](./rollout-quick-reference.md) **NEW**
 Quick command reference for rollout management:
 - Console commands cheat sheet
@@ -49,6 +56,14 @@ Complete technical architecture including:
 - Progressive data loading
 - Hybrid API strategy (GraphQL/REST)
 - Performance optimizations
+
+### 🎯 [Database-First Smart Fetching](./database-first-smart-fetching.md) **NEW**
+Comprehensive guide to the enhanced data fetching system:
+- Smart database-first approach eliminates timeouts
+- Automatic new repository detection and setup
+- Enhanced user notifications and status communication
+- DataStateIndicator component usage
+- Error handling and resilience patterns
 
 ### 🚦 [Queue Management](./queue-management.md)
 Deep dive into the queue management system:

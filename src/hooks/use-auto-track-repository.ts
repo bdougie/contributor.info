@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { inngest } from '@/lib/inngest/client'
+import { sendInngestEvent } from '@/lib/inngest/client-safe'
 
 interface AutoTrackOptions {
   owner: string
@@ -62,7 +62,7 @@ export function useAutoTrackRepository({
             // Trigger size classification for newly tracked repository
             // This will happen in the background
             try {
-              await inngest.send({
+              await sendInngestEvent({
                 name: 'classify/repository.single',
                 data: {
                   repositoryId: newRepo.id,
@@ -83,7 +83,7 @@ export function useAutoTrackRepository({
           if (!existing.size || !existing.size_calculated_at) {
             // Repository has never been classified
             try {
-              await inngest.send({
+              await sendInngestEvent({
                 name: 'classify/repository.single',
                 data: {
                   repositoryId: existing.id,
@@ -103,7 +103,7 @@ export function useAutoTrackRepository({
             if (new Date(existing.size_calculated_at) < thirtyDaysAgo) {
               // Trigger reclassification
               try {
-                await inngest.send({
+                await sendInngestEvent({
                   name: 'classify/repository.single',
                   data: {
                     repositoryId: existing.id,

@@ -21,6 +21,7 @@ import { AvgTimeCard } from "./avg-time-card";
 import { VelocityCard } from "./velocity-card";
 import { calculatePrActivityMetrics, type ActivityMetrics } from "@/lib/insights/pr-activity-metrics";
 import { ProgressiveCaptureTrigger } from "@/lib/progressive-capture/manual-trigger";
+import { DataStateIndicator } from "@/components/ui/data-state-indicator";
 // Removed Sentry import - using simple logging instead
 
 interface MetricsAndTrendsCardProps {
@@ -274,18 +275,26 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Show status message for missing data, errors, or protection */}
-        {!loading && hasLowDataQuality(metrics, trends) && (
-          <div className="mb-6 p-4 bg-muted/50 rounded-lg border border-dashed">
+        {/* Show user-friendly status for all data states */}
+        {!loading && metrics && metrics.status !== 'success' && (
+          <DataStateIndicator 
+            status={metrics.status || 'success'}
+            message={metrics.message}
+            className="mb-6"
+          />
+        )}
+
+        {/* Show progressive capture option for data quality issues */}
+        {!loading && hasLowDataQuality(metrics, trends) && metrics?.status !== 'large_repository_protected' && (
+          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">{getStatusMessage(metrics).title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {getStatusMessage(metrics).description}
+                <p className="text-sm font-medium text-blue-900">Want more complete data?</p>
+                <p className="text-xs text-blue-700">
+                  Load additional review and comment history for deeper insights.
                 </p>
               </div>
-              {metrics?.status !== 'large_repository_protected' && (
-                <Button 
+              <Button 
                   onClick={async () => {
                     // Simple logging for user retry action
                     console.log('User triggered progressive data capture:', {
@@ -334,7 +343,6 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                 >
                   <RefreshCw className="h-4 w-4" />
                 </Button>
-              )}
             </div>
           </div>
         )}

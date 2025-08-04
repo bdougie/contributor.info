@@ -24,6 +24,9 @@ Testing documentation helps developers:
 ### 🚀 Release & Deployment
 - **[Release Process](./release-process.md)** - Testing as part of release workflow
 
+### 🧪 Testing Patterns
+- **[Testing Patterns and Best Practices](../testing-patterns.md)** - Mocking patterns, CI compatibility, and best practices for consistent testing
+
 ## Testing Strategy Overview
 
 ### Testing Pyramid
