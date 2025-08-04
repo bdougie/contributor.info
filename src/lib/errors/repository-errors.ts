@@ -28,9 +28,10 @@ export class NoDataAvailableError extends Error {
 
 export interface DataResult<T> {
   data: T;
-  status: 'success' | 'large_repository_protected' | 'no_data' | 'error' | 'partial_data';
+  status: 'success' | 'large_repository_protected' | 'no_data' | 'error' | 'partial_data' | 'pending';
   message?: string;
   repositoryName?: string;
+  metadata?: Record<string, any>;
 }
 
 /**
@@ -51,10 +52,11 @@ export function createLargeRepositoryResult<T>(
 /**
  * Creates a successful result
  */
-export function createSuccessResult<T>(data: T): DataResult<T> {
+export function createSuccessResult<T>(data: T, metadata?: Record<string, any>): DataResult<T> {
   return {
     data,
-    status: 'success'
+    status: 'success',
+    metadata
   };
 }
 
@@ -85,6 +87,22 @@ export function createPartialDataResult<T>(
     data: partialData,
     status: 'partial_data',
     message: reason,
+    repositoryName
+  };
+}
+
+/**
+ * Creates a pending data result when data is being fetched
+ */
+export function createPendingDataResult<T>(
+  repositoryName: string,
+  fallbackData: T,
+  message?: string
+): DataResult<T> {
+  return {
+    data: fallbackData,
+    status: 'pending',
+    message: message || `Data for ${repositoryName} is being gathered. Please check back in a moment.`,
     repositoryName
   };
 }

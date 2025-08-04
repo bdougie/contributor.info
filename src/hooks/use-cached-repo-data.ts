@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-commits';
 import { fetchPRDataWithFallback } from '@/lib/supabase-pr-data';
+import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart';
 import { calculateLotteryFactor } from '@/lib/utils';
 import type { RepoStats, LotteryFactor, DirectCommitsData, TimeRange } from '@/lib/types';
 import { trackCacheOperation, setApplicationContext, startSpan } from '@/lib/simple-logging';
@@ -77,6 +78,11 @@ export function useCachedRepoData(
   });
   const [lotteryFactor, setLotteryFactor] = useState<LotteryFactor | null>(null);
   const [directCommitsData, setDirectCommitsData] = useState<DirectCommitsData | null>(null);
+  const [dataStatus, setDataStatus] = useState<{
+    status: 'success' | 'pending' | 'no_data' | 'partial_data' | 'large_repository_protected';
+    message?: string;
+    metadata?: Record<string, any>;
+  }>({ status: 'success' });
 
   // Track if we're currently fetching to prevent duplicate requests
   const fetchingRef = useRef(false);
@@ -144,17 +150,61 @@ export function useCachedRepoData(
               dataSource: 'database'
             });
 
-            // Fetch pull requests and direct commits in parallel
-            const [prDataResult, directCommits] = await Promise.all([
-              fetchPRDataWithFallback(owner, repo, timeRange),
-              fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
-            ]);
+            // Use smart fetch for better UX - avoids problematic API fallback
+            const useSmartFetch = true; // Feature flag for gradual rollout
+            
+            if (useSmartFetch) {
+              const [prDataResult, directCommits] = await Promise.all([
+                fetchPRDataSmart(owner, repo, { timeRange, showNotifications: false }),
+                fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
+              ]);
+              
+              return { 
+                prs: prDataResult.data, 
+                directCommits,
+                status: prDataResult.status,
+                message: prDataResult.message,
+                metadata: prDataResult.metadata
+              };
+            } else {
+              // Legacy fallback path
+              const [prDataResult, directCommits] = await Promise.all([
+                fetchPRDataWithFallback(owner, repo, timeRange),
+                fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
+              ]);
 
-            return { prs: prDataResult.data, directCommits };
+              return { 
+                prs: prDataResult.data, 
+                directCommits,
+                status: prDataResult.status,
+                message: prDataResult.message
+              };
+            }
           }
         );
 
-        const { prs, directCommits } = fetchResult;
+        const { prs, directCommits, status, message, metadata } = fetchResult;
+        
+        // Update data status for UI
+        setDataStatus({
+          status: status || 'success',
+          message,
+          metadata
+        });
+        
+        // Handle different data states gracefully
+        if (status === 'pending' && prs.length === 0) {
+          // Repository is being set up - show friendly loading state
+          setStats({
+            pullRequests: [],
+            loading: false,
+            error: null,
+          });
+          setLotteryFactor(null);
+          setDirectCommitsData(null);
+          return; // Skip caching for pending state
+        }
+        
         const newStats = { pullRequests: prs, loading: false, error: null };
         const newLotteryFactor = calculateLotteryFactor(prs, timeRange, includeBots);
         const newDirectCommitsData = {
@@ -216,5 +266,5 @@ export function useCachedRepoData(
     loadPRData();
   }, [owner, repo, timeRange, includeBots]);
 
-  return { stats, lotteryFactor, directCommitsData };
+  return { stats, lotteryFactor, directCommitsData, dataStatus };
 }

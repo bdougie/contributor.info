@@ -1,11 +1,11 @@
 import { supabase } from './supabase';
-import { fetchPullRequests } from './github';
 import type { PullRequest } from './types';
 import { trackDatabaseOperation, trackRateLimit } from './simple-logging';
 import { 
   createLargeRepositoryResult, 
   createSuccessResult, 
   createNoDataResult,
+  createPendingDataResult,
   type DataResult 
 } from './errors/repository-errors';
 // Removed Sentry import - using simple logging instead
@@ -209,15 +209,26 @@ export async function fetchPRDataWithFallback(
   } catch (error) {
   }
 
-  // Fallback to GitHub API - PROTECTED for large repositories to prevent resource exhaustion
-  // Large repositories like kubernetes/kubernetes can cause ERR_INSUFFICIENT_RESOURCES
-  // BUT: Only apply protection if we have cached data to show, otherwise use normal API flow
+  // Fallback to GitHub API - STRICTLY LIMITED to prevent resource exhaustion
+  // Only fetch basic repository info, never attempt to fetch all PRs for unknown repos
   try {
-    // Check if this is a potentially large repository with cached data
-    const largeRepos = ['kubernetes/kubernetes', 'microsoft/vscode'];
+    // List of known large repositories that should NEVER use API fallback
+    const protectedRepos = [
+      'kubernetes/kubernetes', 
+      'microsoft/vscode', 
+      'pytorch/pytorch',
+      'tensorflow/tensorflow',
+      'apache/spark',
+      'elastic/elasticsearch',
+      'facebook/react',
+      'angular/angular',
+      'nodejs/node',
+      'torvalds/linux'
+    ];
     const repoName = `${owner}/${repo}`;
     
-    if (largeRepos.includes(repoName)) {
+    // Never attempt API fallback for known large repositories
+    if (protectedRepos.some(repo => repoName.toLowerCase().includes(repo.toLowerCase()))) {
       // Check if we have cached data before applying protection
       try {
         const { data: repoData, error: repoError } = await supabase
@@ -314,9 +325,33 @@ export async function fetchPRDataWithFallback(
       // This prevents showing empty arrays when we could get fresh data
     }
     
-    fallbackUsed = true;
-    const githubPRs = await fetchPullRequests(owner, repo, timeRange);
-    return createSuccessResult(githubPRs);
+    // NEW APPROACH: Never fetch all PRs via API for untracked repositories
+    // This prevents timeouts and rate limit issues
+    // Instead, return a pending state and let background processing handle it
+    
+    console.log(`Repository ${owner}/${repo} not in database. Skipping API fallback to prevent timeouts.`);
+    
+    // Trigger background sync instead of risky API call
+    try {
+      const { inngest } = await import('./inngest/client');
+      await inngest.send({
+        name: 'capture/repository.sync',
+        data: {
+          owner,
+          repo,
+          priority: 'high',
+          source: 'missing-repo-fallback'
+        }
+      });
+    } catch (error) {
+      console.error('Failed to trigger background sync:', error);
+    }
+    
+    return createPendingDataResult(
+      repoName,
+      [],
+      'This repository needs to be set up first. We\'re working on it - check back in 1-2 minutes!'
+    );
   } catch (githubError) {
     // Track rate limiting specifically
     if (githubError instanceof Error && 

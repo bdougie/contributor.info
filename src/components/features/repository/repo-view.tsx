@@ -31,6 +31,7 @@ import { DataProcessingIndicator } from "./data-processing-indicator";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { RepositoryInlineMetadata } from "@/components/ui/repository-inline-metadata";
 import { useTrackRepositoryWithNotification } from "@/hooks/use-track-repository-with-notification";
+import { DataStateIndicator } from "@/components/ui/data-state-indicator";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -62,7 +63,7 @@ export default function RepoView() {
   };
 
   // Use our custom hooks
-  const { stats, lotteryFactor, directCommitsData } = useCachedRepoData(
+  const { stats, lotteryFactor, directCommitsData, dataStatus } = useCachedRepoData(
     owner,
     repo,
     timeRange,
@@ -298,6 +299,15 @@ export default function RepoView() {
                       </div>
                     </div>
                   </div>
+                )}
+                {/* Show data state indicator for pending/partial data */}
+                {!stats.loading && dataStatus && dataStatus.status !== 'success' && (
+                  <DataStateIndicator
+                    status={dataStatus.status}
+                    message={dataStatus.message}
+                    metadata={dataStatus.metadata}
+                    className="mt-4"
+                  />
                 )}
               </>
             )}
