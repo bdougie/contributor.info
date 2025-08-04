@@ -17,7 +17,6 @@ interface ReviewComment {
   repository_id: string;
   pull_request_id: string;
   github_id: number;
-  pull_request_number: number;
   review_id?: number;
   body: string;
   path?: string;
@@ -283,7 +282,6 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           repository_id: string;
           pull_request_id: string;
           github_id: number;
-          pull_request_number: number;
           state: string;
           body: string;
           author_id: string;
@@ -297,7 +295,6 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
               repository_id: repositoryId,
               pull_request_id: prInternalId,
               github_id: review.databaseId,
-              pull_request_number: pullRequest.number,
               state: review.state?.toLowerCase(),
               body: review.body,
               author_id: reviewAuthorId,
@@ -331,7 +328,6 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           repository_id: string;
           pull_request_id: string;
           github_id: number;
-          pull_request_number: number;
           body: string;
           commenter_id: string;
           created_at: string;
@@ -345,7 +341,6 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
               repository_id: repositoryId,
               pull_request_id: prInternalId,
               github_id: comment.databaseId,
-              pull_request_number: pullRequest.number,
               body: comment.body,
               commenter_id: commenterId,
               created_at: comment.createdAt,
@@ -396,7 +391,6 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
               repository_id: repositoryId,
               pull_request_id: prInternalId,
               github_id: comment.databaseId,
-              pull_request_number: pullRequest.number,
               review_id: review.databaseId,
               body: comment.body,
               path: comment.path,
