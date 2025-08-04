@@ -1,6 +1,7 @@
 import { inngest } from '../client';
 import { supabase } from '../../supabase';
 import type { GitHubPullRequest } from '../types';
+import { RATE_LIMIT_CONFIG } from '../queue-manager';
 
 // Rate limiting constants
 const MAX_PRS_PER_SYNC = 100;
@@ -194,8 +195,8 @@ export const captureRepositorySync = inngest.createFunction(
 
       // Limit the number of detail jobs to queue
       const MAX_DETAIL_JOBS = 20;
-      // Increased limit for reviews/comments to ensure complete data capture
-      const MAX_REVIEW_COMMENT_JOBS = 50;
+      // Use centralized configuration for review/comment job limits
+      const MAX_REVIEW_COMMENT_JOBS = RATE_LIMIT_CONFIG.MAX_REVIEW_COMMENT_JOBS;
       
       let detailJobsQueued = 0;
       let reviewJobsQueued = 0;
