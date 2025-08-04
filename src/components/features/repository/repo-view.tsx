@@ -30,7 +30,7 @@ import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { DataProcessingIndicator } from "./data-processing-indicator";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { RepositoryInlineMetadata } from "@/components/ui/repository-inline-metadata";
-import { useTrackRepositoryWithNotification } from "@/hooks/use-track-repository-with-notification";
+import { useRepositoryDiscovery } from "@/hooks/use-repository-discovery";
 import { DataStateIndicator } from "@/components/ui/data-state-indicator";
 
 export default function RepoView() {
@@ -44,8 +44,8 @@ export default function RepoView() {
   const dubConfig = getDubConfig();
   const { isLoggedIn } = useGitHubAuth();
   
-  // Auto-track repository with user notifications
-  const trackingState = useTrackRepositoryWithNotification({
+  // Handle repository discovery for new repositories
+  const discoveryState = useRepositoryDiscovery({
     owner,
     repo,
     enabled: Boolean(owner && repo)
@@ -151,7 +151,7 @@ export default function RepoView() {
                            stats.error.includes('404');
     
     // If it's a new repository being tracked, don't show error
-    if (isRepoNotFound && trackingState.isNewRepository) {
+    if (isRepoNotFound && discoveryState.isNewRepository) {
       // Continue to show the normal view with skeleton loaders
       // The tracking notification will inform the user
     } else if (isRepoNotFound) {
@@ -282,7 +282,7 @@ export default function RepoView() {
                   repository={`${owner}/${repo}`} 
                   className="mt-4" 
                 />
-                {trackingState.isNewRepository && !stats.loading && (
+                {discoveryState.isNewRepository && !stats.loading && (
                   <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
                     <div className="flex items-start space-x-3">
                       <div className="flex-shrink-0">
