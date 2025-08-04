@@ -7,7 +7,7 @@ import {
   createPendingDataResult,
   type DataResult 
 } from './errors/repository-errors';
-import { inngest } from './inngest/client';
+import { sendInngestEvent } from './inngest/client-safe';
 import { toast } from 'sonner';
 
 interface FetchOptions {
@@ -196,7 +196,7 @@ export async function fetchPRDataSmart(
       // Trigger background sync if needed
       if (triggerBackgroundSync && (isEmpty || isStale)) {
         try {
-          await inngest.send({
+          await sendInngestEvent({
             name: 'capture/repository.sync',
             data: {
               owner,

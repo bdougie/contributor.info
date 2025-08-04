@@ -333,8 +333,8 @@ export async function fetchPRDataWithFallback(
     
     // Trigger background sync instead of risky API call
     try {
-      const { inngest } = await import('./inngest/client');
-      await inngest.send({
+      const { sendInngestEvent } = await import('./inngest/client-safe');
+      await sendInngestEvent({
         name: 'capture/repository.sync',
         data: {
           owner,

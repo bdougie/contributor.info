@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { inngest } from '@/lib/inngest/client'
+import { sendInngestEvent } from '@/lib/inngest/client-safe'
 import { ProgressiveCaptureNotifications } from '@/lib/progressive-capture/ui-notifications'
 import { toast } from 'sonner'
 
@@ -120,7 +120,7 @@ export function useTrackRepositoryWithNotification({
                 // Send multiple events for comprehensive initial sync
                 await Promise.all([
                   // Size classification
-                  inngest.send({
+                  sendInngestEvent({
                     name: 'classify/repository.single',
                     data: {
                       repositoryId: newRepo.id,
@@ -129,7 +129,7 @@ export function useTrackRepositoryWithNotification({
                     }
                   }),
                   // Initial data capture
-                  inngest.send({
+                  sendInngestEvent({
                     name: 'capture/repository.sync',
                     data: {
                       owner,
@@ -160,7 +160,7 @@ export function useTrackRepositoryWithNotification({
             
             // Trigger data sync
             try {
-              await inngest.send({
+              await sendInngestEvent({
                 name: 'capture/repository.sync',
                 data: {
                   owner,
@@ -197,7 +197,7 @@ export function useTrackRepositoryWithNotification({
             }
             
             try {
-              await inngest.send({
+              await sendInngestEvent({
                 name: 'capture/repository.sync',
                 data: {
                   owner,
