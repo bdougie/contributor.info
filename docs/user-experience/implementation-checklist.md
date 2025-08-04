@@ -96,15 +96,39 @@ const showBadNotification = () => {
 
 ### Background Processing Integration
 
-#### ✅ Smart Auto-Detection Setup
+#### ✅ Smart Auto-Detection with Hook
 ```typescript
-// Add to any component that displays repository data
-useEffect(() => {
-  if (owner && repo) {
-    // Auto-detect and fix missing data
-    SmartDataNotifications.checkRepositoryAndNotify(owner, repo);
-  }
-}, [owner, repo]);
+// Modern pattern: Use the dedicated hook
+const trackingState = useTrackRepositoryWithNotification({
+  owner,
+  repo,
+  enabled: true
+});
+
+// Hook automatically handles:
+// - Repository detection and tracking
+// - User-friendly notifications
+// - Error handling and retry logic
+// - State management
+```
+
+#### ✅ DataStateIndicator Integration
+```typescript
+// Always show clear data status to users
+const [dataResult, setDataResult] = useState<DataResult<any>>();
+
+return (
+  <div>
+    <DataStateIndicator
+      status={dataResult?.status || 'pending'}
+      message={dataResult?.message}
+      metadata={dataResult?.metadata}
+      onRefresh={handleRefresh}
+      compact={false} // Full display with progress bars
+    />
+    {/* Your data display components */}
+  </div>
+);
 ```
 
 #### ✅ Route-Based Auto-Detection
@@ -125,36 +149,41 @@ if (match && !isSystemPath(match[1])) {
 
 ### New Components with Data Loading
 - [ ] **Immediate rendering** with loading states or cached data
-- [ ] **Auto-detection integration** for data quality
-- [ ] **Background processing** for missing data
-- [ ] **Subtle notifications** for user awareness
-- [ ] **No manual refresh buttons** (use auto-refresh instead)
+- [ ] **Auto-detection integration** using `useTrackRepositoryWithNotification` hook
+- [ ] **DataStateIndicator integration** for clear status communication
+- [ ] **Background processing** for missing data with smart notification system
+- [ ] **Database-first data fetching** using `fetchPRDataSmart` approach
+- [ ] **Graceful error handling** with user-friendly messages
 
 ### Example: Repository Stats Component
 ```typescript
 export function RepositoryStatsCard({ owner, repo }: Props) {
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [dataResult, setDataResult] = useState<DataResult<Stats> | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Auto-detect and track repository
+  const trackingState = useTrackRepositoryWithNotification({
+    owner,
+    repo,
+    enabled: true
+  });
+
   useEffect(() => {
-    // 1. Load cached data immediately
-    loadCachedStats();
-    
-    // 2. Auto-detect and improve data quality
-    SmartDataNotifications.checkRepositoryAndNotify(owner, repo);
+    loadStatsData();
   }, [owner, repo]);
 
-  const loadCachedStats = async () => {
+  const loadStatsData = async () => {
     try {
-      // Always try database first
-      const cachedStats = await fetchStatsFromDatabase(owner, repo);
-      setStats(cachedStats);
+      // Use smart database-first fetching
+      const result = await fetchStatsDataSmart(owner, repo, {
+        triggerBackgroundSync: true,
+        showNotifications: false // Hook handles notifications
+      });
+      setDataResult(result);
       setLoading(false);
-      
-      // If data seems stale, background processing will handle it
     } catch (error) {
       setLoading(false);
-      // Graceful degradation - show what we can
+      setDataResult(createNoDataResult(`${owner}/${repo}`, null));
     }
   };
 
@@ -165,8 +194,16 @@ export function RepositoryStatsCard({ owner, repo }: Props) {
   return (
     <Card>
       <CardContent>
-        {stats ? (
-          <StatsDisplay stats={stats} />
+        {/* Show data state clearly */}
+        <DataStateIndicator
+          status={dataResult?.status || 'no_data'}
+          message={dataResult?.message}
+          metadata={dataResult?.metadata}
+          onRefresh={loadStatsData}
+        />
+        
+        {dataResult?.data ? (
+          <StatsDisplay stats={dataResult.data} />
         ) : (
           <EmptyState message="Repository stats will be available shortly" />
         )}
@@ -222,43 +259,71 @@ try {
 ## Testing Checklist
 
 ### Manual Testing
-- [ ] Visit repository page - loads immediately with some data
-- [ ] Wait 3-4 seconds - background detection runs
-- [ ] If data missing - subtle "Updating..." notification appears
-- [ ] Wait for completion - "Data updated!" notification with refresh button
-- [ ] Click refresh - see improved data quality
-- [ ] No console errors or technical jargon exposed
+- [ ] **Repository with existing data:**
+  - [ ] Page loads immediately with cached data
+  - [ ] DataStateIndicator shows appropriate status (fresh/stale)
+  - [ ] If stale: Background sync notification appears
+  - [ ] Completion notification shows with refresh option
+- [ ] **New repository discovery:**
+  - [ ] Page loads with empty state
+  - [ ] Setup notification appears: "Setting up owner/repo..."
+  - [ ] Processing notification: "Getting familiar with..."
+  - [ ] Completion notification with refresh button
+- [ ] **Error scenarios:**
+  - [ ] Failed setup shows clear error message
+  - [ ] Graceful degradation with helpful next steps
+  - [ ] No technical jargon or stack traces exposed
 
 ### Automated Testing
 ```typescript
-// Test the complete flow
-describe('Invisible Data Loading', () => {
-  it('should load cached data immediately', async () => {
+// Test the enhanced data loading flow
+describe('Smart Repository Handling', () => {
+  it('should show DataStateIndicator for existing repository', async () => {
+    mockExistingRepositoryData();
     render(<RepositoryPage owner="test" repo="repo" />);
     
-    // Should show cached data immediately
-    expect(screen.getByTestId('repository-stats')).toBeInTheDocument();
+    // Should show data state indicator
+    expect(screen.getByText(/data current/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /refresh/i })).toBeInTheDocument();
   });
 
-  it('should show updating notification for stale data', async () => {
-    // Mock stale data scenario
-    mockStaleData();
+  it('should handle new repository discovery', async () => {
+    mockNewRepository();
+    render(<RepositoryPage owner="new" repo="repo" />);
     
+    // Should show setup notification
+    await waitFor(() => {
+      expect(screen.getByText(/setting up new\/repo/i)).toBeInTheDocument();
+      expect(screen.getByText(/gathering contributor data/i)).toBeInTheDocument();
+    });
+    
+    // Should show processing notification
+    await waitFor(() => {
+      expect(screen.getByText(/getting familiar with/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should display stale data with appropriate indicators', async () => {
+    mockStaleData();
     render(<RepositoryPage owner="test" repo="repo" />);
     
+    // Should show stale data indicator
+    expect(screen.getByText(/data available/i)).toBeInTheDocument();
+    expect(screen.getByText(/fresh data loading/i)).toBeInTheDocument();
+    
+    // Should trigger background refresh
     await waitFor(() => {
       expect(screen.getByText(/updating test\/repo/i)).toBeInTheDocument();
     });
   });
 
-  it('should show completion notification when data is updated', async () => {
-    mockDataUpdateCompletion();
-    
+  it('should handle repository tracking hook errors gracefully', async () => {
+    mockRepositorySetupFailure();
     render(<RepositoryPage owner="test" repo="repo" />);
     
     await waitFor(() => {
-      expect(screen.getByText(/repository data updated/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /refresh/i })).toBeInTheDocument();
+      expect(screen.getByText(/failed to set up repository/i)).toBeInTheDocument();
+      expect(screen.getByText(/try refreshing the page/i)).toBeInTheDocument();
     });
   });
 });

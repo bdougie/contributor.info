@@ -50,6 +50,14 @@ Complete technical architecture including:
 - Hybrid API strategy (GraphQL/REST)
 - Performance optimizations
 
+### 🎯 [Database-First Smart Fetching](./database-first-smart-fetching.md) **NEW**
+Comprehensive guide to the enhanced data fetching system:
+- Smart database-first approach eliminates timeouts
+- Automatic new repository detection and setup
+- Enhanced user notifications and status communication
+- DataStateIndicator component usage
+- Error handling and resilience patterns
+
 ### 🚦 [Queue Management](./queue-management.md)
 Deep dive into the queue management system:
 - Queue prioritization algorithm
