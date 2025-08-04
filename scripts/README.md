@@ -104,6 +104,20 @@ Support development and debugging workflows.
 
 ## Subfolders
 
+### 🚀 `/github-actions/`
+Scripts designed to run in GitHub Actions workflows for automated processing.
+
+| Script | Purpose | When to Use |
+|--------|---------|-------------|
+| `check-rate-limit.js` | Check GitHub API rate limits | Before API-intensive operations |
+| `progressive-backfill.js` | Process large repository backfills | Scheduled backfill workflows |
+| `capture-pr-details-graphql.js` | Capture PR details via GraphQL | GitHub Actions PR processing |
+| `report-failure.js` | Report workflow failures as GitHub issues | Automated failure notifications |
+| `lib/graphql-client.js` | Simple GraphQL client for Actions | GraphQL operations in workflows |
+| `lib/chunk-calculator.js` | Calculate optimal processing chunks | Batch processing operations |
+| `lib/progress-tracker.js` | Track backfill progress | Long-running operations |
+| `lib/github-issue-reporter.js` | Create/update GitHub issues | Automated issue management |
+
 ### 📊 `/monitoring/`
 Advanced monitoring and cost analysis tools.
 
