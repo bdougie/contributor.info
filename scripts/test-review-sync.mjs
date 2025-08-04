@@ -6,7 +6,11 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+if (!SUPABASE_URL) {
+  console.error('Error: VITE_SUPABASE_URL environment variable is required');
+  process.exit(1);
+}
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_TOKEN;
 
 if (!SUPABASE_SERVICE_ROLE_KEY) {
@@ -86,9 +90,10 @@ async function testReviewSync() {
 
       const reviewCount = reviews?.length || 0;
       const commentCount = comments?.length || 0;
+      const status = (reviewCount === 0 && commentCount === 0) ? '❌ Missing data' : '✅ Has data';
 
       console.log(`PR #${pr.number}: "${pr.title.slice(0, 50)}..."`);
-      console.log(`  Reviews: ${reviewCount}, Comments: ${commentCount}`);
+      console.log(`  Reviews: ${reviewCount}, Comments: ${commentCount} ${status}`);
       console.log(`  Created: ${new Date(pr.created_at).toLocaleDateString()}\n`);
     }
 
