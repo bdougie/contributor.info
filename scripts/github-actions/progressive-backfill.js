@@ -225,7 +225,7 @@ async function processRepository(backfillData) {
     if (!options.dryRun) {
       try {
         // Process the chunk
-        await processChunk(repo, chunk, backfillData.id);
+        await processChunk(repo, chunk, backfillData, chunksProcessed + 1);
         
         // Update progress
         await tracker.updateProgress(chunk.length, chunk[chunk.length - 1].cursor);
@@ -274,14 +274,22 @@ async function getNextChunk(backfillData, repo, chunkSize) {
   }
 }
 
-async function processChunk(repo, prs, backfillStateId) {
+async function processChunk(repo, prs, backfillData, chunkNumber) {
+  // Get the total number of chunks already processed for proper numbering
+  const { count: existingChunks } = await supabase
+    .from('backfill_chunks')
+    .select('*', { count: 'exact', head: true })
+    .eq('backfill_state_id', backfillData.id);
+  
+  const actualChunkNumber = (existingChunks || 0) + chunkNumber;
+  
   // Create chunk record
   const { data: chunkRecord, error: chunkError } = await supabase
     .from('backfill_chunks')
     .insert({
       repository_id: repo.id,
-      backfill_state_id: backfillStateId,
-      chunk_number: Date.now(), // Simple incrementing number
+      backfill_state_id: backfillData.id,
+      chunk_number: actualChunkNumber,
       pr_numbers: prs.map(pr => pr.number),
       status: 'processing',
       started_at: new Date().toISOString()
