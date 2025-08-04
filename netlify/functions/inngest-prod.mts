@@ -14,7 +14,7 @@ import {
   captureRepositorySync,
   capturePrDetailsGraphQL,
   classifyRepositorySize
-} from "../../src/lib/inngest/functions";
+} from "../../src/lib/inngest/functions/index-without-embeddings";
 
 // Environment detection - treat deploy previews as production for signing
 const isProduction = () => {
