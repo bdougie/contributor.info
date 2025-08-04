@@ -41,7 +41,6 @@ export class HybridQueueManager {
   
   // Configuration
   private readonly SMALL_BATCH_SIZE = 50;
-  private readonly INNGEST_MAX_ITEMS = 50;
   private readonly ACTIONS_MAX_ITEMS = 1000;
 
   constructor() {
