@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { program } from 'commander';
 import { ChunkCalculator } from './lib/chunk-calculator.js';
 import { ProgressTracker } from './lib/progress-tracker.js';
-import { getGraphQLClient } from '../../src/lib/inngest/graphql-client.js';
+import { getGraphQLClient } from './lib/graphql-client.js';
 
 // Initialize Supabase client
 const supabase = createClient(
