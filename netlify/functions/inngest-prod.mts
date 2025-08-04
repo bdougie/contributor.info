@@ -158,6 +158,6 @@ const mainHandler = async (req: Request, context: Context) => {
   return inngestHandler(req, context);
 };
 
-// Export both default and named handler for maximum compatibility
+// Export default as the wrapper and handler as the raw inngest handler
 export default mainHandler;
-export const handler = mainHandler;
+export const handler = inngestHandler;
