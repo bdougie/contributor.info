@@ -25,6 +25,13 @@ Comprehensive troubleshooting guide for Inngest issues:
 - Local vs production configuration
 - Emergency procedures
 
+### 🔒 [Inngest Client-Safe Event Sending](./inngest-client-safe.md) **NEW**
+Guide to the client-safe wrapper for Inngest events:
+- Browser-safe event sending without exposing keys
+- Unified API for client and server contexts
+- Migration guide from direct inngest.send() usage
+- Security benefits and implementation details
+
 ### 📋 [Rollout Quick Reference](./rollout-quick-reference.md) **NEW**
 Quick command reference for rollout management:
 - Console commands cheat sheet
