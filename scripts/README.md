@@ -45,11 +45,13 @@ Sync and manage GitHub data.
 | Script | Purpose | When to Use |
 |--------|---------|-------------|
 | `backfill-pr-stats.js` | Backfill missing PR statistics | Data recovery |
+| `backfill-reviews-comments.mjs` | Backfill missing PR reviews and comments | Fill gaps in review/comment data |
 | `sync-historical-prs.js` | Sync historical pull request data | Initial setup or data recovery |
 | `sync-historical-comments.js` | Sync historical PR comments | Complete data backfills |
 | `sync-historical-reviews.js` | Sync historical PR reviews | Review data backfills |
 | `refresh-stale-repos.js` | Refresh outdated repository data | Monthly maintenance |
 | `trigger-refresh.js` | Manually trigger data refresh | Force data updates |
+| `manual-trigger.mjs` | Manually trigger data refresh for specific repos | Target specific repository updates |
 
 ### 🧪 **Testing & Validation**
 Ensure system reliability and data integrity.
@@ -58,6 +60,12 @@ Ensure system reliability and data integrity.
 |--------|---------|-------------|
 | `test-github-auth.mjs` | Test GitHub API authentication | Debug auth issues |
 | `test-inngest.js` | Test Inngest queue functionality | Queue troubleshooting |
+| `test-inngest-direct.mjs` | Test direct Inngest event sending | Test event queue directly |
+| `test-api-fallback-prevention.mjs` | Verify API fallback prevention works | Ensure efficient data fetching |
+| `test-new-repo-tracking.mjs` | Test new repository tracking flow | Validate repo onboarding |
+| `test-review-sync.mjs` | Test PR review syncing functionality | Debug review data issues |
+| `test-sync-logging.mjs` | Test sync logging functionality | Verify logging system |
+| `test-update-activity.mjs` | Test PR activity update functionality | Debug activity updates |
 | `test-social-cards.js` | Validate social card generation | Social media debugging |
 | `verify-embeddings.ts` | Verify AI embedding accuracy | AI feature validation |
 | `verify-social-card-system.js` | Test complete social card system | End-to-end validation |
@@ -89,6 +97,8 @@ Support development and debugging workflows.
 |--------|---------|-------------|
 | `debug-github-actions-errors.js` | Debug GitHub Actions failures | CI/CD troubleshooting |
 | `debug-ui-events.js` | Debug frontend user interactions | UI issue investigation |
+| `debug-capture-pr.mjs` | Debug PR capture functionality | Troubleshoot PR data capture |
+| `search-user-reviews.mjs` | Search and analyze user PR reviews | Find specific user contributions |
 | `check-build-clean.js` | Verify clean build output | Pre-release validation |
 | `fix-inngest-local.sh` | Fix local Inngest development | Local development setup |
 

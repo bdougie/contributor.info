@@ -13,9 +13,10 @@ User Experience documentation helps developers:
 ## Documentation Index
 
 ### 📋 UX Guidelines & Patterns
-- **[Implementation Checklist](./implementation-checklist.md)** - UX implementation validation checklist
+- **[Implementation Checklist](./implementation-checklist.md)** - UX implementation validation checklist with enhanced patterns
 - **[Feature Template](./feature-template.md)** - Standardized UX pattern template
-- **[Invisible Data Loading](./invisible-data-loading.md)** - Netflix-like background data loading UX
+- **[Invisible Data Loading](./invisible-data-loading.md)** - Netflix-like background data loading UX (Updated)
+- **[New Repository Discovery](./new-repository-discovery.md)** - User experience guide for automatic repository setup **NEW**
 
 ### 📊 UX Analysis & Reports
 - **[UX Summary](./SUMMARY.md)** - User experience analysis and improvements summary

@@ -10,7 +10,7 @@ import {
 } from './errors/repository-errors';
 import { getFetchStrategy, calculateFetchWindow, shouldUseCachedData } from './fetch-strategies';
 import { RepositorySize } from './validation/database-schemas';
-import { inngest } from './inngest/client';
+import { sendInngestEvent } from './inngest/client-safe';
 import { trackFetchStart, trackFetchEnd } from './telemetry/fetch-performance';
 
 interface TrackedRepositoryInfo {
@@ -59,7 +59,7 @@ export async function fetchPRDataWithSmartStrategy(
           
           // Trigger classification if not done yet
           if (!repoSize && trackedRepo.id) {
-            inngest.send({
+            sendInngestEvent({
               name: 'classify/repository.single',
               data: {
                 repositoryId: trackedRepo.id,
@@ -167,7 +167,7 @@ export async function fetchPRDataWithSmartStrategy(
               
               // For large/XL repos with stale cache, trigger background update
               if (strategy.triggerCapture && trackedRepo?.id) {
-                inngest.send({
+                sendInngestEvent({
                   name: 'capture/repository.sync.graphql',
                   data: {
                     repositoryId: trackedRepo.id,
@@ -205,7 +205,7 @@ export async function fetchPRDataWithSmartStrategy(
           
           // Trigger full background capture
           if (strategy.triggerCapture && trackedRepo?.id) {
-            inngest.send({
+            sendInngestEvent({
               name: 'capture/repository.sync.graphql',
               data: {
                 repositoryId: trackedRepo.id,
@@ -234,7 +234,7 @@ export async function fetchPRDataWithSmartStrategy(
         
         // Trigger background capture for more data if needed
         if (strategy.triggerCapture && trackedRepo?.id && effectiveDays < requestedDays) {
-          inngest.send({
+          sendInngestEvent({
             name: 'capture/repository.sync.graphql',
             data: {
               repositoryId: trackedRepo.id,

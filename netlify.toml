@@ -6,6 +6,14 @@
   NODE_VERSION = "20"
   NPM_VERSION = "10"
 
+[dev]
+  command = "vite --port 5174"
+  framework = "#custom"
+  targetPort = 5174
+  publish = "dist"
+  autoLaunch = false
+  envFiles = [".env", ".env.local"]
+
 # Deploy contexts
 [context.production.environment]
   # Production-specific env vars can go here
@@ -18,6 +26,9 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+[functions.inngest-prod]
+  node_bundler = "esbuild"
+
 [functions.inngest]
   node_bundler = "esbuild"
 
@@ -25,6 +36,12 @@
   node_bundler = "esbuild"
 
 # Specific API routes (these must come first)
+[[redirects]]
+  from = "/api/inngest"
+  to = "/.netlify/functions/inngest-prod"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/api/hello"
   to = "/.netlify/functions/hello"
@@ -46,6 +63,18 @@
 [[redirects]]
   from = "/api/github/callback"
   to = "/.netlify/functions/github-callback"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/queue-event"
+  to = "/.netlify/functions/api-queue-event"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/discover-repository"
+  to = "/.netlify/functions/api-discover-repository-simple"
   status = 200
   force = true
 

@@ -29,7 +29,7 @@ export default function ContributorOfTheMonthWrapper() {
       reviews: ranking.reviewsCount,
       comments: ranking.commentsCount,
       totalScore: ranking.weightedScore,
-      firstContributionDate: new Date().toISOString(), // Not available in monthly rankings
+      firstContributionDate: '', // Not available in monthly rankings
     },
     rank: ranking.rank,
     isWinner: ranking.rank === 1 && isWinnerPhase,
