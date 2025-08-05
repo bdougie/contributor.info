@@ -6,10 +6,26 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
+// Validate required environment variables
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_TOKEN;
+
+if (!supabaseUrl) {
+  console.error('❌ Error: VITE_SUPABASE_URL environment variable is required');
+  console.error('Please set it in your .env file or environment');
+  process.exit(1);
+}
+
+if (!supabaseServiceKey) {
+  console.error('❌ Error: SUPABASE_SERVICE_KEY or SUPABASE_TOKEN environment variable is required');
+  console.error('Please set it in your .env file or environment');
+  process.exit(1);
+}
+
 // Initialize Supabase client
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co',
-  process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_TOKEN,
+  supabaseUrl,
+  supabaseServiceKey,
   {
     auth: {
       autoRefreshToken: false,

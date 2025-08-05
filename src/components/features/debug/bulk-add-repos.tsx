@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,29 +49,6 @@ export function BulkAddRepos() {
       });
   };
 
-  const checkExistingRepos = async (repos: string[]): Promise<Set<string>> => {
-    const repoChecks = repos.map(repo => {
-      const [owner, name] = repo.split('/');
-      return { organization_name: owner, repository_name: name };
-    });
-
-    const { data: existing, error } = await supabase
-      .from('tracked_repositories')
-      .select('organization_name, repository_name')
-      .in('organization_name', repoChecks.map(r => r.organization_name))
-      .in('repository_name', repoChecks.map(r => r.repository_name));
-
-    if (error) {
-      throw new Error(`Failed to check existing repos: ${error.message}`);
-    }
-
-    const existingSet = new Set<string>();
-    existing?.forEach(repo => {
-      existingSet.add(`${repo.organization_name}/${repo.repository_name}`);
-    });
-
-    return existingSet;
-  };
 
   const insertReposInBatches = async (
     repos: string[],
@@ -261,7 +238,6 @@ export function BulkAddRepos() {
           for (const repoName of reposToBackfill) {
             const repoId = result.repoIds?.[repoName];
             if (repoId) {
-              const [owner, name] = repoName.split('/');
               backfillEvents.push({
                 name: "capture/repository.sync.graphql" as const,
                 data: {
@@ -276,7 +252,10 @@ export function BulkAddRepos() {
           
           if (backfillEvents.length > 0) {
             try {
-              await sendInngestEvent(backfillEvents);
+              // Send events individually
+              for (const event of backfillEvents) {
+                await sendInngestEvent(event);
+              }
               
               // Initialize backfill job tracking
               const jobs: Record<string, BackfillJob> = {};
