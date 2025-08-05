@@ -5,6 +5,11 @@ import type { RepoStats, LotteryFactor, DirectCommitsData, TimeRange } from '@/l
 import { startSpan } from '@/lib/simple-logging';
 import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-commits';
 
+interface HistoricalTrendsData {
+  // TODO: Define historical trends structure when implemented
+  placeholder?: boolean;
+}
+
 export interface ProgressiveRepoData {
   // Stage 1: Critical data (loaded immediately)
   critical: {
@@ -33,7 +38,7 @@ export interface ProgressiveRepoData {
   // Stage 3: Enhancement data (loaded in background)
   enhancement: {
     directCommits: DirectCommitsData | null;
-    historicalTrends: any | null;
+    historicalTrends: HistoricalTrendsData | null;
     loading: boolean;
     error: string | null;
   };
@@ -80,7 +85,9 @@ export function useProgressiveRepoData(
 
   // Stage 1: Load critical data immediately
   useEffect(() => {
-    if (!owner || !repo || loadingRef.current.critical) return;
+    // Validate inputs
+    if (!owner || !repo || typeof owner !== 'string' || typeof repo !== 'string') return;
+    if (loadingRef.current.critical) return;
 
     async function loadCriticalData() {
       loadingRef.current.critical = true;
@@ -92,8 +99,8 @@ export function useProgressiveRepoData(
             name: 'fetch-critical-repo-data',
             op: 'data.fetch.critical',
             attributes: {
-              'repository.owner': owner,
-              'repository.name': repo,
+              'repository.owner': owner || '',
+              'repository.name': repo || '',
             }
           },
           async () => {
@@ -106,7 +113,7 @@ export function useProgressiveRepoData(
               .single();
 
             if (repoError || !repoData) {
-              throw new Error('Repository not found');
+              throw new Error('Unable to load repository information. Please check the repository name and try again.');
             }
 
             // Get PR count and top contributors in parallel
@@ -174,7 +181,7 @@ export function useProgressiveRepoData(
         setCritical({
           basicInfo: null,
           loading: false,
-          error: error instanceof Error ? error.message : 'Failed to load critical data',
+          error: error instanceof Error ? error.message : 'Unable to load repository metrics. Please try again later.',
         });
       } finally {
         loadingRef.current.critical = false;
@@ -198,8 +205,8 @@ export function useProgressiveRepoData(
             name: 'fetch-full-repo-data',
             op: 'data.fetch.full',
             attributes: {
-              'repository.owner': owner,
-              'repository.name': repo,
+              'repository.owner': owner || '',
+              'repository.name': repo || '',
               'data.time_range': timeRange,
             }
           },
@@ -237,7 +244,7 @@ export function useProgressiveRepoData(
           stats: null,
           lotteryFactor: null,
           loading: false,
-          error: error instanceof Error ? error.message : 'Failed to load full data',
+          error: error instanceof Error ? error.message : 'Unable to load detailed repository data. Basic information is still available.',
         });
       } finally {
         loadingRef.current.full = false;
@@ -256,8 +263,11 @@ export function useProgressiveRepoData(
       setEnhancement(prev => ({ ...prev, loading: true, error: null }));
 
       // Use requestIdleCallback for background loading
-      const idleCallbackId = window.requestIdleCallback ? 
-        window.requestIdleCallback(async () => {
+      let idleCallbackId: number | undefined;
+      let timeoutId: NodeJS.Timeout | undefined;
+      
+      if (window.requestIdleCallback) {
+        idleCallbackId = window.requestIdleCallback(async () => {
           try {
             const directCommits = await fetchDirectCommitsWithDatabaseFallback(
               owner!, 
@@ -275,14 +285,15 @@ export function useProgressiveRepoData(
             setEnhancement(prev => ({
               ...prev,
               loading: false,
-              error: error instanceof Error ? error.message : 'Failed to load enhancement data',
+              error: error instanceof Error ? error.message : 'Unable to load additional analytics. Core features remain available.',
             }));
           } finally {
             loadingRef.current.enhancement = false;
           }
-        }) : 
+        });
+      } else {
         // Fallback for browsers without requestIdleCallback
-        setTimeout(async () => {
+        timeoutId = setTimeout(async () => {
           try {
             const directCommits = await fetchDirectCommitsWithDatabaseFallback(
               owner!, 
@@ -300,16 +311,20 @@ export function useProgressiveRepoData(
             setEnhancement(prev => ({
               ...prev,
               loading: false,
-              error: error instanceof Error ? error.message : 'Failed to load enhancement data',
+              error: error instanceof Error ? error.message : 'Unable to load additional analytics. Core features remain available.',
             }));
           } finally {
             loadingRef.current.enhancement = false;
           }
         }, 100);
+      }
 
       return () => {
-        if (window.cancelIdleCallback && typeof idleCallbackId === 'number') {
+        if (idleCallbackId !== undefined && window.cancelIdleCallback) {
           window.cancelIdleCallback(idleCallbackId);
+        }
+        if (timeoutId !== undefined) {
+          clearTimeout(timeoutId);
         }
       };
     }
