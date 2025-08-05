@@ -267,14 +267,34 @@ global.fetch = vi.fn(() =>
 );
 
 // Suppress console methods in tests to reduce noise
-const originalConsole = { ...console };
+// Create single mock instances to prevent memory accumulation
+const mockWarn = vi.fn();
+const mockError = vi.fn();
+const mockLog = vi.fn();
+const originalConsole = { 
+  warn: console.warn, 
+  error: console.error, 
+  log: console.log 
+};
+
 beforeEach(() => {
-  console.warn = vi.fn();
-  console.error = vi.fn();
-  console.log = vi.fn();
+  // Clear existing mock call history
+  mockWarn.mockClear();
+  mockError.mockClear();
+  mockLog.mockClear();
+  
+  // Assign the same mock instances
+  console.warn = mockWarn;
+  console.error = mockError;
+  console.log = mockLog;
 });
 
 afterEach(() => {
-  Object.assign(console, originalConsole);
+  // Restore original console methods
+  console.warn = originalConsole.warn;
+  console.error = originalConsole.error;
+  console.log = originalConsole.log;
+  
+  // Clear all mocks
   vi.clearAllMocks();
 });

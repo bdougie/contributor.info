@@ -12,6 +12,9 @@ export default defineConfig({
     },
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     testTimeout: 10000, // 10 second timeout for tests
+    // Memory optimization settings
+    maxConcurrency: 4, // Limit concurrent tests to reduce memory pressure
+    isolate: true, // Ensure proper test isolation to prevent memory leaks
     // Set up environment variables for testing
     environmentOptions: {
       jsdom: {

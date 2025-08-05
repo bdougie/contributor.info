@@ -1,3 +1,4 @@
+import React from "react";
 import { cn } from "@/lib/utils";
 import { useTimeFormatter } from "@/hooks/use-time-formatter";
 import { Clock } from "lucide-react";
@@ -76,11 +77,13 @@ function validateTimestamp(timestamp: string | Date): Date | null {
     return null;
   }
   
-  const now = new Date();
-  const hundredYearsAgo = new Date(now.getFullYear() - 100, 0, 1);
-  const tenYearsFromNow = new Date(now.getFullYear() + 10, 11, 31);
+  // Use timestamp comparison to avoid creating new Date objects
+  const dateTime = date.getTime();
+  const currentYear = new Date().getFullYear();
+  const hundredYearsAgoTime = new Date(currentYear - 100, 0, 1).getTime();
+  const tenYearsFromNowTime = new Date(currentYear + 10, 11, 31).getTime();
   
-  if (date < hundredYearsAgo || date > tenYearsFromNow) {
+  if (dateTime < hundredYearsAgoTime || dateTime > tenYearsFromNowTime) {
     return null;
   }
   
@@ -89,6 +92,7 @@ function validateTimestamp(timestamp: string | Date): Date | null {
 
 /**
  * Safely creates structured data for SEO without using dangerouslySetInnerHTML
+ * Optimized to minimize memory footprint and avoid ref callback accumulation
  */
 function StructuredData({ isoString }: { isoString: string }) {
   // Create structured data as a properly escaped JSON script
@@ -101,16 +105,19 @@ function StructuredData({ isoString }: { isoString: string }) {
   // Use React's built-in JSON serialization which is XSS-safe
   const jsonContent = JSON.stringify(structuredData);
   
+  // Use useCallback to prevent ref callback recreation on every render
+  const refCallback = React.useCallback((el: HTMLScriptElement | null) => {
+    if (el && el.textContent !== jsonContent) {
+      el.textContent = jsonContent;
+    }
+  }, [jsonContent]);
+  
   return (
     <script
       type="application/ld+json"
       // Using textContent instead of dangerouslySetInnerHTML for security
       suppressHydrationWarning
-      ref={(el) => {
-        if (el) {
-          el.textContent = jsonContent;
-        }
-      }}
+      ref={refCallback}
     />
   );
 }
@@ -158,11 +165,12 @@ export function LastUpdated({
           // Check if it's a date range issue
           const testDate = new Date(sanitized);
           if (!isNaN(testDate.getTime())) {
-            const now = new Date();
-            const hundredYearsAgo = new Date(now.getFullYear() - 100, 0, 1);
-            const tenYearsFromNow = new Date(now.getFullYear() + 10, 11, 31);
+            const currentYear = new Date().getFullYear();
+            const testTime = testDate.getTime();
+            const hundredYearsAgoTime = new Date(currentYear - 100, 0, 1).getTime();
+            const tenYearsFromNowTime = new Date(currentYear + 10, 11, 31).getTime();
             
-            if (testDate < hundredYearsAgo || testDate > tenYearsFromNow) {
+            if (testTime < hundredYearsAgoTime || testTime > tenYearsFromNowTime) {
               console.warn('LastUpdated: Timestamp outside reasonable range:', timestamp);
             } else {
               console.warn('LastUpdated: Invalid or unsafe timestamp provided:', timestamp);

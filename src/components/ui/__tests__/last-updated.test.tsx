@@ -2,44 +2,61 @@ import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LastUpdated, LastUpdatedTime } from '../last-updated';
 
-// Mock the time formatter hook
+// Create lightweight mocks to prevent memory accumulation
+const mockFormatRelativeTime = vi.fn();
+const mockFormatDate = vi.fn();
+
+// Mock the time formatter hook with pre-defined responses
 vi.mock('@/hooks/use-time-formatter', () => ({
   useTimeFormatter: () => ({
-    formatRelativeTime: vi.fn((date) => {
-      const now = new Date('2024-01-15T12:00:00Z');
-      const timestamp = typeof date === 'string' ? new Date(date) : date;
-      const diffInHours = Math.floor((now.getTime() - timestamp.getTime()) / (1000 * 60 * 60));
+    formatRelativeTime: mockFormatRelativeTime,
+    formatDate: mockFormatDate
+  })
+}));
+
+describe('LastUpdated', () => {
+  beforeEach(() => {
+    // Clear all mocks and set up default responses
+    vi.clearAllMocks();
+    
+    // Set up mock implementations with minimal memory footprint
+    mockFormatRelativeTime.mockImplementation((date) => {
+      const timestamp = typeof date === 'string' ? Date.parse(date) : date.getTime();
+      const now = Date.parse('2024-01-15T12:00:00Z');
+      const diffInHours = Math.floor((now - timestamp) / (1000 * 60 * 60));
       if (diffInHours < 1) return 'Just now';
       if (diffInHours === 1) return '1 hour ago';
       return `${diffInHours} hours ago`;
-    }),
-    formatDate: vi.fn((date) => {
-      const dateObj = typeof date === 'string' ? new Date(date) : date;
-      return dateObj.toLocaleDateString('en-US', { 
+    });
+    
+    mockFormatDate.mockImplementation((date) => {
+      const timestamp = typeof date === 'string' ? Date.parse(date) : date.getTime();
+      return new Date(timestamp).toLocaleDateString('en-US', { 
         month: 'short', 
         day: 'numeric', 
         year: 'numeric',
         hour: 'numeric',
         minute: '2-digit'
       });
-    })
-  })
-}));
-
-describe('LastUpdated', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+    });
   });
   
   afterEach(() => {
     // Clean up React Testing Library renders
     cleanup();
+    
     // Clean up any script tags added by structured data
     document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
       script.remove();
     });
-    // Clear all mocks after each test
+    
+    // Force garbage collection hints
+    mockFormatRelativeTime.mockClear();
+    mockFormatDate.mockClear();
     vi.clearAllMocks();
+    
+    // Clean up any timers or intervals
+    vi.clearAllTimers();
   });
 
   it('renders with default props', () => {
@@ -160,8 +177,10 @@ describe('LastUpdated', () => {
       '<iframe src="javascript:alert(1)"></iframe>'
     ];
 
-    xssAttempts.forEach(attempt => {
+    xssAttempts.forEach((attempt, index) => {
+      // Clear console mock for each attempt
       vi.mocked(console.warn).mockClear();
+      
       const { unmount } = render(<LastUpdated timestamp={attempt} />);
       
       expect(console.warn).toHaveBeenCalledWith(
@@ -170,8 +189,19 @@ describe('LastUpdated', () => {
       );
       expect(screen.queryByRole('status')).not.toBeInTheDocument();
       
-      // Clean up after each render to prevent memory accumulation
+      // Immediate cleanup after each render
       unmount();
+      cleanup();
+      
+      // Clean up any script tags created during this iteration
+      document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+        script.remove();
+      });
+      
+      // Force mock cleanup every few iterations to prevent accumulation
+      if (index % 2 === 1) {
+        vi.clearAllMocks();
+      }
     });
   });
 
@@ -183,30 +213,53 @@ describe('LastUpdated', () => {
       '2025-01-01' // Just within the 10-year future limit
     ];
 
-    validTimestamps.forEach(timestamp => {
+    validTimestamps.forEach((timestamp, index) => {
       vi.mocked(console.warn).mockClear();
+      
       const { unmount } = render(<LastUpdated timestamp={timestamp} />);
       
       expect(console.warn).not.toHaveBeenCalled();
       expect(screen.getByRole('status')).toBeInTheDocument();
+      
+      // Immediate cleanup
       unmount();
+      cleanup();
+      
+      // Clean up script tags
+      document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+        script.remove();
+      });
+      
+      // Force mock cleanup every few iterations
+      if (index % 2 === 1) {
+        vi.clearAllMocks();
+      }
     });
   });
 
   it('applies correct size classes', () => {
     const timestamp = '2024-01-15T10:00:00Z';
     
-    const { rerender, unmount } = render(<LastUpdated timestamp={timestamp} size="sm" />);
+    // Test each size individually to avoid rerender memory accumulation
+    const { unmount: unmountSm } = render(<LastUpdated timestamp={timestamp} size="sm" />);
     expect(screen.getByRole('status')).toHaveClass('text-xs');
+    unmountSm();
+    cleanup();
     
-    rerender(<LastUpdated timestamp={timestamp} size="md" />);
+    const { unmount: unmountMd } = render(<LastUpdated timestamp={timestamp} size="md" />);
     expect(screen.getByRole('status')).toHaveClass('text-sm');
+    unmountMd();
+    cleanup();
     
-    rerender(<LastUpdated timestamp={timestamp} size="lg" />);
+    const { unmount: unmountLg } = render(<LastUpdated timestamp={timestamp} size="lg" />);
     expect(screen.getByRole('status')).toHaveClass('text-base');
+    unmountLg();
+    cleanup();
     
-    // Clean up after rerenders
-    unmount();
+    // Clean up any remaining script tags
+    document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+      script.remove();
+    });
   });
 
   it('has proper accessibility attributes', () => {
