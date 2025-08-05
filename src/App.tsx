@@ -32,6 +32,7 @@ const AnalyticsDashboard = lazy(() => import("@/components/features/debug/analyt
 const ShareableChartsPreview = lazy(() => import("@/components/features/debug/shareable-charts-preview").then(m => ({ default: m.ShareableChartsPreview })));
 const DubTest = lazy(() => import("@/components/features/debug/dub-test").then(m => ({ default: m.DubTest })));
 const BulkAddRepos = lazy(() => import("@/components/features/debug/bulk-add-repos").then(m => ({ default: m.BulkAddRepos })));
+const SyncTrackedRepos = lazy(() => import("@/components/features/debug/sync-tracked-repos").then(m => ({ default: m.SyncTrackedRepos })));
 
 // Settings and Privacy components
 const SettingsPage = lazy(() => import("@/components/features/settings/settings-page").then(m => ({ default: m.SettingsPage })));
@@ -213,6 +214,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <BulkAddRepos />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dev/sync-tracked-repos"
+                element={
+                  <ProtectedRoute>
+                    <SyncTrackedRepos />
                   </ProtectedRoute>
                 }
               />

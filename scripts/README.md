@@ -31,6 +31,10 @@ Sync and manage GitHub data.
 | `manual-trigger.mjs` | Manually trigger data refresh for specific repos | Target specific repository updates |
 | `get-pytorch-stats.js` | Get accurate GitHub repository statistics | Verify repository data |
 | `initialize-pytorch-backfill.js` | Initialize large repository backfill | Start progressive backfill |
+| `manual-sync-repository.js` | Manually sync individual repositories | Force sync specific repo |
+| `sync-bdougie-repos.js` | Direct GitHub API sync for specific repos | Sync bdougie repositories |
+| `sync-all-tracked-repos.js` | Bulk sync all tracked repositories | Sync all repos with rate limiting |
+| `test-406-fix-and-sync.js` | Test 406 error fix and sync functionality | Verify 406 fix works |
 
 ### ⚡ **[Performance](./performance/)**
 Improve application speed and reduce resource usage.
