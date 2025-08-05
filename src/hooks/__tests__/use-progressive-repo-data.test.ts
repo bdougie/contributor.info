@@ -158,7 +158,7 @@ describe('useProgressiveRepoData', () => {
 
     await waitFor(() => {
       expect(result.current.critical.loading).toBe(false);
-      expect(result.current.critical.error).toBe('Repository not found');
+      expect(result.current.critical.error).toBe('Unable to load repository information. Please check the repository name and try again.');
       expect(result.current.critical.basicInfo).toBeNull();
     });
 

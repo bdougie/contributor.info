@@ -258,7 +258,7 @@ export function useProgressiveRepoData(
   useEffect(() => {
     if (!owner || !repo || !full.stats || loadingRef.current.enhancement) return;
 
-    async function loadEnhancementData() {
+    function loadEnhancementData() {
       loadingRef.current.enhancement = true;
       setEnhancement(prev => ({ ...prev, loading: true, error: null }));
 
@@ -329,7 +329,7 @@ export function useProgressiveRepoData(
       };
     }
 
-    loadEnhancementData();
+    return loadEnhancementData();
   }, [owner, repo, timeRange, full.stats]);
 
   return { critical, full, enhancement };

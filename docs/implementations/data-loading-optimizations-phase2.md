@@ -137,16 +137,17 @@ export function useProgressiveRepoData(owner: string, repo: string) {
     if (criticalData) {
       loadFullData(owner, repo).then(setFullData);
     }
-  }, [criticalData]);
+  }, [criticalData, owner, repo]);
   
   // Stage 3: Load enhancements in background
   useEffect(() => {
     if (fullData) {
-      requestIdleCallback(() => {
+      const id = requestIdleCallback(() => {
         loadEnhancementData(owner, repo).then(setEnhancementData);
       });
+      return () => cancelIdleCallback(id);
     }
-  }, [fullData]);
+  }, [fullData, owner, repo]);
   
   return { criticalData, fullData, enhancementData };
 }
@@ -175,7 +176,7 @@ export function useIntersectionLoader<T>(
     
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
-  }, []);
+  }, [data, isLoading, loadFn, options]);
   
   return { ref, data, isLoading };
 }

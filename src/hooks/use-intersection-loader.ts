@@ -98,6 +98,7 @@ export function useIntersectionLoader<T>(
   const ref = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const loadingRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   const load = useCallback(async () => {
     if (loadingRef.current || (hasLoaded && !continuous)) return;
@@ -108,12 +109,20 @@ export function useIntersectionLoader<T>(
     
     try {
       const result = await loadFn();
-      setData(result);
-      setHasLoaded(true);
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setData(result);
+        setHasLoaded(true);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to load data'));
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err : new Error('Failed to load data'));
+      }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
       loadingRef.current = false;
     }
   }, [loadFn, hasLoaded, continuous]);
@@ -174,6 +183,13 @@ export function useIntersectionLoader<T>(
       }
     };
   }, [root, rootMargin, threshold, delay, hasLoaded, continuous, load, loadImmediately]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return {
     ref,
