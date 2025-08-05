@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { useTimeFormatter } from "@/hooks/use-time-formatter";
 import { Clock } from "lucide-react";
+import { sanitizeString } from "@/lib/validation/validation-utils";
 
 interface LastUpdatedProps {
   /**
@@ -30,9 +31,99 @@ interface LastUpdatedProps {
 }
 
 /**
+ * Validates and sanitizes timestamp input to prevent security issues
+ */
+function validateTimestamp(timestamp: string | Date): Date | null {
+  let date: Date;
+  
+  if (typeof timestamp === 'string') {
+    // Sanitize string input
+    const sanitized = sanitizeString(timestamp);
+    if (!sanitized) {
+      return null;
+    }
+    
+    // First try to parse the date
+    date = new Date(sanitized);
+    
+    // Check if parsing resulted in an invalid date
+    if (isNaN(date.getTime())) {
+      return null;
+    }
+    
+    // Additional validation for suspicious patterns that could indicate XSS attempts
+    const suspiciousPatterns = [
+      /<script/i,
+      /javascript:/i,
+      /on\w+\s*=/i,
+      /<\w+/,
+      /[\x00-\x08\x0B\x0C\x0E-\x1F]/  // Control characters
+    ];
+    
+    if (suspiciousPatterns.some(pattern => pattern.test(sanitized))) {
+      console.warn('LastUpdated: Potentially malicious input detected:', sanitized);
+      return null;
+    }
+    
+  } else if (timestamp instanceof Date) {
+    date = timestamp;
+  } else {
+    return null;
+  }
+  
+  // Validate the date is reasonable (not in far future or past)
+  if (isNaN(date.getTime())) {
+    return null;
+  }
+  
+  const now = new Date();
+  const hundredYearsAgo = new Date(now.getFullYear() - 100, 0, 1);
+  const tenYearsFromNow = new Date(now.getFullYear() + 10, 11, 31);
+  
+  if (date < hundredYearsAgo || date > tenYearsFromNow) {
+    return null;
+  }
+  
+  return date;
+}
+
+/**
+ * Safely creates structured data for SEO without using dangerouslySetInnerHTML
+ */
+function StructuredData({ isoString }: { isoString: string }) {
+  // Create structured data as a properly escaped JSON script
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebPage", 
+    "dateModified": isoString
+  };
+  
+  // Use React's built-in JSON serialization which is XSS-safe
+  const jsonContent = JSON.stringify(structuredData);
+  
+  return (
+    <script
+      type="application/ld+json"
+      // Using textContent instead of dangerouslySetInnerHTML for security
+      suppressHydrationWarning
+      ref={(el) => {
+        if (el) {
+          el.textContent = jsonContent;
+        }
+      }}
+    />
+  );
+}
+
+/**
  * LastUpdated component displays when content was last updated with both
  * human-readable relative time and machine-readable ISO 8601 timestamps.
  * Includes structured data for SEO and accessibility features.
+ * 
+ * Security features:
+ * - Input validation and sanitization
+ * - XSS-safe structured data injection
+ * - Reasonable date range validation
  */
 export function LastUpdated({ 
   timestamp, 
@@ -44,12 +135,48 @@ export function LastUpdated({
 }: LastUpdatedProps) {
   const { formatRelativeTime, formatDate } = useTimeFormatter();
   
-  // Convert timestamp to Date object if it's a string
-  const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+  // Validate and sanitize timestamp input
+  const date = validateTimestamp(timestamp);
   
-  // Validate the date
-  if (isNaN(date.getTime())) {
-    console.warn('LastUpdated: Invalid timestamp provided:', timestamp);
+  if (!date) {
+    // Log specific warning message based on the type of validation failure
+    if (typeof timestamp === 'string') {
+      const sanitized = sanitizeString(timestamp);
+      if (sanitized) {
+        // Check for malicious patterns
+        const suspiciousPatterns = [
+          /<script/i,
+          /javascript:/i,
+          /on\w+\s*=/i,
+          /<\w+/,
+          /[\x00-\x08\x0B\x0C\x0E-\x1F]/
+        ];
+        
+        if (suspiciousPatterns.some(pattern => pattern.test(sanitized))) {
+          console.warn('LastUpdated: Potentially malicious input detected:', sanitized);
+        } else {
+          // Check if it's a date range issue
+          const testDate = new Date(sanitized);
+          if (!isNaN(testDate.getTime())) {
+            const now = new Date();
+            const hundredYearsAgo = new Date(now.getFullYear() - 100, 0, 1);
+            const tenYearsFromNow = new Date(now.getFullYear() + 10, 11, 31);
+            
+            if (testDate < hundredYearsAgo || testDate > tenYearsFromNow) {
+              console.warn('LastUpdated: Timestamp outside reasonable range:', timestamp);
+            } else {
+              console.warn('LastUpdated: Invalid or unsafe timestamp provided:', timestamp);
+            }
+          } else {
+            console.warn('LastUpdated: Invalid or unsafe timestamp provided:', timestamp);
+          }
+        }
+      } else {
+        console.warn('LastUpdated: Invalid or unsafe timestamp provided:', timestamp);
+      }
+    } else {
+      console.warn('LastUpdated: Invalid or unsafe timestamp provided:', timestamp);
+    }
     return null;
   }
   
@@ -105,18 +232,7 @@ export function LastUpdated({
         </span>
       </div>
       
-      {includeStructuredData && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebPage",
-              "dateModified": isoString
-            })
-          }}
-        />
-      )}
+      {includeStructuredData && <StructuredData isoString={isoString} />}
     </>
   );
 }
