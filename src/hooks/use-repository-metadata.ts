@@ -83,12 +83,12 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
           .select('created_at')
           .eq('repository_id', repoData.id)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+          .limit(1);
         
-        if (!error) {
-          prData = data;
-        } else if (error.code !== 'PGRST116') {
+        // Check if we have data (array with at least one item)
+        if (!error && data && data.length > 0) {
+          prData = data[0];
+        } else if (error && error.code !== 'PGRST116') {
           // Log non-"no rows" errors but don't throw
           console.warn('Error fetching PR metadata:', error);
         }
