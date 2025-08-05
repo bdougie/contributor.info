@@ -32,6 +32,8 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { RepositoryInlineMetadata } from "@/components/ui/repository-inline-metadata";
 import { useRepositoryDiscovery } from "@/hooks/use-repository-discovery";
 import { DataStateIndicator } from "@/components/ui/data-state-indicator";
+import { LastUpdated } from "@/components/ui/last-updated";
+import { useDataTimestamp } from "@/hooks/use-data-timestamp";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -69,6 +71,11 @@ export default function RepoView() {
     timeRange,
     includeBots
   );
+
+  // Track data timestamps for freshness indicators
+  const { lastUpdated } = useDataTimestamp([stats, lotteryFactor, directCommitsData], {
+    autoUpdate: true
+  });
 
   const handleSelectExample = (repo: string) => {
     const match = repo.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
@@ -232,7 +239,7 @@ export default function RepoView() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <CardTitle className="text-2xl flex items-center gap-2">
                   <span>{owner}/{repo}</span>
                   <RepositoryInlineMetadata owner={owner} repo={repo} />
@@ -240,6 +247,16 @@ export default function RepoView() {
                 <CardDescription>
                   Contribution analysis of recent pull requests
                 </CardDescription>
+                {/* Show last updated timestamp when data is available */}
+                {!stats.loading && (
+                  <div className="mt-2">
+                    <LastUpdated 
+                      timestamp={lastUpdated}
+                      label="Data last updated"
+                      size="sm"
+                    />
+                  </div>
+                )}
               </div>
               <Button
                 variant="outline"
