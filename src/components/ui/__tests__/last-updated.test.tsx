@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LastUpdated, LastUpdatedTime } from '../last-updated';
 
 // Mock the time formatter hook
@@ -26,12 +26,17 @@ vi.mock('@/hooks/use-time-formatter', () => ({
   })
 }));
 
-// Mock console.warn to test error handling
-const mockConsoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
 describe('LastUpdated', () => {
+  let mockConsoleWarn: any;
+  
   beforeEach(() => {
     vi.clearAllMocks();
+    // Create a fresh mock for each test
+    mockConsoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  
+  afterEach(() => {
+    mockConsoleWarn.mockRestore();
   });
 
   it('renders with default props', () => {
@@ -138,7 +143,7 @@ describe('LastUpdated', () => {
     render(<LastUpdated timestamp={farFuture} />);
     
     expect(mockConsoleWarn).toHaveBeenCalledWith(
-      'LastUpdated: Invalid or unsafe timestamp provided:', 
+      'LastUpdated: Timestamp outside reasonable range:', 
       farFuture
     );
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
