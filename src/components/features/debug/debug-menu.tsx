@@ -91,6 +91,13 @@ const debugRoutes: DebugRoute[] = [
     category: "dev"
   },
   {
+    path: "/dev/sync-tracked-repos",
+    title: "Sync Tracked Repositories",
+    description: "Manually trigger sync for tracked repositories to update their data",
+    icon: <Database className="h-4 w-4" />,
+    category: "dev"
+  },
+  {
     path: "/changelog",
     title: "Changelog",
     description: "View application changelog and version history",
