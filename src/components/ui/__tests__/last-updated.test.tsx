@@ -27,7 +27,7 @@ vi.mock('@/hooks/use-time-formatter', () => ({
 }));
 
 describe('LastUpdated', () => {
-  let mockConsoleWarn: any;
+  let mockConsoleWarn: ReturnType<typeof vi.spyOn>;
   
   beforeEach(() => {
     vi.clearAllMocks();
