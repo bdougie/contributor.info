@@ -46,8 +46,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build application
-        run: npm run build
+      # Build step removed - Netlify will handle the build with proper env vars
 
       - name: Run tests
         run: npm test -- --passWithNoTests
@@ -71,21 +70,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build for production
-        run: npm run build
-
-      - name: Deploy to Netlify
-        uses: nwtgck/actions-netlify@v3.0
-        with:
-          publish-dir: './dist'
-          production-branch: main
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: 'Deploy ${{ needs.release.outputs.version }}'
-          enable-pull-request-comment: false
-          enable-commit-comment: false
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.MAIN_NETLIFY_SITE_ID }}
+      # Netlify will automatically deploy from main branch via GitHub integration
+      # No manual deployment needed here
 
   notify:
     name: Release Notification
@@ -95,12 +81,12 @@ jobs:
     steps:
       - name: Create release summary
         run: |
-          echo "## 🚀 Release ${{ needs.release.outputs.version }} Deployed Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Release ${{ needs.release.outputs.version }} Created Successfully!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📋 Release Details" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ needs.release.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Tag**: ${{ needs.release.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Deployment**: Production" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment**: Netlify will auto-deploy from main branch" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔗 Links" >> $GITHUB_STEP_SUMMARY
           echo "- [Release Notes](https://github.com/${{ github.repository }}/releases/tag/${{ needs.release.outputs.tag }})" >> $GITHUB_STEP_SUMMARY
