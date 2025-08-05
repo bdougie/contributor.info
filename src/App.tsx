@@ -50,10 +50,31 @@ const MaintainerManagement = lazy(() => import("@/components/features/admin/main
 const ConfidenceAnalyticsDashboard = lazy(() => import("@/components/features/admin/confidence-analytics-dashboard").then(m => ({ default: m.ConfidenceAnalyticsDashboard })));
 const CaptureHealthMonitor = lazy(() => import("@/components/CaptureHealthMonitor").then(m => ({ default: m.CaptureHealthMonitor })));
 
-// Loading fallback component
+// Loading fallback component with proper structure
 const PageSkeleton = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
+  <div className="min-h-screen bg-background">
+    {/* Header skeleton */}
+    <nav className="border-b border-border p-4">
+      <div className="max-w-6xl mx-auto flex justify-between items-center">
+        <div className="h-8 w-32 bg-muted animate-pulse rounded" />
+        <div className="flex gap-4">
+          <div className="h-8 w-20 bg-muted animate-pulse rounded" />
+          <div className="h-8 w-20 bg-muted animate-pulse rounded" />
+        </div>
+      </div>
+    </nav>
+    
+    {/* Content skeleton */}
+    <main className="max-w-6xl mx-auto p-4">
+      <div className="space-y-6">
+        <div className="h-12 w-2/3 bg-muted animate-pulse rounded" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {Array.from({length: 6}).map((_, i) => (
+            <div key={i} className="h-48 bg-muted animate-pulse rounded-lg" />
+          ))}
+        </div>
+      </div>
+    </main>
   </div>
 );
 
@@ -61,25 +82,25 @@ function App() {
   // Preload critical routes and initialize progressive features after mount
   useEffect(() => {
     const initializeDeferred = async () => {
-      // Only load after a short delay to not block initial render
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Priority 1: Preload most likely next routes immediately
+      const criticalImports = [
+        import("@/components/features/repository/repo-view"),
+        import("@/components/features/auth/login-page"),
+        import("@/lib/supabase"), // Critical for data loading
+        import("@/hooks/use-cached-repo-data")
+      ];
       
-      // Load progressive capture system (non-blocking)
-      try {
-        await Promise.all([
+      // Start critical loads immediately
+      Promise.all(criticalImports).catch(console.warn);
+      
+      // Priority 2: Background progressive features (delayed)
+      setTimeout(() => {
+        Promise.all([
           import("@/lib/progressive-capture/manual-trigger"),
           import("@/lib/progressive-capture/smart-notifications"), 
           import("@/lib/progressive-capture/background-processor")
-        ]);
-      } catch (error) {
-        console.warn('Progressive capture features failed to load:', error);
-      }
-      
-      // Preload repo view (most common destination)
-      import("@/components/features/repository/repo-view");
-      
-      // Preload login page (high probability next navigation)
-      import("@/components/features/auth/login-page");
+        ]).catch(console.warn);
+      }, 500); // Reduced from 1000ms for better UX
     };
     
     initializeDeferred();

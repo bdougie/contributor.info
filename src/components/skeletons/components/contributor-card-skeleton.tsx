@@ -1,5 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { getSkeletonClasses } from "@/lib/skeleton-dimensions";
 
 interface ContributorCardSkeletonProps {
   className?: string;
@@ -17,6 +18,7 @@ export function ContributorCardSkeleton({
       className={cn(
         "relative p-4 rounded-lg border bg-card transition-all animate-pulse",
         "hover:bg-muted/50",
+        getSkeletonClasses("contributorCard"),
         isWinner && "ring-2 ring-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10",
         className
       )}

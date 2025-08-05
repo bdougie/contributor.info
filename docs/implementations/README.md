@@ -13,6 +13,7 @@ Implementation documentation helps developers:
 ## Documentation Index
 
 ### 🎨 UI & Frontend Implementations
+- **[Core Web Vitals Phase 1](./core-web-vitals-phase1.md)** - LCP, CLS, and performance optimizations through skeleton screens and resource hints
 - **[Lighthouse Optimizations](./LIGHTHOUSE_OPTIMIZATIONS.md)** - Performance optimizations and metrics improvements
 - **[Distribution Charts Restoration](./distribution-charts-restoration.md)** - Chart component fixes and improvements
 - **[Mobile Fixes Summary](./MOBILE_FIXES_SUMMARY.md)** - Mobile responsiveness improvements
