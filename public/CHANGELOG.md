@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0](https://github.com/bdougie/contributor.info/compare/v1.9.3...v1.10.0) (2025-07-14)
+
+
+### 🚀 Features
+
+* add PRD for smart data fetching with repository size classification ([#199](https://github.com/bdougie/contributor.info/issues/199)) ([96f50ab](https://github.com/bdougie/contributor.info/commit/96f50ab5dcfac5f41792cabacb9d1672ca3d970d))
+* complete Phase 5 UX enhancements with inline repository metadata ([#205](https://github.com/bdougie/contributor.info/issues/205)) ([f25675a](https://github.com/bdougie/contributor.info/commit/f25675a7f2f34703ffc83e100cd59095b5304e78))
+* complete Phase 6 example repository updates ([#207](https://github.com/bdougie/contributor.info/issues/207)) ([615ed7a](https://github.com/bdougie/contributor.info/commit/615ed7a582a6c0bdaea8754de44e57afff83ad6b)), closes [#206](https://github.com/bdougie/contributor.info/issues/206)
+* implement Phase 3 smart data fetching strategy ([#202](https://github.com/bdougie/contributor.info/issues/202)) ([4efe0b4](https://github.com/bdougie/contributor.info/commit/4efe0b47048191bdbd4d33d527cc87c0a956f82d))
+* implement Phase 4 background capture optimization ([#203](https://github.com/bdougie/contributor.info/issues/203)) ([21b341b](https://github.com/bdougie/contributor.info/commit/21b341b3f61d20fdf5181b25213d8547de2595dc))
+* implement repository size classification system ([#201](https://github.com/bdougie/contributor.info/issues/201)) ([972d2eb](https://github.com/bdougie/contributor.info/commit/972d2eb73734bb45e2944e9ca3a632a4f6e6d233))
+* Resend Welcome Email ([#194](https://github.com/bdougie/contributor.info/issues/194)) ([3d8e1e4](https://github.com/bdougie/contributor.info/commit/3d8e1e40868c32c08fef16e727ced1a1bc6abcc9))
+
+
+### 🐛 Bug Fixes
+
+* add GitHub Actions error debugging tools and documentation  ([#198](https://github.com/bdougie/contributor.info/issues/198)) ([01fba79](https://github.com/bdougie/contributor.info/commit/01fba79ae3b9da36901e302433d381db9e644125))
+* build ([b1eec1b](https://github.com/bdougie/contributor.info/commit/b1eec1b050155714f3c5dc5017cf588984da291a))
+* consolidate build scripts for Netlify deployment ([#197](https://github.com/bdougie/contributor.info/issues/197)) ([e63bb1a](https://github.com/bdougie/contributor.info/commit/e63bb1a13e441d27e481913ca09c8a1126041750))
+* Delete docs/data-fetching/data-priority.md ([88ee660](https://github.com/bdougie/contributor.info/commit/88ee6604bc03d5020b27eea73569091508fbe974))
+* enable RLS on missing tables to resolve security advisories ([#208](https://github.com/bdougie/contributor.info/issues/208)) ([923ebb5](https://github.com/bdougie/contributor.info/commit/923ebb5d985931008e866ddea8437d4fb92612b7))
+* exclude test files from production TypeScript build ([3f6b954](https://github.com/bdougie/contributor.info/commit/3f6b954749bcdbfb9e0ba563ea936436473b10c8))
+* exclude test-utils.ts from production build ([370d6b1](https://github.com/bdougie/contributor.info/commit/370d6b188752753cb242b14dda41aeda20a4db88))
+* handle missing GITHUB_TOKEN in production Inngest functions ([#192](https://github.com/bdougie/contributor.info/issues/192)) ([7abe03d](https://github.com/bdougie/contributor.info/commit/7abe03d38760ce30b7a11d22268c06ac246375b0))
+* move @vitejs/plugin-react to dependencies for Netlify build ([2391a54](https://github.com/bdougie/contributor.info/commit/2391a546e11f1bcb8f3cbbcf5eb49b2ecdaaa72a))
+* move autoprefixer to dependencies for Netlify builds ([dc8bf51](https://github.com/bdougie/contributor.info/commit/dc8bf51644f69e9f3c5acb9832b8bf1614b82018))
+* move vite-imagetools to dependencies for Netlify build ([87e8901](https://github.com/bdougie/contributor.info/commit/87e8901ccce0db66d909bf9d9501d4fd0684680c))
+* New Sign Up Auth ([#195](https://github.com/bdougie/contributor.info/issues/195)) ([fa3bd7d](https://github.com/bdougie/contributor.info/commit/fa3bd7dddbdb9c24261f61153821c80b048f9429))
+* re organize docs ([a881ffb](https://github.com/bdougie/contributor.info/commit/a881ffb362ebc10f1b4a9a99401aec77320b7d6a))
+* register actual Inngest functions in production handler ([#191](https://github.com/bdougie/contributor.info/issues/191)) ([13643eb](https://github.com/bdougie/contributor.info/commit/13643eb85c5857479e9e99d19fc0749cccdbf1ab))
+* release manually ([16e365e](https://github.com/bdougie/contributor.info/commit/16e365e324c9c5be020c8827c6d2b941ce6cf8a9))
+* resolve 100% error rate in rollout system by fixing job completion ([#210](https://github.com/bdougie/contributor.info/issues/210)) ([1e9757d](https://github.com/bdougie/contributor.info/commit/1e9757d7d64c667509fe1da00a6afd42cc17c7b4)), closes [#211](https://github.com/bdougie/contributor.info/issues/211)
+* update environment variable handling for production Inngest functions ([#196](https://github.com/bdougie/contributor.info/issues/196)) ([5f0abb9](https://github.com/bdougie/contributor.info/commit/5f0abb98c5e083635b2f3d8bed5fd75b4720a7db))
+
+
+### ⚡ Performance Improvements
+
+* optimize Vite build with modern tooling and analysis ([#193](https://github.com/bdougie/contributor.info/issues/193)) ([47090f5](https://github.com/bdougie/contributor.info/commit/47090f5b215b016b33e3b147509ea27e08bd3a88)), closes [#12883](https://github.com/bdougie/contributor.info/issues/12883)
+
+
+### 📚 Documentation
+
+* document hybrid GraphQL/REST API strategy ([#200](https://github.com/bdougie/contributor.info/issues/200)) ([762827a](https://github.com/bdougie/contributor.info/commit/762827a78ed6d0e52d47ad0585d61584d10a7b59))
+
 ## [1.9.3](https://github.com/bdougie/contributor.info/compare/v1.9.2...v1.9.3) (2025-07-11)
 
 
