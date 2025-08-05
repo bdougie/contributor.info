@@ -1,4 +1,3 @@
-import React from "react";
 import { cn } from "@/lib/utils";
 import { useTimeFormatter } from "@/hooks/use-time-formatter";
 import { Clock } from "lucide-react";
@@ -92,7 +91,7 @@ function validateTimestamp(timestamp: string | Date): Date | null {
 
 /**
  * Safely creates structured data for SEO without using dangerouslySetInnerHTML
- * Optimized to minimize memory footprint and avoid ref callback accumulation
+ * Fixed version that prevents infinite ref callback loops in tests
  */
 function StructuredData({ isoString }: { isoString: string }) {
   // Create structured data as a properly escaped JSON script
@@ -105,19 +104,11 @@ function StructuredData({ isoString }: { isoString: string }) {
   // Use React's built-in JSON serialization which is XSS-safe
   const jsonContent = JSON.stringify(structuredData);
   
-  // Use useCallback to prevent ref callback recreation on every render
-  const refCallback = React.useCallback((el: HTMLScriptElement | null) => {
-    if (el && el.textContent !== jsonContent) {
-      el.textContent = jsonContent;
-    }
-  }, [jsonContent]);
-  
   return (
     <script
       type="application/ld+json"
-      // Using textContent instead of dangerouslySetInnerHTML for security
       suppressHydrationWarning
-      ref={refCallback}
+      dangerouslySetInnerHTML={{ __html: jsonContent }}
     />
   );
 }
