@@ -76,13 +76,26 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
       }
 
       // Get most recent data update from pull_requests
-      const { data: prData } = await supabase
-        .from('pull_requests')
-        .select('created_at')
-        .eq('repository_id', repoData.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      let prData = null;
+      try {
+        const { data, error } = await supabase
+          .from('pull_requests')
+          .select('created_at')
+          .eq('repository_id', repoData.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (!error) {
+          prData = data;
+        } else if (error.code !== 'PGRST116') {
+          // Log non-"no rows" errors but don't throw
+          console.warn('Error fetching PR metadata:', error);
+        }
+      } catch (err) {
+        // Catch any unexpected errors
+        console.warn('Failed to fetch PR metadata:', err);
+      }
 
       const lastDataUpdate = prData?.created_at || trackedData?.updated_at;
       const dataFreshness = calculateDataFreshness(lastDataUpdate);
