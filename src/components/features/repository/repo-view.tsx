@@ -41,6 +41,7 @@ export default function RepoView() {
   const [includeBots, setIncludeBots] = useState(false);
   const [isGeneratingUrl, setIsGeneratingUrl] = useState(false);
   const [hasSearchedOnce, setHasSearchedOnce] = useState(false);
+  const [showSkeleton, setShowSkeleton] = useState(true);
   const dubConfig = getDubConfig();
   const { isLoggedIn } = useGitHubAuth();
   
@@ -94,6 +95,19 @@ export default function RepoView() {
       document.title = `${owner}/${repo} - Contributor Analysis`;
     }
   }, [owner, repo]);
+  
+  // Show skeleton immediately on navigation and hide when data is ready
+  useEffect(() => {
+    setShowSkeleton(true);
+    
+    // Hide skeleton when we have data or after timeout
+    if (dataStatus?.status === 'success' || dataStatus?.status === 'partial_data' || stats.error) {
+      setShowSkeleton(false);
+    } else {
+      const timeout = setTimeout(() => setShowSkeleton(false), 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [owner, repo, dataStatus?.status, stats.error]);
 
   // Handle share button click - create oss.fyi short link
   const handleShare = async () => {
@@ -139,8 +153,8 @@ export default function RepoView() {
     }
   };
 
-  // Only show full skeleton if we don't have owner/repo params yet
-  if (stats.loading && (!owner || !repo)) {
+  // Show skeleton during initial load or navigation
+  if (showSkeleton && dataStatus?.status === 'pending') {
     return <RepoViewSkeleton />;
   }
 
