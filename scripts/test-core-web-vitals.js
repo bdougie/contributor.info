@@ -24,10 +24,13 @@ urls.forEach((url) => {
   console.log(chalk.cyan(`\n📊 Testing: ${url}`));
   
   try {
-    // Run Lighthouse
+    // Run Lighthouse with increased buffer to handle large JSON output
     const result = execSync(
       `npx lighthouse ${url} --only-categories=performance --chrome-flags="--headless" --output=json --quiet`,
-      { encoding: "utf8" }
+      { 
+        encoding: "utf8",
+        maxBuffer: 10 * 1024 * 1024 // 10MB buffer to handle large Lighthouse reports
+      }
     );
     
     const data = JSON.parse(result);
