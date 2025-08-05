@@ -2,7 +2,7 @@
 
 /**
  * Test Core Web Vitals improvements
- * Runs Lighthouse CI to measure LCP, CLS, and INP metrics
+ * Runs Lighthouse CI to measure LCP, CLS, and FCP metrics
  */
 
 import { execSync } from "child_process";
