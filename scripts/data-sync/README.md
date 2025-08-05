@@ -30,6 +30,7 @@ The data sync scripts handle:
 | `backfill-reviews-comments.mjs` | Backfill reviews and comments | Complete missing data |
 | `initialize-pytorch-backfill.js` | Initialize large repo backfill | Start pytorch/pytorch sync |
 | `get-pytorch-stats.js` | Get accurate repo statistics | Verify GitHub data |
+| `pytorch-7day-backfill.js` | Run 7-day backfill with timeouts | Fetch recent PyTorch PRs |
 
 ### Refresh & Triggers
 
@@ -58,6 +59,9 @@ node scripts/data-sync/get-pytorch-stats.js
 
 # Initialize progressive backfill
 node scripts/data-sync/initialize-pytorch-backfill.js
+
+# Run 7-day backfill with 2-minute timeouts
+node scripts/data-sync/pytorch-7day-backfill.js
 ```
 
 ### Regular Maintenance

@@ -19,6 +19,8 @@ Features documentation helps developers:
 ### 🔄 Data Synchronization
 - **[Progressive Backfill](./progressive-backfill.md)** - Sync large repositories without rate limits
 - **[Backfill Enhancements](./backfill-enhancements.md)** - Atomic chunks, GraphQL limits, auto-recovery
+- **[Bulk Backfill Implementation](./bulk-backfill-implementation.md)** - UI-driven bulk repository backfill system
+- **[Bulk Backfill Smart Fetch](./bulk-backfill-smart-fetch.md)** - Smart fetching strategy for bulk operations
 
 ## Feature Categories
 
