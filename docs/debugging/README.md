@@ -14,6 +14,7 @@ Debugging documentation helps developers:
 
 ### 🔧 System Integration Debugging
 - **[GitHub Actions & Inngest Issues](./github-actions-inngest-issues.md)** - Debugging workflow and background job integration problems
+- **[406 Error and Sync Issues](./406-error-and-sync-issues.md)** - Fixing Supabase 406 errors and repository sync problems
 
 ## Debugging Toolkit
 
