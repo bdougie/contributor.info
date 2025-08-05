@@ -43,7 +43,7 @@ export const Breadcrumbs = () => {
   const homeBreadcrumb = { name: 'Home', to: '/', isLast: pathnames.length === 0 };
   const allBreadcrumbs = [homeBreadcrumb, ...breadcrumbs];
 
-  const items = allBreadcrumbs.map((crumb, index) => (
+  const items = allBreadcrumbs.map((crumb) => (
     <React.Fragment key={crumb.to}>
       <BreadcrumbItem>
         {crumb.isLast ? (
