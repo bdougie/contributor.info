@@ -30,11 +30,30 @@ const isBrowser = typeof window !== 'undefined';
  */
 function getEnvVar(viteKey: string, serverKey?: string): string {
   if (isBrowser) {
-    // Browser: Only access VITE_* prefixed variables via import.meta.env
-    // Use optional chaining and fallback for production compatibility
+    // Browser: Try multiple sources for better production compatibility
+    // 1. Try import.meta.env first (Vite's way)
     const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
-    const value = metaEnv[viteKey];
-    return typeof value === 'string' ? value : '';
+    const metaValue = metaEnv[viteKey];
+    if (typeof metaValue === 'string' && metaValue) {
+      return metaValue;
+    }
+    
+    // 2. Try window.env (for runtime injection)
+    const windowEnv = (window as any).env || {};
+    const windowValue = windowEnv[viteKey];
+    if (typeof windowValue === 'string' && windowValue) {
+      return windowValue;
+    }
+    
+    // 3. Try process.env as fallback (some bundlers expose this)
+    if (typeof process !== 'undefined' && process.env) {
+      const processValue = process.env[viteKey];
+      if (typeof processValue === 'string' && processValue) {
+        return processValue;
+      }
+    }
+    
+    return '';
   } else {
     // Server: Use process.env only (import.meta.env not available in CommonJS/Netlify Functions)
     return process.env[viteKey] || (serverKey ? process.env[serverKey] : '') || '';
