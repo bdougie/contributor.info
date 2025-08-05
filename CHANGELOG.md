@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0](https://github.com/bdougie/contributor.info/compare/v1.10.0...v1.11.0) (2025-08-05)
+
+
+### 🚀 Features
+
+* add .issues command for semantic PR context analysis ([#214](https://github.com/bdougie/contributor.info/issues/214)) ([d58d989](https://github.com/bdougie/contributor.info/commit/d58d9894148a7cfa5f3fb173b14c9a72d5002b9e))
+* add pr-review-responder agent and update prime command ([b7ad789](https://github.com/bdougie/contributor.info/commit/b7ad78953387f7f51228ce45317f181a25330b91))
+* AI-powered issue similarity detection with free MiniLM embeddings ([#216](https://github.com/bdougie/contributor.info/issues/216)) ([5846248](https://github.com/bdougie/contributor.info/commit/5846248c019b18e8fa94ec25685fa7750c6819bc))
+* complete PR reviewer suggestions implementation ([#221](https://github.com/bdougie/contributor.info/issues/221)) ([df528b1](https://github.com/bdougie/contributor.info/commit/df528b1021d21db15f0b417bb3d02f5dbe7eba65))
+* enable pytorch repository progressive backfill ([#251](https://github.com/bdougie/contributor.info/issues/251)) ([e763471](https://github.com/bdougie/contributor.info/commit/e76347106d5ad3ca10e69217a38377dd49f11d83))
+* enhance bulk-add-repos with progressive backfill support ([#258](https://github.com/bdougie/contributor.info/issues/258)) ([4d48066](https://github.com/bdougie/contributor.info/commit/4d48066958b49b234019fa2ee1b9260fb3e7ac07))
+* implement app stats reviewer suggestions based on CODEOWNERS ([#220](https://github.com/bdougie/contributor.info/issues/220)) ([c27bf3c](https://github.com/bdougie/contributor.info/commit/c27bf3c3aba6eded97101968c2821316d6182b79)), closes [#219](https://github.com/bdougie/contributor.info/issues/219)
+* implement contributor.info GitHub App for PR insights ([#212](https://github.com/bdougie/contributor.info/issues/212)) ([d808d5e](https://github.com/bdougie/contributor.info/commit/d808d5ebf2aa20c1537ef8a78856ac1ec32f7f18))
+* implement GitHub Actions migration with progressive backfill ([eb55431](https://github.com/bdougie/contributor.info/commit/eb554319cc13539e9070dbb15219e762f962a2d2))
+* implement PR tier labeling system with comment-based prioritization ([#215](https://github.com/bdougie/contributor.info/issues/215)) ([c5b0c7f](https://github.com/bdougie/contributor.info/commit/c5b0c7f68920bc477cafdd7c16d0b332cf139e6d))
+
+
+### 🐛 Bug Fixes
+
+* add missing author_id column to reviews table ([#242](https://github.com/bdougie/contributor.info/issues/242)) ([2504d6c](https://github.com/bdougie/contributor.info/commit/2504d6c69158bda2ec020d5c5e931a4f00d3b337))
+* add user notifications for untracked repository searches ([#239](https://github.com/bdougie/contributor.info/issues/239)) ([3e0d3a7](https://github.com/bdougie/contributor.info/commit/3e0d3a74fd7fd38ac07b7a0b9769eba025b9696d)), closes [#222](https://github.com/bdougie/contributor.info/issues/222) [#222](https://github.com/bdougie/contributor.info/issues/222)
+* Delete scripts/tier-100.sh ([116d43f](https://github.com/bdougie/contributor.info/commit/116d43ff5fee2dabfbbf2b56932953cff7e6cc07))
+* improve error handling and logging in inngest capture functions ([#225](https://github.com/bdougie/contributor.info/issues/225)) ([eaecc82](https://github.com/bdougie/contributor.info/commit/eaecc82efd5a559a91402f9220e05d2d16491b96))
+* inngest handler export ([#241](https://github.com/bdougie/contributor.info/issues/241)) ([bc1d967](https://github.com/bdougie/contributor.info/commit/bc1d96791305fe6196094a9e8fdeb10dfdff4dac)), closes [#223](https://github.com/bdougie/contributor.info/issues/223) [#223](https://github.com/bdougie/contributor.info/issues/223)
+* missing reviews and comments in feed ([#238](https://github.com/bdougie/contributor.info/issues/238)) ([05c2818](https://github.com/bdougie/contributor.info/commit/05c2818bc0fff48274c8d470a986aca7052bc486))
+* progressive backfill error handling and consecutive error checking ([#256](https://github.com/bdougie/contributor.info/issues/256)) ([a9f328a](https://github.com/bdougie/contributor.info/commit/a9f328aeff1d808c0c65b3125d491f674db6513a))
+* progressive backfill workflow issues for large repositories ([#254](https://github.com/bdougie/contributor.info/issues/254)) ([e56cdd1](https://github.com/bdougie/contributor.info/commit/e56cdd1e64bef23723566540fc893bb469eb69a0)), closes [#251](https://github.com/bdougie/contributor.info/issues/251)
+* progressive backfill workflow issues for large repositories ([#254](https://github.com/bdougie/contributor.info/issues/254)) ([#255](https://github.com/bdougie/contributor.info/issues/255)) ([08be29b](https://github.com/bdougie/contributor.info/commit/08be29b034bb55b64c17190a0641a5b5cfdb2de7))
+* properly export handler in inngest-prod.js for Netlify Functions ([57658bc](https://github.com/bdougie/contributor.info/commit/57658bc23b214e9de61528956ebc8a24e7bbee29))
+* pytorch data errors ([#240](https://github.com/bdougie/contributor.info/issues/240)) ([bdc0631](https://github.com/bdougie/contributor.info/commit/bdc06317e5af00089d46884e16ad4af63528e59f))
+* remove non-existent pull_request_number column references ([#244](https://github.com/bdougie/contributor.info/issues/244)) ([239c39a](https://github.com/bdougie/contributor.info/commit/239c39ad7d49140af1c236b51d1461acf6b78e6a))
+* repository not found error for new large repos ([#245](https://github.com/bdougie/contributor.info/issues/245)) ([9f8de66](https://github.com/bdougie/contributor.info/commit/9f8de66a1ed5980b578365976517636bd68bbe5f))
+* resolve inngest-prod handler export issue ([aed088e](https://github.com/bdougie/contributor.info/commit/aed088e12a4b2845415219f7e3cfd89de28db407))
+* resolve PR activity update workflow failures ([#232](https://github.com/bdougie/contributor.info/issues/232)) ([9efe5d9](https://github.com/bdougie/contributor.info/commit/9efe5d95653246f058c5ec19b6d74f07220a16ad))
+* update data loading UX to direct users to GitHub discussions ([#257](https://github.com/bdougie/contributor.info/issues/257)) ([55215b0](https://github.com/bdougie/contributor.info/commit/55215b090345c2246f97d9f13b885d6a37a9e818))
+* update script paths after folder reorganization ([#252](https://github.com/bdougie/contributor.info/issues/252)) ([1d4f524](https://github.com/bdougie/contributor.info/commit/1d4f52469bc63a25e3de7b91765582d4c9a3d381)), closes [#251](https://github.com/bdougie/contributor.info/issues/251)
+
+
+### 📚 Documentation
+
+* add comprehensive documentation for GitHub Actions migration ([#249](https://github.com/bdougie/contributor.info/issues/249)) ([bc2154e](https://github.com/bdougie/contributor.info/commit/bc2154eb720e33e2b481bb5a9ca31d3ee0c80da5))
+* add comprehensive README documentation for scripts directory ([#231](https://github.com/bdougie/contributor.info/issues/231)) ([1c2bcfd](https://github.com/bdougie/contributor.info/commit/1c2bcfd91c0af15e60d5f7c9381ffd4ee46d2ec1)), closes [#228](https://github.com/bdougie/contributor.info/issues/228)
+* add comprehensive README.md files to all documentation folders ([#234](https://github.com/bdougie/contributor.info/issues/234)) ([cef3e98](https://github.com/bdougie/contributor.info/commit/cef3e98cf818099fce57dd2e756642fdf8ae4f9d))
+
 ## [1.10.0](https://github.com/bdougie/contributor.info/compare/v1.9.3...v1.10.0) (2025-07-14)
 
 
