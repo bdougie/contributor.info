@@ -101,13 +101,13 @@ export default function RepoView() {
     setShowSkeleton(true);
     
     // Hide skeleton when we have data or after timeout
-    if (dataStatus.status === 'success' || dataStatus.status === 'partial_data' || stats.error) {
+    if (dataStatus?.status === 'success' || dataStatus?.status === 'partial_data' || stats.error) {
       setShowSkeleton(false);
     } else {
       const timeout = setTimeout(() => setShowSkeleton(false), 3000);
       return () => clearTimeout(timeout);
     }
-  }, [owner, repo, dataStatus.status, stats.error]);
+  }, [owner, repo, dataStatus?.status, stats.error]);
 
   // Handle share button click - create oss.fyi short link
   const handleShare = async () => {
@@ -154,7 +154,7 @@ export default function RepoView() {
   };
 
   // Show skeleton during initial load or navigation
-  if (showSkeleton && dataStatus.status === 'pending') {
+  if (showSkeleton && dataStatus?.status === 'pending') {
     return <RepoViewSkeleton />;
   }
 
