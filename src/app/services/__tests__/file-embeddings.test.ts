@@ -15,6 +15,9 @@ vi.mock('../../../../app/services/embeddings', () => ({
   generateEmbedding: vi.fn(),
 }));
 
+// Keep reference to original setTimeout
+const originalSetTimeout = globalThis.setTimeout;
+
 describe('File Embeddings Service', () => {
   const mockRepository: Repository = {
     id: 123,
@@ -53,6 +56,16 @@ describe('File Embeddings Service', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Mock setTimeout to execute immediately for faster tests
+    globalThis.setTimeout = vi.fn((callback: Function, delay?: number) => {
+      // Execute immediately instead of waiting
+      if (typeof callback === 'function') {
+        callback();
+      }
+      return 1; // Return fake timer ID
+    }) as any;
+    
     // Mock console methods to avoid output during tests
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -61,6 +74,8 @@ describe('File Embeddings Service', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    // Restore original setTimeout
+    globalThis.setTimeout = originalSetTimeout;
   });
 
   describe('generateFileEmbeddings', () => {
