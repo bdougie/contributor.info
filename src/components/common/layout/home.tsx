@@ -10,14 +10,9 @@ import { useNavigate } from "react-router-dom";
 import { SocialMetaTags } from "./meta-tags-provider";
 import { GitHubSearchInput } from "@/components/ui/github-search-input";
 import type { GitHubRepository } from "@/lib/github";
-import { LastUpdated } from "@/components/ui/last-updated";
-import { usePageTimestamp } from "@/hooks/use-data-timestamp";
 
 export default function Home() {
   const navigate = useNavigate();
-  
-  // Track when the page was loaded for freshness indicator
-  const { pageLoadedAt } = usePageTimestamp();
 
   const handleSearch = (repositoryPath: string) => {
     // Extract owner and repo from the path
@@ -62,15 +57,6 @@ export default function Home() {
             buttonText="Analyze"
           />
           <ExampleRepos onSelect={handleSelectExample} />
-          
-          {/* Add page freshness indicator */}
-          <div className="mt-6 flex justify-center">
-            <LastUpdated 
-              timestamp={pageLoadedAt}
-              label="Page loaded"
-              size="sm"
-            />
-          </div>
         </CardContent>
       </Card>
     </div>
