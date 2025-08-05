@@ -15,6 +15,9 @@ Security documentation helps developers:
 ### 🔐 Environment & Secrets Management
 - **[Environment Variables Security Guide](./environment-variables.md)** - Comprehensive guide for secure handling of environment variables, API keys, and secrets
 
+### 🛡️ Component & XSS Security
+- **[XSS Prevention and Component Security](./xss-prevention.md)** - Comprehensive guide for preventing XSS vulnerabilities and implementing secure component patterns
+
 ## Security Principles
 
 ### 1. Defense in Depth

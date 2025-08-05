@@ -13,6 +13,8 @@ import { Book, FileText } from "lucide-react";
 import { DocsNavigation } from "./docs-navigation";
 import { DocsToc } from "./docs-toc";
 import { DocsSEO } from "./docs-seo";
+import { LastUpdated } from "@/components/ui/last-updated";
+import { usePageTimestamp } from "@/hooks/use-data-timestamp";
 
 interface DocsSection {
   title: string;
@@ -26,6 +28,9 @@ export function DocsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<string | undefined>();
+  
+  // Track when the page was loaded for freshness indicator
+  const { pageLoadedAt } = usePageTimestamp();
 
   useEffect(() => {
     loadDocsContent();
@@ -256,6 +261,16 @@ export function DocsPage() {
           <main className="flex-1 max-w-4xl">
             <div className="flex gap-8">
               <div className="flex-1">
+                {/* Add page freshness indicator */}
+                <div className="mb-6 flex justify-between items-center">
+                  <h1 className="text-3xl font-bold">Documentation</h1>
+                  <LastUpdated 
+                    timestamp={pageLoadedAt}
+                    label="Documentation loaded"
+                    size="sm"
+                  />
+                </div>
+                
                 <div className="space-y-6">
                   {docsContent.map((section, index) => {
                     const anchor = `section-${section.title
