@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate, Link, useLocation } from "react-router-dom";
+import { Breadcrumbs } from "./breadcrumbs";
 import { ModeToggle } from "../theming";
 import { AuthButton } from "../../features/auth";
 import {
@@ -154,6 +155,7 @@ export default function Layout() {
       </header>
       
       <main className="container px-4 py-6 flex-1">
+        <Breadcrumbs />
         <Outlet />
       </main>
       <footer className="border-t py-4">
