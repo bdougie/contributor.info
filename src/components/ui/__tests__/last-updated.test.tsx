@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LastUpdated, LastUpdatedTime } from '../last-updated';
 
@@ -27,16 +27,19 @@ vi.mock('@/hooks/use-time-formatter', () => ({
 }));
 
 describe('LastUpdated', () => {
-  let mockConsoleWarn: ReturnType<typeof vi.spyOn>;
-  
   beforeEach(() => {
     vi.clearAllMocks();
-    // Create a fresh mock for each test
-    mockConsoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
   
   afterEach(() => {
-    mockConsoleWarn.mockRestore();
+    // Clean up React Testing Library renders
+    cleanup();
+    // Clean up any script tags added by structured data
+    document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+      script.remove();
+    });
+    // Clear all mocks after each test
+    vi.clearAllMocks();
   });
 
   it('renders with default props', () => {
@@ -118,7 +121,7 @@ describe('LastUpdated', () => {
   it('handles invalid timestamp gracefully', () => {
     render(<LastUpdated timestamp="invalid-date" />);
     
-    expect(mockConsoleWarn).toHaveBeenCalledWith(
+    expect(console.warn).toHaveBeenCalledWith(
       'LastUpdated: Invalid or unsafe timestamp provided:', 
       'invalid-date'
     );
@@ -130,7 +133,7 @@ describe('LastUpdated', () => {
     render(<LastUpdated timestamp={maliciousInput} />);
     
     // Should detect suspicious patterns and warn about malicious input
-    expect(mockConsoleWarn).toHaveBeenCalledWith(
+    expect(console.warn).toHaveBeenCalledWith(
       'LastUpdated: Potentially malicious input detected:', 
       maliciousInput
     );
@@ -142,7 +145,7 @@ describe('LastUpdated', () => {
     const farFuture = '2050-01-01T00:00:00Z';
     render(<LastUpdated timestamp={farFuture} />);
     
-    expect(mockConsoleWarn).toHaveBeenCalledWith(
+    expect(console.warn).toHaveBeenCalledWith(
       'LastUpdated: Timestamp outside reasonable range:', 
       farFuture
     );
@@ -158,14 +161,17 @@ describe('LastUpdated', () => {
     ];
 
     xssAttempts.forEach(attempt => {
-      mockConsoleWarn.mockClear();
-      render(<LastUpdated timestamp={attempt} />);
+      vi.mocked(console.warn).mockClear();
+      const { unmount } = render(<LastUpdated timestamp={attempt} />);
       
-      expect(mockConsoleWarn).toHaveBeenCalledWith(
+      expect(console.warn).toHaveBeenCalledWith(
         'LastUpdated: Potentially malicious input detected:', 
         attempt
       );
       expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      
+      // Clean up after each render to prevent memory accumulation
+      unmount();
     });
   });
 
@@ -178,10 +184,10 @@ describe('LastUpdated', () => {
     ];
 
     validTimestamps.forEach(timestamp => {
-      mockConsoleWarn.mockClear();
+      vi.mocked(console.warn).mockClear();
       const { unmount } = render(<LastUpdated timestamp={timestamp} />);
       
-      expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(console.warn).not.toHaveBeenCalled();
       expect(screen.getByRole('status')).toBeInTheDocument();
       unmount();
     });
@@ -190,7 +196,7 @@ describe('LastUpdated', () => {
   it('applies correct size classes', () => {
     const timestamp = '2024-01-15T10:00:00Z';
     
-    const { rerender } = render(<LastUpdated timestamp={timestamp} size="sm" />);
+    const { rerender, unmount } = render(<LastUpdated timestamp={timestamp} size="sm" />);
     expect(screen.getByRole('status')).toHaveClass('text-xs');
     
     rerender(<LastUpdated timestamp={timestamp} size="md" />);
@@ -198,6 +204,9 @@ describe('LastUpdated', () => {
     
     rerender(<LastUpdated timestamp={timestamp} size="lg" />);
     expect(screen.getByRole('status')).toHaveClass('text-base');
+    
+    // Clean up after rerenders
+    unmount();
   });
 
   it('has proper accessibility attributes', () => {
