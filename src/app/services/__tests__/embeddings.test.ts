@@ -147,14 +147,7 @@ describe('Embeddings Service', () => {
 
   describe('generateAndStoreEmbeddings', () => {
     it('should process items in batches', async () => {
-      // Mock setTimeout to execute immediately for faster tests
-      const originalSetTimeout = globalThis.setTimeout;
-      globalThis.setTimeout = vi.fn((callback: Function, delay?: number) => {
-        if (typeof callback === 'function') {
-          callback();
-        }
-        return 1;
-      }) as any;
+      // Use vitest's fake timers which are already set up in beforeEach
       const items = Array.from({ length: 25 }, (_, i) => ({
         id: `item-${i}`,
         type: 'issue' as const,
@@ -170,13 +163,13 @@ describe('Embeddings Service', () => {
         update: mockUpdate
       } as any);
 
+      // Run timers immediately
+      vi.runAllTimers();
+      
       await generateAndStoreEmbeddings(items);
 
       // Should process in 3 batches of 10 items each (25 items = 10+10+5)
       expect(mockUpdate).toHaveBeenCalledTimes(25);
-      
-      // Restore original setTimeout
-      globalThis.setTimeout = originalSetTimeout;
     });
 
     it('should handle individual item failures gracefully', async () => {
