@@ -10,6 +10,8 @@ vi.mock('../../../../src/lib/supabase', () => ({
   },
 }));
 
+import { supabase } from '../../../../src/lib/supabase';
+
 describe('Git History Service', () => {
   const mockRepository: Repository = {
     id: 123,
@@ -71,7 +73,6 @@ describe('Git History Service', () => {
         single: vi.fn().mockResolvedValue({ data: { id: 'contrib-uuid' } }),
       });
       
-      const { supabase } = await import('../../../../src/lib/supabase');
       vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'repositories') {
           return {
@@ -146,7 +147,6 @@ describe('Git History Service', () => {
       const mockEq = vi.fn().mockReturnThis();
       const mockSingle = vi.fn().mockResolvedValue({ data: null });
       
-      const { supabase } = await import('../../../../src/lib/supabase');
       vi.mocked(supabase.from).mockReturnValue({
         select: mockSelect,
         eq: mockEq,
@@ -160,7 +160,6 @@ describe('Git History Service', () => {
 
     it('should handle API errors gracefully', async () => {
       const mockDbRepo = { id: 'repo-uuid' };
-      const { supabase } = await import('../../../../src/lib/supabase');
       vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'repositories') {
           return {
@@ -189,7 +188,6 @@ describe('Git History Service', () => {
 
     it('should skip commits without author login', async () => {
       const mockDbRepo = { id: 'repo-uuid' };
-      const { supabase } = await import('../../../../src/lib/supabase');
       vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'repositories') {
           return {
@@ -277,7 +275,6 @@ describe('Git History Service', () => {
         },
       ];
 
-      const { supabase } = await import('../../../../src/lib/supabase');
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -308,7 +305,6 @@ describe('Git History Service', () => {
     });
 
     it('should return empty map when no contributors found', async () => {
-      const { supabase } = await import('../../../../src/lib/supabase');
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -321,7 +317,6 @@ describe('Git History Service', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      const { supabase } = await import('../../../../src/lib/supabase');
       const dbError = new Error('Database connection failed');
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),

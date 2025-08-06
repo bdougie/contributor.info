@@ -15,6 +15,8 @@ vi.mock('../../../../app/services/embeddings', () => ({
   generateEmbedding: vi.fn(),
 }));
 
+import { supabase } from '../../../../src/lib/supabase';
+
 describe('File Embeddings Service', () => {
   const mockRepository: Repository = {
     id: 123,
@@ -71,7 +73,6 @@ describe('File Embeddings Service', () => {
       const mockDbRepo = { id: 'repo-uuid' };
       const mockEmbedding = new Array(384).fill(0.1);
       
-      const { supabase } = await import('../../../../src/lib/supabase');
       const { generateEmbedding } = await import('../../../../app/services/embeddings');
       
       // Mock repository lookup
@@ -130,7 +131,6 @@ describe('File Embeddings Service', () => {
     it('should skip files that already have embeddings with same content', async () => {
       const mockDbRepo = { id: 'repo-uuid' };
       
-      const { supabase } = await import('../../../../src/lib/supabase');
       
       vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'repositories') {
@@ -170,7 +170,6 @@ describe('File Embeddings Service', () => {
     });
 
     it('should handle repository not found in database', async () => {
-      const { supabase } = await import('../../../../src/lib/supabase');
       
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
@@ -187,7 +186,6 @@ describe('File Embeddings Service', () => {
       const mockDbRepo = { id: 'repo-uuid' };
       const mockEmbedding = new Array(384).fill(0.1);
       
-      const { supabase } = await import('../../../../src/lib/supabase');
       const { generateEmbedding } = await import('../../../../app/services/embeddings');
       
       vi.mocked(supabase.from).mockImplementation((table: string) => {
@@ -231,7 +229,6 @@ describe('File Embeddings Service', () => {
     it('should handle rate limit errors with retry', async () => {
       const mockDbRepo = { id: 'repo-uuid' };
       
-      const { supabase } = await import('../../../../src/lib/supabase');
       
       vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'repositories') {
@@ -256,7 +253,6 @@ describe('File Embeddings Service', () => {
     it('should handle non-retryable errors immediately', async () => {
       const mockDbRepo = { id: 'repo-uuid' };
       
-      const { supabase } = await import('../../../../src/lib/supabase');
       
       vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'repositories') {
@@ -282,7 +278,6 @@ describe('File Embeddings Service', () => {
       const mockDbRepo = { id: 'repo-uuid' };
       const mockEmbedding = new Array(384).fill(0.1);
       
-      const { supabase } = await import('../../../../src/lib/supabase');
       const { generateEmbedding } = await import('../../../../app/services/embeddings');
       
       const mockUpsert = vi.fn().mockResolvedValue({ error: null });
@@ -343,7 +338,6 @@ describe('File Embeddings Service', () => {
         { file_path: 'src/permissions.ts', similarity: 0.85 },
       ];
 
-      const { supabase } = await import('../../../../src/lib/supabase');
       
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
@@ -376,7 +370,6 @@ describe('File Embeddings Service', () => {
         },
       ];
 
-      const { supabase } = await import('../../../../src/lib/supabase');
       
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
@@ -397,7 +390,6 @@ describe('File Embeddings Service', () => {
     });
 
     it('should return empty map when no embeddings found for input files', async () => {
-      const { supabase } = await import('../../../../src/lib/supabase');
       
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
@@ -412,7 +404,6 @@ describe('File Embeddings Service', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      const { supabase } = await import('../../../../src/lib/supabase');
       const dbError = new Error('Database connection failed');
       
       vi.mocked(supabase.from).mockReturnValue({
@@ -448,7 +439,6 @@ describe('File Embeddings Service', () => {
         { file_path: 'src/related2.ts', similarity: 0.82 },
       ];
 
-      const { supabase } = await import('../../../../src/lib/supabase');
       
       vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
