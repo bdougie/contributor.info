@@ -146,26 +146,103 @@ vi.mock('@/lib/supabase', () => {
   };
 });
 
-// Mock React Router globally to prevent conflicts
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+// Mock utility functions
+vi.mock('@/lib/utils', () => ({
+  cn: (...classes: any[]) => classes.filter(Boolean).join(' '),
+}));
+
+// Mock lucide-react icons
+vi.mock('lucide-react', () => {
+  const React = require('react');
+  const createIcon = () => (props: any) => React.createElement('svg', { ...props }, null);
+  
   return {
-    ...actual,
+    // Common icons used across the app
+    Trophy: createIcon(),
+    Users: createIcon(),
+    Calendar: createIcon(),
+    TrendingUp: createIcon(),
+    ChevronLeft: createIcon(),
+    ChevronRight: createIcon(),
+    Search: createIcon(),
+    X: createIcon(),
+    GitPullRequest: createIcon(),
+    GitPullRequestDraft: createIcon(),
+    GitCommit: createIcon(),
+    MessageSquare: createIcon(),
+    Star: createIcon(),
+    Code: createIcon(),
+    ExternalLink: createIcon(),
+    Github: createIcon(),
+    AlertCircle: createIcon(),
+    CheckCircle: createIcon(),
+    Info: createIcon(),
+    Loader2: createIcon(),
+    Menu: createIcon(),
+    Moon: createIcon(),
+    Sun: createIcon(),
+    ArrowRight: createIcon(),
+    ArrowLeft: createIcon(),
+    Download: createIcon(),
+    Upload: createIcon(),
+    RefreshCw: createIcon(),
+    Settings: createIcon(),
+    LogOut: createIcon(),
+    User: createIcon(),
+    Home: createIcon(),
+    Activity: createIcon(),
+    BarChart: createIcon(),
+    FileText: createIcon(),
+    Filter: createIcon(),
+    Package: createIcon(),
+    Shield: createIcon(),
+    Zap: createIcon(),
+  };
+});
+
+// Mock UI components to ensure they render in tests
+vi.mock('@/components/ui/card', () => {
+  const React = require('react');
+  return {
+    Card: ({ children, className, role, ...props }: any) => 
+      React.createElement('div', { className, role, ...props }, children),
+    CardContent: ({ children, className }: any) => 
+      React.createElement('div', { className }, children),
+    CardHeader: ({ children, className }: any) => 
+      React.createElement('div', { className }, children),
+    CardTitle: ({ children, className }: any) => 
+      React.createElement('h3', { className }, children),
+    CardDescription: ({ children, className }: any) => 
+      React.createElement('p', { className }, children),
+  };
+});
+
+vi.mock('@/components/ui/badge', () => {
+  const React = require('react');
+  return {
+    Badge: ({ children, className, variant }: any) => 
+      React.createElement('span', { className }, children),
+  };
+});
+
+// Mock React Router globally to prevent conflicts
+vi.mock('react-router-dom', () => {
+  const React = require('react');
+  return {
+    BrowserRouter: ({ children }: any) => React.createElement('div', null, children),
+    Router: ({ children }: any) => React.createElement('div', null, children),
+    MemoryRouter: ({ children }: any) => React.createElement('div', null, children),
+    Routes: ({ children }: any) => React.createElement('div', null, children),
+    Route: ({ children }: any) => React.createElement('div', null, children),
     useParams: vi.fn(() => ({})),
     useNavigate: vi.fn(() => vi.fn()),
     useLocation: vi.fn(() => ({ pathname: '/', search: '', hash: '', state: null, key: 'default' })),
     useSearchParams: vi.fn(() => [new URLSearchParams(), vi.fn()]),
     useOutletContext: vi.fn(() => ({})),
     Outlet: () => null,
-    Navigate: ({ to }: { to: string }) => `Navigate to ${to}`,
-    Link: vi.fn(({ children, to, ...props }: any) => {
-      const React = require('react');
-      return React.createElement('a', { href: to, ...props }, children);
-    }),
-    NavLink: vi.fn(({ children, to, ...props }: any) => {
-      const React = require('react');
-      return React.createElement('a', { href: to, ...props }, children);
-    }),
+    Navigate: ({ to }: { to: string }) => React.createElement('div', null, `Navigate to ${to}`),
+    Link: ({ children, to, ...props }: any) => React.createElement('a', { href: to, ...props }, children),
+    NavLink: ({ children, to, ...props }: any) => React.createElement('a', { href: to, ...props }, children),
   };
 });
 
