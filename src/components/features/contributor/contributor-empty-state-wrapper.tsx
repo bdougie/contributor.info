@@ -2,8 +2,6 @@
  * Production wrapper for ContributorEmptyState
  * This connects the simple component with actual UI libraries
  */
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Trophy, Users, Calendar, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContributorEmptyStateSimple } from "./contributor-empty-state-simple";

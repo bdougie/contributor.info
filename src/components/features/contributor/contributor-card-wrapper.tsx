@@ -89,7 +89,7 @@ export function ContributorCard(props: ContributorCardProps) {
     </Badge>
   );
 
-  const renderHoverCard = ({ children, contributor: hoverContributor }: any) => (
+  const renderHoverCard = ({ children }: any) => (
     <ContributorHoverCard contributor={contributorData}>
       {children}
     </ContributorHoverCard>

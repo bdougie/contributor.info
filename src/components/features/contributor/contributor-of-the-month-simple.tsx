@@ -9,7 +9,6 @@ import {
   getLeaderboardDisplayContent,
   getCardAccessibility,
   getTrophyIconProps,
-  type ComponentState,
 } from "@/lib/contributor-of-month-config";
 import type { ContributorRanking } from "@/lib/types";
 
@@ -80,7 +79,7 @@ export function ContributorOfTheMonthSimple({
   renderMinimalActivity,
 }: ContributorOfTheMonthSimpleProps) {
   // Get the current component state
-  const state = getComponentState(ranking, loading, error);
+  const state = getComponentState(ranking, loading || false, error || null);
 
   // Default renderers for testing
   const cardRenderer = renderCard || (({ children, className, role, ariaLabelledBy }) => (

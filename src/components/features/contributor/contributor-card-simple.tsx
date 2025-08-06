@@ -64,7 +64,7 @@ export function ContributorCardSimple({
 
   // Default renderers for testing
   const iconRenderer = renderIcon || ((name) => <span data-testid={`icon-${name}`}>{name}</span>);
-  const avatarRenderer = renderAvatar || (({ src, alt, fallback }) => (
+  const avatarRenderer = renderAvatar || (({ alt, fallback }) => (
     <div data-testid="avatar" title={alt}>{fallback}</div>
   ));
   const badgeRenderer = renderBadge || (({ children, variant }) => (
