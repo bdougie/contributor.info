@@ -148,7 +148,6 @@ vi.mock('@/lib/supabase', () => {
 
 // Mock React Router globally to prevent conflicts
 vi.mock('react-router-dom', async () => {
-  const React = await vi.importActual('react');
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
@@ -159,16 +158,14 @@ vi.mock('react-router-dom', async () => {
     useOutletContext: vi.fn(() => ({})),
     Outlet: () => null,
     Navigate: ({ to }: { to: string }) => `Navigate to ${to}`,
-    Link: ({ children, to, ...props }: any) => React.createElement(
-      'a',
-      { href: to, ...props },
-      children
-    ),
-    NavLink: ({ children, to, ...props }: any) => React.createElement(
-      'a',
-      { href: to, ...props },
-      children
-    ),
+    Link: vi.fn(({ children, to, ...props }: any) => {
+      const React = require('react');
+      return React.createElement('a', { href: to, ...props }, children);
+    }),
+    NavLink: vi.fn(({ children, to, ...props }: any) => {
+      const React = require('react');
+      return React.createElement('a', { href: to, ...props }, children);
+    }),
   };
 });
 
