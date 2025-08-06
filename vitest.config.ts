@@ -33,7 +33,7 @@ export default defineConfig({
       'src/**/*.test.tsx'
     ],
     
-    // Exclude all problematic tests
+    // Exclude problematic tests - being restored in phases
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
@@ -42,28 +42,34 @@ export default defineConfig({
       '**/coverage/**',
       '**/*.integration.test.{ts,tsx}',
       '**/*.e2e.test.{ts,tsx}',
-      // Temporarily skip tests with mock isolation issues
-      // TODO: Fix these in separate PR (see issue to be created)
+      
+      // PHASE 1: Re-enabled with improved mock isolation (2025-08-06)
+      // '**/ContributorCard.test.tsx',
+      // '**/ContributorOfTheMonth.test.tsx', 
+      // '**/ContributorEmptyState.test.tsx',
+      // '**/optimized-avatar.test.tsx',
+      // '**/skeleton-components.test.tsx',
+      
+      // PHASE 2: UI State & Navigation Tests (TODO)
       '**/repo-not-found.test.tsx',
-      '**/distribution-charts.test.tsx',
-      '**/data-state-indicator.test.tsx',
-      '**/contributor-confidence-card.test.tsx',
-      '**/ContributorCard.test.tsx',
-      '**/bulk-add-repos.test.tsx',
-      '**/last-updated.test.tsx',
-      '**/skeleton-components.test.tsx',
-      '**/optimized-avatar.test.tsx',
+      '**/auth-redirect.test.tsx',
       '**/home.test.tsx',
+      '**/data-state-indicator.test.tsx',
+      '**/last-updated.test.tsx',
+      
+      // PHASE 3: Data Visualization Tests (TODO)
+      '**/distribution-charts.test.tsx',
+      '**/distribution.test.tsx',
+      '**/language-legend.test.tsx',
+      '**/activity-item-styling.test.tsx',
+      
+      // PHASE 4: Feature Integration Tests (TODO)
+      '**/bulk-add-repos.test.tsx',
+      '**/contributor-confidence-card.test.tsx',
       '**/github-auth-hook.test.tsx',
       '**/use-repository-discovery.test.ts',
       '**/yolo-behavior.test.ts',
-      '**/login-functionality.test.tsx',
-      '**/ContributorOfTheMonth.test.tsx',
-      '**/ContributorEmptyState.test.tsx',
-      '**/activity-item-styling.test.tsx',
-      '**/auth-redirect.test.tsx',
-      '**/distribution.test.tsx',
-      '**/language-legend.test.tsx'
+      '**/login-functionality.test.tsx'
     ],
     
     // Minimal setup
