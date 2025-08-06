@@ -256,15 +256,25 @@ import { setupGitHubApiMock } from './github-api';
 setupGitHubApiMock();
 
 // Global fetch mock for any missed network calls
-global.fetch = vi.fn(() =>
-  Promise.resolve({
+global.fetch = vi.fn((url, options) => {
+  if (url.toString().includes('/api/queue-event')) {
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: () => Promise.resolve({ eventId: 'mock-id' }),
+      text: () => Promise.resolve('OK'),
+    } as Response);
+  }
+
+  return Promise.resolve({
     ok: false,
     status: 500,
     statusText: 'Internal Server Error',
     json: () => Promise.resolve({ error: 'Network call blocked in tests' }),
-    text: () => Promise.resolve('Network call blocked in tests')
-  } as Response)
-);
+    text: () => Promise.resolve('Network call blocked in tests'),
+  } as Response);
+});
 
 // Suppress console methods in tests to reduce noise
 const originalConsole = { ...console };
