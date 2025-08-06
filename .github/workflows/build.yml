@@ -22,8 +22,15 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
+    - name: Verify test configuration
+      run: |
+        echo "Checking vitest configuration..."
+        test -f vitest.config.ts && echo "✓ Config file exists" || echo "✗ Config file missing"
+        echo "Tests that will run:"
+        npx vitest list --config ./vitest.config.ts | head -20
+      
     - name: Run tests
-      run: npm test
+      run: npx vitest run --config ./vitest.config.ts
       
     - name: Type check
       run: npx tsc --noEmit
