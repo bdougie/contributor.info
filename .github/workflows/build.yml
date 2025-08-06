@@ -35,8 +35,14 @@ jobs:
     - name: Run tests (no env vars required)
       run: |
         # Explicitly unset any Supabase env vars to ensure tests don't depend on them
-        unset VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY SUPABASE_URL SUPABASE_ANON_KEY
-        npx vitest run --config ./vitest.config.ts
+        unset VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY SUPABASE_URL SUPABASE_ANON_KEY || true
+        # Ensure we're using the right config file
+        if [ ! -f vitest.config.ts ]; then
+          echo "ERROR: vitest.config.ts not found!"
+          exit 1
+        fi
+        echo "Running tests with explicit config..."
+        npx vitest run --config ./vitest.config.ts --no-coverage --reporter=verbose
       
     - name: Type check
       run: npx tsc --noEmit
