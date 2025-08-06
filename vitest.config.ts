@@ -24,8 +24,13 @@ export default defineConfig({
     maxConcurrency: 2,
     maxWorkers: 2,
     
-    // CRITICAL: Disable isolation to speed up tests
+    // CRITICAL: Disable isolation to prevent hanging
     isolate: false,
+    
+    // Auto-cleanup mocks between tests
+    clearMocks: true,
+    restoreMocks: true,
+    mockReset: true,
     
     // Only run essential tests
     include: [

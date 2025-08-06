@@ -2,8 +2,9 @@
  * Minimal test setup - focusing on simplicity and reliability
  * Uses @testing-library/react's built-in utilities
  */
-import { vi } from 'vitest';
+import { vi, afterEach } from 'vitest';
 import '@testing-library/jest-dom';
+import { cleanup } from '@testing-library/react';
 
 // Mock fetch globally
 global.fetch = vi.fn(() =>
@@ -58,7 +59,9 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
-// Simple cleanup after each test
+// Comprehensive cleanup after each test
 afterEach(() => {
-  vi.clearAllMocks();
+  cleanup(); // Clean up React Testing Library DOM
+  vi.clearAllMocks(); // Clear all mock call history
+  vi.restoreAllMocks(); // Restore original implementations
 });
