@@ -43,21 +43,42 @@ global.matchMedia = vi.fn((query: string) => ({
   dispatchEvent: vi.fn(),
 })) as any;
 
-// Minimal Supabase mock
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => Promise.resolve({ data: [], error: null })),
-      insert: vi.fn(() => Promise.resolve({ data: [], error: null })),
-      update: vi.fn(() => Promise.resolve({ data: [], error: null })),
-      delete: vi.fn(() => Promise.resolve({ data: [], error: null })),
-    })),
-    auth: {
-      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
-      signOut: vi.fn(() => Promise.resolve({ error: null })),
+// Minimal Supabase mock with method chaining support
+vi.mock('@/lib/supabase', () => {
+  const createQueryBuilder = () => {
+    const queryBuilder: any = {
+      select: vi.fn(() => queryBuilder),
+      insert: vi.fn(() => queryBuilder),
+      update: vi.fn(() => queryBuilder),
+      delete: vi.fn(() => queryBuilder),
+      eq: vi.fn(() => queryBuilder),
+      neq: vi.fn(() => queryBuilder),
+      gt: vi.fn(() => queryBuilder),
+      gte: vi.fn(() => queryBuilder),
+      lt: vi.fn(() => queryBuilder),
+      lte: vi.fn(() => queryBuilder),
+      like: vi.fn(() => queryBuilder),
+      ilike: vi.fn(() => queryBuilder),
+      in: vi.fn(() => queryBuilder),
+      order: vi.fn(() => queryBuilder),
+      limit: vi.fn(() => queryBuilder),
+      single: vi.fn(() => Promise.resolve({ data: null, error: null })),
+      maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
+      then: (resolve: any) => resolve({ data: [], error: null }),
+    };
+    return queryBuilder;
+  };
+
+  return {
+    supabase: {
+      from: vi.fn(() => createQueryBuilder()),
+      auth: {
+        getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+        signOut: vi.fn(() => Promise.resolve({ error: null })),
+      },
     },
-  },
-}));
+  };
+});
 
 // Comprehensive cleanup after each test
 afterEach(() => {
