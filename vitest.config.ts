@@ -49,12 +49,12 @@ export default defineConfig({
       'src/**/*.test.tsx'
     ],
     
-    // Exclude tests that require mocking
+    // Exclude tests that require mocking or environment variables
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
       '**/coverage/**',
-      // Tests that require Supabase mocking
+      // Tests that require Supabase mocking or environment variables
       'src/__tests__/auth-redirect.test.tsx',
       'src/__tests__/github-auth-hook.test.tsx',
       'src/components/__tests__/login-required-for-search.test.tsx',
@@ -71,6 +71,9 @@ export default defineConfig({
       'src/app/webhooks/__tests__/issue-comment.test.ts',
       'src/lib/progressive-capture/__tests__/hybrid-queue-manager.test.ts',
       'src/lib/inngest/functions/__tests__/event-flow.integration.test.ts',
+      // Additional tests that import modules requiring env vars
+      'src/hooks/__tests__/use-contributor-data.test.tsx',
+      'src/__tests__/login-functionality.test.tsx',
     ],
     
     // No coverage

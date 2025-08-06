@@ -26,11 +26,17 @@ jobs:
       run: |
         echo "Checking vitest configuration..."
         test -f vitest.config.ts && echo "✓ Config file exists" || echo "✗ Config file missing"
-        echo "Tests that will run:"
-        npx vitest list --config ./vitest.config.ts | head -20
+        echo "Environment check:"
+        echo "VITE_SUPABASE_URL is: ${VITE_SUPABASE_URL:-NOT SET}"
+        echo "Note: Tests are configured to run without environment variables"
+        echo "Tests that will run (first 20):"
+        npx vitest list --config ./vitest.config.ts 2>/dev/null | head -20 || echo "Could not list tests"
       
-    - name: Run tests
-      run: npx vitest run --config ./vitest.config.ts
+    - name: Run tests (no env vars required)
+      run: |
+        # Explicitly unset any Supabase env vars to ensure tests don't depend on them
+        unset VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY SUPABASE_URL SUPABASE_ANON_KEY
+        npx vitest run --config ./vitest.config.ts
       
     - name: Type check
       run: npx tsc --noEmit
