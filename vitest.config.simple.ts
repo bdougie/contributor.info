@@ -17,8 +17,8 @@ export default defineConfig({
     hookTimeout: 2000,      // 2 seconds for hooks
     teardownTimeout: 1000,  // 1 second for cleanup
     
-    // CRITICAL: Fail fast on first error
-    bail: 1,
+    // Run all tests to see all failures (0 = no bail)
+    bail: 0,
     
     // CRITICAL: Limit concurrency to prevent resource exhaustion
     maxConcurrency: 2,
@@ -29,9 +29,8 @@ export default defineConfig({
     
     // Only run essential tests
     include: [
-      'src/**/*.test.{ts,tsx}',
-      '!src/**/*.integration.test.{ts,tsx}',
-      '!src/**/*.e2e.test.{ts,tsx}'
+      'src/**/*.test.ts',
+      'src/**/*.test.tsx'
     ],
     
     // Exclude all problematic tests
@@ -41,16 +40,8 @@ export default defineConfig({
       '**/cypress/**',
       '**/e2e/**',
       '**/coverage/**',
-      // Exclude specific problematic patterns
-      '**/*embedding*.test.{ts,tsx}',
-      '**/*file-embedding*.test.{ts,tsx}',
-      '**/*git-history*.test.{ts,tsx}',
-      '**/*progressive*.test.{ts,tsx}',
-      '**/*intersection*.test.{ts,tsx}',
-      '**/*cached*.test.{ts,tsx}',
-      '**/use-cached-repo-data.test.ts',
-      '**/supabase-pr-data-smart.test.ts',
-      '**/comments.test.ts'
+      '**/*.integration.test.{ts,tsx}',
+      '**/*.e2e.test.{ts,tsx}'
     ],
     
     // Minimal setup
