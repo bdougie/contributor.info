@@ -11,12 +11,13 @@ import {
 } from '@/components/ui/breadcrumb';
 
 const breadcrumbNameMap: { [key: string]: string } = {
-  '': 'Home',
-  'activity': 'Activity',
-  'contributions': 'Contributions',
-  'health': 'Health',
-  'distribution': 'Distribution',
-  'feed': 'Feed',
+  '': 'home',
+  'activity': 'activity',
+  'contributions': 'activity',
+  'health': 'health',
+  'lottery': 'health',
+  'distribution': 'distribution',
+  'feed': 'feed',
 };
 
 export const Breadcrumbs = () => {
@@ -40,7 +41,7 @@ export const Breadcrumbs = () => {
     };
   });
 
-  const homeBreadcrumb = { name: 'Home', to: '/', isLast: pathnames.length === 0 };
+  const homeBreadcrumb = { name: 'home', to: '/', isLast: pathnames.length === 0 };
   const allBreadcrumbs = [homeBreadcrumb, ...breadcrumbs];
 
   const items = allBreadcrumbs.map((crumb) => (
@@ -74,7 +75,7 @@ export const Breadcrumbs = () => {
       <Helmet>
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
-      <Breadcrumb className="hidden md:flex mb-4">
+      <Breadcrumb className="hidden md:flex mb-2">
         <BreadcrumbList>{items}</BreadcrumbList>
       </Breadcrumb>
     </>
