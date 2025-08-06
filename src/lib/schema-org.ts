@@ -130,7 +130,7 @@ export function getWebSiteSchema(): WebSite {
         '@type': 'EntryPoint',
         urlTemplate: 'https://contributor.info/{owner}/{repo}'
       },
-      'query-input': 'required name=owner,repo'
+      'query-input': 'required name=search_term_string'
     },
     publisher: getOrganizationSchema()
   };
