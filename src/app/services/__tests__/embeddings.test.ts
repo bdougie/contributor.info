@@ -45,11 +45,10 @@ import { supabase } from '../../../lib/supabase';
 describe('Embeddings Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   describe('generateEmbedding', () => {
@@ -147,7 +146,6 @@ describe('Embeddings Service', () => {
 
   describe('generateAndStoreEmbeddings', () => {
     it('should process items in batches', async () => {
-      // Use vitest's fake timers which are already set up in beforeEach
       const items = Array.from({ length: 25 }, (_, i) => ({
         id: `item-${i}`,
         type: 'issue' as const,
@@ -162,9 +160,6 @@ describe('Embeddings Service', () => {
       vi.mocked(supabase).from = vi.fn().mockReturnValue({
         update: mockUpdate
       } as any);
-
-      // Run timers immediately
-      vi.runAllTimers();
       
       await generateAndStoreEmbeddings(items);
 

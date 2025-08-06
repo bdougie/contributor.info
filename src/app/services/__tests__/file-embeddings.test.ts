@@ -55,7 +55,6 @@ describe('File Embeddings Service', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
     
     // Mock console methods to avoid output during tests
     vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -65,7 +64,6 @@ describe('File Embeddings Service', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-    vi.useRealTimers();
   });
 
   describe('generateFileEmbeddings', () => {
