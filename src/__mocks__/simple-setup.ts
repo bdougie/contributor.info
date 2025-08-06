@@ -152,11 +152,15 @@ vi.mock('@/lib/utils', () => ({
 }));
 
 // Mock lucide-react icons
-vi.mock('lucide-react', () => {
-  const React = require('react');
+vi.mock('lucide-react', async (importOriginal) => {
+  const React = (await import('react')).default;
   const createIcon = () => (props: any) => React.createElement('svg', { ...props }, null);
   
+  // Get the actual module to preserve any exports we don't explicitly mock
+  const actual = await importOriginal() as any;
+  
   return {
+    ...actual,
     // Common icons used across the app
     Trophy: createIcon(),
     Users: createIcon(),
@@ -201,8 +205,8 @@ vi.mock('lucide-react', () => {
 });
 
 // Mock UI components to ensure they render in tests
-vi.mock('@/components/ui/card', () => {
-  const React = require('react');
+vi.mock('@/components/ui/card', async () => {
+  const React = (await import('react')).default;
   return {
     Card: ({ children, className, role, ...props }: any) => 
       React.createElement('div', { className, role, ...props }, children),
@@ -217,8 +221,8 @@ vi.mock('@/components/ui/card', () => {
   };
 });
 
-vi.mock('@/components/ui/badge', () => {
-  const React = require('react');
+vi.mock('@/components/ui/badge', async () => {
+  const React = (await import('react')).default;
   return {
     Badge: ({ children, className, variant }: any) => 
       React.createElement('span', { className }, children),
@@ -226,8 +230,8 @@ vi.mock('@/components/ui/badge', () => {
 });
 
 // Mock React Router globally to prevent conflicts
-vi.mock('react-router-dom', () => {
-  const React = require('react');
+vi.mock('react-router-dom', async () => {
+  const React = (await import('react')).default;
   return {
     BrowserRouter: ({ children }: any) => React.createElement('div', null, children),
     Router: ({ children }: any) => React.createElement('div', null, children),
