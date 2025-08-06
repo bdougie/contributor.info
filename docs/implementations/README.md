@@ -14,6 +14,7 @@ Implementation documentation helps developers:
 
 ### 🎨 UI & Frontend Implementations
 - **[Core Web Vitals Phase 1](./core-web-vitals-phase1.md)** - LCP, CLS, and performance optimizations through skeleton screens and resource hints
+- **[Data Loading Optimizations Phase 2](./data-loading-optimizations-phase2.md)** - Progressive data loading, intersection observer, and API optimization for Core Web Vitals
 - **[Lighthouse Optimizations](./LIGHTHOUSE_OPTIMIZATIONS.md)** - Performance optimizations and metrics improvements
 - **[Distribution Charts Restoration](./distribution-charts-restoration.md)** - Chart component fixes and improvements
 - **[Mobile Fixes Summary](./MOBILE_FIXES_SUMMARY.md)** - Mobile responsiveness improvements
