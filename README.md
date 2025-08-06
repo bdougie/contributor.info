@@ -35,17 +35,19 @@ The contributing guide includes:
 
 ## 🧪 Testing
 
-The project uses a comprehensive testing strategy. For detailed information, see our [Testing Documentation](./docs/testing/README.md).
+The project uses a comprehensive testing strategy with focus on isolated, pure unit tests. For detailed information, see our [Testing Documentation](./docs/testing/README.md).
 
 **Quick Commands:**
 ```bash
-npm test          # Run all tests
+npm test          # Run all tests (pure unit tests only)
 npm run test:watch # Run tests in watch mode
 npm run test:ui   # Open Vitest UI
 ```
 
 **Testing Resources:**
 - [Testing Strategy & Philosophy](./docs/testing/README.md)
+- [Test Isolation Solution](./docs/test-isolation-solution.md) - How we fixed hanging tests
+- [Mock Isolation Fix](./docs/MOCK_ISOLATION_FIX.md) - Technical details of the fix
 - [E2E Testing Guide](./docs/testing/e2e-minimal-testing-philosophy.md)
 - [Performance Monitoring](./docs/testing/performance-monitoring.md)
 - [Release Process](./docs/testing/release-process.md)
