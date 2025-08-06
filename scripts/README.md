@@ -108,6 +108,9 @@ Ensure system reliability and data integrity.
 | `test-review-sync.mjs` | Test PR review syncing functionality | Debug review data issues |
 | `test-social-cards.js` | Validate social card generation | Social media debugging |
 | `test-visual-regression.sh` | Run visual regression tests | UI change validation |
+| `test-console-warn.js` | Test console warning detection | Debug console output |
+| `test-last-updated-logic.js` | Test last updated timestamp logic | Verify timestamp calculations |
+| `test-sanitize.js` | Test HTML sanitization | Security validation |
 
 ### 🔧 **[Utilities](./utilities/)**
 General-purpose tools and maintenance scripts.
