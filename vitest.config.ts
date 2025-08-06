@@ -24,7 +24,7 @@ export default defineConfig({
     maxConcurrency: 2,
     maxWorkers: 2,
     
-    // CRITICAL: Disable isolation to prevent hanging
+    // Disable isolation to prevent hanging - handle mock pollution manually
     isolate: false,
     
     // Auto-cleanup mocks between tests
@@ -51,7 +51,7 @@ export default defineConfig({
       // PHASE 1: Re-enabled with improved mock isolation (2025-08-06)
       // '**/ContributorCard.test.tsx',
       // '**/ContributorOfTheMonth.test.tsx', 
-      // '**/ContributorEmptyState.test.tsx',
+      // '**/ContributorEmptyState.test.tsx',  // Re-enabled - test improved with better mock isolation
       // '**/optimized-avatar.test.tsx',
       // '**/skeleton-components.test.tsx',
       
