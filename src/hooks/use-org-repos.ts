@@ -39,19 +39,31 @@ interface OrgRepoCache {
 // Cache duration: 24 hours as mentioned in the requirements
 const CACHE_DURATION = 24 * 60 * 60 * 1000;
 
-// Global cache to persist across component re-mounts
+// Global cache to persist across component re-mounts with size limit
 const orgRepoCache: OrgRepoCache = {};
+const MAX_CACHE_SIZE = 50; // Limit to prevent unbounded memory growth
 
 /**
- * Clean up old cache entries
+ * Clean up old cache entries and enforce size limits
  */
 function cleanupOrgCache() {
   const now = Date.now();
-  Object.keys(orgRepoCache).forEach(org => {
-    if (now - orgRepoCache[org].timestamp > CACHE_DURATION) {
+  const entries = Object.entries(orgRepoCache);
+  
+  // Remove expired entries
+  entries.forEach(([org, cache]) => {
+    if (now - cache.timestamp > CACHE_DURATION) {
       delete orgRepoCache[org];
     }
   });
+  
+  // If still over size limit, remove oldest entries (LRU)
+  const remainingEntries = Object.entries(orgRepoCache);
+  if (remainingEntries.length > MAX_CACHE_SIZE) {
+    const sortedByTimestamp = remainingEntries.sort(([,a], [,b]) => a.timestamp - b.timestamp);
+    const toRemove = sortedByTimestamp.slice(0, remainingEntries.length - MAX_CACHE_SIZE);
+    toRemove.forEach(([org]) => delete orgRepoCache[org]);
+  }
 }
 
 /**
@@ -127,16 +139,21 @@ export function useOrgRepos(org?: string): UseOrgReposState {
         // Check tracking status for each repository
         const repoFullNames = activeRepos.map(repo => repo.full_name);
         
-        const { data: trackedRepos } = await supabase
-          .from('repositories')
-          .select('full_name, last_updated')
-          .in('full_name', repoFullNames);
+        // Guard against empty array which would cause Supabase query to fail
+        let trackedRepos: { full_name: string; last_updated: string | null }[] = [];
+        if (repoFullNames.length > 0) {
+          const { data } = await supabase
+            .from('repositories')
+            .select('full_name, last_updated')
+            .in('full_name', repoFullNames);
+          trackedRepos = data || [];
+        }
 
         if (signal.aborted) return;
 
         // Combine GitHub data with tracking status
         const repositoriesWithTracking: RepositoryWithTracking[] = activeRepos.map(repo => {
-          const trackedRepo = trackedRepos?.find(tr => tr.full_name === repo.full_name);
+          const trackedRepo = trackedRepos.find(tr => tr.full_name === repo.full_name);
           
           return {
             id: repo.id,
@@ -170,7 +187,7 @@ export function useOrgRepos(org?: string): UseOrgReposState {
       } catch (error) {
         if (signal.aborted) return;
         
-        console.error('Error fetching org repositories:', error);
+        // Error will be handled by setting error state below
         
         // Handle specific error cases
         let errorMessage = 'Failed to fetch repositories';

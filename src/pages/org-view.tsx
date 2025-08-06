@@ -74,7 +74,7 @@ const TrackingStatusBadge = ({ repo }: { repo: RepositoryWithTracking }) => {
     
     // Open GitHub discussions with pre-filled request
     const discussionUrl = `https://github.com/bdougie/contributor.info/discussions/new?category=request-a-repo&title=Track%20repository%20request%3A%20${encodeURIComponent(repo.full_name)}&body=Please%20add%20tracking%20for%20repository%3A%20${encodeURIComponent(repo.html_url)}`;
-    window.open(discussionUrl, '_blank');
+    window.open(discussionUrl, '_blank', 'noopener,noreferrer');
     
     toast.success("Request submitted! We'll review your repository request.", {
       description: "Check GitHub discussions for updates on your request."
@@ -169,7 +169,7 @@ const RepositoryRow = ({ repo }: { repo: RepositoryWithTracking }) => {
 const RequestMoreReposCTA = ({ org }: { org: string }) => {
   const handleRequestMoreRepos = () => {
     const discussionUrl = `https://github.com/bdougie/contributor.info/discussions/new?category=request-a-repo&title=Request%20more%20repositories%20for%20${encodeURIComponent(org)}&body=I'd%20like%20to%20request%20additional%20repositories%20from%20the%20${encodeURIComponent(org)}%20organization%20to%20be%20tracked%3A%0A%0A%5BList%20specific%20repositories%20or%20describe%20the%20type%20of%20repositories%20you're%20interested%20in%5D`;
-    window.open(discussionUrl, '_blank');
+    window.open(discussionUrl, '_blank', 'noopener,noreferrer');
     
     toast.success("Request submitted!", {
       description: "Let us know which specific repositories you'd like to see tracked."
@@ -239,7 +239,7 @@ export default function OrgView() {
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-            {org?.charAt(0).toUpperCase()}
+            {org?.charAt(0)?.toUpperCase() || '?'}
           </div>
           <div>
             <h1 className="text-3xl font-bold">{org}</h1>
