@@ -3,25 +3,37 @@ import { describe, it, expect, vi } from "vitest";
 import "@testing-library/jest-dom";
 
 // Mock the UI components inline to avoid complex module mocking
-vi.mock("@/components/ui/card", () => ({
-  Card: ({ children, role, className, ...props }: any) => (
-    <div role={role} className={className} {...props}>{children}</div>
-  ),
-  CardContent: ({ children }: any) => <div>{children}</div>,
-  CardHeader: ({ children }: any) => <div>{children}</div>,
-  CardTitle: ({ children }: any) => <h3>{children}</h3>,
-}));
+vi.mock("@/components/ui/card", () => {
+  const React = require('react');
+  return {
+    Card: ({ children, role, className, ...props }: any) => 
+      React.createElement('div', { role, className, ...props }, children),
+    CardContent: ({ children }: any) => 
+      React.createElement('div', null, children),
+    CardHeader: ({ children }: any) => 
+      React.createElement('div', null, children),
+    CardTitle: ({ children }: any) => 
+      React.createElement('h3', null, children),
+  };
+});
 
-vi.mock("@/components/ui/badge", () => ({
-  Badge: ({ children }: any) => <span>{children}</span>,
-}));
+vi.mock("@/components/ui/badge", () => {
+  const React = require('react');
+  return {
+    Badge: ({ children }: any) => 
+      React.createElement('span', null, children),
+  };
+});
 
-vi.mock("lucide-react", () => ({
-  Trophy: () => <svg data-testid="trophy-icon" />,
-  Users: () => <svg data-testid="users-icon" />,
-  Calendar: () => <svg data-testid="calendar-icon" />,
-  TrendingUp: () => <svg data-testid="trending-icon" />,
-}));
+vi.mock("lucide-react", () => {
+  const React = require('react');
+  return {
+    Trophy: () => React.createElement('svg', { 'data-testid': 'trophy-icon' }),
+    Users: () => React.createElement('svg', { 'data-testid': 'users-icon' }),
+    Calendar: () => React.createElement('svg', { 'data-testid': 'calendar-icon' }),
+    TrendingUp: () => React.createElement('svg', { 'data-testid': 'trending-icon' }),
+  };
+});
 
 vi.mock("@/lib/utils", () => ({
   cn: (...classes: any[]) => classes.filter(Boolean).join(" "),
