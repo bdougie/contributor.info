@@ -24,6 +24,7 @@ import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
 import { InsightsSidebar } from "@/components/insights/insights-sidebar";
 import { RepoViewSkeleton } from "@/components/skeletons";
 import { SocialMetaTags } from "@/components/common/layout";
+import { Breadcrumbs } from "@/components/common/layout/breadcrumbs";
 import RepoNotFound from "./repo-not-found";
 import { createChartShareUrl, getDubConfig } from "@/lib/dub";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
@@ -211,6 +212,7 @@ export default function RepoView() {
         type="article"
         image={`social-cards/repo-${owner}-${repo}.png`}
       />
+      <Breadcrumbs />
       <Card className="mb-8">
         <CardContent className="pt-6">
           <GitHubSearchInput
