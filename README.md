@@ -33,6 +33,23 @@ The contributing guide includes:
 - Testing guidelines
 - Code contribution process
 
+## 🧪 Testing
+
+The project uses a comprehensive testing strategy. For detailed information, see our [Testing Documentation](./docs/testing/README.md).
+
+**Quick Commands:**
+```bash
+npm test          # Run all tests
+npm run test:watch # Run tests in watch mode
+npm run test:ui   # Open Vitest UI
+```
+
+**Testing Resources:**
+- [Testing Strategy & Philosophy](./docs/testing/README.md)
+- [E2E Testing Guide](./docs/testing/e2e-minimal-testing-philosophy.md)
+- [Performance Monitoring](./docs/testing/performance-monitoring.md)
+- [Release Process](./docs/testing/release-process.md)
+
 ## 🏗️ Architecture
 
 ```
@@ -67,7 +84,7 @@ The contributing guide includes:
 - Edge Functions (serverless)
 
 **Development**
-- Vitest (testing)
+- Vitest (testing) - [Testing Guide](./docs/testing/README.md)
 - ESLint (code quality)
 - GitHub Actions (CI/CD)
 

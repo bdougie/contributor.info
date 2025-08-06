@@ -7,6 +7,8 @@ This document outlines the testing patterns and best practices used in the contr
 - [Environment Variables in Tests](#environment-variables-in-tests)
 - [CI/CD Compatibility](#cicd-compatibility)
 - [Common Testing Patterns](#common-testing-patterns)
+- [Memory-Efficient Testing](#memory-efficient-testing)
+- [Debugging Test Issues](#debugging-test-issues)
 
 ## Mocking Supabase in Tests
 
@@ -209,8 +211,151 @@ vi.mocked(supabase.rpc).mockResolvedValue({
 - Check that the mock is defined before the import
 - Use `vi.mocked()` to get proper TypeScript types
 
+## Memory-Efficient Testing
+
+### The Problem
+Tests can consume excessive memory leading to "JavaScript heap out of memory" errors in CI environments. This is especially common with:
+- React component tests that don't clean up properly
+- Tests that render components in loops
+- Mock functions that accumulate call history
+- DOM modifications that persist between tests
+
+### Best Practices
+
+#### 1. Always Clean Up Components
+```typescript
+import { render, cleanup } from '@testing-library/react';
+
+afterEach(() => {
+  cleanup(); // Clean up all rendered components
+  vi.clearAllMocks(); // Clear mock call history
+});
+
+it('test case', () => {
+  const { unmount } = render(<Component />);
+  // ... assertions ...
+  unmount(); // Always unmount, especially in loops
+});
+```
+
+#### 2. Optimize Mock Functions
+```typescript
+// ❌ Bad: Creating new mock instances in loops
+beforeEach(() => {
+  mockFn = vi.fn((arg) => {
+    const heavy = new Array(1000).fill(arg);
+    return heavy;
+  });
+});
+
+// ✅ Good: Singleton mocks with lightweight implementations
+const mockFn = vi.fn();
+beforeEach(() => {
+  mockFn.mockClear();
+  mockFn.mockReturnValue('simple-value');
+});
+```
+
+#### 3. Handle Loop Rendering
+```typescript
+// ❌ Bad: No cleanup in loops
+items.forEach(item => {
+  render(<Component item={item} />);
+  // ... assertions ...
+});
+
+// ✅ Good: Clean up each iteration
+items.forEach((item, index) => {
+  const { unmount } = render(<Component item={item} />);
+  // ... assertions ...
+  unmount();
+  cleanup();
+  
+  // Periodic deep cleanup
+  if (index % 10 === 0) {
+    vi.clearAllMocks();
+  }
+});
+```
+
+#### 4. Avoid Rerender Memory Buildup
+```typescript
+// ❌ Bad: Multiple rerenders accumulate memory
+const { rerender } = render(<Component size="sm" />);
+rerender(<Component size="md" />);
+rerender(<Component size="lg" />);
+
+// ✅ Good: Separate renders with cleanup
+['sm', 'md', 'lg'].forEach(size => {
+  const { unmount } = render(<Component size={size} />);
+  // ... assertions ...
+  unmount();
+  cleanup();
+});
+```
+
+#### 5. Clean Up DOM Modifications
+```typescript
+afterEach(() => {
+  // Remove any elements added to document
+  document.querySelectorAll('[data-testid]').forEach(el => el.remove());
+  document.querySelectorAll('script[type="application/ld+json"]').forEach(el => el.remove());
+});
+```
+
+### Vitest Configuration for Memory Management
+```typescript
+// vitest.config.ts
+export default defineConfig({
+  test: {
+    // Limit concurrent tests to reduce memory pressure
+    maxConcurrency: 4,
+    // Ensure proper test isolation
+    isolate: true,
+    // ... other config
+  }
+});
+```
+
+### Memory Profiling
+```bash
+# Run tests with memory limit (similar to CI)
+node --max-old-space-size=512 node_modules/.bin/vitest run
+
+# Run with garbage collection exposed
+node --expose-gc node_modules/.bin/vitest run
+```
+
+For detailed memory leak debugging, see [Memory Leak Fix Documentation](./debugging/memory-leak-fix-last-updated-tests.md).
+
+## Debugging Test Issues
+
+### Common Issues and Solutions
+
+1. **"JavaScript heap out of memory"**
+   - See [Memory-Efficient Testing](#memory-efficient-testing) section
+   - Check for missing cleanup in loops
+   - Look for heavy mock implementations
+
+2. **"Cannot find module" in CI**
+   - Use full relative paths in vi.mock()
+   - Avoid path aliases in test files
+   - Check case sensitivity (CI is case-sensitive)
+
+3. **Flaky Tests**
+   - Add explicit cleanup between tests
+   - Clear timers with vi.clearAllTimers()
+   - Check for test order dependencies
+
+4. **Slow Tests**
+   - Limit test concurrency in CI
+   - Mock heavy operations (API calls, file I/O)
+   - Use lightweight mock implementations
+
 ## References
 
 - [Vitest Mocking Guide](https://vitest.dev/guide/mocking.html)
+- [React Testing Library Cleanup](https://testing-library.com/docs/react-testing-library/api/#cleanup)
+- [Memory Leak Fix for LastUpdated Tests](./debugging/memory-leak-fix-last-updated-tests.md)
 - [Example: git-history.test.ts](../src/app/services/__tests__/git-history.test.ts)
 - [Example: supabase-pr-data-smart.test.ts](../src/lib/__tests__/supabase-pr-data-smart.test.ts)
