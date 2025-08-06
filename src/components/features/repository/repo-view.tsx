@@ -181,7 +181,7 @@ export default function RepoView() {
     } else {
       // For other errors, show the generic error card
       return (
-        <div className="container mx-auto py-2">
+        <div className="py-2">
           <Card>
             <CardContent className="p-8">
               <div className="text-center">
@@ -204,7 +204,7 @@ export default function RepoView() {
   const repoUrl = `https://contributor.info/${owner}/${repo}`;
 
   return (
-    <div className="container mx-auto py-2">
+    <div className="py-2">
       <SocialMetaTags
         title={repoTitle}
         description={repoDescription}
@@ -254,10 +254,10 @@ export default function RepoView() {
       <div className="grid gap-8">
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  <span>{owner}/{repo}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-xl sm:text-2xl flex flex-col sm:flex-row sm:items-center gap-2">
+                  <span className="break-words">{owner}/{repo}</span>
                   <RepositoryInlineMetadata owner={owner} repo={repo} />
                 </CardTitle>
                 <CardDescription>
@@ -279,7 +279,7 @@ export default function RepoView() {
                 size="icon"
                 onClick={handleShare}
                 disabled={isGeneratingUrl}
-                className="h-8 w-8"
+                className="h-8 w-8 flex-shrink-0"
                 title={isGeneratingUrl ? "Generating short link..." : "Copy repository link"}
               >
                 <Link className={`h-4 w-4 ${isGeneratingUrl ? 'animate-pulse' : ''}`} />
@@ -300,11 +300,11 @@ export default function RepoView() {
                 }
               }}
             >
-              <TabsList>
-                <TabsTrigger value="contributions">Activity</TabsTrigger>
-                <TabsTrigger value="lottery">Health</TabsTrigger>
-                <TabsTrigger value="distribution">Distribution</TabsTrigger>
-                <TabsTrigger value="feed">Feed</TabsTrigger>
+              <TabsList className="grid grid-cols-4 w-full max-w-md">
+                <TabsTrigger value="contributions" className="text-xs sm:text-sm">Activity</TabsTrigger>
+                <TabsTrigger value="lottery" className="text-xs sm:text-sm">Health</TabsTrigger>
+                <TabsTrigger value="distribution" className="text-xs sm:text-sm">Distribution</TabsTrigger>
+                <TabsTrigger value="feed" className="text-xs sm:text-sm">Feed</TabsTrigger>
               </TabsList>
             </Tabs>
 

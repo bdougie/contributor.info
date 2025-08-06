@@ -81,7 +81,7 @@ export const Breadcrumbs = () => {
       <Helmet>
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
-      <Breadcrumb className="hidden md:flex mb-2">
+      <Breadcrumb className="hidden md:flex">
         <BreadcrumbList>{items}</BreadcrumbList>
       </Breadcrumb>
     </>
