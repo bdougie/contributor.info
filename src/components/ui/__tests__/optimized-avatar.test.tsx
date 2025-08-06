@@ -14,9 +14,28 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   takeRecords: vi.fn().mockReturnValue([]),
 }));
 
+// Mock the Avatar UI components
+vi.mock('@/components/ui/avatar', () => {
+  const React = require('react');
+  return {
+    Avatar: React.forwardRef(({ children, className, style }: any, ref: any) => 
+      React.createElement('div', { ref, className, style }, children)
+    ),
+    AvatarImage: ({ src, alt, onLoad, onError, className }: any) => 
+      React.createElement('img', { src, alt, onLoad, onError, className }),
+    AvatarFallback: ({ children, className }: any) => 
+      React.createElement('div', { className }, children),
+  };
+});
+
+// Mock cn utility
+vi.mock('@/lib/utils', () => ({
+  cn: (...classes: any[]) => classes.filter(Boolean).join(' '),
+}));
+
 describe('OptimizedAvatar', () => {
   it('renders with fallback text', () => {
-    render(
+    const { container } = render(
       <OptimizedAvatar
         src="https://example.com/avatar.jpg"
         alt="John Doe"
@@ -25,7 +44,10 @@ describe('OptimizedAvatar', () => {
       />
     );
 
-    expect(screen.getByText('JD')).toBeInTheDocument();
+    // The fallback is rendered inside the AvatarFallback component
+    const fallbackElement = container.querySelector('div');
+    expect(fallbackElement).toBeInTheDocument();
+    expect(fallbackElement?.textContent).toContain('JD');
   });
 
   it('optimizes GitHub avatar URLs with size parameter', () => {
@@ -44,7 +66,7 @@ describe('OptimizedAvatar', () => {
   });
 
   it('generates fallback initials from alt text', async () => {
-    render(
+    const { container } = render(
       <OptimizedAvatar
         src="invalid-url"
         alt="Jane Smith"
@@ -53,7 +75,10 @@ describe('OptimizedAvatar', () => {
     );
 
     // Should show fallback initials immediately since image will fail to load
-    expect(screen.getByText('JS')).toBeInTheDocument();
+    const fallbackElement = container.querySelector('div');
+    expect(fallbackElement).toBeInTheDocument();
+    // The component generates 'JS' from 'Jane Smith'
+    expect(fallbackElement?.textContent).toContain('JS');
   });
 
   it('applies correct size classes', () => {

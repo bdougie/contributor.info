@@ -1,18 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-
-// Base URL for GitHub API
-const GITHUB_API_BASE = 'https://api.github.com';
-
-/**
- * Rate limit information returned from GitHub API
- */
-interface RateLimitInfo {
-  limit: number;
-  remaining: number;
-  reset: Date;
-  used: number;
-}
+import * as GitHubApiService from '@/lib/github/api-service';
+import type { RateLimitInfo, GitHubApiConfig } from '@/lib/github/api-service';
 
 /**
  * Hook for interacting with the GitHub API
@@ -26,32 +15,28 @@ export function useGitHubApi() {
    * Get GitHub auth token from Supabase session
    */
   const getAuthToken = useCallback(async (): Promise<string | null> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
+    try {
+      const sessionData = await supabase.auth.getSession();
+      
+      if (!sessionData?.data?.session) {
+        return null;
+      }
+      
+      // For GitHub OAuth, we should be able to get a token from the provider token
+      const token = sessionData.data.session.provider_token;
+      return token || null;
+    } catch (err) {
+      console.error('Failed to get auth token:', err);
       return null;
     }
-    
-    // For GitHub OAuth, we should be able to get a token from the provider token
-    const token = session.provider_token;
-    return token || null;
   }, []);
   
   /**
-   * Create headers for GitHub API requests
+   * Create API config with current auth token
    */
-  const createHeaders = useCallback(async (): Promise<HeadersInit> => {
+  const createApiConfig = useCallback(async (): Promise<GitHubApiConfig> => {
     const token = await getAuthToken();
-    
-    const headers: HeadersInit = {
-      'Accept': 'application/vnd.github.v3+json',
-    };
-    
-    if (token) {
-      headers['Authorization'] = `token ${token}`;
-    }
-    
-    return headers;
+    return { token };
   }, [getAuthToken]);
   
   /**
@@ -62,25 +47,15 @@ export function useGitHubApi() {
     setError(null);
     
     try {
-      const headers = await createHeaders();
-      const response = await fetch(`${GITHUB_API_BASE}${endpoint}`, { headers });
+      const config = await createApiConfig();
+      const result = await GitHubApiService.fetchFromGitHub<T>(endpoint, config);
       
-      // Update rate limit info from headers
-      if (response.headers.get('x-ratelimit-limit')) {
-        setRateLimit({
-          limit: parseInt(response.headers.get('x-ratelimit-limit') || '0'),
-          remaining: parseInt(response.headers.get('x-ratelimit-remaining') || '0'),
-          reset: new Date(parseInt(response.headers.get('x-ratelimit-reset') || '0') * 1000),
-          used: parseInt(response.headers.get('x-ratelimit-used') || '0'),
-        });
+      // Update rate limit info
+      if (result.rateLimit) {
+        setRateLimit(result.rateLimit);
       }
       
-      if (!response.ok) {
-        throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      return data as T;
+      return result.data;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
@@ -88,28 +63,82 @@ export function useGitHubApi() {
     } finally {
       setIsLoading(false);
     }
-  }, [createHeaders]);
+  }, [createApiConfig]);
   
   /**
    * Fetch repository information
    */
   const fetchRepository = useCallback(async (owner: string, repo: string) => {
-    return fetchFromGitHub<any>(`/repos/${owner}/${repo}`);
-  }, [fetchFromGitHub]);
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const config = await createApiConfig();
+      const result = await GitHubApiService.fetchRepository(owner, repo, config);
+      
+      if (result.rateLimit) {
+        setRateLimit(result.rateLimit);
+      }
+      
+      return result.data;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      setError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [createApiConfig]);
   
   /**
    * Fetch user information
    */
   const fetchUser = useCallback(async (username: string) => {
-    return fetchFromGitHub<any>(`/users/${username}`);
-  }, [fetchFromGitHub]);
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const config = await createApiConfig();
+      const result = await GitHubApiService.fetchUser(username, config);
+      
+      if (result.rateLimit) {
+        setRateLimit(result.rateLimit);
+      }
+      
+      return result.data;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      setError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [createApiConfig]);
   
   /**
    * Fetch user organizations
    */
   const fetchUserOrganizations = useCallback(async (username: string) => {
-    return fetchFromGitHub<any[]>(`/users/${username}/orgs`);
-  }, [fetchFromGitHub]);
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const config = await createApiConfig();
+      const result = await GitHubApiService.fetchUserOrganizations(username, config);
+      
+      if (result.rateLimit) {
+        setRateLimit(result.rateLimit);
+      }
+      
+      return result.data;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      setError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [createApiConfig]);
   
   /**
    * Fetch pull requests for a repository
@@ -119,15 +148,32 @@ export function useGitHubApi() {
     repo: string, 
     state: 'open' | 'closed' | 'all' = 'all'
   ) => {
-    return fetchFromGitHub<any[]>(`/repos/${owner}/${repo}/pulls?state=${state}&per_page=100`);
-  }, [fetchFromGitHub]);
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const config = await createApiConfig();
+      const result = await GitHubApiService.fetchPullRequests(owner, repo, state, config);
+      
+      if (result.rateLimit) {
+        setRateLimit(result.rateLimit);
+      }
+      
+      return result.data;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      setError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [createApiConfig]);
   
   /**
    * Check if user is rate limited
    */
   const isRateLimited = useCallback((): boolean => {
-    if (!rateLimit) return false;
-    return rateLimit.remaining <= 0;
+    return GitHubApiService.isRateLimited(rateLimit);
   }, [rateLimit]);
   
   return {

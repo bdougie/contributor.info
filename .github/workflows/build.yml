@@ -22,8 +22,23 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
-    - name: Run tests
-      run: npm test
+    - name: Verify test configuration
+      run: |
+        echo "Checking vitest configuration..."
+        test -f vitest.config.ts && echo "✓ Config file exists" || echo "✗ Config file missing"
+        echo "Environment check:"
+        echo "VITE_SUPABASE_URL is: ${VITE_SUPABASE_URL:-NOT SET}"
+        echo "Note: Tests are configured to run without environment variables"
+        echo "Tests that will run (first 20):"
+        npx vitest list --config ./vitest.config.ts 2>/dev/null | head -20 || echo "Could not list tests"
+      
+    - name: Run tests with local Supabase defaults
+      run: |
+        echo "Running tests with local Supabase defaults..."
+        npx vitest run --no-coverage --reporter=verbose
+      env:
+        NODE_ENV: test
+        VITEST: true
       
     - name: Type check
       run: npx tsc --noEmit

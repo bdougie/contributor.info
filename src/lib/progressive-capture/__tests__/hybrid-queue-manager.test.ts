@@ -203,4 +203,3 @@ describe('HybridQueueManager', () => {
       ).rejects.toThrow('Unknown job type for Inngest: unknown-job-type');
     });
   });
-});

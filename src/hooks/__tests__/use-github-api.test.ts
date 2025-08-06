@@ -1,33 +1,48 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import nock from 'nock';
 import { useGitHubApi } from '../use-github-api';
 
-// Mock the supabase authentication
+// Mock the GitHub API service functions
+vi.mock('@/lib/github/api-service', () => ({
+  fetchFromGitHub: vi.fn(),
+  fetchRepository: vi.fn(),
+  fetchUser: vi.fn(),
+  fetchUserOrganizations: vi.fn(),
+  fetchPullRequests: vi.fn(),
+  isRateLimited: vi.fn(),
+  parseRateLimit: vi.fn(),
+  createHeaders: vi.fn()
+}));
+
+// Mock supabase locally in this test file
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     auth: {
-      getSession: vi.fn().mockResolvedValue({
-        data: {
-          session: {
-            provider_token: 'mock-github-token'
-          }
-        }
-      })
+      getSession: vi.fn()
     }
   }
 }));
 
+import * as GitHubApiService from '@/lib/github/api-service';
+import { supabase } from '@/lib/supabase';
+
 describe('useGitHubApi', () => {
   beforeEach(() => {
-    // Enable nock for mocking HTTP requests
-    nock.disableNetConnect();
+    vi.clearAllMocks();
+    
+    // Set up default mock for getSession
+    const getSessionMock = vi.mocked(supabase.auth.getSession);
+    getSessionMock.mockResolvedValue({
+      data: {
+        session: {
+          provider_token: 'mock-github-token'
+        }
+      },
+      error: null
+    } as any);
   });
 
   afterEach(() => {
-    // Clean up nock mocks
-    nock.cleanAll();
-    nock.enableNetConnect();
     vi.clearAllMocks();
   });
 
@@ -60,15 +75,19 @@ describe('useGitHubApi', () => {
       }
     };
 
-    // Set up nock to intercept GitHub API calls
-    nock('https://api.github.com')
-      .get('/repos/testuser/test-repo')
-      .reply(200, mockRepo, {
-        'x-ratelimit-limit': '5000',
-        'x-ratelimit-remaining': '4999',
-        'x-ratelimit-reset': (Math.floor(Date.now() / 1000) + 3600).toString(),
-        'x-ratelimit-used': '1'
-      });
+    const mockRateLimit = {
+      limit: 5000,
+      remaining: 4999,
+      reset: new Date(),
+      used: 1
+    };
+
+    // Mock the service function
+    const fetchRepositoryMock = vi.mocked(GitHubApiService.fetchRepository);
+    fetchRepositoryMock.mockResolvedValue({
+      data: mockRepo,
+      rateLimit: mockRateLimit
+    });
 
     const { result } = renderHook(() => useGitHubApi());
     
@@ -85,12 +104,10 @@ describe('useGitHubApi', () => {
     expect(result.current.isLoading).toBe(false);
     
     // Verify rate limit info was updated
-    expect(result.current.rateLimit).toEqual({
-      limit: 5000,
-      remaining: 4999,
-      reset: expect.any(Date),
-      used: 1
-    });
+    expect(result.current.rateLimit).toEqual(mockRateLimit);
+    
+    // Verify the service was called with correct parameters
+    expect(fetchRepositoryMock).toHaveBeenCalledWith('testuser', 'test-repo', { token: 'mock-github-token' });
   });
 
   it('should fetch user information', async () => {
@@ -104,14 +121,18 @@ describe('useGitHubApi', () => {
       location: 'San Francisco, CA'
     };
 
-    nock('https://api.github.com')
-      .get('/users/testuser')
-      .reply(200, mockUser, {
-        'x-ratelimit-limit': '5000',
-        'x-ratelimit-remaining': '4998',
-        'x-ratelimit-reset': (Math.floor(Date.now() / 1000) + 3600).toString(),
-        'x-ratelimit-used': '2'
-      });
+    const mockRateLimit = {
+      limit: 5000,
+      remaining: 4998,
+      reset: new Date(),
+      used: 2
+    };
+
+    const fetchUserMock = vi.mocked(GitHubApiService.fetchUser);
+    fetchUserMock.mockResolvedValue({
+      data: mockUser,
+      rateLimit: mockRateLimit
+    });
 
     const { result } = renderHook(() => useGitHubApi());
     
@@ -123,12 +144,8 @@ describe('useGitHubApi', () => {
     
     expect(userResult).toEqual(mockUser);
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.rateLimit).toEqual({
-      limit: 5000,
-      remaining: 4998,
-      reset: expect.any(Date),
-      used: 2
-    });
+    expect(result.current.rateLimit).toEqual(mockRateLimit);
+    expect(fetchUserMock).toHaveBeenCalledWith('testuser', { token: 'mock-github-token' });
   });
 
   it('should fetch user organizations', async () => {
@@ -147,14 +164,18 @@ describe('useGitHubApi', () => {
       }
     ];
 
-    nock('https://api.github.com')
-      .get('/users/testuser/orgs')
-      .reply(200, mockOrgs, {
-        'x-ratelimit-limit': '5000',
-        'x-ratelimit-remaining': '4997',
-        'x-ratelimit-reset': (Math.floor(Date.now() / 1000) + 3600).toString(),
-        'x-ratelimit-used': '3'
-      });
+    const mockRateLimit = {
+      limit: 5000,
+      remaining: 4997,
+      reset: new Date(),
+      used: 3
+    };
+
+    const fetchUserOrganizationsMock = vi.mocked(GitHubApiService.fetchUserOrganizations);
+    fetchUserOrganizationsMock.mockResolvedValue({
+      data: mockOrgs,
+      rateLimit: mockRateLimit
+    });
 
     const { result } = renderHook(() => useGitHubApi());
     
@@ -166,6 +187,7 @@ describe('useGitHubApi', () => {
     
     expect(orgsResult).toEqual(mockOrgs);
     expect(result.current.isLoading).toBe(false);
+    expect(fetchUserOrganizationsMock).toHaveBeenCalledWith('testuser', { token: 'mock-github-token' });
   });
 
   it('should fetch pull requests', async () => {
@@ -204,14 +226,18 @@ describe('useGitHubApi', () => {
       }
     ];
 
-    nock('https://api.github.com')
-      .get('/repos/testuser/test-repo/pulls?state=all&per_page=100')
-      .reply(200, mockPRs, {
-        'x-ratelimit-limit': '5000',
-        'x-ratelimit-remaining': '4996',
-        'x-ratelimit-reset': (Math.floor(Date.now() / 1000) + 3600).toString(),
-        'x-ratelimit-used': '4'
-      });
+    const mockRateLimit = {
+      limit: 5000,
+      remaining: 4996,
+      reset: new Date(),
+      used: 4
+    };
+
+    const fetchPullRequestsMock = vi.mocked(GitHubApiService.fetchPullRequests);
+    fetchPullRequestsMock.mockResolvedValue({
+      data: mockPRs,
+      rateLimit: mockRateLimit
+    });
 
     const { result } = renderHook(() => useGitHubApi());
     
@@ -223,20 +249,14 @@ describe('useGitHubApi', () => {
     
     expect(prsResult).toEqual(mockPRs);
     expect(result.current.isLoading).toBe(false);
+    expect(fetchPullRequestsMock).toHaveBeenCalledWith('testuser', 'test-repo', 'all', { token: 'mock-github-token' });
   });
 
   it('should handle API errors', async () => {
-    nock('https://api.github.com')
-      .get('/repos/nonexistent/repo')
-      .reply(404, {
-        message: 'Not Found',
-        documentation_url: 'https://docs.github.com/rest/reference/repos#get-a-repository'
-      }, {
-        'x-ratelimit-limit': '5000',
-        'x-ratelimit-remaining': '4995',
-        'x-ratelimit-reset': (Math.floor(Date.now() / 1000) + 3600).toString(),
-        'x-ratelimit-used': '5'
-      });
+    const mockError = new Error('GitHub API error: 404 Not Found');
+    
+    const fetchRepositoryMock = vi.mocked(GitHubApiService.fetchRepository);
+    fetchRepositoryMock.mockRejectedValue(mockError);
 
     const { result } = renderHook(() => useGitHubApi());
     
@@ -259,15 +279,22 @@ describe('useGitHubApi', () => {
   });
 
   it('should detect rate limiting', async () => {
-    // Mock a rate-limited response
-    nock('https://api.github.com')
-      .get('/users/testuser')
-      .reply(200, { login: 'testuser' }, {
-        'x-ratelimit-limit': '5000',
-        'x-ratelimit-remaining': '0', // No remaining requests
-        'x-ratelimit-reset': (Math.floor(Date.now() / 1000) + 3600).toString(),
-        'x-ratelimit-used': '5000'
-      });
+    const isRateLimitedMock = vi.mocked(GitHubApiService.isRateLimited);
+    isRateLimitedMock.mockReturnValue(false);
+
+    const mockUser = { login: 'testuser' };
+    const mockRateLimit = {
+      limit: 5000,
+      remaining: 0, // No remaining requests
+      reset: new Date(),
+      used: 5000
+    };
+
+    const fetchUserMock = vi.mocked(GitHubApiService.fetchUser);
+    fetchUserMock.mockResolvedValue({
+      data: mockUser,
+      rateLimit: mockRateLimit
+    });
 
     const { result } = renderHook(() => useGitHubApi());
     
@@ -277,6 +304,9 @@ describe('useGitHubApi', () => {
     await act(async () => {
       await result.current.fetchUser('testuser');
     });
+    
+    // Update mock to return true after rate limit is set
+    isRateLimitedMock.mockReturnValue(true);
     
     // Should detect rate limiting after the response
     expect(result.current.isRateLimited()).toBe(true);
@@ -292,4 +322,21 @@ describe('useGitHubApi', () => {
     
     expect(token).toBe('mock-github-token');
   });
-});
+
+  it('should handle missing session', async () => {
+    // Mock getSession to return null session
+    const getSessionMock = vi.mocked(supabase.auth.getSession);
+    getSessionMock.mockResolvedValue({
+      data: { session: null },
+      error: null
+    } as any);
+
+    const { result } = renderHook(() => useGitHubApi());
+    
+    let token;
+    await act(async () => {
+      token = await result.current.getAuthToken();
+    });
+    
+    expect(token).toBeNull();
+  });

@@ -1,50 +1,45 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 
-// Mock all needed dependencies
+// Move mocks to module level for proper isolation
+const mockNavigate = vi.fn();
+const mockUseGitHubAuth = vi.fn();
+
 vi.mock("react-router-dom", () => ({
-  useNavigate: vi.fn(),
+  useNavigate: () => mockNavigate,
 }));
 
 vi.mock("../hooks/use-github-auth", () => ({
-  useGitHubAuth: vi.fn(),
+  useGitHubAuth: () => mockUseGitHubAuth(),
 }));
 
 vi.mock("../lib/supabase", () => ({
   supabase: {
     auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
-      signInWithOAuth: vi.fn(),
-      signOut: vi.fn(),
-      onAuthStateChange: vi.fn().mockReturnValue({
+      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+      signInWithOAuth: vi.fn(() => Promise.resolve({ data: null, error: null })),
+      signOut: vi.fn(() => Promise.resolve({ error: null })),
+      onAuthStateChange: vi.fn(() => ({
         data: { subscription: { unsubscribe: vi.fn() } },
-      }),
+      })),
     },
   },
 }));
 
 // Import after mocking
-import { useNavigate } from "react-router-dom";
-import { useGitHubAuth } from "../hooks/use-github-auth";
 import { useRepoSearch } from "../hooks/use-repo-search";
 
-// A wrapper component to provide context for hooks that would normally
-// rely on React Router's context
-const wrapper = ({ children }: { children: React.ReactNode }) => children;
-
 describe("Authentication Redirection Logic", () => {
-  let mockNavigate: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
     localStorage.clear();
-    mockNavigate = vi.fn();
-    vi.mocked(useNavigate).mockReturnValue(mockNavigate);
+    mockNavigate.mockClear();
+    mockUseGitHubAuth.mockClear();
   });
 
   it("redirects to login page when accessing protected route while logged out", async () => {
     // Mock the auth hook to return not logged in
-    vi.mocked(useGitHubAuth).mockReturnValue({
+    mockUseGitHubAuth.mockReturnValue({
       isLoggedIn: false,
       loading: false,
       login: vi.fn(),
@@ -55,9 +50,7 @@ describe("Authentication Redirection Logic", () => {
     });
 
     // Verify the behavior directly from the hook
-    const { result } = renderHook(() => useRepoSearch({ isHomeView: false }), {
-      wrapper,
-    });
+    const { result } = renderHook(() => useRepoSearch({ isHomeView: false }));
 
     // Call the method that would be called when accessing a repo view
     act(() => {
@@ -71,7 +64,7 @@ describe("Authentication Redirection Logic", () => {
 
   it("does not redirect when accessing protected route while logged in", async () => {
     // Mock the auth hook to return logged in
-    vi.mocked(useGitHubAuth).mockReturnValue({
+    mockUseGitHubAuth.mockReturnValue({
       isLoggedIn: true,
       loading: false,
       login: vi.fn(),
@@ -82,9 +75,7 @@ describe("Authentication Redirection Logic", () => {
     });
 
     // Verify the behavior directly from the hook
-    const { result } = renderHook(() => useRepoSearch({ isHomeView: false }), {
-      wrapper,
-    });
+    const { result } = renderHook(() => useRepoSearch({ isHomeView: false }));
 
     // Call the method that would be called when accessing a repo view
     act(() => {
@@ -101,7 +92,7 @@ describe("Authentication Redirection Logic", () => {
     localStorage.setItem("redirectAfterLogin", "/facebook/react");
 
     // Set up initial state (not logged in)
-    let mockAuthHook = {
+    const mockAuthHook = {
       isLoggedIn: false,
       loading: false,
       login: vi.fn(),
@@ -111,31 +102,7 @@ describe("Authentication Redirection Logic", () => {
       setShowLoginDialog: vi.fn(),
     };
 
-    vi.mocked(useGitHubAuth).mockReturnValue(mockAuthHook);
-
-    // Simulate login page rendering
-    renderHook(
-      () => {
-        const { isLoggedIn } = useGitHubAuth();
-        const navigate = useNavigate();
-
-        // This simulates the effect in the LoginPage component
-        if (isLoggedIn) {
-          const redirectTo = "/"; // Default path
-          navigate(redirectTo, { replace: true });
-        }
-      },
-      { wrapper }
-    );
-
-    // Now simulate the user logging in successfully
-    mockAuthHook = {
-      ...mockAuthHook,
-      isLoggedIn: true,
-      checkSession: vi.fn().mockResolvedValue(true),
-    };
-
-    vi.mocked(useGitHubAuth).mockReturnValue(mockAuthHook);
+    mockUseGitHubAuth.mockReturnValue(mockAuthHook);
 
     // Simulate the auth hook logic that checks for redirects
     act(() => {
@@ -150,4 +117,3 @@ describe("Authentication Redirection Logic", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/facebook/react");
     expect(localStorage.getItem("redirectAfterLogin")).toBeNull();
   });
-});
