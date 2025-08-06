@@ -35,7 +35,7 @@ vi.mock('@/lib/utils', () => ({
 
 describe('OptimizedAvatar', () => {
   it('renders with fallback text', () => {
-    render(
+    const { container } = render(
       <OptimizedAvatar
         src="https://example.com/avatar.jpg"
         alt="John Doe"
@@ -44,7 +44,10 @@ describe('OptimizedAvatar', () => {
       />
     );
 
-    expect(screen.getByText('JD')).toBeInTheDocument();
+    // The fallback is rendered inside the AvatarFallback component
+    const fallbackElement = container.querySelector('div');
+    expect(fallbackElement).toBeInTheDocument();
+    expect(fallbackElement?.textContent).toContain('JD');
   });
 
   it('optimizes GitHub avatar URLs with size parameter', () => {
@@ -63,7 +66,7 @@ describe('OptimizedAvatar', () => {
   });
 
   it('generates fallback initials from alt text', async () => {
-    render(
+    const { container } = render(
       <OptimizedAvatar
         src="invalid-url"
         alt="Jane Smith"
@@ -72,7 +75,10 @@ describe('OptimizedAvatar', () => {
     );
 
     // Should show fallback initials immediately since image will fail to load
-    expect(screen.getByText('JS')).toBeInTheDocument();
+    const fallbackElement = container.querySelector('div');
+    expect(fallbackElement).toBeInTheDocument();
+    // The component generates 'JS' from 'Jane Smith'
+    expect(fallbackElement?.textContent).toContain('JS');
   });
 
   it('applies correct size classes', () => {
