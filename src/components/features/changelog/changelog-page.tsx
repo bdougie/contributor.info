@@ -13,6 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Package, Bug, Sparkles, Rss } from "lucide-react";
 import { ChangelogNavigation } from "./changelog-navigation";
 import { ChangelogSEO } from "./changelog-seo";
+import { LastUpdated } from "@/components/ui/last-updated";
+import { usePageTimestamp } from "@/hooks/use-data-timestamp";
 
 interface ChangelogEntry {
   version: string;
@@ -26,6 +28,9 @@ export function ChangelogPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeVersion, setActiveVersion] = useState<string | undefined>();
+  
+  // Track when the page was loaded for freshness indicator
+  const { pageLoadedAt } = usePageTimestamp();
 
   useEffect(() => {
     // For now, load the CHANGELOG.md file
@@ -168,6 +173,16 @@ export function ChangelogPage() {
           <main className="flex-1">
             <div className="flex gap-8">
               <div className="flex-1">
+                {/* Add page freshness indicator */}
+                <div className="mb-6 flex justify-between items-center">
+                  <h1 className="text-3xl font-bold">Changelog</h1>
+                  <LastUpdated 
+                    timestamp={pageLoadedAt}
+                    label="Changelog loaded"
+                    size="sm"
+                  />
+                </div>
+                
             <div className="space-y-6">
               {changelogEntries.map((entry, index) => {
                 const sections = entry.content.split("###").filter(Boolean);

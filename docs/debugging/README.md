@@ -16,6 +16,9 @@ Debugging documentation helps developers:
 - **[GitHub Actions & Inngest Issues](./github-actions-inngest-issues.md)** - Debugging workflow and background job integration problems
 - **[406 Error and Sync Issues](./406-error-and-sync-issues.md)** - Fixing Supabase 406 errors and repository sync problems
 
+### 🧪 Test Debugging & Optimization
+- **[Memory Leak Fix - LastUpdated Tests](./memory-leak-fix-last-updated-tests.md)** - Comprehensive guide to fixing memory leaks and CI hangs in React component tests
+
 ## Debugging Toolkit
 
 ### Browser Debugging Tools

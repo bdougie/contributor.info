@@ -47,6 +47,7 @@ Improve application speed and reduce resource usage.
 | `performance-check.js` | Comprehensive performance analysis | Regular performance reviews |
 | `monitor-cdn-performance.js` | Monitor CDN and asset performance | Performance troubleshooting |
 | `monitor-database-performance.js` | Check database query performance | Database optimization |
+| `test-core-web-vitals.js` | Test Core Web Vitals (LCP, CLS, INP) | Measure UX performance metrics |
 
 ### 🎨 **[Assets](./assets/)**
 Create and manage visual assets.
@@ -95,18 +96,29 @@ Monitor system performance and detect issues.
 | `check-inngest-registration.js` | Check Inngest queue registration | Queue system validation |
 
 ### 🧪 **[Testing Tools](./testing-tools/)**
-Ensure system reliability and data integrity.
+Ensure system reliability and data integrity. See [README](./testing-tools/README.md) for detailed documentation.
 
 | Script | Purpose | When to Use |
 |--------|---------|-------------|
+| `test-api-fallback-prevention.mjs` | Verify API fallback prevention works | Ensure efficient data fetching |
+| `test-ci-environment.js` | Test CI/CD environment configuration | Validate CI setup |
+| `test-console-warn.js` | Test console warning detection | Debug console output |
+| `test-event-flow.js` | Test event processing flow | Validate event handling |
 | `test-github-auth.mjs` | Test GitHub API authentication | Debug auth issues |
 | `test-inngest.js` | Test Inngest queue functionality | Queue troubleshooting |
 | `test-inngest-direct.mjs` | Test direct Inngest event sending | Test event queue directly |
-| `test-api-fallback-prevention.mjs` | Verify API fallback prevention works | Ensure efficient data fetching |
+| `test-last-updated-logic.js` | Test last updated timestamp logic | Verify timestamp calculations |
 | `test-new-repo-tracking.mjs` | Test new repository tracking flow | Validate repo onboarding |
+| `test-production-inngest.js` | Test production Inngest connection | Production queue validation |
 | `test-review-sync.mjs` | Test PR review syncing functionality | Debug review data issues |
+| `test-sanitize.js` | Test HTML sanitization | Security validation |
 | `test-social-cards.js` | Validate social card generation | Social media debugging |
+| `test-storybook-interactions.sh` | Test Storybook interaction tests | UI component testing |
+| `test-sync-logger.js` | Test sync logging functionality | Debug sync operations |
+| `test-sync-logging.mjs` | Test sync logging with ES modules | Modern sync debugging |
+| `test-update-activity.mjs` | Test activity update functionality | Validate activity tracking |
 | `test-visual-regression.sh` | Run visual regression tests | UI change validation |
+| `test-visual-workflow.sh` | Test visual workflow automation | Visual testing pipeline |
 
 ### 🔧 **[Utilities](./utilities/)**
 General-purpose tools and maintenance scripts.

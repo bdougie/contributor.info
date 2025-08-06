@@ -43,10 +43,13 @@ Testing tools cover:
 | `test-visual-regression.sh` | Visual regression testing | Before release |
 | `test-visual-workflow.sh` | Visual testing workflow | CI/CD |
 
-### Environment Testing
+### Environment & Utility Testing
 | Script | Purpose | When to Run |
 |--------|---------|-------------|
 | `test-ci-environment.js` | CI environment validation | CI/CD setup |
+| `test-console-warn.js` | Console warning detection | Debug output issues |
+| `test-last-updated-logic.js` | Timestamp calculation testing | Date logic validation |
+| `test-sanitize.js` | HTML sanitization testing | Security validation |
 
 ## 💡 Usage Examples
 
@@ -96,6 +99,21 @@ node scripts/testing-tools/test-update-activity.mjs --days 7
 
 # Test social cards
 node scripts/testing-tools/test-social-cards.js --all
+```
+
+### Utility & Security Testing
+```bash
+# Test console warnings in components
+node scripts/testing-tools/test-console-warn.js
+
+# Test timestamp logic
+node scripts/testing-tools/test-last-updated-logic.js
+
+# Test HTML sanitization for XSS prevention
+node scripts/testing-tools/test-sanitize.js
+
+# Validate CI environment
+node scripts/testing-tools/test-ci-environment.js
 ```
 
 ## 🎯 Test Scenarios

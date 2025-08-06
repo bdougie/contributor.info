@@ -109,3 +109,5 @@ Structure your analysis as follows:
 - Scalability and performance roadmap
 
 Always conclude with specific, actionable next steps prioritized by impact and feasibility.
+
+read /docs and /scripts for context.

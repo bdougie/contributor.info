@@ -258,6 +258,11 @@ export async function calculateHealthMetrics(
 const confidenceCache = new Map<string, { result: any; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+// Export for testing purposes only
+export function clearConfidenceCache() {
+  confidenceCache.clear();
+}
+
 function getCacheKey(owner: string, repo: string, timeRange: string, returnBreakdown: boolean): string {
   return `${owner}/${repo}:${timeRange}:${returnBreakdown}`;
 }

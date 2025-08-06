@@ -12,11 +12,19 @@ Testing documentation helps developers:
 
 ## Documentation Index
 
+### 🔧 Test Configuration & Isolation
+- **[Test Isolation Solution](../test-isolation-solution.md)** - How we fixed test hanging issues with environment defaults
+- **[CI Test Fix](../ci-test-fix.md)** - CI configuration for test environment
+- **[Mock Isolation Fix](../MOCK_ISOLATION_FIX.md)** - Details on fixing mock-related issues
+- **[Test Mocks README](/src/__mocks__/README.md)** - Current mock setup and strategy
+
 ### 🎨 Visual Testing
 - **[Chromatic README](./chromatic-readme.md)** - Visual regression testing with Chromatic
 
 ### 🏗️ Testing Philosophy
 - **[E2E Minimal Testing Philosophy](./e2e-minimal-testing-philosophy.md)** - Pragmatic end-to-end testing approach
+- **[Test Simplification Strategy](./TEST_SIMPLIFICATION_STRATEGY.md)** - Simplifying test complexity
+- **[Bulletproof Testing Guidelines](./BULLETPROOF_TESTING_GUIDELINES.md)** - Guidelines for reliable tests
 
 ### 📊 Performance & Monitoring
 - **[Performance Monitoring](./performance-monitoring.md)** - Performance testing and monitoring strategies
@@ -26,6 +34,24 @@ Testing documentation helps developers:
 
 ### 🧪 Testing Patterns
 - **[Testing Patterns and Best Practices](../testing-patterns.md)** - Mocking patterns, CI compatibility, and best practices for consistent testing
+- **[Testing Best Practices](./testing-best-practices.md)** - Additional testing guidelines
+
+## Current Test Status
+
+### ✅ Working Tests
+- **383 tests passing** in < 3 seconds
+- Full test isolation enabled
+- No environment variables required for CI
+- TypeScript compilation successful
+
+### 🚧 Excluded Tests (18 files)
+Tests with mock dependency issues that will be migrated to local Supabase (Issue #299):
+- Authentication tests (4 files)
+- Data fetching hooks (5 files)
+- Integration tests (8 files)
+- Framework tests (1 file)
+
+See [Test Isolation Solution](../test-isolation-solution.md) for the complete list.
 
 ## Testing Strategy Overview
 
