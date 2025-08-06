@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Octokit } from '@octokit/rest';
-import { githubToken } from '@/lib/github';
+import { env } from '@/lib/env';
 
 interface GitHubRepository {
   id: number;
@@ -106,12 +106,12 @@ export function useOrgRepos(org?: string): UseOrgReposState {
 
         // Fetch from GitHub API
         const octokit = new Octokit({
-          auth: githubToken,
+          auth: env.GITHUB_TOKEN,
         });
         
         const { data: repos } = await octokit.rest.repos.listForOrg({
           org,
-          sort: 'stars',
+          sort: 'pushed',
           direction: 'desc',
           per_page: 30, // Fetch a few more than we need in case some are filtered out
           type: 'public',
@@ -139,7 +139,17 @@ export function useOrgRepos(org?: string): UseOrgReposState {
           const trackedRepo = trackedRepos?.find(tr => tr.full_name === repo.full_name);
           
           return {
-            ...repo,
+            id: repo.id,
+            name: repo.name,
+            full_name: repo.full_name,
+            description: repo.description,
+            stargazers_count: repo.stargazers_count || 0,
+            forks_count: repo.forks_count || 0,
+            language: repo.language,
+            html_url: repo.html_url,
+            updated_at: repo.updated_at,
+            archived: repo.archived || false,
+            disabled: repo.disabled || false,
             is_tracked: Boolean(trackedRepo),
             is_processing: trackedRepo ? isRecentlyUpdated(trackedRepo.last_updated) : false,
           };

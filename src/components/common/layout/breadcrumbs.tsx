@@ -35,7 +35,6 @@ export const Breadcrumbs = () => {
     if (index === 1 && repo) name = repo;
 
     // Make owner/org breadcrumb clickable now that org page exists
-    const isOwnerBreadcrumb = index === 0 && owner;
 
     return {
       name,

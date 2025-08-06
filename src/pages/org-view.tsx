@@ -20,18 +20,20 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useOrgRepos } from "@/hooks/use-org-repos";
-import { formatNumber } from "@/lib/utils";
+import { humanizeNumber } from "@/lib/utils";
 
 interface RepositoryWithTracking {
   id: number;
   name: string;
   full_name: string;
-  description?: string;
+  description: string | null;
   stargazers_count: number;
   forks_count: number;
-  language?: string;
+  language: string | null;
   html_url: string;
   updated_at: string;
+  archived: boolean;
+  disabled: boolean;
   is_tracked?: boolean;
   is_processing?: boolean;
 }
@@ -69,8 +71,6 @@ const getActivityLevel = (updatedAt: string): { level: string; color: string } =
 
 const TrackingStatusBadge = ({ repo }: { repo: RepositoryWithTracking }) => {
   const handleTrackRepo = () => {
-    const owner = repo.full_name.split('/')[0];
-    const repoName = repo.name;
     
     // Open GitHub discussions with pre-filled request
     const discussionUrl = `https://github.com/bdougie/contributor.info/discussions/new?category=request-a-repo&title=Track%20repository%20request%3A%20${encodeURIComponent(repo.full_name)}&body=Please%20add%20tracking%20for%20repository%3A%20${encodeURIComponent(repo.html_url)}`;
@@ -129,11 +129,11 @@ const RepositoryRow = ({ repo }: { repo: RepositoryWithTracking }) => {
           <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Star className="w-3 h-3" />
-              {formatNumber(repo.stargazers_count)}
+              {humanizeNumber(repo.stargazers_count)}
             </span>
             <span className="flex items-center gap-1">
               <GitFork className="w-3 h-3" />
-              {formatNumber(repo.forks_count)}
+              {humanizeNumber(repo.forks_count)}
             </span>
           </div>
         </div>
