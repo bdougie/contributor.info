@@ -34,14 +34,14 @@ export const Breadcrumbs = () => {
     if (index === 0 && owner) name = owner;
     if (index === 1 && repo) name = repo;
 
-    // Make owner/org breadcrumb static (non-clickable) since org page doesn't exist yet
+    // Make owner/org breadcrumb clickable now that org page exists
     const isOwnerBreadcrumb = index === 0 && owner;
 
     return {
       name,
       to,
       isLast,
-      isStatic: isOwnerBreadcrumb,
+      isStatic: false, // Now clickable since org page is implemented
     };
   });
 
