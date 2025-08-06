@@ -49,12 +49,12 @@ export default defineConfig({
       'src/**/*.test.tsx'
     ],
     
-    // Exclude tests that require mocking or environment variables
+    // Exclude tests that cause hanging due to mock issues
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
       '**/coverage/**',
-      // Tests that require Supabase mocking or environment variables
+      // Tests that hang due to mock dependencies
       'src/__tests__/auth-redirect.test.tsx',
       'src/__tests__/github-auth-hook.test.tsx',
       'src/__tests__/login-functionality.test.tsx',
@@ -63,11 +63,9 @@ export default defineConfig({
       'src/components/__tests__/login-required-for-search.test.tsx',
       'src/components/features/repository/__tests__/repository-summary-card.test.tsx',
       'src/evals/__tests__/evaluation-framework.test.ts',
-      'src/hooks/__tests__/use-contributor-data.test.tsx',
       'src/hooks/__tests__/use-github-api.test.ts',
       'src/hooks/__tests__/use-repo-data.test.ts',
       'src/hooks/__tests__/use-repo-search.test.ts',
-      'src/hooks/__tests__/use-repo-stats.test.tsx',
       'src/hooks/__tests__/use-repository-discovery.test.ts',
       'src/hooks/__tests__/use-repository-summary.test.ts',
       'src/lib/__tests__/link-capturing.test.ts',
@@ -75,12 +73,6 @@ export default defineConfig({
       'src/lib/inngest/functions/__tests__/event-flow.integration.test.ts',
       'src/lib/insights/health-metrics.test.ts',
       'src/lib/progressive-capture/__tests__/hybrid-queue-manager.test.ts',
-      // Additional tests that import Supabase indirectly (found in CI failures)
-      'src/lib/spam/__tests__/SpamDetectionService.test.ts',
-      'src/components/features/activity/__tests__/activity-item-styling.test.tsx',
-      'src/components/features/repository/__tests__/repo-view-link-sharing.test.tsx',
-      'src/components/features/sharing/__tests__/shareable-card-link-only.test.tsx',
-      'src/components/skeletons/__tests__/skeleton-components.test.tsx',
     ],
     
     // No coverage

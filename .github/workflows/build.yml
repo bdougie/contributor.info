@@ -32,17 +32,13 @@ jobs:
         echo "Tests that will run (first 20):"
         npx vitest list --config ./vitest.config.ts 2>/dev/null | head -20 || echo "Could not list tests"
       
-    - name: Run tests (no env vars required)
+    - name: Run tests with local Supabase defaults
       run: |
-        # Explicitly unset any Supabase env vars to ensure tests don't depend on them
-        unset VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY SUPABASE_URL SUPABASE_ANON_KEY || true
-        # Ensure we're using the right config file
-        if [ ! -f vitest.config.ts ]; then
-          echo "ERROR: vitest.config.ts not found!"
-          exit 1
-        fi
-        echo "Running tests with explicit config..."
-        npx vitest run --config ./vitest.config.ts --no-coverage --reporter=verbose
+        echo "Running tests with local Supabase defaults..."
+        npx vitest run --no-coverage --reporter=verbose
+      env:
+        NODE_ENV: test
+        VITEST: true
       
     - name: Type check
       run: npx tsc --noEmit

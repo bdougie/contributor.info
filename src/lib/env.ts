@@ -29,6 +29,17 @@ const isBrowser = typeof window !== 'undefined';
  * In server: Can access both VITE_* and server-only variables
  */
 function getEnvVar(viteKey: string, serverKey?: string): string {
+  // For tests, provide default local Supabase values
+  const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+  
+  if (isTest && (viteKey === 'VITE_SUPABASE_URL' || serverKey === 'SUPABASE_URL')) {
+    return 'http://127.0.0.1:54321';
+  }
+  
+  if (isTest && (viteKey === 'VITE_SUPABASE_ANON_KEY' || serverKey === 'SUPABASE_ANON_KEY')) {
+    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+  }
+  
   if (isBrowser) {
     // Browser: Try multiple sources for better production compatibility
     // 1. Try import.meta.env first (Vite's way)
