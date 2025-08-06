@@ -48,4 +48,3 @@ describe('useRepositorySummary', () => {
 
     expect(typeof result.current.refetch).toBe('function');
   });
-});

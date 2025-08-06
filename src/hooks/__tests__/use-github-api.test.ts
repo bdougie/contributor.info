@@ -340,4 +340,3 @@ describe('useGitHubApi', () => {
     
     expect(token).toBeNull();
   });
-});

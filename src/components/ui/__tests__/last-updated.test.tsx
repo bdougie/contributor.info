@@ -1,23 +1,25 @@
-import { render, screen, cleanup } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom';
 import { LastUpdated, LastUpdatedTime } from '../last-updated';
 
-// Simple mock for the time formatter hook
+// Module-level mock for proper isolation
+const mockFormatRelativeTime = vi.fn();
+const mockFormatDate = vi.fn();
+
 vi.mock('@/hooks/use-time-formatter', () => ({
   useTimeFormatter: () => ({
-    formatRelativeTime: vi.fn(() => '2 hours ago'),
-    formatDate: vi.fn(() => 'Jan 15, 2024, 10:00 AM')
+    formatRelativeTime: mockFormatRelativeTime,
+    formatDate: mockFormatDate,
   })
 }));
 
 describe('LastUpdated', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    cleanup();
+    // Reset mock return values for each test
+    mockFormatRelativeTime.mockReturnValue('2 hours ago');
+    mockFormatDate.mockReturnValue('Jan 15, 2024, 10:00 AM');
   });
 
   it('renders with default props', () => {
@@ -53,10 +55,9 @@ describe('LastUpdated', () => {
 describe('LastUpdatedTime', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    cleanup();
+    // Reset mock return values for each test
+    mockFormatRelativeTime.mockReturnValue('2 hours ago');
+    mockFormatDate.mockReturnValue('Jan 15, 2024, 10:00 AM');
   });
 
   it('renders without label and icon', () => {

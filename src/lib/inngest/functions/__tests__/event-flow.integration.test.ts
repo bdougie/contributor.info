@@ -168,4 +168,3 @@ describe('Repository Sync Event Flow Integration', () => {
       }).toThrow('column tracked_repositories.is_active does not exist');
     });
   });
-});

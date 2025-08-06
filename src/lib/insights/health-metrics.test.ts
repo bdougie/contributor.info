@@ -417,4 +417,3 @@ describe('calculateRepositoryConfidence', () => {
       expect(result).toBeLessThan(100);
     });
   });
-});

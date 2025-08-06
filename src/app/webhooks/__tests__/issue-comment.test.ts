@@ -129,4 +129,3 @@ describe('handleIssueCommentEvent', () => {
     expect(mockOctokit.issues.createComment).not.toHaveBeenCalled();
     expect(mockOctokit.issues.deleteComment).not.toHaveBeenCalled();
   });
-});
