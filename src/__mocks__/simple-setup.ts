@@ -148,6 +148,7 @@ vi.mock('@/lib/supabase', () => {
 
 // Mock React Router globally to prevent conflicts
 vi.mock('react-router-dom', async () => {
+  const React = await vi.importActual('react');
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
@@ -158,15 +159,15 @@ vi.mock('react-router-dom', async () => {
     useOutletContext: vi.fn(() => ({})),
     Outlet: () => null,
     Navigate: ({ to }: { to: string }) => `Navigate to ${to}`,
-    Link: ({ children, to, ...props }: any) => (
-      <a href={to} {...props}>
-        {children}
-      </a>
+    Link: ({ children, to, ...props }: any) => React.createElement(
+      'a',
+      { href: to, ...props },
+      children
     ),
-    NavLink: ({ children, to, ...props }: any) => (
-      <a href={to} {...props}>
-        {children}
-      </a>
+    NavLink: ({ children, to, ...props }: any) => React.createElement(
+      'a',
+      { href: to, ...props },
+      children
     ),
   };
 });
@@ -232,7 +233,7 @@ beforeEach(() => {
 
 // Comprehensive cleanup after each test
 afterEach(() => {
-  // Clear all mocks
+  // Clear all mock call history (not implementations)
   vi.clearAllMocks();
   
   // Clean up React Testing Library state
@@ -242,7 +243,7 @@ afterEach(() => {
   vi.clearAllTimers();
   
   // Reset any fake timers
-  if (vi.isFakeTimers()) {
+  if (vi.isFakeTimers) {
     vi.useRealTimers();
   }
   
