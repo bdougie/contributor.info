@@ -46,11 +46,16 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
     }
     
     // 3. Try process.env as fallback (some bundlers expose this)
-    if (typeof process !== 'undefined' && process.env) {
-      const processValue = process.env[viteKey];
-      if (typeof processValue === 'string' && processValue) {
-        return processValue;
+    // Use try-catch to avoid ReferenceError when process is not defined
+    try {
+      if (typeof process !== 'undefined' && process.env) {
+        const processValue = process.env[viteKey];
+        if (typeof processValue === 'string' && processValue) {
+          return processValue;
+        }
       }
+    } catch (e) {
+      // Process is not defined, skip this fallback
     }
     
     return '';
@@ -99,6 +104,7 @@ export const env = {
       const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
       return metaEnv.DEV || false;
     }
+    // Server context - process is guaranteed to exist
     return process.env.NODE_ENV === 'development';
   },
   
@@ -107,6 +113,7 @@ export const env = {
       const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
       return metaEnv.PROD || false;
     }
+    // Server context - process is guaranteed to exist
     return process.env.NODE_ENV === 'production';
   },
   
@@ -115,6 +122,7 @@ export const env = {
       const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
       return metaEnv.MODE || 'development';
     }
+    // Server context - process is guaranteed to exist
     return process.env.NODE_ENV || 'development';
   },
 
