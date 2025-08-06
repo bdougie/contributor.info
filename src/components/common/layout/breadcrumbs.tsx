@@ -34,14 +34,18 @@ export const Breadcrumbs = () => {
     if (index === 0 && owner) name = owner;
     if (index === 1 && repo) name = repo;
 
+    // Make owner/org breadcrumb static (non-clickable) since org page doesn't exist yet
+    const isOwnerBreadcrumb = index === 0 && owner;
+
     return {
       name,
       to,
       isLast,
+      isStatic: isOwnerBreadcrumb,
     };
   });
 
-  const homeBreadcrumb = { name: 'home', to: '/', isLast: pathnames.length === 0 };
+  const homeBreadcrumb = { name: 'home', to: '/', isLast: pathnames.length === 0, isStatic: false };
   const allBreadcrumbs = [homeBreadcrumb, ...breadcrumbs];
 
   const items = allBreadcrumbs.map((crumb) => (
@@ -49,6 +53,8 @@ export const Breadcrumbs = () => {
       <BreadcrumbItem>
         {crumb.isLast ? (
           <BreadcrumbPage>{crumb.name}</BreadcrumbPage>
+        ) : crumb.isStatic ? (
+          <span className="text-muted-foreground">{crumb.name}</span>
         ) : (
           <BreadcrumbLink asChild>
             <Link to={crumb.to}>{crumb.name}</Link>
