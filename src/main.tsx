@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
-import { MetaTagsProvider } from './components/common/layout';
+import { MetaTagsProvider, SchemaMarkup } from './components/common/layout';
 
 // Sentry removed - was causing React hooks conflicts
 
@@ -30,6 +30,7 @@ const root = createRoot(rootElement);
 root.render(
   <StrictMode>
     <MetaTagsProvider>
+      <SchemaMarkup />
       <App />
     </MetaTagsProvider>
   </StrictMode>
