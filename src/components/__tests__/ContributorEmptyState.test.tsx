@@ -1,6 +1,32 @@
-import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
-import "@testing-library/jest-dom"; // Add this import for DOM assertions
+import { render, screen, within } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import "@testing-library/jest-dom";
+
+// Mock the UI components inline to avoid complex module mocking
+vi.mock("@/components/ui/card", () => ({
+  Card: ({ children, role, className, ...props }: any) => (
+    <div role={role} className={className} {...props}>{children}</div>
+  ),
+  CardContent: ({ children }: any) => <div>{children}</div>,
+  CardHeader: ({ children }: any) => <div>{children}</div>,
+  CardTitle: ({ children }: any) => <h3>{children}</h3>,
+}));
+
+vi.mock("@/components/ui/badge", () => ({
+  Badge: ({ children }: any) => <span>{children}</span>,
+}));
+
+vi.mock("lucide-react", () => ({
+  Trophy: () => <svg data-testid="trophy-icon" />,
+  Users: () => <svg data-testid="users-icon" />,
+  Calendar: () => <svg data-testid="calendar-icon" />,
+  TrendingUp: () => <svg data-testid="trending-icon" />,
+}));
+
+vi.mock("@/lib/utils", () => ({
+  cn: (...classes: any[]) => classes.filter(Boolean).join(" "),
+}));
+
 import {
   ContributorEmptyState,
   MinimalActivityDisplay,
@@ -10,19 +36,26 @@ describe("ContributorEmptyState", () => {
   it("renders no_data state correctly", () => {
     render(<ContributorEmptyState type="no_data" />);
 
+    // Check for the main title
     expect(
       screen.getByText("No Contributor Data Available")
     ).toBeInTheDocument();
+    
+    // Check for the description
     expect(
       screen.getByText(
         "We couldn't find any contributor data for this repository."
       )
     ).toBeInTheDocument();
+    
+    // Check for the suggestion text
     expect(
       screen.getByText(
         "Make sure the repository has some activity and try again."
       )
     ).toBeInTheDocument();
+    
+    // Check for the tip badge
     expect(screen.getByText(/Tip/)).toBeInTheDocument();
   });
 
@@ -110,21 +143,20 @@ describe("ContributorEmptyState", () => {
     expect(screen.getByRole("alert")).toHaveAttribute("aria-live", "assertive");
   });
 
-  it("renders all icons correctly", () => {
-    const states = [
-      "no_data",
-      "no_activity",
-      "minimal_activity",
-      "loading_error",
-    ] as const;
+  it("renders icons for each state", () => {
+    const { rerender } = render(<ContributorEmptyState type="no_data" />);
+    expect(screen.getByTestId("users-icon")).toBeInTheDocument();
 
-    states.forEach((state) => {
-      render(<ContributorEmptyState type={state} />);
-    });
+    rerender(<ContributorEmptyState type="no_activity" />);
+    expect(screen.getByTestId("calendar-icon")).toBeInTheDocument();
 
-    // SVG icons should be present
-    const svgElements = document.querySelectorAll("svg");
-    expect(svgElements.length).toBeGreaterThanOrEqual(4); // At least 4 SVG icons across all states
+    rerender(<ContributorEmptyState type="minimal_activity" />);
+    expect(screen.getByTestId("trending-icon")).toBeInTheDocument();
+
+    rerender(<ContributorEmptyState type="loading_error" />);
+    // Trophy icon appears in both the card header and the empty state
+    const trophyIcons = screen.getAllByTestId("trophy-icon");
+    expect(trophyIcons.length).toBeGreaterThan(0);
   });
 });
 
@@ -235,8 +267,9 @@ describe("MinimalActivityDisplay", () => {
       />
     );
 
-    expect(screen.getAllByText("U")[0]).toBeInTheDocument(); // user1 (take first occurrence)
-    // Note: Only first 3 contributors are shown, and they all start with 'U'
+    // Check for initial letters
+    const avatars = screen.getAllByText(/^U$/);
+    expect(avatars.length).toBeGreaterThan(0);
   });
 
   it("displays correct point values", () => {
@@ -263,10 +296,9 @@ describe("MinimalActivityDisplay", () => {
       />
     );
 
-    const card = screen
-      .getByText("Early Activity - March 2024")
-      .closest('[class*="custom-class"]');
-    expect(card).toHaveClass("custom-class");
+    const title = screen.getByText("Early Activity - March 2024");
+    const card = title.closest('.custom-class');
+    expect(card).toBeInTheDocument();
   });
 
   it("handles empty contributors list", () => {

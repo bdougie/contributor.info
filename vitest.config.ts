@@ -73,7 +73,7 @@ export default defineConfig({
     ],
     
     // Minimal setup
-    setupFiles: ['./src/__mocks__/simple-setup.ts'],
+    setupFiles: ['./src/__mocks__/minimal-setup.ts'],
     
     // Disable coverage to speed up tests
     coverage: {
