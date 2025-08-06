@@ -1,10 +1,10 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import "@testing-library/jest-dom";
 
 // Mock the UI components inline to avoid complex module mocking
 vi.mock("@/components/ui/card", () => {
-  const React = require('react');
+  const React = require("react");
   return {
     Card: ({ children, role, className, ...props }: any) => 
       React.createElement('div', { role, className, ...props }, children),
@@ -18,7 +18,7 @@ vi.mock("@/components/ui/card", () => {
 });
 
 vi.mock("@/components/ui/badge", () => {
-  const React = require('react');
+  const React = require("react");
   return {
     Badge: ({ children }: any) => 
       React.createElement('span', null, children),
@@ -26,7 +26,7 @@ vi.mock("@/components/ui/badge", () => {
 });
 
 vi.mock("lucide-react", () => {
-  const React = require('react');
+  const React = require("react");
   return {
     Trophy: () => React.createElement('svg', { 'data-testid': 'trophy-icon' }),
     Users: () => React.createElement('svg', { 'data-testid': 'users-icon' }),
