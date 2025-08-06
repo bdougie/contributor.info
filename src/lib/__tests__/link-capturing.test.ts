@@ -279,4 +279,3 @@ describe('Link Capturing Functionality', () => {
       expect(mockClipboard.writeText).toHaveBeenCalledWith(shortUrl)
     })
   })
-})

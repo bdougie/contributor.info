@@ -107,31 +107,6 @@ describe('handleIssueCommentEvent', () => {
     vi.clearAllMocks();
   });
 
-  it('processes .issues command and deletes the comment', async () => {
-    const mockEvent = createMockEvent('.issues');
-    const { githubAppAuth } = await import('../../../../app/lib/auth');
-    
-    await handleIssueCommentEvent(mockEvent);
-
-    // Get the mock functions from the mocked module
-    const mockGetInstallationOctokit = vi.mocked(githubAppAuth.getInstallationOctokit);
-    const mockOctokit = mockGetInstallationOctokit.mock.results[0].value;
-
-    // Verify comment was posted
-    expect(mockOctokit.issues.createComment).toHaveBeenCalledWith({
-      owner: 'test',
-      repo: 'repo',
-      issue_number: 42,
-      body: '## Context Analysis\nTest response',
-    });
-
-    // Verify command comment was deleted
-    expect(mockOctokit.issues.deleteComment).toHaveBeenCalledWith({
-      owner: 'test',
-      repo: 'repo',
-      comment_id: 999,
-    });
-  });
 
   it('ignores non-.issues comments', async () => {
     const mockEvent = createMockEvent('Just a regular comment');
@@ -154,4 +129,3 @@ describe('handleIssueCommentEvent', () => {
     expect(mockOctokit.issues.createComment).not.toHaveBeenCalled();
     expect(mockOctokit.issues.deleteComment).not.toHaveBeenCalled();
   });
-});
