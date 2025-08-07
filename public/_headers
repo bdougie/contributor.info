@@ -17,6 +17,55 @@
   Content-Type: text/css
   Cache-Control: public, max-age=31536000, immutable
 
+# Image caching headers for performance optimization
+/assets/*.jpg
+  Content-Type: image/jpeg
+  Cache-Control: public, max-age=31536000, immutable
+  Accept-CH: DPR, Width, Viewport-Width
+  Vary: Accept, DPR, Width
+
+/assets/*.jpeg
+  Content-Type: image/jpeg
+  Cache-Control: public, max-age=31536000, immutable
+  Accept-CH: DPR, Width, Viewport-Width
+  Vary: Accept, DPR, Width
+
+/assets/*.png
+  Content-Type: image/png
+  Cache-Control: public, max-age=31536000, immutable
+  Accept-CH: DPR, Width, Viewport-Width
+  Vary: Accept, DPR, Width
+
+/assets/*.gif
+  Content-Type: image/gif
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.webp
+  Content-Type: image/webp
+  Cache-Control: public, max-age=31536000, immutable
+  Accept-CH: DPR, Width, Viewport-Width
+  Vary: Accept, DPR, Width
+
+/assets/*.avif
+  Content-Type: image/avif
+  Cache-Control: public, max-age=31536000, immutable
+  Accept-CH: DPR, Width, Viewport-Width
+  Vary: Accept, DPR, Width
+
+/assets/*.svg
+  Content-Type: image/svg+xml
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.ico
+  Content-Type: image/x-icon
+  Cache-Control: public, max-age=31536000, immutable
+
+# Generic image paths
+/images/*
+  Cache-Control: public, max-age=604800, must-revalidate
+  Accept-CH: DPR, Width, Viewport-Width
+  Vary: Accept, DPR, Width
+
 /*.json
   Content-Type: application/json
 
