@@ -16,14 +16,19 @@ import {
  * Handle pull request webhook events
  */
 export async function handlePullRequestEvent(event: PullRequestEvent) {
-  // Only process ready_for_review events
-  if (event.action !== 'ready_for_review') {
+  // Only process opened and ready_for_review events
+  if (!['opened', 'ready_for_review'].includes(event.action)) {
     return;
   }
 
-  // Skip if PR is still a draft (shouldn't happen with ready_for_review, but double-check)
-  if (event.pull_request.draft) {
+  // Skip if PR is still a draft (for opened events)
+  if (event.action === 'opened' && event.pull_request.draft) {
     return;
+  }
+
+  // Handle opened events with simple similarity comments
+  if (event.action === 'opened') {
+    return handlePROpened(event);
   }
 
   try {
@@ -140,6 +145,90 @@ export async function handlePullRequestEvent(event: PullRequestEvent) {
 }
 
 /**
+ * Handle PR opened events with simple similarity comments
+ */
+async function handlePROpened(event: PullRequestEvent) {
+  try {
+    console.log(`Processing opened PR #${event.pull_request.number} in ${event.repository.full_name}`);
+
+    // Check if we should comment on this PR
+    const shouldComment = await checkIfShouldComment(event);
+    if (!shouldComment) {
+      console.log('Skipping PR comment based on settings');
+      return;
+    }
+
+    // Get installation token
+    const installationId = event.installation?.id;
+    if (!installationId) {
+      console.error('No installation ID found');
+      return;
+    }
+
+    const octokit = await githubAppAuth.getInstallationOctokit(installationId);
+
+    // Fetch configuration
+    const config = await fetchContributorConfig(
+      octokit,
+      event.repository.owner.login,
+      event.repository.name
+    );
+
+    // Check if PR author is excluded
+    if (isUserExcluded(config, event.pull_request.user.login, 'author')) {
+      console.log(`PR author ${event.pull_request.user.login} is excluded from comments`);
+      return;
+    }
+
+    // Check if auto-comment is enabled
+    if (!isFeatureEnabled(config, 'auto_comment')) {
+      console.log('Auto-comment is disabled in .contributor config');
+      return;
+    }
+
+    // Check if similar_issues feature is enabled
+    if (!isFeatureEnabled(config, 'similar_issues')) {
+      console.log('Similar issues feature is disabled in .contributor config');
+      return;
+    }
+
+    // Find similar issues using existing similarity service
+    const similarIssues = await findSimilarIssues(event.pull_request, event.repository);
+
+    // Only comment if we found similar issues
+    if (similarIssues.length === 0) {
+      console.log('No similar issues found for PR');
+      return;
+    }
+
+    // Format simple similarity comment
+    const comment = formatSimplePRSimilarityComment(similarIssues, event.pull_request);
+
+    // Post the comment
+    const { data: postedComment } = await octokit.issues.createComment({
+      owner: event.repository.owner.login,
+      repo: event.repository.name,
+      issue_number: event.pull_request.number,
+      body: comment,
+    });
+
+    console.log(`Posted similarity comment ${postedComment.id} on PR #${event.pull_request.number}`);
+
+    // Store basic tracking info (lightweight compared to full insights)
+    await storePRSimilarityComment({
+      pullRequest: event.pull_request,
+      repository: event.repository,
+      similarIssues,
+      commentId: postedComment.id,
+    });
+
+  } catch (error) {
+    console.error('Error handling PR opened event:', error);
+    // Don't throw - we don't want GitHub to retry
+  }
+}
+
+/**
  * Check if we should comment on this PR based on settings
  */
 async function checkIfShouldComment(event: PullRequestEvent): Promise<boolean> {
@@ -241,5 +330,93 @@ async function storePRInsights(data: StorePRInsightsData) {
 
   } catch (error) {
     console.error('Error storing PR insights:', error);
+  }
+}
+
+/**
+ * Format simple similarity comment for PR opened events
+ */
+function formatSimplePRSimilarityComment(similarIssues: SimilarIssue[], pullRequest: PullRequest): string {
+  let comment = '## 🔗 Related Issues\n\n';
+  comment += 'I found the following issues that may be related to this PR:\n\n';
+
+  for (const similar of similarIssues) {
+    const stateEmoji = similar.issue.state === 'open' ? '🟢' : '🔴';
+    const relationshipEmoji = similar.relationship === 'fixes' ? '🔧' : 
+                            similar.relationship === 'implements' ? '⚡' :
+                            similar.relationship === 'relates_to' ? '🔗' : '💭';
+    
+    comment += `- ${stateEmoji} ${relationshipEmoji} [#${similar.issue.number} - ${similar.issue.title}](${similar.issue.html_url}) `;
+    
+    if (similar.reasons.length > 0) {
+      comment += `(${similar.reasons.join(', ')})\n`;
+    } else {
+      comment += `(${Math.round(similar.similarityScore * 100)}% similar)\n`;
+    }
+  }
+
+  comment += '\n';
+  comment += '_This helps connect related work and avoid duplicate efforts. ';
+  comment += 'Powered by [contributor.info](https://contributor.info)_ 🤖';
+
+  return comment;
+}
+
+/**
+ * Store basic PR similarity comment tracking
+ */
+interface StorePRSimilarityData {
+  pullRequest: PullRequest;
+  repository: Repository;
+  similarIssues: SimilarIssue[];
+  commentId: number;
+}
+
+async function storePRSimilarityComment(data: StorePRSimilarityData) {
+  try {
+    // First, ensure the repository exists in our database
+    const { data: repo } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('github_id', data.repository.id)
+      .single();
+
+    if (!repo) {
+      // Repository not tracked yet, skip storing
+      return;
+    }
+
+    // Store the PR if it doesn't exist
+    const { data: pr } = await supabase
+      .from('pull_requests')
+      .upsert({
+        github_id: data.pullRequest.id,
+        repository_id: repo.id,
+        number: data.pullRequest.number,
+        title: data.pullRequest.title,
+        state: data.pullRequest.state,
+        created_at: data.pullRequest.created_at,
+        updated_at: data.pullRequest.updated_at,
+      })
+      .select('id')
+      .single();
+
+    if (!pr) return;
+
+    // Store basic similarity tracking (lighter than full insights)
+    await supabase
+      .from('pr_insights')
+      .upsert({
+        pull_request_id: pr.id,
+        github_pr_id: data.pullRequest.id,
+        similar_issues: data.similarIssues,
+        comment_posted: false,
+        comment_id: data.commentId,
+        generated_at: new Date().toISOString(),
+        comment_type: 'similarity', // Mark as similarity-only comment
+      });
+
+  } catch (error) {
+    console.error('Error storing PR similarity comment:', error);
   }
 }

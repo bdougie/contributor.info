@@ -1,0 +1,29 @@
+# Contributor.info Configuration
+# Learn more: https://contributor.info/docs/configuration
+
+version: 1
+
+# Enable or disable features
+features:
+  reviewer_suggestions: true  # Suggest reviewers based on CODEOWNERS and history
+  similar_issues: true       # Show related issues on new issues and PRs
+  auto_comment: true         # Post insights automatically on PRs and issues
+
+# Comment style: "detailed" or "minimal"
+comment_style: detailed
+
+# Exclude specific users from features
+exclude_authors: 
+  - dependabot[bot]
+  - renovate[bot]
+  - github-actions[bot]
+
+exclude_reviewers:
+  - dependabot[bot]
+  - renovate[bot]
+  - github-actions[bot]
+
+# Configuration for this repository
+# - Full insights on ready_for_review PRs (existing behavior)
+# - Simple similarity comments on opened PRs and issues (new behavior)
+# - Bot accounts excluded to reduce noise
