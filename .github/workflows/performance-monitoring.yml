@@ -94,8 +94,8 @@ jobs:
   lighthouse-audit:
     runs-on: ubuntu-latest
     name: Lighthouse Performance Audit
-    # needs: [bundle-size-check]
-    if: always()
+    needs: [bundle-size-check]
+    if: always() && (github.event_name != 'pull_request' || needs.bundle-size-check.result == 'success')
     
     steps:
       - name: Checkout code
