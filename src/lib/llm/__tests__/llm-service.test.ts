@@ -100,7 +100,8 @@ describe('LLM Service', () => {
       
       expect(insight).toBeTruthy();
       expect(insight?.type).toBe('health');
-      expect(insight?.content).toContain('needs attention');
+      expect(insight?.content).toContain('needs attention'); // score 45 < 60
+      expect(insight?.content).toContain('Priority: pr merge time'); // critical factor
       expect(insight?.confidence).toBe(0.6); // Lower confidence for fallback
       expect(mockOpenAIService.generateHealthInsight).toHaveBeenCalledWith(sampleHealthData, sampleRepoInfo);
     });
@@ -112,7 +113,8 @@ describe('LLM Service', () => {
       
       expect(insight).toBeTruthy();
       expect(insight?.type).toBe('health');
-      expect(insight?.content).toContain('needs attention');
+      expect(insight?.content).toContain('needs attention'); // score 45 < 60
+      expect(insight?.content).toContain('Priority: pr merge time'); // critical factor
       expect(insight?.confidence).toBe(0.6);
     });
 
@@ -152,6 +154,7 @@ describe('LLM Service', () => {
       expect(insight).toBeTruthy();
       expect(insight?.type).toBe('recommendation');
       expect(insight?.content).toContain('1.');
+      expect(insight?.content).toContain('breaking down large PRs'); // velocity < 5
       expect(insight?.confidence).toBe(0.5); // Lower confidence for fallback
     });
 
@@ -199,6 +202,9 @@ describe('LLM Service', () => {
       const healthData1 = { ...sampleHealthData, score: 70 };
       const healthData2 = { ...sampleHealthData, score: 80 };
       
+      // Clear mocks to ensure clean count
+      mockOpenAIService.generateHealthInsight.mockClear();
+      
       await llmService.generateHealthInsight(healthData1, sampleRepoInfo);
       await llmService.generateHealthInsight(healthData2, sampleRepoInfo);
       
@@ -206,12 +212,15 @@ describe('LLM Service', () => {
     });
 
     it('should clear cache when requested', async () => {
+      // Clear mocks to ensure clean count
+      mockOpenAIService.generateHealthInsight.mockClear();
+      
       await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
+      expect(mockOpenAIService.generateHealthInsight).toHaveBeenCalledTimes(1);
       
       llmService.clearCache();
       
       await llmService.generateHealthInsight(sampleHealthData, sampleRepoInfo);
-      
       expect(mockOpenAIService.generateHealthInsight).toHaveBeenCalledTimes(2);
     });
   });
@@ -270,7 +279,8 @@ describe('LLM Service', () => {
       
       expect(insight).toBeTruthy();
       expect(insight?.type).toBe('pattern');
-      expect(insight?.content).toContain('Analyzed 3 PRs with 67% merge rate');
+      expect(insight?.content).toContain('Analyzed 3 PRs with 67% merge rate'); // 2 merged out of 3
+      expect(insight?.content).toContain('Good PR workflow'); // 67% is between 60-80%
       expect(insight?.confidence).toBe(0.5);
     });
   });

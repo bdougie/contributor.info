@@ -359,10 +359,8 @@ describe.skip('Progressive Data Loading Integration', () => {
         single: vi.fn().mockResolvedValue({
           data: null,
           error: { message: 'Database timeout' }
-        }),
-        eq: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis()
-      };
+        })
+      });
 
       let callCount = 0;
       mockSupabase.from.mockImplementation((table: string) => {
