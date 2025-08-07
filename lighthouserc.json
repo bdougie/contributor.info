@@ -1,13 +1,7 @@
 {
   "ci": {
     "collect": {
-      "staticDistDir": "./dist",
-      "url": [
-        "http://localhost/",
-        "http://localhost/vercel/next.js",
-        "http://localhost/facebook/react"
-      ],
-      "numberOfRuns": 3,
+      "numberOfRuns": 1,
       "settings": {
         "preset": "desktop",
         "throttling": {
