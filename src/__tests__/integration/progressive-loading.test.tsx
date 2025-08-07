@@ -16,6 +16,12 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+// Mock React Helmet Async
+vi.mock('react-helmet-async', () => ({
+  Helmet: ({ children }: any) => children,
+  HelmetProvider: ({ children }: any) => children,
+}));
+
 // Mock Supabase client
 vi.mock('../../lib/supabase', () => {
   const mockSupabase = {
@@ -26,7 +32,7 @@ vi.mock('../../lib/supabase', () => {
 
 const mockSupabase = supabase as any;
 
-describe.skip('Progressive Data Loading Integration', () => {
+describe('Progressive Data Loading Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.clearAllTimers();
