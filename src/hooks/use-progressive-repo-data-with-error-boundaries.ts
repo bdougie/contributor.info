@@ -45,14 +45,6 @@ export interface EnhancedProgressiveDataState {
   canContinueWithoutStage: Record<LoadingStage, boolean>;
 }
 
-// Cache for progressive data
-interface EnhancedProgressiveCache {
-  [key: string]: {
-    data: EnhancedProgressiveDataState;
-    timestamp: number;
-  };
-}
-
 // Removed unused cache variables
 const MAX_RETRY_ATTEMPTS = 3;
 
