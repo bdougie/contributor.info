@@ -104,7 +104,7 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
         };
         
       case 'badge':
-        const badgeMarkdown = generateBadgeMarkdown(customOwner, customRepo, 'contributors', badgeConfig.style);
+        const badgeMarkdown = generateBadgeMarkdown(badgeConfig, data);
         const badgeParams = new URLSearchParams({
           owner: customOwner,
           repo: customRepo,
