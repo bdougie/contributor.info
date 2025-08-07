@@ -73,10 +73,41 @@ jobs:
       # Netlify will automatically deploy from main branch via GitHub integration
       # No manual deployment needed here
 
+  submit-sitemap:
+    name: Submit Sitemap to Search Engines
+    runs-on: ubuntu-latest
+    needs: [release]
+    if: needs.release.outputs.released == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Wait for Netlify deployment
+        run: |
+          echo "Waiting 2 minutes for Netlify deployment to complete..."
+          sleep 120
+          
+      - name: Verify sitemap is accessible
+        run: |
+          echo "Checking if sitemap is accessible..."
+          curl -f https://contributor.info/sitemap.xml > /dev/null || exit 1
+          echo "✅ Sitemap is accessible"
+          
+      - name: Submit sitemap to search engines
+        run: |
+          echo "Submitting sitemap to search engines..."
+          node scripts/sitemap/submit-sitemap.js
+        continue-on-error: true
+
   notify:
     name: Release Notification
     runs-on: ubuntu-latest
-    needs: [release]
+    needs: [release, submit-sitemap]
     if: needs.release.outputs.released == 'true'
     steps:
       - name: Create release summary
@@ -91,3 +122,4 @@ jobs:
           echo "### 🔗 Links" >> $GITHUB_STEP_SUMMARY
           echo "- [Release Notes](https://github.com/${{ github.repository }}/releases/tag/${{ needs.release.outputs.tag }})" >> $GITHUB_STEP_SUMMARY
           echo "- [Live Site](https://contributor.info)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Sitemap](https://contributor.info/sitemap.xml)" >> $GITHUB_STEP_SUMMARY
