@@ -137,14 +137,12 @@
   [headers.values]
     Content-Type = "image/webp"
     Cache-Control = "public, max-age=31536000, immutable"
-    Accept-Encoding = "gzip, br"
 
 [[headers]]
   for = "/*.avif"
   [headers.values]
     Content-Type = "image/avif"
-    Cache-Control = "public, max-age=31536000, immutable" 
-    Accept-Encoding = "gzip, br"
+    Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
   for = "/*.jpg"
@@ -175,20 +173,6 @@
   [headers.values]
     Content-Type = "image/svg+xml"
     Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/assets/*.webp"
-  [headers.values]
-    Content-Type = "image/webp"
-    Cache-Control = "public, max-age=31536000, immutable"
-    Accept-Encoding = "gzip, br"
-
-[[headers]]
-  for = "/assets/*.avif"
-  [headers.values]
-    Content-Type = "image/avif"
-    Cache-Control = "public, max-age=31536000, immutable"
-    Accept-Encoding = "gzip, br"
 
 [[headers]]
   for = "/assets/*"

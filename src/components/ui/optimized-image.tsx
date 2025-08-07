@@ -47,6 +47,18 @@ export const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(
 
   // Generate optimized image URLs
   const generateImageUrls = (originalSrc: string) => {
+    // Check if it's a relative path or local image first
+    const isRelativePath = !originalSrc.startsWith('http://') && !originalSrc.startsWith('https://') && !originalSrc.startsWith('//');
+    
+    if (isRelativePath) {
+      // Handle local/static images with vite-imagetools optimization
+      return {
+        webp: `${originalSrc}?format=webp&quality=80${width ? `&w=${width}` : ''}${height ? `&h=${height}` : ''}`,
+        fallback: originalSrc,
+        isGitHubAvatar: false
+      };
+    }
+    
     try {
       const url = new URL(originalSrc);
       
@@ -60,15 +72,6 @@ export const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(
         };
       }
 
-      // Handle local/static images with vite-imagetools
-      if (!url.protocol.startsWith('http')) {
-        return {
-          webp: `${originalSrc}?format=webp&quality=80${width ? `&w=${width}` : ''}${height ? `&h=${height}` : ''}`,
-          fallback: originalSrc,
-          isGitHubAvatar: false
-        };
-      }
-
       // For other external images, return as-is
       return {
         webp: originalSrc,
@@ -76,6 +79,7 @@ export const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(
         isGitHubAvatar: false
       };
     } catch {
+      // Fallback for any edge cases
       return {
         webp: originalSrc,
         fallback: originalSrc,
