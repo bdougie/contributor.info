@@ -49,6 +49,7 @@ const BulkSpamAnalysis = lazy(() => import("@/components/features/admin").then(m
 const MaintainerManagement = lazy(() => import("@/components/features/admin/maintainer-management").then(m => ({ default: m.MaintainerManagement })));
 const ConfidenceAnalyticsDashboard = lazy(() => import("@/components/features/admin/confidence-analytics-dashboard").then(m => ({ default: m.ConfidenceAnalyticsDashboard })));
 const CaptureHealthMonitor = lazy(() => import("@/components/CaptureHealthMonitor").then(m => ({ default: m.CaptureHealthMonitor })));
+const OrgView = lazy(() => import("@/pages/org-view"));
 
 // Loading fallback component with proper structure
 const PageSkeleton = () => (
@@ -350,6 +351,10 @@ function App() {
                   </ProtectedRoute>
                 } />
               </Route>
+              
+              {/* Organization view - after specific routes to avoid conflicts */}
+              <Route path="/:org" element={<OrgView />} />
+              
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
