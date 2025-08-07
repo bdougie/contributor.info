@@ -34,11 +34,12 @@ global.IntersectionObserver = vi.fn(() => ({
   takeRecords: vi.fn(() => []),
 })) as any;
 
-// Mock requestIdleCallback
+// Mock requestIdleCallback with immediate execution for testing
 Object.defineProperty(window, 'requestIdleCallback', {
   writable: true,
   value: vi.fn((callback: IdleRequestCallback) => {
-    setTimeout(() => callback({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline), 0);
+    // Execute immediately in tests to avoid timing issues
+    callback({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline);
     return 1;
   }),
 });
@@ -125,6 +126,10 @@ function IntersectionLoaderComponent({
     </div>
   );
 }
+
+// Helper for consistent waitFor configuration
+const waitForWithTimeout = (callback: () => void, options = {}) => 
+  waitFor(callback, { timeout: 10000, ...options });
 
 describe('Progressive Loading Error Boundary Tests', () => {
   const fetchDirectCommitsMock = fetchDirectCommitsWithDatabaseFallback as ReturnType<typeof vi.fn>;

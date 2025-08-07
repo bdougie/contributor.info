@@ -24,9 +24,10 @@ import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-co
 import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart';
 import { calculateLotteryFactor } from '@/lib/utils';
 
-// Mock requestIdleCallback
+// Mock requestIdleCallback with immediate execution for testing
 const mockRequestIdleCallback = vi.fn((callback: IdleRequestCallback) => {
-  setTimeout(() => callback({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline), 0);
+  // Execute immediately in tests to avoid timing issues
+  callback({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline);
   return 1;
 });
 
@@ -72,6 +73,10 @@ const mockLotteryFactor = {
   description: 'High lottery factor',
   category: 'balanced' as const,
 };
+
+// Helper for consistent waitFor configuration
+const waitForWithTimeout = (callback: () => void, options = {}) => 
+  waitFor(callback, { timeout: 10000, ...options });
 
 describe('useProgressiveRepoData', () => {
   const fetchDirectCommitsMock = fetchDirectCommitsWithDatabaseFallback as ReturnType<typeof vi.fn>;

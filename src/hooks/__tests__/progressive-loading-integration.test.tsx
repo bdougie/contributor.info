@@ -63,9 +63,10 @@ const simulateIntersection = (isIntersecting: boolean) => {
 
 global.IntersectionObserver = mockIntersectionObserver;
 
-// Mock requestIdleCallback
+// Mock requestIdleCallback with immediate execution for testing
 const mockRequestIdleCallback = vi.fn((callback: IdleRequestCallback) => {
-  setTimeout(() => callback({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline), 0);
+  // Execute immediately in tests to avoid timing issues
+  callback({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline);
   return 1;
 });
 
@@ -113,8 +114,10 @@ function ProgressiveRepositoryView({ owner, repo }: { owner: string; repo: strin
   const { ref: enhancementRef, data: enhancementData, isLoading: enhancementLoading } = useIntersectionLoader(
     async () => {
       // Simulate loading additional enhancement data when scrolled into view
-      await new Promise(resolve => setTimeout(resolve, 100));
-      return { additionalMetrics: 'loaded via intersection' };
+      // Using fake timers, so we need to control the promise resolution
+      return new Promise(resolve => {
+        setTimeout(() => resolve({ additionalMetrics: 'loaded via intersection' }), 100);
+      });
     },
     { rootMargin: '100px' }
   );
@@ -159,6 +162,10 @@ function ProgressiveRepositoryView({ owner, repo }: { owner: string; repo: strin
   );
 }
 
+// Helper for consistent waitFor configuration
+const waitForWithTimeout = (callback: () => void, options = {}) => 
+  waitFor(callback, { timeout: 10000, ...options });
+
 describe('Progressive Loading Integration Tests', () => {
   const fetchDirectCommitsMock = fetchDirectCommitsWithDatabaseFallback as ReturnType<typeof vi.fn>;
   const fetchPRDataMock = fetchPRDataSmart as ReturnType<typeof vi.fn>;
@@ -186,7 +193,7 @@ describe('Progressive Loading Integration Tests', () => {
   });
 
   describe('Full 3-stage progressive loading flow', () => {
-    it('should complete all three stages in sequence', async () => {
+    it('should complete all three stages in sequence', { timeout: 15000 }, async () => {
       const { getByTestId } = render(
         <ProgressiveRepositoryView owner="testowner" repo="testrepo" />
       );

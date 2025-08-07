@@ -39,9 +39,11 @@ const simulateIntersection = (isIntersecting: boolean, intersectionRatio = 0) =>
   }
 };
 
-// Mock window.requestIdleCallback for progressive loading
+// Mock window.requestIdleCallback with immediate execution for testing
 const mockRequestIdleCallback = vi.fn((callback: IdleRequestCallback) => {
-  setTimeout(() => callback({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline), 0);
+  // Execute immediately in tests to avoid timing issues
+  callback({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline);
+  return 1;
 });
 
 Object.defineProperty(window, 'requestIdleCallback', {
@@ -50,6 +52,10 @@ Object.defineProperty(window, 'requestIdleCallback', {
 });
 
 global.IntersectionObserver = mockIntersectionObserver;
+
+// Helper for consistent waitFor configuration
+const waitForWithTimeout = (callback: () => void, options = {}) => 
+  waitFor(callback, { timeout: 10000, ...options });
 
 describe('useIntersectionLoader', () => {
   beforeEach(() => {
