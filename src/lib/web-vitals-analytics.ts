@@ -55,12 +55,17 @@ class WebVitalsAnalytics {
     // Flush metrics on page unload
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', () => {
-        this.flushMetrics();
+        this.flushMetricsSync();
       });
     }
   }
 
   private getOrCreateSessionId(): string {
+    // Guard against SSR where window/sessionStorage don't exist
+    if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') {
+      return `vitals_ssr_${Date.now()}`;
+    }
+    
     const storageKey = 'contributor-info-vitals-session';
     let sessionId = sessionStorage.getItem(storageKey);
     
@@ -161,6 +166,41 @@ class WebVitalsAnalytics {
     await Promise.allSettled(promises);
   }
 
+  private flushMetricsSync(): void {
+    if (this.metricsBuffer.length === 0) return;
+    
+    const metricsToSend = [...this.metricsBuffer];
+    this.metricsBuffer = [];
+    
+    // Use sendBeacon for reliable delivery on page unload
+    if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+      const data = JSON.stringify({
+        events: metricsToSend,
+        sessionId: this.sessionId,
+      });
+      
+      // Send to custom endpoint using sendBeacon
+      if (this.providers.has('custom') && this.customEndpoint) {
+        navigator.sendBeacon(this.customEndpoint, data);
+      }
+      
+      // For Supabase, we'd need a special endpoint that accepts beacon data
+      // For now, we'll try to use a synchronous XMLHttpRequest as fallback
+      if (this.providers.has('supabase')) {
+        try {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', `${import.meta.env?.VITE_SUPABASE_URL || ''}/rest/v1/web_vitals_events`, false); // false = synchronous
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.setRequestHeader('apikey', import.meta.env?.VITE_SUPABASE_ANON_KEY || '');
+          xhr.send(JSON.stringify(metricsToSend));
+        } catch (err) {
+          // Synchronous XHR might be blocked, fallback to beacon if possible
+          console.warn('Failed to send metrics synchronously:', err);
+        }
+      }
+    }
+  }
+
   private async sendToSupabase(events: WebVitalsEvent[]): Promise<void> {
     try {
       const { error } = await supabase
@@ -178,14 +218,14 @@ class WebVitalsAnalytics {
   private async sendToPostHog(events: WebVitalsEvent[]): Promise<void> {
     // PostHog integration would go here
     // For now, just log
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env?.DEV) {
       console.log('PostHog Web Vitals:', events);
     }
   }
 
   private async sendToCustomEndpoint(events: WebVitalsEvent[]): Promise<void> {
     // Custom endpoint integration
-    const endpoint = process.env.VITE_VITALS_ENDPOINT;
+    const endpoint = import.meta.env?.VITE_VITALS_ENDPOINT;
     if (!endpoint) return;
     
     try {

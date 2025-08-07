@@ -146,7 +146,7 @@ class PageSpeedInsightsAPI {
     return {
       url: result.lighthouseResult.finalUrl,
       timestamp: result.fetchTime,
-      performanceScore: result.lighthouseResult.categories.performance.score * 100,
+      performanceScore: (result.lighthouseResult.categories.performance.score ?? 0) * 100,
       lcp: audits['largest-contentful-paint']?.numericValue || 0,
       fcp: audits['first-contentful-paint']?.numericValue || 0,
       cls: audits['cumulative-layout-shift']?.numericValue || 0,
