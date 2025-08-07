@@ -73,41 +73,48 @@ jobs:
       # Netlify will automatically deploy from main branch via GitHub integration
       # No manual deployment needed here
 
-  submit-sitemap:
-    name: Submit Sitemap to Search Engines
+  verify-sitemap:
+    name: Verify Sitemap Accessibility
     runs-on: ubuntu-latest
     needs: [release]
     if: needs.release.outputs.released == 'true'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          
       - name: Wait for Netlify deployment
         run: |
           echo "Waiting 2 minutes for Netlify deployment to complete..."
           sleep 120
           
-      - name: Verify sitemap is accessible
+      - name: Verify sitemaps are accessible
         run: |
-          echo "Checking if sitemap is accessible..."
-          curl -f https://contributor.info/sitemap.xml > /dev/null || exit 1
-          echo "✅ Sitemap is accessible"
+          echo "Verifying sitemap accessibility..."
           
-      - name: Submit sitemap to search engines
-        run: |
-          echo "Submitting sitemap to search engines..."
-          node scripts/sitemap/submit-sitemap.js
-        continue-on-error: true
+          # Check main sitemap
+          if curl -f -s https://contributor.info/sitemap.xml > /dev/null; then
+            echo "✅ Main sitemap is accessible"
+          else
+            echo "❌ Main sitemap is NOT accessible"
+            exit 1
+          fi
+          
+          # Check news sitemap
+          if curl -f -s https://contributor.info/sitemap-news.xml > /dev/null; then
+            echo "✅ News sitemap is accessible"
+          else
+            echo "❌ News sitemap is NOT accessible"
+            exit 1
+          fi
+          
+          echo ""
+          echo "📝 Note: Sitemaps must be manually submitted to:"
+          echo "- Google Search Console: https://search.google.com/search-console"
+          echo "- Bing Webmaster Tools: https://www.bing.com/webmasters"
+          echo ""
+          echo "✨ Sitemaps are also referenced in robots.txt for automatic discovery"
 
   notify:
     name: Release Notification
     runs-on: ubuntu-latest
-    needs: [release, submit-sitemap]
+    needs: [release, verify-sitemap]
     if: needs.release.outputs.released == 'true'
     steps:
       - name: Create release summary
