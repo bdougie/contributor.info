@@ -217,14 +217,9 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
 
   refreshAuth = async () => {
     try {
-      const { createClient } = await import('@supabase/supabase-js');
-      const { env } = await import('@/lib/env');
-      const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
-      
-      await supabase.auth.signOut();
-      // Could trigger re-authentication flow here
-      
-      this.handleRetry();
+      // Use window.location for auth refresh instead of dynamic imports
+      // which can cause issues in production builds
+      window.location.href = '/login';
     } catch (error) {
       console.error('Failed to refresh auth:', error);
     }
