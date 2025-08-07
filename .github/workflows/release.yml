@@ -73,6 +73,15 @@ jobs:
       # Netlify will automatically deploy from main branch via GitHub integration
       # No manual deployment needed here
 
+      - name: Update public changelog after release  
+        if: steps.release.outputs.released == 'true'
+        run: |
+          mkdir -p public
+          cp CHANGELOG.md public/CHANGELOG.md
+          git add public/CHANGELOG.md
+          git commit -m "chore: update public changelog after release ${{ steps.release.outputs.version }}"
+          git push
+          
   verify-sitemap:
     name: Verify Sitemap Accessibility
     runs-on: ubuntu-latest
