@@ -174,6 +174,7 @@ serve(async (req) => {
     console.log('Repository summary function started');
     
     if (!openaiApiKey) {
+      console.error('OpenAI API key is not configured in environment');
       throw new Error('OpenAI API key is not configured');
     }
     
@@ -204,28 +205,57 @@ serve(async (req) => {
     console.log('Generating new AI summary');
     
     // Generate new summary and embedding
-    const summary = await generateAISummary(repository, pullRequests || []);
-    const embedding = await generateEmbedding(summary);
+    let summary: string;
+    let embedding: number[] | null = null;
+    
+    try {
+      summary = await generateAISummary(repository, pullRequests || []);
+      console.log('AI summary generated successfully');
+    } catch (error) {
+      console.error('Failed to generate AI summary:', error);
+      throw new Error(`AI summary generation failed: ${error.message}`);
+    }
+    
+    try {
+      embedding = await generateEmbedding(summary);
+      console.log('Embedding generated successfully');
+    } catch (error) {
+      console.error('Failed to generate embedding:', error);
+      // Continue without embedding - it's not critical
+      embedding = null;
+    }
     
     // Update repository with new summary
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Supabase environment variables not configured');
+      throw new Error('Supabase configuration missing');
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    const updateData: any = {
+      ai_summary: summary,
+      summary_generated_at: new Date().toISOString(),
+      recent_activity_hash: activityHash
+    };
+    
+    // Only include embedding if it was generated successfully
+    if (embedding) {
+      updateData.embedding = `[${embedding.join(',')}]`; // Convert to PostgreSQL array format
+    }
     
     const { error } = await supabase
       .from('repositories')
-      .update({
-        ai_summary: summary,
-        embedding: `[${embedding.join(',')}]`, // Convert to PostgreSQL array format
-        summary_generated_at: new Date().toISOString(),
-        recent_activity_hash: activityHash
-      })
+      .update(updateData)
       .eq('id', repository.id);
     
     if (error) {
       console.error('Database update error:', error);
-      throw new Error('Failed to update repository summary');
+      console.error('Update data:', updateData);
+      throw new Error(`Failed to update repository summary: ${error.message}`);
     }
     
     console.log('Successfully generated and stored AI summary');
@@ -241,12 +271,22 @@ serve(async (req) => {
     
   } catch (error) {
     console.error('Repository summary error:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Provide more detailed error information
+    const errorDetails = {
+      error: error.message,
+      details: 'Failed to generate repository summary',
+      timestamp: new Date().toISOString(),
+      environment: {
+        hasOpenAIKey: !!openaiApiKey,
+        hasSupabaseUrl: !!Deno.env.get('SUPABASE_URL'),
+        hasSupabaseKey: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+      }
+    };
     
     return new Response(
-      JSON.stringify({
-        error: error.message,
-        details: 'Failed to generate repository summary'
-      }),
+      JSON.stringify(errorDetails),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
