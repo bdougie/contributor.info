@@ -2,6 +2,16 @@
 
 A web application that visualizes GitHub repository contributors' information, providing insights into pull requests, contributions, and contributor details.
 
+## Project Stats
+
+[![Contributors](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=contributors&style=flat)](https://contributor.info/bdougie/contributor.info)
+[![Pull Requests](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=pull-requests&style=flat)](https://contributor.info/bdougie/contributor.info)
+[![Merge Rate](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=merge-rate&style=flat)](https://contributor.info/bdougie/contributor.info)
+
+[![Contributor Stats](https://contributor.info/api/widgets/stat-card?owner=bdougie&repo=contributor.info&theme=light&size=medium)](https://contributor.info/bdougie/contributor.info)
+
+_https://contributor.info/widgets_
+
 ## ✨ Features
 
 - **GitHub Authentication** - Secure OAuth integration
@@ -12,6 +22,7 @@ A web application that visualizes GitHub repository contributors' information, p
 - **Organization Tracking** - Team and company affiliation insights
 - **Real-time Data** - Live updates from GitHub API
 - **Beautiful UI** - Responsive design with dark/light mode
+- **Embeddable Widgets** - Share repository stats in your README
 
 ## 🚀 Quick Start
 
@@ -19,6 +30,38 @@ A web application that visualizes GitHub repository contributors' information, p
 2. **Sign in** with your GitHub account
 3. **Search** for any public repository
 4. **Explore** contributor insights and analytics
+
+## 📊 Embeddable Widgets
+
+Display repository statistics directly in your README with our embeddable widgets!
+
+### Live Examples
+
+#### Contributor Badge
+[![Contributors](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=contributors&style=flat)](https://contributor.info/bdougie/contributor.info)
+[![Pull Requests](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=pull-requests&style=flat)](https://contributor.info/bdougie/contributor.info)
+[![Merge Rate](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=merge-rate&style=flat)](https://contributor.info/bdougie/contributor.info)
+
+#### Stat Card
+[![Contributor Stats](https://contributor.info/api/widgets/stat-card?owner=bdougie&repo=contributor.info&theme=light&size=medium)](https://contributor.info/bdougie/contributor.info)
+
+### How to Use
+
+1. **Choose a widget type**: Badge or Stat Card
+2. **Customize the parameters**:
+   - `owner`: Repository owner
+   - `repo`: Repository name
+   - `type`: Metric type (contributors, pull-requests, merge-rate, lottery-factor)
+   - `style`: Badge style (flat, flat-square, plastic, social)
+   - `theme`: Card theme (light, dark, auto)
+   - `size`: Card size (small, medium, large)
+
+3. **Embed in your README**:
+```markdown
+[![Contributors](https://contributor.info/api/widgets/badge?owner=YOUR_ORG&repo=YOUR_REPO&type=contributors&style=flat)](https://contributor.info/YOUR_ORG/YOUR_REPO)
+```
+
+Visit [contributor.info/widgets](https://contributor.info/widgets) to generate custom widgets for your repository!
 
 ## 🛠️ For Contributors
 
@@ -98,4 +141,3 @@ npm run test:ui   # Open Vitest UI
 ## License
 
 [MIT License](LICENSE)
-# Trigger deploy for Inngest env var fixes
