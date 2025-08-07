@@ -1,0 +1,84 @@
+/* Core Web Vitals - Cumulative Layout Shift (CLS) Fixes */
+
+/* Reserve minimum heights for dynamic content areas to prevent layout shifts */
+
+/* Repository header area - reserve space for timestamp */
+.repo-header-timestamp {
+  min-height: 1.25rem; /* h-5 equivalent */
+}
+
+/* Status indicators container - prevent shifts when messages appear/disappear */
+.status-indicators-container {
+  min-height: 1rem;
+  transition: min-height 0.2s ease-out;
+}
+
+/* Tab content area - maintain consistent height during loading */
+.tab-content-container {
+  min-height: 400px;
+}
+
+/* Card skeleton loaders - match actual content dimensions */
+.card-skeleton {
+  min-height: 200px;
+}
+
+/* Metrics cards - fixed aspect ratio to prevent shifts */
+.metric-card {
+  aspect-ratio: 16 / 9;
+  min-height: 120px;
+}
+
+/* Chart containers - reserve space before charts load */
+.chart-container {
+  min-height: 300px;
+  position: relative;
+}
+
+/* Loading spinner container - center without shift */
+.loading-container {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Prevent button size changes during loading states */
+.stable-button {
+  min-width: 2rem;
+  min-height: 2rem;
+}
+
+/* Contributor cards - consistent sizing */
+.contributor-card {
+  min-height: 80px;
+}
+
+/* Activity feed items - prevent height changes */
+.activity-item {
+  min-height: 60px;
+}
+
+/* Smooth transitions for height changes */
+.smooth-height {
+  transition: height 0.3s ease-out, min-height 0.3s ease-out;
+}
+
+/* Skeleton pulse animation without layout shift */
+@keyframes skeleton-pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.skeleton-loading {
+  animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  background-color: hsl(var(--muted));
+  border-radius: 0.375rem;
+}
