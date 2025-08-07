@@ -266,7 +266,7 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
   };
 
   render() {
-    const { children, fallbackData, enableGracefulDegradation } = this.props;
+    const { children, fallbackData } = this.props;
     const { hasError, currentError, isRetrying, retryCountdown } = this.state;
 
     // Show partial data if graceful degradation is enabled

@@ -53,8 +53,7 @@ interface EnhancedProgressiveCache {
   };
 }
 
-const enhancedProgressiveCache: EnhancedProgressiveCache = {};
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// Removed unused cache variables
 const MAX_RETRY_ATTEMPTS = 3;
 
 /**
@@ -160,7 +159,9 @@ export function useProgressiveRepoDataWithErrorBoundaries(
             
             // Schedule retry
             const timeoutId = setTimeout(() => {
-              retryStage(stage);
+              if (retryStageRef.current) {
+                retryStageRef.current(stage);
+              }
             }, retryDelay);
 
             retryTimeoutsRef.current[stage] = timeoutId;
@@ -191,59 +192,27 @@ export function useProgressiveRepoDataWithErrorBoundaries(
 
       return false; // Stop progression
     },
-    [data.retryAttempts, enableRetry, enableGracefulDegradation, onError]
+    [enableRetry, enableGracefulDegradation, onError]
   );
 
-  // Retry a specific stage
-  const retryStage = useCallback(async (stage: LoadingStage) => {
-    if (!owner || !repo) return;
-
-    console.log(`Retrying stage: ${stage}`);
-    
-    setData(prev => ({
-      ...prev,
-      isRetrying: stage,
-      stageErrors: {
-        ...prev.stageErrors,
-        [stage]: null,
-      },
-    }));
-
-    try {
-      switch (stage) {
-        case 'critical':
-          await loadCriticalData(owner, repo);
-          break;
-        case 'full':
-          await loadFullData(owner, repo);
-          break;
-        case 'enhancement':
-          await loadEnhancementData(owner, repo);
-          break;
-      }
-      
-      // Mark recovery
-      setData(prev => ({ ...prev, isRetrying: null }));
-      onRecovery?.(stage);
-      
-    } catch (error) {
-      await handleStageError(error, stage);
-    }
-  }, [owner, repo, onRecovery, loadCriticalData, loadFullData, loadEnhancementData, handleStageError]);
+  // Forward declaration - will be populated after data loading functions are defined
+  const retryStageRef = useRef<((stage: LoadingStage) => Promise<void>) | null>(null);
 
   // Manual retry function for external use
   const manualRetry = useCallback((stage?: LoadingStage) => {
+    if (!retryStageRef.current) return;
+    
     if (stage) {
-      retryStage(stage);
+      retryStageRef.current(stage);
     } else {
       // Retry failed stages
       Object.entries(data.stageErrors).forEach(([stageKey, error]) => {
-        if (error && error.retryable) {
-          retryStage(stageKey as LoadingStage);
+        if (error && error.retryable && retryStageRef.current) {
+          retryStageRef.current(stageKey as LoadingStage);
         }
       });
     }
-  }, [data.stageErrors, retryStage]);
+  }, [data.stageErrors]);
 
   // Update stage progress with error handling
   const updateStageWithErrorHandling = useCallback(
@@ -471,6 +440,46 @@ export function useProgressiveRepoDataWithErrorBoundaries(
       Object.values(retryTimeoutsRef.current).forEach(timeout => clearTimeout(timeout));
     };
   }, [owner, repo, timeRange, includeBots, loadCriticalData, loadFullData, loadEnhancementData, enableGracefulDegradation]);
+
+  // Define the actual retry stage function after all data loading functions are available
+  const retryStage = useCallback(async (stage: LoadingStage) => {
+    if (!owner || !repo) return;
+
+    console.log(`Retrying stage: ${stage}`);
+    
+    setData(prev => ({
+      ...prev,
+      isRetrying: stage,
+      stageErrors: {
+        ...prev.stageErrors,
+        [stage]: null,
+      },
+    }));
+
+    try {
+      switch (stage) {
+        case 'critical':
+          await loadCriticalData(owner, repo);
+          break;
+        case 'full':
+          await loadFullData(owner, repo);
+          break;
+        case 'enhancement':
+          await loadEnhancementData(owner, repo);
+          break;
+      }
+      
+      // Mark recovery
+      setData(prev => ({ ...prev, isRetrying: null }));
+      onRecovery?.(stage);
+      
+    } catch (error) {
+      await handleStageError(error, stage);
+    }
+  }, [owner, repo, onRecovery, loadCriticalData, loadFullData, loadEnhancementData, handleStageError]);
+
+  // Set the ref to the actual function
+  retryStageRef.current = retryStage;
 
   return {
     ...data,

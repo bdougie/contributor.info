@@ -18,7 +18,7 @@ interface FallbackProps {
 /**
  * Critical stage fallback - shows basic repo structure
  */
-export function CriticalDataFallback({ message, showPartialData, partialData }: FallbackProps) {
+export function CriticalDataFallback({ message, partialData }: FallbackProps) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -95,7 +95,7 @@ export function CriticalDataFallback({ message, showPartialData, partialData }: 
 /**
  * Full stage fallback - shows detailed loading states
  */
-export function FullDataFallback({ message, showPartialData, partialData }: FallbackProps) {
+export function FullDataFallback({ message, partialData }: FallbackProps) {
   return (
     <div className="space-y-4">
       <Card>

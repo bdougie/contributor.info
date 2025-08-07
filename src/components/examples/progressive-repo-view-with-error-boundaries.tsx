@@ -1,11 +1,10 @@
-import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { useProgressiveRepoDataWithErrorBoundaries } from "@/hooks/use-progressive-repo-data-with-error-boundaries";
 import { DataLoadingErrorBoundary } from "@/components/error-boundaries/data-loading-error-boundary";
-import { CriticalDataFallback, FullDataFallback, EnhancementDataFallback } from "@/components/fallbacks/loading-fallbacks";
+import { FullDataFallback, EnhancementDataFallback } from "@/components/fallbacks/loading-fallbacks";
 import { useErrorTracking } from "@/lib/error-tracking";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { GitPullRequest, Users, Activity, TrendingUp, AlertCircle, RefreshCw } from "lucide-react";
