@@ -69,21 +69,21 @@ function TrendCard({ trend, loading = false }: TrendCardProps) {
     <Card>
       <CardContent className="pt-6">
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <h4 className="text-sm font-medium">{trend.metric}</h4>
-          </div>
+          <h4 className="text-sm font-medium">{trend.metric}</h4>
 
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold">{trend.current}</span>
+          <dl className="flex items-baseline gap-2">
+            <dt className="sr-only">Current {trend.metric}</dt>
+            <dd className="text-2xl font-bold">{trend.current}</dd>
             {trend.unit && (
-              <span className="text-sm text-muted-foreground">
+              <dd className="text-sm text-muted-foreground">
                 {trend.unit}
-              </span>
+              </dd>
             )}
 
             <div className="flex items-center gap-1 ml-2">
               {getTrendIcon(trend.trend, trend.change)}
-              <span
+              <dt className="sr-only">Change from previous period</dt>
+              <dd
                 className={cn(
                   "text-sm font-medium",
                   getTrendColor(trend.change)
@@ -91,9 +91,9 @@ function TrendCard({ trend, loading = false }: TrendCardProps) {
               >
                 {trend.change > 0 ? "+" : ""}
                 {trend.change}%
-              </span>
+              </dd>
             </div>
-          </div>
+          </dl>
 
           {trend.insight && (
             <p className="text-xs text-muted-foreground">{trend.insight}</p>
@@ -324,7 +324,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
         )}
 
         {/* Metrics Section */}
-        <div>
+        <section>
           <h3 className="text-sm font-medium mb-3">Activity Metrics</h3>
           {loading || !metrics ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -354,10 +354,10 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
               </div>
             </div>
           )}
-        </div>
+        </section>
 
         {/* Trends Section */}
-        <div>
+        <section>
           <h3 className="text-sm font-medium mb-3">Trends</h3>
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -379,7 +379,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
               ))}
             </div>
           )}
-        </div>
+        </section>
       </CardContent>
     </Card>
   );
