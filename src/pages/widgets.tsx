@@ -18,28 +18,52 @@ export default function WidgetsPage() {
   );
 
   // Transform data to widget format
-  const widgetData: WidgetData | undefined = stats.data && !stats.loading ? {
-    repository: {
-      owner: owner || 'example',
-      repo: repo || 'repository',
-      description: `${repo} repository analytics`,
-      language: 'TypeScript',
-    },
-    stats: {
-      totalContributors: stats.data.totalContributors || 0,
-      totalPRs: stats.data.totalPRs || 0,
-      mergedPRs: stats.data.mergedPRs || 0,
-      mergeRate: stats.data.totalPRs > 0 ? (stats.data.mergedPRs / stats.data.totalPRs) * 100 : 0,
-      lotteryFactor: lotteryFactor.data?.score,
-      lotteryRating: lotteryFactor.data?.rating,
-    },
-    activity: {
-      weeklyPRVolume: Math.floor((stats.data.totalPRs || 0) / 4),
-      activeContributors: Math.floor((stats.data.totalContributors || 0) * 0.3),
-      recentActivity: (stats.data.totalPRs || 0) > 0,
-    },
-    topContributors: stats.data.topContributors?.slice(0, 5) || [],
-  } : undefined;
+  const widgetData: WidgetData | undefined = stats.pullRequests && !stats.loading ? (() => {
+    const totalPRs = stats.pullRequests.length;
+    const mergedPRs = stats.pullRequests.filter(pr => pr.merged_at).length;
+    const uniqueContributors = new Set(stats.pullRequests.map(pr => pr.user.login)).size;
+    
+    // Get top contributors
+    const contributorCounts = stats.pullRequests.reduce((acc, pr) => {
+      acc[pr.user.login] = (acc[pr.user.login] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const topContributors = Object.entries(contributorCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([login, count]) => {
+        const pr = stats.pullRequests.find(p => p.user.login === login);
+        return {
+          login,
+          avatar_url: pr?.user.avatar_url || '',
+          contributions: count,
+        };
+      });
+
+    return {
+      repository: {
+        owner: owner || 'example',
+        repo: repo || 'repository',
+        description: `${repo} repository analytics`,
+        language: 'TypeScript',
+      },
+      stats: {
+        totalContributors: uniqueContributors,
+        totalPRs: totalPRs,
+        mergedPRs: mergedPRs,
+        mergeRate: totalPRs > 0 ? (mergedPRs / totalPRs) * 100 : 0,
+        lotteryFactor: lotteryFactor?.topContributorsPercentage,
+        lotteryRating: lotteryFactor?.riskLevel,
+      },
+      activity: {
+        weeklyPRVolume: Math.floor(totalPRs / 4),
+        activeContributors: Math.floor(uniqueContributors * 0.3),
+        recentActivity: totalPRs > 0,
+      },
+      topContributors: topContributors,
+    };
+  })() : undefined;
 
   return (
     <div className="container mx-auto px-4 py-8">

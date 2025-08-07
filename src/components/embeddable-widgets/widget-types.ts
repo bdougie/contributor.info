@@ -22,6 +22,7 @@ export interface BadgeConfig extends WidgetConfig {
   label?: string;
   message?: string;
   color?: string;
+  metrics?: ('contributors' | 'pull-requests' | 'lottery-factor' | 'merge-rate' | 'activity')[];
 }
 
 export interface ChartConfig extends WidgetConfig {

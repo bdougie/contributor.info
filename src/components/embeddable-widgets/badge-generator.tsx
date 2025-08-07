@@ -14,12 +14,14 @@ const BADGE_STYLES = {
     leftClass: "rounded-l",
     rightClass: "rounded-r",
     height: 20,
+    shadow: false,
   },
   "flat-square": {
     containerClass: "rounded-none",
     leftClass: "rounded-none",
     rightClass: "rounded-none", 
     height: 20,
+    shadow: false,
   },
   plastic: {
     containerClass: "rounded",
@@ -33,6 +35,7 @@ const BADGE_STYLES = {
     leftClass: "rounded-l-md",
     rightClass: "rounded-r-md",
     height: 22,
+    shadow: false,
   },
 };
 
