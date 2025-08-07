@@ -1,0 +1,52 @@
+name: Claude Code Security Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  security-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Claude Code Security Review
+        uses: anthropics/claude-code-security-review@v1
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          model: claude-3-5-sonnet-20241022
+          temperature: 0.2
+          max-comment-length: 3000
+          review-strategy: comprehensive
+          include-patterns: |
+            **/*.ts
+            **/*.tsx
+            **/*.js
+            **/*.jsx
+            **/*.mjs
+            **/*.cjs
+            **/package.json
+            **/package-lock.json
+            **/.github/workflows/*.yml
+            **/netlify/functions/**/*
+            **/supabase/migrations/*.sql
+          exclude-patterns: |
+            **/*.test.ts
+            **/*.test.tsx
+            **/*.spec.ts
+            **/*.spec.tsx
+            **/*.stories.tsx
+            **/node_modules/**
+            **/dist/**
+            **/build/**
+            **/.next/**
+            **/coverage/**
+            **/storybook-static/**
