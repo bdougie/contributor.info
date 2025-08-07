@@ -94,8 +94,7 @@ jobs:
   lighthouse-audit:
     runs-on: ubuntu-latest
     name: Lighthouse Performance Audit
-    needs: [bundle-size-check]
-    if: always() && (github.event_name != 'pull_request' || needs.bundle-size-check.result == 'success')
+    if: github.event_name != 'pull_request' || github.event_name == 'pull_request'
     
     steps:
       - name: Checkout code
@@ -278,7 +277,7 @@ jobs:
   comment-results:
     runs-on: ubuntu-latest
     name: Comment PR Results
-    needs: [lighthouse-audit, performance-budget]
+    needs: [bundle-size-check, lighthouse-audit, performance-budget]
     if: github.event_name == 'pull_request' && !cancelled()
     
     steps:
