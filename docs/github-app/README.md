@@ -15,6 +15,7 @@ GitHub App documentation helps developers:
 ### 🔧 Setup & Configuration
 - **[CODEOWNERS Setup](./codeowners-setup.md)** - Code ownership and review assignment configuration
 - **[Issue Context Command](./issue-context-command.md)** - Automated issue context generation
+- **[Webhook Similarity Comments](./webhook-similarity-comments.md)** - Automated similarity detection for PRs and issues
 
 ## GitHub App Integration Overview
 
