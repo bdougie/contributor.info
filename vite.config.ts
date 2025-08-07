@@ -95,136 +95,40 @@ export default defineConfig({
         assetFileNames: 'assets/[name]-[hash].[ext]',
         // Ensure modules are properly hoisted
         hoistTransitiveImports: false,
-        // Aggressive chunk splitting for optimal Core Web Vitals
-        manualChunks: (id) => {
-          // Core vendor chunks
-          if (id.includes('node_modules')) {
-            // React MUST be in its own chunk and load first
-            // This includes react, react-dom, and scheduler
-            if (id.includes('react-dom') || id.includes('scheduler')) {
-              return 'react-core';
-            }
-            if (id.includes('react') && !id.includes('react-')) {
-              return 'react-core';
-            }
-            
-            // React router - critical path  
-            if (id.includes('react-router')) {
-              return 'react-router';
-            }
-            
-            // All Radix UI components - split by component type
-            if (id.includes('@radix-ui')) {
-              if (id.includes('dialog') || id.includes('popover') || id.includes('tooltip')) {
-                return 'ui-overlays';
-              }
-              if (id.includes('dropdown') || id.includes('select') || id.includes('menu')) {
-                return 'ui-menus';
-              }
-              if (id.includes('form') || id.includes('checkbox') || id.includes('radio') || id.includes('input')) {
-                return 'ui-forms';
-              }
-              return 'ui-radix-misc';
-            }
-            
-            // Don't split chart libraries - they cause too many issues
-            // Just let them fall through to vendor-misc naturally
-            
-            // Markdown and code highlighting
-            if (id.includes('react-markdown') || id.includes('remark') || id.includes('rehype')) {
-              return 'markdown';
-            }
-            if (id.includes('highlight.js') || id.includes('prism')) {
-              return 'syntax-highlighting';
-            }
-            
-            // Icons
-            if (id.includes('lucide-react') || id.includes('@radix-ui/react-icons')) {
-              return 'icons';
-            }
-            
-            // Data and API
-            if (id.includes('@supabase')) {
-              return 'supabase';
-            }
-            if (id.includes('@octokit') || id.includes('github')) {
-              return 'github-api';
-            }
-            if (id.includes('zustand')) {
-              return 'state-management';
-            }
-            
-            // Form handling
-            if (id.includes('react-hook-form') || id.includes('@hookform')) {
-              return 'forms';
-            }
-            
-            // Date utilities
-            if (id.includes('date-fns') || id.includes('dayjs')) {
-              return 'date-utils';
-            }
-            
-            // Validation
-            if (id.includes('zod') || id.includes('yup')) {
-              return 'validation';
-            }
-            
-            // CSS-in-JS and styling
-            if (id.includes('class-variance-authority') || id.includes('clsx') || id.includes('tailwind-merge')) {
-              return 'styling-utils';
-            }
-            
-            // Web vitals and monitoring
-            if (id.includes('web-vitals')) {
-              return 'monitoring';
-            }
-            
-            // PWA and service worker
-            if (id.includes('workbox') || id.includes('service-worker')) {
-              return 'pwa';
-            }
-            
-            // Animation libraries - bundle with React ecosystem to avoid loading issues
-            if (id.includes('framer-motion') || id.includes('@react-spring')) {
-              return 'vendor-react-ecosystem';
-            }
-            
-            // Testing libraries (shouldn't be in production but just in case)
-            if (id.includes('vitest') || id.includes('@testing-library') || id.includes('jest')) {
-              return 'testing';
-            }
-            
-            // MDX
-            if (id.includes('@mdx-js')) {
-              return 'mdx';
-            }
-            
-            // Netlify functions
-            if (id.includes('@netlify')) {
-              return 'netlify';
-            }
-            
-            // Misc utilities
-            if (id.includes('lodash') || id.includes('ramda')) {
-              return 'utils-functional';
-            }
-            
-            // Group remaining packages by common patterns to avoid too many chunks
-            // while preventing module loading order issues
-            
-            // Common utility libraries
-            if (id.includes('axios') || id.includes('ky') || id.includes('got')) {
-              return 'vendor-http';
-            }
-            
-            // Smaller React ecosystem packages
-            if (id.includes('react-') || id.includes('use-')) {
-              return 'vendor-react-ecosystem';
-            }
-            
-            // Everything else in a misc chunk
-            return 'vendor-misc';
-          }
+        // Balanced chunking strategy from production postmortem (2025-06-22)
+        // This approach maintains reliability while optimizing performance
+        manualChunks: {
+          // Critical React core - bundle together to prevent initialization issues
+          'react-core': ['react', 'react-dom', '@radix-ui/react-slot'],
+          
+          // React ecosystem - can load after core is initialized  
+          'react-ecosystem': ['react-router-dom', 'class-variance-authority', 'clsx', 'tailwind-merge'],
+          
+          // Heavy chart libraries - lazy loaded, separate for better caching
+          'charts-nivo': ['@nivo/scatterplot'],
+          'charts-recharts': ['recharts'],
+          
+          // UI component library - used throughout app (group all Radix UI)
+          'ui-radix': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-tooltip',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-select',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-switch',
+            '@radix-ui/react-tabs'
+          ],
+          
+          // Icons - separate for optimal tree-shaking
+          'icons': ['lucide-react'],
+          
+          // Utilities - frequently used, good for caching
+          'utils': ['date-fns', 'zod'],
+          
+          // State management and data
+          'data': ['zustand', '@supabase/supabase-js']
         },
       },
     },
