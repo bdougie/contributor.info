@@ -248,7 +248,7 @@ export default function OrgView() {
                 priority={true}
               />
             ) : (
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md flex items-center justify-center text-white font-bold text-lg">
                 {org?.charAt(0)?.toUpperCase() || '?'}
               </div>
             )}

@@ -76,10 +76,10 @@ main, .main-content {
   min-height: 120px;
 }
 
-/* Organization avatar container */
+/* Organization avatar container - match the actual avatar size */
 .org-avatar-container {
-  width: 80px;
-  height: 80px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
 }
 
