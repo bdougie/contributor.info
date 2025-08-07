@@ -256,4 +256,14 @@
     outline: 2px solid hsl(0 0% 60%) !important;
     outline-offset: 2px !important;
   }
+  
+  /* Hide scrollbars for better mobile UX */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
 }
