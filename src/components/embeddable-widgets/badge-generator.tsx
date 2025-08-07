@@ -86,7 +86,7 @@ function escapeXml(text: any): string {
 
 function sanitizeColor(color: string): string {
   const hexPattern = /^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
-  const rgbPattern = /^rgba?\(\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*(?:,\s*(?:0?\.[0-9]+|1(?:\.0+)?|0))?\)$/;
+  const rgbPattern = /^rgba?\(\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*(?:,\s*(?:0?\.?[0-9]+|1(?:\.0+)?|0))?\)$/;
   const namedColors = ['red', 'green', 'blue', 'yellow', 'orange', 'purple', 'gray', 'black', 'white'];
   
   if (hexPattern.test(color) || rgbPattern.test(color) || namedColors.includes(color.toLowerCase())) {
@@ -181,57 +181,30 @@ export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps)
     );
   }
 
-  // Return HTML badge for preview/embedding
+  // Generate HTML badge with styles
+  const badgeUrl = `${window.location.origin}/api/widget/badge?` + new URLSearchParams({
+    owner: data.repository.owner,
+    repo: data.repository.name,
+    type: config.metrics?.[0] || 'contributors',
+    style: config.style || 'flat',
+    label: config.label || '',
+    color: config.color || '',
+  }).toString();
+
+  const embedCode = config.format === 'markdown' 
+    ? `![${data.repository.name} badge](${badgeUrl})`
+    : `<img src="${badgeUrl}" alt="${data.repository.name} badge" />`;
+
   return (
-    <div className={cn("embeddable-widget badge-html inline-flex", className)}>
-      <div className={cn(
-        "flex items-center h-5 text-xs font-medium",
-        styleConfig.containerClass,
-        styleConfig.shadow && "shadow-sm"
-      )}>
-        <span className={cn(
-          "px-2 bg-gray-500 text-white",
-          styleConfig.leftClass
-        )}>
-          {label}
-        </span>
-        <span 
-          className={cn(
-            "px-2 text-white font-semibold",
-            styleConfig.rightClass
-          )}
-          style={{ backgroundColor: color }}
-        >
-          {message}
-        </span>
+    <div className={cn("badge-generator", className)}>
+      <div className="badge-preview mb-4">
+        <img src={badgeUrl} alt="Badge preview" />
+      </div>
+      
+      <div className="embed-code p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+        <p className="text-sm font-medium mb-2">Embed Code:</p>
+        <code className="text-xs break-all">{embedCode}</code>
       </div>
     </div>
   );
-}
-
-// Utility function to generate badge URLs for direct embedding
-export function generateBadgeURL(
-  owner: string, 
-  repo: string, 
-  type: keyof typeof BADGE_PRESETS = 'contributors',
-  style: keyof typeof BADGE_STYLES = 'flat'
-): string {
-  const baseURL = typeof window !== 'undefined' 
-    ? window.location.origin 
-    : 'https://contributor.info';
-  
-  return `${baseURL}/api/widgets/badge?owner=${owner}&repo=${repo}&type=${type}&style=${style}`;
-}
-
-// Generate markdown for README embedding
-export function generateBadgeMarkdown(
-  owner: string,
-  repo: string, 
-  type: keyof typeof BADGE_PRESETS = 'contributors',
-  style: keyof typeof BADGE_STYLES = 'flat'
-): string {
-  const badgeURL = generateBadgeURL(owner, repo, type, style);
-  const repoURL = `https://contributor.info/${owner}/${repo}`;
-  
-  return `[![${type}](${badgeURL})](${repoURL})`;
 }
