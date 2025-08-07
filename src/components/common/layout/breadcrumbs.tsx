@@ -26,7 +26,7 @@ const breadcrumbNameMap: { [key: string]: string } = {
 export const Breadcrumbs = () => {
   const location = useLocation();
   const params = useParams();
-  const { owner, repo } = params;
+  const { owner, repo, org } = params;
   const isMobile = useIsMobile();
   const pathnames = location.pathname.split('/').filter((x) => x);
 
@@ -35,6 +35,9 @@ export const Breadcrumbs = () => {
     const isLast = index === pathnames.length - 1;
     let name = breadcrumbNameMap[value] || value;
 
+    // Handle organization page
+    if (index === 0 && org) name = org;
+    // Handle repository pages
     if (index === 0 && owner) name = owner;
     if (index === 1 && repo) name = repo;
 
@@ -74,6 +77,9 @@ export const Breadcrumbs = () => {
     if (!isMobile || allBreadcrumbs.length <= 1) return null;
     
     const parentCrumb = allBreadcrumbs[allBreadcrumbs.length - 2];
+    // Only truncate if the name is actually long (> 20 chars)
+    const shouldTruncate = parentCrumb.name.length > 20;
+    
     return (
       <Link
         to={parentCrumb.to}
@@ -81,7 +87,7 @@ export const Breadcrumbs = () => {
         aria-label={`Go back to ${parentCrumb.name}`}
       >
         <ChevronLeftIcon className="h-4 w-4" />
-        <span className="truncate">{parentCrumb.name}</span>
+        <span className={cn(shouldTruncate && "truncate max-w-[200px]")}>{parentCrumb.name}</span>
       </Link>
     );
   };
