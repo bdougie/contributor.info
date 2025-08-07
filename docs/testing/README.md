@@ -25,6 +25,7 @@ Testing documentation helps developers:
 - **[E2E Minimal Testing Philosophy](./e2e-minimal-testing-philosophy.md)** - Pragmatic end-to-end testing approach
 - **[Test Simplification Strategy](./TEST_SIMPLIFICATION_STRATEGY.md)** - Simplifying test complexity
 - **[Bulletproof Testing Guidelines](./BULLETPROOF_TESTING_GUIDELINES.md)** - Guidelines for reliable tests
+- **[Progressive Loading Test Refactor](./progressive-loading-test-refactor.md)** - Case study: fixing timeout issues in async hook tests
 
 ### 📊 Performance & Monitoring
 - **[Performance Monitoring](./performance-monitoring.md)** - Performance testing and monitoring strategies
@@ -50,6 +51,11 @@ Tests with mock dependency issues that will be migrated to local Supabase (Issue
 - Data fetching hooks (5 files)
 - Integration tests (8 files)
 - Framework tests (1 file)
+
+**Update**: Progressive loading tests have been refactored and re-enabled as simplified versions:
+- ✅ `use-progressive-repo-data-basic.test.ts` - Basic functionality tests
+- ✅ `use-intersection-loader-basic.test.ts` - Core intersection observer tests
+- See [Progressive Loading Test Refactor](./progressive-loading-test-refactor.md) for details
 
 See [Test Isolation Solution](../test-isolation-solution.md) for the complete list.
 
