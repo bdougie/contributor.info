@@ -95,8 +95,8 @@ export const handler: Handler = async (event) => {
           handlePROpenedDirect(payload).catch(error => {
             console.error('Error handling PR opened event:', error);
           });
-        } else if (payload.action === 'labeled' || payload.action === 'unlabeled') {
-          // Handle labeled events for PRs
+        } else if (payload.action === 'labeled') {
+          // Handle labeled events for PRs (only 'labeled', not 'unlabeled')
           handleLabeledEvent(payload).catch(error => {
             console.error('Error handling PR labeled event:', error);
           });
@@ -115,8 +115,8 @@ export const handler: Handler = async (event) => {
           handleIssueOpenedDirect(payload).catch(error => {
             console.error('Error handling issue opened event:', error);
           });
-        } else if (payload.action === 'labeled' || payload.action === 'unlabeled') {
-          // Handle labeled events for issues
+        } else if (payload.action === 'labeled') {
+          // Handle labeled events for issues (only 'labeled', not 'unlabeled')
           handleLabeledEvent(payload).catch(error => {
             console.error('Error handling issue labeled event:', error);
           });
