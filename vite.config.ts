@@ -121,7 +121,8 @@ export default defineConfig({
             if (id.includes('@nivo')) {
               return 'charts-nivo';
             }
-            if (id.includes('recharts')) {
+            // Include react-smooth with recharts since it's a dependency
+            if (id.includes('recharts') || id.includes('react-smooth')) {
               return 'charts-recharts';
             }
             if (id.includes('d3-') || id.includes('d3/')) {
@@ -207,19 +208,21 @@ export default defineConfig({
               return 'utils-functional';
             }
             
-            // Split remaining vendor by size
-            // This prevents a single large vendor chunk
-            const segments = id.split('/');
-            const packageName = segments[segments.indexOf('node_modules') + 1];
+            // Group remaining packages by common patterns to avoid too many chunks
+            // while preventing module loading order issues
             
-            // Group smaller packages together, split large ones
-            if (packageName.startsWith('@')) {
-              // Scoped packages - use the scope as chunk name
-              return `vendor-${packageName.substring(1)}`;
+            // Common utility libraries
+            if (id.includes('axios') || id.includes('ky') || id.includes('got')) {
+              return 'vendor-http';
             }
             
-            // Individual packages
-            return `vendor-${packageName}`;
+            // Smaller React ecosystem packages
+            if (id.includes('react-') || id.includes('use-')) {
+              return 'vendor-react-ecosystem';
+            }
+            
+            // Everything else in a misc chunk
+            return 'vendor-misc';
           }
         },
       },
