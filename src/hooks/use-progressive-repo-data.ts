@@ -1,336 +1,337 @@
-import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-commits';
+import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart';
 import { calculateLotteryFactor } from '@/lib/utils';
 import type { RepoStats, LotteryFactor, DirectCommitsData, TimeRange } from '@/lib/types';
-import { startSpan } from '@/lib/simple-logging';
-import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-commits';
+import { setApplicationContext, startSpan } from '@/lib/simple-logging';
 
-interface HistoricalTrendsData {
-  // TODO: Define historical trends structure when implemented
-  placeholder?: boolean;
+// Loading stages for progressive data loading
+export type LoadingStage = 'initial' | 'critical' | 'full' | 'enhancement' | 'complete';
+
+export interface ProgressiveDataState {
+  // Critical data (loaded first)
+  basicInfo: {
+    prCount: number;
+    contributorCount: number;
+    topContributors: Array<{ login: string; avatar_url: string; contributions: number }>;
+  } | null;
+  
+  // Full data (loaded second)
+  stats: RepoStats;
+  lotteryFactor: LotteryFactor | null;
+  
+  // Enhancement data (loaded last)
+  directCommitsData: DirectCommitsData | null;
+  historicalTrends: any | null;
+  
+  // Loading state
+  currentStage: LoadingStage;
+  stageProgress: Record<LoadingStage, boolean>;
+  dataStatus: {
+    status: 'success' | 'pending' | 'no_data' | 'partial_data' | 'large_repository_protected';
+    message?: string;
+    metadata?: Record<string, any>;
+  };
 }
 
-export interface ProgressiveRepoData {
-  // Stage 1: Critical data (loaded immediately)
-  critical: {
-    basicInfo: {
-      prCount: number;
-      contributorCount: number;
-      topContributors: Array<{
-        id: number;
-        username: string;
-        avatar_url: string;
-        contributions: number;
-      }>;
-    } | null;
-    loading: boolean;
-    error: string | null;
-  };
-  
-  // Stage 2: Full data (loaded after critical)
-  full: {
-    stats: RepoStats | null;
-    lotteryFactor: LotteryFactor | null;
-    loading: boolean;
-    error: string | null;
-  };
-  
-  // Stage 3: Enhancement data (loaded in background)
-  enhancement: {
-    directCommits: DirectCommitsData | null;
-    historicalTrends: HistoricalTrendsData | null;
-    loading: boolean;
-    error: string | null;
+// Cache for progressive data
+interface ProgressiveCache {
+  [key: string]: {
+    data: ProgressiveDataState;
+    timestamp: number;
   };
 }
+
+const progressiveCache: ProgressiveCache = {};
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Progressive data loading hook that loads repository data in stages
- * to optimize perceived performance and time to interactive
+ * Hook for progressive loading of repository data
+ * Loads data in stages to improve perceived performance
  */
 export function useProgressiveRepoData(
   owner: string | undefined,
   repo: string | undefined,
   timeRange: TimeRange,
-  _includeBots: boolean
-): ProgressiveRepoData {
-  // Stage 1: Critical data
-  const [critical, setCritical] = useState<ProgressiveRepoData['critical']>({
+  includeBots: boolean
+) {
+  const [data, setData] = useState<ProgressiveDataState>({
     basicInfo: null,
-    loading: true,
-    error: null,
-  });
-  
-  // Stage 2: Full data
-  const [full, setFull] = useState<ProgressiveRepoData['full']>({
-    stats: null,
+    stats: {
+      pullRequests: [],
+      loading: true,
+      error: null,
+    },
     lotteryFactor: null,
-    loading: false,
-    error: null,
-  });
-  
-  // Stage 3: Enhancement data
-  const [enhancement, setEnhancement] = useState<ProgressiveRepoData['enhancement']>({
-    directCommits: null,
+    directCommitsData: null,
     historicalTrends: null,
-    loading: false,
-    error: null,
+    currentStage: 'initial',
+    stageProgress: {
+      initial: false,
+      critical: false,
+      full: false,
+      enhancement: false,
+      complete: false,
+    },
+    dataStatus: { status: 'pending' },
   });
-  
-  const loadingRef = useRef({
-    critical: false,
-    full: false,
-    enhancement: false,
-  });
 
-  // Stage 1: Load critical data immediately
-  useEffect(() => {
-    // Validate inputs
-    if (!owner || !repo || typeof owner !== 'string' || typeof repo !== 'string') return;
-    if (loadingRef.current.critical) return;
+  const fetchingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-    async function loadCriticalData() {
-      loadingRef.current.critical = true;
-      setCritical(prev => ({ ...prev, loading: true, error: null }));
+  // Update stage progress
+  const updateStage = useCallback((stage: LoadingStage, updates: Partial<ProgressiveDataState>) => {
+    setData(prev => ({
+      ...prev,
+      ...updates,
+      currentStage: stage,
+      stageProgress: {
+        ...prev.stageProgress,
+        [stage]: true,
+      },
+    }));
+  }, []);
 
-      try {
-        const result = await startSpan(
-          {
-            name: 'fetch-critical-repo-data',
-            op: 'data.fetch.critical',
-            attributes: {
-              'repository.owner': owner || '',
-              'repository.name': repo || '',
-            }
-          },
-          async () => {
-            // Get basic repository stats with minimal data
-            const { data: repoData, error: repoError } = await supabase
-              .from('repositories')
-              .select('id')
-              .eq('owner', owner)
-              .eq('name', repo)
-              .single();
-
-            if (repoError || !repoData) {
-              throw new Error('Unable to load repository information. Please check the repository name and try again.');
-            }
-
-            // Get PR count and top contributors in parallel
-            const [prCountResult, topContributorsResult] = await Promise.all([
-              // Get PR count
-              supabase
-                .from('pull_requests')
-                .select('id', { count: 'exact', head: false })
-                .eq('repository_id', repoData.id)
-                .gte('created_at', new Date(Date.now() - parseInt(timeRange) * 24 * 60 * 60 * 1000).toISOString()),
-              
-              // Get top 5 contributors
-              supabase
-                .from('pull_requests')
-                .select(`
-                  author_id,
-                  contributors!author_id (
-                    id,
-                    username,
-                    avatar_url
-                  )
-                `)
-                .eq('repository_id', repoData.id)
-                .gte('created_at', new Date(Date.now() - parseInt(timeRange) * 24 * 60 * 60 * 1000).toISOString())
-                .not('author_id', 'is', null)
-            ]);
-
-            // Process top contributors
-            const contributorCounts = new Map<string, { contributor: any; count: number }>();
-            
-            if (topContributorsResult.data) {
-              topContributorsResult.data.forEach(pr => {
-                if (pr.contributors) {
-                  const key = (pr.contributors as any).username;
-                  if (!contributorCounts.has(key)) {
-                    contributorCounts.set(key, { contributor: pr.contributors, count: 0 });
-                  }
-                  contributorCounts.get(key)!.count++;
-                }
-              });
-            }
-
-            const topContributors = Array.from(contributorCounts.values())
-              .sort((a, b) => b.count - a.count)
-              .slice(0, 5)
-              .map(({ contributor, count }) => ({
-                ...contributor,
-                contributions: count
-              }));
-
-            return {
-              prCount: prCountResult.count || 0,
-              contributorCount: contributorCounts.size,
-              topContributors
-            };
+  // Stage 1: Load critical data (< 500ms target)
+  const loadCriticalData = useCallback(async (owner: string, repo: string) => {
+    return startSpan(
+      { name: 'progressive-load-critical' },
+      async (span) => {
+        try {
+          // Check cache first
+          const cacheKey = `${owner}/${repo}/${timeRange}/${includeBots}`;
+          const cached = progressiveCache[cacheKey];
+          
+          if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+            updateStage('critical', cached.data);
+            return cached.data.basicInfo;
           }
-        );
 
-        setCritical({
-          basicInfo: result,
-          loading: false,
-          error: null,
-        });
-      } catch (error) {
-        setCritical({
-          basicInfo: null,
-          loading: false,
-          error: error instanceof Error ? error.message : 'Unable to load repository metrics. Please try again later.',
-        });
-      } finally {
-        loadingRef.current.critical = false;
-      }
-    }
-
-    loadCriticalData();
-  }, [owner, repo, timeRange]);
-
-  // Stage 2: Load full data after critical data is loaded
-  useEffect(() => {
-    if (!owner || !repo || !critical.basicInfo || loadingRef.current.full) return;
-
-    async function loadFullData() {
-      loadingRef.current.full = true;
-      setFull(prev => ({ ...prev, loading: true, error: null }));
-
-      try {
-        const result = await startSpan(
-          {
-            name: 'fetch-full-repo-data',
-            op: 'data.fetch.full',
-            attributes: {
-              'repository.owner': owner || '',
-              'repository.name': repo || '',
-              'data.time_range': timeRange,
-            }
-          },
-          async () => {
-            // Import the existing fetch function to reuse logic
-            const { fetchPRDataSmart } = await import('@/lib/supabase-pr-data-smart');
-            
-            const prDataResult = await fetchPRDataSmart(owner!, repo!, { 
-              timeRange, 
-              showNotifications: false 
-            });
-            
-            const stats: RepoStats = {
-              pullRequests: prDataResult.data || [],
-              loading: false,
-              error: prDataResult.status === 'success' ? null : prDataResult.message || null,
-            };
-            
-            const lotteryFactor = stats.pullRequests.length > 0 
-              ? calculateLotteryFactor(stats.pullRequests)
-              : null;
-            
-            return { stats, lotteryFactor };
-          }
-        );
-
-        setFull({
-          stats: result.stats,
-          lotteryFactor: result.lotteryFactor,
-          loading: false,
-          error: null,
-        });
-      } catch (error) {
-        setFull({
-          stats: null,
-          lotteryFactor: null,
-          loading: false,
-          error: error instanceof Error ? error.message : 'Unable to load detailed repository data. Basic information is still available.',
-        });
-      } finally {
-        loadingRef.current.full = false;
-      }
-    }
-
-    loadFullData();
-  }, [owner, repo, timeRange, critical.basicInfo]);
-
-  // Stage 3: Load enhancement data in background
-  useEffect(() => {
-    if (!owner || !repo || !full.stats || loadingRef.current.enhancement) return;
-
-    function loadEnhancementData() {
-      loadingRef.current.enhancement = true;
-      setEnhancement(prev => ({ ...prev, loading: true, error: null }));
-
-      // Use requestIdleCallback for background loading
-      let idleCallbackId: number | undefined;
-      let timeoutId: NodeJS.Timeout | undefined;
-      
-      if (window.requestIdleCallback) {
-        idleCallbackId = window.requestIdleCallback(async () => {
-          try {
-            const directCommits = await fetchDirectCommitsWithDatabaseFallback(
-              owner!, 
-              repo!, 
+          // Fetch minimal data for above-the-fold content
+          const result = await fetchPRDataSmart(
+            owner,
+            repo,
+            {
               timeRange
-            );
-            
-            setEnhancement({
-              directCommits,
-              historicalTrends: null, // TODO: Implement historical trends
-              loading: false,
-              error: null,
-            });
-          } catch (error) {
-            setEnhancement(prev => ({
-              ...prev,
-              loading: false,
-              error: error instanceof Error ? error.message : 'Unable to load additional analytics. Core features remain available.',
-            }));
-          } finally {
-            loadingRef.current.enhancement = false;
-          }
-        });
-      } else {
-        // Fallback for browsers without requestIdleCallback
-        timeoutId = setTimeout(async () => {
-          try {
-            const directCommits = await fetchDirectCommitsWithDatabaseFallback(
-              owner!, 
-              repo!, 
-              timeRange
-            );
-            
-            setEnhancement({
-              directCommits,
-              historicalTrends: null,
-              loading: false,
-              error: null,
-            });
-          } catch (error) {
-            setEnhancement(prev => ({
-              ...prev,
-              loading: false,
-              error: error instanceof Error ? error.message : 'Unable to load additional analytics. Core features remain available.',
-            }));
-          } finally {
-            loadingRef.current.enhancement = false;
-          }
-        }, 100);
-      }
+            }
+          );
 
-      return () => {
-        if (idleCallbackId !== undefined && window.cancelIdleCallback) {
-          window.cancelIdleCallback(idleCallbackId);
+          if (!result.data) {
+            throw new Error(result.message || 'Failed to fetch data');
+          }
+          
+          const pullRequests = result.data;
+
+          const contributors = new Map<string, { login: string; avatar_url: string; contributions: number }>();
+          
+          pullRequests?.forEach(pr => {
+            const author = pr.user?.login;
+            if (author) {
+              const existing = contributors.get(author) || {
+                login: author,
+                avatar_url: pr.user.avatar_url || '',
+                contributions: 0,
+              };
+              existing.contributions++;
+              contributors.set(author, existing);
+            }
+          });
+
+          const topContributors = Array.from(contributors.values())
+            .sort((a, b) => b.contributions - a.contributions)
+            .slice(0, 5);
+
+          const basicInfo = {
+            prCount: pullRequests?.length || 0,
+            contributorCount: contributors.size,
+            topContributors,
+          };
+
+          updateStage('critical', { basicInfo });
+          
+          return basicInfo;
+        } catch (error) {
+          span?.setStatus('error');
+          console.error('Failed to load critical data:', error);
+          return null;
         }
-        if (timeoutId !== undefined) {
-          clearTimeout(timeoutId);
+      }
+    );
+  }, [timeRange, includeBots, updateStage]);
+
+  // Stage 2: Load full PR data (< 2s target)
+  const loadFullData = useCallback(async (owner: string, repo: string) => {
+    return startSpan(
+      { name: 'progressive-load-full' },
+      async (span) => {
+        try {
+          // Fetch complete PR data
+          const result = await fetchPRDataSmart(
+            owner,
+            repo,
+            {
+              timeRange
+            }
+          );
+
+          if (!result.data) {
+            updateStage('full', {
+              stats: {
+                pullRequests: [],
+                loading: false,
+                error: result.message || 'Failed to fetch data',
+              },
+              dataStatus: { status: 'no_data', message: result.message },
+            });
+            span?.setStatus('error');
+            return;
+          }
+          
+          const pullRequests = result.data;
+          const { status, message } = result;
+
+          const stats: RepoStats = {
+            pullRequests: pullRequests || [],
+            loading: false,
+            error: null,
+          };
+
+          // Calculate lottery factor if we have data
+          const lotteryFactor = pullRequests && pullRequests.length > 0
+            ? calculateLotteryFactor(pullRequests)
+            : null;
+
+          updateStage('full', {
+            stats,
+            lotteryFactor,
+            dataStatus: { 
+              status: (status === 'error' ? 'no_data' : status) || 'success', 
+              message,
+              metadata: { prCount: pullRequests?.length || 0 }
+            },
+          });
+          
+          // Cache the results
+          const cacheKey = `${owner}/${repo}/${timeRange}/${includeBots}`;
+          progressiveCache[cacheKey] = {
+            data: { ...data, stats, lotteryFactor },
+            timestamp: Date.now(),
+          };
+          
+          return { stats, lotteryFactor };
+        } catch (error) {
+          span?.setStatus('error');
+          console.error('Failed to load full data:', error);
+          return null;
         }
-      };
+      }
+    );
+  }, [timeRange, includeBots, data, updateStage]);
+
+  // Stage 3: Load enhancement data (background)
+  const loadEnhancementData = useCallback(async (owner: string, repo: string) => {
+    return startSpan(
+      { name: 'progressive-load-enhancement' },
+      async (span) => {
+        try {
+          // Load direct commits data
+          const directCommitsData = await fetchDirectCommitsWithDatabaseFallback(
+            owner,
+            repo,
+            timeRange
+          );
+
+          // In the future, load historical trends here
+          const historicalTrends = null;
+
+          updateStage('enhancement', {
+            directCommitsData,
+            historicalTrends,
+          });
+          
+          // Mark as complete
+          updateStage('complete', {});
+          
+          return { directCommitsData, historicalTrends };
+        } catch (error) {
+          span?.setStatus('error');
+          console.error('Failed to load enhancement data:', error);
+          return null;
+        }
+      }
+    );
+  }, [timeRange, includeBots, updateStage]);
+
+  // Main effect to orchestrate progressive loading
+  useEffect(() => {
+    if (!owner || !repo || fetchingRef.current) return;
+
+    // Cancel previous request if still pending
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
 
-    return loadEnhancementData();
-  }, [owner, repo, timeRange, full.stats]);
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    fetchingRef.current = true;
 
-  return { critical, full, enhancement };
+    const loadProgressively = async () => {
+      try {
+        // Set application context
+        setApplicationContext({
+          route: `/${owner}/${repo}`,
+          repository: `${owner}/${repo}`,
+          timeRange: timeRange,
+          dataSource: 'progressive',
+        });
+
+        // Stage 1: Critical data (immediate)
+        await loadCriticalData(owner, repo);
+
+        if (abortController.signal.aborted) return;
+
+        // Stage 2: Full data (after critical)
+        await loadFullData(owner, repo);
+
+        if (abortController.signal.aborted) return;
+
+        // Stage 3: Enhancement data (in background with idle callback)
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(() => {
+            if (!abortController.signal.aborted) {
+              loadEnhancementData(owner, repo);
+            }
+          }, { timeout: 5000 });
+        } else {
+          // Fallback for browsers without requestIdleCallback
+          setTimeout(() => {
+            if (!abortController.signal.aborted) {
+              loadEnhancementData(owner, repo);
+            }
+          }, 2000);
+        }
+      } catch (error) {
+        console.error('Progressive loading error:', error);
+      } finally {
+        fetchingRef.current = false;
+      }
+    };
+
+    loadProgressively();
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [owner, repo, timeRange, includeBots, loadCriticalData, loadFullData, loadEnhancementData]);
+
+  return data;
+}
+
+/**
+ * Hook to track when specific data stages are ready
+ */
+export function useDataStageReady(data: ProgressiveDataState, stage: LoadingStage): boolean {
+  return data.stageProgress[stage] || false;
 }

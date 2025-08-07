@@ -7,6 +7,7 @@ import { PWAInstallPrompt } from "@/components/ui/pwa-install-prompt";
 // Progressive capture modules loaded dynamically after initial render
 import { Layout, Home, NotFound } from "@/components/common/layout";
 import { ProtectedRoute, AdminRoute } from "@/components/features/auth";
+import { initializeWebVitalsMonitoring } from "@/lib/web-vitals-monitoring";
 
 // Lazy load route components for better performance
 const RepoView = lazy(() => import("@/components/features/repository/repo-view"));
@@ -80,6 +81,29 @@ const PageSkeleton = () => (
 );
 
 function App() {
+  // Initialize Web Vitals monitoring
+  useEffect(() => {
+    const vitalsMonitor = initializeWebVitalsMonitoring({
+      debug: process.env.NODE_ENV === 'development',
+      // Optional: Set up reporting endpoint for production
+      // reportingEndpoint: '/api/vitals'
+    });
+
+    // Log metrics to console in development
+    if (process.env.NODE_ENV === 'development') {
+      vitalsMonitor.onMetric((metric) => {
+        // Additional logging or analytics can be added here
+        if (metric.rating !== 'good') {
+          console.warn(`Performance issue detected: ${metric.name}`, metric);
+        }
+      });
+    }
+
+    return () => {
+      vitalsMonitor.destroy();
+    };
+  }, []);
+
   // Preload critical routes and initialize progressive features after mount
   useEffect(() => {
     const initializeDeferred = async () => {
