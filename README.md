@@ -98,4 +98,3 @@ npm run test:ui   # Open Vitest UI
 ## License
 
 [MIT License](LICENSE)
-# Trigger deploy for Inngest env var fixes
