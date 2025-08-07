@@ -246,12 +246,7 @@ export function useProgressiveRepoDataWithDeduplication(
             },
           });
           
-          // Cache the results (maintain existing pattern)
-          const cacheKey = `${owner}/${repo}/${timeRange}/${includeBots}`;
-          progressiveCache[cacheKey] = {
-            data: { ...data, stats, lotteryFactor },
-            timestamp: Date.now(),
-          };
+          // Don't cache here - caching happens elsewhere in the flow
           
           return { stats, lotteryFactor };
         } catch (error) {
@@ -261,7 +256,7 @@ export function useProgressiveRepoDataWithDeduplication(
         }
       }
     );
-  }, [timeRange, includeBots, data, updateStage]);
+  }, [timeRange, includeBots, updateStage]);
 
   // Stage 3: Load enhancement data with deduplication
   const loadEnhancementData = useCallback(async (owner: string, repo: string) => {
