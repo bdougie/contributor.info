@@ -75,6 +75,8 @@ export default defineConfig({
     rollupOptions: {
       // Remove the external configuration as it's causing build issues
       output: {
+        // Ensure proper module format
+        format: 'es',
         // Ensure proper file extensions for module recognition
         entryFileNames: (chunkInfo) => {
           // Force .js extension for all entry files, including App
@@ -177,9 +179,9 @@ export default defineConfig({
               return 'pwa';
             }
             
-            // Animation libraries
+            // Animation libraries - bundle with React ecosystem to avoid loading issues
             if (id.includes('framer-motion') || id.includes('@react-spring')) {
-              return 'animation';
+              return 'vendor-react-ecosystem';
             }
             
             // Testing libraries (shouldn't be in production but just in case)
@@ -232,22 +234,14 @@ export default defineConfig({
     chunkSizeWarningLimit: 800, // Increased to accommodate combined chart libraries
     // Enable compression reporting
     reportCompressedSize: true,
-    // Module preload optimization - only preload critical path
+    // Module preload optimization - disable automatic preloading to prevent loading order issues
     modulePreload: {
-      polyfill: true,
+      polyfill: false, // Disable polyfill to prevent loading order issues
       resolveDependencies: (_, deps) => {
-        // Preload critical path + essential charts for PR contributions (~85 KiB total)
+        // Only preload React core, everything else loads on demand
         return deps.filter(dep => 
           dep.includes('react-core') || 
-          dep.includes('react-ecosystem') ||
-          dep.includes('charts-essential') || // Include essential PR contribution chart
-          (!dep.includes('charts-advanced') && 
-           !dep.includes('ui-radix') &&
-           !dep.includes('icons') &&
-           !dep.includes('data') &&
-           !dep.includes('utils') &&
-           !dep.includes('test') &&
-           !dep.includes('storybook'))
+          dep.includes('react-router')
         );
       }
     },
