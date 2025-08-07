@@ -234,7 +234,7 @@ async function generateSitemap() {
   xml += '\n</urlset>\n';
   
   // Write sitemap to file
-  const outputPath = path.join(__dirname, '..', 'public', 'sitemap.xml');
+  const outputPath = path.join(__dirname, '..', '..', 'public', 'sitemap.xml');
   await fs.writeFile(outputPath, xml, 'utf-8');
   
   console.log(`✅ Sitemap generated successfully with ${repositories.length} repositories`);
@@ -289,7 +289,7 @@ async function generateNewsSitemap(repositories) {
   xml += '</urlset>\n';
   
   // Write news sitemap to file
-  const outputPath = path.join(__dirname, '..', 'public', 'sitemap-news.xml');
+  const outputPath = path.join(__dirname, '..', '..', 'public', 'sitemap-news.xml');
   await fs.writeFile(outputPath, xml, 'utf-8');
   
   console.log(`✅ News sitemap generated with ${recentRepos.length} recent updates`);
