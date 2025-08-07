@@ -413,17 +413,6 @@ export default function NotFound() {
                 onSearch={handleRepositorySearch}
                 showButton={false}
               />
-              <div className="mt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReportBrokenLink}
-                  className="w-full text-xs"
-                >
-                  <ExternalLink className="h-3 w-3 mr-2" />
-                  Report Broken Link
-                </Button>
-              </div>
             </CardContent>
           </Card>
           
@@ -514,6 +503,13 @@ export default function NotFound() {
             variant="outline"
           >
             Documentation
+          </Button>
+          <Button 
+            onClick={handleReportBrokenLink}
+            variant="destructive"
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Report Broken Link
           </Button>
         </div>
       </div>
