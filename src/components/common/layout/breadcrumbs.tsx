@@ -103,6 +103,11 @@ export const Breadcrumbs = () => {
     </React.Fragment>
   ));
 
+  // Use dynamic origin for JSON-LD to support different environments
+  const origin = typeof window !== 'undefined' 
+    ? window.location.origin 
+    : 'https://contributor.info';
+    
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -110,7 +115,7 @@ export const Breadcrumbs = () => {
       '@type': 'ListItem',
       'position': index + 1,
       'name': crumb.name,
-      'item': `https://contributor.info${crumb.to}`,
+      'item': `${origin}${crumb.to}`,
     })),
   };
 
@@ -125,8 +130,12 @@ export const Breadcrumbs = () => {
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b md:hidden">
           <div className="container px-4 py-2">
             {getBackButton()}
-            <div className="overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              <Breadcrumb className="whitespace-nowrap" style={{ WebkitScrollbar: 'none' } as React.CSSProperties}>
+            <div 
+              className="overflow-x-auto overflow-y-hidden scrollbar-hide"
+              aria-label="Breadcrumb navigation"
+              role="navigation"
+            >
+              <Breadcrumb className="whitespace-nowrap">
                 <BreadcrumbList className="flex-nowrap">{items}</BreadcrumbList>
               </Breadcrumb>
             </div>
