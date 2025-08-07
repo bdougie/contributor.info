@@ -73,6 +73,13 @@ const config: StorybookConfig = {
   async viteFinal(config) {
     // Merge custom configuration into the default config
     return mergeConfig(config, {
+      // Workaround for Rollup 4.45.0 bug with nested conditional expressions
+      // Same issue as main build - treeshaking fails on nested ternaries
+      build: {
+        rollupOptions: {
+          treeshake: false,
+        },
+      },
       resolve: {
         alias: {
           // Mock Supabase for Storybook to avoid needing real credentials
