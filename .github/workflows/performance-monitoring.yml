@@ -1,0 +1,218 @@
+name: Performance Monitoring
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches: [main]
+  schedule:
+    # Run daily at 1:27 AM UTC (avoiding top of hour server load)
+    - cron: '27 1 * * *'
+  workflow_dispatch:
+
+env:
+  # Set deployment URL based on context
+  DEPLOY_URL: ${{ github.event_name == 'pull_request' && format('https://deploy-preview-{0}--contributor-info.netlify.app', github.event.number) || 'https://contributor.info' }}
+
+jobs:
+  pagespeed-test:
+    runs-on: ubuntu-latest
+    name: PageSpeed Insights Test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Wait for deployment (PR only)
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Waiting for Netlify deployment..."
+          sleep 60  # Wait for deployment to be ready
+          
+      - name: Run PageSpeed Insights
+        id: psi
+        uses: jakepartusch/psi-action@v1.3
+        with:
+          url: ${{ env.DEPLOY_URL }}
+          threshold: 85
+          strategy: mobile
+          key: ${{ secrets.PAGESPEED_API_KEY }}
+      
+      - name: Format PageSpeed Results
+        id: format_results
+        if: always()
+        run: |
+          echo "## 📊 PageSpeed Insights Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** ${{ env.DEPLOY_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Score:** ${{ steps.psi.outputs.score }}/100" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ steps.psi.outputs.score }}" -ge 90 ]]; then
+            echo "✅ **Performance:** Excellent" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ steps.psi.outputs.score }}" -ge 85 ]]; then
+            echo "⚠️ **Performance:** Good (could be improved)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Performance:** Needs improvement" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const score = ${{ steps.psi.outputs.score }};
+            const url = '${{ env.DEPLOY_URL }}';
+            
+            let emoji = '✅';
+            let status = 'Excellent';
+            if (score < 85) {
+              emoji = '❌';
+              status = 'Needs Improvement';
+            } else if (score < 90) {
+              emoji = '⚠️';
+              status = 'Good';
+            }
+            
+            const comment = `## ${emoji} PageSpeed Insights Report
+            
+            **Performance Score:** ${score}/100 (${status})
+            **URL Tested:** ${url}
+            **Strategy:** Mobile
+            
+            ### Recommendations
+            ${score < 90 ? '- Review Core Web Vitals in the performance dashboard\n- Check for large images or unoptimized assets\n- Ensure JavaScript bundles are properly code-split' : '- Performance is meeting targets! 🎉'}
+            
+            [View Full Report](https://pagespeed.web.dev/report?url=${encodeURIComponent(url)})`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  lighthouse-ci:
+    runs-on: ubuntu-latest
+    name: Lighthouse CI
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build application
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      
+      - name: Run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli@0.13.x
+          lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload Lighthouse results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-results
+          path: .lighthouseci/
+          retention-days: 7
+
+  performance-budget:
+    runs-on: ubuntu-latest
+    name: Performance Budget Check
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build and analyze bundle
+        run: |
+          npm run build
+          npx vite-bundle-visualizer
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      
+      - name: Check bundle size
+        run: |
+          # Get the size of the dist folder
+          DIST_SIZE=$(du -sb dist | cut -f1)
+          MAX_SIZE=$((5 * 1024 * 1024))  # 5MB limit
+          
+          echo "Bundle size: $DIST_SIZE bytes"
+          echo "Max allowed: $MAX_SIZE bytes"
+          
+          if [ $DIST_SIZE -gt $MAX_SIZE ]; then
+            echo "❌ Bundle size exceeds limit!"
+            exit 1
+          else
+            echo "✅ Bundle size is within limits"
+          fi
+      
+      - name: Analyze JavaScript bundles
+        run: |
+          # Check individual chunk sizes
+          for file in dist/assets/*.js; do
+            if [ -f "$file" ]; then
+              SIZE=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null)
+              MAX_CHUNK=$((200 * 1024))  # 200KB per chunk
+              
+              if [ $SIZE -gt $MAX_CHUNK ]; then
+                echo "⚠️ Large chunk detected: $(basename $file) - $SIZE bytes"
+              fi
+            fi
+          done
+
+  web-vitals-regression:
+    runs-on: ubuntu-latest
+    name: Web Vitals Regression Test
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run Web Vitals comparison
+        run: |
+          # This would run a script that compares Web Vitals
+          # between the base branch and PR branch
+          node scripts/compare-web-vitals.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_URL: https://contributor.info
+          PR_URL: ${{ env.DEPLOY_URL }}
+        continue-on-error: true
+      
+      - name: Report results
+        if: always()
+        run: |
+          echo "Web Vitals regression test completed"
+          echo "Check the PR comments for detailed results"
