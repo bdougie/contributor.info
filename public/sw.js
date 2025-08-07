@@ -1,5 +1,6 @@
 // Enhanced Service Worker for contributor.info PWA
-const CACHE_VERSION = '2.0.0';
+// Version 2.1.0 - Fixed JS module MIME type issues
+const CACHE_VERSION = '2.1.0';
 const CACHE_NAME = `contributor-info-v${CACHE_VERSION}`;
 const STATIC_CACHE = `static-v${CACHE_VERSION}`;
 const API_CACHE = `api-v${CACHE_VERSION}`;
@@ -131,9 +132,17 @@ async function handleRequest(request, url) {
       return await handleImageRequest(request, IMAGES_CACHE);
     }
 
-    // Static assets (JS, CSS, images) - Cache first with update in background
+    // Static assets (CSS, images) - Cache first with update in background
+    // IMPORTANT: Exclude JS modules to prevent MIME type issues
     if (url.origin === self.location.origin) {
-      const isStaticAsset = /\.(js|css|png|jpg|jpeg|gif|webp|svg|ico|woff2?|ttf|eot)(\?.*)?$/.test(url.pathname);
+      // Don't cache JavaScript modules - they need proper MIME types
+      const isJavaScript = /\.js(\?.*)?$/.test(url.pathname);
+      if (isJavaScript) {
+        // Always fetch JS files fresh to ensure correct MIME type
+        return fetch(request);
+      }
+      
+      const isStaticAsset = /\.(css|png|jpg|jpeg|gif|webp|svg|ico|woff2?|ttf|eot)(\?.*)?$/.test(url.pathname);
       
       if (isStaticAsset) {
         return await handleStaticAsset(request, STATIC_CACHE);

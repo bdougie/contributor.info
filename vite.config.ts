@@ -4,6 +4,7 @@ import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
 
 export default defineConfig({
+  base: '/',
   plugins: [
     react(),
     imagetools({
@@ -72,158 +73,62 @@ export default defineConfig({
   build: {
     // Enable CSS code splitting for better performance
     cssCodeSplit: true,
+    commonjsOptions: {
+      // Better handling of CommonJS modules (like some D3 packages)
+      transformMixedEsModules: true,
+      strictRequires: 'auto'
+    },
     rollupOptions: {
       // Remove the external configuration as it's causing build issues
       output: {
+        // Ensure proper module format
+        format: 'es',
+        // Use proper ES module syntax
+        generatedCode: {
+          constBindings: true,
+          objectShorthand: true,
+          arrowFunctions: true
+        },
         // Ensure proper file extensions for module recognition
-        entryFileNames: (chunkInfo) => {
-          // Force .js extension for all entry files, including App
-          const name = chunkInfo.name?.replace(/\.tsx?$/, '') || 'chunk';
-          return `assets/${name}-[hash].js`;
-        },
-        chunkFileNames: (chunkInfo) => {
-          // Force .js extension for all chunk files
-          return `assets/${chunkInfo.name}-[hash].js`;
-        },
+        entryFileNames: `assets/[name]-[hash].js`,
+        chunkFileNames: `assets/[name]-[hash].js`,
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Aggressive chunk splitting for optimal Core Web Vitals
-        manualChunks: (id) => {
-          // Core vendor chunks
-          if (id.includes('node_modules')) {
-            // React core - critical path
-            if (id.includes('react') && !id.includes('react-')) {
-              return 'react-core';
-            }
-            if (id.includes('react-dom')) {
-              return 'react-core';
-            }
-            
-            // React router - critical path  
-            if (id.includes('react-router')) {
-              return 'react-router';
-            }
-            
-            // All Radix UI components - split by component type
-            if (id.includes('@radix-ui')) {
-              if (id.includes('dialog') || id.includes('popover') || id.includes('tooltip')) {
-                return 'ui-overlays';
-              }
-              if (id.includes('dropdown') || id.includes('select') || id.includes('menu')) {
-                return 'ui-menus';
-              }
-              if (id.includes('form') || id.includes('checkbox') || id.includes('radio') || id.includes('input')) {
-                return 'ui-forms';
-              }
-              return 'ui-radix-misc';
-            }
-            
-            // Charts - split by library
-            if (id.includes('@nivo')) {
-              return 'charts-nivo';
-            }
-            // Include react-smooth with recharts since it's a dependency
-            if (id.includes('recharts') || id.includes('react-smooth')) {
-              return 'charts-recharts';
-            }
-            if (id.includes('d3-') || id.includes('d3/')) {
-              return 'charts-d3';
-            }
-            
-            // Markdown and code highlighting
-            if (id.includes('react-markdown') || id.includes('remark') || id.includes('rehype')) {
-              return 'markdown';
-            }
-            if (id.includes('highlight.js') || id.includes('prism')) {
-              return 'syntax-highlighting';
-            }
-            
-            // Icons
-            if (id.includes('lucide-react') || id.includes('@radix-ui/react-icons')) {
-              return 'icons';
-            }
-            
-            // Data and API
-            if (id.includes('@supabase')) {
-              return 'supabase';
-            }
-            if (id.includes('@octokit') || id.includes('github')) {
-              return 'github-api';
-            }
-            if (id.includes('zustand')) {
-              return 'state-management';
-            }
-            
-            // Form handling
-            if (id.includes('react-hook-form') || id.includes('@hookform')) {
-              return 'forms';
-            }
-            
-            // Date utilities
-            if (id.includes('date-fns') || id.includes('dayjs')) {
-              return 'date-utils';
-            }
-            
-            // Validation
-            if (id.includes('zod') || id.includes('yup')) {
-              return 'validation';
-            }
-            
-            // CSS-in-JS and styling
-            if (id.includes('class-variance-authority') || id.includes('clsx') || id.includes('tailwind-merge')) {
-              return 'styling-utils';
-            }
-            
-            // Web vitals and monitoring
-            if (id.includes('web-vitals')) {
-              return 'monitoring';
-            }
-            
-            // PWA and service worker
-            if (id.includes('workbox') || id.includes('service-worker')) {
-              return 'pwa';
-            }
-            
-            // Animation libraries
-            if (id.includes('framer-motion') || id.includes('@react-spring')) {
-              return 'animation';
-            }
-            
-            // Testing libraries (shouldn't be in production but just in case)
-            if (id.includes('vitest') || id.includes('@testing-library') || id.includes('jest')) {
-              return 'testing';
-            }
-            
-            // MDX
-            if (id.includes('@mdx-js')) {
-              return 'mdx';
-            }
-            
-            // Netlify functions
-            if (id.includes('@netlify')) {
-              return 'netlify';
-            }
-            
-            // Misc utilities
-            if (id.includes('lodash') || id.includes('ramda')) {
-              return 'utils-functional';
-            }
-            
-            // Group remaining packages by common patterns to avoid too many chunks
-            // while preventing module loading order issues
-            
-            // Common utility libraries
-            if (id.includes('axios') || id.includes('ky') || id.includes('got')) {
-              return 'vendor-http';
-            }
-            
-            // Smaller React ecosystem packages
-            if (id.includes('react-') || id.includes('use-')) {
-              return 'vendor-react-ecosystem';
-            }
-            
-            // Everything else in a misc chunk
-            return 'vendor-misc';
-          }
+        // Ensure modules are properly hoisted
+        hoistTransitiveImports: false,
+        // Balanced chunking strategy from production postmortem (2025-06-22)
+        // This approach maintains reliability while optimizing performance
+        manualChunks: {
+          // Critical React core - bundle together to prevent initialization issues
+          'react-core': ['react', 'react-dom', '@radix-ui/react-slot'],
+          
+          // React ecosystem - can load after core is initialized  
+          'react-ecosystem': ['react-router-dom', 'class-variance-authority', 'clsx', 'tailwind-merge'],
+          
+          // Heavy chart libraries - lazy loaded, separate for better caching
+          'charts-nivo': ['@nivo/scatterplot'],
+          'charts-recharts': ['recharts'],
+          
+          // UI component library - used throughout app (group all Radix UI)
+          'ui-radix': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-tooltip',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-select',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-switch',
+            '@radix-ui/react-tabs'
+          ],
+          
+          // Icons - separate for optimal tree-shaking
+          'icons': ['lucide-react'],
+          
+          // Utilities - frequently used, good for caching
+          'utils': ['date-fns', 'zod'],
+          
+          // State management and data
+          'data': ['zustand', '@supabase/supabase-js']
         },
       },
     },
@@ -235,25 +140,25 @@ export default defineConfig({
     minify: 'esbuild',
     target: 'es2020', // Modern target with good compatibility
     // Optimize chunk size warnings  
-    chunkSizeWarningLimit: 600, // Slightly more lenient given postmortem learnings
+    chunkSizeWarningLimit: 1000, // Accepting larger chunks for reliability over micro-optimizations
     // Enable compression reporting
     reportCompressedSize: true,
-    // Module preload optimization - only preload critical path
+    // Module preload optimization - ensure React loads first
     modulePreload: {
-      polyfill: true,
+      polyfill: true, // Enable polyfill for proper module loading
       resolveDependencies: (_, deps) => {
-        // Preload critical path + essential charts for PR contributions (~85 KiB total)
-        return deps.filter(dep => 
+        // Preload React core first, then router
+        const sorted = deps.sort((a, b) => {
+          if (a.includes('react-core')) return -1;
+          if (b.includes('react-core')) return 1;
+          if (a.includes('react-router')) return -1;
+          if (b.includes('react-router')) return 1;
+          return 0;
+        });
+        // Only preload critical chunks
+        return sorted.filter(dep => 
           dep.includes('react-core') || 
-          dep.includes('react-ecosystem') ||
-          dep.includes('charts-essential') || // Include essential PR contribution chart
-          (!dep.includes('charts-advanced') && 
-           !dep.includes('ui-radix') &&
-           !dep.includes('icons') &&
-           !dep.includes('data') &&
-           !dep.includes('utils') &&
-           !dep.includes('test') &&
-           !dep.includes('storybook'))
+          dep.includes('react-router')
         );
       }
     },
