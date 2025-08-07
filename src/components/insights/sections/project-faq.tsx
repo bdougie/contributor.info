@@ -392,7 +392,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
                 className="w-full justify-between h-auto p-0 text-left font-normal hover:bg-transparent"
                 onClick={() => toggleExpanded(faq.id)}
               >
-                <span className="text-sm font-medium pr-2 flex-1 line-clamp-2">
+                <span className="text-sm font-medium pr-2 flex-1">
                   {faq.question}
                 </span>
                 {faq.isAIGenerated && (
