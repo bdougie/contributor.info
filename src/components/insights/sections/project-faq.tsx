@@ -197,7 +197,16 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     const uniqueContributors = new Set(stats.pullRequests.map(pr => pr.author?.login || pr.user?.login || 'unknown')).size;
     const timeRangeText = getTimeRangeText();
     
-    return `${owner}/${repo} has ${uniqueContributors} unique contributors who have submitted pull requests ${timeRangeText}. This indicates ${uniqueContributors >= 20 ? 'a healthy and active' : uniqueContributors >= 10 ? 'a moderate' : 'a small but focused'} contributor community.`;
+    let communityStatus: string;
+    if (uniqueContributors >= 20) {
+      communityStatus = 'a healthy and active';
+    } else if (uniqueContributors >= 10) {
+      communityStatus = 'a moderate';
+    } else {
+      communityStatus = 'a small but focused';
+    }
+    
+    return `${owner}/${repo} has ${uniqueContributors} unique contributors who have submitted pull requests ${timeRangeText}. This indicates ${communityStatus} contributor community.`;
   };
 
   const generateTopContributorsAnswer = (): string => {
@@ -227,7 +236,17 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     const avgPerDay = (totalPRs / timeRangeDays).toFixed(1);
     const avgPerWeek = (totalPRs / (timeRangeDays / 7)).toFixed(1);
     
-    return `${owner}/${repo} has ${totalPRs} pull requests ${timeRangeText}, averaging ${avgPerDay} PRs per day and ${avgPerWeek} PRs per week. This shows ${parseFloat(avgPerWeek) >= 10 ? 'high' : parseFloat(avgPerWeek) >= 3 ? 'moderate' : 'low'} development activity.`;
+    let activityLevel: string;
+    const weeklyAvg = parseFloat(avgPerWeek);
+    if (weeklyAvg >= 10) {
+      activityLevel = 'high';
+    } else if (weeklyAvg >= 3) {
+      activityLevel = 'moderate';
+    } else {
+      activityLevel = 'low';
+    }
+    
+    return `${owner}/${repo} has ${totalPRs} pull requests ${timeRangeText}, averaging ${avgPerDay} PRs per day and ${avgPerWeek} PRs per week. This shows ${activityLevel} development activity.`;
   };
 
   const generateActivityAnswer = (): string => {
@@ -237,7 +256,14 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     const uniqueContributors = new Set(stats.pullRequests.map(pr => pr.author?.login || pr.user?.login || 'unknown')).size;
     const timeRangeText = getTimeRangeText();
     
-    const activityLevel = totalPRs >= 50 ? 'very active' : totalPRs >= 20 ? 'moderately active' : 'lightly active';
+    let activityLevel: string;
+    if (totalPRs >= 50) {
+      activityLevel = 'very active';
+    } else if (totalPRs >= 20) {
+      activityLevel = 'moderately active';
+    } else {
+      activityLevel = 'lightly active';
+    }
     
     return `${owner}/${repo} is ${activityLevel} with ${totalPRs} pull requests from ${uniqueContributors} contributors ${timeRangeText}. The project shows consistent development momentum with regular contributions from the community.`;
   };
@@ -265,7 +291,17 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     const singlePRContributors = contributors.filter(count => count === 1).length;
     const diversityPercentage = ((singlePRContributors / totalContributors) * 100).toFixed(0);
 
-    return `${owner}/${repo} has ${totalContributors} contributors, with ${singlePRContributors} (${diversityPercentage}%) being first-time or occasional contributors. This shows ${parseInt(diversityPercentage) >= 50 ? 'good' : parseInt(diversityPercentage) >= 25 ? 'moderate' : 'limited'} contributor diversity and community engagement.`;
+    let diversityLevel: string;
+    const diversityPercent = parseInt(diversityPercentage);
+    if (diversityPercent >= 50) {
+      diversityLevel = 'good';
+    } else if (diversityPercent >= 25) {
+      diversityLevel = 'moderate';
+    } else {
+      diversityLevel = 'limited';
+    }
+    
+    return `${owner}/${repo} has ${totalContributors} contributors, with ${singlePRContributors} (${diversityPercentage}%) being first-time or occasional contributors. This shows ${diversityLevel} contributor diversity and community engagement.`;
   };
 
   const generatePRPatternsAnswer = (): string => {
