@@ -1,26 +1,24 @@
-## All JS files must be served as JavaScript modules
+/*
+  X-Content-Type-Options: nosniff
+
+/*.js
+  Content-Type: application/javascript
+  X-Content-Type-Options: nosniff
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
 /assets/*.js
   Content-Type: application/javascript
   Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
 
-## Ensure chunks are served correctly  
-/assets/charts-*.js
-  Content-Type: application/javascript
-  Cache-Control: public, max-age=31536000, immutable
-
-/assets/vendor-*.js
-  Content-Type: application/javascript
-  Cache-Control: public, max-age=31536000, immutable
-
-/assets/index-*.js
-  Content-Type: application/javascript
-  Cache-Control: public, max-age=31536000, immutable
-
-/assets/react-*.js
-  Content-Type: application/javascript
-  Cache-Control: public, max-age=31536000, immutable
-
-## CSS files
 /assets/*.css
   Content-Type: text/css
   Cache-Control: public, max-age=31536000, immutable
+
+/*.json
+  Content-Type: application/json
+
+/manifest.json
+  Content-Type: application/manifest+json
