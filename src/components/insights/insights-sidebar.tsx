@@ -180,7 +180,7 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                       
                       {/* Section content - lazy loaded on demand */}
                       {activeSection === section.id && owner && repo && (
-                        <div className="mt-3">
+                        <div className="mt-3 w-full overflow-hidden">
                           <Suspense fallback={<InsightsSkeleton />}>
                             {section.id === "summary" && (
                               <RepositorySummary owner={owner} repo={repo} timeRange={timeRange} />
@@ -249,7 +249,7 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                     
                     {/* Section content */}
                     {activeSection === section.id && owner && repo && (
-                      <div className="mt-3">
+                      <div className="mt-3 w-full overflow-hidden">
                         {section.id === "summary" && (
                           <RepositorySummary owner={owner} repo={repo} timeRange={timeRange} />
                         )}

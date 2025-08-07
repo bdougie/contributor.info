@@ -392,7 +392,9 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
                 className="w-full justify-between h-auto p-0 text-left font-normal hover:bg-transparent"
                 onClick={() => toggleExpanded(faq.id)}
               >
-                <span className="text-sm font-medium pr-2 flex-1 break-words">{faq.question}</span>
+                <span className="text-sm font-medium pr-2 flex-1 line-clamp-2">
+                  {faq.question}
+                </span>
                 {faq.isAIGenerated && (
                   <Sparkles className="h-3 w-3 text-blue-500 mr-2 flex-shrink-0" />
                 )}
@@ -405,7 +407,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
               
               {expandedItems.has(faq.id) && (
                 <div className="mt-3 pt-3 border-t">
-                  <p className="text-sm text-muted-foreground leading-relaxed break-words">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
                     {faq.answer}
                   </p>
                   {faq.isAIGenerated && faq.confidence && faq.sources && (
