@@ -41,12 +41,16 @@
     <link rel="dns-prefetch" href="https://egcxzonpmmcirmgqdrla.supabase.co">
     
     <!-- Preload critical resources for LCP optimization -->
+    <!-- These will be transformed by Vite in production to correct hashed filenames -->
     <link rel="modulepreload" href="/src/main.tsx" />
-    <link rel="modulepreload" href="/src/App.tsx" />
-    <link rel="modulepreload" href="/src/lib/supabase.ts" />
-    <link rel="modulepreload" href="/src/hooks/use-cached-repo-data.ts" />
-    <link rel="modulepreload" href="/src/components/common/layout/home.tsx" />
-    <link rel="preload" as="style" href="/src/index.css" />
+    
+    <!-- Preload critical fonts for faster text rendering -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
+    
+    <!-- Prefetch likely next navigations -->
+    <link rel="prefetch" href="/api/contributors" />
+    <link rel="prefetch" href="/api/repositories" />
     
     <!-- Prevent FOUC by detecting theme before render -->
     <script>

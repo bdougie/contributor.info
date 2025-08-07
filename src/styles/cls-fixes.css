@@ -1,0 +1,317 @@
+/* Core Web Vitals - Cumulative Layout Shift (CLS) Fixes */
+
+/* ============================================
+   GLOBAL CLS FIXES
+   ============================================ */
+
+/* Prevent layout shifts during route transitions */
+#root {
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Main content area - stable container */
+main, .main-content {
+  min-height: calc(100vh - 4rem); /* Account for header */
+}
+
+/* ============================================
+   REPOSITORY PAGES
+   ============================================ */
+
+/* Repository header area - reserve space for timestamp */
+.repo-header-timestamp {
+  min-height: 1.25rem; /* h-5 equivalent */
+}
+
+/* Status indicators container - prevent shifts when messages appear/disappear */
+.status-indicators-container {
+  min-height: 1rem;
+  transition: min-height 0.2s ease-out;
+}
+
+/* Tab content area - maintain consistent height during loading */
+.tab-content-container {
+  min-height: 400px;
+}
+
+/* Repository tabs - prevent height changes */
+.repository-tabs {
+  min-height: 500px;
+}
+
+/* ============================================
+   HEALTH TAB SPECIFIC
+   ============================================ */
+
+/* Health metrics container */
+.health-metrics-container {
+  min-height: 300px;
+}
+
+/* Confidence card - stable height */
+.confidence-card {
+  min-height: 200px;
+}
+
+/* Lottery factor card */
+.lottery-factor-card {
+  min-height: 250px;
+}
+
+/* Health score visualization */
+.health-score-container {
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================
+   ORGANIZATION PAGES
+   ============================================ */
+
+/* Organization header */
+.org-header {
+  min-height: 120px;
+}
+
+/* Organization avatar container - match the actual avatar size */
+.org-avatar-container {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+/* Repository table container */
+.org-repos-table {
+  min-height: 400px;
+}
+
+/* Repository count badge - reserve space */
+.repo-count-badge {
+  min-width: 60px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* CTA section - prevent pop-in */
+.org-cta-section {
+  min-height: 80px;
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* ============================================
+   CARDS & COMPONENTS
+   ============================================ */
+
+/* Card skeleton loaders - match actual content dimensions */
+.card-skeleton {
+  min-height: 200px;
+}
+
+/* Metrics cards - fixed aspect ratio to prevent shifts */
+.metric-card {
+  aspect-ratio: 16 / 9;
+  min-height: 120px;
+}
+
+/* Chart containers - reserve space before charts load */
+.chart-container {
+  min-height: 300px;
+  position: relative;
+}
+
+/* Loading spinner container - center without shift */
+.loading-container {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Prevent button size changes during loading states */
+.stable-button {
+  min-width: 2rem;
+  min-height: 2rem;
+}
+
+/* Contributor cards - consistent sizing */
+.contributor-card {
+  min-height: 80px;
+}
+
+/* Activity feed items - prevent height changes */
+.activity-item {
+  min-height: 60px;
+}
+
+/* ============================================
+   TABLES
+   ============================================ */
+
+/* Table containers - prevent collapse */
+table {
+  min-height: 100px;
+  table-layout: fixed;
+}
+
+/* Table cells - stable width */
+.stable-table-cell {
+  width: 150px;
+}
+
+/* ============================================
+   IMAGES & AVATARS
+   ============================================ */
+
+/* Avatar containers - fixed dimensions */
+.avatar-container,
+[class*="avatar"] {
+  aspect-ratio: 1;
+  overflow: hidden;
+  background-color: hsl(var(--muted));
+}
+
+/* Image placeholders */
+img:not([width]),
+img:not([height]) {
+  aspect-ratio: 16 / 9;
+  background-color: hsl(var(--muted));
+}
+
+/* GitHub avatars - common sizes */
+img[src*="avatars.githubusercontent.com"] {
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+/* ============================================
+   LOADING STATES
+   ============================================ */
+
+/* Smooth transitions for height changes */
+.smooth-height {
+  transition: height 0.3s ease-out, min-height 0.3s ease-out;
+}
+
+/* Skeleton pulse animation without layout shift */
+@keyframes skeleton-pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.skeleton-loading {
+  animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  background-color: hsl(var(--muted));
+  border-radius: 0.375rem;
+}
+
+/* Skeleton containers - maintain space */
+[class*="skeleton"] {
+  min-height: 1rem;
+}
+
+/* ============================================
+   DISTRIBUTION & CHARTS
+   ============================================ */
+
+/* Distribution chart container */
+.distribution-chart {
+  min-height: 400px;
+  position: relative;
+}
+
+/* Contribution heatmap */
+.contribution-heatmap {
+  min-height: 200px;
+}
+
+/* Statistics grid */
+.stats-grid {
+  min-height: 150px;
+  display: grid;
+  gap: 1rem;
+}
+
+/* ============================================
+   BADGES & LABELS
+   ============================================ */
+
+/* Badge containers - consistent sizing */
+.badge,
+[class*="badge"] {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Language badges - fixed width */
+.language-badge {
+  min-width: 80px;
+  text-align: center;
+}
+
+/* ============================================
+   RESPONSIVE FIXES
+   ============================================ */
+
+/* Mobile - prevent horizontal scrolling */
+@media (max-width: 640px) {
+  .tab-content-container {
+    min-height: 300px;
+  }
+  
+  .chart-container {
+    min-height: 200px;
+  }
+  
+  .org-repos-table {
+    min-height: 300px;
+  }
+}
+
+/* Tablet and up */
+@media (min-width: 641px) {
+  .tab-content-container {
+    min-height: 500px;
+  }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Force stable layout */
+.cls-stable {
+  contain: layout;
+}
+
+/* Reserve space for dynamic content */
+.cls-reserve-sm {
+  min-height: 2rem;
+}
+
+.cls-reserve-md {
+  min-height: 4rem;
+}
+
+.cls-reserve-lg {
+  min-height: 8rem;
+}
+
+/* Prevent text reflow */
+.cls-text-stable {
+  min-height: 1.5em;
+  display: block;
+}
