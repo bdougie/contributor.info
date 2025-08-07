@@ -410,7 +410,7 @@ async function storePRSimilarityComment(data: StorePRSimilarityData) {
         pull_request_id: pr.id,
         github_pr_id: data.pullRequest.id,
         similar_issues: data.similarIssues,
-        comment_posted: true,
+        comment_posted: false,
         comment_id: data.commentId,
         generated_at: new Date().toISOString(),
         comment_type: 'similarity', // Mark as similarity-only comment
