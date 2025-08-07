@@ -111,13 +111,13 @@ export function useProgressiveRepoDataWithDeduplication(
           // Use request deduplicator to prevent concurrent calls
           const result = await requestDeduplicator.dedupe(
             dedupeKey,
-            async (signal) => {
+            async () => {
               // Check cache first (existing pattern)
               const cacheKey = `${owner}/${repo}/${timeRange}/${includeBots}`;
               const cached = progressiveCache[cacheKey];
               
               if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-                return { cached: true, data: cached.data };
+                return { cached: true, data: cached.data, pullRequests: null };
               }
 
               // Fetch minimal data for above-the-fold content
@@ -133,22 +133,26 @@ export function useProgressiveRepoDataWithDeduplication(
                 throw new Error(fetchResult.message || 'Failed to fetch data');
               }
               
-              return { cached: false, data: fetchResult.data };
+              return { cached: false, data: null, pullRequests: fetchResult.data };
             },
             { ttl: 5000, abortable: true }
           );
 
           // Handle cached vs fresh data
-          if (result.cached) {
+          if (result.cached && result.data) {
             updateStage('critical', result.data);
             return result.data.basicInfo;
           }
 
           // Process fresh data
-          const pullRequests = result.data;
+          const pullRequests = result.pullRequests;
+          if (!pullRequests) {
+            throw new Error('No pull request data available');
+          }
+          
           const contributors = new Map<string, { login: string; avatar_url: string; contributions: number }>();
           
-          pullRequests?.forEach(pr => {
+          pullRequests.forEach((pr: any) => {
             const author = pr.user?.login;
             if (author) {
               const existing = contributors.get(author) || {
@@ -166,7 +170,7 @@ export function useProgressiveRepoDataWithDeduplication(
             .slice(0, 5);
 
           const basicInfo = {
-            prCount: pullRequests?.length || 0,
+            prCount: pullRequests.length,
             contributorCount: contributors.size,
             topContributors,
           };
@@ -199,7 +203,7 @@ export function useProgressiveRepoDataWithDeduplication(
 
           const result = await requestDeduplicator.dedupe(
             dedupeKey,
-            async (signal) => {
+            async () => {
               // Fetch complete PR data
               const fetchResult = await fetchPRDataSmart(
                 owner,
@@ -275,7 +279,7 @@ export function useProgressiveRepoDataWithDeduplication(
 
           const result = await requestDeduplicator.dedupe(
             dedupeKey,
-            async (signal) => {
+            async () => {
               // Load direct commits data
               const directCommitsData = await fetchDirectCommitsWithDatabaseFallback(
                 owner,

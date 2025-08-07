@@ -4,7 +4,6 @@ import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart-deduped';
 import { calculateLotteryFactor } from '@/lib/utils';
 import type { RepoStats, LotteryFactor, DirectCommitsData, TimeRange } from '@/lib/types';
 import { setApplicationContext, startSpan } from '@/lib/simple-logging';
-import { requestDeduplicator, RequestDeduplicator } from '@/lib/utils/request-deduplicator';
 
 // Loading stages for progressive data loading
 export type LoadingStage = 'initial' | 'critical' | 'full' | 'enhancement' | 'complete';

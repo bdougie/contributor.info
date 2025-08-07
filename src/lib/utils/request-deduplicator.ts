@@ -29,7 +29,7 @@ interface RequestOptions {
  * Centralized request deduplication service
  * Integrates with existing progressive loading patterns
  */
-class RequestDeduplicator {
+export class RequestDeduplicator {
   private pending = new Map<string, PendingRequest>();
   private readonly DEFAULT_TTL = 5000; // 5 seconds - aligns with existing patterns
   
@@ -105,13 +105,17 @@ class RequestDeduplicator {
     /** Generate key for progressive loading stages */
     progressiveStage: (stage: string, owner: string, repo: string, timeRange: string, includeBots: boolean): string =>
       `progressive:${stage}:${owner}/${repo}:${timeRange}:${includeBots}`,
+    
+    /** Generate custom key with prefix */
+    custom: (prefix: string, ...params: any[]): string =>
+      `${prefix}:${params.join(':')}`,
   };
 
   /**
    * Cancel all pending requests (cleanup utility)
    */
   cancelAll(): void {
-    for (const [key, request] of this.pending) {
+    for (const [, request] of this.pending) {
       if (request.abortController && !request.abortController.signal.aborted) {
         request.abortController.abort();
       }
@@ -148,6 +152,11 @@ class RequestDeduplicator {
       averageAge: requests.length > 0
         ? (now - requests.reduce((sum, req) => sum + req.timestamp, 0) / requests.length)
         : 0,
+      pendingRequests: requests.map(req => ({
+        key: req.key,
+        age: now - req.timestamp,
+        subscribers: req.subscribers,
+      })),
     };
   }
 
@@ -207,7 +216,7 @@ export function withRequestDeduplication<TArgs extends any[], TResult>(
     const key = keyGenerator(...args);
     return requestDeduplicator.dedupe(
       key,
-      (signal) => fetcher(...args),
+      () => fetcher(...args),
       options
     );
   };
