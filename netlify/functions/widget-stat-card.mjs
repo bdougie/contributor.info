@@ -4,7 +4,17 @@
  * 
  * Generates embeddable stat cards showing repository metrics in a compact, visually appealing format.
  * Designed to be embedded in README files, documentation, and websites.
+ * Shows data from the last 30 days.
  */
+
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client only if credentials are available
+const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+// Only create client if we have valid credentials
+const supabase = supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 // Utility functions
 function escapeHtml(text) {
@@ -16,6 +26,9 @@ function escapeHtml(text) {
 }
 
 function formatNumber(num) {
+  if (num === null || num === undefined) {
+    return '-';
+  }
   if (num >= 1000000) {
     return `${(num / 1000000).toFixed(1)}M`;
   } else if (num >= 1000) {
@@ -24,64 +37,106 @@ function formatNumber(num) {
   return num.toString();
 }
 
-// Generate repository statistics (mock data)
-function generateRepoStats(owner, repo) {
-  const knownRepos = {
-    'facebook/react': {
-      description: 'The library for web and native user interfaces',
-      language: 'JavaScript',
-      contributors: 1247,
-      pullRequests: 8934,
-      mergedPRs: 7456,
-      lotteryFactor: 3.2,
-      lotteryRating: 'Good',
-      weeklyPRVolume: 67,
-      activeContributors: 342,
-    },
-    'microsoft/vscode': {
-      description: 'Visual Studio Code',
-      language: 'TypeScript',
-      contributors: 1890,
-      pullRequests: 12456,
-      mergedPRs: 11103,
-      lotteryFactor: 2.8,
-      lotteryRating: 'Excellent', 
-      weeklyPRVolume: 89,
-      activeContributors: 567,
-    },
-    'vuejs/vue': {
-      description: 'The Progressive JavaScript Framework',
-      language: 'TypeScript',
-      contributors: 456,
-      pullRequests: 2134,
-      mergedPRs: 1957,
-      lotteryFactor: 3.8,
-      lotteryRating: 'Fair',
-      weeklyPRVolume: 28,
-      activeContributors: 124,
-    }
-  };
-
-  const key = `${owner}/${repo}`;
-  if (knownRepos[key]) {
-    return knownRepos[key];
+// Fetch real repository statistics from database (last 30 days)
+async function fetchRepoStats(owner, repo) {
+  // Skip database query if Supabase client is not available
+  if (!supabase) {
+    console.log('Supabase client not initialized - missing VITE_SUPABASE_ANON_KEY');
+    return null;
   }
 
-  // Generate realistic mock data
-  const contributors = Math.floor(Math.random() * 200) + 10;
-  const pullRequests = Math.floor(Math.random() * 1000) + 50;
-  const mergedPRs = Math.floor(pullRequests * (0.7 + Math.random() * 0.25));
-  
+  try {
+    // Get repository data
+    const { data: repoData, error: repoError } = await supabase
+      .from('repositories')
+      .select('id, description, language')
+      .eq('owner', owner)
+      .eq('name', repo)
+      .single();
+
+    if (repoError || !repoData) {
+      console.error('Repository not found:', owner, repo);
+      return null;
+    }
+
+    const repositoryId = repoData.id;
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Fetch PR data from last 30 days
+    const { data: prData, error: prError } = await supabase
+      .from('pull_requests')
+      .select('id, merged, created_at, author_id')
+      .eq('repository_id', repositoryId)
+      .gte('created_at', thirtyDaysAgo.toISOString());
+
+    if (prError) {
+      console.error('Error fetching PR data:', prError);
+      return null;
+    }
+
+    // Calculate stats
+    const uniqueContributors = new Set(prData?.map(pr => pr.author_id) || []);
+    const totalPRs = prData?.length || 0;
+    const mergedPRs = prData?.filter(pr => pr.merged).length || 0;
+    
+    // Calculate weekly PR volume (last 7 days)
+    const weeklyPRs = prData?.filter(pr => new Date(pr.created_at) >= sevenDaysAgo).length || 0;
+    
+    // Calculate active contributors (contributed in last 7 days)
+    const recentPRs = prData?.filter(pr => new Date(pr.created_at) >= sevenDaysAgo) || [];
+    const activeContributors = new Set(recentPRs.map(pr => pr.author_id)).size;
+
+    // Calculate lottery factor (simplified)
+    const contributorPRCounts = {};
+    prData?.forEach(pr => {
+      contributorPRCounts[pr.author_id] = (contributorPRCounts[pr.author_id] || 0) + 1;
+    });
+    
+    const sortedContributors = Object.values(contributorPRCounts).sort((a, b) => b - a);
+    const topContributorPRs = sortedContributors[0] || 0;
+    const lotteryFactor = totalPRs > 0 ? (topContributorPRs / totalPRs) * 10 : 0;
+    
+    // Determine lottery rating
+    let lotteryRating = 'N/A';
+    if (lotteryFactor > 0) {
+      if (lotteryFactor < 2) lotteryRating = 'Excellent';
+      else if (lotteryFactor < 3) lotteryRating = 'Good';
+      else if (lotteryFactor < 4) lotteryRating = 'Fair';
+      else lotteryRating = 'Poor';
+    }
+
+    return {
+      description: repoData.description || `${repo} repository`,
+      language: repoData.language || 'Unknown',
+      contributors: uniqueContributors.size,
+      pullRequests: totalPRs,
+      mergedPRs: mergedPRs,
+      lotteryFactor: lotteryFactor,
+      lotteryRating: lotteryRating,
+      weeklyPRVolume: weeklyPRs,
+      activeContributors: activeContributors,
+    };
+  } catch (error) {
+    console.error('Error fetching repository stats:', error);
+    return null;
+  }
+}
+
+// Generate error/no-data stats when database is unavailable
+function generateErrorStats(repo) {
   return {
     description: `${repo} repository`,
-    language: ['JavaScript', 'TypeScript', 'Python', 'Java', 'Go'][Math.floor(Math.random() * 5)],
-    contributors,
-    pullRequests,
-    mergedPRs,
-    lotteryFactor: Math.random() * 3 + 1.5,
-    lotteryRating: ['Poor', 'Fair', 'Good', 'Excellent'][Math.floor(Math.random() * 4)],
-    weeklyPRVolume: Math.floor(pullRequests / 20),
-    activeContributors: Math.floor(contributors * 0.3),
+    language: 'Unknown',
+    contributors: null,
+    pullRequests: null,
+    mergedPRs: null,
+    lotteryFactor: null,
+    lotteryRating: 'N/A',
+    weeklyPRVolume: null,
+    activeContributors: null,
   };
 }
 
@@ -139,34 +194,34 @@ function generateStatCardSVG(owner, repo, stats, options = {}) {
   const { width, height, fontSize, titleSize, padding } = sizeConfig;
 
   // Calculate merge rate
-  const mergeRate = stats.pullRequests > 0 ? (stats.mergedPRs / stats.pullRequests) * 100 : 0;
+  const mergeRate = stats.pullRequests > 0 ? (stats.mergedPRs / stats.pullRequests) * 100 : null;
 
-  // Metric configurations
+  // Metric configurations with time context
   const metricConfigs = {
     contributors: {
-      label: 'Contributors',
+      label: 'Contributors (30d)',
       value: formatNumber(stats.contributors),
       icon: '👥',
-      color: themeColors.metricColors.contributors
+      color: stats.contributors !== null ? themeColors.metricColors.contributors : themeColors.muted
     },
     'pull-requests': {
-      label: 'Pull Requests',
+      label: 'Pull Requests (30d)',
       value: formatNumber(stats.pullRequests),
       icon: '🔀',
-      color: themeColors.metricColors['pull-requests']
+      color: stats.pullRequests !== null ? themeColors.metricColors['pull-requests'] : themeColors.muted
     },
     'lottery-factor': {
-      label: 'Lottery Factor',
-      value: stats.lotteryFactor.toFixed(1),
+      label: 'Lottery Factor (30d)',
+      value: stats.lotteryFactor !== null ? stats.lotteryFactor.toFixed(1) : '-',
       subtext: stats.lotteryRating,
       icon: '🎯',
-      color: themeColors.metricColors['lottery-factor']
+      color: stats.lotteryFactor !== null ? themeColors.metricColors['lottery-factor'] : themeColors.muted
     },
     'merge-rate': {
-      label: 'Merge Rate',
-      value: `${mergeRate.toFixed(1)}%`,
+      label: 'Merge Rate (30d)',
+      value: mergeRate !== null ? `${mergeRate.toFixed(1)}%` : '-',
       icon: '📈',
-      color: themeColors.metricColors['merge-rate']
+      color: mergeRate !== null ? themeColors.metricColors['merge-rate'] : themeColors.muted
     }
   };
 
@@ -186,6 +241,12 @@ function generateStatCardSVG(owner, repo, stats, options = {}) {
       </g>
     `;
   }).join('');
+
+  // Show data status message if no data
+  const dataStatusMessage = stats.contributors === null ? 
+    `<text x="${width / 2}" y="${height / 2 + 20}" font-size="${fontSize}" fill="${themeColors.muted}" text-anchor="middle" opacity="0.7">
+      Data unavailable
+    </text>` : '';
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <defs>
@@ -229,6 +290,8 @@ function generateStatCardSVG(owner, repo, stats, options = {}) {
     ${metricsHTML}
   </g>
 
+  ${dataStatusMessage}
+
   <!-- Attribution -->
   ${showLogo ? `
     <text x="${width / 2}" y="${height - 8}" font-size="10" fill="${themeColors.muted}" text-anchor="middle" class="subtitle">
@@ -250,8 +313,16 @@ export default async (req, context) => {
     const metrics = url.searchParams.get('metrics')?.split(',') || ['contributors', 'pull-requests', 'lottery-factor'];
     const showLogo = url.searchParams.get('logo') !== 'false';
 
-    // Generate repository statistics
-    const stats = generateRepoStats(owner, repo);
+    // Try to fetch real data from database
+    let stats = await fetchRepoStats(owner, repo);
+    
+    // Show error state if database query fails
+    if (!stats) {
+      console.log(`No data available for ${owner}/${repo} - showing error state`);
+      stats = generateErrorStats(repo);
+    } else {
+      console.log(`Using real data for ${owner}/${repo}`);
+    }
     
     // Generate SVG
     const svg = generateStatCardSVG(owner, repo, stats, {
@@ -273,6 +344,8 @@ export default async (req, context) => {
         'X-Generation-Time': `${endTime - startTime}ms`,
         'X-Repository': `${owner}/${repo}`,
         'X-Widget-Type': 'stat-card',
+        'X-Data-Source': stats.contributors !== null ? 'database' : 'unavailable',
+        'X-Time-Range': '30-days'
       }
     });
 
@@ -280,17 +353,7 @@ export default async (req, context) => {
     console.error('Stat card generation error:', error);
     
     // Fallback card
-    const fallbackSvg = generateStatCardSVG('error', 'unavailable', {
-      description: 'Widget generation failed',
-      language: 'Unknown',
-      contributors: 0,
-      pullRequests: 0,
-      mergedPRs: 0,
-      lotteryFactor: 0,
-      lotteryRating: 'N/A',
-      weeklyPRVolume: 0,
-      activeContributors: 0,
-    });
+    const fallbackSvg = generateStatCardSVG('error', 'unavailable', generateErrorStats('unavailable'));
     
     return new Response(fallbackSvg, {
       status: 500,
