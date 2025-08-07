@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ExternalLink, Star, GitFork, Users, CheckCircle, Clock, Plus } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { ExternalLink, Star, GitFork, Users, Clock, Eye } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useOrgRepos } from "@/hooks/use-org-repos";
 import { humanizeNumber } from "@/lib/utils";
+import { OrganizationAvatar } from "@/components/ui/organization-avatar";
 
 interface RepositoryWithTracking {
   id: number;
@@ -70,23 +71,24 @@ const getActivityLevel = (updatedAt: string): { level: string; color: string } =
 };
 
 const TrackingStatusBadge = ({ repo }: { repo: RepositoryWithTracking }) => {
-  const handleTrackRepo = () => {
-    
-    // Open GitHub discussions with pre-filled request
-    const discussionUrl = `https://github.com/bdougie/contributor.info/discussions/new?category=request-a-repo&title=Track%20repository%20request%3A%20${encodeURIComponent(repo.full_name)}&body=Please%20add%20tracking%20for%20repository%3A%20${encodeURIComponent(repo.html_url)}`;
-    window.open(discussionUrl, '_blank', 'noopener,noreferrer');
-    
-    toast.success("Request submitted! We'll review your repository request.", {
-      description: "Check GitHub discussions for updates on your request."
-    });
+  const navigate = useNavigate();
+  const [owner, repoName] = repo.full_name.split('/');
+
+  const handleViewRepo = () => {
+    navigate(`/${owner}/${repoName}`);
   };
 
   if (repo.is_tracked) {
     return (
-      <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/20">
-        <CheckCircle className="w-3 h-3 mr-1" />
-        Tracked
-      </Badge>
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="text-xs h-6 px-2"
+        onClick={handleViewRepo}
+      >
+        <Eye className="w-3 h-3 mr-1" />
+        View
+      </Button>
     );
   }
   
@@ -104,9 +106,8 @@ const TrackingStatusBadge = ({ repo }: { repo: RepositoryWithTracking }) => {
       variant="outline" 
       size="sm" 
       className="text-xs h-6 px-2"
-      onClick={handleTrackRepo}
+      onClick={handleViewRepo}
     >
-      <Plus className="w-3 h-3 mr-1" />
       Track
     </Button>
   );
@@ -183,7 +184,7 @@ const RequestMoreReposCTA = ({ org }: { org: string }) => {
           <div>
             <h3 className="text-lg font-semibold">Looking for specific repositories?</h3>
             <p className="text-muted-foreground">
-              We're showing the top repositories for {org}. Request specific repos to be tracked.
+              We're showing the most active repositories for {org}. Request specific repos to be tracked.
             </p>
           </div>
           <Button onClick={handleRequestMoreRepos} className="gap-2">
@@ -200,7 +201,7 @@ export default function OrgView() {
   const { org } = useParams<{ org: string }>();
   const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
   
-  const { repositories, isLoading, error } = useOrgRepos(org);
+  const { repositories, orgData, isLoading, error } = useOrgRepos(org);
   
   const displayedRepos = useMemo(() => {
     return repositories.slice(0, displayCount);
@@ -238,13 +239,22 @@ export default function OrgView() {
       {/* Header */}
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-            {org?.charAt(0)?.toUpperCase() || '?'}
-          </div>
+          {orgData?.avatar_url ? (
+            <OrganizationAvatar
+              src={orgData.avatar_url}
+              alt={orgData.name || org || ''}
+              size={48}
+              priority={true}
+            />
+          ) : (
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+              {org?.charAt(0)?.toUpperCase() || '?'}
+            </div>
+          )}
           <div>
-            <h1 className="text-3xl font-bold">{org}</h1>
+            <h1 className="text-3xl font-bold">{orgData?.name || org}</h1>
             <p className="text-muted-foreground">
-              Top repositories from this GitHub organization
+              Most active repositories from this GitHub organization
             </p>
           </div>
         </div>
@@ -308,7 +318,7 @@ export default function OrgView() {
               
               {hasMoreRepos && displayCount >= MAX_DISPLAY_COUNT && (
                 <div className="mt-4 text-center text-sm text-muted-foreground">
-                  Showing top {MAX_DISPLAY_COUNT} repositories. Use the request form below for specific repositories.
+                  Showing most active repositories. Use the request form below for specific repositories.
                 </div>
               )}
             </>

@@ -24,6 +24,11 @@ interface RepositoryWithTracking extends GitHubRepository {
 
 interface UseOrgReposState {
   repositories: RepositoryWithTracking[];
+  orgData?: {
+    avatar_url: string;
+    name: string;
+    description?: string;
+  };
   isLoading: boolean;
   error: Error | null;
 }
@@ -32,6 +37,11 @@ interface UseOrgReposState {
 interface OrgRepoCache {
   [org: string]: {
     repositories: RepositoryWithTracking[];
+    orgData?: {
+      avatar_url: string;
+      name: string;
+      description?: string;
+    };
     timestamp: number;
   };
 }
@@ -72,6 +82,7 @@ function cleanupOrgCache() {
 export function useOrgRepos(org?: string): UseOrgReposState {
   const [state, setState] = useState<UseOrgReposState>({
     repositories: [],
+    orgData: undefined,
     isLoading: true,
     error: null,
   });
@@ -110,6 +121,7 @@ export function useOrgRepos(org?: string): UseOrgReposState {
         if (cachedData && (now - cachedData.timestamp) < CACHE_DURATION) {
           setState({
             repositories: cachedData.repositories,
+            orgData: cachedData.orgData,
             isLoading: false,
             error: null,
           });
@@ -121,19 +133,26 @@ export function useOrgRepos(org?: string): UseOrgReposState {
           auth: env.GITHUB_TOKEN,
         });
         
-        const { data: repos } = await octokit.rest.repos.listForOrg({
-          org,
-          sort: 'pushed',
-          direction: 'desc',
-          per_page: 30, // Fetch a few more than we need in case some are filtered out
-          type: 'public',
-        });
+        // Fetch organization data for avatar
+        const [orgResponse, reposResponse] = await Promise.all([
+          octokit.rest.orgs.get({ org }),
+          octokit.rest.repos.listForOrg({
+            org,
+            sort: 'pushed',
+            direction: 'desc',
+            per_page: 30, // Fetch a few more than we need in case some are filtered out
+            type: 'public',
+          })
+        ]);
+
+        const { data: orgDetails } = orgResponse;
+        const { data: repos } = reposResponse;
 
         if (signal.aborted) return;
 
-        // Filter out archived and disabled repos, and limit to reasonable amount
+        // Filter out archived, disabled repos, and repos with 0 stars and no activity
         const activeRepos = repos
-          .filter(repo => !repo.archived && !repo.disabled)
+          .filter(repo => !repo.archived && !repo.disabled && (repo.stargazers_count || 0) > 0)
           .slice(0, 25); // Max 25 as per requirements
 
         // Check tracking status for each repository
@@ -172,14 +191,23 @@ export function useOrgRepos(org?: string): UseOrgReposState {
           };
         });
 
+        // Prepare org data
+        const orgData = {
+          avatar_url: orgDetails.avatar_url,
+          name: orgDetails.name || org,
+          description: orgDetails.description || undefined,
+        };
+
         // Cache the results
         orgRepoCache[org] = {
           repositories: repositoriesWithTracking,
+          orgData,
           timestamp: now,
         };
 
         setState({
           repositories: repositoriesWithTracking,
+          orgData,
           isLoading: false,
           error: null,
         });
