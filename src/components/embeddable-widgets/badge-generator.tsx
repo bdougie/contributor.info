@@ -96,22 +96,6 @@ function sanitizeColor(color: string): string {
   return '#007ec6';
 }
 
-// Helper function to generate badge URL
-export function generateBadgeURL(owner: string, repo: string, type: string = 'contributors', style: string = 'flat'): string {
-  const params = new URLSearchParams({
-    owner,
-    repo,
-    type,
-    style,
-  });
-  return `${window.location.origin}/api/widget/badge?${params.toString()}`;
-}
-
-// Helper function to generate badge markdown
-export function generateBadgeMarkdown(owner: string, repo: string, type: string = 'contributors', style: string = 'flat'): string {
-  const url = generateBadgeURL(owner, repo, type, style);
-  return `![${repo} ${type} badge](${url})`;
-}
 
 export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps) {
   const style = config.style || 'flat';
