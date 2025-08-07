@@ -314,7 +314,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                   }}
                   variant="outline"
                   size="sm"
-                  className="text-xs whitespace-nowrap border-white dark:border-white text-white dark:text-white hover:bg-white/10 dark:hover:bg-white/10"
+                  className="text-xs whitespace-nowrap border-white dark:border-black text-white dark:text-black hover:bg-white/10 dark:hover:bg-black/10"
                   title="Request priority indexing"
                 >
                   Request Priority
