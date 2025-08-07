@@ -1,0 +1,88 @@
+# contributor.info
+
+A React + TypeScript application for visualizing GitHub contributors and their contributions.
+
+## Purpose
+Discover and visualize GitHub contributors and their contributions. Track open source activity, analyze contribution patterns, and celebrate community impact.
+
+## Key Features
+- **Repository Analysis**: Analyze GitHub repository contributors and contribution patterns
+- **Activity Tracking**: Track pull request activity, reviews, and comments
+- **Health Metrics**: Repository health indicators including lottery factor analysis
+- **Distribution Charts**: Visualize contribution distribution across contributors
+- **Progressive Data Capture**: Automatic background data processing for comprehensive analysis
+- **Real-time Updates**: Live data updates with smart notifications
+
+## Architecture
+- **Frontend**: React 18 with TypeScript, Vite build system
+- **Styling**: Tailwind CSS with custom design system
+- **Database**: Supabase (PostgreSQL) for data persistence
+- **Authentication**: GitHub OAuth via Supabase Auth
+- **Data Processing**: Inngest for background job processing
+- **Deployment**: Netlify with functions
+
+## Core Components
+
+### Layout
+- Semantic HTML structure with proper heading hierarchy
+- Responsive design with mobile-first approach
+- Accessible navigation with ARIA labels
+
+### Repository View
+- Search functionality for GitHub repositories
+- Tabbed interface for different analysis views
+- Real-time data loading with skeleton states
+- Social sharing capabilities
+
+### Activity Analysis
+- Pull request activity timeline
+- Contributor statistics with definition lists
+- Trend analysis and metrics comparison
+- Time-based filtering options
+
+### Data Quality
+- Progressive enhancement for missing data
+- Automatic data quality detection
+- Background processing notifications
+- Smart refresh mechanisms
+
+## Technical Standards
+
+### Code Style
+- No unnecessary React imports (JSX Transform enabled)
+- Prefer editing existing files over creating new ones
+- Use Tailwind classes for all styling
+- Never use TypeScript 'any' type
+- Mock external dependencies in tests
+
+### Testing
+- Vitest for unit testing (never Jest)
+- Mock Supabase in all tests
+- Test isolation with proper cleanup
+- E2E testing for critical paths
+
+### Performance
+- Lazy loading for route components
+- Progressive chart loading
+- Web Vitals monitoring
+- Bundle size optimization
+
+### Accessibility
+- Semantic HTML elements (article, section, nav, aside)
+- Proper heading hierarchy (h1-h6)
+- Time elements with datetime attributes
+- Definition lists for statistics
+- ARIA labels for complex interactions
+
+## Database Schema
+11 core tables: contributors, repositories, pull_requests, reviews, comments, organizations, contributor_organizations, tracked_repositories, monthly_rankings, daily_activity_snapshots, sync_logs
+
+3 views: contributor_stats, repository_stats, recent_activity
+
+## User Experience
+Invisible, Netflix-like experience with:
+- Database-first data queries
+- Automatic data quality detection
+- Subtle background notifications
+- Progressive enhancement
+- No manual intervention required
