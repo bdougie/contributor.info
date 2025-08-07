@@ -1,0 +1,264 @@
+import { useState, useEffect, useRef } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Octokit } from '@octokit/rest';
+import { env } from '@/lib/env';
+
+interface GitHubRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  language: string | null;
+  html_url: string;
+  updated_at: string;
+  archived: boolean;
+  disabled: boolean;
+}
+
+interface RepositoryWithTracking extends GitHubRepository {
+  is_tracked?: boolean;
+  is_processing?: boolean;
+}
+
+interface UseOrgReposState {
+  repositories: RepositoryWithTracking[];
+  orgData?: {
+    avatar_url: string;
+    name: string;
+    description?: string;
+  };
+  isLoading: boolean;
+  error: Error | null;
+}
+
+// Cache interface for org repositories
+interface OrgRepoCache {
+  [org: string]: {
+    repositories: RepositoryWithTracking[];
+    orgData?: {
+      avatar_url: string;
+      name: string;
+      description?: string;
+    };
+    timestamp: number;
+  };
+}
+
+// Cache duration: 24 hours as mentioned in the requirements
+const CACHE_DURATION = 24 * 60 * 60 * 1000;
+
+// Global cache to persist across component re-mounts with size limit
+const orgRepoCache: OrgRepoCache = {};
+const MAX_CACHE_SIZE = 50; // Limit to prevent unbounded memory growth
+
+/**
+ * Clean up old cache entries and enforce size limits
+ */
+function cleanupOrgCache() {
+  const now = Date.now();
+  const entries = Object.entries(orgRepoCache);
+  
+  // Remove expired entries
+  entries.forEach(([org, cache]) => {
+    if (now - cache.timestamp > CACHE_DURATION) {
+      delete orgRepoCache[org];
+    }
+  });
+  
+  // If still over size limit, remove oldest entries (LRU)
+  const remainingEntries = Object.entries(orgRepoCache);
+  if (remainingEntries.length > MAX_CACHE_SIZE) {
+    const sortedByTimestamp = remainingEntries.sort(([,a], [,b]) => a.timestamp - b.timestamp);
+    const toRemove = sortedByTimestamp.slice(0, remainingEntries.length - MAX_CACHE_SIZE);
+    toRemove.forEach(([org]) => delete orgRepoCache[org]);
+  }
+}
+
+/**
+ * Hook to fetch organization repositories with caching and tracking status
+ */
+export function useOrgRepos(org?: string): UseOrgReposState {
+  const [state, setState] = useState<UseOrgReposState>({
+    repositories: [],
+    orgData: undefined,
+    isLoading: true,
+    error: null,
+  });
+  
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!org) {
+      setState({
+        repositories: [],
+        isLoading: false,
+        error: new Error('Organization name is required'),
+      });
+      return;
+    }
+
+    // Cancel any in-flight requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
+    const fetchOrgRepos = async () => {
+      try {
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        
+        // Clean up old cache entries
+        cleanupOrgCache();
+        
+        // Check cache first
+        const cachedData = orgRepoCache[org];
+        const now = Date.now();
+        
+        if (cachedData && (now - cachedData.timestamp) < CACHE_DURATION) {
+          setState({
+            repositories: cachedData.repositories,
+            orgData: cachedData.orgData,
+            isLoading: false,
+            error: null,
+          });
+          return;
+        }
+
+        // Fetch from GitHub API
+        const octokit = new Octokit({
+          auth: env.GITHUB_TOKEN,
+        });
+        
+        // Fetch organization data for avatar
+        const [orgResponse, reposResponse] = await Promise.all([
+          octokit.rest.orgs.get({ org }),
+          octokit.rest.repos.listForOrg({
+            org,
+            sort: 'pushed',
+            direction: 'desc',
+            per_page: 30, // Fetch a few more than we need in case some are filtered out
+            type: 'public',
+          })
+        ]);
+
+        const { data: orgDetails } = orgResponse;
+        const { data: repos } = reposResponse;
+
+        if (signal.aborted) return;
+
+        // Filter out archived, disabled repos, and repos with 0 stars and no activity
+        const activeRepos = repos
+          .filter(repo => !repo.archived && !repo.disabled && (repo.stargazers_count || 0) > 0)
+          .slice(0, 25); // Max 25 as per requirements
+
+        // Check tracking status for each repository
+        const repoFullNames = activeRepos.map(repo => repo.full_name);
+        
+        // Guard against empty array which would cause Supabase query to fail
+        let trackedRepos: { full_name: string; last_updated: string | null }[] = [];
+        if (repoFullNames.length > 0) {
+          const { data } = await supabase
+            .from('repositories')
+            .select('full_name, last_updated')
+            .in('full_name', repoFullNames);
+          trackedRepos = data || [];
+        }
+
+        if (signal.aborted) return;
+
+        // Combine GitHub data with tracking status
+        const repositoriesWithTracking: RepositoryWithTracking[] = activeRepos.map(repo => {
+          const trackedRepo = trackedRepos.find(tr => tr.full_name === repo.full_name);
+          
+          return {
+            id: repo.id,
+            name: repo.name,
+            full_name: repo.full_name,
+            description: repo.description,
+            stargazers_count: repo.stargazers_count || 0,
+            forks_count: repo.forks_count || 0,
+            language: repo.language || null,
+            html_url: repo.html_url,
+            updated_at: repo.updated_at || new Date().toISOString(),
+            archived: repo.archived || false,
+            disabled: repo.disabled || false,
+            is_tracked: Boolean(trackedRepo),
+            is_processing: trackedRepo ? isRecentlyUpdated(trackedRepo.last_updated) : false,
+          };
+        });
+
+        // Prepare org data
+        const orgData = {
+          avatar_url: orgDetails.avatar_url,
+          name: orgDetails.name || org,
+          description: orgDetails.description || undefined,
+        };
+
+        // Cache the results
+        orgRepoCache[org] = {
+          repositories: repositoriesWithTracking,
+          orgData,
+          timestamp: now,
+        };
+
+        setState({
+          repositories: repositoriesWithTracking,
+          orgData,
+          isLoading: false,
+          error: null,
+        });
+        
+      } catch (error) {
+        if (signal.aborted) return;
+        
+        // Error will be handled by setting error state below
+        
+        // Handle specific error cases
+        let errorMessage = 'Failed to fetch repositories';
+        if (error instanceof Error) {
+          if (error.message.includes('404')) {
+            errorMessage = `Organization "${org}" not found or not public`;
+          } else if (error.message.includes('403')) {
+            errorMessage = 'Rate limit exceeded. Please try again later.';
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        
+        setState({
+          repositories: [],
+          isLoading: false,
+          error: new Error(errorMessage),
+        });
+      }
+    };
+
+    fetchOrgRepos();
+
+    // Cleanup function
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [org]);
+
+  return state;
+}
+
+/**
+ * Helper function to determine if a repository is currently being processed
+ * (updated within the last hour)
+ */
+function isRecentlyUpdated(lastUpdated: string | null): boolean {
+  if (!lastUpdated) return false;
+  
+  const oneHourAgo = Date.now() - (60 * 60 * 1000);
+  const updateTime = new Date(lastUpdated).getTime();
+  
+  return updateTime > oneHourAgo;
+}
