@@ -52,6 +52,7 @@ const MaintainerManagement = lazy(() => import("@/components/features/admin/main
 const ConfidenceAnalyticsDashboard = lazy(() => import("@/components/features/admin/confidence-analytics-dashboard").then(m => ({ default: m.ConfidenceAnalyticsDashboard })));
 const CaptureHealthMonitor = lazy(() => import("@/components/CaptureHealthMonitor").then(m => ({ default: m.CaptureHealthMonitor })));
 const OrgView = lazy(() => import("@/pages/org-view"));
+const WidgetsPage = lazy(() => import("@/pages/widgets"));
 
 // Loading fallback component with proper structure
 const PageSkeleton = () => (
@@ -179,6 +180,8 @@ function App() {
               <Route index element={<Home />} />
               <Route path="/changelog" element={<ChangelogPage />} />
               <Route path="/docs" element={<DocsPage />} />
+              <Route path="/widgets" element={<WidgetsPage />} />
+              <Route path="/:owner/:repo/widgets" element={<WidgetsPage />} />
               <Route 
                 path="/settings" 
                 element={
