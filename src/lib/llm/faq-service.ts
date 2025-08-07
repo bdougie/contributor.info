@@ -33,6 +33,9 @@ export interface RepositoryData {
 }
 
 class FAQService {
+  // Increment this to bust the cache when FAQ generation changes
+  private readonly CACHE_VERSION = 'v3-ultra-concise';
+  
   private defaultQuestions: FAQQuestion[] = [
     {
       id: 'contributor-count',
@@ -126,7 +129,7 @@ class FAQService {
       }
 
       // Cache successful results
-      cacheService.set(cacheKey, answers as unknown as LLMInsight, dataHash, 60 * 60 * 1000); // 1 hour cache
+      cacheService.set(cacheKey, answers as unknown as LLMInsight, dataHash, 24 * 60 * 60 * 1000); // 24 hour cache
 
       return answers;
     } catch (error) {
@@ -201,12 +204,12 @@ Repository Data:
 ${contextData}
 
 Requirements:
-- Provide a clear, accurate answer based on the data
-- Use specific numbers and metrics when available
-- Keep response under 200 words
-- Focus on actionable insights
-- Be conversational but professional
-- Include relevant trends or patterns you observe
+- Maximum 50 words - STRICTLY ENFORCED
+- Use only essential facts and numbers
+- No introductory phrases or filler words
+- Direct, telegram-style answers preferred
+- Focus on ONE key insight only
+- Omit obvious context already in the question
 
 Answer:`;
   }
@@ -458,10 +461,10 @@ Answer:`;
   }
 
   /**
-   * Build cache key
+   * Build cache key with version for cache busting
    */
   private buildCacheKey(type: string, repoInfo: { owner: string; repo: string }, timeRange: string): string {
-    return `${type}:${repoInfo.owner}/${repoInfo.repo}:${timeRange}`;
+    return `${type}:${repoInfo.owner}/${repoInfo.repo}:${timeRange}:${this.CACHE_VERSION}`;
   }
 
   /**

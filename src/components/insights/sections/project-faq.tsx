@@ -206,7 +206,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
       communityStatus = 'a small but focused';
     }
     
-    return `${owner}/${repo} has ${uniqueContributors} unique contributors who have submitted pull requests ${timeRangeText}. This indicates ${communityStatus} contributor community.`;
+    return `${uniqueContributors} unique contributors ${timeRangeText}. ${communityStatus.charAt(0).toUpperCase() + communityStatus.slice(1)} community.`;
   };
 
   const generateTopContributorsAnswer = (): string => {
@@ -223,8 +223,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
       .slice(0, 5)
       .map(([name, count]) => `${name} (${count} PRs)`);
 
-    const timeRangeText = getTimeRangeText();
-    return `The top contributors to ${owner}/${repo} ${timeRangeText} are: ${topContributors.join(', ')}. These contributors have made the most significant impact through their pull request contributions.`;
+    return `Top contributors: ${topContributors.join(', ')}.`;
   };
 
   const generateCommitFrequencyAnswer = (): string => {
@@ -246,7 +245,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
       activityLevel = 'low';
     }
     
-    return `${owner}/${repo} has ${totalPRs} pull requests ${timeRangeText}, averaging ${avgPerDay} PRs per day and ${avgPerWeek} PRs per week. This shows ${activityLevel} development activity.`;
+    return `${totalPRs} PRs ${timeRangeText}. Average: ${avgPerWeek}/week. Activity level: ${activityLevel}.`;
   };
 
   const generateActivityAnswer = (): string => {
@@ -265,7 +264,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
       activityLevel = 'lightly active';
     }
     
-    return `${owner}/${repo} is ${activityLevel} with ${totalPRs} pull requests from ${uniqueContributors} contributors ${timeRangeText}. The project shows consistent development momentum with regular contributions from the community.`;
+    return `${activityLevel.charAt(0).toUpperCase() + activityLevel.slice(1)}. ${totalPRs} PRs from ${uniqueContributors} contributors ${timeRangeText}.`;
   };
 
   const generateRecentChangesAnswer = (): string => {
@@ -274,7 +273,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     const recentPRs = stats.pullRequests.slice(0, 5);
     const recentTitles = recentPRs.map(pr => pr.title.substring(0, 60) + (pr.title.length > 60 ? '...' : ''));
     
-    return `Recent changes in ${owner}/${repo} include: ${recentTitles.slice(0, 3).join('; ')}. These pull requests represent the latest development efforts and improvements to the project.`;
+    return `Recent: ${recentTitles.slice(0, 3).join('; ')}.`;
   };
 
   const generateContributorDiversityAnswer = (): string => {
@@ -301,7 +300,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
       diversityLevel = 'limited';
     }
     
-    return `${owner}/${repo} has ${totalContributors} contributors, with ${singlePRContributors} (${diversityPercentage}%) being first-time or occasional contributors. This shows ${diversityLevel} contributor diversity and community engagement.`;
+    return `${totalContributors} contributors. ${diversityPercentage}% are occasional contributors. Diversity: ${diversityLevel}.`;
   };
 
   const generatePRPatternsAnswer = (): string => {
@@ -313,7 +312,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     
     const predominantType = featCount > fixCount ? 'feature development' : 'bug fixes and maintenance';
     
-    return `${owner}/${repo} pull requests show patterns of ${predominantType}, with an average title length of ${avgTitleLength.toFixed(0)} characters. The repository has ${featCount} feature-related and ${fixCount} fix-related pull requests, indicating balanced development priorities.`;
+    return `${featCount} features, ${fixCount} fixes. Focus: ${predominantType}.`;
   };
 
   const getTimeRangeText = (): string => {
@@ -393,7 +392,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
                 className="w-full justify-between h-auto p-0 text-left font-normal hover:bg-transparent"
                 onClick={() => toggleExpanded(faq.id)}
               >
-                <span className="text-sm font-medium pr-2 flex-1">{faq.question}</span>
+                <span className="text-sm font-medium pr-2 flex-1 break-words">{faq.question}</span>
                 {faq.isAIGenerated && (
                   <Sparkles className="h-3 w-3 text-blue-500 mr-2 flex-shrink-0" />
                 )}
@@ -406,7 +405,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
               
               {expandedItems.has(faq.id) && (
                 <div className="mt-3 pt-3 border-t">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
+                  <p className="text-sm text-muted-foreground leading-relaxed break-words">
                     {faq.answer}
                   </p>
                   {faq.isAIGenerated && faq.confidence && faq.sources && (
