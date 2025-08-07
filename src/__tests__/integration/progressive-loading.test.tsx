@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, waitFor, cleanup } from '@testing-library/react';
-import { render } from '../../test-utils';
+import { render } from '../../lib/test-utils';
 import { RepoView } from '../../components/RepoView/RepoView';
 import { supabase } from '../../lib/supabase';
 

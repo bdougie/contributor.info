@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } 
 import { screen, waitFor, cleanup } from '@testing-library/react';
 import { setupServer } from 'msw/node';
 import { rest } from 'msw';
-import { render } from '../../test-utils';
+import { render } from '../../lib/test-utils';
 import { RepoView } from '../../components/RepoView/RepoView';
 
 // Mock data factories
