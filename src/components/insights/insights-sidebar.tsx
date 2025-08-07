@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -15,14 +16,24 @@ import {
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useTimeRangeStore } from "@/lib/time-range-store";
-
-// Import section components
-import { NeedsAttention } from "./sections/needs-attention";
-import { InsightsHealth } from "./sections/repository-health-insights";
-import { Recommendations } from "./sections/recommendations";
-import { RepositorySummary } from "./sections/repository-summary";
-import { ProjectFAQ } from "./sections/project-faq";
 import { getCriticalPrCount } from "@/lib/insights/pr-attention";
+
+// Lazy load section components - only loaded when user clicks on them
+const NeedsAttention = lazy(() => import("./sections/needs-attention").then(m => ({ default: m.NeedsAttention })));
+const InsightsHealth = lazy(() => import("./sections/repository-health-insights").then(m => ({ default: m.InsightsHealth })));
+const Recommendations = lazy(() => import("./sections/recommendations").then(m => ({ default: m.Recommendations })));
+const RepositorySummary = lazy(() => import("./sections/repository-summary").then(m => ({ default: m.RepositorySummary })));
+const ProjectFAQ = lazy(() => import("./sections/project-faq").then(m => ({ default: m.ProjectFAQ })));
+
+// Loading skeleton for lazy-loaded sections
+const InsightsSkeleton = () => (
+  <div className="space-y-3">
+    <Skeleton className="h-4 w-3/4" />
+    <Skeleton className="h-4 w-full" />
+    <Skeleton className="h-4 w-5/6" />
+    <Skeleton className="h-20 w-full" />
+  </div>
+);
 
 interface InsightsSidebarProps {
   className?: string;
@@ -167,24 +178,26 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                         </div>
                       </div>
                       
-                      {/* Section content */}
+                      {/* Section content - lazy loaded on demand */}
                       {activeSection === section.id && owner && repo && (
                         <div className="mt-3">
-                          {section.id === "summary" && (
-                            <RepositorySummary owner={owner} repo={repo} timeRange={timeRange} />
-                          )}
-                          {section.id === "attention" && (
-                            <NeedsAttention owner={owner} repo={repo} timeRange={timeRange} />
-                          )}
-                          {section.id === "health" && (
-                            <InsightsHealth owner={owner} repo={repo} timeRange={timeRange} />
-                          )}
-                          {section.id === "recommendations" && (
-                            <Recommendations owner={owner} repo={repo} timeRange={timeRange} />
-                          )}
-                          {section.id === "faq" && (
-                            <ProjectFAQ owner={owner} repo={repo} timeRange={timeRange} />
-                          )}
+                          <Suspense fallback={<InsightsSkeleton />}>
+                            {section.id === "summary" && (
+                              <RepositorySummary owner={owner} repo={repo} timeRange={timeRange} />
+                            )}
+                            {section.id === "attention" && (
+                              <NeedsAttention owner={owner} repo={repo} timeRange={timeRange} />
+                            )}
+                            {section.id === "health" && (
+                              <InsightsHealth owner={owner} repo={repo} timeRange={timeRange} />
+                            )}
+                            {section.id === "recommendations" && (
+                              <Recommendations owner={owner} repo={repo} timeRange={timeRange} />
+                            )}
+                            {section.id === "faq" && (
+                              <ProjectFAQ owner={owner} repo={repo} timeRange={timeRange} />
+                            )}
+                          </Suspense>
                         </div>
                       )}
                     </div>

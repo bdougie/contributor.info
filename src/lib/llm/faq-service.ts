@@ -5,7 +5,8 @@
 
 import { openAIService, type LLMInsight } from './openai-service';
 import { cacheService } from './cache-service';
-import { generateEmbedding } from '../../../app/services/embeddings';
+// Dynamically import embeddings to avoid bundling heavy transformers library
+// import { generateEmbedding } from '../../../app/services/embeddings';
 
 export interface FAQQuestion {
   id: string;
@@ -359,6 +360,9 @@ Answer:`;
    */
   async generateQuestionEmbeddings(questions: FAQQuestion[]): Promise<FAQQuestion[]> {
     try {
+      // Dynamically import to avoid bundling heavy dependencies
+      const { generateEmbedding } = await import('../../../app/services/embeddings');
+      
       const questionsWithEmbeddings: FAQQuestion[] = [];
 
       for (const question of questions) {
@@ -385,6 +389,8 @@ Answer:`;
     threshold: number = 0.7
   ): Promise<FAQQuestion[]> {
     try {
+      // Dynamically import to avoid bundling heavy dependencies
+      const { generateEmbedding } = await import('../../../app/services/embeddings');
       const userEmbedding = await generateEmbedding(userQuestion);
       
       const similarities = questions
