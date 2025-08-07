@@ -60,7 +60,7 @@ jobs:
           echo "**URLs Tested:**" >> $GITHUB_STEP_SUMMARY
           echo "- ${{ env.DEPLOY_URL }}" >> $GITHUB_STEP_SUMMARY
           echo "- ${{ env.DEPLOY_URL }}/vercel/next.js" >> $GITHUB_STEP_SUMMARY
-          echo "- ${{ env.DEPLOY_URL }}/facebook/react" >> $GITHUB_STEP_SUMMARY
+          echo "- ${{ env.DEPLOY_URL }}/continuedev/continue" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Core Web Vitals Targets" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ **LCP:** < 2.5s" >> $GITHUB_STEP_SUMMARY
@@ -216,7 +216,7 @@ jobs:
             ✅ Lighthouse tests completed for:
             - [Homepage](${url})
             - [Vercel/Next.js](${url}/vercel/next.js)
-            - [Facebook/React](${url}/facebook/react)
+            - [Continue Dev](${url}/continuedev/continue)
             
             ### 📦 Bundle Analysis
             Performance budget checks completed. See workflow summary for details.

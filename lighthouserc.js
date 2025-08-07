@@ -5,7 +5,7 @@ module.exports = {
       url: [
         'http://localhost/',
         'http://localhost/vercel/next.js',
-        'http://localhost/facebook/react',
+        'http://localhost/continuedev/continue',
       ],
       numberOfRuns: 3,
       settings: {
