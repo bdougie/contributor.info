@@ -15,9 +15,86 @@ env:
   DEPLOY_URL: ${{ github.event_name == 'pull_request' && format('https://deploy-preview-{0}--contributor-info.netlify.app', github.event.number) || 'https://contributor.info' }}
 
 jobs:
+  bundle-size-check:
+    runs-on: ubuntu-latest
+    name: Bundle Size Check
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build and analyze bundle
+        id: bundle
+        run: |
+          npm run build > build.log 2>&1
+          
+          # Extract bundle sizes
+          echo "### Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Chunk | Size | Gzipped |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|------|---------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Parse build output for sizes
+          grep -E "dist/assets/.*\.js" build.log | while read line; do
+            chunk=$(echo "$line" | awk '{print $1}' | sed 's/dist\/assets\///')
+            size=$(echo "$line" | awk '{print $2 " " $3}')
+            gzip=$(echo "$line" | awk '{print $5 " " $6}')
+            echo "| $chunk | $size | $gzip |" >> $GITHUB_STEP_SUMMARY
+          done
+          
+          # Check for oversized chunks (>600KB)
+          if grep -q "(!) Some chunks are larger than 600 kB" build.log; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Warning:** Some chunks exceed 600KB limit" >> $GITHUB_STEP_SUMMARY
+            echo "oversized=true" >> $GITHUB_OUTPUT
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **All chunks within size limits**" >> $GITHUB_STEP_SUMMARY
+            echo "oversized=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # Calculate total bundle size
+          total_size=$(grep "dist/assets/.*\.js" build.log | awk '{print $2}' | sed 's/[^0-9.]//g' | paste -sd+ | bc)
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Total Bundle Size:** ${total_size} KB" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Comment PR with bundle analysis
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const oversized = '${{ steps.bundle.outputs.oversized }}' === 'true';
+            const emoji = oversized ? '⚠️' : '✅';
+            const status = oversized ? 'Some chunks exceed size limits' : 'All chunks within limits';
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ${emoji} Bundle Size Analysis\n\n${status}\n\nSee the [workflow summary](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for detailed bundle sizes.`
+            });
+      
+      - name: Fail if chunks are oversized
+        if: steps.bundle.outputs.oversized == 'true'
+        run: |
+          echo "❌ Build failed due to oversized chunks"
+          echo "Please optimize bundle splitting to reduce chunk sizes below 600KB"
+          exit 1
+
   lighthouse-audit:
     runs-on: ubuntu-latest
     name: Lighthouse Performance Audit
+    if: github.event_name != 'pull_request' || github.event_name == 'pull_request'
     
     steps:
       - name: Checkout code
@@ -200,7 +277,7 @@ jobs:
   comment-results:
     runs-on: ubuntu-latest
     name: Comment PR Results
-    needs: [lighthouse-audit, performance-budget]
+    needs: [bundle-size-check, lighthouse-audit, performance-budget]
     if: github.event_name == 'pull_request' && !cancelled()
     
     steps:

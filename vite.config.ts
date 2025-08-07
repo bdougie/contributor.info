@@ -86,50 +86,141 @@ export default defineConfig({
           return `assets/${chunkInfo.name}-[hash].js`;
         },
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Proven chunk splitting strategy from LIGHTHOUSE_OPTIMIZATIONS.md
-        manualChunks: {
-          // Core React - keep together for stability (Critical Path)
-          'react-core': ['react', 'react-dom'],
-          
-          // Router and utilities (Critical Path)
-          'react-ecosystem': [
-            'react-router-dom',
-            'class-variance-authority',
-            'clsx',
-            'tailwind-merge'
-          ],
-          
-          // UI library - deferred loading when UI components needed
-          'ui-radix': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-select',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-tooltip',
-            '@radix-ui/react-slot'
-          ],
-          
-          // Essential charts for PR contributions (Critical Path)
-          'charts-essential': [
-            '@nivo/scatterplot'  // Main PR contribution chart
-          ],
-          
-          // Advanced visualization libraries - lazy loaded on chart pages
-          'charts-advanced': [
-            'recharts'  // Distribution analysis charts
-          ],
-          
-          // Icons - lazy loaded
-          'icons': ['lucide-react'],
-          
-          // Utilities
-          'utils': ['date-fns', 'zod'],
-          
-          // Data and state - deferred
-          'data': ['zustand', '@supabase/supabase-js'],
-          
-          // Analytics - removed (no longer using PostHog/Sentry)
+        // Aggressive chunk splitting for optimal Core Web Vitals
+        manualChunks: (id) => {
+          // Core vendor chunks
+          if (id.includes('node_modules')) {
+            // React core - critical path
+            if (id.includes('react') && !id.includes('react-')) {
+              return 'react-core';
+            }
+            if (id.includes('react-dom')) {
+              return 'react-core';
+            }
+            
+            // React router - critical path  
+            if (id.includes('react-router')) {
+              return 'react-router';
+            }
+            
+            // All Radix UI components - split by component type
+            if (id.includes('@radix-ui')) {
+              if (id.includes('dialog') || id.includes('popover') || id.includes('tooltip')) {
+                return 'ui-overlays';
+              }
+              if (id.includes('dropdown') || id.includes('select') || id.includes('menu')) {
+                return 'ui-menus';
+              }
+              if (id.includes('form') || id.includes('checkbox') || id.includes('radio') || id.includes('input')) {
+                return 'ui-forms';
+              }
+              return 'ui-radix-misc';
+            }
+            
+            // Charts - split by library
+            if (id.includes('@nivo')) {
+              return 'charts-nivo';
+            }
+            if (id.includes('recharts')) {
+              return 'charts-recharts';
+            }
+            if (id.includes('d3-') || id.includes('d3/')) {
+              return 'charts-d3';
+            }
+            
+            // Markdown and code highlighting
+            if (id.includes('react-markdown') || id.includes('remark') || id.includes('rehype')) {
+              return 'markdown';
+            }
+            if (id.includes('highlight.js') || id.includes('prism')) {
+              return 'syntax-highlighting';
+            }
+            
+            // Icons
+            if (id.includes('lucide-react') || id.includes('@radix-ui/react-icons')) {
+              return 'icons';
+            }
+            
+            // Data and API
+            if (id.includes('@supabase')) {
+              return 'supabase';
+            }
+            if (id.includes('@octokit') || id.includes('github')) {
+              return 'github-api';
+            }
+            if (id.includes('zustand')) {
+              return 'state-management';
+            }
+            
+            // Form handling
+            if (id.includes('react-hook-form') || id.includes('@hookform')) {
+              return 'forms';
+            }
+            
+            // Date utilities
+            if (id.includes('date-fns') || id.includes('dayjs')) {
+              return 'date-utils';
+            }
+            
+            // Validation
+            if (id.includes('zod') || id.includes('yup')) {
+              return 'validation';
+            }
+            
+            // CSS-in-JS and styling
+            if (id.includes('class-variance-authority') || id.includes('clsx') || id.includes('tailwind-merge')) {
+              return 'styling-utils';
+            }
+            
+            // Web vitals and monitoring
+            if (id.includes('web-vitals')) {
+              return 'monitoring';
+            }
+            
+            // PWA and service worker
+            if (id.includes('workbox') || id.includes('service-worker')) {
+              return 'pwa';
+            }
+            
+            // Animation libraries
+            if (id.includes('framer-motion') || id.includes('@react-spring')) {
+              return 'animation';
+            }
+            
+            // Testing libraries (shouldn't be in production but just in case)
+            if (id.includes('vitest') || id.includes('@testing-library') || id.includes('jest')) {
+              return 'testing';
+            }
+            
+            // MDX
+            if (id.includes('@mdx-js')) {
+              return 'mdx';
+            }
+            
+            // Netlify functions
+            if (id.includes('@netlify')) {
+              return 'netlify';
+            }
+            
+            // Misc utilities
+            if (id.includes('lodash') || id.includes('ramda')) {
+              return 'utils-functional';
+            }
+            
+            // Split remaining vendor by size
+            // This prevents a single large vendor chunk
+            const segments = id.split('/');
+            const packageName = segments[segments.indexOf('node_modules') + 1];
+            
+            // Group smaller packages together, split large ones
+            if (packageName.startsWith('@')) {
+              // Scoped packages - use the scope as chunk name
+              return `vendor-${packageName.substring(1)}`;
+            }
+            
+            // Individual packages
+            return `vendor-${packageName}`;
+          }
         },
       },
     },

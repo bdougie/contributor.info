@@ -154,7 +154,7 @@ export function RepositoryHealthCard() {
   }
 
   return (
-    <Card>
+    <Card className="health-metrics-container">
       <CardHeader>
         <CardTitle>Repository Health</CardTitle>
         <CardDescription>

@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './index.css';
+import './styles/cls-fixes.css'; // Global CLS fixes
 import { MetaTagsProvider, SchemaMarkup } from './components/common/layout';
 
 // Sentry removed - was causing React hooks conflicts

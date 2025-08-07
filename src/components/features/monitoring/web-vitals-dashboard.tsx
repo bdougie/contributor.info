@@ -8,6 +8,7 @@ import { getWebVitalsAnalytics } from '@/lib/web-vitals-analytics';
 import { THRESHOLDS } from '@/lib/web-vitals-monitoring';
 import { Activity, AlertCircle, Clock, Zap, Layout, Wifi } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { NetlifyRUMIntegration } from './netlify-rum-integration';
 
 interface MetricSummary {
   p50: number;
@@ -138,6 +139,9 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
 
   return (
     <div className="space-y-6">
+      {/* Netlify RUM Integration */}
+      <NetlifyRUMIntegration />
+      
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>

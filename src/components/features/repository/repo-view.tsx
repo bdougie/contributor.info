@@ -265,9 +265,9 @@ export default function RepoView() {
                 <p className="text-muted-foreground">
                   Contribution analysis of recent pull requests
                 </p>
-                {/* Show last updated timestamp when data is available */}
-                {!stats.loading && (
-                  <div className="mt-2">
+                {/* Reserve space for last updated timestamp to prevent CLS */}
+                <div className="mt-2 repo-header-timestamp">
+                  {!stats.loading ? (
                     <time className="text-sm text-muted-foreground">
                       <LastUpdated 
                         timestamp={lastUpdated}
@@ -275,15 +275,17 @@ export default function RepoView() {
                         size="sm"
                       />
                     </time>
-                  </div>
-                )}
+                  ) : (
+                    <div className="h-5 skeleton-loading" aria-hidden="true" />
+                  )}
+                </div>
               </div>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={handleShare}
                 disabled={isGeneratingUrl}
-                className="h-8 w-8 flex-shrink-0"
+                className="h-8 w-8 flex-shrink-0 stable-button"
                 title={isGeneratingUrl ? "Generating short link..." : "Copy repository link"}
                 aria-label={isGeneratingUrl ? "Generating short link..." : "Copy repository link"}
               >
@@ -321,41 +323,44 @@ export default function RepoView() {
                   repository={`${owner}/${repo}`} 
                   className="mt-4" 
                 />
-                {discoveryState.isNewRepository && !stats.loading && (
-                  <aside className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0">
-                        <svg className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
+                {/* Container with reserved space to prevent layout shifts */}
+                <div className="status-indicators-container smooth-height">
+                  {discoveryState.isNewRepository && !stats.loading && (
+                    <aside className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0">
+                          <svg className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <h2 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                            Welcome to {owner}/{repo}!
+                          </h2>
+                          <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
+                            This is a new repository. We're gathering contributor data and it will be ready in about 1-2 minutes. 
+                            You can explore the interface while we work in the background.
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h2 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                          Welcome to {owner}/{repo}!
-                        </h2>
-                        <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                          This is a new repository. We're gathering contributor data and it will be ready in about 1-2 minutes. 
-                          You can explore the interface while we work in the background.
-                        </p>
-                      </div>
-                    </div>
-                  </aside>
-                )}
-                {/* Show data state indicator for pending/partial data */}
-                {!stats.loading && dataStatus && dataStatus.status !== 'success' && (
-                  <aside>
-                    <DataStateIndicator
-                      status={dataStatus.status}
-                      message={dataStatus.message}
-                      metadata={dataStatus.metadata}
-                      className="mt-4"
-                    />
-                  </aside>
-                )}
+                    </aside>
+                  )}
+                  {/* Show data state indicator for pending/partial data */}
+                  {!stats.loading && dataStatus && dataStatus.status !== 'success' && !discoveryState.isNewRepository && (
+                    <aside>
+                      <DataStateIndicator
+                        status={dataStatus.status}
+                        message={dataStatus.message}
+                        metadata={dataStatus.metadata}
+                        className="mt-4"
+                      />
+                    </aside>
+                  )}
+                </div>
               </>
             )}
 
-            <section className="mt-6">
+            <section className="mt-6 tab-content-container">
               <ErrorBoundary context="Repository Data Provider">
                 <RepoStatsProvider
                   value={{
