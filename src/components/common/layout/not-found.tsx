@@ -316,7 +316,7 @@ export default function NotFound() {
                 <div className="mt-4">
                   <div className="text-muted-foreground text-sm mb-2">Similar paths you might want:</div>
                   <div className="space-y-1">
-                    {suggestedUrls.map((url, index) => (
+                    {suggestedUrls.map((url) => (
                       <button
                         key={url.path}
                         onClick={() => handleNavigation(url.path)}
