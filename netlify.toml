@@ -84,6 +84,12 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/api/validate-repository"
+  to = "/.netlify/functions/validate-repository"
+  status = 200
+  force = true
+
 # Headers for proper MIME types
 [[headers]]
   for = "/*.js"

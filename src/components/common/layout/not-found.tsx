@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Terminal, Search, TrendingUp, Clock, Star, GitBranch, ExternalLink, AlertTriangle } from "lucide-react";
+import { Terminal, Search, TrendingUp, Clock, Star, GitBranch, ExternalLink, AlertTriangle, Loader2, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SocialMetaTags } from "./meta-tags-provider";
 import { GitHubSearchInput } from "@/components/ui/github-search-input";
@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { OrganizationAvatar } from "@/components/ui/organization-avatar";
 import { useTimeFormatter } from "@/hooks/use-time-formatter";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRepositoryValidation, isRepositoryPath } from "@/hooks/use-repository-validation";
 
 interface Repository {
   id: string;
@@ -40,6 +41,19 @@ export default function NotFound() {
   const [suggestedUrls, setSuggestedUrls] = useState<SuggestedUrl[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const { formatRelativeTime } = useTimeFormatter();
+  
+  // Check if the current path looks like a repository
+  const pathInfo = isRepositoryPath(location.pathname);
+  
+  // Use the validation hook if this looks like a repository path
+  const validationResult = useRepositoryValidation(
+    pathInfo.isRepo ? pathInfo.owner! : null,
+    pathInfo.isRepo ? pathInfo.repo! : null,
+    {
+      autoRedirect: true,
+      autoTrack: true,
+    }
+  );
 
   // Set focus to the container when component mounts and load data
   useEffect(() => {
@@ -304,13 +318,58 @@ export default function NotFound() {
                 </div>
               </div>
               
-              <div className="mt-4 text-destructive">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span>fatal: 404 Not Found</span>
+              {/* Show validation status for repository paths */}
+              {pathInfo.isRepo && validationResult.status === 'checking' ? (
+                <div className="mt-4 text-yellow-600">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Checking repository existence...</span>
+                  </div>
+                  <div className="mt-2 text-sm">
+                    Verifying {pathInfo.owner}/{pathInfo.repo} in our database and on GitHub...
+                  </div>
                 </div>
-                <div className="mt-2 text-sm">The path '{location.pathname}' doesn't exist or has been moved.</div>
-              </div>
+              ) : pathInfo.isRepo && validationResult.status === 'exists_on_github' ? (
+                <div className="mt-4 text-green-600">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Repository found on GitHub!</span>
+                  </div>
+                  <div className="mt-2 text-sm">
+                    Adding {pathInfo.owner}/{pathInfo.repo} to our tracking system...
+                  </div>
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    You'll be redirected automatically in a moment.
+                  </div>
+                </div>
+              ) : pathInfo.isRepo && validationResult.status === 'exists_in_db' ? (
+                <div className="mt-4 text-green-600">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Repository found!</span>
+                  </div>
+                  <div className="mt-2 text-sm">
+                    Redirecting to {pathInfo.owner}/{pathInfo.repo}...
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 text-destructive">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span>fatal: 404 Not Found</span>
+                  </div>
+                  <div className="mt-2 text-sm">
+                    {pathInfo.isRepo && validationResult.status === 'not_found' 
+                      ? `Repository '${pathInfo.owner}/${pathInfo.repo}' doesn't exist on GitHub.`
+                      : `The path '${location.pathname}' doesn't exist or has been moved.`}
+                  </div>
+                  {validationResult.suggestion && (
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      {validationResult.suggestion}
+                    </div>
+                  )}
+                </div>
+              )}
               
               {suggestedUrls.length > 0 && (
                 <div className="mt-4">
