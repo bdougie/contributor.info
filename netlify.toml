@@ -182,6 +182,13 @@
     Pragma = "no-cache"
     Expires = "0"
 
+# Service worker should never be cached
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Content-Type = "text/javascript; charset=utf-8"
+
 # Font and image optimizations
 [[headers]]
   for = "/*.woff2"
