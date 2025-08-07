@@ -117,16 +117,10 @@ export default defineConfig({
               return 'ui-radix-misc';
             }
             
-            // Charts - split by library
-            if (id.includes('@nivo')) {
-              return 'charts-nivo';
-            }
-            // Include react-smooth with recharts since it's a dependency
-            if (id.includes('recharts') || id.includes('react-smooth')) {
-              return 'charts-recharts';
-            }
-            if (id.includes('d3-') || id.includes('d3/')) {
-              return 'charts-d3';
+            // Charts - combine all chart libraries to avoid circular dependencies
+            if (id.includes('@nivo') || id.includes('recharts') || id.includes('react-smooth') || 
+                id.includes('d3-') || id.includes('d3/') || id.includes('victory')) {
+              return 'charts-all';
             }
             
             // Markdown and code highlighting
@@ -235,7 +229,7 @@ export default defineConfig({
     minify: 'esbuild',
     target: 'es2020', // Modern target with good compatibility
     // Optimize chunk size warnings  
-    chunkSizeWarningLimit: 600, // Slightly more lenient given postmortem learnings
+    chunkSizeWarningLimit: 800, // Increased to accommodate combined chart libraries
     // Enable compression reporting
     reportCompressedSize: true,
     // Module preload optimization - only preload critical path
