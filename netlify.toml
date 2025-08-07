@@ -56,13 +56,19 @@
 
 [[redirects]]
   from = "/api/github/webhook"
-  to = "/.netlify/functions/github-webhook-simple"
+  to = "/.netlify/functions/github-webhook"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/github/webhook-test"
   to = "/.netlify/functions/github-webhook-test"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/github/webhook-status"
+  to = "/.netlify/functions/github-webhook-status"
   status = 200
   force = true
 

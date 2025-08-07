@@ -1,5 +1,21 @@
-import { githubAppAuth } from '../lib/auth';
 import { supabase } from '../../src/lib/supabase';
+
+// Lazy load auth to avoid initialization errors
+let githubAppAuth: any = null;
+
+async function getAuth() {
+  if (!githubAppAuth) {
+    try {
+      const { githubAppAuth: auth } = await import('../lib/auth');
+      githubAppAuth = auth;
+      console.log('✅ GitHub App auth loaded for labeled handler');
+    } catch (error) {
+      console.error('❌ Failed to load GitHub App auth:', error);
+      throw error;
+    }
+  }
+  return githubAppAuth;
+}
 
 interface LabeledEvent {
   action: 'labeled' | 'unlabeled';
@@ -60,6 +76,8 @@ interface LabeledEvent {
  * Only responds to 'labeled' action, not 'unlabeled'
  */
 export async function handleLabeledEvent(event: LabeledEvent) {
+  console.log('🏷️ handleLabeledEvent called');
+  
   try {
     // Only process 'labeled' action (not 'unlabeled')
     if (event.action !== 'labeled') {
@@ -67,6 +85,8 @@ export async function handleLabeledEvent(event: LabeledEvent) {
       return;
     }
 
+    console.log(`Label event: ${event.label.name}`);
+    
     // Check if the label is 'contributor.info'
     if (event.label.name !== 'contributor.info') {
       console.log(`Label '${event.label.name}' is not 'contributor.info', skipping`);
@@ -77,20 +97,25 @@ export async function handleLabeledEvent(event: LabeledEvent) {
     const itemType = event.issue ? 'issue' : 'pull_request';
     
     if (!item) {
-      console.error('No issue or pull_request in labeled event');
+      console.error('❌ No issue or pull_request in labeled event');
       return;
     }
 
-    console.log(`🏷️ 'contributor.info' label added to ${itemType} #${item.number} in ${event.repository.full_name}`);
+    console.log(`✅ 'contributor.info' label added to ${itemType} #${item.number} in ${event.repository.full_name}`);
 
     // Get installation token if available
     const installationId = event.installation?.id;
     if (!installationId) {
-      console.log('No installation ID, cannot post comment');
+      console.log('❌ No installation ID, cannot post comment');
       return;
     }
 
-    const octokit = await githubAppAuth.getInstallationOctokit(installationId);
+    console.log('📝 Getting auth module...');
+    const auth = await getAuth();
+    
+    console.log('📝 Getting installation Octokit...');
+    const octokit = await auth.getInstallationOctokit(installationId);
+    console.log('✅ Got installation Octokit');
 
     // Track the repository in our database
     await ensureRepositoryTracked(event.repository);

@@ -1,5 +1,4 @@
 import { PullRequestEvent } from '../types/github';
-import { githubAppAuth } from '../lib/auth';
 import { formatMinimalPRComment } from '../services/comments';
 import { suggestReviewers } from '../services/reviewers';
 import { 
@@ -9,27 +8,52 @@ import {
 } from '../services/contributor-config';
 import { supabase } from '../../src/lib/supabase';
 
+// Lazy load auth to avoid initialization errors
+let githubAppAuth: any = null;
+
+async function getAuth() {
+  if (!githubAppAuth) {
+    try {
+      const { githubAppAuth: auth } = await import('../lib/auth');
+      githubAppAuth = auth;
+      console.log('✅ GitHub App auth loaded');
+    } catch (error) {
+      console.error('❌ Failed to load GitHub App auth:', error);
+      throw error;
+    }
+  }
+  return githubAppAuth;
+}
+
 /**
  * Direct webhook handler that uses repository info from webhook payload
  * instead of requiring database lookup. This ensures comments work even
  * if the repository isn't tracked in our database yet.
  */
 export async function handlePROpenedDirect(event: PullRequestEvent) {
+  console.log('🚀 handlePROpenedDirect called');
+  
   try {
     const { pull_request: pr, repository: repo, installation } = event;
     
     console.log(`Processing opened PR #${pr.number} in ${repo.full_name}`);
     console.log(`  Repository GitHub ID from webhook: ${repo.id}`);
     console.log(`  Installation ID: ${installation?.id}`);
+    console.log(`  PR author: ${pr.user.login}`);
 
     // Get installation token
     const installationId = installation?.id;
     if (!installationId) {
-      console.error('No installation ID found');
+      console.error('❌ No installation ID found in webhook payload');
       return;
     }
 
-    const octokit = await githubAppAuth.getInstallationOctokit(installationId);
+    console.log('📝 Getting auth module...');
+    const auth = await getAuth();
+    
+    console.log('📝 Getting installation Octokit...');
+    const octokit = await auth.getInstallationOctokit(installationId);
+    console.log('✅ Got installation Octokit');
 
     // Fetch configuration from the repository
     const config = await fetchContributorConfig(
