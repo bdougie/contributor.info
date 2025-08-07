@@ -8,6 +8,7 @@ import { PWAInstallPrompt } from "@/components/ui/pwa-install-prompt";
 import { Layout, Home, NotFound } from "@/components/common/layout";
 import { ProtectedRoute, AdminRoute } from "@/components/features/auth";
 import { initializeWebVitalsMonitoring } from "@/lib/web-vitals-monitoring";
+import { initializeLLMCitationTracking } from "@/lib/llm-citation-tracking";
 import { initAutoTrackingService, cleanupAutoTrackingService } from "@/lib/progressive-capture/auto-track-on-404";
 
 // Lazy load route components for better performance
@@ -50,6 +51,7 @@ const SpamTestTool = lazy(() => import("@/components/features/admin").then(m => 
 const BulkSpamAnalysis = lazy(() => import("@/components/features/admin").then(m => ({ default: m.BulkSpamAnalysis })));
 const MaintainerManagement = lazy(() => import("@/components/features/admin/maintainer-management").then(m => ({ default: m.MaintainerManagement })));
 const ConfidenceAnalyticsDashboard = lazy(() => import("@/components/features/admin/confidence-analytics-dashboard").then(m => ({ default: m.ConfidenceAnalyticsDashboard })));
+const LLMCitationDashboard = lazy(() => import("@/components/features/analytics/llm-citation-dashboard").then(m => ({ default: m.LLMCitationDashboard })));
 const CaptureHealthMonitor = lazy(() => import("@/components/CaptureHealthMonitor").then(m => ({ default: m.CaptureHealthMonitor })));
 const OrgView = lazy(() => import("@/pages/org-view"));
 const WidgetsPage = lazy(() => import("@/pages/widgets"));
@@ -199,6 +201,19 @@ function App() {
 
     return () => {
       vitalsMonitor.destroy();
+    };
+  }, []);
+
+  // Initialize LLM Citation tracking
+  useEffect(() => {
+    const citationTracker = initializeLLMCitationTracking();
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[LLM Citation Tracker] Initialized for tracking AI platform citations');
+    }
+
+    return () => {
+      citationTracker.destroy();
     };
   }, []);
 
@@ -466,6 +481,14 @@ function App() {
                 element={
                   <AdminRoute>
                     <ConfidenceAnalyticsDashboard />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/llm-citations"
+                element={
+                  <AdminRoute>
+                    <LLMCitationDashboard />
                   </AdminRoute>
                 }
               />
