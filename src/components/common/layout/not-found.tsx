@@ -33,9 +33,7 @@ export default function NotFound() {
   const navigate = useNavigate();
   const location = useLocation();
   const [showCursor, setShowCursor] = useState(true);
-  const [showEnterPrompt, setShowEnterPrompt] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const [activeSection, setActiveSection] = useState<'search' | 'popular' | 'recent'>('search');
   const [popularRepos, setPopularRepos] = useState<Repository[]>([]);
   const [recentRepos, setRecentRepos] = useState<Repository[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,14 +143,6 @@ export default function NotFound() {
     return () => clearInterval(cursorInterval);
   }, []);
 
-  // Show "Press Enter" prompt after a delay
-  useEffect(() => {
-    const promptTimer = setTimeout(() => {
-      setShowEnterPrompt(true);
-    }, 1500);
-
-    return () => clearTimeout(promptTimer);
-  }, []);
 
   // Handle navigation (both keyboard and button)
   const handleNavigation = (path: string = '/') => {
