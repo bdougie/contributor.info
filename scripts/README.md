@@ -48,6 +48,7 @@ Improve application speed and reduce resource usage.
 | `monitor-cdn-performance.js` | Monitor CDN and asset performance | Performance troubleshooting |
 | `monitor-database-performance.js` | Check database query performance | Database optimization |
 | `test-core-web-vitals.js` | Test Core Web Vitals (LCP, CLS, INP) | Measure UX performance metrics |
+| `compare-web-vitals.js` | Compare Web Vitals between branches | PR performance validation |
 
 ### 🎨 **[Assets](./assets/)**
 Create and manage visual assets.

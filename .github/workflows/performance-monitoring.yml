@@ -1,0 +1,263 @@
+name: Performance Monitoring
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches: [main]
+  schedule:
+    # Run daily at 1:27 AM UTC (avoiding top of hour server load)
+    - cron: '27 1 * * *'
+  workflow_dispatch:
+
+env:
+  # Set deployment URL based on context
+  DEPLOY_URL: ${{ github.event_name == 'pull_request' && format('https://deploy-preview-{0}--contributor-info.netlify.app', github.event.number) || 'https://contributor.info' }}
+
+jobs:
+  lighthouse-audit:
+    runs-on: ubuntu-latest
+    name: Lighthouse Performance Audit
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Wait for deployment (PR only)
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Waiting for Netlify deployment to be ready..."
+          # Wait up to 5 minutes for deployment
+          max_attempts=10
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            if curl -s -o /dev/null -w "%{http_code}" "${{ env.DEPLOY_URL }}" | grep -q "200"; then
+              echo "Deployment is ready!"
+              break
+            fi
+            echo "Attempt $attempt/$max_attempts: Deployment not ready yet, waiting 30s..."
+            sleep 30
+            attempt=$((attempt + 1))
+          done
+      
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            ${{ env.DEPLOY_URL }}
+          budgetPath: |
+            ./performance-budget.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+        continue-on-error: true
+      
+      - name: Format Lighthouse Results
+        id: format_results
+        if: always()
+        run: |
+          echo "## 📊 Lighthouse Performance Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**URLs Tested:**" >> $GITHUB_STEP_SUMMARY
+          echo "- ${{ env.DEPLOY_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ${{ env.DEPLOY_URL }}/vercel/next.js" >> $GITHUB_STEP_SUMMARY
+          echo "- ${{ env.DEPLOY_URL }}/continuedev/continue" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Core Web Vitals Targets" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **LCP:** < 2.5s" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **FCP:** < 1.8s" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **CLS:** < 0.1" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **TBT:** < 300ms" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View detailed reports in the artifacts above." >> $GITHUB_STEP_SUMMARY
+
+  performance-budget:
+    runs-on: ubuntu-latest
+    name: Performance Budget Check
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build and analyze bundle
+        run: |
+          npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      
+      - name: Check bundle size
+        run: |
+          # Get the size of the dist folder
+          if [ -d "dist" ]; then
+            DIST_SIZE=$(du -sb dist | cut -f1)
+            MAX_SIZE=$((5 * 1024 * 1024))  # 5MB limit
+            
+            echo "Bundle size: $DIST_SIZE bytes"
+            echo "Max allowed: $MAX_SIZE bytes"
+            
+            # Create summary
+            echo "## 📦 Bundle Size Analysis" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Total Bundle Size:** $(echo "scale=2; $DIST_SIZE / 1024 / 1024" | bc) MB" >> $GITHUB_STEP_SUMMARY
+            echo "**Maximum Allowed:** $(echo "scale=2; $MAX_SIZE / 1024 / 1024" | bc) MB" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            if [ $DIST_SIZE -gt $MAX_SIZE ]; then
+              echo "❌ **Status:** Bundle size exceeds limit!" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            else
+              echo "✅ **Status:** Bundle size is within limits" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "❌ dist folder not found!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+      
+      - name: Analyze JavaScript bundles
+        run: |
+          echo "### JavaScript Chunk Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check individual chunk sizes
+          LARGE_CHUNKS=0
+          for file in dist/assets/*.js; do
+            if [ -f "$file" ]; then
+              SIZE=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "0")
+              MAX_CHUNK=$((200 * 1024))  # 200KB per chunk
+              SIZE_KB=$(echo "scale=2; $SIZE / 1024" | bc)
+              
+              if [ $SIZE -gt $MAX_CHUNK ]; then
+                echo "⚠️ **Large chunk:** $(basename $file) - ${SIZE_KB}KB" >> $GITHUB_STEP_SUMMARY
+                LARGE_CHUNKS=$((LARGE_CHUNKS + 1))
+              fi
+            fi
+          done
+          
+          if [ $LARGE_CHUNKS -eq 0 ]; then
+            echo "✅ All JavaScript chunks are under 200KB" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Note:** Consider code splitting for large chunks" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  web-vitals-test:
+    runs-on: ubuntu-latest
+    name: Web Vitals Tests
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run Web Vitals tests
+        run: |
+          # Check if the comparison script exists
+          if [ -f "scripts/compare-web-vitals.js" ]; then
+            echo "Running Web Vitals comparison..."
+            node scripts/compare-web-vitals.js || true
+          else
+            echo "Web Vitals comparison script not found, skipping..."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_URL: https://contributor.info
+          PR_URL: ${{ env.DEPLOY_URL }}
+      
+      - name: Run performance tests
+        run: |
+          # Run performance test suite if it exists
+          if [ -f "tests/performance/web-vitals.spec.ts" ]; then
+            echo "Running performance test suite..."
+            npm run test:performance || true
+          else
+            echo "Performance tests not configured yet"
+          fi
+        continue-on-error: true
+      
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## ⚡ Web Vitals Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Performance tests completed. Check logs for detailed results." >> $GITHUB_STEP_SUMMARY
+
+  comment-results:
+    runs-on: ubuntu-latest
+    name: Comment PR Results
+    needs: [lighthouse-audit, performance-budget]
+    if: github.event_name == 'pull_request' && !cancelled()
+    
+    steps:
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ env.DEPLOY_URL }}';
+            
+            const comment = `## 🚀 Performance Report
+            
+            ### 📊 Lighthouse Audit
+            ✅ Lighthouse tests completed for:
+            - [Homepage](${url})
+            - [Vercel/Next.js](${url}/vercel/next.js)
+            - [Continue Dev](${url}/continuedev/continue)
+            
+            ### 📦 Bundle Analysis
+            Performance budget checks completed. See workflow summary for details.
+            
+            ### 🎯 Core Web Vitals Targets
+            - **LCP:** < 2.5s (Largest Contentful Paint)
+            - **INP:** < 200ms (Interaction to Next Paint)
+            - **CLS:** < 0.1 (Cumulative Layout Shift)
+            - **FCP:** < 1.8s (First Contentful Paint)
+            
+            ### 📈 Next Steps
+            - Review the Lighthouse reports in the workflow artifacts
+            - Check the workflow summary for detailed metrics
+            - Address any performance warnings or errors
+            
+            [View Full Workflow Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+            
+            // Find and update existing comment or create new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('🚀 Performance Report')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }

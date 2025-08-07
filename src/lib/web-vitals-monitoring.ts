@@ -1,4 +1,5 @@
 import { onCLS, onINP, onFCP, onLCP, onTTFB, CLSMetric, INPMetric, FCPMetric, LCPMetric, TTFBMetric } from 'web-vitals';
+import { getWebVitalsAnalytics } from './web-vitals-analytics';
 
 // Core Web Vitals thresholds (in milliseconds)
 const THRESHOLDS = {
@@ -134,30 +135,45 @@ class WebVitalsMonitor {
     const vitalMetric = this.createMetric('LCP', metric.value, metric.rating as Rating, metric.delta);
     this.logMetric('LCP', metric.value, metric.rating as Rating, metric.delta);
     this.notifyCallbacks(vitalMetric);
+    
+    // Send to analytics
+    getWebVitalsAnalytics().trackMetric(vitalMetric);
   }
 
   private handleINP(metric: INPMetric) {
     const vitalMetric = this.createMetric('INP', metric.value, metric.rating as Rating, metric.delta);
     this.logMetric('INP', metric.value, metric.rating as Rating, metric.delta);
     this.notifyCallbacks(vitalMetric);
+    
+    // Send to analytics
+    getWebVitalsAnalytics().trackMetric(vitalMetric);
   }
 
   private handleCLS(metric: CLSMetric) {
     const vitalMetric = this.createMetric('CLS', metric.value, metric.rating as Rating, metric.delta);
     this.logMetric('CLS', metric.value, metric.rating as Rating, metric.delta);
     this.notifyCallbacks(vitalMetric);
+    
+    // Send to analytics
+    getWebVitalsAnalytics().trackMetric(vitalMetric);
   }
 
   private handleFCP(metric: FCPMetric) {
     const vitalMetric = this.createMetric('FCP', metric.value, metric.rating as Rating, metric.delta);
     this.logMetric('FCP', metric.value, metric.rating as Rating, metric.delta);
     this.notifyCallbacks(vitalMetric);
+    
+    // Send to analytics
+    getWebVitalsAnalytics().trackMetric(vitalMetric);
   }
 
   private handleTTFB(metric: TTFBMetric) {
     const vitalMetric = this.createMetric('TTFB', metric.value, metric.rating as Rating, metric.delta);
     this.logMetric('TTFB', metric.value, metric.rating as Rating, metric.delta);
     this.notifyCallbacks(vitalMetric);
+    
+    // Send to analytics
+    getWebVitalsAnalytics().trackMetric(vitalMetric);
   }
 
   private logMetric(name: string, value: number, rating: Rating, delta: number = 0) {
@@ -297,4 +313,4 @@ export function getWebVitalsMonitor() {
 }
 
 export type { VitalMetric, PerformanceData, Rating };
-export { THRESHOLDS };
+export { THRESHOLDS, WebVitalsMonitor };
