@@ -61,7 +61,7 @@ jobs:
             ${{ env.DEPLOY_URL }}
             ${{ env.DEPLOY_URL }}/vercel/next.js
             ${{ env.DEPLOY_URL }}/facebook/react
-          configPath: './lighthouserc.js'
+          configPath: './lighthouserc.json'
           uploadArtifacts: true
           temporaryPublicStorage: true
       
