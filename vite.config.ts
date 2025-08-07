@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     imagetools({
       defaultDirectives: (url) => {
-        // Only process images with query parameters
+        // Process images for WebP optimization
         if (url.searchParams.has('webp')) {
           return new URLSearchParams({
             format: 'webp',
@@ -17,8 +17,17 @@ export default defineConfig({
         }
         if (url.searchParams.has('avif')) {
           return new URLSearchParams({
-            format: 'avif',
+            format: 'avif', 
             quality: '70'
+          });
+        }
+        // Auto-generate WebP versions for all static images
+        if (url.searchParams.has('optimize')) {
+          return new URLSearchParams({
+            format: 'webp;png;jpg',
+            quality: '80',
+            w: url.searchParams.get('w') || '800',
+            h: url.searchParams.get('h') || '600'
           });
         }
         return new URLSearchParams();

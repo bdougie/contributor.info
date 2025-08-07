@@ -40,18 +40,34 @@ export function OptimizedAvatar({
   const [error, setError] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  // Optimize GitHub avatar URLs with size parameters
-  const optimizedSrc = (() => {
+  // Generate optimized avatar URLs with WebP support
+  const generateAvatarUrls = (originalSrc?: string) => {
+    if (!originalSrc) return { webp: undefined, fallback: undefined };
+    
     try {
-      const url = new URL(src || '');
+      const url = new URL(originalSrc);
       if (url.hostname === 'avatars.githubusercontent.com') {
-        return `${url.origin}${url.pathname}?s=${size}&v=4`;
+        // GitHub avatars don't support WebP directly, but we optimize the size
+        const optimizedUrl = `${url.origin}${url.pathname}?s=${size}&v=4`;
+        return {
+          webp: optimizedUrl,
+          fallback: optimizedUrl
+        };
       }
     } catch {
       // Invalid URL, fallback to original src
     }
-    return src;
-  })();
+    
+    // For other images, try to generate WebP version
+    return {
+      webp: originalSrc.includes('?') 
+        ? `${originalSrc}&format=webp&quality=80`
+        : `${originalSrc}?format=webp&quality=80`,
+      fallback: originalSrc
+    };
+  };
+
+  const avatarUrls = generateAvatarUrls(src);
 
   // Intersection Observer for lazy loading
   useEffect(() => {
@@ -129,9 +145,9 @@ export function OptimizedAvatar({
         height: `${size}px`,
       }}
     >
-      {shouldLoad && optimizedSrc && !error && (
+      {shouldLoad && avatarUrls.fallback && !error && (
         <AvatarImage
-          src={optimizedSrc}
+          src={avatarUrls.fallback}
           alt={alt}
           loading={priority ? 'eager' : 'lazy'}
           width={size}
