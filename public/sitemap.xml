@@ -398,12 +398,6 @@
     <lastmod>2025-07-03</lastmod>
   </url>
   <url>
-    <loc>https://contributor.info/lodash/lodash</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-    <lastmod>2025-06-29</lastmod>
-  </url>
-  <url>
     <loc>https://contributor.info/facebook/docusaurus</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
@@ -492,6 +486,12 @@
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
     <lastmod>2025-08-04</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/lodash/lodash</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2025-06-29</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/pytorch/pytorch</loc>

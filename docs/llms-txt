@@ -1,0 +1,99 @@
+# contributor.info Documentation
+
+Technical documentation for the contributor.info GitHub contributors visualization platform.
+
+## Documentation Structure
+
+### Core Architecture
+- **Configuration**: Project configuration and setup documentation
+- **Supabase**: Database documentation, setup guides, and migration instructions
+- **User Experience**: UX patterns, implementation checklists, and design guidelines
+- **Performance**: Performance optimization best practices and monitoring
+
+### Development Guides
+- **Data Fetching**: GitHub API strategies, progressive capture, and background processing
+- **Features**: Implementation documentation for major features
+- **GitHub App**: Integration documentation and webhook handling
+- **Testing**: Test isolation solutions, best practices, and CI/CD configuration
+
+### Operations & Maintenance
+- **Debugging**: Troubleshooting guides and common issue solutions
+- **Postmortem**: Incident reports, resolutions, and lessons learned
+- **Reports**: Performance analysis and system health reports
+- **Security**: Security guidelines and best practices
+
+### Policies & Compliance
+- **Privacy**: Data handling policies and retention guidelines
+- **Terms**: Usage terms and compliance documentation
+
+## Key Technical Implementations
+
+### Data Processing
+- **Progressive Data Capture**: Automatic background data collection and processing
+- **Smart Data Fetching**: Database-first approach with API fallbacks
+- **Queue Management**: Inngest-based job processing for large repositories
+- **Rate Limiting**: GitHub API rate limit management and token rotation
+
+### Performance Optimizations
+- **Core Web Vitals**: Monitoring and optimization strategies
+- **Bundle Optimization**: Code splitting and lazy loading implementation
+- **Database Performance**: Query optimization and caching strategies
+- **Progressive Enhancement**: Graceful degradation for missing data
+
+### User Experience Features
+- **Invisible Loading**: Netflix-like background data processing
+- **Smart Notifications**: Context-aware user feedback
+- **Progressive Backfill**: Automatic data quality improvements
+- **Repository Discovery**: Automatic tracking of new repositories
+
+### Testing & Quality Assurance
+- **Test Isolation**: Environment-based test configuration
+- **Mock Strategies**: Supabase and external API mocking
+- **CI/CD Pipeline**: Automated testing and deployment
+- **Performance Monitoring**: Real-time system health tracking
+
+## Architecture Decisions
+
+### Database Design
+- PostgreSQL via Supabase with Row Level Security (RLS)
+- Materialized views for performance optimization
+- Progressive data capture for large repositories
+- Automatic data retention and archival
+
+### Frontend Architecture
+- React 18 with TypeScript and Vite
+- Semantic HTML for accessibility and LLM comprehension
+- Tailwind CSS with custom design system
+- Progressive Web App capabilities
+
+### Backend Services
+- Netlify Functions for serverless processing
+- Inngest for reliable background job processing
+- GitHub App for webhook integration
+- Supabase Edge Functions for real-time features
+
+## Development Standards
+
+### Code Quality
+- TypeScript strict mode enabled
+- ESLint and Prettier configuration
+- No React imports unless using specific features
+- Comprehensive error boundary implementation
+
+### Accessibility
+- WCAG 2.1 AA compliance
+- Semantic HTML structure
+- Screen reader compatibility
+- Keyboard navigation support
+
+### Performance Targets
+- Lighthouse scores > 90
+- First Contentful Paint < 2s
+- Largest Contentful Paint < 2.5s
+- Cumulative Layout Shift < 0.1
+
+## Security Considerations
+- GitHub OAuth authentication
+- Row Level Security (RLS) policies
+- API token rotation and management
+- User data privacy and retention compliance

@@ -4,8 +4,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GitHubSearchInput } from "@/components/ui/github-search-input";
@@ -204,7 +202,7 @@ export default function RepoView() {
   const repoUrl = `https://contributor.info/${owner}/${repo}`;
 
   return (
-    <div className="py-2">
+    <article className="py-2">
       <SocialMetaTags
         title={repoTitle}
         description={repoDescription}
@@ -213,64 +211,70 @@ export default function RepoView() {
         image={`social-cards/repo-${owner}-${repo}.png`}
       />
       <Breadcrumbs />
-      <Card className="mb-8">
-        <CardContent className="pt-6">
-          <GitHubSearchInput
-            placeholder="Search another repository (e.g., facebook/react)"
-            onSearch={(repositoryPath) => {
-              const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
-              if (match) {
-                const [, newOwner, newRepo] = match;
-                
+      <section className="mb-8">
+        <Card>
+          <CardContent className="pt-6">
+            <GitHubSearchInput
+              placeholder="Search another repository (e.g., facebook/react)"
+              onSearch={(repositoryPath) => {
+                const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+                if (match) {
+                  const [, newOwner, newRepo] = match;
+                  
+                  // Check if login is required (second search while not logged in)
+                  if (hasSearchedOnce && !isLoggedIn) {
+                    localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
+                    navigate('/login');
+                    return;
+                  }
+                  
+                  // Mark that a search has been performed
+                  setHasSearchedOnce(true);
+                  navigate(`/${newOwner}/${newRepo}`);
+                }
+              }}
+              onSelect={(repository: GitHubRepository) => {
                 // Check if login is required (second search while not logged in)
                 if (hasSearchedOnce && !isLoggedIn) {
-                  localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
+                  localStorage.setItem('redirectAfterLogin', `/${repository.full_name}`);
                   navigate('/login');
                   return;
                 }
                 
                 // Mark that a search has been performed
                 setHasSearchedOnce(true);
-                navigate(`/${newOwner}/${newRepo}`);
-              }
-            }}
-            onSelect={(repository: GitHubRepository) => {
-              // Check if login is required (second search while not logged in)
-              if (hasSearchedOnce && !isLoggedIn) {
-                localStorage.setItem('redirectAfterLogin', `/${repository.full_name}`);
-                navigate('/login');
-                return;
-              }
-              
-              // Mark that a search has been performed
-              setHasSearchedOnce(true);
-              navigate(`/${repository.full_name}`);
-            }}
-          />
-          <ExampleRepos onSelect={handleSelectExample} />
-        </CardContent>
-      </Card>
+                navigate(`/${repository.full_name}`);
+              }}
+            />
+            <aside>
+              <ExampleRepos onSelect={handleSelectExample} />
+            </aside>
+          </CardContent>
+        </Card>
+      </section>
 
-      <div className="grid gap-8">
+      <section className="grid gap-8">
         <Card>
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-xl sm:text-2xl flex flex-col sm:flex-row sm:items-center gap-2">
+                <h1 className="text-xl sm:text-2xl flex flex-col sm:flex-row sm:items-center gap-2">
                   <span className="break-words">{owner}/{repo}</span>
                   <RepositoryInlineMetadata owner={owner} repo={repo} />
-                </CardTitle>
-                <CardDescription>
+                </h1>
+                <p className="text-muted-foreground">
                   Contribution analysis of recent pull requests
-                </CardDescription>
+                </p>
                 {/* Show last updated timestamp when data is available */}
                 {!stats.loading && (
                   <div className="mt-2">
-                    <LastUpdated 
-                      timestamp={lastUpdated}
-                      label="Data last updated"
-                      size="sm"
-                    />
+                    <time className="text-sm text-muted-foreground">
+                      <LastUpdated 
+                        timestamp={lastUpdated}
+                        label="Data last updated"
+                        size="sm"
+                      />
+                    </time>
                   </div>
                 )}
               </div>
@@ -281,32 +285,34 @@ export default function RepoView() {
                 disabled={isGeneratingUrl}
                 className="h-8 w-8 flex-shrink-0"
                 title={isGeneratingUrl ? "Generating short link..." : "Copy repository link"}
+                aria-label={isGeneratingUrl ? "Generating short link..." : "Copy repository link"}
               >
                 <Link className={`h-4 w-4 ${isGeneratingUrl ? 'animate-pulse' : ''}`} />
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <Tabs
-              value={getCurrentTab()}
-              className="space-y-4"
-              onValueChange={(value) => {
-                if (value === "contributions") {
-                  navigate(`/${owner}/${repo}`);
-                } else if (value === "lottery") {
-                  navigate(`/${owner}/${repo}/health`);
-                } else {
-                  navigate(`/${owner}/${repo}/${value}`);
-                }
-              }}
-            >
-              <TabsList className="grid grid-cols-4 w-full max-w-md">
-                <TabsTrigger value="contributions" className="text-xs sm:text-sm">Activity</TabsTrigger>
-                <TabsTrigger value="lottery" className="text-xs sm:text-sm">Health</TabsTrigger>
-                <TabsTrigger value="distribution" className="text-xs sm:text-sm">Distribution</TabsTrigger>
-                <TabsTrigger value="feed" className="text-xs sm:text-sm">Feed</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <nav className="space-y-4">
+              <Tabs
+                value={getCurrentTab()}
+                onValueChange={(value) => {
+                  if (value === "contributions") {
+                    navigate(`/${owner}/${repo}`);
+                  } else if (value === "lottery") {
+                    navigate(`/${owner}/${repo}/health`);
+                  } else {
+                    navigate(`/${owner}/${repo}/${value}`);
+                  }
+                }}
+              >
+                <TabsList className="grid grid-cols-4 w-full max-w-md" role="tablist" aria-label="Repository analysis sections">
+                  <TabsTrigger value="contributions" className="text-xs sm:text-sm">Activity</TabsTrigger>
+                  <TabsTrigger value="lottery" className="text-xs sm:text-sm">Health</TabsTrigger>
+                  <TabsTrigger value="distribution" className="text-xs sm:text-sm">Distribution</TabsTrigger>
+                  <TabsTrigger value="feed" className="text-xs sm:text-sm">Feed</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </nav>
 
             {/* Show data processing indicator or new repository message */}
             {owner && repo && (
@@ -316,7 +322,7 @@ export default function RepoView() {
                   className="mt-4" 
                 />
                 {discoveryState.isNewRepository && !stats.loading && (
-                  <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <aside className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
                     <div className="flex items-start space-x-3">
                       <div className="flex-shrink-0">
                         <svg className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
@@ -324,30 +330,32 @@ export default function RepoView() {
                         </svg>
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                        <h2 className="text-sm font-medium text-blue-800 dark:text-blue-200">
                           Welcome to {owner}/{repo}!
-                        </h3>
+                        </h2>
                         <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
                           This is a new repository. We're gathering contributor data and it will be ready in about 1-2 minutes. 
                           You can explore the interface while we work in the background.
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </aside>
                 )}
                 {/* Show data state indicator for pending/partial data */}
                 {!stats.loading && dataStatus && dataStatus.status !== 'success' && (
-                  <DataStateIndicator
-                    status={dataStatus.status}
-                    message={dataStatus.message}
-                    metadata={dataStatus.metadata}
-                    className="mt-4"
-                  />
+                  <aside>
+                    <DataStateIndicator
+                      status={dataStatus.status}
+                      message={dataStatus.message}
+                      metadata={dataStatus.metadata}
+                      className="mt-4"
+                    />
+                  </aside>
                 )}
               </>
             )}
 
-            <div className="mt-6">
+            <section className="mt-6">
               <ErrorBoundary context="Repository Data Provider">
                 <RepoStatsProvider
                   value={{
@@ -389,14 +397,16 @@ export default function RepoView() {
                   )}
                 </RepoStatsProvider>
               </ErrorBoundary>
-            </div>
+            </section>
           </CardContent>
         </Card>
-      </div>
-      <ErrorBoundary context="Repository Insights">
-        <InsightsSidebar />
-      </ErrorBoundary>
-    </div>
+      </section>
+      <aside>
+        <ErrorBoundary context="Repository Insights">
+          <InsightsSidebar />
+        </ErrorBoundary>
+      </aside>
+    </article>
   );
 }
 

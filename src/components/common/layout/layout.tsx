@@ -67,7 +67,7 @@ export default function Layout() {
                 <SheetHeader>
                   <SheetTitle>Menu</SheetTitle>
                 </SheetHeader>
-                <nav className="flex flex-col space-y-4 mt-6">
+                <nav className="flex flex-col space-y-4 mt-6" aria-label="Main navigation">
                   <button
                     onClick={() => {
                       navigate("/");
@@ -94,7 +94,7 @@ export default function Layout() {
                   
                   {/* Time Range - only on relevant pages */}
                   {isLoggedIn && needsTimeRange() && (
-                    <div className="pt-4 border-t">
+                    <section className="pt-4 border-t">
                       <label className="text-sm font-medium mb-2 block">Time Range</label>
                       <Select value={timeRange} onValueChange={setTimeRange}>
                         <SelectTrigger className="w-full">
@@ -106,18 +106,18 @@ export default function Layout() {
                           <SelectItem value="90">Last 90 days</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
+                    </section>
                   )}
                   
-                  <div className="pt-4 border-t space-y-4">
+                  <section className="pt-4 border-t space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Theme</span>
                       <ModeToggle />
                     </div>
-                  </div>
+                  </section>
                   
-                  <div className="pt-4 border-t">
-                    <div className="flex space-x-4 text-xs text-muted-foreground">
+                  <section className="pt-4 border-t">
+                    <nav className="flex space-x-4 text-xs text-muted-foreground" aria-label="Footer links">
                       <Link
                         to="/privacy"
                         onClick={() => setIsMenuOpen(false)}
@@ -132,8 +132,8 @@ export default function Layout() {
                       >
                         Terms
                       </Link>
-                    </div>
-                  </div>
+                    </nav>
+                  </section>
                 </nav>
               </SheetContent>
             </Sheet>
