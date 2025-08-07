@@ -6,6 +6,25 @@
   NODE_VERSION = "20"
   NPM_VERSION = "10"
 
+# Enable standard Netlify processing
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+[build.processing.html]
+  pretty_urls = true
+
+[build.processing.images]
+  compress = true
+
+
 [dev]
   command = "vite --port 5174"
   framework = "#custom"
@@ -96,61 +115,8 @@
   status = 200
   force = true
 
-# Headers for proper MIME types
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
-
-[[headers]]
-  for = "/*.mjs"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
-    
-[[headers]]
-  for = "/assets/*.js"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
-
-[[headers]]
-  for = "/*.jsx"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
-
-[[headers]]
-  for = "/*.tsx"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
-
-[[headers]]
-  for = "/*.ts"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
-
-[[headers]]
-  for = "/assets/*.tsx"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
-
-[[headers]]
-  for = "/assets/*.ts"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
-
-[[headers]]
-  for = "/*.css"
-  [headers.values]
-    Content-Type = "text/css"
-
-[[headers]]
-  for = "/*.json"
-  [headers.values]
-    Content-Type = "application/json"
-
-[[headers]]
-  for = "/*.wasm"
-  [headers.values]
-    Content-Type = "application/wasm"
+# Headers for proper MIME types and caching
+# Note: Some headers are also in public/_headers, but these are kept for compatibility
 
 # Redirect rules for SPA behavior (exclude functions and API routes)  
 [[redirects]]

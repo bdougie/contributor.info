@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ExternalLink, Star, GitFork, Users, Clock, Eye } from "lucide-react";
 import {
@@ -22,6 +22,8 @@ import { toast } from "sonner";
 import { useOrgRepos } from "@/hooks/use-org-repos";
 import { humanizeNumber } from "@/lib/utils";
 import { OrganizationAvatar } from "@/components/ui/organization-avatar";
+import { Breadcrumbs } from "@/components/common/layout/breadcrumbs";
+import { avatarCache } from "@/lib/avatar-cache";
 
 interface RepositoryWithTracking {
   id: number;
@@ -200,8 +202,30 @@ const RequestMoreReposCTA = ({ org }: { org: string }) => {
 export default function OrgView() {
   const { org } = useParams<{ org: string }>();
   const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
+  const [cachedAvatarUrl, setCachedAvatarUrl] = useState<string | null>(null);
   
   const { repositories, orgData, isLoading, error } = useOrgRepos(org);
+
+  // Check for cached avatar URL on mount
+  useEffect(() => {
+    if (org) {
+      const cached = avatarCache.get(org);
+      if (cached) {
+        setCachedAvatarUrl(cached);
+        // Preload the image to browser cache
+        avatarCache.preload(cached);
+      }
+    }
+  }, [org]);
+
+  // Cache the avatar URL when we get org data
+  useEffect(() => {
+    if (orgData?.avatar_url && org) {
+      avatarCache.set(org, orgData.avatar_url);
+      // Preload for next visit
+      avatarCache.preload(orgData.avatar_url);
+    }
+  }, [orgData, org]);
   
   const displayedRepos = useMemo(() => {
     return repositories.slice(0, displayCount);
@@ -236,16 +260,21 @@ export default function OrgView() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
+      {/* Breadcrumbs */}
+      <Breadcrumbs />
+      
       {/* Header */}
       <div className="space-y-4 org-header">
         <div className="flex items-center gap-3">
           <div className="org-avatar-container">
-            {orgData?.avatar_url ? (
+            {/* Use cached avatar URL immediately if available, fall back to orgData */}
+            {(cachedAvatarUrl || orgData?.avatar_url) ? (
               <OrganizationAvatar
-                src={orgData.avatar_url}
-                alt={orgData.name || org || ''}
+                src={cachedAvatarUrl || orgData?.avatar_url || ''}
+                alt={orgData?.name || org || ''}
                 size={48}
                 priority={true}
+                lazy={false} // Always load immediately for org avatar
               />
             ) : (
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md flex items-center justify-center text-white font-bold text-lg">
