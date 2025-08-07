@@ -180,8 +180,9 @@ class WebVitalsAnalytics {
       });
       
       // Send to custom endpoint using sendBeacon
-      if (this.providers.has('custom') && this.customEndpoint) {
-        navigator.sendBeacon(this.customEndpoint, data);
+      const customEndpoint = import.meta.env?.VITE_VITALS_ENDPOINT;
+      if (this.providers.has('custom') && customEndpoint) {
+        navigator.sendBeacon(customEndpoint, data);
       }
       
       // For Supabase, we'd need a special endpoint that accepts beacon data
