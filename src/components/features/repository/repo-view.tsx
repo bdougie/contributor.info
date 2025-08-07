@@ -4,8 +4,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GitHubSearchInput } from "@/components/ui/github-search-input";

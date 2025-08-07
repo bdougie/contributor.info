@@ -1,9 +1,7 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { ExampleRepos } from "../../features/repository";
 import { useNavigate } from "react-router-dom";
