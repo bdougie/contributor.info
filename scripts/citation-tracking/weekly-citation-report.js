@@ -54,9 +54,9 @@ async function getReferralMetrics() {
   const { data, error } = await supabase
     .from('referral_traffic')
     .select('*')
-    .gte('timestamp', start)
-    .lte('timestamp', end)
-    .order('timestamp', { ascending: false });
+    .gte('created_at', start)
+    .lte('created_at', end)
+    .order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching referral metrics:', error);
@@ -75,9 +75,9 @@ async function getCitationAlerts() {
   const { data, error } = await supabase
     .from('citation_alerts')
     .select('*')
-    .gte('timestamp', start)
-    .lte('timestamp', end)
-    .order('timestamp', { ascending: false });
+    .gte('created_at', start)
+    .lte('created_at', end)
+    .order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching citation alerts:', error);
@@ -148,7 +148,7 @@ function analyzeReferralData(referrals) {
     }
 
     // Daily trend
-    const date = new Date(referral.timestamp).toISOString().split('T')[0];
+    const date = new Date(referral.created_at).toISOString().split('T')[0];
     analysis.dailyTrend[date] = (analysis.dailyTrend[date] || 0) + 1;
   });
 

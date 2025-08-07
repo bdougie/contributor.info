@@ -83,7 +83,7 @@ export function LLMCitationDashboard() {
     if (!metrics?.platformBreakdown) return [];
     return Object.entries(metrics.platformBreakdown)
       .map(([platform, count]) => ({
-        ...AI_PLATFORMS[platform],
+        ...(AI_PLATFORMS[platform] || AI_PLATFORMS.other_ai),
         count,
       }))
       .filter(platform => platform.count > 0)

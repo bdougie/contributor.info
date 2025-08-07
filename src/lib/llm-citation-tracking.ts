@@ -39,6 +39,8 @@ export interface QueryPattern {
 class LLMCitationTracker {
   private sessionId: string;
   private isInitialized: boolean = false;
+  private engagementInterval?: NodeJS.Timeout;
+  private activityHandler?: () => void;
 
   constructor() {
     this.sessionId = this.getOrCreateSessionId();
@@ -344,16 +346,16 @@ class LLMCitationTracker {
 
       if (dateRange) {
         query = query
-          .gte('timestamp', dateRange.start.toISOString())
-          .lte('timestamp', dateRange.end.toISOString());
+          .gte('created_at', dateRange.start.toISOString())
+          .lte('created_at', dateRange.end.toISOString());
       } else {
         // Default to last 30 days
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        query = query.gte('timestamp', thirtyDaysAgo.toISOString());
+        query = query.gte('created_at', thirtyDaysAgo.toISOString());
       }
 
-      const { data, error } = await query.order('timestamp', { ascending: false });
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.error('[LLM Citation Tracker] Failed to get citation metrics:', error);
@@ -385,7 +387,7 @@ class LLMCitationTracker {
         }
 
         // Daily trend
-        const date = new Date(item.timestamp).toISOString().split('T')[0];
+        const date = new Date(item.created_at).toISOString().split('T')[0];
         metrics.dailyTrend[date] = (metrics.dailyTrend[date] || 0) + 1;
       });
 
@@ -403,22 +405,24 @@ class LLMCitationTracker {
     // Track engagement every 30 seconds for active sessions
     let lastActivity = Date.now();
     
-    const trackActivity = () => {
+    this.activityHandler = () => {
       lastActivity = Date.now();
     };
 
     // Listen for user activity
     ['click', 'scroll', 'keypress', 'mousemove'].forEach(event => {
-      document.addEventListener(event, trackActivity, { passive: true });
+      document.addEventListener(event, this.activityHandler!, { passive: true });
     });
 
     // Periodic engagement tracking
-    const engagementInterval = setInterval(() => {
+    this.engagementInterval = setInterval(() => {
       const timeSinceActivity = Date.now() - lastActivity;
       
       // If user has been inactive for more than 5 minutes, stop tracking
       if (timeSinceActivity > 5 * 60 * 1000) {
-        clearInterval(engagementInterval);
+        if (this.engagementInterval) {
+          clearInterval(this.engagementInterval);
+        }
         return;
       }
 
@@ -457,7 +461,20 @@ class LLMCitationTracker {
    */
   public destroy(): void {
     this.isInitialized = false;
-    // Clean up is handled by garbage collection
+    
+    // Clean up event listeners
+    if (this.activityHandler) {
+      ['click', 'scroll', 'keypress', 'mousemove'].forEach(event => {
+        document.removeEventListener(event, this.activityHandler!);
+      });
+      this.activityHandler = undefined;
+    }
+    
+    // Clear interval
+    if (this.engagementInterval) {
+      clearInterval(this.engagementInterval);
+      this.engagementInterval = undefined;
+    }
   }
 }
 
