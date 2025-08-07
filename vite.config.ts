@@ -4,6 +4,7 @@ import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
 
 export default defineConfig({
+  base: '/',
   plugins: [
     react(),
     imagetools({
@@ -88,17 +89,18 @@ export default defineConfig({
       output: {
         // Ensure proper module format
         format: 'es',
+        // Use proper ES module syntax
+        generatedCode: {
+          constBindings: true,
+          objectShorthand: true,
+          arrowFunctions: true
+        },
         // Ensure proper file extensions for module recognition
-        entryFileNames: (chunkInfo) => {
-          // Force .js extension for all entry files, including App
-          const name = chunkInfo.name?.replace(/\.tsx?$/, '') || 'chunk';
-          return `assets/${name}-[hash].js`;
-        },
-        chunkFileNames: (chunkInfo) => {
-          // Force .js extension for all chunk files
-          return `assets/${chunkInfo.name}-[hash].js`;
-        },
+        entryFileNames: `assets/[name]-[hash].js`,
+        chunkFileNames: `assets/[name]-[hash].js`,
         assetFileNames: 'assets/[name]-[hash].[ext]',
+        // Ensure modules are properly hoisted
+        hoistTransitiveImports: false,
         // Aggressive chunk splitting for optimal Core Web Vitals
         manualChunks: (id) => {
           // Core vendor chunks
@@ -130,24 +132,21 @@ export default defineConfig({
               return 'ui-radix-misc';
             }
             
-            // D3 and its dependencies must be in their own chunk (base dependency)
-            if (id.includes('d3-') || id.includes('d3/')) {
-              return 'charts-d3-base';
-            }
-            
-            // Recharts and dependencies together (depends on D3)
-            if (id.includes('recharts') || id.includes('react-smooth') || id.includes('react-resize-detector')) {
+            // Bundle chart libraries with their React dependencies to ensure proper initialization
+            if (id.includes('recharts') || id.includes('react-smooth') || 
+                id.includes('react-resize-detector')) {
+              // Keep Recharts and its direct dependencies together
               return 'charts-recharts';
             }
             
-            // Nivo charts (also depends on D3)
-            if (id.includes('@nivo')) {
-              return 'charts-nivo';
+            // D3 can be separate as it doesn't depend on React
+            if (id.includes('d3-') || id.includes('d3/')) {
+              return 'charts-d3';
             }
             
-            // Victory charts
-            if (id.includes('victory')) {
-              return 'charts-victory';
+            // Other chart libraries
+            if (id.includes('@nivo') || id.includes('victory')) {
+              return 'charts-other';
             }
             
             // Markdown and code highlighting

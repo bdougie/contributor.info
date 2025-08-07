@@ -6,6 +6,14 @@
   NODE_VERSION = "20"
   NPM_VERSION = "10"
 
+# Force processing of JavaScript files
+[build.processing]
+  skip_processing = false
+
+[build.processing.js]
+  bundle = false
+  minify = false
+
 [dev]
   command = "vite --port 5174"
   framework = "#custom"

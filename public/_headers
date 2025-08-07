@@ -1,52 +1,26 @@
-# Ensure all JavaScript files are served with correct MIME type
+## All JS files must be served as JavaScript modules
 /assets/*.js
-  Content-Type: application/javascript; charset=utf-8
+  Content-Type: application/javascript
   Cache-Control: public, max-age=31536000, immutable
-  X-Content-Type-Options: nosniff
 
-/assets/**/*.js
-  Content-Type: application/javascript; charset=utf-8
+## Ensure chunks are served correctly  
+/assets/charts-*.js
+  Content-Type: application/javascript
   Cache-Control: public, max-age=31536000, immutable
-  X-Content-Type-Options: nosniff
 
-/*.js
-  Content-Type: application/javascript; charset=utf-8
-  X-Content-Type-Options: nosniff
+/assets/vendor-*.js
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=31536000, immutable
 
-/**/*.js
-  Content-Type: application/javascript; charset=utf-8
-  X-Content-Type-Options: nosniff
+/assets/index-*.js
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=31536000, immutable
 
-# CSS files
+/assets/react-*.js
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=31536000, immutable
+
+## CSS files
 /assets/*.css
-  Content-Type: text/css; charset=utf-8
-  Cache-Control: public, max-age=31536000, immutable
-
-# JSON files
-/*.json
-  Content-Type: application/json
-  Cache-Control: public, max-age=3600
-
-# Web App Manifest
-/manifest.json
-  Content-Type: application/manifest+json
-  Cache-Control: public, max-age=3600
-
-# Images
-/assets/*.webp
-  Cache-Control: public, max-age=31536000, immutable
-/assets/*.avif
-  Cache-Control: public, max-age=31536000, immutable
-/assets/*.png
-  Cache-Control: public, max-age=31536000, immutable
-/assets/*.jpg
-  Cache-Control: public, max-age=31536000, immutable
-/assets/*.jpeg
-  Cache-Control: public, max-age=31536000, immutable
-/assets/*.svg
-  Cache-Control: public, max-age=31536000, immutable
-
-# Fonts
-/assets/*.woff2
-  Content-Type: font/woff2
+  Content-Type: text/css
   Cache-Control: public, max-age=31536000, immutable
