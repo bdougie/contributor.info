@@ -51,10 +51,11 @@ export function RepoViewSkeleton({ className }: RepoViewSkeletonProps) {
           <CardContent>
             {/* Tabs skeleton */}
             <div className="space-y-4">
-              <div className="flex space-x-1 bg-muted p-1 rounded-md w-fit" aria-label="Loading navigation tabs">
-                <Skeleton className="h-9 w-16" />
-                <Skeleton className="h-9 w-20" />
-                <Skeleton className="h-9 w-24" />
+              <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground grid grid-cols-4 w-full max-w-md" aria-label="Loading navigation tabs">
+                <Skeleton className="h-7 rounded-md mx-1" />
+                <Skeleton className="h-7 rounded-md mx-1" />
+                <Skeleton className="h-7 rounded-md mx-1" />
+                <Skeleton className="h-7 rounded-md mx-1" />
               </div>
             </div>
 
