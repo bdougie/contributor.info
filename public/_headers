@@ -1,30 +1,52 @@
-/*
-  X-Frame-Options: DENY
+# Ensure all JavaScript files are served with correct MIME type
+/assets/*.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
   X-Content-Type-Options: nosniff
-  Referrer-Policy: strict-origin-when-cross-origin
+
+/assets/**/*.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
 
 /*.js
-  Content-Type: text/javascript; charset=UTF-8
-  
-/*.mjs
-  Content-Type: text/javascript; charset=UTF-8
+  Content-Type: application/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
 
-/*.jsx
-  Content-Type: text/javascript; charset=UTF-8
-  
-/*.tsx
-  Content-Type: text/javascript; charset=UTF-8
+/**/*.js
+  Content-Type: application/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
 
-/*.ts
-  Content-Type: text/javascript; charset=UTF-8
-
-/assets/*
-  Cache-Control: public, max-age=31536000, immutable
-
-/assets/*.js
-  Content-Type: text/javascript; charset=UTF-8
-  Cache-Control: public, max-age=31536000, immutable
-
+# CSS files
 /assets/*.css
-  Content-Type: text/css; charset=UTF-8
+  Content-Type: text/css; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+
+# JSON files
+/*.json
+  Content-Type: application/json
+  Cache-Control: public, max-age=3600
+
+# Web App Manifest
+/manifest.json
+  Content-Type: application/manifest+json
+  Cache-Control: public, max-age=3600
+
+# Images
+/assets/*.webp
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*.avif
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*.png
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*.jpg
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*.jpeg
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*.svg
+  Cache-Control: public, max-age=31536000, immutable
+
+# Fonts
+/assets/*.woff2
+  Content-Type: font/woff2
   Cache-Control: public, max-age=31536000, immutable

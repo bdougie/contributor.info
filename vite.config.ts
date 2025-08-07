@@ -57,7 +57,13 @@ export default defineConfig({
       '@radix-ui/react-dropdown-menu',
       'class-variance-authority',
       'clsx',
-      'tailwind-merge'
+      'tailwind-merge',
+      // Pre-bundle chart libraries to avoid circular dependencies
+      'recharts',
+      'react-smooth',
+      'd3-scale',
+      'd3-shape',
+      'd3-interpolate'
     ],
     exclude: [
       'lucide-react', // Keep icons separate for better tree-shaking
@@ -72,6 +78,11 @@ export default defineConfig({
   build: {
     // Enable CSS code splitting for better performance
     cssCodeSplit: true,
+    commonjsOptions: {
+      // Better handling of CommonJS modules (like some D3 packages)
+      transformMixedEsModules: true,
+      strictRequires: 'auto'
+    },
     rollupOptions: {
       // Remove the external configuration as it's causing build issues
       output: {
@@ -119,10 +130,24 @@ export default defineConfig({
               return 'ui-radix-misc';
             }
             
-            // Charts - combine all chart libraries to avoid circular dependencies
-            if (id.includes('@nivo') || id.includes('recharts') || id.includes('react-smooth') || 
-                id.includes('d3-') || id.includes('d3/') || id.includes('victory')) {
-              return 'charts-all';
+            // D3 and its dependencies must be in their own chunk (base dependency)
+            if (id.includes('d3-') || id.includes('d3/')) {
+              return 'charts-d3-base';
+            }
+            
+            // Recharts and dependencies together (depends on D3)
+            if (id.includes('recharts') || id.includes('react-smooth') || id.includes('react-resize-detector')) {
+              return 'charts-recharts';
+            }
+            
+            // Nivo charts (also depends on D3)
+            if (id.includes('@nivo')) {
+              return 'charts-nivo';
+            }
+            
+            // Victory charts
+            if (id.includes('victory')) {
+              return 'charts-victory';
             }
             
             // Markdown and code highlighting
