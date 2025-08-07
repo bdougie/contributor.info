@@ -2,6 +2,16 @@
 
 A web application that visualizes GitHub repository contributors' information, providing insights into pull requests, contributions, and contributor details.
 
+## Project Stats
+
+[![Contributors](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=contributors&style=flat)](https://contributor.info/bdougie/contributor.info)
+[![Pull Requests](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=pull-requests&style=flat)](https://contributor.info/bdougie/contributor.info)
+[![Merge Rate](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=merge-rate&style=flat)](https://contributor.info/bdougie/contributor.info)
+
+[![Contributor Stats](https://contributor.info/api/widgets/stat-card?owner=bdougie&repo=contributor.info&theme=light&size=medium)](https://contributor.info/bdougie/contributor.info)
+
+_https://contributor.info/widgets_
+
 ## ✨ Features
 
 - **GitHub Authentication** - Secure OAuth integration
