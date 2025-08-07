@@ -1,15 +1,19 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronRight, HelpCircle } from "lucide-react";
+import { ChevronDown, ChevronRight, HelpCircle, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
+import { faqService, type FAQAnswer } from "@/lib/llm/faq-service";
 
 interface FAQ {
   id: string;
   question: string;
   answer: string;
+  confidence?: number;
+  sources?: string[];
+  isAIGenerated?: boolean;
   schema?: {
     "@type": string;
     name: string;
@@ -31,17 +35,68 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [useAI, setUseAI] = useState(faqService.isAvailable());
 
   useEffect(() => {
     generateFAQs();
-  }, [owner, repo, stats.pullRequests, timeRange]);
+  }, [owner, repo, stats.pullRequests, timeRange, useAI]);
 
-  const generateFAQs = () => {
+  const generateFAQs = async () => {
     if (!stats.pullRequests || stats.pullRequests.length === 0) {
       setLoading(false);
       return;
     }
 
+    setLoading(true);
+
+    try {
+      if (useAI) {
+        // Use AI-powered FAQ generation
+        const repositoryData = {
+          pullRequests: stats.pullRequests,
+          health: stats.health,
+          activity: stats.activity
+        };
+
+        const aiAnswers = await faqService.generateFAQAnswers(
+          owner,
+          repo,
+          timeRange,
+          repositoryData
+        );
+
+        const aiFAQs: FAQ[] = aiAnswers.map(answer => ({
+          id: answer.id,
+          question: answer.question,
+          answer: answer.answer,
+          confidence: answer.confidence,
+          sources: answer.sources,
+          isAIGenerated: true,
+          schema: {
+            "@type": "Question",
+            name: answer.question,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: answer.answer
+            }
+          }
+        }));
+
+        setFaqs(aiFAQs.slice(0, 8));
+      } else {
+        // Fallback to static FAQ generation
+        generateStaticFAQs();
+      }
+    } catch (error) {
+      console.error('Failed to generate AI FAQs, falling back to static:', error);
+      setUseAI(false);
+      generateStaticFAQs();
+    }
+
+    setLoading(false);
+  };
+
+  const generateStaticFAQs = () => {
     const generatedFAQs: FAQ[] = [
       {
         id: "contributor-count",
@@ -137,7 +192,6 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     ];
 
     setFaqs(generatedFAQs.slice(0, 8)); // Limit to 8 FAQs
-    setLoading(false);
   };
 
   const generateContributorCountAnswer = (): string => {
@@ -304,7 +358,10 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
                 className="w-full justify-between h-auto p-0 text-left font-normal hover:bg-transparent"
                 onClick={() => toggleExpanded(faq.id)}
               >
-                <span className="text-sm font-medium pr-2">{faq.question}</span>
+                <span className="text-sm font-medium pr-2 flex-1">{faq.question}</span>
+                {faq.isAIGenerated && (
+                  <Sparkles className="h-3 w-3 text-blue-500 mr-2 flex-shrink-0" title="AI-generated answer" />
+                )}
                 {expandedItems.has(faq.id) ? (
                   <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 ) : (
@@ -317,6 +374,15 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {faq.answer}
                   </p>
+                  {faq.isAIGenerated && faq.confidence && faq.sources && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <span>Confidence: {Math.round(faq.confidence * 100)}%</span>
+                        <span>•</span>
+                        <span>Sources: {faq.sources.join(', ')}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -325,8 +391,14 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
         
         <div className="text-center pt-2">
           <p className="text-xs text-muted-foreground">
-            FAQs generated from repository data • Updated with time range changes
+            FAQs {useAI ? 'powered by AI analysis' : 'generated from repository data'} • Updated with time range changes
           </p>
+          {useAI && (
+            <div className="flex items-center justify-center gap-1 mt-1">
+              <Sparkles className="h-3 w-3 text-blue-500" />
+              <span className="text-xs text-blue-600">Enhanced with AI insights</span>
+            </div>
+          )}
         </div>
       </div>
     </>
