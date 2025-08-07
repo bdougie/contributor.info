@@ -40,19 +40,21 @@ npm run build
 ```
 
 ### `submit-sitemap.js`
-Submits generated sitemaps to search engines.
+Verifies sitemap accessibility (ping endpoints deprecated as of June 2023).
 
-**Supported Search Engines:**
-- Google (main and news sitemap)
-- Bing (main and news sitemap)
+**Purpose:**
+- Verifies sitemaps are accessible via HTTP
+- Provides instructions for manual submission
 
 **Usage:**
 ```bash
-# Manual submission (if needed)
+# Verify sitemap accessibility
 node scripts/sitemap/submit-sitemap.js
 ```
 
-**Note:** This script runs automatically after each release via GitHub Actions workflow.
+**Important:** Google and Bing deprecated their ping endpoints in 2023. Sitemaps must now be:
+1. Manually submitted via Search Console/Webmaster Tools
+2. OR discovered automatically via robots.txt (already configured)
 
 ## Generated Files
 
@@ -72,8 +74,8 @@ node scripts/sitemap/submit-sitemap.js
 2. **After Release (Automated):**
    - GitHub Actions workflow triggers after successful release
    - Waits 2 minutes for Netlify deployment to complete
-   - Verifies sitemap accessibility at `https://contributor.info/sitemap.xml`
-   - Automatically submits sitemaps to Google and Bing
+   - Verifies both sitemaps are accessible via HTTP
+   - Logs verification results and submission instructions
    - Adds sitemap link to release summary
 
 ### Manual Process (if needed)
@@ -106,14 +108,14 @@ After submission, monitor sitemap status at:
 
 ## GitHub Actions Integration
 
-The sitemap submission is integrated into the release workflow (`.github/workflows/release.yml`):
+The sitemap verification is integrated into the release workflow (`.github/workflows/release.yml`):
 
 - **Trigger:** Runs automatically after a successful release
-- **Job:** `submit-sitemap` 
+- **Job:** `verify-sitemap` 
 - **Steps:**
   1. Waits for Netlify deployment (2 minutes)
-  2. Verifies sitemap is accessible
-  3. Submits to search engines
+  2. Verifies both sitemaps are accessible
+  3. Logs verification results
   4. Updates release summary with sitemap link
 
 ## Notes
@@ -122,5 +124,5 @@ The sitemap submission is integrated into the release workflow (`.github/workflo
 - Repository subpages (/health, /distribution) are only included for high-priority repos (>= 0.75)
 - Sitemap is regenerated on every build to ensure fresh data
 - XML escaping is applied to all dynamic content for safety
-- Sitemap submission runs with `continue-on-error: true` to prevent release failures
-- Search engine submission happens automatically - no manual intervention needed
+- Since ping endpoints are deprecated (2023), sitemaps must be manually submitted via webmaster tools
+- Sitemaps are automatically discovered via robots.txt by search engine crawlers
