@@ -5,7 +5,8 @@
  * Run this after deploying to production
  */
 
-import fetch from 'node-fetch';
+// Use native fetch (available in Node 18+) or https as fallback
+import https from 'https';
 
 const SITE_URL = 'https://contributor.info';
 const SITEMAP_URL = `${SITE_URL}/sitemap.xml`;
@@ -19,22 +20,23 @@ const SUBMISSION_URLS = {
   bingNews: `https://www.bing.com/ping?sitemap=${encodeURIComponent(NEWS_SITEMAP_URL)}`
 };
 
-async function submitSitemap(name, url) {
-  try {
+function submitSitemap(name, url) {
+  return new Promise((resolve) => {
     console.log(`📤 Submitting to ${name}...`);
-    const response = await fetch(url);
     
-    if (response.ok) {
-      console.log(`✅ Successfully submitted to ${name}`);
-      return true;
-    } else {
-      console.error(`❌ Failed to submit to ${name}: ${response.status} ${response.statusText}`);
-      return false;
-    }
-  } catch (error) {
-    console.error(`❌ Error submitting to ${name}:`, error.message);
-    return false;
-  }
+    https.get(url, (res) => {
+      if (res.statusCode === 200) {
+        console.log(`✅ Successfully submitted to ${name}`);
+        resolve(true);
+      } else {
+        console.error(`❌ Failed to submit to ${name}: ${res.statusCode} ${res.statusMessage}`);
+        resolve(false);
+      }
+    }).on('error', (error) => {
+      console.error(`❌ Error submitting to ${name}:`, error.message);
+      resolve(false);
+    });
+  });
 }
 
 async function main() {
