@@ -101,7 +101,7 @@ jobs:
       - name: Submit sitemap to search engines
         run: |
           echo "Submitting sitemap to search engines..."
-          node scripts/submit-sitemap.js
+          node scripts/sitemap/submit-sitemap.js
         continue-on-error: true
 
   notify:

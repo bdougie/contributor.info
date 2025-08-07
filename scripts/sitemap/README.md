@@ -2,6 +2,10 @@
 
 This directory contains scripts for generating and managing XML sitemaps for contributor.info.
 
+## Overview
+
+The sitemap system automatically generates and submits XML sitemaps to search engines. Sitemap generation happens during the build process, and submission to search engines occurs automatically after each release.
+
 ## Scripts
 
 ### `generate-sitemap.js`
@@ -42,9 +46,11 @@ Submits generated sitemaps to search engines.
 
 **Usage:**
 ```bash
-# Submit sitemaps after deployment
-node scripts/submit-sitemap.js
+# Manual submission (if needed)
+node scripts/sitemap/submit-sitemap.js
 ```
+
+**Note:** This script runs automatically after each release via GitHub Actions workflow.
 
 ## Generated Files
 
@@ -54,15 +60,35 @@ node scripts/submit-sitemap.js
 
 ## Deployment Process
 
-1. **During Build:**
+### Automatic Process (via Release Workflow)
+
+1. **During Build Phase:**
    - Sitemap is automatically generated via `npm run build`
    - Fetches latest repository data from database
    - Creates both main and news sitemaps
 
-2. **After Deployment:**
-   - Run `node scripts/submit-sitemap.js` to ping search engines
-   - Verify in Google Search Console and Bing Webmaster Tools
-   - Monitor indexing status
+2. **After Release (Automated):**
+   - GitHub Actions workflow triggers after successful release
+   - Waits 2 minutes for Netlify deployment to complete
+   - Verifies sitemap accessibility at `https://contributor.info/sitemap.xml`
+   - Automatically submits sitemaps to Google and Bing
+   - Adds sitemap link to release summary
+
+### Manual Process (if needed)
+
+1. **Generate sitemap:**
+   ```bash
+   npm run generate-sitemap
+   ```
+
+2. **Submit to search engines:**
+   ```bash
+   node scripts/sitemap/submit-sitemap.js
+   ```
+
+3. **Verify submission:**
+   - Check Google Search Console
+   - Check Bing Webmaster Tools
 
 ## Environment Variables
 
@@ -76,9 +102,23 @@ After submission, monitor sitemap status at:
 - [Google Search Console](https://search.google.com/search-console)
 - [Bing Webmaster Tools](https://www.bing.com/webmasters)
 
+## GitHub Actions Integration
+
+The sitemap submission is integrated into the release workflow (`.github/workflows/release.yml`):
+
+- **Trigger:** Runs automatically after a successful release
+- **Job:** `submit-sitemap` 
+- **Steps:**
+  1. Waits for Netlify deployment (2 minutes)
+  2. Verifies sitemap is accessible
+  3. Submits to search engines
+  4. Updates release summary with sitemap link
+
 ## Notes
 
 - News sitemap includes only repositories updated in the last 2 days
 - Repository subpages (/health, /distribution) are only included for high-priority repos (>= 0.75)
 - Sitemap is regenerated on every build to ensure fresh data
 - XML escaping is applied to all dynamic content for safety
+- Sitemap submission runs with `continue-on-error: true` to prevent release failures
+- Search engine submission happens automatically - no manual intervention needed
