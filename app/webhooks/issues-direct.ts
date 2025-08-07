@@ -1,27 +1,51 @@
 import { IssuesEvent } from '../types/github';
-import { githubAppAuth } from '../lib/auth';
 import { supabase } from '../../src/lib/supabase';
+
+// Lazy load auth to avoid initialization errors
+let githubAppAuth: any = null;
+
+async function getAuth() {
+  if (!githubAppAuth) {
+    try {
+      const { githubAppAuth: auth } = await import('../lib/auth');
+      githubAppAuth = auth;
+      console.log('✅ GitHub App auth loaded for issues handler');
+    } catch (error) {
+      console.error('❌ Failed to load GitHub App auth:', error);
+      throw error;
+    }
+  }
+  return githubAppAuth;
+}
 
 /**
  * Direct webhook handler for issue.opened events
  * Works without requiring the repository to be in the database
  */
 export async function handleIssueOpenedDirect(event: IssuesEvent) {
+  console.log('🎯 handleIssueOpenedDirect called');
+  
   try {
     const { issue, repository, installation } = event;
     
     console.log(`Processing opened issue #${issue.number} in ${repository.full_name}`);
     console.log(`  Repository GitHub ID: ${repository.id}`);
     console.log(`  Installation ID: ${installation?.id}`);
+    console.log(`  Issue author: ${issue.user.login}`);
 
     // Get installation token
     const installationId = installation?.id;
     if (!installationId) {
-      console.log('No installation ID found, cannot post comment');
+      console.log('❌ No installation ID found, cannot post comment');
       return;
     }
 
-    const octokit = await githubAppAuth.getInstallationOctokit(installationId);
+    console.log('📝 Getting auth module...');
+    const auth = await getAuth();
+    
+    console.log('📝 Getting installation Octokit...');
+    const octokit = await auth.getInstallationOctokit(installationId);
+    console.log('✅ Got installation Octokit');
 
     // Find similar issues using direct repository info
     const similarIssues = await findSimilarIssuesDirect(issue, repository);

@@ -8,27 +8,53 @@ import { ENV_CONFIG } from '../config/app';
  * Handles JWT generation and installation token management
  */
 export class GitHubAppAuth {
-  private app: App;
+  private app: App | null = null;
   private installationTokens: Map<number, { token: string; expiresAt: Date }> = new Map();
+  private isConfigured: boolean = false;
 
   constructor() {
+    // Check if we have the required configuration
     if (!ENV_CONFIG.app_id || !ENV_CONFIG.private_key) {
-      throw new Error('GitHub App ID and private key are required');
+      console.error('GitHub App configuration missing:', {
+        hasAppId: !!ENV_CONFIG.app_id,
+        hasPrivateKey: !!ENV_CONFIG.private_key,
+        privateKeyLength: ENV_CONFIG.private_key?.length || 0,
+      });
+      this.isConfigured = false;
+      return;
     }
 
-    this.app = new App({
-      appId: ENV_CONFIG.app_id,
-      privateKey: ENV_CONFIG.private_key,
-      webhooks: {
-        secret: ENV_CONFIG.webhook_secret,
-      },
-    });
+    try {
+      this.app = new App({
+        appId: ENV_CONFIG.app_id,
+        privateKey: ENV_CONFIG.private_key,
+        webhooks: {
+          secret: ENV_CONFIG.webhook_secret,
+        },
+      });
+      this.isConfigured = true;
+      console.log('GitHub App auth configured successfully');
+    } catch (error) {
+      console.error('Failed to initialize GitHub App:', error);
+      this.isConfigured = false;
+    }
+  }
+
+  /**
+   * Check if the auth is properly configured
+   */
+  isReady(): boolean {
+    return this.isConfigured && this.app !== null;
   }
 
   /**
    * Generate a JWT token for app authentication
    */
   generateJWT(): string {
+    if (!this.isReady()) {
+      throw new Error('GitHub App not configured - cannot generate JWT');
+    }
+    
     const payload = {
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 600, // 10 minutes
@@ -42,6 +68,10 @@ export class GitHubAppAuth {
    * Get or create an installation token
    */
   async getInstallationToken(installationId: number): Promise<string> {
+    if (!this.isReady()) {
+      throw new Error('GitHub App not configured - cannot get installation token');
+    }
+    
     // Check cache first
     const cached = this.installationTokens.get(installationId);
     if (cached && cached.expiresAt > new Date()) {
