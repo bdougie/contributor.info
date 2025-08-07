@@ -89,9 +89,9 @@ export default defineConfig({
     },
     rollupOptions: {
       // Workaround for Rollup 4.45.0 bug with nested conditional expressions
-      // The bug occurs when Rollup's treeshaking encounters nested ternary operators
+      // Even after refactoring many nested ternaries, some remain throughout the codebase
       // Issue: https://github.com/rollup/rollup/issues/5747
-      // TODO: Re-enable treeshaking after upgrading Rollup or fixing all nested ternaries
+      // TODO: Complete refactoring of ALL nested ternaries or upgrade Rollup when fixed
       treeshake: false,
       // Remove the external configuration as it's causing build issues
       output: {
