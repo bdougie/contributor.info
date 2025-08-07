@@ -33,7 +33,6 @@ import { useRepositoryDiscovery } from "@/hooks/use-repository-discovery";
 import { DataStateIndicator } from "@/components/ui/data-state-indicator";
 import { LastUpdated } from "@/components/ui/last-updated";
 import { useDataTimestamp } from "@/hooks/use-data-timestamp";
-import "@/styles/cls-fixes.css";
 
 export default function RepoView() {
   const { owner, repo } = useParams();

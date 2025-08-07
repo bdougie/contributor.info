@@ -237,20 +237,22 @@ export default function OrgView() {
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="space-y-4">
+      <div className="space-y-4 org-header">
         <div className="flex items-center gap-3">
-          {orgData?.avatar_url ? (
-            <OrganizationAvatar
-              src={orgData.avatar_url}
-              alt={orgData.name || org || ''}
-              size={48}
-              priority={true}
-            />
-          ) : (
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-              {org?.charAt(0)?.toUpperCase() || '?'}
-            </div>
-          )}
+          <div className="org-avatar-container">
+            {orgData?.avatar_url ? (
+              <OrganizationAvatar
+                src={orgData.avatar_url}
+                alt={orgData.name || org || ''}
+                size={48}
+                priority={true}
+              />
+            ) : (
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+                {org?.charAt(0)?.toUpperCase() || '?'}
+              </div>
+            )}
+          </div>
           <div>
             <h1 className="text-3xl font-bold">{orgData?.name || org}</h1>
             <p className="text-muted-foreground">
@@ -266,16 +268,20 @@ export default function OrgView() {
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
             Repositories
-            {!isLoading && (
-              <Badge variant="secondary" className="ml-auto">
-                {repositories.length} total
-              </Badge>
-            )}
+            <div className="ml-auto repo-count-badge">
+              {!isLoading ? (
+                <Badge variant="secondary">
+                  {repositories.length} total
+                </Badge>
+              ) : (
+                <div className="h-6 w-16 skeleton-loading rounded" />
+              )}
+            </div>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="org-repos-table">
           {isLoading ? (
-            <div className="space-y-4">
+            <div className="space-y-4 loading-container">
               {Array.from({ length: 10 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-4">
                   <Skeleton className="h-12 w-full" />
@@ -331,9 +337,11 @@ export default function OrgView() {
       </Card>
 
       {/* Request More Repositories CTA */}
-      {!isLoading && repositories.length > 0 && (
-        <RequestMoreReposCTA org={org || ""} />
-      )}
+      <div className="org-cta-section">
+        {!isLoading && repositories.length > 0 && (
+          <RequestMoreReposCTA org={org || ""} />
+        )}
+      </div>
     </div>
   );
 }
