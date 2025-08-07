@@ -30,6 +30,17 @@ function needsRegeneration(repo: any, activityHash: string): boolean {
   return generatedAt < fourteenDaysAgo || repo.recent_activity_hash !== activityHash;
 }
 
+// Humanize numbers (e.g., 27357 -> 27.4k)
+function humanizeNumber(num: number): string {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  }
+  return num.toString();
+}
+
 // Generate summary locally as fallback
 async function generateLocalSummary(repository: any, pullRequests: any[]): Promise<string> {
   const recentMergedPRs = (pullRequests || [])
@@ -42,8 +53,10 @@ async function generateLocalSummary(repository: any, pullRequests: any[]): Promi
   
   const parts: string[] = [];
   
-  // Repository overview
-  parts.push(`**${repository.full_name || repository.name}** is ${repository.description ? repository.description.toLowerCase() : 'a repository'} with ${repository.stargazers_count || 0} stars and ${repository.forks_count || 0} forks.`);
+  // Repository overview with humanized numbers
+  const stars = humanizeNumber(repository.stargazers_count || 0);
+  const forks = humanizeNumber(repository.forks_count || 0);
+  parts.push(`**${repository.full_name || repository.name}** is ${repository.description ? repository.description.toLowerCase() : 'a repository'} with ${stars} stars and ${forks} forks.`);
   
   // Recent activity
   if (recentMergedPRs.length > 0) {
