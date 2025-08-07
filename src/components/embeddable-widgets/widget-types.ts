@@ -7,7 +7,7 @@ export interface WidgetConfig {
   repo: string;
   theme?: 'light' | 'dark' | 'auto';
   size?: 'small' | 'medium' | 'large';
-  format?: 'svg' | 'png' | 'html';
+  format?: 'svg' | 'png' | 'html' | 'markdown';
   showLogo?: boolean;
 }
 
@@ -35,7 +35,7 @@ export interface ComparisonConfig {
   type: 'comparison';
   repositories: string[]; // array of owner/repo strings
   theme?: 'light' | 'dark' | 'auto';
-  format?: 'svg' | 'png' | 'html';
+  format?: 'svg' | 'png' | 'html' | 'markdown';
   metric?: 'contributors' | 'activity' | 'health';
 }
 

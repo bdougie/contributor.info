@@ -225,3 +225,21 @@ export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps)
     </div>
   );
 }
+
+// Utility function to generate badge URL
+export function generateBadgeURL(config: BadgeConfig, data: WidgetData): string {
+  return `${window.location.origin}/api/widget/badge?` + new URLSearchParams({
+    owner: data.repository.owner,
+    repo: data.repository.repo,
+    type: config.metrics?.[0] || 'contributors',
+    style: config.style || 'flat',
+    label: config.label || '',
+    color: config.color || '',
+  }).toString();
+}
+
+// Utility function to generate badge markdown
+export function generateBadgeMarkdown(config: BadgeConfig, data: WidgetData): string {
+  const badgeUrl = generateBadgeURL(config, data);
+  return `![${data.repository.repo} badge](${badgeUrl})`;
+}
