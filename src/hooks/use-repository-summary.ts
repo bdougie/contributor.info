@@ -30,6 +30,48 @@ function needsRegeneration(repo: any, activityHash: string): boolean {
   return generatedAt < fourteenDaysAgo || repo.recent_activity_hash !== activityHash;
 }
 
+// Humanize numbers (e.g., 27357 -> 27.4k)
+function humanizeNumber(num: number): string {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  }
+  return num.toString();
+}
+
+// Generate summary locally as fallback
+async function generateLocalSummary(repository: any, pullRequests: any[]): Promise<string> {
+  const recentMergedPRs = (pullRequests || [])
+    .filter(pr => pr.merged_at !== null)
+    .slice(0, 5);
+  
+  const recentOpenPRs = (pullRequests || [])
+    .filter(pr => pr.state === 'open')
+    .slice(0, 3);
+  
+  const parts: string[] = [];
+  
+  // Repository overview with humanized numbers
+  const stars = humanizeNumber(repository.stargazers_count || 0);
+  const forks = humanizeNumber(repository.forks_count || 0);
+  parts.push(`**${repository.full_name || repository.name}** is ${repository.description ? repository.description.toLowerCase() : 'a repository'} with ${stars} stars and ${forks} forks.`);
+  
+  // Recent activity
+  if (recentMergedPRs.length > 0) {
+    const prTitles = recentMergedPRs.slice(0, 3).map(pr => pr.title).join(', ');
+    parts.push(`Recent development includes: ${prTitles}.`);
+  }
+  
+  // Current focus
+  if (recentOpenPRs.length > 0) {
+    parts.push(`Current open pull requests suggest focus on ${recentOpenPRs[0].title}.`);
+  }
+  
+  return parts.join('\n\n');
+}
+
 export function useRepositorySummary(
   owner: string | undefined,
   repo: string | undefined,
@@ -146,10 +188,30 @@ export function useRepositorySummary(
       );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
-      setError(errorMessage);
       
-      // Simple error logging without analytics
-      console.error('AI summary error:', errorMessage, { owner, repo });
+      // Fallback to local generation if Edge Function fails
+      if (errorMessage.includes('500') || errorMessage.includes('non-2xx')) {
+        console.log('Edge Function failed, generating summary locally');
+        try {
+          // Get repository data from the beginning of the function
+          const { data: repoData } = await supabase
+            .from('repositories')
+            .select('*')
+            .eq('owner', owner)
+            .eq('name', repo)
+            .single();
+          
+          const fallbackSummary = await generateLocalSummary(repoData || {}, pullRequests || []);
+          setSummary(fallbackSummary);
+          setError(null);
+        } catch (fallbackErr) {
+          setError('Unable to generate summary');
+          console.error('Local summary generation failed:', fallbackErr);
+        }
+      } else {
+        setError(errorMessage);
+        console.error('AI summary error:', errorMessage, { owner, repo });
+      }
     } finally {
       setLoading(false);
     }

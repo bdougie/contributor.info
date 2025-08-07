@@ -181,10 +181,25 @@ class WebVitalsMonitor {
     this.metrics.set(name, metric);
 
     if (this.debugMode) {
-      const emoji = rating === 'good' ? '✅' : rating === 'needs-improvement' ? '⚠️' : '❌';
+      // Use lookup objects instead of nested ternaries
+      const ratingEmojis: Record<string, string> = {
+        'good': '✅',
+        'needs-improvement': '⚠️',
+        'poor': '❌'
+      };
+      
+      const ratingColors: Record<string, string> = {
+        'good': 'green',
+        'needs-improvement': 'orange',
+        'poor': 'red'
+      };
+      
+      const emoji = ratingEmojis[rating] || '❌';
+      const color = ratingColors[rating] || 'red';
       const formattedValue = name === 'CLS' ? value.toFixed(3) : `${(value / 1000).toFixed(2)}s`;
+      
       console.log(`%c[Web Vitals] ${emoji} ${name}: ${formattedValue} (${rating})`, 
-        `color: ${rating === 'good' ? 'green' : rating === 'needs-improvement' ? 'orange' : 'red'}`
+        `color: ${color}`
       );
     }
 

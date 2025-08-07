@@ -39,34 +39,67 @@ const BADGE_STYLES = {
   },
 };
 
+// Color schemes for badge metrics
+const COLORS = {
+  contributors: "#007ec6",
+  pullRequests: "#28a745",
+  mergeRate: {
+    high: "#28a745",    // > 80%
+    medium: "#ffc107",  // > 60%
+    low: "#dc3545"      // <= 60%
+  },
+  lotteryFactor: {
+    excellent: "#28a745",  // > 3
+    good: "#ffc107",       // > 2
+    poor: "#dc3545",       // <= 2
+    unavailable: "#6c757d" // N/A
+  },
+  activity: {
+    active: "#28a745",
+    low: "#ffc107"
+  }
+};
+
+// Helper functions to determine colors
+function getMergeRateColor(rate: number): string {
+  if (rate > 80) return COLORS.mergeRate.high;
+  if (rate > 60) return COLORS.mergeRate.medium;
+  return COLORS.mergeRate.low;
+}
+
+function getLotteryFactorColor(factor: number | undefined): string {
+  if (!factor) return COLORS.lotteryFactor.unavailable;
+  if (factor > 3) return COLORS.lotteryFactor.excellent;
+  if (factor > 2) return COLORS.lotteryFactor.good;
+  return COLORS.lotteryFactor.poor;
+}
+
 // Predefined badge types with time context
 const BADGE_PRESETS = {
   contributors: (data: WidgetData) => ({
     label: "contributors (30d)",
     message: data.stats.totalContributors.toString(),
-    color: "#007ec6",
+    color: COLORS.contributors,
   }),
   "pull-requests": (data: WidgetData) => ({
     label: "PRs (30d)", 
     message: data.stats.totalPRs.toString(),
-    color: "#28a745",
+    color: COLORS.pullRequests,
   }),
   "merge-rate": (data: WidgetData) => ({
     label: "merge rate (30d)",
     message: `${data.stats.mergeRate.toFixed(1)}%`,
-    color: data.stats.mergeRate > 80 ? "#28a745" : data.stats.mergeRate > 60 ? "#ffc107" : "#dc3545",
+    color: getMergeRateColor(data.stats.mergeRate),
   }),
   "lottery-factor": (data: WidgetData) => ({
     label: "lottery factor (30d)",
     message: data.stats.lotteryFactor?.toFixed(1) || "N/A",
-    color: !data.stats.lotteryFactor ? "#6c757d" :
-           data.stats.lotteryFactor > 3 ? "#28a745" : 
-           data.stats.lotteryFactor > 2 ? "#ffc107" : "#dc3545",
+    color: getLotteryFactorColor(data.stats.lotteryFactor),
   }),
   activity: (data: WidgetData) => ({
     label: "activity (7d)",
     message: data.activity.recentActivity ? "active" : "low",
-    color: data.activity.recentActivity ? "#28a745" : "#ffc107",
+    color: data.activity.recentActivity ? COLORS.activity.active : COLORS.activity.low,
   }),
 };
 

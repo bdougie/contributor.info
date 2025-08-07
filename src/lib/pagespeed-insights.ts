@@ -300,17 +300,27 @@ class PageSpeedInsightsAPI {
       
       // Generate report
       let report = `## 📊 Performance Report\n\n`;
+      // Helper functions to avoid ternary operators
+      const getDeltaIcon = (delta: number) => delta > 0 ? '✅' : '⚠️';
+      const getMetricStatus = (delta: number) => delta <= 0 ? '✅' : '⚠️';
+      const formatDelta = (delta: number) => delta > 0 ? `+${delta}` : `${delta}`;
+      const formatDeltaWithUnit = (delta: number | string, unit: string = '') => {
+        const numDelta = typeof delta === 'string' ? parseFloat(delta) : delta;
+        const sign = numDelta > 0 ? '+' : '';
+        return `${sign}${delta}${unit}`;
+      };
+      
       report += `### Overall Score\n`;
       report += `- **Base**: ${baseMetrics.performanceScore}/100\n`;
       report += `- **PR**: ${prMetrics.performanceScore}/100\n`;
-      report += `- **Delta**: ${scoreDelta > 0 ? '✅' : '⚠️'} ${scoreDelta > 0 ? '+' : ''}${scoreDelta}\n\n`;
+      report += `- **Delta**: ${getDeltaIcon(scoreDelta)} ${formatDelta(scoreDelta)}\n\n`;
       
       report += `### Core Web Vitals\n`;
       report += `| Metric | Base | PR | Delta | Status |\n`;
       report += `|--------|------|-----|-------|--------|\n`;
-      report += `| LCP | ${(baseMetrics.lcp / 1000).toFixed(2)}s | ${(prMetrics.lcp / 1000).toFixed(2)}s | ${lcpDelta > 0 ? '+' : ''}${(lcpDelta / 1000).toFixed(2)}s | ${lcpDelta <= 0 ? '✅' : '⚠️'} |\n`;
-      report += `| FCP | ${(baseMetrics.fcp / 1000).toFixed(2)}s | ${(prMetrics.fcp / 1000).toFixed(2)}s | ${fcpDelta > 0 ? '+' : ''}${(fcpDelta / 1000).toFixed(2)}s | ${fcpDelta <= 0 ? '✅' : '⚠️'} |\n`;
-      report += `| CLS | ${baseMetrics.cls.toFixed(3)} | ${prMetrics.cls.toFixed(3)} | ${clsDelta > 0 ? '+' : ''}${clsDelta.toFixed(3)} | ${clsDelta <= 0 ? '✅' : '⚠️'} |\n`;
+      report += `| LCP | ${(baseMetrics.lcp / 1000).toFixed(2)}s | ${(prMetrics.lcp / 1000).toFixed(2)}s | ${formatDeltaWithUnit((lcpDelta / 1000).toFixed(2), 's')} | ${getMetricStatus(lcpDelta)} |\n`;
+      report += `| FCP | ${(baseMetrics.fcp / 1000).toFixed(2)}s | ${(prMetrics.fcp / 1000).toFixed(2)}s | ${formatDeltaWithUnit((fcpDelta / 1000).toFixed(2), 's')} | ${getMetricStatus(fcpDelta)} |\n`;
+      report += `| CLS | ${baseMetrics.cls.toFixed(3)} | ${prMetrics.cls.toFixed(3)} | ${formatDeltaWithUnit(clsDelta.toFixed(3), '')} | ${getMetricStatus(clsDelta)} |\n`;
       
       // Check performance budget
       const budget = {
