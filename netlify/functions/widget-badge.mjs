@@ -134,45 +134,14 @@ async function fetchRepoStats(owner, repo) {
   }
 }
 
-// Fallback mock data for when database is unavailable
-function generateMockStats(owner, repo) {
-  // Popular repositories with realistic numbers
-  const knownRepos = {
-    'facebook/react': {
-      contributors: 147,
-      pullRequests: 234,
-      mergeRate: 83.5,
-      lotteryFactor: 3.2,
-      activity: 'high'
-    },
-    'microsoft/vscode': {
-      contributors: 189,
-      pullRequests: 456,
-      mergeRate: 89.2,
-      lotteryFactor: 2.8,
-      activity: 'high'
-    },
-    'vuejs/vue': {
-      contributors: 56,
-      pullRequests: 134,
-      mergeRate: 91.7,
-      lotteryFactor: 3.8,
-      activity: 'medium'
-    }
-  };
-
-  const key = `${owner}/${repo}`;
-  if (knownRepos[key]) {
-    return knownRepos[key];
-  }
-
-  // Generate random but realistic stats for unknown repositories
+// Generate error/no-data stats when database is unavailable
+function generateErrorStats() {
   return {
-    contributors: Math.floor(Math.random() * 50) + 5,
-    pullRequests: Math.floor(Math.random() * 100) + 10,
-    mergeRate: Math.floor(Math.random() * 30) + 70, // 70-100%
-    lotteryFactor: Math.random() * 3 + 1.5, // 1.5-4.5
-    activity: Math.random() > 0.5 ? 'high' : 'medium'
+    contributors: null,
+    pullRequests: null,
+    mergeRate: null,
+    lotteryFactor: null,
+    activity: null
   };
 }
 
@@ -180,32 +149,37 @@ function generateMockStats(owner, repo) {
 const BADGE_TYPES = {
   contributors: {
     label: 'contributors (30d)',
-    getValue: (stats) => stats.contributors.toString(),
-    getColor: (stats) => '#007ec6'
+    getValue: (stats) => stats.contributors !== null ? stats.contributors.toString() : '-',
+    getColor: (stats) => stats.contributors !== null ? '#007ec6' : '#6c757d'
   },
   'pull-requests': {
     label: 'PRs (30d)',
-    getValue: (stats) => stats.pullRequests.toString(),
-    getColor: (stats) => '#28a745'
+    getValue: (stats) => stats.pullRequests !== null ? stats.pullRequests.toString() : '-',
+    getColor: (stats) => stats.pullRequests !== null ? '#28a745' : '#6c757d'
   },
   'merge-rate': {
     label: 'merge rate (30d)',
-    getValue: (stats) => `${stats.mergeRate.toFixed(1)}%`,
+    getValue: (stats) => stats.mergeRate !== null ? `${stats.mergeRate.toFixed(1)}%` : '-',
     getColor: (stats) => 
+      stats.mergeRate === null ? '#6c757d' :
       stats.mergeRate > 80 ? '#28a745' : 
       stats.mergeRate > 60 ? '#ffc107' : '#dc3545'
   },
   'lottery-factor': {
     label: 'lottery factor (30d)',
-    getValue: (stats) => stats.lotteryFactor.toFixed(1),
+    getValue: (stats) => stats.lotteryFactor !== null ? stats.lotteryFactor.toFixed(1) : '-',
     getColor: (stats) => 
+      stats.lotteryFactor === null ? '#6c757d' :
       stats.lotteryFactor > 3 ? '#28a745' : 
       stats.lotteryFactor > 2 ? '#ffc107' : '#dc3545'
   },
   activity: {
     label: 'activity (7d)',
-    getValue: (stats) => stats.activity,
-    getColor: (stats) => stats.activity === 'high' ? '#28a745' : stats.activity === 'medium' ? '#ffc107' : '#dc3545'
+    getValue: (stats) => stats.activity !== null ? stats.activity : '-',
+    getColor: (stats) => 
+      stats.activity === null ? '#6c757d' :
+      stats.activity === 'high' ? '#28a745' : 
+      stats.activity === 'medium' ? '#ffc107' : '#dc3545'
   }
 };
 
@@ -225,10 +199,10 @@ export default async (req, context) => {
     // Try to fetch real data from database
     let stats = await fetchRepoStats(owner, repo);
     
-    // Fall back to mock data if database query fails
+    // Show error state if database query fails
     if (!stats) {
-      console.log(`Using mock data for ${owner}/${repo}`);
-      stats = generateMockStats(owner, repo);
+      console.log(`No data available for ${owner}/${repo} - showing error state`);
+      stats = generateErrorStats();
     } else {
       console.log(`Using real data for ${owner}/${repo}`);
     }
@@ -257,7 +231,7 @@ export default async (req, context) => {
         // Add badge-specific headers for better integration
         'X-Badge-Type': type,
         'X-Repository': `${owner}/${repo}`,
-        'X-Data-Source': stats ? 'database' : 'mock',
+        'X-Data-Source': stats.contributors !== null ? 'database' : 'unavailable',
         'X-Time-Range': '30-days'
       }
     });
