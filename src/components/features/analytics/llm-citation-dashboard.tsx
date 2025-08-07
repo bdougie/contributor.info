@@ -216,14 +216,16 @@ export function LLMCitationDashboard() {
                     </div>
                     <div className="flex items-center gap-3">
                       <Progress
-                        value={(platform.count / metrics.totalCitations) * 100}
+                        value={metrics.totalCitations > 0 ? (platform.count / metrics.totalCitations) * 100 : 0}
                         className="w-24"
                       />
                       <span className="text-sm font-medium w-8">
                         {platform.count}
                       </span>
                       <span className="text-xs text-muted-foreground w-12">
-                        {((platform.count / metrics.totalCitations) * 100).toFixed(1)}%
+                        {metrics.totalCitations > 0 
+                          ? ((platform.count / metrics.totalCitations) * 100).toFixed(1) + '%'
+                          : '0.0%'}
                       </span>
                     </div>
                   </div>
@@ -278,7 +280,11 @@ export function LLMCitationDashboard() {
                     <span className="text-sm">{formatDate(date)}</span>
                     <div className="flex items-center gap-3">
                       <Progress
-                        value={metrics.totalCitations > 0 ? (count / Math.max(...Object.values(metrics.dailyTrend))) * 100 : 0}
+                        value={
+                          metrics.totalCitations > 0 && Object.values(metrics.dailyTrend).length > 0
+                            ? (count / Math.max(...Object.values(metrics.dailyTrend))) * 100
+                            : 0
+                        }
                         className="w-32"
                       />
                       <span className="text-sm font-medium w-8">{count}</span>
