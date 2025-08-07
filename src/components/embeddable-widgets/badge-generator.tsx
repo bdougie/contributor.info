@@ -70,6 +70,32 @@ const BADGE_PRESETS = {
   }),
 };
 
+// Security functions for safe SVG generation
+function escapeXml(text: any): string {
+  if (typeof text !== 'string') {
+    text = String(text);
+  }
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+}
+
+function sanitizeColor(color: string): string {
+  const hexPattern = /^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
+  const rgbPattern = /^rgba?\(\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*(?:,\s*(?:0?\.[0-9]+|1(?:\.0+)?|0))?\)$/;
+  const namedColors = ['red', 'green', 'blue', 'yellow', 'orange', 'purple', 'gray', 'black', 'white'];
+  
+  if (hexPattern.test(color) || rgbPattern.test(color) || namedColors.includes(color.toLowerCase())) {
+    return color;
+  }
+  
+  return '#007ec6';
+}
+
 export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps) {
   const style = config.style || 'flat';
   const styleConfig = BADGE_STYLES[style];
@@ -94,8 +120,14 @@ export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps)
 
   // Generate SVG badge
   const generateSVG = () => {
-    const labelWidth = Math.max(label.length * 6.5 + 10, 50);
-    const messageWidth = Math.max(message.length * 6.5 + 10, 30);
+    // Escape user inputs to prevent XSS
+    const safeLabel = escapeXml(label);
+    const safeMessage = escapeXml(message);
+    const safeColor = sanitizeColor(color);
+    
+    // Calculate widths based on escaped content to prevent truncation
+    const labelWidth = Math.max(safeLabel.length * 6.5 + 10, 50);
+    const messageWidth = Math.max(safeMessage.length * 6.5 + 10, 30);
     const totalWidth = labelWidth + messageWidth;
     const height = styleConfig.height;
 
@@ -113,7 +145,7 @@ export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps)
         <rect x="0" y="0" width="${labelWidth}" height="${height}" fill="#555" rx="${style.includes('flat') && !style.includes('square') ? 3 : 0}"/>
         
         <!-- Right background (message) -->  
-        <rect x="${labelWidth}" y="0" width="${messageWidth}" height="${height}" fill="${color}" rx="${style.includes('flat') && !style.includes('square') ? 3 : 0}"/>
+        <rect x="${labelWidth}" y="0" width="${messageWidth}" height="${height}" fill="${safeColor}" rx="${style.includes('flat') && !style.includes('square') ? 3 : 0}"/>
         
         <!-- Left text (label) -->
         <text x="${labelWidth / 2}" y="${height / 2}" 
@@ -122,7 +154,7 @@ export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps)
               font-family="Verdana,Geneva,DejaVu Sans,sans-serif" 
               font-size="11" 
               fill="white">
-          ${label}
+          ${safeLabel}
         </text>
         
         <!-- Right text (message) -->
@@ -133,7 +165,7 @@ export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps)
               font-size="11" 
               font-weight="bold"
               fill="white">
-          ${message}
+          ${safeMessage}
         </text>
       </svg>
     `.trim();

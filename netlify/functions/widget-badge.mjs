@@ -32,9 +32,9 @@ function escapeXml(text) {
  * @returns {string} Safe color value
  */
 function sanitizeColor(color) {
-  // Only allow hex colors, rgb/rgba, and named colors
-  const hexPattern = /^#[0-9A-Fa-f]{3,8}$/;
-  const rgbPattern = /^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*[0-9.]+\s*)?\)$/;
+  // Only allow hex colors (3, 4, 6, 8 digits), rgb/rgba with 0-255 range, and named colors
+  const hexPattern = /^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
+  const rgbPattern = /^rgba?\(\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*(?:,\s*(?:0?\.[0-9]+|1(?:\.0+)?|0))?\)$/;
   const namedColors = ['red', 'green', 'blue', 'yellow', 'orange', 'purple', 'gray', 'black', 'white'];
   
   if (hexPattern.test(color) || rgbPattern.test(color) || namedColors.includes(color.toLowerCase())) {
@@ -51,9 +51,9 @@ function generateBadgeSVG(label, message, color = '#007ec6', style = 'flat') {
   const safeLabel = escapeXml(label);
   const safeMessage = escapeXml(message);
   const safeColor = sanitizeColor(color);
-  // Calculate text widths (approximate)
-  const labelWidth = Math.max(label.length * 6.5 + 10, 50);
-  const messageWidth = Math.max(message.length * 6.5 + 10, 30);
+  // Calculate text widths based on escaped content to prevent truncation
+  const labelWidth = Math.max(safeLabel.length * 6.5 + 10, 50);
+  const messageWidth = Math.max(safeMessage.length * 6.5 + 10, 30);
   const totalWidth = labelWidth + messageWidth;
   const height = 20;
 

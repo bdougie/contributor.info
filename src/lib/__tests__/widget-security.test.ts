@@ -20,8 +20,8 @@ function escapeXml(text: any): string {
 }
 
 function sanitizeColor(color: string): string {
-  const hexPattern = /^#[0-9A-Fa-f]{3,8}$/;
-  const rgbPattern = /^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*[0-9.]+\s*)?\)$/;
+  const hexPattern = /^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
+  const rgbPattern = /^rgba?\(\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*(?:,\s*(?:0?\.[0-9]+|1(?:\.0+)?|0))?\)$/;
   const namedColors = ['red', 'green', 'blue', 'yellow', 'orange', 'purple', 'gray', 'black', 'white'];
   
   if (hexPattern.test(color) || rgbPattern.test(color) || namedColors.includes(color.toLowerCase())) {
@@ -72,11 +72,28 @@ describe('Widget Security - XSS Prevention', () => {
       expect(sanitizeColor('#fff')).toBe('#fff');
       expect(sanitizeColor('#ffffff')).toBe('#ffffff');
       expect(sanitizeColor('#12345678')).toBe('#12345678');
+      expect(sanitizeColor('#ffff')).toBe('#ffff');
+    });
+
+    it('should reject invalid hex color lengths', () => {
+      expect(sanitizeColor('#ff')).toBe('#007ec6'); // too short
+      expect(sanitizeColor('#fffff')).toBe('#007ec6'); // 5 digits
+      expect(sanitizeColor('#fffffff')).toBe('#007ec6'); // 7 digits  
+      expect(sanitizeColor('#fffffffff')).toBe('#007ec6'); // too long
     });
 
     it('should allow valid rgb/rgba colors', () => {
       expect(sanitizeColor('rgb(255, 0, 0)')).toBe('rgb(255, 0, 0)');
       expect(sanitizeColor('rgba(255, 0, 0, 0.5)')).toBe('rgba(255, 0, 0, 0.5)');
+      expect(sanitizeColor('rgb(0, 0, 0)')).toBe('rgb(0, 0, 0)');
+      expect(sanitizeColor('rgb(255, 255, 255)')).toBe('rgb(255, 255, 255)');
+    });
+
+    it('should reject rgb/rgba colors with out-of-range values', () => {
+      expect(sanitizeColor('rgb(256, 0, 0)')).toBe('#007ec6'); // > 255
+      expect(sanitizeColor('rgb(300, 100, 50)')).toBe('#007ec6'); // > 255
+      expect(sanitizeColor('rgba(256, 0, 0, 0.5)')).toBe('#007ec6'); // > 255
+      expect(sanitizeColor('rgb(-1, 0, 0)')).toBe('#007ec6'); // negative
     });
 
     it('should allow named colors', () => {
