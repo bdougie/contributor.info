@@ -5,8 +5,7 @@
 
 import { openAIService, type LLMInsight } from './openai-service';
 import { cacheService } from './cache-service';
-import { generateEmbedding, prepareTextForEmbedding } from '../../../app/services/embeddings';
-import type { EmbeddingItem } from '../../../app/services/embeddings';
+import { generateEmbedding } from '../../../app/services/embeddings';
 
 export interface FAQQuestion {
   id: string;
@@ -101,7 +100,7 @@ class FAQService {
     // Check cache first
     const cached = cacheService.get(cacheKey, dataHash);
     if (cached) {
-      return cached;
+      return cached as unknown as FAQAnswer[];
     }
 
     try {
@@ -126,7 +125,7 @@ class FAQService {
       }
 
       // Cache successful results
-      cacheService.set(cacheKey, answers, dataHash, 60 * 60 * 1000); // 1 hour cache
+      cacheService.set(cacheKey, answers as unknown as LLMInsight, dataHash, 60 * 60 * 1000); // 1 hour cache
 
       return answers;
     } catch (error) {
@@ -151,7 +150,7 @@ class FAQService {
 
     try {
       const prompt = this.buildFAQPrompt(question, owner, repo, timeRange, repositoryData);
-      const model = 'gpt-4o-mini'; // Use cost-effective model for FAQ answers
+      // Use cost-effective model for FAQ answers
       
       // Create a mock insight structure to work with existing OpenAI patterns
       const faqInsight = await this.generateFAQInsight(prompt, { owner, repo });
@@ -218,14 +217,15 @@ Answer:`;
     const data: string[] = [];
 
     if (category === 'contributors' && repositoryData.pullRequests) {
-      const contributors = new Set(repositoryData.pullRequests.map(pr => pr.author)).size;
+      const contributors = new Set(repositoryData.pullRequests.map((pr: any) => pr.author?.login || pr.user?.login || 'unknown')).size;
       const contributorCounts = repositoryData.pullRequests.reduce((acc, pr) => {
-        acc[pr.author] = (acc[pr.author] || 0) + 1;
+        const authorLogin = pr.author?.login || pr.user?.login || 'unknown';
+        acc[authorLogin] = (acc[authorLogin] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
       
       const topContributors = Object.entries(contributorCounts)
-        .sort(([, a], [, b]) => b - a)
+        .sort(([, a], [, b]) => (b as number) - (a as number))
         .slice(0, 5);
 
       data.push(`Total Contributors: ${contributors}`);
@@ -317,11 +317,12 @@ Answer:`;
       case 'top-contributors':
         if (repositoryData.pullRequests) {
           const contributorCounts = repositoryData.pullRequests.reduce((acc, pr) => {
-            acc[pr.author] = (acc[pr.author] || 0) + 1;
+            const authorLogin = pr.author?.login || pr.user?.login || 'unknown';
+        acc[authorLogin] = (acc[authorLogin] || 0) + 1;
             return acc;
           }, {} as Record<string, number>);
           const top = Object.entries(contributorCounts)
-            .sort(([, a], [, b]) => b - a)
+            .sort(([, a], [, b]) => (b as number) - (a as number))
             .slice(0, 3)
             .map(([name, count]) => `${name} (${count} PRs)`);
           answer = `The top contributors ${timeRangeText} are: ${top.join(', ')}.`;
@@ -475,5 +476,4 @@ Answer:`;
 // Export singleton instance
 export const faqService = new FAQService();
 
-// Export types
-export type { FAQQuestion, FAQAnswer, RepositoryData };
+// Types are already exported at the interface declaration

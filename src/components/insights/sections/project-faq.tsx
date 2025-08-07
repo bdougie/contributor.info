@@ -3,9 +3,8 @@ import { ChevronDown, ChevronRight, HelpCircle, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
-import { faqService, type FAQAnswer } from "@/lib/llm/faq-service";
+import { faqService } from "@/lib/llm/faq-service";
 
 interface FAQ {
   id: string;
@@ -53,9 +52,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
       if (useAI) {
         // Use AI-powered FAQ generation
         const repositoryData = {
-          pullRequests: stats.pullRequests,
-          health: stats.health,
-          activity: stats.activity
+          pullRequests: stats.pullRequests
         };
 
         const aiAnswers = await faqService.generateFAQAnswers(
@@ -197,7 +194,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
   const generateContributorCountAnswer = (): string => {
     if (!stats.pullRequests) return "Data is still loading...";
     
-    const uniqueContributors = new Set(stats.pullRequests.map(pr => pr.author)).size;
+    const uniqueContributors = new Set(stats.pullRequests.map(pr => pr.author?.login || pr.user?.login || 'unknown')).size;
     const timeRangeText = getTimeRangeText();
     
     return `${owner}/${repo} has ${uniqueContributors} unique contributors who have submitted pull requests ${timeRangeText}. This indicates ${uniqueContributors >= 20 ? 'a healthy and active' : uniqueContributors >= 10 ? 'a moderate' : 'a small but focused'} contributor community.`;
@@ -207,7 +204,8 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     if (!stats.pullRequests) return "Data is still loading...";
     
     const contributorCounts = stats.pullRequests.reduce((acc, pr) => {
-      acc[pr.author] = (acc[pr.author] || 0) + 1;
+      const authorLogin = pr.author?.login || pr.user?.login || 'unknown';
+      acc[authorLogin] = (acc[authorLogin] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
@@ -236,7 +234,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     if (!stats.pullRequests) return "Data is still loading...";
     
     const totalPRs = stats.pullRequests.length;
-    const uniqueContributors = new Set(stats.pullRequests.map(pr => pr.author)).size;
+    const uniqueContributors = new Set(stats.pullRequests.map(pr => pr.author?.login || pr.user?.login || 'unknown')).size;
     const timeRangeText = getTimeRangeText();
     
     const activityLevel = totalPRs >= 50 ? 'very active' : totalPRs >= 20 ? 'moderately active' : 'lightly active';
@@ -257,7 +255,8 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     if (!stats.pullRequests) return "Data is still loading...";
     
     const contributorCounts = stats.pullRequests.reduce((acc, pr) => {
-      acc[pr.author] = (acc[pr.author] || 0) + 1;
+      const authorLogin = pr.author?.login || pr.user?.login || 'unknown';
+      acc[authorLogin] = (acc[authorLogin] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
@@ -360,7 +359,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
               >
                 <span className="text-sm font-medium pr-2 flex-1">{faq.question}</span>
                 {faq.isAIGenerated && (
-                  <Sparkles className="h-3 w-3 text-blue-500 mr-2 flex-shrink-0" title="AI-generated answer" />
+                  <Sparkles className="h-3 w-3 text-blue-500 mr-2 flex-shrink-0" />
                 )}
                 {expandedItems.has(faq.id) ? (
                   <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />

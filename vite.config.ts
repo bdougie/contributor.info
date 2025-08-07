@@ -88,6 +88,10 @@ export default defineConfig({
       strictRequires: 'auto'
     },
     rollupOptions: {
+      // Workaround for Rollup conditional expression bug
+      // TODO: Re-enable treeshaking after Rollup fixes the bug
+      // See: https://github.com/rollup/rollup/issues/5747
+      treeshake: false,
       // Remove the external configuration as it's causing build issues
       output: {
         // Ensure proper module format
