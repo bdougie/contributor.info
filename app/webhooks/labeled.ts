@@ -57,12 +57,13 @@ interface LabeledEvent {
 /**
  * Handle labeled events for both issues and pull requests
  * Specifically looks for the 'contributor.info' label
+ * Only responds to 'labeled' action, not 'unlabeled'
  */
 export async function handleLabeledEvent(event: LabeledEvent) {
   try {
     // Only process 'labeled' action (not 'unlabeled')
     if (event.action !== 'labeled') {
-      console.log(`Skipping ${event.action} event`);
+      console.log(`Skipping ${event.action} event - only responding to 'labeled' actions`);
       return;
     }
 
