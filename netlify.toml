@@ -6,13 +6,9 @@
   NODE_VERSION = "20"
   NPM_VERSION = "10"
 
-# Force processing of JavaScript files
+# Disable ALL Netlify post-processing to prevent MIME type issues
 [build.processing]
-  skip_processing = false
-
-[build.processing.js]
-  bundle = false
-  minify = false
+  skip_processing = true
 
 [dev]
   command = "vite --port 5174"

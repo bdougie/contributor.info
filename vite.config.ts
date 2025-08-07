@@ -99,11 +99,12 @@ export default defineConfig({
         manualChunks: (id) => {
           // Core vendor chunks
           if (id.includes('node_modules')) {
-            // React core - critical path
-            if (id.includes('react') && !id.includes('react-')) {
+            // React MUST be in its own chunk and load first
+            // This includes react, react-dom, and scheduler
+            if (id.includes('react-dom') || id.includes('scheduler')) {
               return 'react-core';
             }
-            if (id.includes('react-dom')) {
+            if (id.includes('react') && !id.includes('react-')) {
               return 'react-core';
             }
             
@@ -126,16 +127,8 @@ export default defineConfig({
               return 'ui-radix-misc';
             }
             
-            // Bundle ALL chart libraries together - the reliable solution
-            // After extensive testing, splitting charts causes persistent MIME type 
-            // and initialization errors. The 300KB saved isn't worth runtime failures.
-            if (id.includes('recharts') || id.includes('react-smooth') || 
-                id.includes('react-resize-detector') || id.includes('d3-') || 
-                id.includes('d3/') || id.includes('@nivo') || id.includes('victory') ||
-                id.includes('prop-types') || id.includes('react-is')) {
-              // Let all chart libraries go to vendor-misc for reliability
-              return 'vendor-misc';
-            }
+            // Don't split chart libraries - they cause too many issues
+            // Just let them fall through to vendor-misc naturally
             
             // Markdown and code highlighting
             if (id.includes('react-markdown') || id.includes('remark') || id.includes('rehype')) {
@@ -246,12 +239,20 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000, // Accepting larger chunks for reliability over micro-optimizations
     // Enable compression reporting
     reportCompressedSize: true,
-    // Module preload optimization - disable automatic preloading to prevent loading order issues
+    // Module preload optimization - ensure React loads first
     modulePreload: {
-      polyfill: false, // Disable polyfill to prevent loading order issues
+      polyfill: true, // Enable polyfill for proper module loading
       resolveDependencies: (_, deps) => {
-        // Only preload React core, everything else loads on demand
-        return deps.filter(dep => 
+        // Preload React core first, then router
+        const sorted = deps.sort((a, b) => {
+          if (a.includes('react-core')) return -1;
+          if (b.includes('react-core')) return 1;
+          if (a.includes('react-router')) return -1;
+          if (b.includes('react-router')) return 1;
+          return 0;
+        });
+        // Only preload critical chunks
+        return sorted.filter(dep => 
           dep.includes('react-core') || 
           dep.includes('react-router')
         );
