@@ -180,7 +180,15 @@ export function useRepositorySummary(
       if (errorMessage.includes('500') || errorMessage.includes('non-2xx')) {
         console.log('Edge Function failed, generating summary locally');
         try {
-          const fallbackSummary = await generateLocalSummary(repositoryData, pullRequests);
+          // Get repository data from the beginning of the function
+          const { data: repoData } = await supabase
+            .from('repositories')
+            .select('*')
+            .eq('owner', owner)
+            .eq('name', repo)
+            .single();
+          
+          const fallbackSummary = await generateLocalSummary(repoData || {}, pullRequests || []);
           setSummary(fallbackSummary);
           setError(null);
         } catch (fallbackErr) {

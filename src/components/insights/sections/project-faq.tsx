@@ -232,7 +232,6 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     const totalPRs = stats.pullRequests.length;
     const timeRangeText = getTimeRangeText();
     const timeRangeDays = getTimeRangeDays();
-    const avgPerDay = (totalPRs / timeRangeDays).toFixed(1);
     const avgPerWeek = (totalPRs / (timeRangeDays / 7)).toFixed(1);
     
     let activityLevel: string;
@@ -306,7 +305,6 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
   const generatePRPatternsAnswer = (): string => {
     if (!stats.pullRequests) return "Data is still loading...";
     
-    const avgTitleLength = stats.pullRequests.reduce((sum, pr) => sum + pr.title.length, 0) / stats.pullRequests.length;
     const featCount = stats.pullRequests.filter(pr => pr.title.toLowerCase().includes('feat')).length;
     const fixCount = stats.pullRequests.filter(pr => pr.title.toLowerCase().includes('fix')).length;
     
