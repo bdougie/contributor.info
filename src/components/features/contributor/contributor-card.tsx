@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { MonthlyContributor } from "@/lib/types";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
@@ -86,18 +86,14 @@ export function ContributorCard({
 
       <div className="flex items-start gap-3">
         <ContributorHoverCard contributor={contributorData}>
-          <Avatar className="h-10 w-10 cursor-pointer">
-            <AvatarImage 
-              src={`${avatar_url}?s=80`}
-              alt={login}
-              loading="lazy"
-              width={40}
-              height={40}
-            />
-            <AvatarFallback>
-              {login.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <OptimizedAvatar 
+            src={avatar_url}
+            alt={`${login}'s avatar`}
+            size={40}
+            lazy={true}
+            className="cursor-pointer"
+            fallback={login.charAt(0).toUpperCase()}
+          />
         </ContributorHoverCard>
 
         <div className="flex-1 min-w-0">

@@ -1,30 +1,73 @@
 /*
-  X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
-  Referrer-Policy: strict-origin-when-cross-origin
 
 /*.js
-  Content-Type: text/javascript; charset=UTF-8
-  
-/*.mjs
-  Content-Type: text/javascript; charset=UTF-8
-
-/*.jsx
-  Content-Type: text/javascript; charset=UTF-8
-  
-/*.tsx
-  Content-Type: text/javascript; charset=UTF-8
-
-/*.ts
-  Content-Type: text/javascript; charset=UTF-8
+  Content-Type: application/javascript
+  X-Content-Type-Options: nosniff
 
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
 /assets/*.js
-  Content-Type: text/javascript; charset=UTF-8
+  Content-Type: application/javascript
   Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
 
 /assets/*.css
-  Content-Type: text/css; charset=UTF-8
+  Content-Type: text/css
   Cache-Control: public, max-age=31536000, immutable
+
+# Image caching headers for performance optimization
+/assets/*.jpg
+  Content-Type: image/jpeg
+  Cache-Control: public, max-age=31536000, immutable
+  Accept-CH: DPR, Width, Viewport-Width
+  Vary: Accept, DPR, Width
+
+/assets/*.jpeg
+  Content-Type: image/jpeg
+  Cache-Control: public, max-age=31536000, immutable
+  Accept-CH: DPR, Width, Viewport-Width
+  Vary: Accept, DPR, Width
+
+/assets/*.png
+  Content-Type: image/png
+  Cache-Control: public, max-age=31536000, immutable
+  Accept-CH: DPR, Width, Viewport-Width
+  Vary: Accept, DPR, Width
+
+/assets/*.gif
+  Content-Type: image/gif
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.webp
+  Content-Type: image/webp
+  Cache-Control: public, max-age=31536000, immutable
+  Accept-CH: DPR, Width, Viewport-Width
+  Vary: Accept, DPR, Width
+
+/assets/*.avif
+  Content-Type: image/avif
+  Cache-Control: public, max-age=31536000, immutable
+  Accept-CH: DPR, Width, Viewport-Width
+  Vary: Accept, DPR, Width
+
+/assets/*.svg
+  Content-Type: image/svg+xml
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.ico
+  Content-Type: image/x-icon
+  Cache-Control: public, max-age=31536000, immutable
+
+# Generic image paths
+/images/*
+  Cache-Control: public, max-age=604800, must-revalidate
+  Accept-CH: DPR, Width, Viewport-Width
+  Vary: Accept, DPR, Width
+
+/*.json
+  Content-Type: application/json
+
+/manifest.json
+  Content-Type: application/manifest+json

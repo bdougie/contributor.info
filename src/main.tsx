@@ -7,16 +7,27 @@ import { MetaTagsProvider, SchemaMarkup } from './components/common/layout';
 
 // Sentry removed - was causing React hooks conflicts
 
-// Register service worker for performance optimization
+// TEMPORARILY DISABLED: Service worker causing stale cache issues
+// Will re-enable after implementing proper cache versioning
+// if ('serviceWorker' in navigator && import.meta.env.PROD) {
+//   window.addEventListener('load', () => {
+//     navigator.serviceWorker.register('/sw.js')
+//       .then(registration => {
+//         console.log('SW registered: ', registration);
+//       })
+//       .catch(registrationError => {
+//         console.log('SW registration failed: ', registrationError);
+//       });
+//   });
+// }
+
+// Unregister existing service workers to clear stale cache
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => {
-        console.log('SW registered: ', registration);
-      })
-      .catch(registrationError => {
-        console.log('SW registration failed: ', registrationError);
-      });
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    for(let registration of registrations) {
+      registration.unregister();
+      console.log('SW unregistered to clear cache');
+    }
   });
 }
 
