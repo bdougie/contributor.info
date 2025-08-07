@@ -6,7 +6,7 @@ vi.mock('@/lib/supabase-direct-commits', () => ({
   fetchDirectCommitsWithDatabaseFallback: vi.fn(),
 }));
 
-vi.mock('@/lib/supabase-pr-data-smart', () => ({
+vi.mock('@/lib/supabase-pr-data-smart-deduped', () => ({
   fetchPRDataSmart: vi.fn(),
 }));
 
@@ -22,7 +22,7 @@ vi.mock('@/lib/simple-logging', () => ({
 import { useProgressiveRepoData } from '../use-progressive-repo-data';
 import { setupBasicMocks, cleanupMocks, mockPRData } from './test-utils';
 import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-commits';
-import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart';
+import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart-deduped';
 import { calculateLotteryFactor } from '@/lib/utils';
 
 describe('useProgressiveRepoData - Basic Tests', () => {
