@@ -105,11 +105,7 @@ class LLMCitationTracker {
    */
   private analyzeReferrer() {
     const referrerUrl = document.referrer;
-    const referrerDomain = referrerUrl ? new URL(referrerUrl).hostname : undefined;
-
-    let referrerType: ReferralTrafficEvent['referrer_type'] = 'direct';
-    let aiPlatform: ReferralTrafficEvent['ai_platform'] = undefined;
-
+    
     if (!referrerUrl) {
       return {
         referrer_url: undefined,
@@ -119,35 +115,57 @@ class LLMCitationTracker {
       };
     }
 
-    const url = referrerUrl.toLowerCase();
+    // Parse URL safely to get hostname
+    let referrerDomain: string | undefined;
+    try {
+      const parsedUrl = new URL(referrerUrl);
+      referrerDomain = parsedUrl.hostname;
+    } catch {
+      // Invalid URL, treat as direct traffic
+      return {
+        referrer_url: referrerUrl,
+        referrer_domain: undefined,
+        referrer_type: 'direct' as const,
+        ai_platform: undefined,
+      };
+    }
 
-    // AI Platform detection
-    if (url.includes('claude') || url.includes('anthropic')) {
+    let referrerType: ReferralTrafficEvent['referrer_type'] = 'direct';
+    let aiPlatform: ReferralTrafficEvent['ai_platform'] = undefined;
+
+    const domain = referrerDomain.toLowerCase();
+
+    // AI Platform detection - check hostname only to prevent security issues
+    if (domain === 'claude.ai' || domain === 'anthropic.com' || domain.endsWith('.anthropic.com')) {
       referrerType = 'ai_platform';
       aiPlatform = 'claude';
-    } else if (url.includes('chat.openai') || url.includes('chatgpt')) {
+    } else if (domain === 'chat.openai.com' || domain === 'chatgpt.com' || domain.endsWith('.openai.com')) {
       referrerType = 'ai_platform';
       aiPlatform = 'chatgpt';
-    } else if (url.includes('perplexity')) {
+    } else if (domain === 'perplexity.ai' || domain.endsWith('.perplexity.ai')) {
       referrerType = 'ai_platform';
       aiPlatform = 'perplexity';
-    } else if (url.includes('gemini') || url.includes('bard')) {
+    } else if (domain === 'gemini.google.com' || domain === 'bard.google.com') {
       referrerType = 'ai_platform';
       aiPlatform = 'gemini';
-    } else if (url.includes('copilot') || url.includes('bing.com/chat')) {
+    } else if (domain === 'copilot.microsoft.com' || (domain === 'bing.com' && referrerUrl.includes('/chat'))) {
       referrerType = 'ai_platform';
       aiPlatform = 'copilot';
-    } else if (url.includes('poe.com') || url.includes('you.com') || url.includes('character.ai')) {
+    } else if (domain === 'poe.com' || domain === 'you.com' || domain === 'character.ai') {
       referrerType = 'ai_platform';
       aiPlatform = 'other_ai';
     }
-    // Search engines
-    else if (url.includes('google.') || url.includes('bing.') || url.includes('duckduckgo')) {
+    // Search engines - check exact domains
+    else if (domain.includes('google.') || domain === 'bing.com' || domain === 'duckduckgo.com') {
       referrerType = 'search_engine';
     }
-    // Social media
-    else if (url.includes('twitter') || url.includes('linkedin') || url.includes('facebook') || 
-             url.includes('reddit') || url.includes('hackernews') || url.includes('github.com')) {
+    // Social media - check exact domains
+    else if (domain === 'twitter.com' || domain === 'x.com' || 
+             domain === 'linkedin.com' || domain.endsWith('.linkedin.com') ||
+             domain === 'facebook.com' || domain.endsWith('.facebook.com') || 
+             domain === 'reddit.com' || domain.endsWith('.reddit.com') ||
+             domain === 'news.ycombinator.com' || 
+             domain === 'github.com') {
       referrerType = 'social_media';
     }
     // Everything else

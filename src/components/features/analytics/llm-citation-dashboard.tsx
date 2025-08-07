@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, TrendingUp, Brain, Search, ExternalLink } from 'lucide-react';
-import { getLLMCitationTracker } from '@/lib/llm-citation-tracking';
 
 interface CitationMetrics {
   totalCitations: number;
@@ -46,11 +45,14 @@ export function LLMCitationDashboard() {
   const loadCitationMetrics = async () => {
     try {
       setIsLoading(true);
-      const tracker = getLLMCitationTracker();
+      // Import dynamically to avoid initialization errors
+      const { initializeLLMCitationTracking } = await import('@/lib/llm-citation-tracking');
+      const tracker = initializeLLMCitationTracking();
       const data = await tracker.getCitationMetrics(dateRange);
       setMetrics(data);
     } catch (error) {
       console.error('Failed to load citation metrics:', error);
+      setMetrics(null);
     } finally {
       setIsLoading(false);
     }
@@ -248,10 +250,14 @@ export function LLMCitationDashboard() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">{count} citations</span>
-                      <ExternalLink 
-                        className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground" 
-                        onClick={() => window.open(`/${repo}`, '_blank')}
-                      />
+                      <a 
+                        href={`/${repo}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block"
+                      >
+                        <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                      </a>
                     </div>
                   </div>
                 ))}
