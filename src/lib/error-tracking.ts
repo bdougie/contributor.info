@@ -42,7 +42,7 @@ class ErrorTracker {
   }
 
   private generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `session_${Date.now()}_${crypto.randomUUID().slice(-9)}`;
   }
 
   private initializeBreadcrumbCollection() {
@@ -156,7 +156,7 @@ class ErrorTracker {
       if (typeof window === 'undefined') return;
 
       const errorLog = {
-        id: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `error_${Date.now()}_${crypto.randomUUID().slice(-9)}`,
         timestamp: report.context.timestamp,
         stage: report.error.stage,
         type: report.error.type,

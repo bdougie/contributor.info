@@ -123,7 +123,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
 
   const fetchingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const retryTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const retryTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // Handle errors with automatic retry logic
   const handleStageError = useCallback(
@@ -152,32 +152,36 @@ export function useProgressiveRepoDataWithErrorBoundaries(
 
       // Attempt retry if enabled and error is retryable
       if (enableRetry && loadingError.retryable) {
-        const attemptCount = data.retryAttempts[stage] + 1;
-        
-        if (attemptCount <= MAX_RETRY_ATTEMPTS) {
-          const retryDelay = getRetryDelay(loadingError, attemptCount);
+        setData(prev => {
+          const attemptCount = prev.retryAttempts[stage] + 1;
           
-          // Update retry state
-          setData(prev => ({
-            ...prev,
-            retryAttempts: {
-              ...prev.retryAttempts,
-              [stage]: attemptCount,
-            },
-            lastRetryTime: {
-              ...prev.lastRetryTime,
-              [stage]: Date.now(),
-            },
-            isRetrying: stage,
-          }));
+          if (attemptCount <= MAX_RETRY_ATTEMPTS) {
+            const retryDelay = getRetryDelay(loadingError, attemptCount);
+            
+            // Schedule retry
+            const timeoutId = setTimeout(() => {
+              retryStage(stage);
+            }, retryDelay);
 
-          // Schedule retry
-          const timeoutId = setTimeout(() => {
-            retryStage(stage);
-          }, retryDelay);
+            retryTimeoutsRef.current[stage] = timeoutId;
 
-          retryTimeoutsRef.current[stage] = timeoutId;
-        }
+            // Update retry state
+            return {
+              ...prev,
+              retryAttempts: {
+                ...prev.retryAttempts,
+                [stage]: attemptCount,
+              },
+              lastRetryTime: {
+                ...prev.lastRetryTime,
+                [stage]: Date.now(),
+              },
+              isRetrying: stage,
+            };
+          }
+
+          return prev; // No changes if max attempts reached
+        });
       }
 
       // Check if we can continue to next stage
@@ -225,7 +229,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
     } catch (error) {
       await handleStageError(error, stage);
     }
-  }, [owner, repo, onRecovery]);
+  }, [owner, repo, onRecovery, loadCriticalData, loadFullData, loadEnhancementData, handleStageError]);
 
   // Manual retry function for external use
   const manualRetry = useCallback((stage?: LoadingStage) => {

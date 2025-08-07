@@ -17,7 +17,7 @@ import { GitPullRequest, Users, Activity, TrendingUp, AlertCircle, RefreshCw } f
 export function ProgressiveRepoViewWithErrorBoundaries() {
   const { owner, repo } = useParams();
   const timeRange = useTimeRangeStore((state) => state.timeRange);
-  const [includeBots] = useState(false);
+  const includeBots = false;
   const { trackError, addBreadcrumb } = useErrorTracking();
   
   const progressiveData = useProgressiveRepoDataWithErrorBoundaries(
