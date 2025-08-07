@@ -27,3 +27,4 @@ Allow: /
 Crawl-delay: 1
 
 Sitemap: https://contributor.info/sitemap.xml
+Sitemap: https://contributor.info/sitemap-news.xml

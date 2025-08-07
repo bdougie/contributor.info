@@ -50,6 +50,14 @@ Improve application speed and reduce resource usage.
 | `test-core-web-vitals.js` | Test Core Web Vitals (LCP, CLS, INP) | Measure UX performance metrics |
 | `compare-web-vitals.js` | Compare Web Vitals between branches | PR performance validation |
 
+### 🗺️ **[Sitemap](./sitemap/)**
+Generate and submit XML sitemaps for SEO.
+
+| Script | Purpose | When to Use |
+|--------|---------|-------------|
+| `generate-sitemap.js` | Generate XML sitemaps from database | Automatic during build |
+| `submit-sitemap.js` | Submit sitemaps to search engines | Automatic after release |
+
 ### 🎨 **[Assets](./assets/)**
 Create and manage visual assets.
 
