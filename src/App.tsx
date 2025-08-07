@@ -8,6 +8,7 @@ import { PWAInstallPrompt } from "@/components/ui/pwa-install-prompt";
 import { Layout, Home, NotFound } from "@/components/common/layout";
 import { ProtectedRoute, AdminRoute } from "@/components/features/auth";
 import { initializeWebVitalsMonitoring } from "@/lib/web-vitals-monitoring";
+import { initAutoTrackingService, cleanupAutoTrackingService } from "@/lib/progressive-capture/auto-track-on-404";
 
 // Lazy load route components for better performance
 const RepoView = lazy(() => import("@/components/features/repository/repo-view"));
@@ -106,6 +107,9 @@ function App() {
 
   // Preload critical routes and initialize progressive features after mount
   useEffect(() => {
+    // Initialize auto-tracking service for 404 interception
+    initAutoTrackingService();
+    
     const initializeDeferred = async () => {
       // Priority 1: Preload most likely next routes immediately
       const criticalImports = [
@@ -129,6 +133,11 @@ function App() {
     };
     
     initializeDeferred();
+    
+    // Cleanup on unmount
+    return () => {
+      cleanupAutoTrackingService();
+    };
   }, []);
 
   return (
@@ -376,7 +385,7 @@ function App() {
                 } />
               </Route>
               
-              {/* Organization view - after specific routes to avoid conflicts */}
+              {/* Organization view - after repo routes to prevent intercepting repo patterns */}
               <Route path="/:org" element={<OrgView />} />
               
               <Route path="*" element={<NotFound />} />
