@@ -10,7 +10,8 @@ import {
   AlertCircle, 
   Heart,
   Sparkles,
-  FileText
+  FileText,
+  HelpCircle
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useTimeRangeStore } from "@/lib/time-range-store";
@@ -20,6 +21,7 @@ import { NeedsAttention } from "./sections/needs-attention";
 import { InsightsHealth } from "./sections/repository-health-insights";
 import { Recommendations } from "./sections/recommendations";
 import { RepositorySummary } from "./sections/repository-summary";
+import { ProjectFAQ } from "./sections/project-faq";
 import { getCriticalPrCount } from "@/lib/insights/pr-attention";
 
 interface InsightsSidebarProps {
@@ -77,6 +79,13 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
       icon: Sparkles,
       color: "text-purple-500",
       count: 5,
+    },
+    {
+      id: "faq",
+      title: "FAQ",
+      icon: HelpCircle,
+      color: "text-green-500",
+      count: null,
     },
   ];
 
@@ -173,6 +182,9 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                           {section.id === "recommendations" && (
                             <Recommendations owner={owner} repo={repo} timeRange={timeRange} />
                           )}
+                          {section.id === "faq" && (
+                            <ProjectFAQ owner={owner} repo={repo} timeRange={timeRange} />
+                          )}
                         </div>
                       )}
                     </div>
@@ -236,6 +248,9 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                         )}
                         {section.id === "recommendations" && (
                           <Recommendations owner={owner} repo={repo} timeRange={timeRange} />
+                        )}
+                        {section.id === "faq" && (
+                          <ProjectFAQ owner={owner} repo={repo} timeRange={timeRange} />
                         )}
                       </div>
                     )}
