@@ -281,7 +281,7 @@ export default function OrgView() {
         </CardHeader>
         <CardContent className="org-repos-table">
           {isLoading ? (
-            <div className="space-y-4 loading-container">
+            <div className="space-y-4">
               {Array.from({ length: 10 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-4">
                   <Skeleton className="h-12 w-full" />

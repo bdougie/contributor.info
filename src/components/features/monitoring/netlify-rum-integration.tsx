@@ -31,7 +31,7 @@ export function NetlifyRUMIntegration() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open(netlifyRumUrl, '_blank')}
+            onClick={() => window.open(netlifyRumUrl, '_blank', 'noopener,noreferrer')}
             className="flex items-center gap-2"
           >
             View in Netlify
