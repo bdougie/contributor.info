@@ -96,6 +96,23 @@ function sanitizeColor(color: string): string {
   return '#007ec6';
 }
 
+// Helper function to generate badge URL
+export function generateBadgeURL(owner: string, repo: string, type: string = 'contributors', style: string = 'flat'): string {
+  const params = new URLSearchParams({
+    owner,
+    repo,
+    type,
+    style,
+  });
+  return `${window.location.origin}/api/widget/badge?${params.toString()}`;
+}
+
+// Helper function to generate badge markdown
+export function generateBadgeMarkdown(owner: string, repo: string, type: string = 'contributors', style: string = 'flat'): string {
+  const url = generateBadgeURL(owner, repo, type, style);
+  return `![${repo} ${type} badge](${url})`;
+}
+
 export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps) {
   const style = config.style || 'flat';
   const styleConfig = BADGE_STYLES[style];
@@ -184,16 +201,16 @@ export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps)
   // Generate HTML badge with styles
   const badgeUrl = `${window.location.origin}/api/widget/badge?` + new URLSearchParams({
     owner: data.repository.owner,
-    repo: data.repository.name,
+    repo: data.repository.repo,
     type: config.metrics?.[0] || 'contributors',
     style: config.style || 'flat',
     label: config.label || '',
     color: config.color || '',
   }).toString();
 
-  const embedCode = config.format === 'markdown' 
-    ? `![${data.repository.name} badge](${badgeUrl})`
-    : `<img src="${badgeUrl}" alt="${data.repository.name} badge" />`;
+  const embedCode = config.format === 'html' 
+    ? `<img src="${badgeUrl}" alt="${data.repository.repo} badge" />`
+    : `![${data.repository.repo} badge](${badgeUrl})`;
 
   return (
     <div className={cn("badge-generator", className)}>
