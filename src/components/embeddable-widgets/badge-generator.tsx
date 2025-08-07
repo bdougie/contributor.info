@@ -39,32 +39,32 @@ const BADGE_STYLES = {
   },
 };
 
-// Predefined badge types
+// Predefined badge types with time context
 const BADGE_PRESETS = {
   contributors: (data: WidgetData) => ({
-    label: "contributors",
+    label: "contributors (30d)",
     message: data.stats.totalContributors.toString(),
     color: "#007ec6",
   }),
   "pull-requests": (data: WidgetData) => ({
-    label: "pull requests", 
+    label: "PRs (30d)", 
     message: data.stats.totalPRs.toString(),
     color: "#28a745",
   }),
   "merge-rate": (data: WidgetData) => ({
-    label: "merge rate",
+    label: "merge rate (30d)",
     message: `${data.stats.mergeRate.toFixed(1)}%`,
     color: data.stats.mergeRate > 80 ? "#28a745" : data.stats.mergeRate > 60 ? "#ffc107" : "#dc3545",
   }),
   "lottery-factor": (data: WidgetData) => ({
-    label: "lottery factor",
+    label: "lottery factor (30d)",
     message: data.stats.lotteryFactor?.toFixed(1) || "N/A",
     color: !data.stats.lotteryFactor ? "#6c757d" :
            data.stats.lotteryFactor > 3 ? "#28a745" : 
            data.stats.lotteryFactor > 2 ? "#ffc107" : "#dc3545",
   }),
   activity: (data: WidgetData) => ({
-    label: "activity",
+    label: "activity (7d)",
     message: data.activity.recentActivity ? "active" : "low",
     color: data.activity.recentActivity ? "#28a745" : "#ffc107",
   }),
