@@ -9,11 +9,12 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
+// Initialize Supabase client only if credentials are available
 const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Only create client if we have valid credentials
+const supabase = supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 // Utility functions
 function escapeHtml(text) {
@@ -38,6 +39,12 @@ function formatNumber(num) {
 
 // Fetch real repository statistics from database (last 30 days)
 async function fetchRepoStats(owner, repo) {
+  // Skip database query if Supabase client is not available
+  if (!supabase) {
+    console.log('Supabase client not initialized - missing VITE_SUPABASE_ANON_KEY');
+    return null;
+  }
+
   try {
     // Get repository data
     const { data: repoData, error: repoError } = await supabase
