@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Terminal, Search, TrendingUp, Clock, Star, GitBranch, ExternalLink, AlertTriangle, Loader2, CheckCircle } from "lucide-react";
+import { Terminal, Search, TrendingUp, Clock, Star, GitBranch, AlertTriangle, Loader2, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SocialMetaTags } from "./meta-tags-provider";
 import { GitHubSearchInput } from "@/components/ui/github-search-input";
@@ -180,12 +180,6 @@ export default function NotFound() {
     navigate(`/${repo.full_name}`);
   };
   
-  // Report broken link (placeholder)
-  const handleReportBrokenLink = () => {
-    const subject = encodeURIComponent(`Broken link report: ${location.pathname}`);
-    const body = encodeURIComponent(`I found a broken link at: ${window.location.href}\n\nPlease investigate and fix this issue.`);
-    window.open(`mailto:hello@contributor.info?subject=${subject}&body=${body}`, '_blank');
-  };
 
   // Handle keyboard events
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -503,13 +497,6 @@ export default function NotFound() {
             variant="outline"
           >
             Documentation
-          </Button>
-          <Button 
-            onClick={handleReportBrokenLink}
-            variant="destructive"
-          >
-            <ExternalLink className="h-4 w-4 mr-2" />
-            Report Broken Link
           </Button>
         </div>
       </div>
