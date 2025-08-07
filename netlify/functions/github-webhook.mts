@@ -1,6 +1,7 @@
 import type { Handler } from '@netlify/functions';
 import crypto from 'crypto';
 import { handlePullRequestEvent } from '../../app/webhooks/pull-request';
+import { handlePROpenedDirect } from '../../app/webhooks/pull-request-direct';
 import { handleIssuesEvent } from '../../app/webhooks/issues';
 import { handleIssueCommentEvent } from '../../app/webhooks/issue-comment';
 import { handleInstallationEvent } from '../../app/webhooks/installation';
@@ -87,10 +88,17 @@ export const handler: Handler = async (event) => {
         
       case 'pull_request':
         console.log(`PR ${payload.action}:`, `#${payload.pull_request?.number}`);
-        // Process asynchronously without awaiting
-        handlePullRequestEvent(payload).catch(error => {
-          console.error('Error handling pull request event:', error);
-        });
+        // Use direct handler for opened events (doesn't require DB lookup)
+        if (payload.action === 'opened') {
+          handlePROpenedDirect(payload).catch(error => {
+            console.error('Error handling PR opened event:', error);
+          });
+        } else {
+          // Use original handler for other events
+          handlePullRequestEvent(payload).catch(error => {
+            console.error('Error handling pull request event:', error);
+          });
+        }
         break;
         
       case 'issues':
