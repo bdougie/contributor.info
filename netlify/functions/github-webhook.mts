@@ -3,8 +3,10 @@ import crypto from 'crypto';
 import { handlePullRequestEvent } from '../../app/webhooks/pull-request';
 import { handlePROpenedDirect } from '../../app/webhooks/pull-request-direct';
 import { handleIssuesEvent } from '../../app/webhooks/issues';
+import { handleIssueOpenedDirect } from '../../app/webhooks/issues-direct';
 import { handleIssueCommentEvent } from '../../app/webhooks/issue-comment';
 import { handleInstallationEvent } from '../../app/webhooks/installation';
+import { handleLabeledEvent } from '../../app/webhooks/labeled';
 
 /**
  * GitHub webhook handler for Netlify Functions
@@ -93,6 +95,11 @@ export const handler: Handler = async (event) => {
           handlePROpenedDirect(payload).catch(error => {
             console.error('Error handling PR opened event:', error);
           });
+        } else if (payload.action === 'labeled' || payload.action === 'unlabeled') {
+          // Handle labeled events for PRs
+          handleLabeledEvent(payload).catch(error => {
+            console.error('Error handling PR labeled event:', error);
+          });
         } else {
           // Use original handler for other events
           handlePullRequestEvent(payload).catch(error => {
@@ -103,10 +110,22 @@ export const handler: Handler = async (event) => {
         
       case 'issues':
         console.log(`Issue ${payload.action}:`, `#${payload.issue?.number}`);
-        // Process asynchronously without awaiting
-        handleIssuesEvent(payload).catch(error => {
-          console.error('Error handling issues event:', error);
-        });
+        // Use direct handler for opened events (more liberal, always responds)
+        if (payload.action === 'opened') {
+          handleIssueOpenedDirect(payload).catch(error => {
+            console.error('Error handling issue opened event:', error);
+          });
+        } else if (payload.action === 'labeled' || payload.action === 'unlabeled') {
+          // Handle labeled events for issues
+          handleLabeledEvent(payload).catch(error => {
+            console.error('Error handling issue labeled event:', error);
+          });
+        } else {
+          // Use original handler for other events
+          handleIssuesEvent(payload).catch(error => {
+            console.error('Error handling issues event:', error);
+          });
+        }
         break;
         
       case 'issue_comment':
