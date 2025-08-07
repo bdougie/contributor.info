@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronRight, HelpCircle, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, HelpCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -383,10 +383,10 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
         }}
       />
       
-      <div className="space-y-2">
+      <div className="space-y-3">
         {faqs.map((faq) => (
-          <Card key={faq.id} className="border-l-4 border-l-blue-500">
-            <div className="p-3">
+          <Card key={faq.id} className="p-4 hover:shadow-sm transition-shadow">
+            <div className="space-y-3">
               <Button
                 variant="ghost"
                 className="w-full justify-between h-auto p-0 text-left font-normal hover:bg-transparent"
@@ -395,9 +395,6 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
                 <span className="text-sm font-medium pr-2 flex-1">
                   {faq.question}
                 </span>
-                {faq.isAIGenerated && (
-                  <Sparkles className="h-3 w-3 text-blue-500 mr-2 flex-shrink-0" />
-                )}
                 {expandedItems.has(faq.id) ? (
                   <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 ) : (
@@ -406,17 +403,13 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
               </Button>
               
               {expandedItems.has(faq.id) && (
-                <div className="mt-3 pt-3 border-t">
+                <div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {faq.answer}
                   </p>
-                  {faq.isAIGenerated && faq.confidence && faq.sources && (
+                  {faq.isAIGenerated && faq.confidence && (
                     <div className="mt-2 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <span>Confidence: {Math.round(faq.confidence * 100)}%</span>
-                        <span>•</span>
-                        <span>Sources: {faq.sources.join(', ')}</span>
-                      </div>
+                      <span>AI confidence: {Math.round(faq.confidence * 100)}%</span>
                     </div>
                   )}
                 </div>
@@ -425,17 +418,13 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
           </Card>
         ))}
         
-        <div className="text-center pt-2">
-          <p className="text-xs text-muted-foreground">
-            FAQs {useAI ? 'powered by AI analysis' : 'generated from repository data'} • Updated with time range changes
-          </p>
-          {useAI && (
-            <div className="flex items-center justify-center gap-1 mt-1">
-              <Sparkles className="h-3 w-3 text-blue-500" />
-              <span className="text-xs text-blue-600">Enhanced with AI insights</span>
-            </div>
-          )}
-        </div>
+        {useAI && (
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground">
+              AI-powered FAQ analysis • Updates with time range
+            </p>
+          </div>
+        )}
       </div>
     </>
   );
