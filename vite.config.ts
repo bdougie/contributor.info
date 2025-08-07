@@ -58,13 +58,7 @@ export default defineConfig({
       '@radix-ui/react-dropdown-menu',
       'class-variance-authority',
       'clsx',
-      'tailwind-merge',
-      // Pre-bundle chart libraries to avoid circular dependencies
-      'recharts',
-      'react-smooth',
-      'd3-scale',
-      'd3-shape',
-      'd3-interpolate'
+      'tailwind-merge'
     ],
     exclude: [
       'lucide-react', // Keep icons separate for better tree-shaking
@@ -132,21 +126,15 @@ export default defineConfig({
               return 'ui-radix-misc';
             }
             
-            // Bundle chart libraries with their React dependencies to ensure proper initialization
+            // Bundle ALL chart libraries together - the reliable solution
+            // After extensive testing, splitting charts causes persistent MIME type 
+            // and initialization errors. The 300KB saved isn't worth runtime failures.
             if (id.includes('recharts') || id.includes('react-smooth') || 
-                id.includes('react-resize-detector')) {
-              // Keep Recharts and its direct dependencies together
-              return 'charts-recharts';
-            }
-            
-            // D3 can be separate as it doesn't depend on React
-            if (id.includes('d3-') || id.includes('d3/')) {
-              return 'charts-d3';
-            }
-            
-            // Other chart libraries
-            if (id.includes('@nivo') || id.includes('victory')) {
-              return 'charts-other';
+                id.includes('react-resize-detector') || id.includes('d3-') || 
+                id.includes('d3/') || id.includes('@nivo') || id.includes('victory') ||
+                id.includes('prop-types') || id.includes('react-is')) {
+              // Let all chart libraries go to vendor-misc for reliability
+              return 'vendor-misc';
             }
             
             // Markdown and code highlighting
@@ -255,7 +243,7 @@ export default defineConfig({
     minify: 'esbuild',
     target: 'es2020', // Modern target with good compatibility
     // Optimize chunk size warnings  
-    chunkSizeWarningLimit: 800, // Increased to accommodate combined chart libraries
+    chunkSizeWarningLimit: 1000, // Accepting larger chunks for reliability over micro-optimizations
     // Enable compression reporting
     reportCompressedSize: true,
     // Module preload optimization - disable automatic preloading to prevent loading order issues
