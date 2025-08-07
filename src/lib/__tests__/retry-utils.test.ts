@@ -222,12 +222,12 @@ describe('retry-utils', () => {
       expect(getCircuitBreakerState('test-circuit-3')).toBe('CLOSED');
     });
 
-    it('should reset circuit breaker manually', () => {
+    it('should reset circuit breaker manually', async () => {
       // Set up a circuit breaker state
       const fn = vi.fn().mockRejectedValue(new Error('NetworkError'));
       
       // This will create and potentially trip the breaker
-      withRetry(fn, {
+      await withRetry(fn, {
         maxRetries: 0,
         retryableErrors: new Set(['NetworkError']),
       }, 'test-reset', {

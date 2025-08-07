@@ -5,6 +5,23 @@
 import { supabase } from './supabase';
 import { withRetry, type RetryConfig } from './retry-utils';
 
+/**
+ * Track retry metrics
+ */
+interface RetryMetrics {
+  totalRetries: number;
+  successfulRetries: number;
+  failedRetries: number;
+  circuitBreakerTrips: number;
+}
+
+const retryMetrics: RetryMetrics = {
+  totalRetries: 0,
+  successfulRetries: 0,
+  failedRetries: 0,
+  circuitBreakerTrips: 0,
+};
+
 // Custom retry configuration for Supabase operations
 const supabaseRetryConfig: Partial<RetryConfig> = {
   maxRetries: 3,
@@ -26,7 +43,11 @@ const supabaseRetryConfig: Partial<RetryConfig> = {
     'AbortError'
   ]),
   onRetry: (error, attempt) => {
-    console.log(`%s`, `Supabase retry attempt ${attempt}:`, error.message);
+    retryMetrics.totalRetries++;
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`%s`, `Supabase retry attempt ${attempt}:`, error.message);
+    }
   }
 };
 
@@ -47,8 +68,10 @@ const githubRetryConfig: Partial<RetryConfig> = {
     '403', // Sometimes indicates rate limit
   ]),
   onRetry: (error, attempt) => {
+    retryMetrics.totalRetries++;
     const isRateLimit = error.message.includes('429') || error.message.includes('rate limit');
-    if (isRateLimit) {
+    // Only log in development
+    if (process.env.NODE_ENV === 'development' && isRateLimit) {
       console.log(`%s`, `GitHub rate limit hit, waiting longer (attempt ${attempt})...`);
     }
   }
@@ -67,8 +90,15 @@ export async function supabaseWithRetry<T>(
       supabaseRetryConfig,
       circuitBreakerKey
     );
+    if (retryMetrics.totalRetries > 0) {
+      retryMetrics.successfulRetries++;
+    }
     return result;
   } catch (error) {
+    retryMetrics.failedRetries++;
+    if (error instanceof Error && error.message.includes('Circuit breaker is open')) {
+      retryMetrics.circuitBreakerTrips++;
+    }
     // Return in Supabase format
     return {
       data: null,
@@ -86,6 +116,17 @@ export async function fetchWithRetry(
   options?: RequestInit,
   customConfig?: Partial<RetryConfig>
 ): Promise<Response> {
+  // Generate circuit breaker key safely
+  let circuitBreakerKey = 'github-api-generic';
+  try {
+    // Try to parse as absolute URL
+    const parsedUrl = new URL(url);
+    circuitBreakerKey = `github-api-${parsedUrl.pathname}`;
+  } catch {
+    // For relative URLs, use the path directly
+    circuitBreakerKey = `github-api-${url.replace(/^\//, '')}`;
+  }
+
   return withRetry(
     async () => {
       const response = await fetch(url, options);
@@ -110,7 +151,7 @@ export async function fetchWithRetry(
       return response;
     },
     { ...githubRetryConfig, ...customConfig },
-    `github-api-${new URL(url).pathname}`
+    circuitBreakerKey
   );
 }
 
@@ -180,23 +221,6 @@ export const retryableSupabase = {
       'supabase-upsert-repository'
     );
   },
-};
-
-/**
- * Track retry metrics
- */
-interface RetryMetrics {
-  totalRetries: number;
-  successfulRetries: number;
-  failedRetries: number;
-  circuitBreakerTrips: number;
-}
-
-const retryMetrics: RetryMetrics = {
-  totalRetries: 0,
-  successfulRetries: 0,
-  failedRetries: 0,
-  circuitBreakerTrips: 0,
 };
 
 export function getRetryMetrics(): RetryMetrics {

@@ -57,13 +57,18 @@ class CircuitBreaker {
       case CircuitState.OPEN:
         if (this.lastFailureTime && Date.now() - this.lastFailureTime >= this.config.resetTimeout) {
           this.state = CircuitState.HALF_OPEN;
-          this.halfOpenAttempts = 0;
+          this.halfOpenAttempts = 1; // Count this attempt
+          this.successCount = 0;
           return true;
         }
         return false;
       
       case CircuitState.HALF_OPEN:
-        return this.halfOpenAttempts < this.config.halfOpenRequests;
+        if (this.halfOpenAttempts < this.config.halfOpenRequests) {
+          this.halfOpenAttempts++;
+          return true;
+        }
+        return false;
       
       default:
         return false;
@@ -214,13 +219,6 @@ export async function withRetry<T>(
         if (retryConfig.onRetry) {
           retryConfig.onRetry(error as Error, attempt);
         }
-        
-        // Log retry attempt
-        console.log(
-          `%s`,
-          `Retry attempt ${attempt}/${retryConfig.maxRetries} after ${delay}ms for error:`,
-          error
-        );
         
         await sleep(delay);
       } else {

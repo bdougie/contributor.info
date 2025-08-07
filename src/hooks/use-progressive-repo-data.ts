@@ -113,10 +113,7 @@ export function useProgressiveRepoData(
             () => fetchPRDataSmart(owner, repo, { timeRange }),
             {
               maxRetries: 2,
-              initialDelay: 500,
-              onRetry: (error, attempt) => {
-                console.log(`%s`, `Retrying critical data fetch (attempt ${attempt}):`, error.message);
-              }
+              initialDelay: 500
             },
             `critical-data-${owner}-${repo}`
           );
@@ -175,10 +172,7 @@ export function useProgressiveRepoData(
             () => fetchPRDataSmart(owner, repo, { timeRange }),
             {
               maxRetries: 3,
-              initialDelay: 1000,
-              onRetry: (error, attempt) => {
-                console.log(`%s`, `Retrying full data fetch (attempt ${attempt}):`, error.message);
-              }
+              initialDelay: 1000
             },
             `full-data-${owner}-${repo}`
           );
@@ -248,10 +242,7 @@ export function useProgressiveRepoData(
             () => fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
             {
               maxRetries: 2,
-              initialDelay: 1500,
-              onRetry: (error, attempt) => {
-                console.log(`%s`, `Retrying enhancement data fetch (attempt ${attempt}):`, error.message);
-              }
+              initialDelay: 1500
             },
             `enhancement-data-${owner}-${repo}`
           );
