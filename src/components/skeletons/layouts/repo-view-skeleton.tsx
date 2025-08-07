@@ -71,46 +71,26 @@ export function RepoViewSkeleton({ className }: RepoViewSkeletonProps) {
 }
 
 /**
- * Default content area skeleton - can be overridden by specific page skeletons
- * @returns A skeleton layout with main content card and secondary content grid
+ * Default content area skeleton - feed-style layout that matches actual content structure
+ * @returns A skeleton layout with stacked feed-style cards
  */
 function ContentAreaSkeleton() {
   return (
-    <div className="space-y-6 animate-pulse skeleton-container" aria-label="Loading content area">
-      {/* Main content card */}
-      <Card aria-label="Loading main content card" className="skeleton-optimized">
-        <CardHeader>
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-64" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-64 w-full" />
-          <div className="grid grid-cols-3 gap-4" aria-label="Loading statistics grid">
-            <Skeleton className="h-20" />
-            <Skeleton className="h-20" />
-            <Skeleton className="h-20" />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Secondary content */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6" aria-label="Loading secondary content">
-        <Card aria-label="Loading chart content" className="skeleton-optimized">
-          <CardHeader>
-            <Skeleton className="h-5 w-32" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-40 w-full" />
-          </CardContent>
-        </Card>
-        <Card aria-label="Loading additional content" className="skeleton-optimized">
-          <CardHeader>
-            <Skeleton className="h-5 w-36" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-40 w-full" />
-          </CardContent>
-        </Card>
+    <div className="space-y-4 animate-pulse" aria-label="Loading content area">
+      <div className="text-center text-muted-foreground">
+        Loading repository data...
+      </div>
+      {/* Feed-style skeleton to match expected content */}
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="p-4 skeleton-optimized">
+            <div className="space-y-3">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+              <Skeleton className="h-3 w-5/6" />
+            </div>
+          </Card>
+        ))}
       </div>
     </div>
   );
