@@ -87,7 +87,7 @@ describe('ActivityItem Link Styling', () => {
       </RepoStatsContext.Provider>
     )
 
-    const prLink = screen.getByRole('link', { name: '#123' })
+    const prLink = screen.getByRole('link', { name: 'Pull request #123' })
     expect(prLink).toBeInTheDocument()
     expect(prLink).toHaveClass('text-orange-500')
     expect(prLink).toHaveClass('hover:underline')
@@ -101,7 +101,7 @@ describe('ActivityItem Link Styling', () => {
       </RepoStatsContext.Provider>
     )
 
-    const repoLink = screen.getByRole('link', { name: 'facebook/react' })
+    const repoLink = screen.getByRole('link', { name: 'Repository facebook/react' })
     expect(repoLink).toBeInTheDocument()
     expect(repoLink).toHaveClass('text-orange-500')
     expect(repoLink).toHaveClass('hover:underline')
@@ -141,7 +141,7 @@ describe('ActivityItem Link Styling', () => {
       </RepoStatsContext.Provider>
     )
 
-    const repoLink = screen.getByRole('link', { name: 'facebook/react' })
+    const repoLink = screen.getByRole('link', { name: 'Repository facebook/react' })
     
     // Repository link should have truncation classes
     expect(repoLink).toHaveClass('truncate')
