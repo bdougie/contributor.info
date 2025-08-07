@@ -69,7 +69,17 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
     return '';
   } else {
     // Server: Use process.env only (import.meta.env not available in CommonJS/Netlify Functions)
-    return hasProcess ? (process.env[viteKey] || (serverKey ? process.env[serverKey] : '') || '') : '';
+    if (!hasProcess) return '';
+    
+    const primaryValue = process.env[viteKey];
+    if (primaryValue) return primaryValue;
+    
+    if (serverKey) {
+      const secondaryValue = process.env[serverKey];
+      if (secondaryValue) return secondaryValue;
+    }
+    
+    return '';
   }
 }
 
