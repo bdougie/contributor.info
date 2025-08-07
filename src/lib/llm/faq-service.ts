@@ -34,7 +34,7 @@ export interface RepositoryData {
 
 class FAQService {
   // Increment this to bust the cache when FAQ generation changes
-  private readonly CACHE_VERSION = 'v3-ultra-concise';
+  private readonly CACHE_VERSION = 'v4-specific-answers';
   
   private defaultQuestions: FAQQuestion[] = [
     {
@@ -154,15 +154,13 @@ class FAQService {
 
     try {
       const prompt = this.buildFAQPrompt(question, owner, repo, timeRange, repositoryData);
-      // Use cost-effective model for FAQ answers
       
-      // Create a mock insight structure to work with existing OpenAI patterns
-      const faqInsight = await this.generateFAQInsight(prompt, { owner, repo });
-      if (!faqInsight) {
-        throw new Error('Failed to generate FAQ insight');
+      // Call OpenAI directly with FAQ-specific prompt
+      const response = await this.callOpenAIForFAQ(prompt);
+      
+      if (!response) {
+        throw new Error('Failed to generate FAQ answer');
       }
-      
-      const response = faqInsight.content;
       
       // Extract sources from repository data
       const sources = this.extractSources(question.category, repositoryData);
@@ -413,27 +411,68 @@ Answer:`;
   }
 
   /**
-   * Generate FAQ insight using existing OpenAI infrastructure
+   * Call OpenAI directly for FAQ-specific answers
    */
-  private async generateFAQInsight(prompt: string, repoInfo: { owner: string; repo: string }): Promise<LLMInsight | null> {
-    // Create a mock health data structure that includes our FAQ prompt
-    const mockHealthData = {
-      score: 80,
-      trend: 'stable',
-      factors: [{
-        name: 'faq_context',
-        score: 100,
-        status: 'good',
-        description: prompt // Embed our FAQ prompt in the description
-      }],
-      recommendations: ['Answer the embedded FAQ question in the factor description']
-    };
+  private async callOpenAIForFAQ(prompt: string): Promise<string | null> {
+    const apiKey = import.meta.env?.VITE_OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+    
+    if (!apiKey) {
+      console.error('OpenAI API key not configured');
+      return null;
+    }
+
+    // Prevent real API calls in test environment
+    if (process.env.NODE_ENV === 'test' || apiKey === 'test-openai-key' || apiKey === 'test-key-for-ci') {
+      return null;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
     try {
-      return await openAIService.generateHealthInsight(mockHealthData, repoInfo);
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a concise FAQ assistant. Answer the specific question asked using only the provided data. Maximum 50 words. Be direct and factual.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 100,
+          temperature: 0.3,
+        }),
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.error(`OpenAI API error: ${response.status}`);
+        return null;
+      }
+
+      const data = await response.json();
+      
+      if (!data.choices || data.choices.length === 0) {
+        return null;
+      }
+
+      return data.choices[0].message.content.trim();
     } catch (error) {
-      console.error('Failed to generate FAQ insight:', error);
+      console.error('Failed to call OpenAI for FAQ:', error);
       return null;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
