@@ -4,6 +4,7 @@ import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart-deduped';
 import { calculateLotteryFactor } from '@/lib/utils';
 import type { RepoStats, LotteryFactor, DirectCommitsData, TimeRange } from '@/lib/types';
 import { setApplicationContext, startSpan } from '@/lib/simple-logging';
+import { withRetry } from '@/lib/retry-utils';
 
 // Loading stages for progressive data loading
 export type LoadingStage = 'initial' | 'critical' | 'full' | 'enhancement' | 'complete';
@@ -107,13 +108,17 @@ export function useProgressiveRepoData(
             return cached.data.basicInfo;
           }
 
-          // Fetch minimal data for above-the-fold content
-          const result = await fetchPRDataSmart(
-            owner,
-            repo,
+          // Fetch minimal data for above-the-fold content with retry
+          const result = await withRetry(
+            () => fetchPRDataSmart(owner, repo, { timeRange }),
             {
-              timeRange
-            }
+              maxRetries: 2,
+              initialDelay: 500,
+              onRetry: (error, attempt) => {
+                console.log(`%s`, `Retrying critical data fetch (attempt ${attempt}):`, error.message);
+              }
+            },
+            `critical-data-${owner}-${repo}`
           );
 
           if (!result.data) {
@@ -165,13 +170,17 @@ export function useProgressiveRepoData(
       { name: 'progressive-load-full' },
       async (span) => {
         try {
-          // Fetch complete PR data
-          const result = await fetchPRDataSmart(
-            owner,
-            repo,
+          // Fetch complete PR data with retry
+          const result = await withRetry(
+            () => fetchPRDataSmart(owner, repo, { timeRange }),
             {
-              timeRange
-            }
+              maxRetries: 3,
+              initialDelay: 1000,
+              onRetry: (error, attempt) => {
+                console.log(`%s`, `Retrying full data fetch (attempt ${attempt}):`, error.message);
+              }
+            },
+            `full-data-${owner}-${repo}`
           );
 
           if (!result.data) {
@@ -234,11 +243,17 @@ export function useProgressiveRepoData(
       { name: 'progressive-load-enhancement' },
       async (span) => {
         try {
-          // Load direct commits data
-          const directCommitsData = await fetchDirectCommitsWithDatabaseFallback(
-            owner,
-            repo,
-            timeRange
+          // Load direct commits data with retry
+          const directCommitsData = await withRetry(
+            () => fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
+            {
+              maxRetries: 2,
+              initialDelay: 1500,
+              onRetry: (error, attempt) => {
+                console.log(`%s`, `Retrying enhancement data fetch (attempt ${attempt}):`, error.message);
+              }
+            },
+            `enhancement-data-${owner}-${repo}`
           );
 
           // In the future, load historical trends here
