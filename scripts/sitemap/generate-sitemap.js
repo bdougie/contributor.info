@@ -20,10 +20,11 @@ const SITE_URL = 'https://contributor.info';
 const PRIORITY_LEVELS = {
   homepage: 1.0,
   popular: 0.9,
-  regular: 0.7,
-  static: 0.5,
-  docs: 0.7,
-  lowPriority: 0.4
+  importantPages: 0.8,  // Changelog, main docs page
+  docs: 0.7,            // Individual doc pages
+  regular: 0.7,         // Regular repositories
+  static: 0.5,          // Privacy, terms, etc.
+  lowPriority: 0.4     // Sub-pages of static content
 };
 
 // Change frequency based on content type
@@ -35,14 +36,19 @@ const CHANGE_FREQ = {
   static: 'monthly'
 };
 
-// Static pages configuration
+// Main pages configuration (organized by priority)
 const staticPages = [
+  // Core pages (highest priority)
   { loc: '/', priority: PRIORITY_LEVELS.homepage, changefreq: CHANGE_FREQ.homepage },
-  { loc: '/changelog', priority: 0.8, changefreq: CHANGE_FREQ.docs },
-  { loc: '/docs', priority: 0.9, changefreq: CHANGE_FREQ.docs },
+  
+  // Important dynamic content pages
+  { loc: '/docs', priority: PRIORITY_LEVELS.importantPages, changefreq: CHANGE_FREQ.docs },
+  { loc: '/changelog', priority: PRIORITY_LEVELS.importantPages, changefreq: CHANGE_FREQ.docs },
+  
+  // Static legal/policy pages
   { loc: '/privacy', priority: PRIORITY_LEVELS.static, changefreq: CHANGE_FREQ.static },
-  { loc: '/privacy/data-request', priority: PRIORITY_LEVELS.lowPriority, changefreq: CHANGE_FREQ.static },
   { loc: '/terms', priority: PRIORITY_LEVELS.static, changefreq: CHANGE_FREQ.static },
+  { loc: '/privacy/data-request', priority: PRIORITY_LEVELS.lowPriority, changefreq: CHANGE_FREQ.static },
 ];
 
 // Documentation pages

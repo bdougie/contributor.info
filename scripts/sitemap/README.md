@@ -21,12 +21,14 @@ Generates comprehensive XML sitemaps with dynamic content from the database.
 **Priority Structure:**
 - Homepage: 1.0
 - Popular repositories (React, Next.js, etc.): 0.9
+- Important pages (Docs, Changelog): 0.8
 - High-star repositories (>10k stars): 0.85
 - Medium-star repositories (>1k stars): 0.8
 - Small repositories (>100 stars): 0.75
 - Regular repositories: 0.7
-- Static pages: 0.5
-- Low priority pages: 0.4
+- Individual documentation pages: 0.7
+- Static pages (Privacy, Terms): 0.5
+- Low priority pages (sub-pages): 0.4
 
 **Usage:**
 ```bash
