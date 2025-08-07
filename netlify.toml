@@ -6,23 +6,6 @@
   NODE_VERSION = "20"
   NPM_VERSION = "10"
 
-# Disable ALL Netlify post-processing to prevent MIME type issues
-[build.processing]
-  skip_processing = true
-
-[build.processing.css]
-  bundle = false
-  minify = false
-
-[build.processing.js]
-  bundle = false
-  minify = false
-
-[build.processing.html]
-  pretty_urls = false
-
-[build.processing.images]
-  compress = false
 
 [dev]
   command = "vite --port 5174"
