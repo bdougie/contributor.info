@@ -16,11 +16,54 @@ const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 // Only create client if we have valid credentials
 const supabase = supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
+/**
+ * Escapes text for safe inclusion in SVG/XML content
+ * Prevents XSS attacks through user-controlled inputs
+ * @param {string} text - Text to escape
+ * @returns {string} Escaped text safe for SVG
+ */
+function escapeXml(text) {
+  if (typeof text !== 'string') {
+    text = String(text);
+  }
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+    // Remove any control characters that could break SVG
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+}
+
+/**
+ * Sanitizes color values to prevent CSS injection
+ * @param {string} color - Color value to sanitize
+ * @returns {string} Safe color value
+ */
+function sanitizeColor(color) {
+  // Only allow hex colors (3, 4, 6, 8 digits), rgb/rgba with 0-255 range, and named colors
+  const hexPattern = /^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
+  const rgbPattern = /^rgba?\(\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*(?:,\s*(?:0?\.[0-9]+|1(?:\.0+)?|0))?\)$/;
+  const namedColors = ['red', 'green', 'blue', 'yellow', 'orange', 'purple', 'gray', 'black', 'white'];
+  
+  if (hexPattern.test(color) || rgbPattern.test(color) || namedColors.includes(color.toLowerCase())) {
+    return color;
+  }
+  
+  // Default to safe color if invalid
+  return '#007ec6';
+}
+
 // Badge generation utilities
 function generateBadgeSVG(label, message, color = '#007ec6', style = 'flat') {
-  // Calculate text widths (approximate)
-  const labelWidth = Math.max(label.length * 6.5 + 10, 50);
-  const messageWidth = Math.max(message.length * 6.5 + 10, 30);
+  // Escape all user inputs to prevent XSS
+  const safeLabel = escapeXml(label);
+  const safeMessage = escapeXml(message);
+  const safeColor = sanitizeColor(color);
+  // Calculate text widths based on escaped content to prevent truncation
+  const labelWidth = Math.max(safeLabel.length * 6.5 + 10, 50);
+  const messageWidth = Math.max(safeMessage.length * 6.5 + 10, 30);
   const totalWidth = labelWidth + messageWidth;
   const height = 20;
 
@@ -45,7 +88,7 @@ function generateBadgeSVG(label, message, color = '#007ec6', style = 'flat') {
   <rect x="0" y="0" width="${labelWidth}" height="${height}" fill="#555" rx="${styleConfig.rx}"/>
   
   <!-- Right background (message) -->  
-  <rect x="${labelWidth}" y="0" width="${messageWidth}" height="${height}" fill="${color}" rx="${styleConfig.rx}"/>
+  <rect x="${labelWidth}" y="0" width="${messageWidth}" height="${height}" fill="${safeColor}" rx="${styleConfig.rx}"/>
   
   <!-- Left text (label) -->
   <text x="${labelWidth / 2}" y="14" 
@@ -53,7 +96,7 @@ function generateBadgeSVG(label, message, color = '#007ec6', style = 'flat') {
         font-family="Verdana,Geneva,DejaVu Sans,sans-serif" 
         font-size="11" 
         fill="white">
-    ${label}
+    ${safeLabel}
   </text>
   
   <!-- Right text (message) -->
@@ -63,7 +106,7 @@ function generateBadgeSVG(label, message, color = '#007ec6', style = 'flat') {
         font-size="11" 
         font-weight="bold"
         fill="white">
-    ${message}
+    ${safeMessage}
   </text>
 </svg>`;
 }
