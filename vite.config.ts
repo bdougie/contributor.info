@@ -2,11 +2,22 @@ import path from 'path';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
+import { analyzer } from 'vite-bundle-analyzer';
 
 export default defineConfig({
   base: '/',
   plugins: [
     react(),
+    analyzer({
+      analyzerMode: 'static',
+      fileName: 'bundle-analysis',
+      openAnalyzer: false,
+      generateStatsFile: true,
+      statsOptions: {
+        source: false,
+        modules: false
+      }
+    }),
     imagetools({
       defaultDirectives: (url) => {
         // Process images for WebP optimization
