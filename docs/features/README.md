@@ -15,6 +15,9 @@ Features documentation helps developers:
 ### 🤖 AI & Analytics Features
 - **[App Stats Reviewer Suggestions](./app-stats-reviewer-suggestions.md)** - AI-powered reviewer recommendation system
 - **[Issue Context Command](./issue-context-command.md)** - Automated issue context generation
+- **[Similarity Detection](./similarity-detection.md)** - Semantic similarity analysis for issues and PRs
+  - [Technical Architecture](./similarity-architecture.md) - Deep dive into embeddings and algorithms
+  - [Setup Guide](./similarity-setup.md) - Configuration and customization options
 
 ### 🔄 Data Synchronization
 - **[Progressive Backfill](./progressive-backfill.md)** - Sync large repositories without rate limits
@@ -45,6 +48,12 @@ Features documentation helps developers:
 - **Key Files**: `src/lib/progressive-capture/`, `docs/data-fetching/`
 
 ### 🤖 AI-Enhanced Features
+
+#### Similarity Detection
+- **Purpose**: Identify duplicate and related issues/PRs using semantic similarity
+- **Components**: MiniLM embeddings (384-dim), cosine similarity, GitHub Actions integration
+- **Data Sources**: Issue/PR titles and descriptions, vector embeddings
+- **Key Files**: `scripts/actions-similarity.ts`, `src/lib/similarity/`, `.github/workflows/similarity-check.yml`
 
 #### Reviewer Suggestions
 - **Purpose**: AI-powered code reviewer recommendations
