@@ -91,6 +91,8 @@ jobs:
         id: similarity
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
           # Build command based on inputs
           COMMAND="npx tsx scripts/actions-similarity.ts --owner ${{ steps.determine.outputs.owner }} --repo ${{ steps.determine.outputs.repo }}"

@@ -1,14 +1,14 @@
 #!/usr/bin/env tsx
 
 import { Octokit } from '@octokit/rest';
-import { generateIssueEmbedding } from './ml-utils';
+import { generateIssueEmbedding } from '../app/services/issue-similarity';
 import { 
   calculateContentHash,
   findSimilarItemsByEmbedding,
   findAllSimilarPairs,
   withRateLimitHandling,
   processBatch
-} from './similarity-utils';
+} from '../src/lib/similarity';
 import fs from 'fs';
 import path from 'path';
 
