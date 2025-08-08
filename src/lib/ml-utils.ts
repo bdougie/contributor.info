@@ -44,6 +44,7 @@ export async function generateIssueEmbedding(
     // Generate embeddings - the output is a Tensor
     const output = await embedder(content, {
       pooling: 'mean',
+      // @ts-ignore - Transformers.js types are not fully accurate
       normalize: true,
     });
     
