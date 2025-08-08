@@ -1,0 +1,96 @@
+name: 🔍 Similarity Check
+
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      owner:
+        description: 'Repository owner'
+        required: true
+        type: string
+      repo:
+        description: 'Repository name' 
+        required: true
+        type: string
+      max_items:
+        description: 'Maximum items to process (default: 100)'
+        required: false
+        type: number
+        default: 100
+
+jobs:
+  similarity-check:
+    name: Find Similar Issues and PRs
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run similarity check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            npm run similarity:check -- --owner="${{ github.event.inputs.owner }}" --repo="${{ github.event.inputs.repo }}" --max-items="${{ github.event.inputs.max_items }}"
+          else
+            npm run similarity:check -- --owner="${{ github.repository_owner }}" --repo="${{ github.event.repository.name }}" --item-type="${{ github.event_name }}" --item-number="${{ github.event.issue.number || github.event.pull_request.number }}"
+          fi
+          
+      - name: Comment on similarity findings
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = './similarity-results.json';
+            
+            if (fs.existsSync(path)) {
+              const results = JSON.parse(fs.readFileSync(path, 'utf8'));
+              
+              if (results.similarItems && results.similarItems.length > 0) {
+                const itemType = context.eventName === 'issues' ? 'issue' : 'pull request';
+                const itemNumber = context.payload.issue?.number || context.payload.pull_request?.number;
+                
+                let comment = `## 🔍 Similar ${itemType === 'issue' ? 'Issues' : 'Pull Requests'} Found\n\n`;
+                comment += `I found the following similar ${itemType === 'issue' ? 'issues' : 'pull requests'} that might be related:\n\n`;
+                
+                for (const item of results.similarItems) {
+                  const stateEmoji = item.state === 'open' ? '🟢' : '🔴';
+                  const similarity = Math.round(item.similarity * 100);
+                  comment += `- ${stateEmoji} [#${item.number} - ${item.title}](${item.html_url}) (${similarity}% similar)\n`;
+                }
+                
+                comment += '\n---\n\n';
+                comment += '💡 **Want even better duplicate detection?** Install the [contributor.info GitHub App](https://github.com/apps/contributor-info) for:\n';
+                comment += '- Real-time similarity detection across your entire repository\n';
+                comment += '- Advanced ML-powered issue categorization\n'; 
+                comment += '- Cross-repository duplicate detection\n';
+                comment += '- Detailed contributor insights and analytics\n\n';
+                comment += '_This similarity check was powered by [contributor.info](https://contributor.info) 🤖_';
+                
+                if (itemNumber) {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: itemNumber,
+                    body: comment
+                  });
+                }
+              }
+            }
