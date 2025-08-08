@@ -225,8 +225,7 @@ describe('calculateRepositoryConfidence', () => {
   });
 
   describe('Edge Cases', () => {
-    it.skip('should handle repositories with no stars or forks', async () => {
-      // TODO: Fix mock setup for this edge case - the main Supabase chaining issue is resolved
+    it('should handle repositories with no stars or forks', async () => {
       const { supabase } = await import('@/lib/supabase');
       
       const mockRepo = {
@@ -243,19 +242,39 @@ describe('calculateRepositoryConfidence', () => {
         if (table === 'repositories') {
           return createChainableMock(mockRepo);
         }
-        const mock = createChainableMock({ data: [], error: null });
-        mock.delete = vi.fn().mockReturnValue(createChainableMock({ data: null, error: null }));
-        return mock;
+        if (table === 'github_events_cache') {
+          // Return empty array for star/fork events (no engagement)
+          return createChainableMock({ data: [], error: null });
+        }
+        if (table === 'pull_requests') {
+          // Return empty array for pull requests (no contributors)
+          return createChainableMock({ data: [], error: null });
+        }
+        if (table === 'contributors') {
+          // Return empty array for contributors
+          return createChainableMock({ data: [], error: null });
+        }
+        if (table === 'repository_confidence_cache') {
+          // For cache queries, return no cached data (which should make the function calculate fresh)
+          const mock = createChainableMock({ data: null, error: null });
+          mock.delete = vi.fn().mockReturnValue(createChainableMock({ data: null, error: null }));
+          return mock;
+        }
+        if (table === 'github_sync_status') {
+          return createChainableMock({ data: null, error: null });
+        }
+        // Default: empty data for all other tables
+        return createChainableMock({ data: [], error: null });
       });
 
       const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
       
-      // Should return 0 or a low value for repos with no engagement
-      // Due to the way confidence calculation works with neutral scores for retention/quality,
-      // repos with absolutely no data might return a small non-zero value
+      // Should return 0 for repos with absolutely no engagement or contributors
+      // The fallback calculation with 0 stars, 0 forks, 0 contributors should return 0
       expect(result).toBeDefined();
       expect(typeof result).toBe('number');
       expect(result).toBeLessThanOrEqual(20); // Should be very low for empty repos
+      expect(result).toBeGreaterThanOrEqual(0); // Should not be negative
     });
 
     it('should handle database errors gracefully', async () => {
