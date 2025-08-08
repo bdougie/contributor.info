@@ -125,12 +125,12 @@ jobs:
             echo "similar_count=0" >> $GITHUB_OUTPUT
           fi
       
-      - name: Comment on issue/PR with similar items
+      - name: Comment on issue with similar items
         if: >
           success() && 
           steps.results.outputs.found_similar == 'true' && 
           steps.determine.outputs.item_number != '' &&
-          (github.event_name == 'issues' || github.event_name == 'pull_request')
+          github.event_name == 'issues'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -138,38 +138,105 @@ jobs:
             const fs = require('fs');
             const results = JSON.parse(fs.readFileSync('similarity-results.json', 'utf8'));
             
-            let comment = '## 🔍 Similar Items Found\n\n';
-            comment += `Found ${results.similarItems.length} similar item(s) with >${Math.round(results.similarItems[0].similarity * 100)}% similarity:\n\n`;
+            // Group similar issues by state
+            const openIssues = results.similarItems.filter(item => item.state === 'open' && item.type === 'issue');
+            const closedIssues = results.similarItems.filter(item => item.state === 'closed' && item.type === 'issue');
             
-            for (const item of results.similarItems.slice(0, 5)) {
-              const emoji = item.type === 'issue' ? '🔴' : '🟣';
-              const status = item.state === 'open' ? '🟢 Open' : '🔴 Closed';
-              comment += `- ${emoji} [#${item.number}: ${item.title}](${item.html_url}) - ${status} (${Math.round(item.similarity * 100)}% similar)\n`;
+            let comment = '## Potentially related issues\n\n';
+            comment += '_The following issues have been identified as potentially related based on semantic similarity analysis:_\n\n';
+            
+            // Add open issues section if any exist
+            if (openIssues.length > 0) {
+              comment += '### Open Issues\n\n';
+              for (const item of openIssues.slice(0, 3)) {
+                const similarity = Math.round(item.similarity * 100);
+                comment += `- **[#${item.number}](${item.html_url})**: ${item.title} _(${similarity}% similar)_\n`;
+              }
+              if (openIssues.length > 3) {
+                comment += `- _...and ${openIssues.length - 3} more open issue(s)_\n`;
+              }
+              comment += '\n';
             }
             
-            if (results.similarItems.length > 5) {
-              comment += `\n...and ${results.similarItems.length - 5} more similar item(s).\n`;
+            // Add closed issues section if any exist
+            if (closedIssues.length > 0) {
+              comment += '### Closed Issues\n\n';
+              for (const item of closedIssues.slice(0, 3)) {
+                const similarity = Math.round(item.similarity * 100);
+                comment += `- **[#${item.number}](${item.html_url})**: ${item.title} _(${similarity}% similar)_\n`;
+              }
+              if (closedIssues.length > 3) {
+                comment += `- _...and ${closedIssues.length - 3} more closed issue(s)_\n`;
+              }
+              comment += '\n';
             }
             
-            comment += '\n*This comment was automatically generated based on content similarity.*';
+            // Add helpful context
+            comment += '---\n';
+            comment += '_This helps identify duplicate issues and related discussions. ';
+            comment += 'Powered by semantic similarity analysis from [contributor.info](https://contributor.info)_';
             
-            // Post comment based on event type
+            // Post comment
             const issue_number = parseInt('${{ steps.determine.outputs.item_number }}');
-            if ('${{ github.event_name }}' === 'issues') {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue_number,
-                body: comment
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue_number,
-                body: comment
-              });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              body: comment
+            });
+      
+      - name: Comment on PR with similar items
+        if: >
+          success() && 
+          steps.results.outputs.found_similar == 'true' && 
+          steps.determine.outputs.item_number != '' &&
+          github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('similarity-results.json', 'utf8'));
+            
+            // Separate issues and PRs
+            const relatedIssues = results.similarItems.filter(item => item.type === 'issue');
+            const relatedPRs = results.similarItems.filter(item => item.type === 'pull_request');
+            
+            let comment = '## Related Items Found\n\n';
+            
+            // Add related issues section
+            if (relatedIssues.length > 0) {
+              comment += '### Related Issues\n\n';
+              comment += 'This PR might address or relate to the following issues:\n\n';
+              for (const item of relatedIssues.slice(0, 5)) {
+                const similarity = Math.round(item.similarity * 100);
+                comment += `- **[#${item.number}](${item.html_url})**: ${item.title} _(${similarity}% similar, ${item.state})_\n`;
+              }
+              comment += '\n';
             }
+            
+            // Add similar PRs section
+            if (relatedPRs.length > 0) {
+              comment += '### Similar Pull Requests\n\n';
+              for (const item of relatedPRs.slice(0, 3)) {
+                const similarity = Math.round(item.similarity * 100);
+                comment += `- **[#${item.number}](${item.html_url})**: ${item.title} _(${similarity}% similar, ${item.state})_\n`;
+              }
+              comment += '\n';
+            }
+            
+            comment += '---\n';
+            comment += '_This helps prevent duplicate work and identify related changes. ';
+            comment += 'Powered by [contributor.info](https://contributor.info)_';
+            
+            // Post comment
+            const issue_number = parseInt('${{ steps.determine.outputs.item_number }}');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              body: comment
+            });
       
       - name: Upload similarity results
         if: always()
