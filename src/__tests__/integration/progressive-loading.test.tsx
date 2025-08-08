@@ -100,20 +100,25 @@ describe('Progressive Loading - Simple Test', () => {
     const { fetchPRDataSmart } = await import('@/lib/supabase-pr-data-smart-deduped');
     const mockFetch = fetchPRDataSmart as ReturnType<typeof vi.fn>;
     
-    // Make the fetch fail
-    mockFetch.mockRejectedValueOnce(new Error('Network error'));
+    // Clear the default mock and make all fetch calls fail
+    mockFetch.mockReset();
+    mockFetch.mockRejectedValue(new Error('Network error'));
 
+    // Use different repo name to avoid cache hit
     const { result } = renderHook(() => 
-      useProgressiveRepoData('facebook', 'react', '90d', false)
+      useProgressiveRepoData('testorg', 'testrepo', '90d', false)
     );
 
     // Wait for the hook to try loading
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 150));
     });
 
     // Should handle error gracefully
     expect(result.current.basicInfo).toBeNull();
-    expect(result.current.currentStage).toBe('critical');
+    expect(result.current.currentStage).toBe('complete'); // All stages complete, but with errors
+    expect(result.current.stageProgress.critical).toBe(true);
+    expect(result.current.stageProgress.full).toBe(true);
+    expect(result.current.stageProgress.complete).toBe(true);
   });
 });

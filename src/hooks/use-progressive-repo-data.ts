@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-commits';
 import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart-deduped';
 import { calculateLotteryFactor } from '@/lib/utils';
@@ -80,194 +80,6 @@ export function useProgressiveRepoData(
   const fetchingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Update stage progress
-  const updateStage = useCallback((stage: LoadingStage, updates: Partial<ProgressiveDataState>) => {
-    setData(prev => ({
-      ...prev,
-      ...updates,
-      currentStage: stage,
-      stageProgress: {
-        ...prev.stageProgress,
-        [stage]: true,
-      },
-    }));
-  }, []);
-
-  // Stage 1: Load critical data (< 500ms target)
-  const loadCriticalData = useCallback(async (owner: string, repo: string) => {
-    return startSpan(
-      { name: 'progressive-load-critical' },
-      async (span) => {
-        try {
-          // Check cache first
-          const cacheKey = `${owner}/${repo}/${timeRange}/${includeBots}`;
-          const cached = progressiveCache[cacheKey];
-          
-          if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-            updateStage('critical', cached.data);
-            return cached.data.basicInfo;
-          }
-
-          // Fetch minimal data for above-the-fold content with retry
-          const result = await withRetry(
-            () => fetchPRDataSmart(owner, repo, { timeRange }),
-            {
-              maxRetries: 2,
-              initialDelay: 500
-            },
-            `critical-data-${owner}-${repo}`
-          );
-
-          if (!result.data) {
-            throw new Error(result.message || 'Failed to fetch data');
-          }
-          
-          const pullRequests = result.data;
-
-          const contributors = new Map<string, { login: string; avatar_url: string; contributions: number }>();
-          
-          pullRequests?.forEach(pr => {
-            const author = pr.user?.login;
-            if (author) {
-              const existing = contributors.get(author) || {
-                login: author,
-                avatar_url: pr.user.avatar_url || '',
-                contributions: 0,
-              };
-              existing.contributions++;
-              contributors.set(author, existing);
-            }
-          });
-
-          const topContributors = Array.from(contributors.values())
-            .sort((a, b) => b.contributions - a.contributions)
-            .slice(0, 5);
-
-          const basicInfo = {
-            prCount: pullRequests?.length || 0,
-            contributorCount: contributors.size,
-            topContributors,
-          };
-
-          updateStage('critical', { basicInfo });
-          
-          return basicInfo;
-        } catch (error) {
-          span?.setStatus('error');
-          console.error('Failed to load critical data:', error);
-          return null;
-        }
-      }
-    );
-  }, [timeRange, includeBots, updateStage]);
-
-  // Stage 2: Load full PR data (< 2s target)
-  const loadFullData = useCallback(async (owner: string, repo: string) => {
-    return startSpan(
-      { name: 'progressive-load-full' },
-      async (span) => {
-        try {
-          // Fetch complete PR data with retry
-          const result = await withRetry(
-            () => fetchPRDataSmart(owner, repo, { timeRange }),
-            {
-              maxRetries: 3,
-              initialDelay: 1000
-            },
-            `full-data-${owner}-${repo}`
-          );
-
-          if (!result.data) {
-            updateStage('full', {
-              stats: {
-                pullRequests: [],
-                loading: false,
-                error: result.message || 'Failed to fetch data',
-              },
-              dataStatus: { status: 'no_data', message: result.message },
-            });
-            span?.setStatus('error');
-            return;
-          }
-          
-          const pullRequests = result.data;
-          const { status, message } = result;
-
-          const stats: RepoStats = {
-            pullRequests: pullRequests || [],
-            loading: false,
-            error: null,
-          };
-
-          // Calculate lottery factor if we have data
-          const lotteryFactor = pullRequests && pullRequests.length > 0
-            ? calculateLotteryFactor(pullRequests)
-            : null;
-
-          updateStage('full', {
-            stats,
-            lotteryFactor,
-            dataStatus: { 
-              status: (status === 'error' ? 'no_data' : status) || 'success', 
-              message,
-              metadata: { prCount: pullRequests?.length || 0 }
-            },
-          });
-          
-          // Cache the results
-          const cacheKey = `${owner}/${repo}/${timeRange}/${includeBots}`;
-          progressiveCache[cacheKey] = {
-            data: { ...data, stats, lotteryFactor },
-            timestamp: Date.now(),
-          };
-          
-          return { stats, lotteryFactor };
-        } catch (error) {
-          span?.setStatus('error');
-          console.error('Failed to load full data:', error);
-          return null;
-        }
-      }
-    );
-  }, [timeRange, includeBots, data, updateStage]);
-
-  // Stage 3: Load enhancement data (background)
-  const loadEnhancementData = useCallback(async (owner: string, repo: string) => {
-    return startSpan(
-      { name: 'progressive-load-enhancement' },
-      async (span) => {
-        try {
-          // Load direct commits data with retry
-          const directCommitsData = await withRetry(
-            () => fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
-            {
-              maxRetries: 2,
-              initialDelay: 1500
-            },
-            `enhancement-data-${owner}-${repo}`
-          );
-
-          // In the future, load historical trends here
-          const historicalTrends = null;
-
-          updateStage('enhancement', {
-            directCommitsData,
-            historicalTrends,
-          });
-          
-          // Mark as complete
-          updateStage('complete', {});
-          
-          return { directCommitsData, historicalTrends };
-        } catch (error) {
-          span?.setStatus('error');
-          console.error('Failed to load enhancement data:', error);
-          return null;
-        }
-      }
-    );
-  }, [timeRange, includeBots, updateStage]);
-
   // Main effect to orchestrate progressive loading
   useEffect(() => {
     if (!owner || !repo || fetchingRef.current) return;
@@ -280,6 +92,213 @@ export function useProgressiveRepoData(
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     fetchingRef.current = true;
+
+    // Update stage progress (inline function to avoid dependency issues)
+    const updateStage = (stage: LoadingStage, updates: Partial<ProgressiveDataState>) => {
+      setData(prev => ({
+        ...prev,
+        ...updates,
+        currentStage: stage,
+        stageProgress: {
+          ...prev.stageProgress,
+          [stage]: true,
+        },
+      }));
+    };
+
+    // Stage 1: Load critical data (< 500ms target) - inline function
+    const loadCriticalData = async (owner: string, repo: string) => {
+      return startSpan(
+        { name: 'progressive-load-critical' },
+        async (span) => {
+          try {
+            // Check cache first
+            const cacheKey = `${owner}/${repo}/${timeRange}/${includeBots}`;
+            const cached = progressiveCache[cacheKey];
+            
+            if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+              updateStage('critical', cached.data);
+              return cached.data.basicInfo;
+            }
+
+            // Fetch minimal data for above-the-fold content with retry
+            const result = await withRetry(
+              () => fetchPRDataSmart(owner, repo, { timeRange }),
+              {
+                maxRetries: 2,
+                initialDelay: 500
+              },
+              `critical-data-${owner}-${repo}`
+            );
+
+            if (!result.data) {
+              throw new Error(result.message || 'Failed to fetch data');
+            }
+            
+            const pullRequests = result.data;
+
+            const contributors = new Map<string, { login: string; avatar_url: string; contributions: number }>();
+            
+            pullRequests?.forEach(pr => {
+              const author = pr.user?.login;
+              if (author) {
+                const existing = contributors.get(author) || {
+                  login: author,
+                  avatar_url: pr.user.avatar_url || '',
+                  contributions: 0,
+                };
+                existing.contributions++;
+                contributors.set(author, existing);
+              }
+            });
+
+            const topContributors = Array.from(contributors.values())
+              .sort((a, b) => b.contributions - a.contributions)
+              .slice(0, 5);
+
+            const basicInfo = {
+              prCount: pullRequests?.length || 0,
+              contributorCount: contributors.size,
+              topContributors,
+            };
+
+            updateStage('critical', { basicInfo });
+            
+            return basicInfo;
+          } catch (error) {
+            span?.setStatus('error');
+            console.error('Failed to load critical data:', error);
+            updateStage('critical', { basicInfo: null });
+            return null;
+          }
+        }
+      );
+    };
+
+    // Stage 2: Load full PR data (< 2s target) - inline function
+    const loadFullData = async (owner: string, repo: string) => {
+      return startSpan(
+        { name: 'progressive-load-full' },
+        async (span) => {
+          try {
+            // Fetch complete PR data with retry
+            const result = await withRetry(
+              () => fetchPRDataSmart(owner, repo, { timeRange }),
+              {
+                maxRetries: 3,
+                initialDelay: 1000
+              },
+              `full-data-${owner}-${repo}`
+            );
+
+            if (!result.data) {
+              updateStage('full', {
+                stats: {
+                  pullRequests: [],
+                  loading: false,
+                  error: result.message || 'Failed to fetch data',
+                },
+                dataStatus: { status: 'no_data', message: result.message },
+              });
+              span?.setStatus('error');
+              return;
+            }
+            
+            const pullRequests = result.data;
+            const { status, message } = result;
+
+            const stats: RepoStats = {
+              pullRequests: pullRequests || [],
+              loading: false,
+              error: null,
+            };
+
+            // Calculate lottery factor if we have data
+            const lotteryFactor = pullRequests && pullRequests.length > 0
+              ? calculateLotteryFactor(pullRequests)
+              : null;
+
+            updateStage('full', {
+              stats,
+              lotteryFactor,
+              dataStatus: { 
+                status: (status === 'error' ? 'no_data' : status) || 'success', 
+                message,
+                metadata: { prCount: pullRequests?.length || 0 }
+              },
+            });
+            
+            // Cache the results - capture current data state
+            setData(currentData => {
+              const cacheKey = `${owner}/${repo}/${timeRange}/${includeBots}`;
+              progressiveCache[cacheKey] = {
+                data: { ...currentData, stats, lotteryFactor },
+                timestamp: Date.now(),
+              };
+              return currentData;
+            });
+            
+            return { stats, lotteryFactor };
+          } catch (error) {
+            span?.setStatus('error');
+            console.error('Failed to load full data:', error);
+            updateStage('full', {
+              stats: {
+                pullRequests: [],
+                loading: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              },
+              lotteryFactor: null,
+              dataStatus: { status: 'no_data', message: error instanceof Error ? error.message : 'Unknown error' },
+            });
+            return null;
+          }
+        }
+      );
+    };
+
+    // Stage 3: Load enhancement data (background) - inline function
+    const loadEnhancementData = async (owner: string, repo: string) => {
+      return startSpan(
+        { name: 'progressive-load-enhancement' },
+        async (span) => {
+          try {
+            // Load direct commits data with retry
+            const directCommitsData = await withRetry(
+              () => fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
+              {
+                maxRetries: 2,
+                initialDelay: 1500
+              },
+              `enhancement-data-${owner}-${repo}`
+            );
+
+            // In the future, load historical trends here
+            const historicalTrends = null;
+
+            updateStage('enhancement', {
+              directCommitsData,
+              historicalTrends,
+            });
+            
+            // Mark as complete
+            updateStage('complete', {});
+            
+            return { directCommitsData, historicalTrends };
+          } catch (error) {
+            span?.setStatus('error');
+            console.error('Failed to load enhancement data:', error);
+            updateStage('enhancement', {
+              directCommitsData: null,
+              historicalTrends: null,
+            });
+            // Still mark as complete even with errors
+            updateStage('complete', {});
+            return null;
+          }
+        }
+      );
+    };
 
     const loadProgressively = async () => {
       try {
@@ -330,7 +349,7 @@ export function useProgressiveRepoData(
         abortControllerRef.current.abort();
       }
     };
-  }, [owner, repo, timeRange, includeBots, loadCriticalData, loadFullData, loadEnhancementData]);
+  }, [owner, repo, timeRange, includeBots]);
 
   return data;
 }
