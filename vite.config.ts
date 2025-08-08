@@ -75,7 +75,9 @@ export default defineConfig({
       '@storybook/react',
       'vitest',
       '@testing-library/react',
-      '@testing-library/jest-dom'
+      '@testing-library/jest-dom',
+      '@xenova/transformers', // Exclude embeddings library
+      'onnxruntime-web' // Exclude ONNX runtime
     ],
     force: true, // Force re-optimization for performance
   },
@@ -88,10 +90,16 @@ export default defineConfig({
       strictRequires: 'auto'
     },
     rollupOptions: {
-      // Workaround for Rollup 4.45.0 bug with nested conditional expressions
-      // This is a known issue: https://github.com/rollup/rollup/issues/5747
-      // TODO: Re-enable when Rollup is fixed or all ternaries are refactored
-      treeshake: false,
+      // Tree shaking with conservative settings to avoid Rollup bug
+      // Many nested ternaries have been refactored to helper functions
+      // See src/lib/utils/performance-helpers.ts for the helper functions
+      treeshake: {
+        moduleSideEffects: true,
+        propertyReadSideEffects: true, // More conservative
+        tryCatchDeoptimization: false, // Avoid aggressive optimization
+        unknownGlobalSideEffects: true, // More conservative
+        correctVarValueBeforeDeclaration: false, // Avoid problematic optimization
+      },
       // Remove the external configuration as it's causing build issues
       output: {
         // Ensure proper module format
@@ -110,38 +118,40 @@ export default defineConfig({
         hoistTransitiveImports: false,
         // Balanced chunking strategy from production postmortem (2025-06-22)
         // This approach maintains reliability while optimizing performance
-        manualChunks: {
-          // Critical React core - bundle together to prevent initialization issues
-          'react-core': ['react', 'react-dom', '@radix-ui/react-slot'],
+        manualChunks: (id) => {
+          // Prevent embeddings from being bundled
+          if (id.includes('@xenova/transformers') || id.includes('onnxruntime-web')) {
+            return 'embeddings-excluded';
+          }
           
-          // React ecosystem - can load after core is initialized  
-          'react-ecosystem': ['react-router-dom', 'class-variance-authority', 'clsx', 'tailwind-merge'],
+          // Critical React core - bundle together to prevent initialization issues
+          if (id.includes('react-dom')) return 'react-core';
+          if (id.includes('react') && !id.includes('react-router') && !id.includes('@radix-ui')) return 'react-core';
+          if (id.includes('@radix-ui/react-slot')) return 'react-core';
+          
+          // React ecosystem - can load after core is initialized
+          if (id.includes('react-router-dom')) return 'react-ecosystem';
+          if (id.includes('class-variance-authority')) return 'react-ecosystem';
+          if (id.includes('clsx')) return 'react-ecosystem';
+          if (id.includes('tailwind-merge')) return 'react-ecosystem';
           
           // Heavy chart libraries - lazy loaded, separate for better caching
-          'charts-nivo': ['@nivo/scatterplot'],
-          'charts-recharts': ['recharts'],
+          if (id.includes('@nivo')) return 'charts-nivo';
+          if (id.includes('recharts')) return 'charts-recharts';
           
           // UI component library - used throughout app (group all Radix UI)
-          'ui-radix': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-avatar',
-            '@radix-ui/react-tooltip',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-select',
-            '@radix-ui/react-checkbox',
-            '@radix-ui/react-switch',
-            '@radix-ui/react-tabs'
-          ],
+          if (id.includes('@radix-ui')) return 'ui-radix';
           
           // Icons - separate for optimal tree-shaking
-          'icons': ['lucide-react'],
+          if (id.includes('lucide-react')) return 'icons';
           
           // Utilities - frequently used, good for caching
-          'utils': ['date-fns', 'zod'],
+          if (id.includes('date-fns')) return 'utils';
+          if (id.includes('zod')) return 'utils';
           
           // State management and data
-          'data': ['zustand', '@supabase/supabase-js']
+          if (id.includes('zustand')) return 'data';
+          if (id.includes('@supabase/supabase-js')) return 'data';
         },
       },
     },

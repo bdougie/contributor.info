@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { getTimeSensitivityFactor, getBatchSizeFactor, getPriorityFactor } from '../utils/performance-helpers';
 
 export interface RoutingDecision {
   processor: 'inngest' | 'github_actions';
@@ -101,10 +102,10 @@ export class EnhancedHybridRouter {
     const maxItems = job.max_items || job.maxItems || 100;
     
     // Time sensitivity (recent = Inngest)
-    const timeSensitivity = timeRange <= 1 ? 0.9 : (timeRange <= 7 ? 0.5 : 0.1);
+    const timeSensitivity = getTimeSensitivityFactor(timeRange);
     
     // Batch size (small = Inngest, large = GitHub Actions)
-    const batchSizeFactor = maxItems <= 50 ? 0.8 : (maxItems <= 200 ? 0.5 : 0.2);
+    const batchSizeFactor = getBatchSizeFactor(maxItems);
     
     // Repository size (large repos = GitHub Actions)
     const repoSizeFactor = repository.pull_request_count > this.LARGE_REPO_THRESHOLD ? 0.2 : 0.7;
@@ -118,7 +119,7 @@ export class EnhancedHybridRouter {
     
     // Priority
     const priority = job.priority || 'medium';
-    const priorityFactor = priority === 'high' ? 0.7 : (priority === 'low' ? 0.3 : 0.5);
+    const priorityFactor = getPriorityFactor(priority);
     
     return {
       timeSensitivity,

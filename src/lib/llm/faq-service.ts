@@ -358,11 +358,20 @@ Answer:`;
 
   /**
    * Generate embeddings for FAQ questions to enable semantic search
+   * NOTE: This should only be called server-side (edge functions)
    */
   async generateQuestionEmbeddings(questions: FAQQuestion[]): Promise<FAQQuestion[]> {
+    // Skip embeddings generation on client-side
+    if (typeof window !== 'undefined') {
+      console.log('Embeddings generation skipped on client-side');
+      return questions;
+    }
+    
     try {
       // Dynamically import to avoid bundling heavy dependencies
-      const { generateEmbedding } = await import('../../../app/services/embeddings');
+      // Use a variable to prevent Vite from statically analyzing the import
+      const embeddingsPath = '../../../app/services/embeddings';
+      const { generateEmbedding } = await import(/* @vite-ignore */ embeddingsPath);
       
       const questionsWithEmbeddings: FAQQuestion[] = [];
 
@@ -383,15 +392,29 @@ Answer:`;
 
   /**
    * Find similar questions using embeddings
+   * NOTE: This should only be called server-side (edge functions)
    */
   async findSimilarQuestions(
     userQuestion: string,
     questions: FAQQuestion[],
     threshold: number = 0.7
   ): Promise<FAQQuestion[]> {
+    // Skip embeddings-based search on client-side
+    if (typeof window !== 'undefined') {
+      console.log('Embeddings-based search skipped on client-side');
+      // Return basic keyword-based matches instead
+      const lowerQuestion = userQuestion.toLowerCase();
+      return questions.filter(q => 
+        q.question.toLowerCase().includes(lowerQuestion) ||
+        q.context.toLowerCase().includes(lowerQuestion)
+      ).slice(0, 3);
+    }
+    
     try {
       // Dynamically import to avoid bundling heavy dependencies
-      const { generateEmbedding } = await import('../../../app/services/embeddings');
+      // Use a variable to prevent Vite from statically analyzing the import
+      const embeddingsPath = '../../../app/services/embeddings';
+      const { generateEmbedding } = await import(/* @vite-ignore */ embeddingsPath);
       const userEmbedding = await generateEmbedding(userQuestion);
       
       const similarities = questions
