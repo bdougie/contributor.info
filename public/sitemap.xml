@@ -503,19 +503,19 @@
     <loc>https://contributor.info/pytorch/pytorch</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
-    <lastmod>2025-08-07</lastmod>
+    <lastmod>2025-08-08</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/pytorch/pytorch/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-08-07</lastmod>
+    <lastmod>2025-08-08</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/pytorch/pytorch/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-08-07</lastmod>
+    <lastmod>2025-08-08</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/lodash/lodash</loc>
