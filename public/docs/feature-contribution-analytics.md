@@ -7,6 +7,9 @@ Contribution Analytics goes beyond simple commit counts to analyze the character
 ## Quadrant Classification System  
 
 ### The Four Contribution Quadrants
+![Contribution quadrant visualization](/docs/images/features/contribution-analytics/quadrant-scatter-plot.png)
+*Contributors mapped by impact and effort metrics*
+
 Every contribution is automatically classified into one of four categories based on impact and effort analysis:
 
 - **🟢 High Impact, High Effort**: Major features, significant refactoring, and architectural changes
@@ -39,6 +42,9 @@ The analytics display contributions as interactive scatter plots where position 
 Each contributor's work patterns become visible through their distribution across quadrants, revealing specializations and work preferences.
 
 ### Time Series Analysis
+![Time range selector](/docs/images/features/contribution-analytics/time-range-selector.png)
+*Analyze contributions across different time periods*
+
 Track how contribution patterns evolve over time, identifying shifts in project focus and contributor development.
 
 ## Insights and Patterns

@@ -46,6 +46,9 @@ Repository health is evaluated through multiple dimensions:
 - Quality gate effectiveness
 
 ## Visual Indicators
+![Repository health summary](/docs/images/insights/repository-health/summary-dashboard.png)
+*Comprehensive health metrics dashboard*
+
 
 Health status is displayed through:
 - **Color-coded scores**: Green (healthy), Yellow (attention needed), Red (critical)

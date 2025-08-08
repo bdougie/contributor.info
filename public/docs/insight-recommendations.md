@@ -51,6 +51,9 @@ Each recommendation card shows:
 - Direct links to relevant resources
 
 ## AI Integration
+![AI-powered recommendations](/docs/images/insights/recommendations/ai-suggestions.png)
+*Smart suggestions for repository improvement*
+
 
 AI-powered recommendations include:
 - Confidence ratings (High/Medium/Low)

@@ -7,6 +7,9 @@ Time range analysis transforms static metrics into dynamic insights by enabling 
 ## Available Time Ranges
 
 ### 30-Day Analysis (Recent Focus)
+![30-day analysis view](/docs/images/features/time-range-analysis/30-day-view.png)
+*Recent activity and current patterns*
+
 Ideal for understanding current project state and immediate trends:
 
 - **Current team dynamics**: Active contributors and their recent patterns
@@ -23,6 +26,9 @@ Perfect for understanding broader patterns and quarterly planning:
 - **Medium-term planning data**: Information for upcoming sprint and quarter planning
 
 ### 90-Day Analysis (Strategic Perspective)
+![90-day analysis view](/docs/images/features/time-range-analysis/90-day-view.png)
+*Long-term trends and evolution*
+
 Essential for long-term planning and strategic decision-making:
 
 - **Long-term trend analysis**: Understanding project evolution and maturity

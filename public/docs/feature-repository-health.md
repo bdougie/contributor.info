@@ -25,6 +25,9 @@ Metrics that reveal how effectively the development process operates:
 ## Visual Health Indicators
 
 ### Color-Coded Status System
+![Health status indicators](/docs/images/features/repository-health/health-indicators.png)
+*Visual indicators for repository health metrics*
+
 The dashboard uses intuitive color coding to quickly communicate health status:
 
 - **🟢 Green (Healthy)**: Metrics within optimal ranges indicating strong project health

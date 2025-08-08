@@ -7,9 +7,15 @@ Social cards transform complex contributor data into visually appealing graphics
 ## Card Types
 
 ### Home Page Cards
+![Homepage social card](/docs/images/features/social-cards/home-card.png)
+*Social preview for the contributor.info homepage*
+
 General platform cards highlighting the contributor.info service and its capabilities, perfect for introducing the tool and its benefits to new users.
 
 ### Repository-Specific Cards
+![Repository social card](/docs/images/features/social-cards/repository-card.png)
+*Dynamic social cards for each repository*
+
 Customized cards for individual repositories featuring:
 
 - **Repository name and description**: Clear project identification

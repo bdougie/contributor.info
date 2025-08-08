@@ -23,6 +23,9 @@ This feature tracks pull request lifecycle metrics to help you understand:
   - ⚪ **Stable**: Consistent workflow performance
 
 ### Color-Coded Performance
+![PR activity metrics](/docs/images/insights/pr-activity/metrics-dashboard.png)
+*Key pull request metrics at a glance*
+
 - **🟢 Green (≤24 hours)**: Excellent responsiveness
 - **🟡 Yellow (24-72 hours)**: Good performance
 - **🔴 Red (>72 hours)**: Needs attention
@@ -35,6 +38,9 @@ This feature tracks pull request lifecycle metrics to help you understand:
 - **Percentage Change**: Quantified improvement or decline
 
 ### Velocity Insights
+![Weekly velocity comparison](/docs/images/insights/pr-activity/weekly-velocity.png)
+*Compare current week to previous week*
+
 - **Increasing Velocity**: Team is accelerating development
 - **Stable Velocity**: Consistent team performance
 - **Decreasing Velocity**: May indicate bottlenecks or capacity issues

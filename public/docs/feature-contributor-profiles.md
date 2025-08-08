@@ -15,6 +15,9 @@ Profiles display core contributor information:
 - **Contact information**: Links to GitHub profile and public contact methods
 
 ### Contribution Statistics
+![Contributor statistics](/docs/images/features/contributor-profiles/profile-stats.png)
+*Detailed contribution metrics and patterns*
+
 Detailed metrics showcase contributor impact:
 
 - **Pull Request metrics**: Total PRs, merge success rate, and average PR size
@@ -43,6 +46,9 @@ Understanding how contributors engage with the project:
 ## Interactive Profile Features
 
 ### Hover Cards
+![Contributor hover card](/docs/images/features/contributor-profiles/hover-card.png)
+*Quick contributor information on hover*
+
 Quick profile previews appear when hovering over contributor names throughout the application, providing immediate context without navigation.
 
 ### Detailed Profile Views
