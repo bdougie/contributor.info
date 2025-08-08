@@ -3,8 +3,9 @@
  * No mocks - testing pure rendering and navigation logic
  */
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import Home from '../home';
 
 // Mock the navigation hook with a test implementation
@@ -55,9 +56,11 @@ vi.mock('@/components/ui/github-search-input', () => ({
 
 function renderWithRouter(component: JSX.Element) {
   return render(
-    <BrowserRouter>
-      {component}
-    </BrowserRouter>
+    <HelmetProvider>
+      <BrowserRouter>
+        {component}
+      </BrowserRouter>
+    </HelmetProvider>
   );
 }
 

@@ -59,9 +59,11 @@ describe('NavigationMenu Components', () => {
   describe('NavigationMenuList', () => {
     it('renders with correct classes', () => {
       render(
-        <NavigationMenuList data-testid="nav-list">
-          <div>List content</div>
-        </NavigationMenuList>
+        <NavigationMenu>
+          <NavigationMenuList data-testid="nav-list">
+            <div>List content</div>
+          </NavigationMenuList>
+        </NavigationMenu>
       );
       
       const navList = screen.getByTestId('nav-list');
@@ -70,9 +72,11 @@ describe('NavigationMenu Components', () => {
 
     it('applies custom className', () => {
       render(
-        <NavigationMenuList className="custom-list-class" data-testid="nav-list">
-          <div>Content</div>
-        </NavigationMenuList>
+        <NavigationMenu>
+          <NavigationMenuList className="custom-list-class" data-testid="nav-list">
+            <div>Content</div>
+          </NavigationMenuList>
+        </NavigationMenu>
       );
       
       const navList = screen.getByTestId('nav-list');
@@ -83,9 +87,15 @@ describe('NavigationMenu Components', () => {
   describe('NavigationMenuTrigger', () => {
     it('renders with trigger styles and chevron icon', () => {
       render(
-        <NavigationMenuTrigger data-testid="nav-trigger">
-          Trigger Text
-        </NavigationMenuTrigger>
+        <NavigationMenu>
+          <NavigationMenuList>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger data-testid="nav-trigger">
+                Trigger Text
+              </NavigationMenuTrigger>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
       );
       
       const trigger = screen.getByTestId('nav-trigger');
@@ -99,9 +109,15 @@ describe('NavigationMenu Components', () => {
 
     it('applies custom className to trigger', () => {
       render(
-        <NavigationMenuTrigger className="custom-trigger-class" data-testid="nav-trigger">
-          Content
-        </NavigationMenuTrigger>
+        <NavigationMenu>
+          <NavigationMenuList>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger className="custom-trigger-class" data-testid="nav-trigger">
+                Content
+              </NavigationMenuTrigger>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
       );
       
       const trigger = screen.getByTestId('nav-trigger');
@@ -112,9 +128,15 @@ describe('NavigationMenu Components', () => {
   describe('NavigationMenuContent', () => {
     it('renders with correct animation classes', () => {
       render(
-        <NavigationMenuContent data-testid="nav-content">
-          <div>Content</div>
-        </NavigationMenuContent>
+        <NavigationMenu>
+          <NavigationMenuList>
+            <NavigationMenuItem>
+              <NavigationMenuContent data-testid="nav-content">
+                <div>Content</div>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
       );
       
       const content = screen.getByTestId('nav-content');
@@ -126,7 +148,11 @@ describe('NavigationMenu Components', () => {
   describe('NavigationMenuIndicator', () => {
     it('renders with correct indicator styles', () => {
       render(
-        <NavigationMenuIndicator data-testid="nav-indicator" />
+        <NavigationMenu>
+          <NavigationMenuList>
+            <NavigationMenuIndicator data-testid="nav-indicator" />
+          </NavigationMenuList>
+        </NavigationMenu>
       );
       
       const indicator = screen.getByTestId('nav-indicator');

@@ -34,7 +34,8 @@ vi.mock('../theming', () => ({
   ModeToggle: () => <button data-testid="mode-toggle">Theme Toggle</button>,
 }));
 
-vi.mock('../../features/auth', () => ({
+// Mock the AuthButton component with a simple implementation
+vi.mock('@/components/features/auth/auth-button', () => ({
   AuthButton: () => <button data-testid="auth-button">Auth Button</button>,
 }));
 
