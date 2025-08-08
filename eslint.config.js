@@ -29,5 +29,7 @@ export default tseslint.config({ ignores: ['dist'] }, {
     'no-nested-ternary': 'error',
     // Allow single ternaries but encourage helper functions for complex conditions
     'multiline-ternary': ['warn', 'always-multiline'],
+    // Prevent usage of 'any' type - enforce proper TypeScript typing
+    '@typescript-eslint/no-explicit-any': 'error',
   },
 }, storybook.configs["flat/recommended"]);
