@@ -4,7 +4,7 @@ import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
 import { analyzer } from 'vite-bundle-analyzer';
 
-export default defineConfig(({ command, mode }) => ({
+export default defineConfig(({ mode }) => ({
   base: '/',
   plugins: [
     react(),
