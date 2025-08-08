@@ -2,6 +2,7 @@ import { inngest } from '../client';
 import { supabase } from '../../supabase';
 import { GraphQLClient } from '../graphql-client';
 import type { NonRetriableError } from 'inngest';
+import { getMergeableStatus } from '../../utils/performance-helpers';
 
 // Type definitions for GitHub user data
 interface GitHubUser {
@@ -252,7 +253,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           closed_at: pullRequest.closedAt,
           merged_at: pullRequest.mergedAt,
           merged: pullRequest.merged || false,
-          mergeable: pullRequest.mergeable === 'MERGEABLE' ? true : pullRequest.mergeable === 'CONFLICTING' ? false : null,
+          mergeable: getMergeableStatus(pullRequest.mergeable),
           merged_by_id: mergedById,
           base_branch: pullRequest.baseRefName,
           head_branch: pullRequest.headRefName,

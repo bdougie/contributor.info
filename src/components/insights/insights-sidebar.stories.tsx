@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, within } from "@storybook/test";
+import { getVariantValue } from '@/lib/utils/performance-helpers';
 
 // Create a simple mock insights sidebar component for Storybook
 const MockInsightsSidebar = ({ variant = "default" }: { 
@@ -7,7 +8,7 @@ const MockInsightsSidebar = ({ variant = "default" }: {
 }) => {
   const isCollapsed = variant === "collapsed";
   const isMobile = variant === "mobile";
-  const criticalCount = variant === "high-activity" ? 8 : variant === "low-activity" ? 0 : 3;
+  const criticalCount = getVariantValue(variant, 0, 8, 3);
 
   if (isMobile) {
     return (
