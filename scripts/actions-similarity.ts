@@ -1,7 +1,14 @@
 #!/usr/bin/env tsx
 
 import { Octokit } from '@octokit/rest';
-import { generateIssueEmbedding, calculateContentHash, cosineSimilarity } from '../src/lib/ml-utils';
+import { generateIssueEmbedding } from '../app/services/issue-similarity';
+import { 
+  calculateContentHash,
+  findSimilarItemsByEmbedding,
+  findAllSimilarPairs,
+  withRateLimitHandling,
+  processBatch
+} from '../src/lib/similarity';
 import fs from 'fs';
 import path from 'path';
 
@@ -69,56 +76,7 @@ interface SimilarityResults {
   similarityPairs?: SimilarityPair[];
 }
 
-// Cosine similarity function is now imported from ml-utils
-
-/**
- * Sleep utility for exponential backoff
- */
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
- * Execute GitHub API call with rate limit handling and exponential backoff
- */
-async function withRateLimitHandling<T>(
-  apiCall: () => Promise<T>,
-  attempt: number = 1,
-  maxAttempts: number = 5
-): Promise<T> {
-  try {
-    return await apiCall();
-  } catch (error: unknown) {
-    const err = error as { status?: number; message?: string; response?: { headers?: { 'x-ratelimit-remaining'?: string; 'x-ratelimit-reset'?: string } } };
-    
-    // Check if it's a rate limit error
-    if (err.status === 403 || err.status === 429) {
-      if (attempt >= maxAttempts) {
-        throw new Error(`Rate limit exceeded after ${maxAttempts} attempts`);
-      }
-      
-      // Calculate backoff time
-      const backoffMs = Math.min(1000 * Math.pow(2, attempt), 30000); // Max 30 seconds
-      
-      // If we have rate limit headers, wait until reset time
-      const resetTime = err.response?.headers?.['x-ratelimit-reset'];
-      if (resetTime) {
-        const waitTime = Math.max(0, parseInt(resetTime) * 1000 - Date.now());
-        console.log(`Rate limit hit. Waiting ${Math.ceil(waitTime / 1000)} seconds until reset...`);
-        await sleep(waitTime + 1000); // Add 1 second buffer
-      } else {
-        console.log(`Rate limit hit. Waiting ${backoffMs / 1000} seconds (attempt ${attempt}/${maxAttempts})...`);
-        await sleep(backoffMs);
-      }
-      
-      // Retry the API call
-      return withRateLimitHandling(apiCall, attempt + 1, maxAttempts);
-    }
-    
-    // Re-throw non-rate-limit errors
-    throw error;
-  }
-}
+// Rate limit handling and other utilities are now imported from similarity module
 
 /**
  * Fetch issues and PRs from GitHub API with rate limit handling
@@ -197,25 +155,6 @@ async function fetchRepositoryItems(
   }
 }
 
-/**
- * Process items in batches with concurrency control
- */
-async function processBatch<T>(
-  items: T[],
-  processor: (item: T) => Promise<void>,
-  batchSize: number = 5
-): Promise<void> {
-  for (let i = 0; i < items.length; i += batchSize) {
-    const batch = items.slice(i, i + batchSize);
-    await Promise.all(batch.map(processor));
-    
-    // Progress indicator
-    const processed = Math.min(i + batchSize, items.length);
-    if (processed % 10 === 0 || processed === items.length) {
-      console.log(`Processed ${processed}/${items.length} items`);
-    }
-  }
-}
 
 /**
  * Generate embeddings for all items with parallel processing
@@ -235,7 +174,14 @@ async function generateEmbeddings(items: SimilarityItem[], concurrency: number =
     }
   };
   
-  await processBatch(items, processor, concurrency);
+  await processBatch(items, processor, {
+    batchSize: concurrency,
+    onProgress: (processed, total) => {
+      if (processed % 10 === 0 || processed === total) {
+        console.log(`Processed ${processed}/${total} items`);
+      }
+    }
+  });
   console.log('Embedding generation complete');
 }
 
@@ -252,36 +198,17 @@ function findSimilarItems(
     return [];
   }
 
-  const similarities: SimilarityResult[] = [];
+  const results = findSimilarItemsByEmbedding(targetItem.embedding, allItems, {
+    threshold,
+    limit,
+    excludeItem: (item) => item.number === targetItem.number && item.type === targetItem.type
+  });
 
-  for (const item of allItems) {
-    // Skip the target item itself
-    if (item.number === targetItem.number && item.type === targetItem.type) {
-      continue;
-    }
-
-    if (!item.embedding) {
-      continue;
-    }
-
-    try {
-      const similarity = cosineSimilarity(targetItem.embedding, item.embedding);
-      
-      if (similarity >= threshold) {
-        similarities.push({
-          item,
-          similarity,
-        });
-      }
-    } catch (error) {
-      console.error(`Error calculating similarity for ${item.type} #${item.number}:`, error);
-    }
-  }
-
-  // Sort by similarity descending and return top matches
-  return similarities
-    .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, limit);
+  // Convert to the expected format
+  return results.map(r => ({
+    item: r.item,
+    similarity: r.similarity
+  }));
 }
 
 /**
@@ -404,51 +331,11 @@ async function processSimilarityCheck(options: ProcessingOptions): Promise<void>
       // General analysis - find all high-similarity pairs
       console.log('Performing general similarity analysis...');
       
-      // Use a Map for O(1) duplicate checking and limit memory usage
-      const pairKey = (n1: number, t1: string, n2: number, t2: string) => {
-        // Ensure consistent ordering for the key
-        if (n1 < n2 || (n1 === n2 && t1 < t2)) {
-          return `${n1}-${t1}-${n2}-${t2}`;
-        }
-        return `${n2}-${t2}-${n1}-${t1}`;
-      };
-      
-      const processedPairs = new Set<string>();
-      const maxPairs = 100; // Limit memory usage
-      const topPairs: Array<{
-        item1: SimilarityItem;
-        item2: SimilarityItem;
-        similarity: number;
-      }> = [];
-
-      for (let i = 0; i < items.length; i++) {
-        const similar = findSimilarItems(items[i], items, similarityThreshold, 10);
-        
-        for (const result of similar) {
-          // Check for duplicates using O(1) Set lookup
-          const key = pairKey(items[i].number, items[i].type, result.item.number, result.item.type);
-          
-          if (!processedPairs.has(key)) {
-            processedPairs.add(key);
-            
-            // Add to topPairs, maintaining size limit
-            topPairs.push({
-              item1: items[i],
-              item2: result.item,
-              similarity: result.similarity,
-            });
-            
-            // Keep only the top N pairs to limit memory
-            if (topPairs.length > maxPairs) {
-              topPairs.sort((a, b) => b.similarity - a.similarity);
-              topPairs.length = maxPairs;
-            }
-          }
-        }
-      }
-
-      // Final sort
-      topPairs.sort((a, b) => b.similarity - a.similarity);
+      // Use the shared optimized function
+      const topPairs = findAllSimilarPairs(items, {
+        threshold: similarityThreshold,
+        maxPairs: 100
+      });
       
       results.similarityPairs = topPairs
         .sort((a, b) => b.similarity - a.similarity)
@@ -469,7 +356,7 @@ async function processSimilarityCheck(options: ProcessingOptions): Promise<void>
           similarity: pair.similarity,
         }));
 
-      console.log(`Found ${processedPairs.size} similarity pairs above threshold (showing top ${Math.min(20, topPairs.length)})`);
+      console.log(`Found ${topPairs.length} similarity pairs above threshold (showing top ${Math.min(20, topPairs.length)})`);
     }
 
     // Save results for GitHub Actions to use
@@ -513,30 +400,81 @@ function parseArgs(): ProcessingOptions {
     repo: '',
   };
 
-  for (let i = 0; i < args.length; i += 2) {
+  for (let i = 0; i < args.length; i++) {
     const key = args[i];
+    
+    // Check if this is a flag (starts with --)
+    if (!key.startsWith('--')) {
+      continue;
+    }
+    
+    // Check if there's a value after the flag
     const value = args[i + 1];
+    
+    // Validate that value exists and isn't another flag
+    if (!value || value.startsWith('--')) {
+      console.error(`Error: Missing value for flag ${key}`);
+      process.exit(1);
+    }
 
     switch (key) {
       case '--owner':
         options.owner = value;
+        i++; // Skip the value in next iteration
         break;
       case '--repo':
         options.repo = value;
+        i++; // Skip the value in next iteration
         break;
       case '--max-items':
-        options.maxItems = parseInt(value, 10);
+        const maxItems = parseInt(value, 10);
+        if (isNaN(maxItems) || maxItems <= 0) {
+          console.error(`Error: Invalid value for --max-items: ${value}`);
+          process.exit(1);
+        }
+        options.maxItems = maxItems;
+        i++; // Skip the value in next iteration
         break;
       case '--item-type':
+        if (value !== 'issues' && value !== 'pull_request') {
+          console.error(`Error: Invalid value for --item-type: ${value}. Must be 'issues' or 'pull_request'`);
+          process.exit(1);
+        }
         options.itemType = value as 'issues' | 'pull_request';
+        i++; // Skip the value in next iteration
         break;
       case '--item-number':
-        options.itemNumber = parseInt(value, 10);
+        const itemNumber = parseInt(value, 10);
+        if (isNaN(itemNumber) || itemNumber <= 0) {
+          console.error(`Error: Invalid value for --item-number: ${value}`);
+          process.exit(1);
+        }
+        options.itemNumber = itemNumber;
+        i++; // Skip the value in next iteration
         break;
       case '--similarity-threshold':
-        options.similarityThreshold = parseFloat(value);
+        const threshold = parseFloat(value);
+        if (isNaN(threshold) || threshold < 0 || threshold > 1) {
+          console.error(`Error: Invalid value for --similarity-threshold: ${value}. Must be between 0 and 1`);
+          process.exit(1);
+        }
+        options.similarityThreshold = threshold;
+        i++; // Skip the value in next iteration
         break;
+      default:
+        console.error(`Error: Unknown flag ${key}`);
+        process.exit(1);
     }
+  }
+  
+  // Validate required fields
+  if (!options.owner) {
+    console.error('Error: --owner is required');
+    process.exit(1);
+  }
+  if (!options.repo) {
+    console.error('Error: --repo is required');
+    process.exit(1);
   }
 
   return options;
