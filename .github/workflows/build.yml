@@ -35,7 +35,7 @@ jobs:
     - name: Run tests with local Supabase defaults
       run: |
         echo "Running tests with local Supabase defaults..."
-        npx vitest run --no-coverage --reporter=verbose
+        timeout 3m npx vitest run --no-coverage --reporter=verbose || exit 1
       env:
         NODE_ENV: test
         VITEST: true
