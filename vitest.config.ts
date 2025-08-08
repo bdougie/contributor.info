@@ -55,9 +55,7 @@ export default defineConfig({
       '**/dist/**',
       '**/coverage/**',
       // Tests that hang due to mock dependencies
-      'src/__tests__/auth-redirect.test.tsx',
       'src/__tests__/github-auth-hook.test.tsx',
-      'src/__tests__/login-functionality.test.tsx',
       'src/app/services/__tests__/issue-similarity.test.ts',
       'src/app/webhooks/__tests__/issue-comment.test.ts',
       'src/components/__tests__/login-required-for-search.test.tsx',
