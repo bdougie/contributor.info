@@ -127,8 +127,8 @@ export default defineConfig({
           // Critical React core AND Radix UI primitives - must be bundled together
           // Radix UI depends on React hooks and must load with React to prevent errors
           if (id.includes('react-dom')) return 'react-core';
-          if (id.includes('react') && !id.includes('react-router')) return 'react-core';
           if (id.includes('@radix-ui')) return 'react-core'; // Bundle Radix with React
+          if (id.includes('react') && !id.includes('react-router')) return 'react-core';
           
           // React ecosystem - can load after core is initialized
           if (id.includes('react-router-dom')) return 'react-ecosystem';
