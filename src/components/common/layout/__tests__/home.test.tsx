@@ -19,7 +19,9 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock child components to isolate testing
-vi.mock('../../features/repository', () => ({
+// Note: paths are relative to this test file, and must resolve to the same
+// module IDs Home imports ("../../features/repository" from home.tsx).
+vi.mock('../../../features/repository', () => ({
   ExampleRepos: ({ onSelect }: { onSelect: (repo: string) => void }) => (
     <button onClick={() => onSelect('test/repo')} data-testid="example-repos">
       Example Repos
@@ -27,7 +29,9 @@ vi.mock('../../features/repository', () => ({
   ),
 }));
 
-vi.mock('./meta-tags-provider', () => ({
+// Home imports "./meta-tags-provider"; from this test file the correct path
+// to the same module is one directory up.
+vi.mock('../meta-tags-provider', () => ({
   SocialMetaTags: () => <div data-testid="social-meta-tags" />,
 }));
 
