@@ -8,7 +8,7 @@ import {
   findAllSimilarPairs,
   withRateLimitHandling,
   processBatch
-} from '../src/lib/similarity';
+} from './similarity-utils';
 import fs from 'fs';
 import path from 'path';
 
