@@ -1,11 +1,12 @@
 // Enhanced Service Worker for contributor.info PWA
-// Version 2.1.0 - Fixed JS module MIME type issues
-const CACHE_VERSION = '2.1.0';
+// Version 2.2.0 - Added offline mode support
+const CACHE_VERSION = '2.2.0';
 const CACHE_NAME = `contributor-info-v${CACHE_VERSION}`;
 const STATIC_CACHE = `static-v${CACHE_VERSION}`;
 const API_CACHE = `api-v${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-v${CACHE_VERSION}`;
 const IMAGES_CACHE = `images-v${CACHE_VERSION}`;
+const DATA_CACHE = `data-v${CACHE_VERSION}`;
 
 // Static assets to cache on install
 const STATIC_ASSETS = [
@@ -39,7 +40,7 @@ const CACHE_CONFIG = {
 // Utility functions
 async function cleanupOldCaches() {
   const cacheNames = await caches.keys();
-  const currentCaches = [CACHE_NAME, STATIC_CACHE, API_CACHE, RUNTIME_CACHE, IMAGES_CACHE];
+  const currentCaches = [CACHE_NAME, STATIC_CACHE, API_CACHE, RUNTIME_CACHE, IMAGES_CACHE, DATA_CACHE];
   
   return Promise.all(
     cacheNames
@@ -122,9 +123,10 @@ async function handleRequest(request, url) {
       return await handleAPIRequest(request, API_CACHE, CACHE_CONFIG.API_MAX_AGE);
     }
 
-    // Supabase API - Network first with short cache
+    // Supabase API - Network first with aggressive caching for offline support
     if (url.hostname.includes('supabase.co')) {
-      return await handleAPIRequest(request, API_CACHE, CACHE_CONFIG.RUNTIME_MAX_AGE);
+      // Cache Supabase data for longer periods for offline functionality
+      return await handleSupabaseRequest(request, DATA_CACHE);
     }
 
     // Avatar images - Cache first with long-term storage
@@ -158,6 +160,61 @@ async function handleRequest(request, url) {
   } catch (error) {
     console.error('[SW] Error handling request:', error);
     return await handleOfflineFallback(request);
+  }
+}
+
+async function handleSupabaseRequest(request, cacheName) {
+  try {
+    // Try network first
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      // Cache successful responses
+      const cache = await caches.open(cacheName);
+      const responseClone = networkResponse.clone();
+      
+      // Add timestamp for freshness check
+      const headers = new Headers(responseClone.headers);
+      headers.set('sw-cached-date', new Date().toISOString());
+      
+      const modifiedResponse = new Response(await responseClone.blob(), {
+        status: responseClone.status,
+        statusText: responseClone.statusText,
+        headers
+      });
+      
+      await cache.put(request, modifiedResponse);
+      
+      // Limit cache size
+      await limitCacheSize(cacheName, CACHE_CONFIG.MAX_ENTRIES.API);
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    // Network failed, try cache
+    const cachedResponse = await caches.match(request);
+    
+    if (cachedResponse) {
+      console.log('[SW] Serving Supabase data from cache (offline):', request.url);
+      // Return cached data even if expired when offline
+      return cachedResponse;
+    }
+    
+    // If no cached version and it's critical data, return empty response
+    const url = new URL(request.url);
+    if (url.pathname.includes('/rest/v1/')) {
+      console.log('[SW] Returning empty data for offline Supabase request:', request.url);
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        statusText: 'OK (Offline)',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Offline-Response': 'true'
+        }
+      });
+    }
+    
+    throw error;
   }
 }
 
