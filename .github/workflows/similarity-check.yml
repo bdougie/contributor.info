@@ -1,0 +1,205 @@
+name: Similarity Check
+
+on:
+  issues:
+    types: [opened, edited]
+  pull_request:
+    types: [opened, edited]
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: 'Repository (owner/repo format)'
+        required: false
+        default: ''
+      item_number:
+        description: 'Issue or PR number to check'
+        required: false
+        default: ''
+      item_type:
+        description: 'Type of item'
+        required: false
+        default: 'issues'
+        type: choice
+        options:
+          - issues
+          - pull_request
+      max_items:
+        description: 'Maximum items to process'
+        required: false
+        default: '100'
+      similarity_threshold:
+        description: 'Similarity threshold (0.0-1.0)'
+        required: false
+        default: '0.85'
+
+jobs:
+  check-similarity:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Determine repository and item
+        id: determine
+        run: |
+          # For workflow_dispatch
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "${{ github.event.inputs.repository }}" ]; then
+              echo "owner=$(echo ${{ github.event.inputs.repository }} | cut -d'/' -f1)" >> $GITHUB_OUTPUT
+              echo "repo=$(echo ${{ github.event.inputs.repository }} | cut -d'/' -f2)" >> $GITHUB_OUTPUT
+            else
+              echo "owner=${{ github.repository_owner }}" >> $GITHUB_OUTPUT
+              echo "repo=${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
+            fi
+            echo "item_number=${{ github.event.inputs.item_number }}" >> $GITHUB_OUTPUT
+            echo "item_type=${{ github.event.inputs.item_type }}" >> $GITHUB_OUTPUT
+            echo "max_items=${{ github.event.inputs.max_items }}" >> $GITHUB_OUTPUT
+            echo "similarity_threshold=${{ github.event.inputs.similarity_threshold }}" >> $GITHUB_OUTPUT
+          # For issues
+          elif [ "${{ github.event_name }}" = "issues" ]; then
+            echo "owner=${{ github.repository_owner }}" >> $GITHUB_OUTPUT
+            echo "repo=${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
+            echo "item_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+            echo "item_type=issues" >> $GITHUB_OUTPUT
+            echo "max_items=100" >> $GITHUB_OUTPUT
+            echo "similarity_threshold=0.85" >> $GITHUB_OUTPUT
+          # For pull requests
+          else
+            echo "owner=${{ github.repository_owner }}" >> $GITHUB_OUTPUT
+            echo "repo=${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
+            echo "item_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            echo "item_type=pull_request" >> $GITHUB_OUTPUT
+            echo "max_items=100" >> $GITHUB_OUTPUT
+            echo "similarity_threshold=0.85" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Run similarity check
+        id: similarity
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Build command based on inputs
+          COMMAND="npx tsx scripts/actions-similarity.ts --owner ${{ steps.determine.outputs.owner }} --repo ${{ steps.determine.outputs.repo }}"
+          
+          # Add optional parameters
+          if [ -n "${{ steps.determine.outputs.item_number }}" ]; then
+            COMMAND="$COMMAND --item-type ${{ steps.determine.outputs.item_type }} --item-number ${{ steps.determine.outputs.item_number }}"
+          fi
+          
+          COMMAND="$COMMAND --max-items ${{ steps.determine.outputs.max_items }} --similarity-threshold ${{ steps.determine.outputs.similarity_threshold }}"
+          
+          echo "Running: $COMMAND"
+          $COMMAND
+      
+      - name: Read similarity results
+        id: results
+        if: success()
+        run: |
+          if [ -f similarity-results.json ]; then
+            # Extract key information from results
+            SIMILAR_COUNT=$(jq -r '.similarItems | length // 0' similarity-results.json)
+            echo "similar_count=$SIMILAR_COUNT" >> $GITHUB_OUTPUT
+            
+            # Create a summary for commenting
+            if [ "$SIMILAR_COUNT" -gt 0 ]; then
+              echo "found_similar=true" >> $GITHUB_OUTPUT
+            else
+              echo "found_similar=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "found_similar=false" >> $GITHUB_OUTPUT
+            echo "similar_count=0" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Comment on issue/PR with similar items
+        if: >
+          success() && 
+          steps.results.outputs.found_similar == 'true' && 
+          steps.determine.outputs.item_number != '' &&
+          (github.event_name == 'issues' || github.event_name == 'pull_request')
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('similarity-results.json', 'utf8'));
+            
+            let comment = '## 🔍 Similar Items Found\n\n';
+            comment += `Found ${results.similarItems.length} similar item(s) with >${Math.round(results.similarItems[0].similarity * 100)}% similarity:\n\n`;
+            
+            for (const item of results.similarItems.slice(0, 5)) {
+              const emoji = item.type === 'issue' ? '🔴' : '🟣';
+              const status = item.state === 'open' ? '🟢 Open' : '🔴 Closed';
+              comment += `- ${emoji} [#${item.number}: ${item.title}](${item.html_url}) - ${status} (${Math.round(item.similarity * 100)}% similar)\n`;
+            }
+            
+            if (results.similarItems.length > 5) {
+              comment += `\n...and ${results.similarItems.length - 5} more similar item(s).\n`;
+            }
+            
+            comment += '\n*This comment was automatically generated based on content similarity.*';
+            
+            // Post comment based on event type
+            const issue_number = parseInt('${{ steps.determine.outputs.item_number }}');
+            if ('${{ github.event_name }}' === 'issues') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue_number,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue_number,
+                body: comment
+              });
+            }
+      
+      - name: Upload similarity results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: similarity-results
+          path: similarity-results.json
+          retention-days: 30
+      
+      - name: Create job summary
+        if: always()
+        run: |
+          echo "## Similarity Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f similarity-results.json ]; then
+            echo "- **Repository**: $(jq -r '.repository' similarity-results.json)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Items Processed**: $(jq -r '.processedItems' similarity-results.json)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Timestamp**: $(jq -r '.timestamp' similarity-results.json)" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "${{ steps.results.outputs.found_similar }}" = "true" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### 🎯 Similar Items Found: ${{ steps.results.outputs.similar_count }}" >> $GITHUB_STEP_SUMMARY
+              
+              # Add top 3 similar items to summary
+              jq -r '.similarItems[:3] | .[] | "- [\(.type) #\(.number)]: \(.title) (\(.similarity * 100 | round)% similar)"' similarity-results.json >> $GITHUB_STEP_SUMMARY
+            else
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### ✅ No similar items found above threshold" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⚠️ No results file generated" >> $GITHUB_STEP_SUMMARY
+          fi

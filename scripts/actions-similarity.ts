@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import { Octokit } from '@octokit/rest';
-import { generateIssueEmbedding, calculateContentHash } from '../app/services/issue-similarity';
+import { generateIssueEmbedding, calculateContentHash, cosineSimilarity } from '../src/lib/ml-utils';
 import fs from 'fs';
 import path from 'path';
 
@@ -31,36 +31,97 @@ interface ProcessingOptions {
   similarityThreshold?: number;
 }
 
+interface TargetItemSummary {
+  number: number;
+  title: string;
+  type: 'issue' | 'pull_request';
+}
+
+interface SimilarItemSummary {
+  number: number;
+  title: string;
+  state: string;
+  html_url: string;
+  type: 'issue' | 'pull_request';
+  similarity: number;
+}
+
+interface SimilarityPair {
+  item1: {
+    number: number;
+    title: string;
+    type: 'issue' | 'pull_request';
+  };
+  item2: {
+    number: number;
+    title: string;
+    type: 'issue' | 'pull_request';
+  };
+  similarity: number;
+}
+
+interface SimilarityResults {
+  repository: string;
+  processedItems: number;
+  timestamp: string;
+  targetItem?: TargetItemSummary;
+  similarItems?: SimilarItemSummary[];
+  similarityPairs?: SimilarityPair[];
+}
+
+// Cosine similarity function is now imported from ml-utils
+
 /**
- * Calculate cosine similarity between two embeddings
+ * Sleep utility for exponential backoff
  */
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    throw new Error('Embeddings must have the same length');
-  }
-
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  normA = Math.sqrt(normA);
-  normB = Math.sqrt(normB);
-
-  if (normA === 0 || normB === 0) {
-    return 0;
-  }
-
-  return dotProduct / (normA * normB);
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
- * Fetch issues and PRs from GitHub API
+ * Execute GitHub API call with rate limit handling and exponential backoff
+ */
+async function withRateLimitHandling<T>(
+  apiCall: () => Promise<T>,
+  attempt: number = 1,
+  maxAttempts: number = 5
+): Promise<T> {
+  try {
+    return await apiCall();
+  } catch (error: unknown) {
+    const err = error as { status?: number; message?: string; response?: { headers?: { 'x-ratelimit-remaining'?: string; 'x-ratelimit-reset'?: string } } };
+    
+    // Check if it's a rate limit error
+    if (err.status === 403 || err.status === 429) {
+      if (attempt >= maxAttempts) {
+        throw new Error(`Rate limit exceeded after ${maxAttempts} attempts`);
+      }
+      
+      // Calculate backoff time
+      const backoffMs = Math.min(1000 * Math.pow(2, attempt), 30000); // Max 30 seconds
+      
+      // If we have rate limit headers, wait until reset time
+      const resetTime = err.response?.headers?.['x-ratelimit-reset'];
+      if (resetTime) {
+        const waitTime = Math.max(0, parseInt(resetTime) * 1000 - Date.now());
+        console.log(`Rate limit hit. Waiting ${Math.ceil(waitTime / 1000)} seconds until reset...`);
+        await sleep(waitTime + 1000); // Add 1 second buffer
+      } else {
+        console.log(`Rate limit hit. Waiting ${backoffMs / 1000} seconds (attempt ${attempt}/${maxAttempts})...`);
+        await sleep(backoffMs);
+      }
+      
+      // Retry the API call
+      return withRateLimitHandling(apiCall, attempt + 1, maxAttempts);
+    }
+    
+    // Re-throw non-rate-limit errors
+    throw error;
+  }
+}
+
+/**
+ * Fetch issues and PRs from GitHub API with rate limit handling
  */
 async function fetchRepositoryItems(
   octokit: Octokit,
@@ -74,16 +135,18 @@ async function fetchRepositoryItems(
   const items: SimilarityItem[] = [];
 
   try {
-    // Fetch issues (excluding PRs)
+    // Fetch issues (excluding PRs) with rate limit handling
     console.log(`Fetching ${itemsPerType} issues...`);
-    const issuesResponse = await octokit.rest.issues.listForRepo({
-      owner,
-      repo,
-      state: 'all',
-      sort: 'created',
-      direction: 'desc',
-      per_page: itemsPerType,
-    });
+    const issuesResponse = await withRateLimitHandling(() => 
+      octokit.rest.issues.listForRepo({
+        owner,
+        repo,
+        state: 'all',
+        sort: 'created',
+        direction: 'desc',
+        per_page: itemsPerType,
+      })
+    );
 
     // Filter out pull requests from issues
     const issues = issuesResponse.data.filter(item => !item.pull_request);
@@ -100,16 +163,18 @@ async function fetchRepositoryItems(
       });
     }
 
-    // Fetch PRs
+    // Fetch PRs with rate limit handling
     console.log(`Fetching ${itemsPerType} pull requests...`);
-    const prsResponse = await octokit.rest.pulls.list({
-      owner,
-      repo,
-      state: 'all',
-      sort: 'created',
-      direction: 'desc',
-      per_page: itemsPerType,
-    });
+    const prsResponse = await withRateLimitHandling(() =>
+      octokit.rest.pulls.list({
+        owner,
+        repo,
+        state: 'all',
+        sort: 'created',
+        direction: 'desc',
+        per_page: itemsPerType,
+      })
+    );
 
     for (const pr of prsResponse.data) {
       items.push({
@@ -133,31 +198,44 @@ async function fetchRepositoryItems(
 }
 
 /**
- * Generate embeddings for all items
+ * Process items in batches with concurrency control
  */
-async function generateEmbeddings(items: SimilarityItem[]): Promise<void> {
-  console.log(`Generating embeddings for ${items.length} items...`);
-
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
+async function processBatch<T>(
+  items: T[],
+  processor: (item: T) => Promise<void>,
+  batchSize: number = 5
+): Promise<void> {
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    await Promise.all(batch.map(processor));
     
+    // Progress indicator
+    const processed = Math.min(i + batchSize, items.length);
+    if (processed % 10 === 0 || processed === items.length) {
+      console.log(`Processed ${processed}/${items.length} items`);
+    }
+  }
+}
+
+/**
+ * Generate embeddings for all items with parallel processing
+ */
+async function generateEmbeddings(items: SimilarityItem[], concurrency: number = 5): Promise<void> {
+  console.log(`Generating embeddings for ${items.length} items (concurrency: ${concurrency})...`);
+  
+  const processor = async (item: SimilarityItem) => {
     try {
       console.log(`Processing ${item.type} #${item.number}: ${item.title.substring(0, 50)}...`);
       
       item.embedding = await generateIssueEmbedding(item.title, item.body);
       item.contentHash = calculateContentHash(item.title, item.body);
-      
-      // Progress indicator
-      if ((i + 1) % 10 === 0) {
-        console.log(`Processed ${i + 1}/${items.length} items`);
-      }
-      
     } catch (error) {
-      console.error(`Error generating embedding for ${item.type} #${item.number}:`, error);
-      // Continue with other items
+      console.error(`Error generating embedding for ${item.type} #${item.number}: %s`, error);
+      // Continue with other items - don't throw
     }
-  }
-
+  };
+  
+  await processBatch(items, processor, concurrency);
   console.log('Embedding generation complete');
 }
 
@@ -251,18 +329,22 @@ async function processSimilarityCheck(options: ProcessingOptions): Promise<void>
         try {
           let targetData;
           if (type === 'issue') {
-            const response = await octokit.rest.issues.get({
-              owner,
-              repo,
-              issue_number: itemNumber,
-            });
+            const response = await withRateLimitHandling(() =>
+              octokit.rest.issues.get({
+                owner,
+                repo,
+                issue_number: itemNumber,
+              })
+            );
             targetData = response.data;
           } else {
-            const response = await octokit.rest.pulls.get({
-              owner,
-              repo,
-              pull_number: itemNumber,
-            });
+            const response = await withRateLimitHandling(() =>
+              octokit.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: itemNumber,
+              })
+            );
             targetData = response.data;
           }
 
@@ -285,7 +367,7 @@ async function processSimilarityCheck(options: ProcessingOptions): Promise<void>
     }
 
     // Find similarities
-    let results: any = {
+    const results: SimilarityResults = {
       repository: `${owner}/${repo}`,
       processedItems: items.length,
       timestamp: new Date().toISOString(),
@@ -322,7 +404,18 @@ async function processSimilarityCheck(options: ProcessingOptions): Promise<void>
       // General analysis - find all high-similarity pairs
       console.log('Performing general similarity analysis...');
       
-      const allSimilarities: Array<{
+      // Use a Map for O(1) duplicate checking and limit memory usage
+      const pairKey = (n1: number, t1: string, n2: number, t2: string) => {
+        // Ensure consistent ordering for the key
+        if (n1 < n2 || (n1 === n2 && t1 < t2)) {
+          return `${n1}-${t1}-${n2}-${t2}`;
+        }
+        return `${n2}-${t2}-${n1}-${t1}`;
+      };
+      
+      const processedPairs = new Set<string>();
+      const maxPairs = 100; // Limit memory usage
+      const topPairs: Array<{
         item1: SimilarityItem;
         item2: SimilarityItem;
         similarity: number;
@@ -332,24 +425,32 @@ async function processSimilarityCheck(options: ProcessingOptions): Promise<void>
         const similar = findSimilarItems(items[i], items, similarityThreshold, 10);
         
         for (const result of similar) {
-          // Avoid duplicates (A similar to B is same as B similar to A)
-          const existing = allSimilarities.find(
-            s => 
-              (s.item1.number === items[i].number && s.item2.number === result.item.number) ||
-              (s.item1.number === result.item.number && s.item2.number === items[i].number)
-          );
+          // Check for duplicates using O(1) Set lookup
+          const key = pairKey(items[i].number, items[i].type, result.item.number, result.item.type);
           
-          if (!existing) {
-            allSimilarities.push({
+          if (!processedPairs.has(key)) {
+            processedPairs.add(key);
+            
+            // Add to topPairs, maintaining size limit
+            topPairs.push({
               item1: items[i],
               item2: result.item,
               similarity: result.similarity,
             });
+            
+            // Keep only the top N pairs to limit memory
+            if (topPairs.length > maxPairs) {
+              topPairs.sort((a, b) => b.similarity - a.similarity);
+              topPairs.length = maxPairs;
+            }
           }
         }
       }
 
-      results.similarityPairs = allSimilarities
+      // Final sort
+      topPairs.sort((a, b) => b.similarity - a.similarity);
+      
+      results.similarityPairs = topPairs
         .sort((a, b) => b.similarity - a.similarity)
         .slice(0, 20) // Top 20 most similar pairs
         .map(pair => ({
@@ -368,7 +469,7 @@ async function processSimilarityCheck(options: ProcessingOptions): Promise<void>
           similarity: pair.similarity,
         }));
 
-      console.log(`Found ${allSimilarities.length} similarity pairs above threshold`);
+      console.log(`Found ${processedPairs.size} similarity pairs above threshold (showing top ${Math.min(20, topPairs.length)})`);
     }
 
     // Save results for GitHub Actions to use
@@ -473,8 +574,9 @@ async function main() {
   console.log('\n✅ Similarity check complete!');
 }
 
-// Run the script
-if (require.main === module) {
+// Run the script if executed directly
+// For ES modules, check if this file is the entry point
+if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(console.error);
 }
 
