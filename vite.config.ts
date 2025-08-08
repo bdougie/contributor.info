@@ -11,12 +11,7 @@ export default defineConfig({
     analyzer({
       analyzerMode: 'static',
       fileName: 'bundle-analysis',
-      openAnalyzer: false,
-      generateStatsFile: true,
-      statsOptions: {
-        source: false,
-        modules: false
-      }
+      openAnalyzer: false
     }),
     imagetools({
       defaultDirectives: (url) => {
