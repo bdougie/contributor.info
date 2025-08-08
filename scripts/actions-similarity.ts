@@ -374,7 +374,7 @@ async function processSimilarityCheck(options: ProcessingOptions): Promise<void>
       console.log(`Similar items found: ${results.similarItems.length}`);
       if (results.similarItems.length > 0) {
         console.log('Top matches:');
-        results.similarItems.slice(0, 3).forEach((item: any) => {
+        results.similarItems.slice(0, 3).forEach((item: SimilarItemSummary) => {
           console.log(`  - #${item.number}: ${item.title} (${Math.round(item.similarity * 100)}% similar)`);
         });
       }
@@ -426,7 +426,7 @@ function parseArgs(): ProcessingOptions {
         options.repo = value;
         i++; // Skip the value in next iteration
         break;
-      case '--max-items':
+      case '--max-items': {
         const maxItems = parseInt(value, 10);
         if (isNaN(maxItems) || maxItems <= 0) {
           console.error(`Error: Invalid value for --max-items: ${value}`);
@@ -435,6 +435,7 @@ function parseArgs(): ProcessingOptions {
         options.maxItems = maxItems;
         i++; // Skip the value in next iteration
         break;
+      }
       case '--item-type':
         if (value !== 'issues' && value !== 'pull_request') {
           console.error(`Error: Invalid value for --item-type: ${value}. Must be 'issues' or 'pull_request'`);
@@ -443,7 +444,7 @@ function parseArgs(): ProcessingOptions {
         options.itemType = value as 'issues' | 'pull_request';
         i++; // Skip the value in next iteration
         break;
-      case '--item-number':
+      case '--item-number': {
         const itemNumber = parseInt(value, 10);
         if (isNaN(itemNumber) || itemNumber <= 0) {
           console.error(`Error: Invalid value for --item-number: ${value}`);
@@ -452,7 +453,8 @@ function parseArgs(): ProcessingOptions {
         options.itemNumber = itemNumber;
         i++; // Skip the value in next iteration
         break;
-      case '--similarity-threshold':
+      }
+      case '--similarity-threshold': {
         const threshold = parseFloat(value);
         if (isNaN(threshold) || threshold < 0 || threshold > 1) {
           console.error(`Error: Invalid value for --similarity-threshold: ${value}. Must be between 0 and 1`);
@@ -461,6 +463,7 @@ function parseArgs(): ProcessingOptions {
         options.similarityThreshold = threshold;
         i++; // Skip the value in next iteration
         break;
+      }
       default:
         console.error(`Error: Unknown flag ${key}`);
         process.exit(1);

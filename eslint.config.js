@@ -24,5 +24,12 @@ export default tseslint.config({ ignores: ['dist'] }, {
       'warn',
       { allowConstantExport: true },
     ],
+    // Prevent nested ternaries that break Rollup tree shaking
+    // See: https://github.com/rollup/rollup/issues/5747
+    'no-nested-ternary': 'error',
+    // Allow single ternaries but encourage helper functions for complex conditions
+    'multiline-ternary': ['warn', 'always-multiline'],
+    // Prevent usage of 'any' type - enforce proper TypeScript typing
+    '@typescript-eslint/no-explicit-any': 'error',
   },
 }, storybook.configs["flat/recommended"]);

@@ -249,9 +249,17 @@ export async function withRateLimitHandling<T>(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await apiCall();
-    } catch (error: any) {
+    } catch (error) {
       // Check if it's a rate limit error
-      if (error.status === 403 || error.status === 429) {
+      const errorWithStatus = error as { 
+        status?: number;
+        response?: {
+          headers?: {
+            [key: string]: string;
+          };
+        };
+      };
+      if (errorWithStatus.status === 403 || errorWithStatus.status === 429) {
         if (attempt >= maxAttempts) {
           throw new Error(`Rate limit exceeded after ${maxAttempts} attempts`);
         }
@@ -260,7 +268,7 @@ export async function withRateLimitHandling<T>(
         const backoffMs = Math.min(initialBackoff * Math.pow(2, attempt - 1), maxBackoff);
         
         // Check for rate limit reset time
-        const resetTime = error.response?.headers?.['x-ratelimit-reset'];
+        const resetTime = errorWithStatus.response?.headers?.['x-ratelimit-reset'];
         if (resetTime) {
           const waitTime = Math.max(0, parseInt(resetTime) * 1000 - Date.now());
           console.log(`Rate limit hit. Waiting ${Math.ceil(waitTime / 1000)} seconds until reset...`);

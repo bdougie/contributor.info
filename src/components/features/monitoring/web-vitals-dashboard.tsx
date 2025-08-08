@@ -9,6 +9,7 @@ import { THRESHOLDS } from '@/lib/web-vitals-monitoring';
 import { Activity, AlertCircle, Clock, Zap, Layout, Wifi } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { NetlifyRUMIntegration } from './netlify-rum-integration';
+import { getTimeRangeHours, getRatingClass, getRatingBadgeVariant } from '@/lib/utils/performance-helpers';
 
 interface MetricSummary {
   p50: number;
@@ -72,7 +73,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
 
   const loadHistoricalData = async () => {
     // Mock historical data - in real implementation, fetch from analytics
-    const hours = timeRange === '1h' ? 1 : timeRange === '24h' ? 24 : timeRange === '7d' ? 168 : 720;
+    const hours = getTimeRangeHours(timeRange);
     const data = [];
     const now = Date.now();
     
@@ -175,7 +176,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
               if (!data) return null;
               
               const score = calculateScore(data);
-              const rating = score >= 90 ? 'good' : score >= 50 ? 'needs-improvement' : 'poor';
+              const rating = getRatingClass(score);
               
               return (
                 <div key={metric} className="space-y-2">
@@ -184,7 +185,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
                       {getMetricIcon(metric)}
                       <span className="font-medium">{metric}</span>
                     </div>
-                    <Badge variant={rating === 'good' ? 'default' : rating === 'needs-improvement' ? 'secondary' : 'destructive'}>
+                    <Badge variant={getRatingBadgeVariant(rating)}>
                       {score}%
                     </Badge>
                   </div>
