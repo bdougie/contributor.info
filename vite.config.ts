@@ -124,10 +124,11 @@ export default defineConfig({
             return 'embeddings-excluded';
           }
           
-          // Critical React core - bundle together to prevent initialization issues
+          // Critical React core AND Radix UI primitives - must be bundled together
+          // Radix UI depends on React hooks and must load with React to prevent errors
           if (id.includes('react-dom')) return 'react-core';
-          if (id.includes('react') && !id.includes('react-router') && !id.includes('@radix-ui')) return 'react-core';
-          if (id.includes('@radix-ui/react-slot')) return 'react-core';
+          if (id.includes('react') && !id.includes('react-router')) return 'react-core';
+          if (id.includes('@radix-ui')) return 'react-core'; // Bundle Radix with React
           
           // React ecosystem - can load after core is initialized
           if (id.includes('react-router-dom')) return 'react-ecosystem';
@@ -138,9 +139,6 @@ export default defineConfig({
           // Heavy chart libraries - lazy loaded, separate for better caching
           if (id.includes('@nivo')) return 'charts-nivo';
           if (id.includes('recharts')) return 'charts-recharts';
-          
-          // UI component library - used throughout app (group all Radix UI)
-          if (id.includes('@radix-ui')) return 'ui-radix';
           
           // Icons - separate for optimal tree-shaking
           if (id.includes('lucide-react')) return 'icons';
