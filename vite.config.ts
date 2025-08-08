@@ -124,26 +124,21 @@ export default defineConfig({
             return 'embeddings-excluded';
           }
           
-          // Critical React core - bundle together to prevent initialization issues
-          if (id.includes('react-dom')) return 'react-core';
-          if (id.includes('react') && !id.includes('react-router') && !id.includes('@radix-ui')) return 'react-core';
-          if (id.includes('@radix-ui/react-slot')) return 'react-core';
+          // All React and React-dependent libraries must be bundled together
+          // to prevent "Cannot read properties of undefined" errors
+          // This includes: React, ReactDOM, Router, Radix UI, Charts, Icons, etc.
+          if (id.includes('react') || 
+              id.includes('@radix-ui') || 
+              id.includes('@nivo') || 
+              id.includes('recharts') ||
+              id.includes('lucide-react')) {
+            return 'react-vendor';
+          }
           
-          // React ecosystem - can load after core is initialized
-          if (id.includes('react-router-dom')) return 'react-ecosystem';
-          if (id.includes('class-variance-authority')) return 'react-ecosystem';
-          if (id.includes('clsx')) return 'react-ecosystem';
-          if (id.includes('tailwind-merge')) return 'react-ecosystem';
-          
-          // Heavy chart libraries - lazy loaded, separate for better caching
-          if (id.includes('@nivo')) return 'charts-nivo';
-          if (id.includes('recharts')) return 'charts-recharts';
-          
-          // UI component library - used throughout app (group all Radix UI)
-          if (id.includes('@radix-ui')) return 'ui-radix';
-          
-          // Icons - separate for optimal tree-shaking
-          if (id.includes('lucide-react')) return 'icons';
+          // Utility libraries that don't depend on React
+          if (id.includes('class-variance-authority')) return 'utils';
+          if (id.includes('clsx')) return 'utils';
+          if (id.includes('tailwind-merge')) return 'utils';
           
           // Utilities - frequently used, good for caching
           if (id.includes('date-fns')) return 'utils';
