@@ -125,7 +125,8 @@ describe('Home Component', () => {
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading).toHaveTextContent('Analyze GitHub Repository Contributors');
     
-    const section = screen.getByRole('generic');
-    expect(section).toBeInTheDocument();
+    // Use more specific selector instead of generic role
+    expect(screen.getByTestId('github-search-input')).toBeInTheDocument();
+    expect(screen.getByTestId('example-repos')).toBeInTheDocument();
   });
 });
