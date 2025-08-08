@@ -10,13 +10,13 @@
 |------|------------|---------------|----------|---------|
 | 1 | **Recharts** | ~180KB | Charts | Primary charting library |
 | 2 | **React + React DOM** | ~130KB | Core | Framework |
-| 3 | **@nivo/scatterplot** | ~120KB | Charts | Used in distribution charts |
+| 3 | **@nivo/scatterplot** | ~120KB | Charts | Used for treemap visualizations |
 | 4 | **React Icons** | ~120KB | Icons | Multiple components |
 | 5 | **@radix-ui/react-dropdown-menu** | ~45KB | UI Components | Heavily used |
 | 6 | **@radix-ui/react-dialog** | ~40KB | UI Components | Multiple dialogs |
 | 7 | **@radix-ui/react-tooltip** | ~35KB | UI Components | Tooltips throughout |
 | 8 | **@supabase/supabase-js** | ~60KB | Data | Database client |
-| 9 | **Lucide React** | ~50KB | Icons | Alternative icon library |
+| 9 | **Lucide React** | ~50KB | Icons | Preferred icon library (recommended standard) |
 | 10 | **React Hook Form** | ~45KB | Forms | Form handling |
 | 11 | **@radix-ui/react-avatar** | ~30KB | UI Components | User avatars |
 | 12 | **@radix-ui/react-tabs** | ~30KB | UI Components | Tab navigation |
