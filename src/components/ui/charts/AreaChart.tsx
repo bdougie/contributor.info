@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { UPlotChart, type UPlotChartProps } from './UPlotChart';
 import { getChartTheme, getSeriesColors } from './theme-config';
+import { colorWithAlpha, processLabelsForUPlot, createAxisValuesFormatter } from './chart-utils';
 import type { AlignedData, Options, Series } from 'uplot';
 
 export interface AreaChartProps extends Omit<UPlotChartProps, 'data' | 'options'> {
@@ -54,10 +55,13 @@ export const AreaChart: React.FC<AreaChartProps> = ({
       }
     }
     
+    // Process labels for uPlot (requires numeric x-axis)
+    const { numericLabels, labelMap } = processLabelsForUPlot(data.labels);
+    
     // Convert data to uPlot format [x-axis, series1, series2, ...]
     const chartData: AlignedData = [
-      data.labels as any[], // x-axis (can be strings or numbers for labels)
-      ...processedData as any[], // y-axis series
+      numericLabels,
+      ...processedData.map(series => series as (number | null)[]),
     ];
 
     // Configure series (first entry is always x-axis)
@@ -74,7 +78,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
           label: dataset.label,
           stroke: color,
           width: dataset.strokeWidth || 2,
-          fill: `${color}${Math.round(fillOpacity * 255).toString(16).padStart(2, '0')}`,
+          fill: colorWithAlpha(color, fillOpacity),
           points: {
             show: false, // Areas typically don't show individual points
           },
@@ -152,6 +156,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
           ticks: {
             stroke: theme.axis,
           },
+          values: createAxisValuesFormatter(labelMap),
         },
         {
           // y-axis  

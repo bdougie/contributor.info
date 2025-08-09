@@ -139,7 +139,7 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
   // Calculate wrapper div styles
   const wrapperStyle: React.CSSProperties = responsive 
     ? { width: '100%' }
-    : { width: actualDimensions?.width || propWidth || 600 };
+    : { width: propWidth ?? actualDimensions?.width ?? 600 };
 
   return (
     <div 

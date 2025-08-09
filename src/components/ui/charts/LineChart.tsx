@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { UPlotChart, type UPlotChartProps } from './UPlotChart';
 import { getChartTheme, getSeriesColors } from './theme-config';
+import { processLabelsForUPlot, createAxisValuesFormatter } from './chart-utils';
 import type { AlignedData, Options, Series } from 'uplot';
 
 export interface LineChartProps extends Omit<UPlotChartProps, 'data' | 'options'> {
@@ -39,10 +40,13 @@ export const LineChart: React.FC<LineChartProps> = ({
     const theme = getChartTheme(isDark);
     const seriesColors = getSeriesColors(data.datasets.length, isDark);
     
+    // Process labels for uPlot (requires numeric x-axis)
+    const { numericLabels, labelMap } = processLabelsForUPlot(data.labels);
+    
     // Convert data to uPlot format [x-axis, series1, series2, ...]
     const chartData: AlignedData = [
-      data.labels as any[], // x-axis (can be strings or numbers for labels)
-      ...data.datasets.map(dataset => dataset.data as any[]), // y-axis series
+      numericLabels,
+      ...data.datasets.map(dataset => dataset.data as (number | null)[]),
     ];
 
     // Configure series (first entry is always x-axis)
@@ -121,6 +125,7 @@ export const LineChart: React.FC<LineChartProps> = ({
           ticks: {
             stroke: theme.axis,
           },
+          values: createAxisValuesFormatter(labelMap),
         },
         {
           // y-axis  
