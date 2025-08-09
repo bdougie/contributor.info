@@ -164,4 +164,39 @@ describe('UPlotChart', () => {
     const chartDiv = container.querySelector('.uplot-chart');
     expect(chartDiv).toHaveStyle({ width: '100%' });
   });
+
+  it('syncs wrapper div width with uPlot dimensions when responsive is false', async () => {
+    const { container } = render(
+      <UPlotChart 
+        data={mockData} 
+        options={mockOptions} 
+        width={500}
+        responsive={false}
+      />
+    );
+    
+    // Wait for the chart to be initialized and dimensions to be set
+    await waitFor(() => {
+      const chartDiv = container.querySelector('.uplot-chart');
+      // Should match the uPlot width (500px) rather than being undefined
+      expect(chartDiv).toHaveStyle({ width: '500px' });
+    });
+  });
+
+  it('uses default width when no width provided and responsive is false', async () => {
+    const { container } = render(
+      <UPlotChart 
+        data={mockData} 
+        options={mockOptions} 
+        responsive={false}
+      />
+    );
+    
+    // Wait for the chart to be initialized
+    await waitFor(() => {
+      const chartDiv = container.querySelector('.uplot-chart');
+      // Should use default 600px width
+      expect(chartDiv).toHaveStyle({ width: '600px' });
+    });
+  });
 });
