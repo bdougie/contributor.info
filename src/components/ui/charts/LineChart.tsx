@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { UPlotChart, type UPlotChartProps } from './UPlotChart';
 import { getChartTheme, getSeriesColors } from './theme-config';
-import { processLabelsForUPlot, createAxisValuesFormatter } from './chart-utils';
+import { processLabelsForUPlot, createAxisValuesFormatter, colorWithAlpha } from './chart-utils';
 import type { AlignedData, Options, Series } from 'uplot';
 
 export interface LineChartProps extends Omit<UPlotChartProps, 'data' | 'options'> {
@@ -59,7 +59,7 @@ export const LineChart: React.FC<LineChartProps> = ({
         label: dataset.label,
         stroke: dataset.color || seriesColors[index],
         width: dataset.strokeWidth || 2,
-        fill: dataset.fill ? `${dataset.color || seriesColors[index]}20` : undefined,
+        fill: dataset.fill ? colorWithAlpha(dataset.color || seriesColors[index], 0.125) : undefined,
         points: {
           show: dataset.points !== false,
           size: 4,

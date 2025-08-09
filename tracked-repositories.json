@@ -156,10 +156,6 @@
     "name": "supabase"
   },
   {
-    "owner": "Supabase",
-    "name": "supabase"
-  },
-  {
     "owner": "tensorflow",
     "name": "tensorflow"
   },
