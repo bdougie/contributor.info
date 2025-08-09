@@ -53,7 +53,7 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
         .select('id')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
 
       if (repoError || !repoData) {
         // Repository not in database yet
@@ -68,10 +68,10 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
         .from('tracked_repositories')
         .select('size, priority, tracking_enabled, updated_at')
         .eq('repository_id', repoData.id)
-        .single();
+        .maybeSingle();
 
-      if (trackedError && trackedError.code !== 'PGRST116') {
-        // Error other than "no rows returned"
+      if (trackedError) {
+        // Real error occurred
         throw trackedError;
       }
 

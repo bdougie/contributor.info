@@ -52,7 +52,7 @@ export async function fetchPRDataSmart(
         .select('id, owner, name, last_updated_at')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
 
       if (repoError || !repoData) {
         // Repository not in database - it needs to be tracked first

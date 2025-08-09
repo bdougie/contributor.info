@@ -42,7 +42,7 @@ export async function fetchPRDataWithFallback(
       .select('id')
       .eq('owner', owner)
       .eq('name', repo)
-      .single();
+      .maybeSingle();
 
     if (repoError || !repoData) {
       // Fall through to GitHub API

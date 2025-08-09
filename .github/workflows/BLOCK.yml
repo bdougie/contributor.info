@@ -1,0 +1,24 @@
+name: Block Merge on Label
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+jobs:
+  check-block-label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for BLOCKMERGE label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.pull_request.labels;
+            const hasBlockLabel = labels.some(label => label.name === 'BLOCKMERGE');
+            
+            if (hasBlockLabel) {
+              core.setFailed('PR has BLOCKMERGE label - merge is blocked');
+              console.log('❌ This PR is blocked from merging due to BLOCKMERGE label');
+              console.log('Remove the BLOCKMERGE label to allow merging');
+            } else {
+              console.log('✅ No BLOCKMERGE label found - PR can be merged');
+            }

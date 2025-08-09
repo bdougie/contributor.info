@@ -29,9 +29,9 @@ export function useAutoTrackRepository({
           .select('id, repository_id, size, size_calculated_at')
           .eq('organization_name', owner)
           .eq('repository_name', repo)
-          .single()
+          .maybeSingle()
 
-        if (checkError && checkError.code !== 'PGRST116') {
+        if (checkError) {
           return
         }
 
