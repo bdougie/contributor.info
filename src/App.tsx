@@ -11,6 +11,7 @@ import { ProtectedRoute, AdminRoute } from "@/components/features/auth";
 import { initializeWebVitalsMonitoring } from "@/lib/web-vitals-monitoring";
 import { initializeLLMCitationTracking } from "@/lib/llm-citation-tracking";
 import { initAutoTrackingService, cleanupAutoTrackingService } from "@/lib/progressive-capture/auto-track-on-404";
+import { SVGSpriteInliner } from "@/components/ui/svg-sprite-loader";
 
 // Lazy load route components for better performance
 const RepoView = lazy(() => import("@/components/features/repository/repo-view"));
@@ -256,6 +257,7 @@ function App() {
   return (
     <ErrorBoundary context="Application Root">
       <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
+        <SVGSpriteInliner />
         <Router>
           <OfflineNotification />
           <Suspense fallback={<PageSkeleton />}>

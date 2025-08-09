@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"
+import { GithubIcon, LogOut, MessageSquare, Shield, Settings } from '@/components/ui/icon';
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,7 +11,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { GithubIcon, LogOut, MessageSquare, Shield, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 

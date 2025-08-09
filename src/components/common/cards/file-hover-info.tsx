@@ -1,10 +1,9 @@
-import { File, GitPullRequest } from "lucide-react";
-import { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { File, GitPullRequest } from '@/components/ui/icon';
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { PullRequest } from "@/lib/types";
-import React from "react";
 
 // Same interfaces as in file-hover-card.tsx
 interface FileTouched {

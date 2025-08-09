@@ -1,6 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback } from "react"
+import { ChevronLeft, Users } from '@/components/ui/icon';
 import { ResponsiveContainer, Treemap, Tooltip } from "recharts";
-import { ChevronLeft, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { QuadrantNode } from "@/hooks/use-hierarchical-distribution";

@@ -2,7 +2,8 @@
  * Production wrapper for ContributorCard
  * Connects the simple component to real dependencies
  */
-import { useMemo, useContext } from "react";
+import { useMemo, useContext } from "react"
+import { GitPullRequest, MessageSquare, GitPullRequestDraft, Trophy } from '@/components/ui/icon';
 import { ContributorCardSimple } from "./contributor-card-simple";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +11,6 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { ContributorHoverCard } from "./contributor-hover-card";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { createContributorStats } from "@/lib/contributor-utils";
-import { GitPullRequest, MessageSquare, GitPullRequestDraft, Trophy } from "lucide-react";
 import type { MonthlyContributor } from "@/lib/types";
 
 interface ContributorCardProps {

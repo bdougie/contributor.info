@@ -1,4 +1,4 @@
-import { GitPullRequest, Users, TrendingUp } from "lucide-react";
+import { GitPullRequest, Users, TrendingUp } from '@/components/ui/icon';
 
 export default function HomeSocialCard() {
   return (

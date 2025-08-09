@@ -1,7 +1,7 @@
+import { Sparkles, RefreshCw, AlertCircle } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, RefreshCw, AlertCircle } from "lucide-react";
 import { useRepositorySummary } from "@/hooks/use-repository-summary";
 import { Markdown } from "@/components/common/layout";
 

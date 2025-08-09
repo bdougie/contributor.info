@@ -44,6 +44,9 @@
     <!-- These will be transformed by Vite in production to correct hashed filenames -->
     <link rel="modulepreload" href="/src/main.tsx" />
     
+    <!-- Preload icon sprite for faster icon rendering -->
+    <link rel="preload" href="/icons.svg" as="image" type="image/svg+xml" />
+    
     <!-- Preload critical fonts for faster text rendering -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>

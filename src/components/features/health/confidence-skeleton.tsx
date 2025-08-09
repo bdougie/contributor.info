@@ -1,4 +1,4 @@
-import { UserPlus } from "lucide-react";
+import { UserPlus } from '@/components/ui/icon';
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 

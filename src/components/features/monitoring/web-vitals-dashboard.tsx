@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
+import { Activity, AlertCircle, Clock, Zap, Layout, Wifi } from '@/components/ui/icon';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -6,8 +7,19 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getWebVitalsAnalytics } from '@/lib/web-vitals-analytics';
 import { THRESHOLDS } from '@/lib/web-vitals-monitoring';
-import { Activity, AlertCircle, Clock, Zap, Layout, Wifi } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { 
+  LineChart, 
+  Line, 
+  PieChart,
+  Pie,
+  Cell,
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
+} from 'recharts';
 import { NetlifyRUMIntegration } from './netlify-rum-integration';
 import { getTimeRangeHours, getRatingClass, getRatingBadgeVariant } from '@/lib/utils/performance-helpers';
 
@@ -266,9 +278,9 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
                       <PieChart>
                         <Pie
                           data={[
-                            { name: 'Good', value: summary[metric]!.good, fill: RATING_COLORS.good },
-                            { name: 'Needs Improvement', value: summary[metric]!.needsImprovement, fill: RATING_COLORS['needs-improvement'] },
-                            { name: 'Poor', value: summary[metric]!.poor, fill: RATING_COLORS.poor },
+                            { name: 'Good', value: summary[metric]!.good },
+                            { name: 'Needs Improvement', value: summary[metric]!.needsImprovement },
+                            { name: 'Poor', value: summary[metric]!.poor },
                           ]}
                           cx="50%"
                           cy="50%"
@@ -277,12 +289,11 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
                           paddingAngle={5}
                           dataKey="value"
                         >
-                          {[0, 1, 2].map((index) => (
-                            <Cell key={`cell-${index}`} />
-                          ))}
+                          <Cell fill={RATING_COLORS.good} />
+                          <Cell fill={RATING_COLORS['needs-improvement']} />
+                          <Cell fill={RATING_COLORS.poor} />
                         </Pie>
                         <Tooltip />
-                        <Legend />
                       </PieChart>
                     </ResponsiveContainer>
                   )}
@@ -302,11 +313,11 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="time" 
-                      tickFormatter={(time) => new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      tickFormatter={(time: number) => new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     />
                     <YAxis />
                     <Tooltip 
-                      labelFormatter={(time) => new Date(time).toLocaleString()}
+                      labelFormatter={(time: number) => new Date(time).toLocaleString()}
                       formatter={(value: number) => formatMetricValue(metric, value)}
                     />
                     <Legend />

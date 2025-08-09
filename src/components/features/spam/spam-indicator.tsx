@@ -1,3 +1,4 @@
+import { Shield, AlertTriangle, XCircle, CheckCircle } from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
@@ -5,7 +6,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Shield, AlertTriangle, XCircle, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SpamIndicatorProps {

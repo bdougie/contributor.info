@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, Download, Link2 } from "lucide-react";
-import { useState } from "react";
+import { useState } from "react"
+import { Copy, Download, Link2 } from '@/components/ui/icon';
 import { toast } from "sonner";
 import type { CitationFormat, WidgetData, PermalinkConfig } from "./widget-types";
 

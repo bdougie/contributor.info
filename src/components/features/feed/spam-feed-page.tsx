@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState } from "react"
+import { ArrowLeft } from '@/components/ui/icon';
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import FilteredPRActivity from "../activity/pr-activity-filtered";
 import { useTimeRangeStore } from "@/lib/time-range-store";

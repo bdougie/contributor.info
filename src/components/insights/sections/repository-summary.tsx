@@ -1,6 +1,6 @@
+import { RefreshCw, AlertCircle } from '@/components/ui/icon';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, AlertCircle } from "lucide-react";
 import { useRepositorySummary } from "@/hooks/use-repository-summary";
 import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
 import { Markdown } from "@/components/common/layout";

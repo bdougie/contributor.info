@@ -1,3 +1,4 @@
+import { GitPullRequest, Users, Activity, TrendingUp, AlertCircle, RefreshCw } from '@/components/ui/icon';
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,7 +8,6 @@ import { DataLoadingErrorBoundary } from "@/components/error-boundaries/data-loa
 import { FullDataFallback, EnhancementDataFallback } from "@/components/fallbacks/loading-fallbacks";
 import { useErrorTracking } from "@/lib/error-tracking";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { GitPullRequest, Users, Activity, TrendingUp, AlertCircle, RefreshCw } from "lucide-react";
 
 /**
  * Enhanced Progressive Repository View with comprehensive error boundaries

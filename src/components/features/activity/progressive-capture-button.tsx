@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState } from 'react'
+import { Database, RefreshCw, AlertCircle, GitBranch, Zap, ExternalLink, Clock } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Database, RefreshCw, AlertCircle, GitBranch, Zap, ExternalLink, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';

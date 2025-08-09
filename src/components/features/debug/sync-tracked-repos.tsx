@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"
+import { RefreshCw, Database, CheckCircle, XCircle, AlertCircle, Loader2 } from '@/components/ui/icon';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { RefreshCw, Database, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
 import { sendInngestEvent } from "@/lib/inngest/client-safe";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 

@@ -1,18 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
+import { TrendingDown, TrendingUp, Users, AlertTriangle, BarChart3, RefreshCw, Search, Filter } from '@/components/ui/icon';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  TrendingDown, 
-  TrendingUp, 
-  Users, 
-  AlertTriangle, 
-  BarChart3, 
-  RefreshCw,
-  Search,
-  Filter
-} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { ConfidenceScoreBreakdown } from './confidence-score-breakdown';
 import { Input } from '@/components/ui/input';

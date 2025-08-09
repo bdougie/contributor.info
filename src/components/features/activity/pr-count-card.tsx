@@ -1,4 +1,4 @@
-import { GitPullRequest, Users } from "lucide-react";
+import { GitPullRequest, Users } from '@/components/ui/icon';
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 

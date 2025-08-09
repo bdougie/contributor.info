@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
+import { Shield, Search, AlertTriangle, CheckCircle, XCircle, ExternalLink, RefreshCw, Eye, Ban } from '@/components/ui/icon';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,17 +22,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Shield, 
-  Search, 
-  AlertTriangle, 
-  CheckCircle, 
-  XCircle,
-  ExternalLink,
-  RefreshCw,
-  Eye,
-  Ban
-} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { logAdminAction, useAdminGitHubId } from '@/hooks/use-admin-auth';
 

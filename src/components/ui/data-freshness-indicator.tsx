@@ -1,4 +1,4 @@
-import { Circle } from "lucide-react";
+import { Circle } from '@/components/ui/icon';
 import { cn } from "@/lib/utils";
 import { useTimeFormatter } from "@/hooks/use-time-formatter";
 

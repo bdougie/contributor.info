@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { AlertCircle, RefreshCw, XCircle } from 'lucide-react';
+import { useEffect, useState } from 'react'
+import { AlertCircle, RefreshCw, XCircle } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
 export interface RetryState {

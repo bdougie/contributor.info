@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"
+import { Link } from '@/components/ui/icon';
 import { useParams, useNavigate, useLocation, Outlet } from "react-router-dom";
 import {
   Card,
@@ -9,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { GitHubSearchInput } from "@/components/ui/github-search-input";
 import type { GitHubRepository } from "@/lib/github";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Link } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { toast } from "sonner";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";

@@ -1,7 +1,7 @@
-import React from 'react';
+import React from 'react'
+import { ChevronLeft } from '@/components/ui/icon';
 import { useLocation, useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { ChevronLeftIcon } from '@radix-ui/react-icons';
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -86,7 +86,7 @@ export const Breadcrumbs = () => {
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
         aria-label={`Go back to ${parentCrumb.name}`}
       >
-        <ChevronLeftIcon className="h-4 w-4" />
+        <ChevronLeft className="h-4 w-4" />
         <span className={cn(shouldTruncate && "truncate max-w-[200px]")}>{parentCrumb.name}</span>
       </Link>
     );

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState } from "react"
+import { Database, Upload, CheckCircle, XCircle, Info, ExternalLink, Loader2 } from '@/components/ui/icon';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { Database, Upload, CheckCircle, XCircle, Info, ExternalLink, Loader2 } from "lucide-react";
 import { sendInngestEvent } from "@/lib/inngest/client-safe";
 
 interface ProcessResult {
@@ -48,7 +48,6 @@ export function BulkAddRepos() {
         return parts.length === 2 && parts[0] && parts[1];
       });
   };
-
 
   const insertReposInBatches = async (
     repos: string[],

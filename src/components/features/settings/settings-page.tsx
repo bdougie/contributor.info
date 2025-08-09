@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"
+import { ArrowLeft } from '@/components/ui/icon';
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { LastUpdated } from "@/components/ui/last-updated";
 import { usePageTimestamp } from "@/hooks/use-data-timestamp";

@@ -1,10 +1,11 @@
-import { File, GitPullRequest } from "lucide-react";
+;
 import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { PullRequest } from "@/lib/types";
-import React from "react";
+import React from "react"
+import { File, GitPullRequest } from '@/components/ui/icon';
 
 interface FileTouched {
   name: string;

@@ -1,5 +1,5 @@
-import { Component, ReactNode } from 'react';
-import { AlertCircle, RefreshCw, Clock, Wifi, Shield, AlertTriangle } from 'lucide-react';
+import { Component, ReactNode } from 'react'
+import { AlertCircle, RefreshCw, Clock, Wifi, Shield, AlertTriangle } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   LoadingError, 

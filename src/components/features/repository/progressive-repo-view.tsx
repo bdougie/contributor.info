@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState } from "react"
+import { GitPullRequest, Users } from '@/components/ui/icon';
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -6,7 +7,6 @@ import { useTimeRangeStore } from "@/lib/time-range-store";
 import { useProgressiveRepoData } from "@/hooks/use-progressive-repo-data";
 import { useLazyLoadData } from "@/hooks/use-intersection-observer";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { GitPullRequest, Users } from "lucide-react";
 
 /**
  * Progressive Repository View that loads data in stages:

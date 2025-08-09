@@ -1,12 +1,5 @@
+import { AlertCircle, CheckCircle2, Clock, Database, RefreshCw, Loader2 } from '@/components/ui/icon';
 import { cn } from "@/lib/utils";
-import { 
-  AlertCircle, 
-  CheckCircle2, 
-  Clock, 
-  Database, 
-  RefreshCw,
-  Loader2
-} from "lucide-react";
 import { Button } from "./button";
 import type { DataResult } from "@/lib/errors/repository-errors";
 

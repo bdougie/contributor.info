@@ -1,4 +1,5 @@
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react"
+import { ChevronRight } from '@/components/ui/icon';
 import {
   PieChart,
   Pie,
@@ -13,7 +14,6 @@ import {
 } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronRight } from "lucide-react";
 import type { QuadrantData } from "@/hooks/use-distribution";
 import type { PullRequest } from "@/lib/types";
 import { useHierarchicalDistribution } from "@/hooks/use-hierarchical-distribution";

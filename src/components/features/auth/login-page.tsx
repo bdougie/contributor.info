@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"
+import { GithubIcon } from '@/components/ui/icon';
 import { useNavigate } from "react-router-dom";
 import {
   Card,
@@ -8,7 +9,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { GithubIcon } from "lucide-react";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { SocialMetaTags } from "@/components/common/layout";
 

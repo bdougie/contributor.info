@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
+import { X, Download, Smartphone } from '@/components/ui/icon';
 import { Button } from './button';
-import { X, Download, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobileDetailed } from '@/lib/utils/mobile-detection';
 
