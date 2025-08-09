@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import uPlot, { Options, AlignedData } from 'uplot';
 import 'uplot/dist/uPlot.min.css';
 
@@ -30,6 +30,7 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
   const chartRef = useRef<HTMLDivElement>(null);
   const plotRef = useRef<uPlot | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const [actualDimensions, setActualDimensions] = useState<{width: number; height: number} | null>(null);
 
   // Calculate chart dimensions
   const getDimensions = useCallback(() => {
@@ -44,14 +45,14 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
     };
   }, [responsive, propWidth, propHeight]);
 
-
   // Handle chart resize
   const handleResize = useCallback(() => {
     if (!plotRef.current || !responsive) return;
 
-    const { width } = getDimensions();
-    plotRef.current.setSize({ width, height: propHeight });
-  }, [getDimensions, propHeight, responsive]);
+    const { width, height } = getDimensions();
+    plotRef.current.setSize({ width, height });
+    setActualDimensions({ width, height });
+  }, [getDimensions, responsive]);
 
   // Initialize chart
   useEffect(() => {
@@ -76,6 +77,7 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
     );
 
     plotRef.current = plot;
+    setActualDimensions({ width, height });
 
     // Notify parent component
     if (onReady) {
@@ -134,11 +136,16 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
     };
   }, [handleResize, responsive]);
 
+  // Calculate wrapper div styles
+  const wrapperStyle: React.CSSProperties = responsive 
+    ? { width: '100%' }
+    : { width: propWidth ?? actualDimensions?.width ?? 600 };
+
   return (
     <div 
       ref={chartRef} 
       className={`uplot-chart ${className}`}
-      style={{ width: responsive ? '100%' : propWidth }}
+      style={wrapperStyle}
     />
   );
 };

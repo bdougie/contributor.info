@@ -29,6 +29,7 @@
     "analyze:mobile-performance": "node scripts/performance/analyze-mobile-performance.js",
     "test:mobile-performance": "npm run test:lighthouse:mobile && npm run analyze:mobile-performance",
     "lint": "eslint .",
+    "lint:build": "eslint src/ --ext .ts,.tsx --ignore-pattern '**/__mocks__/**' --ignore-pattern '**/*.stories.*' --ignore-pattern '**/*.test.*' --ignore-pattern '**/stories/**' --max-warnings 10",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

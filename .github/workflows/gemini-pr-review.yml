@@ -2,8 +2,7 @@ name: '🧐 Gemini Pull Request Review'
 
 on:
   pull_request:
-    types:
-      - 'opened'
+    types: [ 'opened', 'ready_for_review' ]
   pull_request_review_comment:
     types:
       - 'created'
@@ -36,7 +35,7 @@ jobs:
   review-pr:
     if: |-
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' && github.event.action == 'opened') ||
+      (github.event_name == 'pull_request' && github.event.action == 'ready_for_review') ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
         contains(github.event.comment.body, '@gemini-cli /review') &&
         (
