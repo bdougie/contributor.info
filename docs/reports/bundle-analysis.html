@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bundle Analysis Report - Contributor.info</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 20px; }
+        .header { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .section { margin: 20px 0; }
+        .dependency-list { background: #fff; border: 1px solid #e1e5e9; border-radius: 6px; padding: 15px; }
+        .dependency-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .dependency-item:last-child { border-bottom: none; }
+        .category { background: #e3f2fd; padding: 15px; margin: 10px 0; border-radius: 6px; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 6px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Bundle Analysis Report</h1>
+        <p><strong>Project:</strong> contributor.info</p>
+        <p><strong>Generated:</strong> 2025-08-08</p>
+        <p><strong>Build Environment:</strong> Production Mode</p>
+    </div>
+
+    <div class="warning">
+        <h3>⚠️ Note</h3>
+        <p>This analysis is based on package.json dependencies and source code analysis. For exact bundle sizes, run <code>npm install && npm run build</code> in an environment with dependencies installed.</p>
+    </div>
+
+    <div class="section">
+        <h2>📊 Estimated Bundle Size Breakdown</h2>
+        
+        <div class="category">
+            <h3>🎨 UI Components (~600KB estimated)</h3>
+            <div class="dependency-list">
+                <div class="dependency-item">
+                    <span>30 Radix UI Components</span>
+                    <span>~400KB</span>
+                </div>
+                <div class="dependency-item">
+                    <span>React + React DOM</span>
+                    <span>~130KB</span>
+                </div>
+                <div class="dependency-item">
+                    <span>React Router DOM</span>
+                    <span>~25KB</span>
+                </div>
+                <div class="dependency-item">
+                    <span>Class Variance Authority + CLSX + Tailwind Merge</span>
+                    <span>~45KB</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="category">
+            <h3>📈 Data Visualization (~300KB estimated)</h3>
+            <div class="dependency-list">
+                <div class="dependency-item">
+                    <span>Recharts</span>
+                    <span>~180KB</span>
+                </div>
+                <div class="dependency-item">
+                    <span>@nivo/scatterplot</span>
+                    <span>~120KB</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="category">
+            <h3>🎯 Icons (~200KB estimated)</h3>
+            <div class="dependency-list">
+                <div class="dependency-item">
+                    <span>React Icons</span>
+                    <span>~120KB</span>
+                </div>
+                <div class="dependency-item">
+                    <span>Lucide React</span>
+                    <span>~50KB</span>
+                </div>
+                <div class="dependency-item">
+                    <span>@radix-ui/react-icons</span>
+                    <span>~30KB</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="category">
+            <h3>🔧 Utilities & Forms (~150KB estimated)</h3>
+            <div class="dependency-list">
+                <div class="dependency-item">
+                    <span>React Hook Form + @hookform/resolvers</span>
+                    <span>~45KB</span>
+                </div>
+                <div class="dependency-item">
+                    <span>Zod (validation)</span>
+                    <span>~35KB</span>
+                </div>
+                <div class="dependency-item">
+                    <span>Date-fns</span>
+                    <span>~25KB</span>
+                </div>
+                <div class="dependency-item">
+                    <span>Other utilities (cmdk, sonner, vaul, etc.)</span>
+                    <span>~45KB</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="category">
+            <h3>🗄️ Data & State Management (~100KB estimated)</h3>
+            <div class="dependency-list">
+                <div class="dependency-item">
+                    <span>@supabase/supabase-js</span>
+                    <span>~60KB</span>
+                </div>
+                <div class="dependency-item">
+                    <span>Zustand</span>
+                    <span>~8KB</span>
+                </div>
+                <div class="dependency-item">
+                    <span>@octokit packages</span>
+                    <span>~32KB</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🎯 Optimization Opportunities</h2>
+        
+        <div class="category">
+            <h3>High Impact (100KB+ savings)</h3>
+            <ul>
+                <li><strong>Radix UI Tree Shaking:</strong> Only import used components, could save ~100-150KB</li>
+                <li><strong>Icon Library Consolidation:</strong> Choose one icon library, could save ~100KB</li>
+                <li><strong>Chart Library Decision:</strong> Use either Recharts OR Nivo, could save ~120KB</li>
+            </ul>
+        </div>
+
+        <div class="category">
+            <h3>Medium Impact (50-100KB savings)</h3>
+            <ul>
+                <li><strong>Date-fns Tree Shaking:</strong> Import specific functions only</li>
+                <li><strong>React Hook Form Optimization:</strong> Ensure minimal bundle size</li>
+                <li><strong>Unused Component Removal:</strong> Remove any unused UI components</li>
+            </ul>
+        </div>
+
+        <div class="category">
+            <h3>Low Impact (10-50KB savings)</h3>
+            <ul>
+                <li><strong>Utility Library Optimization:</strong> Verify CLSX and Tailwind Merge usage</li>
+                <li><strong>Bundle Splitting:</strong> Optimize chunk strategy for better caching</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📋 Next Steps</h2>
+        <ol>
+            <li>Run actual build with dependencies installed to get precise measurements</li>
+            <li>Analyze tree-shaking effectiveness for Radix UI components</li>
+            <li>Audit icon usage and consolidate to single library</li>
+            <li>Evaluate chart library usage and remove unused one</li>
+            <li>Implement bundle size monitoring in CI/CD</li>
+        </ol>
+    </div>
+</body>
+</html>

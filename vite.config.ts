@@ -2,11 +2,20 @@ import path from 'path';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
+import { analyzer } from 'vite-bundle-analyzer';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   base: '/',
   plugins: [
     react(),
+    // Only include bundle analyzer in development or when explicitly requested
+    ...(mode === 'development' || process.env.BUNDLE_ANALYZE === 'true' ? [
+      analyzer({
+        analyzerMode: 'static',
+        fileName: 'bundle-analysis',
+        openAnalyzer: false
+      })
+    ] : []),
     imagetools({
       defaultDirectives: (url) => {
         // Process images for WebP optimization
@@ -184,4 +193,4 @@ export default defineConfig({
   css: {
     devSourcemap: true,
   },
-});
+}));
