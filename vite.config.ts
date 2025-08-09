@@ -70,7 +70,6 @@ export default defineConfig({
       'tailwind-merge'
     ],
     exclude: [
-      'lucide-react', // Keep icons separate for better tree-shaking
       '@storybook/test',
       '@storybook/react',
       'vitest',
@@ -79,7 +78,7 @@ export default defineConfig({
       '@xenova/transformers', // Exclude embeddings library
       'onnxruntime-web' // Exclude ONNX runtime
     ],
-    force: true, // Force re-optimization for performance
+    // Remove force: true to avoid aggressive re-optimization
   },
   build: {
     // Enable CSS code splitting for better performance
@@ -90,16 +89,8 @@ export default defineConfig({
       strictRequires: 'auto'
     },
     rollupOptions: {
-      // Tree shaking with conservative settings to avoid Rollup bug
-      // Many nested ternaries have been refactored to helper functions
-      // See src/lib/utils/performance-helpers.ts for the helper functions
-      treeshake: {
-        moduleSideEffects: true,
-        propertyReadSideEffects: true, // More conservative
-        tryCatchDeoptimization: false, // Avoid aggressive optimization
-        unknownGlobalSideEffects: true, // More conservative
-        correctVarValueBeforeDeclaration: false, // Avoid problematic optimization
-      },
+      // Use default tree shaking to fix module loading issues
+      // (removing custom treeshake config entirely)
       // Remove the external configuration as it's causing build issues
       output: {
         // Ensure proper module format
@@ -114,8 +105,8 @@ export default defineConfig({
         entryFileNames: `assets/[name]-[hash].js`,
         chunkFileNames: `assets/[name]-[hash].js`,
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Ensure modules are properly hoisted
-        hoistTransitiveImports: false,
+        // Allow modules to be properly hoisted for correct initialization order
+        hoistTransitiveImports: true,
         // Balanced chunking strategy from production postmortem (2025-06-22)
         // This approach maintains reliability while optimizing performance
         manualChunks: (id) => {
@@ -124,23 +115,24 @@ export default defineConfig({
             return 'embeddings-excluded';
           }
           
-          // Critical React core - bundle together to prevent initialization issues
+          // Keep React and ReactDOM together to prevent hook issues
           if (id.includes('react-dom')) return 'react-core';
-          if (id.includes('react') && !id.includes('react-router') && !id.includes('@radix-ui')) return 'react-core';
-          if (id.includes('@radix-ui/react-slot')) return 'react-core';
+          if (id.includes('react') && !id.includes('react-router')) return 'react-core';
           
-          // React ecosystem - can load after core is initialized
-          if (id.includes('react-router-dom')) return 'react-ecosystem';
-          if (id.includes('class-variance-authority')) return 'react-ecosystem';
-          if (id.includes('clsx')) return 'react-ecosystem';
-          if (id.includes('tailwind-merge')) return 'react-ecosystem';
+          // React Router separate
+          if (id.includes('react-router-dom')) return 'react-router';
+          
+          // Bundle all Radix UI together to prevent initialization issues
+          if (id.includes('@radix-ui')) return 'ui-radix';
+          
+          // Utility libraries
+          if (id.includes('class-variance-authority')) return 'utils';
+          if (id.includes('clsx')) return 'utils';
+          if (id.includes('tailwind-merge')) return 'utils';
           
           // Heavy chart libraries - lazy loaded, separate for better caching
           if (id.includes('@nivo')) return 'charts-nivo';
           if (id.includes('recharts')) return 'charts-recharts';
-          
-          // UI component library - used throughout app (group all Radix UI)
-          if (id.includes('@radix-ui')) return 'ui-radix';
           
           // Icons - separate for optimal tree-shaking
           if (id.includes('lucide-react')) return 'icons';
