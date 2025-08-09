@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/common/theming";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { PWAInstallPrompt } from "@/components/ui/pwa-install-prompt";
+import { OfflineNotification } from "@/components/common/OfflineNotification";
 // Progressive capture modules loaded dynamically after initial render
 import { Layout, Home, NotFound } from "@/components/common/layout";
 import { ProtectedRoute, AdminRoute } from "@/components/features/auth";
@@ -256,6 +257,7 @@ function App() {
     <ErrorBoundary context="Application Root">
       <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
         <Router>
+          <OfflineNotification />
           <Suspense fallback={<PageSkeleton />}>
             <Routes>
             <Route path="/login" element={<LoginPage />} />

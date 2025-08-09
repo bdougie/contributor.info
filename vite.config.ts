@@ -79,7 +79,6 @@ export default defineConfig(({ mode }) => ({
       'tailwind-merge'
     ],
     exclude: [
-      'lucide-react', // Keep icons separate for better tree-shaking
       '@storybook/test',
       '@storybook/react',
       'vitest',
@@ -88,7 +87,7 @@ export default defineConfig(({ mode }) => ({
       '@xenova/transformers', // Exclude embeddings library
       'onnxruntime-web' // Exclude ONNX runtime
     ],
-    force: true, // Force re-optimization for performance
+    // Remove force: true to avoid aggressive re-optimization
   },
   build: {
     // Enable CSS code splitting for better performance
@@ -99,16 +98,8 @@ export default defineConfig(({ mode }) => ({
       strictRequires: 'auto'
     },
     rollupOptions: {
-      // Tree shaking with conservative settings to avoid Rollup bug
-      // Many nested ternaries have been refactored to helper functions
-      // See src/lib/utils/performance-helpers.ts for the helper functions
-      treeshake: {
-        moduleSideEffects: true,
-        propertyReadSideEffects: true, // More conservative
-        tryCatchDeoptimization: false, // Avoid aggressive optimization
-        unknownGlobalSideEffects: true, // More conservative
-        correctVarValueBeforeDeclaration: false, // Avoid problematic optimization
-      },
+      // Use default tree shaking to fix module loading issues
+      // (removing custom treeshake config entirely)
       // Remove the external configuration as it's causing build issues
       output: {
         // Ensure proper module format
@@ -123,8 +114,8 @@ export default defineConfig(({ mode }) => ({
         entryFileNames: `assets/[name]-[hash].js`,
         chunkFileNames: `assets/[name]-[hash].js`,
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Ensure modules are properly hoisted
-        hoistTransitiveImports: false,
+        // Allow modules to be properly hoisted for correct initialization order
+        hoistTransitiveImports: true,
         // Balanced chunking strategy from production postmortem (2025-06-22)
         // This approach maintains reliability while optimizing performance
         manualChunks: (id) => {

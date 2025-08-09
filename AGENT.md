@@ -1,4 +1,6 @@
-# GitHub Copilot Instructions for contributor.info
+# AI Agent Instructions
+
+This document contains the same instructions as CLAUDE.md and .github/copilot-instructions.md, maintained for compatibility with various AI assistants and tools.
 
 ## Build Commands
 
