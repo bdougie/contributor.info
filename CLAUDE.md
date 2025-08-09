@@ -166,3 +166,4 @@ When implementing features that load data or process information in the backgrou
 - Automatic detection and improvement of data quality
 - Subtle, helpful notifications (not technical jargon)
 - Graceful error handling and fallbacks
+- check the bulletproof testing doc before fixing tests
