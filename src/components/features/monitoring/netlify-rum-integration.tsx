@@ -1,7 +1,7 @@
+import { ExternalLink, BarChart3, TrendingUp, Users, Globe } from '@/components/ui/icon';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ExternalLink, BarChart3, TrendingUp, Users, Globe } from 'lucide-react';
 
 /**
  * Netlify RUM Integration Component

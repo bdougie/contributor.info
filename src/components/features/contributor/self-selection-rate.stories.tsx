@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { Users, UserCheck, TrendingUp, TrendingDown } from 'lucide-react'
+import { Users, UserCheck, TrendingUp, TrendingDown } from '@/components/ui/icon'
 
 // Mock data for different scenarios
 const mockStatsData = {

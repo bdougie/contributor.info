@@ -1,3 +1,4 @@
+import { GitPullRequest } from '@/components/ui/icon';
 import {
   HoverCard,
   HoverCardContent,
@@ -5,7 +6,6 @@ import {
 } from "@/components/ui/hover-card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { GitPullRequest } from "lucide-react";
 import { format } from "date-fns";
 import type { PullRequest } from "@/lib/types";
 import { ContributionAnalyzer } from "@/lib/contribution-analyzer";

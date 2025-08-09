@@ -1,20 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
+import { Zap, GitBranch, Database, Clock, CheckCircle, XCircle, Loader2, RefreshCw, Activity } from '@/components/ui/icon';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Zap, 
-  GitBranch, 
-  Database, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  Loader2,
-  RefreshCw,
-  Activity
-} from 'lucide-react';
 import { HybridQueueManager } from '@/lib/progressive-capture/hybrid-queue-manager';
 import { cn } from '@/lib/utils';
 

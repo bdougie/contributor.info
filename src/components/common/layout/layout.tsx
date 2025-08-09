@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"
+import { Menu } from '@/components/ui/icon';
 import { Outlet, useNavigate, Link, useLocation } from "react-router-dom";
 import { ModeToggle } from "../theming";
 import { AuthButton } from "../../features/auth";
@@ -16,7 +17,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { HamburgerMenuIcon } from "@radix-ui/react-icons";
 import { supabase } from "@/lib/supabase";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 
@@ -59,7 +59,7 @@ export default function Layout() {
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <SheetTrigger asChild>
                 <button className="p-2 hover:bg-accent rounded-md">
-                  <HamburgerMenuIcon className="h-5 w-5" />
+                  <Menu className="h-5 w-5" />
                   <span className="sr-only">Open menu</span>
                 </button>
               </SheetTrigger>

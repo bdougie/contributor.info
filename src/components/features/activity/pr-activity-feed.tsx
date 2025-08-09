@@ -1,6 +1,6 @@
+import { Loader2 } from '@/components/ui/icon';
 import { ActivityItem } from "./activity-item";
 import { PullRequestActivity, ActivityType } from "@/lib/types";
-import { Loader2 } from "lucide-react";
 import { ActivityItemSkeleton } from "@/components/skeletons";
 
 export interface PullRequestActivityFeedProps {

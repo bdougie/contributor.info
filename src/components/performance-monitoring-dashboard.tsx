@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react'
+import { RefreshCw, AlertTriangle, CheckCircle, Clock, Database, Globe, Zap, Activity, Heart, Image } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, AlertTriangle, CheckCircle, Clock, Database, Globe, Zap, Activity, Heart, Image } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { githubAPIMonitoring } from '@/lib/github-api-monitoring';
 import { HybridQueueStatus } from '@/components/features/monitoring/hybrid-queue-status';

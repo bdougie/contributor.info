@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
+import { Database } from '@/components/ui/icon';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,

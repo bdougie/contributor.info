@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react'
+import { WifiOff, Wifi, AlertTriangle } from '@/components/ui/icon';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-import { WifiOff, Wifi, AlertTriangle } from 'lucide-react';
 
 export function OfflineNotification() {
   const { isOnline, isSlowConnection, effectiveType, saveData } = useOnlineStatus();

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState } from "react"
+import { GithubIcon } from '@/components/ui/icon';
 import {
   Dialog,
   DialogContent,
@@ -7,7 +8,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { GithubIcon } from "lucide-react";
 
 /**
  * Standalone page for testing the login dialog in isolation

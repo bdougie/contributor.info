@@ -1,3 +1,4 @@
+import { Trophy, TrendingUp } from '@/components/ui/icon';
 /**
  * Production wrapper for ContributorOfTheMonth
  * Connects the simple component to real dependencies
@@ -10,7 +11,6 @@ import {
 } from "./contributor-empty-state";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContributorOfMonthSkeleton } from "@/components/skeletons";
 import type { ContributorRanking } from "@/lib/types";

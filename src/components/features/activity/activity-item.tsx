@@ -1,5 +1,4 @@
 import { PullRequestActivity } from "@/lib/types";
-import { BotIcon } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -8,7 +7,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ContributorHoverCard } from "../contributor";
-import { useContext, useMemo, useState, useEffect } from "react";
+import { useContext, useMemo, useState, useEffect } from "react"
+import { BotIcon } from '@/components/ui/icon';
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { createContributorStats, createContributorStatsWithOrgs } from "@/lib/contributor-utils";
 import { useContributorRole } from "@/hooks/useContributorRoles";

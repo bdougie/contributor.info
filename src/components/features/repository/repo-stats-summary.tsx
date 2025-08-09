@@ -11,10 +11,10 @@ import { useTimeFormatter } from "@/hooks/use-time-formatter";
 import { LotteryFactor } from "@/lib/types";
 import { RepositoryInlineMetadata } from "@/components/ui/repository-inline-metadata";
 import { Button } from "@/components/ui/button";
-import { Clock, ChevronDown, RefreshCw } from "lucide-react";
 import { useRepositoryMetadata } from "@/hooks/use-repository-metadata";
 import { useTimeRangeStore } from "@/lib/time-range-store";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react"
+import { Clock, ChevronDown, RefreshCw } from '@/components/ui/icon';
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 

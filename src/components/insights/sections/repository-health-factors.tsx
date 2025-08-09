@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { Heart } from "lucide-react";
+import { useMemo } from "react"
+import { Heart } from '@/components/ui/icon';
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";

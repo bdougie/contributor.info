@@ -1,22 +1,8 @@
+import { Bug, Key, TestTube, Palette, Activity, FileText, Globe, Monitor, BarChart3, Image, Link, Database, GitBranch } from '@/components/ui/icon';
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Bug, 
-  Key, 
-  TestTube, 
-  Palette, 
-  Activity,
-  FileText,
-  Globe,
-  Monitor,
-  BarChart3,
-  Image,
-  Link,
-  Database,
-  GitBranch
-} from "lucide-react";
 
 interface DebugRoute {
   path: string;

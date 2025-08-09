@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react'
+import { RefreshCw, CheckCircle, XCircle, Clock, AlertCircle } from '@/components/ui/icon';
 import { supabase } from '@/lib/supabase';
 import { jobStatusReporter } from '@/lib/progressive-capture/job-status-reporter';
 import { hybridQueueManager } from '@/lib/progressive-capture/hybrid-queue-manager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface QueueStats {

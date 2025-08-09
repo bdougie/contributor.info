@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState } from "react"
+import { Loader2 } from '@/components/ui/icon';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
 import { analyzePullRequests } from "@/lib/insights/pullRequests";
 import { RepoInsightsContainer } from "@/components/insights/RepoInsightsContainer";
 import { Input } from "@/components/ui/input";

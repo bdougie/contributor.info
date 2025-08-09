@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState } from "react"
+import { Loader2, MessageSquare, AlertCircle } from '@/components/ui/icon';
 import {
   Sheet,
   SheetContent,
@@ -8,7 +9,6 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, MessageSquare, AlertCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { analyzePullRequests } from "@/lib/insights/pullRequests";
 import { useParams } from "react-router-dom";

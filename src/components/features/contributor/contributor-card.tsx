@@ -5,10 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 import { ContributorHoverCard } from "./contributor-hover-card";
-import { useMemo, useContext } from "react";
+import { useMemo, useContext } from "react"
+import { GitPullRequest, MessageSquare, GitPullRequestDraft, Trophy } from '@/components/ui/icon';
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { createContributorStats } from "@/lib/contributor-utils";
-import { GitPullRequest, MessageSquare, GitPullRequestDraft, Trophy } from "lucide-react";
 
 interface ContributorCardProps {
   contributor: MonthlyContributor;

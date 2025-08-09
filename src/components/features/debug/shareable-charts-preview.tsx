@@ -1,9 +1,9 @@
-import { useState, memo, useMemo } from "react";
+import { useState, memo, useMemo } from "react"
+import { Users, UserCheck, TrendingUp } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Users, UserCheck, TrendingUp } from "lucide-react";
 import { ShareableCapturePreview } from "./shareable-capture-preview";
 import { LotteryFactorContent } from "@/components/features/health/lottery-factor";
 import { LazyDistributionCharts } from "@/components/features/distribution/distribution-charts-lazy";
@@ -20,7 +20,6 @@ import {
   mockContributorRankingWinner,
   mockContributorRankingLeaderboard
 } from "./mock-data";
-
 
 // Mock Self-Selection Rate component for testing
 const MockSelfSelectionRate = memo(function MockSelfSelectionRate({ owner, repo, daysBack }: { owner: string; repo: string; daysBack: number }) {
@@ -155,7 +154,6 @@ const StackedContributorLeaderboard = memo(function StackedContributorLeaderboar
     </Card>
   );
 });
-
 
 export function ShareableChartsPreview() {
   const [selectedChart, setSelectedChart] = useState("lottery-factor");

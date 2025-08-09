@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
-import { useContext, useState, useEffect, useRef } from "react";
+import { useContext, useState, useEffect, useRef } from "react"
+import { Bot } from '@/components/ui/icon';
 import {
   Card,
   CardContent,
@@ -10,7 +11,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Bot } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { RepositoryHealthOverall } from "@/components/insights/sections/repository-health-overall";
 import { RepositoryHealthFactors } from "@/components/insights/sections/repository-health-factors";

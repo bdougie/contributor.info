@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState } from 'react'
+import { Shield, AlertTriangle, Info } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
@@ -13,7 +14,6 @@ import {
   AlertDescription,
 } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Shield, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SpamFilterOptions } from '@/lib/api/spam-filtered-feed';
 import { useSpamTolerancePresets } from '@/hooks/use-spam-filtered-feed';

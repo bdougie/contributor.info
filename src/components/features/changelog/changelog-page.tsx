@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"
+import { Package, Bug, Sparkles, Rss } from '@/components/ui/icon';
 import { Markdown } from "@/components/common/layout/markdown";
 import {
   Card,
@@ -10,7 +11,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Package, Bug, Sparkles, Rss } from "lucide-react";
 import { ChangelogNavigation } from "./changelog-navigation";
 import { ChangelogSEO } from "./changelog-seo";
 import { LastUpdated } from "@/components/ui/last-updated";

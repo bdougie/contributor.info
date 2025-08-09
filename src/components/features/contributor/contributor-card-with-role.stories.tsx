@@ -160,7 +160,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { ContributorHoverCard } from "./contributor-hover-card";
 import { useMemo } from "react";
-import { GitPullRequest, MessageSquare, GitPullRequestDraft, Trophy, Shield, User, Bot } from "lucide-react";
+import { GitPullRequest, MessageSquare, GitPullRequestDraft, Trophy, Shield, User, Bot } from "@/components/ui/icon";
 
 const ContributorCardStory = ({ 
   contributor, 
