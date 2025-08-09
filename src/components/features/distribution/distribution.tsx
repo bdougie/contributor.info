@@ -1,8 +1,8 @@
-import { useContext, useState, useEffect, Suspense, useMemo } from "react";
+import { useContext, useState, useEffect, Suspense, useMemo } from "react"
+import { PieChart, BarChart3, TreePine } from '@/components/ui/icon';
 import { useSearchParams, useParams } from "react-router-dom";
 import { CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { PieChart, BarChart3, TreePine } from "lucide-react";
 import { ShareableCard } from "@/components/features/sharing/shareable-card";
 import { LanguageLegend } from "./language-legend";
 import { LazyDistributionCharts } from "./distribution-charts-lazy";

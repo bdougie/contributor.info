@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { Heart, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useMemo } from "react"
+import { Heart, TrendingUp, TrendingDown, Minus } from '@/components/ui/icon';
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";

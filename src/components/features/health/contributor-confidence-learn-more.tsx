@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Star, MessageSquare, RotateCcw, CheckCircle, TrendingUp, Users, Target } from "lucide-react";
+import { useState } from "react"
+import { Star, MessageSquare, RotateCcw, CheckCircle, TrendingUp, Users, Target } from '@/components/ui/icon';
 import {
   Dialog,
   DialogContent,

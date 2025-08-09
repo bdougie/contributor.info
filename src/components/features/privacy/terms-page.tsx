@@ -1,6 +1,6 @@
+import { ArrowLeft, ExternalLink } from '@/components/ui/icon';
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ExternalLink } from "lucide-react";
 
 export function TermsPage() {
   const navigate = useNavigate();

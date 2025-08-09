@@ -1,4 +1,4 @@
-import { GitPullRequest, Users, Activity, TrendingUp, AlertCircle } from 'lucide-react';
+import { GitPullRequest, Users, Activity, TrendingUp, AlertCircle } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LoadingStage } from '@/lib/types/data-loading-errors';

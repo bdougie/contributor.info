@@ -1,7 +1,7 @@
-import React from 'react';
+import React from 'react'
+import { ChevronLeft } from '@/components/ui/icon';
 import { useLocation, useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { ChevronLeft } from 'lucide-react';
 import {
   Breadcrumb,
   BreadcrumbList,

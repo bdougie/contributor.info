@@ -1,3 +1,4 @@
+import { Trophy, TrendingUp } from '@/components/ui/icon';
 import { ContributorRanking } from "@/lib/types";
 import { ContributorCard } from "./contributor-card";
 import {
@@ -6,7 +7,6 @@ import {
 } from "./contributor-empty-state";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContributorOfMonthSkeleton } from "@/components/skeletons";
 

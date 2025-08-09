@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo } from "react"
+import { Database } from '@/components/ui/icon';
 import { useParams } from "react-router-dom";
 import {
   Card,
@@ -11,14 +12,12 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Database } from "lucide-react";
 import { SpamFilterControls } from "@/components/features/spam/spam-filter-controls";
 import { SpamAwareActivityItem } from "./spam-aware-activity-item";
 import { ActivityItemSkeleton } from "@/components/skeletons";
 import { useSpamFilteredFeed } from "@/hooks/use-spam-filtered-feed";
 import { usePRActivityStore } from "@/lib/pr-activity-store";
 import { convertDatabasePRsToActivities, sortActivitiesByTimestamp } from "@/lib/api/pr-activity-adapter";
-
 
 export default function FilteredPRActivity() {
   const { owner, repo: repoName } = useParams<{ owner: string; repo: string }>();

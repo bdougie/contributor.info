@@ -1,8 +1,9 @@
+import { Trophy, Users, Calendar, TrendingUp } from '@/components/ui/icon';
 /**
  * Production wrapper for ContributorEmptyState
  * This connects the simple component with actual UI libraries
  */
-import { Trophy, Users, Calendar, TrendingUp } from "lucide-react";
+;
 import { cn } from "@/lib/utils";
 import { ContributorEmptyStateSimple } from "./contributor-empty-state-simple";
 import type { EmptyStateType } from "@/lib/contributor-empty-state-config";

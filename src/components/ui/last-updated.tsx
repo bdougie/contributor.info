@@ -1,6 +1,6 @@
+import { Clock } from '@/components/ui/icon';
 import { cn } from "@/lib/utils";
 import { useTimeFormatter } from "@/hooks/use-time-formatter";
-import { Clock } from "lucide-react";
 import { sanitizeString } from "@/lib/validation/validation-utils";
 
 interface LastUpdatedProps {

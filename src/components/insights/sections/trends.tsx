@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
-import { TrendingUp, TrendingDown, Activity, Calendar, Users, GitPullRequest } from "lucide-react";
+import { useState, useEffect } from "react"
+import { TrendingUp, TrendingDown, Activity, Calendar, Users, GitPullRequest } from '@/components/ui/icon';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { calculateTrendMetrics, type TrendData } from "@/lib/insights/trends-metrics";
-
 
 interface TrendsProps {
   owner: string;

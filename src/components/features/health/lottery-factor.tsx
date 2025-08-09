@@ -1,4 +1,5 @@
-import { useContext, useState, useEffect, useRef } from "react";
+import { useContext, useState, useEffect, useRef } from "react"
+import { HelpCircle, Users, Bot, ArrowLeft, ArrowRight, GitPullRequest, Percent,  } from '@/components/ui/icon';
 import { useParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import {
@@ -10,15 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  HelpCircle,
-  Users,
-  Bot,
-  ArrowLeft,
-  ArrowRight,
-  GitPullRequest,
-  Percent,
-} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,

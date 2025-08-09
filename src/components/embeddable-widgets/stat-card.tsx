@@ -1,6 +1,6 @@
+import { Users, GitPullRequest, Target, TrendingUp } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, GitPullRequest, Target, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { StatCardConfig, WidgetData } from "./widget-types";
 

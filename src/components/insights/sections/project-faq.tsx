@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ChevronDown, ChevronRight, HelpCircle } from "lucide-react";
+import { useState, useEffect } from "react"
+import { ChevronDown, ChevronRight, HelpCircle } from '@/components/ui/icon';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";

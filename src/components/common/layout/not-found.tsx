@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react"
+import { Terminal, Search, TrendingUp, Clock, Star, GitBranch, AlertTriangle, Loader2, CheckCircle } from '@/components/ui/icon';
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Terminal, Search, TrendingUp, Clock, Star, GitBranch, AlertTriangle, Loader2, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SocialMetaTags } from "./meta-tags-provider";
 import { GitHubSearchInput } from "@/components/ui/github-search-input";
@@ -156,7 +156,6 @@ export default function NotFound() {
 
     return () => clearInterval(cursorInterval);
   }, []);
-
 
   // Handle navigation (both keyboard and button)
   const handleNavigation = (path: string = '/') => {

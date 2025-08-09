@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
+import { Users, UserCheck, TrendingUp, TrendingDown, RefreshCw, Database, LogIn } from '@/components/ui/icon';
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { Users, UserCheck, TrendingUp, TrendingDown, RefreshCw, Database, LogIn } from 'lucide-react'
+
 import { useOnDemandSync } from '@/hooks/use-on-demand-sync'
 import { useGitHubAuth } from '@/hooks/use-github-auth'
 import { ShareableCard } from '@/components/features/sharing/shareable-card'

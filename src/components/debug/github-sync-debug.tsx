@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { RefreshCw, Database, CheckCircle, XCircle, Info } from '@/components/ui/icon';
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -7,7 +8,6 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useGitHubAuth } from '@/hooks/use-github-auth'
-import { RefreshCw, Database, CheckCircle, XCircle, Info } from 'lucide-react'
 
 export function GitHubSyncDebug() {
   const [owner, setOwner] = useState('continuedev')

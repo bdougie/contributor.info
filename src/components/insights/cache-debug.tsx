@@ -2,12 +2,12 @@
  * Debug component for cache statistics (development only)
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"
+import { Database, Trash2, BarChart3 } from '@/components/ui/icon';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cacheService, type CacheStats } from "@/lib/llm";
-import { Database, Trash2, BarChart3 } from "lucide-react";
 
 export function CacheDebug() {
   const [stats, setStats] = useState<CacheStats | null>(null);

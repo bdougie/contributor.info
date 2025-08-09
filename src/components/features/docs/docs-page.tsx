@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"
+import { Book, FileText } from '@/components/ui/icon';
 import { Markdown } from "@/components/common/layout/markdown";
 import {
   Card,
@@ -9,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Book, FileText } from "lucide-react";
 import { DocsNavigation } from "./docs-navigation";
 import { DocsToc } from "./docs-toc";
 import { DocsSEO } from "./docs-seo";

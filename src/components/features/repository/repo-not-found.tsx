@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react"
+import { Terminal, SearchIcon } from '@/components/ui/icon';
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Terminal, SearchIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SocialMetaTags } from "@/components/common/layout/meta-tags-provider";
 import { ExampleRepos } from "./example-repos";
@@ -41,7 +41,6 @@ export default function RepoNotFound() {
       clearTimeout(promptTimer);
     };
   }, []);
-
 
   return (
     <div className="container mx-auto py-2">

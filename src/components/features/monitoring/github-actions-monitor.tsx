@@ -1,18 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
+import { GitBranch, ExternalLink, CheckCircle, XCircle, Clock, Loader2, RefreshCw, Activity } from '@/components/ui/icon';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { 
-  GitBranch, 
-  ExternalLink, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Loader2,
-  RefreshCw,
-  Activity
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface WorkflowRun {

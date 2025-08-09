@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react"
+import { SearchIcon, Star, Clock, GitBranch, Loader2 } from '@/components/ui/icon';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchIcon, Star, Clock, GitBranch, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGitHubSearch } from "@/hooks/use-github-search";
 import { OrganizationAvatar } from "@/components/ui/organization-avatar";
