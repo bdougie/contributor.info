@@ -24,6 +24,20 @@ export function createSupabaseClient() {
         persistSession: true,
         detectSessionInUrl: true, // Enable automatic session detection for OAuth redirects
         flowType: 'implicit'
+      },
+      global: {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      },
+      db: {
+        schema: 'public'
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10
+        }
       }
     }
   );
