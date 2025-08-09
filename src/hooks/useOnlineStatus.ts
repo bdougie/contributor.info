@@ -26,76 +26,136 @@ declare global {
   }
 }
 
-export function useOnlineStatus(): OnlineStatus {
-  const [status, setStatus] = useState<OnlineStatus>(() => {
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    
+// Shared state to prevent duplicate event listeners
+let sharedStatus: OnlineStatus | null = null;
+let listeners: Set<(status: OnlineStatus) => void> = new Set();
+let intervalId: number | null = null;
+
+// Initialize shared status safely for SSR
+function getInitialStatus(): OnlineStatus {
+  if (typeof navigator === 'undefined') {
     return {
-      isOnline: navigator.onLine,
-      isSlowConnection: connection?.effectiveType === '2g' || connection?.effectiveType === 'slow-2g' || false,
-      connectionType: connection?.type,
-      effectiveType: connection?.effectiveType,
-      downlink: connection?.downlink,
-      rtt: connection?.rtt,
-      saveData: connection?.saveData || false
+      isOnline: true,
+      isSlowConnection: false,
+      connectionType: undefined,
+      effectiveType: undefined,
+      downlink: undefined,
+      rtt: undefined,
+      saveData: false
     };
-  });
+  }
+  
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  
+  return {
+    isOnline: navigator.onLine,
+    isSlowConnection: connection?.effectiveType === '2g' || connection?.effectiveType === 'slow-2g' || false,
+    connectionType: connection?.type,
+    effectiveType: connection?.effectiveType,
+    downlink: connection?.downlink,
+    rtt: connection?.rtt,
+    saveData: connection?.saveData || false
+  };
+}
 
-  useEffect(() => {
-    const updateOnlineStatus = () => {
-      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-      
-      setStatus({
-        isOnline: navigator.onLine,
-        isSlowConnection: connection?.effectiveType === '2g' || connection?.effectiveType === 'slow-2g' || false,
-        connectionType: connection?.type,
-        effectiveType: connection?.effectiveType,
-        downlink: connection?.downlink,
-        rtt: connection?.rtt,
-        saveData: connection?.saveData || false
-      });
-    };
+// Update all subscribers
+function notifyListeners(status: OnlineStatus) {
+  sharedStatus = status;
+  listeners.forEach(listener => listener(status));
+}
 
-    const handleOnline = () => {
-      console.log('[Online Status] Connection restored');
-      updateOnlineStatus();
-    };
+// Setup shared event listeners once
+function setupSharedListeners() {
+  if (typeof window === 'undefined') return;
+  
+  const updateStatus = () => {
+    const newStatus = getInitialStatus();
+    notifyListeners(newStatus);
+  };
 
-    const handleOffline = () => {
-      console.log('[Online Status] Connection lost');
-      updateOnlineStatus();
-    };
+  const handleOnline = () => {
+    console.log('[Online Status] Connection restored');
+    updateStatus();
+  };
 
-    const handleConnectionChange = () => {
-      console.log('[Online Status] Connection quality changed');
-      updateOnlineStatus();
-    };
+  const handleOffline = () => {
+    console.log('[Online Status] Connection lost');
+    updateStatus();
+  };
 
-    // Listen to online/offline events
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+  const handleConnectionChange = () => {
+    console.log('[Online Status] Connection quality changed');
+    updateStatus();
+  };
 
-    // Listen to connection changes if available
+  // Listen to online/offline events
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
+
+  // Listen to connection changes if available
+  if (typeof navigator !== 'undefined') {
     const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     if (connection && 'addEventListener' in connection) {
       (connection as EventTarget).addEventListener('change', handleConnectionChange);
     }
+  }
 
-    // Check status on mount
-    updateOnlineStatus();
+  // Periodic check (every 30 seconds)
+  intervalId = window.setInterval(updateStatus, 30000);
 
-    // Periodic check (every 30 seconds)
-    const intervalId = setInterval(updateOnlineStatus, 30000);
+  // Initial status update
+  updateStatus();
 
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      
+  return () => {
+    window.removeEventListener('online', handleOnline);
+    window.removeEventListener('offline', handleOffline);
+    
+    if (typeof navigator !== 'undefined') {
+      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
       if (connection && 'removeEventListener' in connection) {
         (connection as EventTarget).removeEventListener('change', handleConnectionChange);
       }
+    }
+    
+    if (intervalId !== null) {
+      window.clearInterval(intervalId);
+      intervalId = null;
+    }
+  };
+}
+
+let cleanup: (() => void) | null = null;
+
+export function useOnlineStatus(): OnlineStatus {
+  const [status, setStatus] = useState<OnlineStatus>(() => {
+    // Safe initialization for SSR
+    return sharedStatus || getInitialStatus();
+  });
+
+  useEffect(() => {
+    // Setup shared listeners if not already done
+    if (listeners.size === 0 && cleanup === null) {
+      cleanup = setupSharedListeners();
+    }
+
+    // Add this component's listener
+    listeners.add(setStatus);
+
+    // Set initial status if available
+    if (sharedStatus) {
+      setStatus(sharedStatus);
+    }
+
+    return () => {
+      // Remove this component's listener
+      listeners.delete(setStatus);
       
-      clearInterval(intervalId);
+      // If no more listeners, cleanup shared resources
+      if (listeners.size === 0 && cleanup) {
+        cleanup();
+        cleanup = null;
+        sharedStatus = null;
+      }
     };
   }, []);
 

@@ -177,7 +177,7 @@ async function handleSupabaseRequest(request, cacheName) {
       const headers = new Headers(responseClone.headers);
       headers.set('sw-cached-date', new Date().toISOString());
       
-      const modifiedResponse = new Response(await responseClone.blob(), {
+      const modifiedResponse = new Response(responseClone.body, {
         status: responseClone.status,
         statusText: responseClone.statusText,
         headers
@@ -232,7 +232,7 @@ async function handleAPIRequest(request, cacheName, maxAge) {
       const headers = new Headers(responseClone.headers);
       headers.set('sw-cached-date', new Date().toISOString());
       
-      const modifiedResponse = new Response(await responseClone.blob(), {
+      const modifiedResponse = new Response(responseClone.body, {
         status: responseClone.status,
         statusText: responseClone.statusText,
         headers
@@ -299,7 +299,7 @@ async function handleImageRequest(request, cacheName) {
       const headers = new Headers(responseClone.headers);
       headers.set('sw-cached-date', new Date().toISOString());
       
-      const modifiedResponse = new Response(await responseClone.blob(), {
+      const modifiedResponse = new Response(responseClone.body, {
         status: responseClone.status,
         statusText: responseClone.statusText,
         headers
