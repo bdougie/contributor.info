@@ -30,6 +30,18 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install git hooks
+        run: npm run hooks:install
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@beta
@@ -50,7 +62,7 @@ jobs:
           # assignee_trigger: "claude-bot"
           
           # Allow Claude to run specific commands
-          allowed_tools: "Bash(npm install),Bash(npm run build),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test)"
+          allowed_tools: "Bash(npm install),Bash(npm run build),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run hooks:install),Bash(npm run hooks:uninstall)"
           
           # Add custom instructions for Claude to customize its behavior for your project
           custom_instructions: |
@@ -63,6 +75,7 @@ jobs:
             - Mock Supabase in tests
             - PR descriptions should be 200 words or less in markdown with headers
             - Read the /docs, especially bulletproof testing
+            - Git hooks are available: npm run hooks:install enables pre-push build validation
           
           # Optional: Custom environment variables for Claude
           # claude_env: |
