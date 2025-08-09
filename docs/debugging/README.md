@@ -15,6 +15,7 @@ Debugging documentation helps developers:
 ### 🔧 System Integration Debugging
 - **[GitHub Actions & Inngest Issues](./github-actions-inngest-issues.md)** - Debugging workflow and background job integration problems
 - **[406 Error and Sync Issues](./406-error-and-sync-issues.md)** - Fixing Supabase 406 errors and repository sync problems
+- **[Supabase .single() vs .maybeSingle()](./supabase-single-vs-maybeSingle.md)** - Common 406 error cause and how to properly use Supabase query methods
 
 ### 🧪 Test Debugging & Optimization
 - **[Memory Leak Fix - LastUpdated Tests](./memory-leak-fix-last-updated-tests.md)** - Comprehensive guide to fixing memory leaks and CI hangs in React component tests
