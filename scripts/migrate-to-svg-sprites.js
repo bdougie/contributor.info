@@ -36,8 +36,8 @@ async function migrateFile(filePath) {
     
     console.log(`📝 Migrating: ${filePath}`);
     
-    // Extract lucide-react imports
-    const lucideImportRegex = /import\s*\{([^}]+)\}\s*from\s*['"]lucide-react['"]/g;
+    // Extract lucide-react imports (including type imports)
+    const lucideImportRegex = /import\s+(?:type\s+)?\{([^}]+)\}\s*from\s*['"]lucide-react['"]/g;
     const matches = [...content.matchAll(lucideImportRegex)];
     
     if (matches.length > 0) {

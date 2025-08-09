@@ -1,4 +1,4 @@
-import * as React from "react"
+import * as React from "react";
 import { ChevronLeft, ChevronRight } from '@/components/ui/icon';
 import { DayPicker } from "react-day-picker";
 
