@@ -7,13 +7,13 @@ echo "🔨 Running pre-push checks..."
 
 # Run TypeScript compilation check
 echo "📝 Checking TypeScript compilation..."
-tsc --noEmit
+npx tsc --noEmit
 BUILD_STATUS=$?
 
 # Check if build failed
 if [ $BUILD_STATUS -ne 0 ]; then
     echo "❌ TypeScript compilation failed! Please fix errors before pushing."
-    echo "💡 Run 'tsc --noEmit' to see the errors."
+    echo "💡 Run 'npx tsc --noEmit' to see the errors."
     exit 1
 fi
 

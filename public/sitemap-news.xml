@@ -3,14 +3,14 @@
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
   
   <url>
-    <loc>https://contributor.info/pytorch/pytorch</loc>
+    <loc>https://contributor.info/open-sauced/app</loc>
     <news:news>
       <news:publication>
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-08-09</news:publication_date>
-      <news:title>pytorch/pytorch - Contributor Updates</news:title>
+      <news:publication_date>2025-08-08</news:publication_date>
+      <news:title>open-sauced/app - Contributor Updates</news:title>
     </news:news>
   </url>
   <url>
@@ -25,14 +25,14 @@
     </news:news>
   </url>
   <url>
-    <loc>https://contributor.info/open-sauced/app</loc>
+    <loc>https://contributor.info/pytorch/pytorch</loc>
     <news:news>
       <news:publication>
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2025-08-08</news:publication_date>
-      <news:title>open-sauced/app - Contributor Updates</news:title>
+      <news:publication_date>2025-08-09</news:publication_date>
+      <news:title>pytorch/pytorch - Contributor Updates</news:title>
     </news:news>
   </url>
 </urlset>
