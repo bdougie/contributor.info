@@ -16,7 +16,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { HamburgerMenuIcon } from "@radix-ui/react-icons";
+import { Menu } from 'lucide-react';
 import { supabase } from "@/lib/supabase";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 
@@ -59,7 +59,7 @@ export default function Layout() {
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <SheetTrigger asChild>
                 <button className="p-2 hover:bg-accent rounded-md">
-                  <HamburgerMenuIcon className="h-5 w-5" />
+                  <Menu className="h-5 w-5" />
                   <span className="sr-only">Open menu</span>
                 </button>
               </SheetTrigger>
