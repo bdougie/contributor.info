@@ -44,10 +44,10 @@ jobs:
           # model: "claude-opus-4-20250514"
           
           # Optional: Customize the trigger phrase (default: @claude)
-          # trigger_phrase: "/claude"
+          trigger_phrase: "/claude"
           
           # Optional: Trigger when specific user is assigned to an issue
-          # assignee_trigger: "claude-bot"
+          assignee_trigger: "claude-bot"
           
           # Allow Claude to run specific commands
           allowed_tools: "Bash(npm install),Bash(npm run build),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test)"
@@ -62,6 +62,7 @@ jobs:
             - Never use 'any' in TypeScript
             - Mock Supabase in tests
             - PR descriptions should be 200 words or less in markdown with headers
+            - Read the /docs, especially bulletproof testing
           
           # Optional: Custom environment variables for Claude
           # claude_env: |
