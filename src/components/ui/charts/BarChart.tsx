@@ -50,13 +50,9 @@ export const BarChart: React.FC<BarChartProps> = ({
     // Calculate bar positioning for grouped bars
     const numSeries = data.datasets.length;
     
-    // Guard against division by zero when datasets is empty
-    if (numSeries === 0) {
-      throw new Error('BarChart: Cannot render chart with empty datasets array');
-    }
-    
-    const seriesBarWidth = grouped ? barWidth / numSeries : barWidth;
-    const groupOffset = grouped ? (barWidth - seriesBarWidth) / 2 : 0;
+    // Handle empty datasets gracefully - avoid division by zero
+    const seriesBarWidth = numSeries > 0 && grouped ? barWidth / numSeries : barWidth;
+    const groupOffset = numSeries > 0 && grouped ? (barWidth - seriesBarWidth) / 2 : 0;
 
     // Configure series (first entry is always x-axis)
     const series: Series[] = [
