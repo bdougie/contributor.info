@@ -11,6 +11,9 @@ export type { AreaChartProps } from './AreaChart';
 export { BarChart } from './BarChart';
 export type { BarChartProps } from './BarChart';
 
+export { DonutChart } from './DonutChart';
+export type { DonutChartProps, DonutChartData } from './DonutChart';
+
 export { getChartTheme, getSeriesColors, lightTheme, darkTheme } from './theme-config';
 export type { ChartTheme } from './theme-config';
 
