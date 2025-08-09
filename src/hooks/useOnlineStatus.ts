@@ -135,7 +135,7 @@ export function useOnlineStatus(): OnlineStatus {
   useEffect(() => {
     // Setup shared listeners if not already done
     if (listeners.size === 0 && cleanup === null) {
-      cleanup = setupSharedListeners();
+      cleanup = setupSharedListeners() || null;
     }
 
     // Add this component's listener
