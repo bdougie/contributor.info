@@ -1,0 +1,194 @@
+[
+  {
+    "owner": "Ad-Astra-Innovia",
+    "name": "frontend"
+  },
+  {
+    "owner": "analogjs",
+    "name": "analog"
+  },
+  {
+    "owner": "angular",
+    "name": "angular"
+  },
+  {
+    "owner": "anthropics",
+    "name": "claude-code"
+  },
+  {
+    "owner": "argoproj",
+    "name": "argo-cd"
+  },
+  {
+    "owner": "axios",
+    "name": "axios"
+  },
+  {
+    "owner": "bdougie",
+    "name": "contributor.info"
+  },
+  {
+    "owner": "better-auth",
+    "name": "better-auth"
+  },
+  {
+    "owner": "BlueMatthew",
+    "name": "WechatExporter"
+  },
+  {
+    "owner": "clickhouse",
+    "name": "clickhouse"
+  },
+  {
+    "owner": "cline",
+    "name": "cline"
+  },
+  {
+    "owner": "continuedev",
+    "name": "continue"
+  },
+  {
+    "owner": "duckdb",
+    "name": "duckdb"
+  },
+  {
+    "owner": "etcd-io",
+    "name": "etcd"
+  },
+  {
+    "owner": "excalidraw",
+    "name": "excalidraw"
+  },
+  {
+    "owner": "expressjs",
+    "name": "express"
+  },
+  {
+    "owner": "facebook",
+    "name": "docusaurus"
+  },
+  {
+    "owner": "facebook",
+    "name": "react"
+  },
+  {
+    "owner": "fastapi",
+    "name": "fastapi"
+  },
+  {
+    "owner": "github",
+    "name": "docs"
+  },
+  {
+    "owner": "golang",
+    "name": "go"
+  },
+  {
+    "owner": "grafana",
+    "name": "grafana"
+  },
+  {
+    "owner": "huggingface",
+    "name": "transformers"
+  },
+  {
+    "owner": "kubernetes",
+    "name": "kubernetes"
+  },
+  {
+    "owner": "langchain-ai",
+    "name": "langchain"
+  },
+  {
+    "owner": "lodash",
+    "name": "lodash"
+  },
+  {
+    "owner": "microsoft",
+    "name": "vscode"
+  },
+  {
+    "owner": "moment",
+    "name": "moment"
+  },
+  {
+    "owner": "nestjs",
+    "name": "nest"
+  },
+  {
+    "owner": "open-sauced",
+    "name": "app"
+  },
+  {
+    "owner": "pgvector",
+    "name": "pgvector"
+  },
+  {
+    "owner": "pingcap",
+    "name": "tidb"
+  },
+  {
+    "owner": "prometheus",
+    "name": "prometheus"
+  },
+  {
+    "owner": "pytorch",
+    "name": "pytorch"
+  },
+  {
+    "owner": "rivet-gg",
+    "name": "rivetkit"
+  },
+  {
+    "owner": "Robdel12",
+    "name": "DraftPatch"
+  },
+  {
+    "owner": "rust-lang",
+    "name": "rust"
+  },
+  {
+    "owner": "shadcn",
+    "name": "ui"
+  },
+  {
+    "owner": "supabase",
+    "name": "supabase"
+  },
+  {
+    "owner": "tensorflow",
+    "name": "tensorflow"
+  },
+  {
+    "owner": "terraform-providers",
+    "name": "terraform-provider-aws"
+  },
+  {
+    "owner": "test-org",
+    "name": "test-repo"
+  },
+  {
+    "owner": "testuser",
+    "name": "spam-test-repo"
+  },
+  {
+    "owner": "topoteretes",
+    "name": "cognee"
+  },
+  {
+    "owner": "vercel",
+    "name": "next.js"
+  },
+  {
+    "owner": "vitejs",
+    "name": "vite"
+  },
+  {
+    "owner": "vue",
+    "name": "vue"
+  },
+  {
+    "owner": "zulip",
+    "name": "zulip"
+  }
+]

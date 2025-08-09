@@ -47,11 +47,14 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
 
   // Handle chart resize
   const handleResize = useCallback(() => {
-    if (!plotRef.current || !responsive) return;
+    if (!plotRef.current) return;
+    
+    // Only resize if in responsive mode
+    if (!responsive) return;
 
     const { width, height } = getDimensions();
     plotRef.current.setSize({ width, height });
-    setActualDimensions({ width, height });
+    // Don't update state when responsive is true to avoid unnecessary re-renders
   }, [getDimensions, responsive]);
 
   // Initialize chart
