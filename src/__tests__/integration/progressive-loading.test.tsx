@@ -121,4 +121,192 @@ describe('Progressive Loading - Simple Test', () => {
     expect(result.current.stageProgress.full).toBe(true);
     expect(result.current.stageProgress.complete).toBe(true);
   });
+
+  describe('Cache hit/miss scenarios', () => {
+    it('should use cached data when available', async () => {
+      // First render to populate cache
+      const { result: firstResult, unmount: firstUnmount } = renderHook(() => 
+        useProgressiveRepoData('facebook', 'react', '90d', false)
+      );
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      });
+
+      const firstBasicInfo = firstResult.current.basicInfo;
+      firstUnmount();
+
+      // Second render should use cached data (within 5 minute cache window)
+      const { result: secondResult } = renderHook(() => 
+        useProgressiveRepoData('facebook', 'react', '90d', false)
+      );
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      });
+
+      // Should have same data from cache
+      expect(secondResult.current.basicInfo).toEqual(firstBasicInfo);
+      expect(secondResult.current.currentStage).not.toBe('initial');
+    });
+
+    it('should generate different cache keys for different parameters', async () => {
+      const { fetchPRDataSmart } = await import('@/lib/supabase-pr-data-smart-deduped');
+      const mockFetch = fetchPRDataSmart as ReturnType<typeof vi.fn>;
+      
+      // Clear previous calls
+      mockFetch.mockClear();
+
+      // Render with different parameters
+      const { result: result1 } = renderHook(() => 
+        useProgressiveRepoData('facebook', 'react', '90d', false)
+      );
+      
+      const { result: result2 } = renderHook(() => 
+        useProgressiveRepoData('facebook', 'react', '30d', false) // Different time range
+      );
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      });
+
+      // Should make separate API calls due to different cache keys
+      expect(mockFetch).toHaveBeenCalledWith('facebook', 'react', { timeRange: '90d' });
+      expect(mockFetch).toHaveBeenCalledWith('facebook', 'react', { timeRange: '30d' });
+      expect(mockFetch.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should bypass cache when data is expired', async () => {
+      // Mock Date.now to simulate cache expiration
+      const originalDateNow = Date.now;
+      const mockDateNow = vi.fn();
+      global.Date.now = mockDateNow;
+
+      try {
+        // First call - populate cache
+        mockDateNow.mockReturnValue(1000000); // Initial time
+        
+        const { result: firstResult, unmount: firstUnmount } = renderHook(() => 
+          useProgressiveRepoData('microsoft', 'vscode', '90d', false)
+        );
+
+        await act(async () => {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        });
+        
+        firstUnmount();
+
+        // Second call - simulate expired cache (after 5 minutes + 1ms)
+        mockDateNow.mockReturnValue(1000000 + (5 * 60 * 1000) + 1);
+        
+        const { fetchPRDataSmart } = await import('@/lib/supabase-pr-data-smart-deduped');
+        const mockFetch = fetchPRDataSmart as ReturnType<typeof vi.fn>;
+        mockFetch.mockClear();
+
+        const { result: secondResult } = renderHook(() => 
+          useProgressiveRepoData('microsoft', 'vscode', '90d', false)
+        );
+
+        await act(async () => {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        });
+
+        // Should make fresh API call due to expired cache
+        expect(mockFetch).toHaveBeenCalledWith('microsoft', 'vscode', { timeRange: '90d' });
+      } finally {
+        global.Date.now = originalDateNow;
+      }
+    });
+  });
+
+  describe('AbortController cleanup behavior', () => {
+    it('should abort previous requests when parameters change', async () => {
+      const abortSpy = vi.fn();
+      const originalAbortController = global.AbortController;
+      
+      // Mock AbortController to track abort calls
+      global.AbortController = class MockAbortController {
+        signal = { aborted: false };
+        abort = abortSpy;
+      } as any;
+
+      try {
+        const { result, rerender } = renderHook(
+          ({ owner }: { owner: string }) => useProgressiveRepoData(owner, 'react', '90d', false),
+          { initialProps: { owner: 'facebook' } }
+        );
+
+        await act(async () => {
+          await new Promise(resolve => setTimeout(resolve, 50));
+        });
+
+        // Change parameters to trigger new request
+        rerender({ owner: 'microsoft' });
+
+        await act(async () => {
+          await new Promise(resolve => setTimeout(resolve, 50));
+        });
+
+        // Should have called abort on previous request
+        expect(abortSpy).toHaveBeenCalled();
+      } finally {
+        global.AbortController = originalAbortController;
+      }
+    });
+
+    it('should cleanup abort controller on unmount', async () => {
+      const abortSpy = vi.fn();
+      const originalAbortController = global.AbortController;
+      
+      // Mock AbortController to track abort calls
+      global.AbortController = class MockAbortController {
+        signal = { aborted: false };
+        abort = abortSpy;
+      } as any;
+
+      try {
+        const { result, unmount } = renderHook(() => 
+          useProgressiveRepoData('facebook', 'react', '90d', false)
+        );
+
+        await act(async () => {
+          await new Promise(resolve => setTimeout(resolve, 50));
+        });
+
+        // Unmount component
+        unmount();
+
+        // Should have called abort on cleanup
+        expect(abortSpy).toHaveBeenCalled();
+      } finally {
+        global.AbortController = originalAbortController;
+      }
+    });
+
+    it('should not make enhancement requests after abort', async () => {
+      const { fetchDirectCommitsWithDatabaseFallback } = await import('@/lib/supabase-direct-commits');
+      const mockFetch = fetchDirectCommitsWithDatabaseFallback as ReturnType<typeof vi.fn>;
+      mockFetch.mockClear();
+
+      const { result, unmount } = renderHook(() => 
+        useProgressiveRepoData('github', 'docs', '90d', false)
+      );
+
+      // Wait for critical and full stages
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      });
+
+      // Unmount before enhancement stage starts
+      unmount();
+
+      // Wait additional time for enhancement stage
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      });
+
+      // Enhancement data fetch should not have been called after abort
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
 });
