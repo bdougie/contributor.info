@@ -174,13 +174,32 @@ export function ChangelogPage() {
             <div className="flex gap-8">
               <div className="flex-1">
                 {/* Add page freshness indicator */}
-                <div className="mb-6 flex justify-between items-center">
-                  <h1 className="text-3xl font-bold">Changelog</h1>
-                  <LastUpdated 
-                    timestamp={pageLoadedAt}
-                    label="Changelog loaded"
-                    size="sm"
-                  />
+                <div className="mb-6 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h1 className="text-3xl font-bold">Changelog</h1>
+                    <div className="flex items-center gap-4">
+                      <LastUpdated 
+                        timestamp={pageLoadedAt}
+                        label="Page loaded"
+                        size="sm"
+                        showIcon={true}
+                      />
+                      {changelogEntries.length > 0 && (
+                        <LastUpdated 
+                          timestamp={changelogEntries[0].date}
+                          label="Latest release"
+                          size="sm"
+                          showIcon={true}
+                          className="text-primary"
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Track all updates, new features, and improvements. Subscribe to our{' '}
+                    <a href="/changelog-rss.xml" className="text-primary hover:underline">RSS</a> or{' '}
+                    <a href="/changelog-atom.xml" className="text-primary hover:underline">Atom</a> feeds for real-time updates.
+                  </p>
                 </div>
                 
             <div className="space-y-6">

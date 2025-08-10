@@ -98,9 +98,22 @@ jobs:
         run: |
           mkdir -p public
           cp CHANGELOG.md public/CHANGELOG.md
-          git add public/CHANGELOG.md
-          git commit -m "chore: update public changelog after release ${{ steps.release.outputs.version }}"
-          git push
+          
+          # Generate RSS/Atom feeds from changelog
+          if [ -f scripts/changelog/generate-rss.js ]; then
+            node scripts/changelog/generate-rss.js
+          fi
+          
+          # Configure git with proper credentials
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Add and commit changes
+          git add public/CHANGELOG.md public/changelog-rss.xml public/changelog-atom.xml 2>/dev/null || true
+          git commit -m "chore: update public changelog and feeds after release ${{ steps.release.outputs.version }}" || echo "No changes to commit"
+          
+          # Push with the GitHub token
+          git push origin HEAD:main || echo "Push failed, possibly due to no changes"
           
   verify-sitemap:
     name: Verify Sitemap Accessibility

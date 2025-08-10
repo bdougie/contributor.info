@@ -1,48 +1,414 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>contributor.info Changelog</title>
     <description>All notable changes to contributor.info - the platform for understanding open source repository health and dynamics.</description>
     <link>https://contributor.info/changelog</link>
     <atom:link href="https://contributor.info/changelog-rss.xml" rel="self" type="application/rss+xml" />
     <language>en-us</language>
-    <lastBuildDate>Mon, 17 Jun 2025 00:00:00 GMT</lastBuildDate>
-    <pubDate>Mon, 17 Jun 2025 00:00:00 GMT</pubDate>
+    <lastBuildDate>Sun, 10 Aug 2025 12:29:14 GMT</lastBuildDate>
+    <pubDate>Tue, 05 Aug 2025 00:00:00 GMT</pubDate>
     <ttl>1440</ttl>
-    
+    <generator>contributor.info RSS Generator</generator>
+    <webMaster>team@contributor.info (contributor.info Team)</webMaster>
+    <managingEditor>team@contributor.info (contributor.info Team)</managingEditor>
+    <atom:link rel="hub" href="https://contributor.info/api/websub/hub" />
+
     <item>
-      <title>Version 1.0.0 - Initial Release</title>
-      <description><![CDATA[
-        <h2>🎉 Introducing contributor.info</h2>
-        <p>We're excited to announce the official 1.0 release of contributor.info! This platform helps maintainers and contributors understand the health and dynamics of open source repositories through data-driven insights.</p>
-        
-        <h3>🚀 Major Features</h3>
-        <ul>
-          <li><strong>AI-Powered Repository Insights</strong> - Real-time analysis with health assessments, smart recommendations, and PR attention detection</li>
-          <li><strong>Dynamic Social Media Cards</strong> - Auto-generated social cards with repository metrics</li>
-          <li><strong>Comprehensive Analytics Dashboard</strong> - Lottery factor analysis, contribution patterns, language distribution, and monthly rankings</li>
-        </ul>
-        
-        <h3>🐛 Bug Fixes</h3>
-        <ul>
-          <li>Fixed mobile responsiveness issues on contribution charts</li>
-          <li>Improved 404 page interactions and color consistency</li>
-          <li>Resolved authentication flow issues for first-time users</li>
-          <li>Fixed skeleton loader animations during data fetching</li>
-        </ul>
-        
-        <h3>📊 By the Numbers</h3>
-        <ul>
-          <li>35 test suites with 291 passing tests</li>
-          <li>80%+ code coverage across critical paths</li>
-          <li>&lt;3s average page load time</li>
-          <li>99.9% uptime since soft launch</li>
-        </ul>
-      ]]></description>
-      <link>https://contributor.info/changelog#version-1-0-0</link>
-      <guid>https://contributor.info/changelog#version-1-0-0</guid>
-      <pubDate>Mon, 17 Jun 2025 00:00:00 GMT</pubDate>
+      <title>Version 1.11.0 - 2025-08-05</title>
+      <description>10 new features, 17 bug fixes.</description>
+      <content:encoded><![CDATA[<h2>Version 1.11.0</h2>
+<p><strong>Released on 2025-08-05</strong></p>
+<h3>🚀 Features</h3>
+<ul>
+<li>add .issues command for semantic PR context analysis ([#214](https://github.com/bdougie/contributor.info/issues/214)) ([d58d989](https://github.com/bdougie/contributor.info/commit/d58d9894148a7cfa5f3fb173b14c9a72d5002b9e))</li>
+<li>add pr-review-responder agent and update prime command ([b7ad789](https://github.com/bdougie/contributor.info/commit/b7ad78953387f7f51228ce45317f181a25330b91))</li>
+<li>AI-powered issue similarity detection with free MiniLM embeddings ([#216](https://github.com/bdougie/contributor.info/issues/216)) ([5846248](https://github.com/bdougie/contributor.info/commit/5846248c019b18e8fa94ec25685fa7750c6819bc))</li>
+<li>complete PR reviewer suggestions implementation ([#221](https://github.com/bdougie/contributor.info/issues/221)) ([df528b1](https://github.com/bdougie/contributor.info/commit/df528b1021d21db15f0b417bb3d02f5dbe7eba65))</li>
+<li>enable pytorch repository progressive backfill ([#251](https://github.com/bdougie/contributor.info/issues/251)) ([e763471](https://github.com/bdougie/contributor.info/commit/e76347106d5ad3ca10e69217a38377dd49f11d83))</li>
+<li>enhance bulk-add-repos with progressive backfill support ([#258](https://github.com/bdougie/contributor.info/issues/258)) ([4d48066](https://github.com/bdougie/contributor.info/commit/4d48066958b49b234019fa2ee1b9260fb3e7ac07))</li>
+<li>implement app stats reviewer suggestions based on CODEOWNERS ([#220](https://github.com/bdougie/contributor.info/issues/220)) ([c27bf3c](https://github.com/bdougie/contributor.info/commit/c27bf3c3aba6eded97101968c2821316d6182b79)), closes [#219](https://github.com/bdougie/contributor.info/issues/219)</li>
+<li>implement contributor.info GitHub App for PR insights ([#212](https://github.com/bdougie/contributor.info/issues/212)) ([d808d5e](https://github.com/bdougie/contributor.info/commit/d808d5ebf2aa20c1537ef8a78856ac1ec32f7f18))</li>
+<li>implement GitHub Actions migration with progressive backfill ([eb55431](https://github.com/bdougie/contributor.info/commit/eb554319cc13539e9070dbb15219e762f962a2d2))</li>
+<li>implement PR tier labeling system with comment-based prioritization ([#215](https://github.com/bdougie/contributor.info/issues/215)) ([c5b0c7f](https://github.com/bdougie/contributor.info/commit/c5b0c7f68920bc477cafdd7c16d0b332cf139e6d))</li>
+</ul>
+<h3>🐛 Bug Fixes</h3>
+<ul>
+<li>add missing author_id column to reviews table ([#242](https://github.com/bdougie/contributor.info/issues/242)) ([2504d6c](https://github.com/bdougie/contributor.info/commit/2504d6c69158bda2ec020d5c5e931a4f00d3b337))</li>
+<li>add user notifications for untracked repository searches ([#239](https://github.com/bdougie/contributor.info/issues/239)) ([3e0d3a7](https://github.com/bdougie/contributor.info/commit/3e0d3a74fd7fd38ac07b7a0b9769eba025b9696d)), closes [#222](https://github.com/bdougie/contributor.info/issues/222) [#222](https://github.com/bdougie/contributor.info/issues/222)</li>
+<li>Delete scripts/tier-100.sh ([116d43f](https://github.com/bdougie/contributor.info/commit/116d43ff5fee2dabfbbf2b56932953cff7e6cc07))</li>
+<li>improve error handling and logging in inngest capture functions ([#225](https://github.com/bdougie/contributor.info/issues/225)) ([eaecc82](https://github.com/bdougie/contributor.info/commit/eaecc82efd5a559a91402f9220e05d2d16491b96))</li>
+<li>inngest handler export ([#241](https://github.com/bdougie/contributor.info/issues/241)) ([bc1d967](https://github.com/bdougie/contributor.info/commit/bc1d96791305fe6196094a9e8fdeb10dfdff4dac)), closes [#223](https://github.com/bdougie/contributor.info/issues/223) [#223](https://github.com/bdougie/contributor.info/issues/223)</li>
+<li>missing reviews and comments in feed ([#238](https://github.com/bdougie/contributor.info/issues/238)) ([05c2818](https://github.com/bdougie/contributor.info/commit/05c2818bc0fff48274c8d470a986aca7052bc486))</li>
+<li>progressive backfill error handling and consecutive error checking ([#256](https://github.com/bdougie/contributor.info/issues/256)) ([a9f328a](https://github.com/bdougie/contributor.info/commit/a9f328aeff1d808c0c65b3125d491f674db6513a))</li>
+<li>progressive backfill workflow issues for large repositories ([#254](https://github.com/bdougie/contributor.info/issues/254)) ([e56cdd1](https://github.com/bdougie/contributor.info/commit/e56cdd1e64bef23723566540fc893bb469eb69a0)), closes [#251](https://github.com/bdougie/contributor.info/issues/251)</li>
+<li>progressive backfill workflow issues for large repositories ([#254](https://github.com/bdougie/contributor.info/issues/254)) ([#255](https://github.com/bdougie/contributor.info/issues/255)) ([08be29b](https://github.com/bdougie/contributor.info/commit/08be29b034bb55b64c17190a0641a5b5cfdb2de7))</li>
+<li>properly export handler in inngest-prod.js for Netlify Functions ([57658bc](https://github.com/bdougie/contributor.info/commit/57658bc23b214e9de61528956ebc8a24e7bbee29))</li>
+<li>pytorch data errors ([#240](https://github.com/bdougie/contributor.info/issues/240)) ([bdc0631](https://github.com/bdougie/contributor.info/commit/bdc06317e5af00089d46884e16ad4af63528e59f))</li>
+<li>remove non-existent pull_request_number column references ([#244](https://github.com/bdougie/contributor.info/issues/244)) ([239c39a](https://github.com/bdougie/contributor.info/commit/239c39ad7d49140af1c236b51d1461acf6b78e6a))</li>
+<li>repository not found error for new large repos ([#245](https://github.com/bdougie/contributor.info/issues/245)) ([9f8de66](https://github.com/bdougie/contributor.info/commit/9f8de66a1ed5980b578365976517636bd68bbe5f))</li>
+<li>resolve inngest-prod handler export issue ([aed088e](https://github.com/bdougie/contributor.info/commit/aed088e12a4b2845415219f7e3cfd89de28db407))</li>
+<li>resolve PR activity update workflow failures ([#232](https://github.com/bdougie/contributor.info/issues/232)) ([9efe5d9](https://github.com/bdougie/contributor.info/commit/9efe5d95653246f058c5ec19b6d74f07220a16ad))</li>
+<li>update data loading UX to direct users to GitHub discussions ([#257](https://github.com/bdougie/contributor.info/issues/257)) ([55215b0](https://github.com/bdougie/contributor.info/commit/55215b090345c2246f97d9f13b885d6a37a9e818))</li>
+<li>update script paths after folder reorganization ([#252](https://github.com/bdougie/contributor.info/issues/252)) ([1d4f524](https://github.com/bdougie/contributor.info/commit/1d4f52469bc63a25e3de7b91765582d4c9a3d381)), closes [#251](https://github.com/bdougie/contributor.info/issues/251)</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v1.10.0...v1.11.0">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v1.10.0...v1.11.0</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-1-11-0</guid>
+      <pubDate>Tue, 05 Aug 2025 00:00:00 GMT</pubDate>
       <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Features</category>
+      <category>Bug Fixes</category>
+    </item>
+    <item>
+      <title>Version 1.10.0 - 2025-07-14</title>
+      <description>7 new features, 17 bug fixes, 1 performance improvements.</description>
+      <content:encoded><![CDATA[<h2>Version 1.10.0</h2>
+<p><strong>Released on 2025-07-14</strong></p>
+<h3>🚀 Features</h3>
+<ul>
+<li>add PRD for smart data fetching with repository size classification ([#199](https://github.com/bdougie/contributor.info/issues/199)) ([96f50ab](https://github.com/bdougie/contributor.info/commit/96f50ab5dcfac5f41792cabacb9d1672ca3d970d))</li>
+<li>complete Phase 5 UX enhancements with inline repository metadata ([#205](https://github.com/bdougie/contributor.info/issues/205)) ([f25675a](https://github.com/bdougie/contributor.info/commit/f25675a7f2f34703ffc83e100cd59095b5304e78))</li>
+<li>complete Phase 6 example repository updates ([#207](https://github.com/bdougie/contributor.info/issues/207)) ([615ed7a](https://github.com/bdougie/contributor.info/commit/615ed7a582a6c0bdaea8754de44e57afff83ad6b)), closes [#206](https://github.com/bdougie/contributor.info/issues/206)</li>
+<li>implement Phase 3 smart data fetching strategy ([#202](https://github.com/bdougie/contributor.info/issues/202)) ([4efe0b4](https://github.com/bdougie/contributor.info/commit/4efe0b47048191bdbd4d33d527cc87c0a956f82d))</li>
+<li>implement Phase 4 background capture optimization ([#203](https://github.com/bdougie/contributor.info/issues/203)) ([21b341b](https://github.com/bdougie/contributor.info/commit/21b341b3f61d20fdf5181b25213d8547de2595dc))</li>
+<li>implement repository size classification system ([#201](https://github.com/bdougie/contributor.info/issues/201)) ([972d2eb](https://github.com/bdougie/contributor.info/commit/972d2eb73734bb45e2944e9ca3a632a4f6e6d233))</li>
+<li>Resend Welcome Email ([#194](https://github.com/bdougie/contributor.info/issues/194)) ([3d8e1e4](https://github.com/bdougie/contributor.info/commit/3d8e1e40868c32c08fef16e727ced1a1bc6abcc9))</li>
+</ul>
+<h3>🐛 Bug Fixes</h3>
+<ul>
+<li>add GitHub Actions error debugging tools and documentation  ([#198](https://github.com/bdougie/contributor.info/issues/198)) ([01fba79](https://github.com/bdougie/contributor.info/commit/01fba79ae3b9da36901e302433d381db9e644125))</li>
+<li>build ([b1eec1b](https://github.com/bdougie/contributor.info/commit/b1eec1b050155714f3c5dc5017cf588984da291a))</li>
+<li>consolidate build scripts for Netlify deployment ([#197](https://github.com/bdougie/contributor.info/issues/197)) ([e63bb1a](https://github.com/bdougie/contributor.info/commit/e63bb1a13e441d27e481913ca09c8a1126041750))</li>
+<li>Delete docs/data-fetching/data-priority.md ([88ee660](https://github.com/bdougie/contributor.info/commit/88ee6604bc03d5020b27eea73569091508fbe974))</li>
+<li>enable RLS on missing tables to resolve security advisories ([#208](https://github.com/bdougie/contributor.info/issues/208)) ([923ebb5](https://github.com/bdougie/contributor.info/commit/923ebb5d985931008e866ddea8437d4fb92612b7))</li>
+<li>exclude test files from production TypeScript build ([3f6b954](https://github.com/bdougie/contributor.info/commit/3f6b954749bcdbfb9e0ba563ea936436473b10c8))</li>
+<li>exclude test-utils.ts from production build ([370d6b1](https://github.com/bdougie/contributor.info/commit/370d6b188752753cb242b14dda41aeda20a4db88))</li>
+<li>handle missing GITHUB_TOKEN in production Inngest functions ([#192](https://github.com/bdougie/contributor.info/issues/192)) ([7abe03d](https://github.com/bdougie/contributor.info/commit/7abe03d38760ce30b7a11d22268c06ac246375b0))</li>
+<li>move @vitejs/plugin-react to dependencies for Netlify build ([2391a54](https://github.com/bdougie/contributor.info/commit/2391a546e11f1bcb8f3cbbcf5eb49b2ecdaaa72a))</li>
+<li>move autoprefixer to dependencies for Netlify builds ([dc8bf51](https://github.com/bdougie/contributor.info/commit/dc8bf51644f69e9f3c5acb9832b8bf1614b82018))</li>
+<li>move vite-imagetools to dependencies for Netlify build ([87e8901](https://github.com/bdougie/contributor.info/commit/87e8901ccce0db66d909bf9d9501d4fd0684680c))</li>
+<li>New Sign Up Auth ([#195](https://github.com/bdougie/contributor.info/issues/195)) ([fa3bd7d](https://github.com/bdougie/contributor.info/commit/fa3bd7dddbdb9c24261f61153821c80b048f9429))</li>
+<li>re organize docs ([a881ffb](https://github.com/bdougie/contributor.info/commit/a881ffb362ebc10f1b4a9a99401aec77320b7d6a))</li>
+<li>register actual Inngest functions in production handler ([#191](https://github.com/bdougie/contributor.info/issues/191)) ([13643eb](https://github.com/bdougie/contributor.info/commit/13643eb85c5857479e9e99d19fc0749cccdbf1ab))</li>
+<li>release manually ([16e365e](https://github.com/bdougie/contributor.info/commit/16e365e324c9c5be020c8827c6d2b941ce6cf8a9))</li>
+<li>resolve 100% error rate in rollout system by fixing job completion ([#210](https://github.com/bdougie/contributor.info/issues/210)) ([1e9757d](https://github.com/bdougie/contributor.info/commit/1e9757d7d64c667509fe1da00a6afd42cc17c7b4)), closes [#211](https://github.com/bdougie/contributor.info/issues/211)</li>
+<li>update environment variable handling for production Inngest functions ([#196](https://github.com/bdougie/contributor.info/issues/196)) ([5f0abb9](https://github.com/bdougie/contributor.info/commit/5f0abb98c5e083635b2f3d8bed5fd75b4720a7db))</li>
+</ul>
+<h3>⚡ Performance Improvements</h3>
+<ul>
+<li>optimize Vite build with modern tooling and analysis ([#193](https://github.com/bdougie/contributor.info/issues/193)) ([47090f5](https://github.com/bdougie/contributor.info/commit/47090f5b215b016b33e3b147509ea27e08bd3a88)), closes [#12883](https://github.com/bdougie/contributor.info/issues/12883)</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v1.9.3...v1.10.0">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v1.9.3...v1.10.0</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-1-10-0</guid>
+      <pubDate>Mon, 14 Jul 2025 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Features</category>
+      <category>Bug Fixes</category>
+    </item>
+    <item>
+      <title>Version 1.9.3 - 2025-07-11</title>
+      <description>2 bug fixes.</description>
+      <content:encoded><![CDATA[<h2>Version 1.9.3</h2>
+<p><strong>Released on 2025-07-11</strong></p>
+<h3>🐛 Bug Fixes</h3>
+<ul>
+<li>build ([2fd5c3b](https://github.com/bdougie/contributor.info/commit/2fd5c3bffa8dde0379bb3be9d903b0bc83a43a5d))</li>
+<li>improve Inngest production mode detection and key handling ([5e8e601](https://github.com/bdougie/contributor.info/commit/5e8e601b2e2db6329246ab612af70be05e81c2de))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v1.9.2...v1.9.3">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v1.9.2...v1.9.3</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-1-9-3</guid>
+      <pubDate>Fri, 11 Jul 2025 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Bug Fixes</category>
+    </item>
+    <item>
+      <title>Version 1.9.2 - 2025-07-11</title>
+      <description>1 bug fixes.</description>
+      <content:encoded><![CDATA[<h2>Version 1.9.2</h2>
+<p><strong>Released on 2025-07-11</strong></p>
+<h3>🐛 Bug Fixes</h3>
+<ul>
+<li>build ([#188](https://github.com/bdougie/contributor.info/issues/188)) ([33ff4e7](https://github.com/bdougie/contributor.info/commit/33ff4e7428e04106d8434fa1a7b86d27d46e0c46))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v1.9.1...v1.9.2">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v1.9.1...v1.9.2</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-1-9-2</guid>
+      <pubDate>Fri, 11 Jul 2025 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Bug Fixes</category>
+    </item>
+    <item>
+      <title>Version 1.9.1 - 2025-07-11</title>
+      <description>1 bug fixes.</description>
+      <content:encoded><![CDATA[<h2>Version 1.9.1</h2>
+<p><strong>Released on 2025-07-11</strong></p>
+<h3>🐛 Bug Fixes</h3>
+<ul>
+<li>add proper MIME type headers for TypeScript modules ([#187](https://github.com/bdougie/contributor.info/issues/187)) ([6ce5bae](https://github.com/bdougie/contributor.info/commit/6ce5bae2b2a0c68f007154ed588859ad8e3b6e06))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v1.9.0...v1.9.1">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v1.9.0...v1.9.1</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-1-9-1</guid>
+      <pubDate>Fri, 11 Jul 2025 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Bug Fixes</category>
+    </item>
+    <item>
+      <title>Version 1.9.0 - 2025-07-11</title>
+      <description>1 new features.</description>
+      <content:encoded><![CDATA[<h2>Version 1.9.0</h2>
+<p><strong>Released on 2025-07-11</strong></p>
+<h3>🚀 Features</h3>
+<ul>
+<li>Hybrid Rollout Manager Implementation - Live at 10% ([#186](https://github.com/bdougie/contributor.info/issues/186)) ([656df68](https://github.com/bdougie/contributor.info/commit/656df6836f9e7e56313154bc086b48e7e38503c2))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v1.8.0...v1.9.0">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v1.8.0...v1.9.0</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-1-9-0</guid>
+      <pubDate>Fri, 11 Jul 2025 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Features</category>
+    </item>
+    <item>
+      <title>Version 1.8.0 - 2025-07-10</title>
+      <description>1 new features.</description>
+      <content:encoded><![CDATA[<h2>Version 1.8.0</h2>
+<p><strong>Released on 2025-07-10</strong></p>
+<h3>🚀 Features</h3>
+<ul>
+<li>gradual rollout infrastructure ([#185](https://github.com/bdougie/contributor.info/issues/185)) ([d4bf352](https://github.com/bdougie/contributor.info/commit/d4bf352a7a39aa84013e351b060df8852281134a))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v1.7.1...v1.8.0">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v1.7.1...v1.8.0</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-1-8-0</guid>
+      <pubDate>Thu, 10 Jul 2025 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Features</category>
+    </item>
+    <item>
+      <title>Version 1.7.1 - 2025-07-10</title>
+      <description>2 bug fixes.</description>
+      <content:encoded><![CDATA[<h2>Version 1.7.1</h2>
+<p><strong>Released on 2025-07-10</strong></p>
+<h3>🐛 Bug Fixes</h3>
+<ul>
+<li>update semantic release config to use main branch ([01e5241](https://github.com/bdougie/contributor.info/commit/01e5241c04681f45d6b05f25344841c0f2cbde43))</li>
+<li>update release workflow to trigger on main branch ([b76adda](https://github.com/bdougie/contributor.info/commit/b76adda968bdd88306e4502c16739fffe7cb538d))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v1.7.0...v1.7.1">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v1.7.0...v1.7.1</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-1-7-1</guid>
+      <pubDate>Thu, 10 Jul 2025 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Bug Fixes</category>
+    </item>
+    <item>
+      <title>Version 1.7.0 - 2025-07-10</title>
+      <description>2 new features.</description>
+      <content:encoded><![CDATA[<h2>Version 1.7.0</h2>
+<p><strong>Released on 2025-07-10</strong></p>
+<h3>🚀 Features</h3>
+<ul>
+<li>Implement Hybrid Progressive Capture System with GraphQL Integration ([#182](https://github.com/bdougie/contributor.info/issues/182)) ([7615479](https://github.com/bdougie/contributor.info/commit/7615479cee7a1689812dd2172f6089bcec04770a))</li>
+<li>Improved user exp with data capture and inngest ([#179](https://github.com/bdougie/contributor.info/issues/179)) ([e480ace](https://github.com/bdougie/contributor.info/commit/e480ace682f6084f2a44d3a15128b861898000bd))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v1.6.0...v1.7.0">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v1.6.0...v1.7.0</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-1-7-0</guid>
+      <pubDate>Thu, 10 Jul 2025 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Features</category>
+    </item>
+    <item>
+      <title>Version 1.5.0 - 2025-06-22</title>
+      <description>2 new features, 3 bug fixes.</description>
+      <content:encoded><![CDATA[<h2>Version 1.5.0</h2>
+<p><strong>Released on 2025-06-22</strong></p>
+<h3>🚀 Features</h3>
+<ul>
+<li>Db performance and health checks ([#114](https://github.com/bdougie/contributor.info/issues/114)) ([3958f01](https://github.com/bdougie/contributor.info/commit/3958f01744df548a93739693dd444321b0ed35cb))</li>
+<li>FOUC Fix ([#113](https://github.com/bdougie/contributor.info/issues/113)) ([47d5a9a](https://github.com/bdougie/contributor.info/commit/47d5a9a07a8b9643ee9ba917e64449eba6b6b4e4))</li>
+</ul>
+<h3>🐛 Bug Fixes</h3>
+<ul>
+<li>Filter Distribution Tab to show only merged PRs ([#119](https://github.com/bdougie/contributor.info/issues/119)) ([7d7d5b8](https://github.com/bdougie/contributor.info/commit/7d7d5b8732974aab3e88b1a8503771a173140f36)), closes [#116](https://github.com/bdougie/contributor.info/issues/116)</li>
+<li>improve mobile responsiveness for Feed and Lottery Factor components ([#118](https://github.com/bdougie/contributor.info/issues/118)) ([d7c6074](https://github.com/bdougie/contributor.info/commit/d7c60744df8ed35efe097e343ed6578d57fd1f8c)), closes [#115](https://github.com/bdougie/contributor.info/issues/115)</li>
+<li>Light ([#117](https://github.com/bdougie/contributor.info/issues/117)) ([e0ffe2f](https://github.com/bdougie/contributor.info/commit/e0ffe2fd1bb351d1bf7923e178c59071a3f15e5e))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v1.4.0...v1.5.0">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v1.4.0...v1.5.0</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-1-5-0</guid>
+      <pubDate>Sun, 22 Jun 2025 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Features</category>
+      <category>Bug Fixes</category>
+    </item>
+    <item>
+      <title>Version 1.4.0 - 2025-06-22</title>
+      <description>5 new features, 3 bug fixes.</description>
+      <content:encoded><![CDATA[<h2>Version 1.4.0</h2>
+<p><strong>Released on 2025-06-22</strong></p>
+<h3>🚀 Features</h3>
+<ul>
+<li>Data cleanup &amp; new bot role ([#106](https://github.com/bdougie/contributor.info/issues/106)) ([164e4f3](https://github.com/bdougie/contributor.info/commit/164e4f38c4c0fa6268ccf920e696f1949d4bcba8))</li>
+<li>Enhanced Storybook with Advanced Features ([#110](https://github.com/bdougie/contributor.info/issues/110)) ([75e50dc](https://github.com/bdougie/contributor.info/commit/75e50dc8034e5c730b461508526fdc846fda5289)), closes [#64](https://github.com/bdougie/contributor.info/issues/64)</li>
+<li>Performance imp ([#104](https://github.com/bdougie/contributor.info/issues/104)) ([810bb4c](https://github.com/bdougie/contributor.info/commit/810bb4c8c3ad06fbcb78b8617d5c3887cc545b39))</li>
+<li>Self selection debug ([#102](https://github.com/bdougie/contributor.info/issues/102)) ([1464815](https://github.com/bdougie/contributor.info/commit/1464815a17aba5a91dc0fe5976a4122e494c1fd0))</li>
+<li>Set up evals ([#107](https://github.com/bdougie/contributor.info/issues/107)) ([fb079f2](https://github.com/bdougie/contributor.info/commit/fb079f2a6ac3115e07cb6794e727086faf2569f1))</li>
+</ul>
+<h3>🐛 Bug Fixes</h3>
+<ul>
+<li>Fixed critical production deployment issues causing white screen and JavaScript module loading errors. ([#112](https://github.com/bdougie/contributor.info/issues/112)) ([720b687](https://github.com/bdougie/contributor.info/commit/720b68749c120e898edcc3b744b7876f1b884e5a))</li>
+<li>Missed some eval updates ([#108](https://github.com/bdougie/contributor.info/issues/108)) ([4569575](https://github.com/bdougie/contributor.info/commit/4569575db92d3caad175defad4a7528c64894201))</li>
+<li>protect the debug page ([#103](https://github.com/bdougie/contributor.info/issues/103)) ([8843d12](https://github.com/bdougie/contributor.info/commit/8843d12da2dcb85299e3aefc7beb39e5681de0d1))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v1.3.0...v1.4.0">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v1.3.0...v1.4.0</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-1-4-0</guid>
+      <pubDate>Sun, 22 Jun 2025 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Features</category>
+      <category>Bug Fixes</category>
+    </item>
+    <item>
+      <title>Version 1.3.0 - 2025-06-20</title>
+      <description>1 new features, 2 bug fixes.</description>
+      <content:encoded><![CDATA[<h2>Version 1.3.0</h2>
+<p><strong>Released on 2025-06-20</strong></p>
+<h3>🚀 Features</h3>
+<ul>
+<li>Events feed and features with events ([#99](https://github.com/bdougie/contributor.info/issues/99)) ([c4abb3f](https://github.com/bdougie/contributor.info/commit/c4abb3fd27d4a5e4f6d07af778ff0dd43014b911))</li>
+</ul>
+<h3>🐛 Bug Fixes</h3>
+<ul>
+<li>changelog updates ([#100](https://github.com/bdougie/contributor.info/issues/100)) ([5621553](https://github.com/bdougie/contributor.info/commit/562155352aea19d1d6fce5a7896b6a7d16519252))</li>
+<li>package-lock ([e89fd68](https://github.com/bdougie/contributor.info/commit/e89fd6873b98cb4b97901a2aea9d6371b91e527f))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v1.2.0...v1.3.0">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v1.2.0...v1.3.0</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-1-3-0</guid>
+      <pubDate>Fri, 20 Jun 2025 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Features</category>
+      <category>Bug Fixes</category>
+    </item>
+    <item>
+      <title>Version 1.2.0 - 2025-06-20</title>
+      <description>4 new features, 5 bug fixes.</description>
+      <content:encoded><![CDATA[<h2>Version 1.2.0</h2>
+<p><strong>Released on 2025-06-20</strong></p>
+<h3>🚀 Features</h3>
+<ul>
+<li>Distribution Chart updates ([#92](https://github.com/bdougie/contributor.info/issues/92)) ([5967dc0](https://github.com/bdougie/contributor.info/commit/5967dc0c2d31242a39daba74a0fdf9a9b761a0f9))</li>
+<li>implement user guide documentation structure ([#86](https://github.com/bdougie/contributor.info/issues/86)) ([ff0c03e](https://github.com/bdougie/contributor.info/commit/ff0c03e3bf86049a4585f1dda8d35e4a2189f724)), closes [#81](https://github.com/bdougie/contributor.info/issues/81)</li>
+<li>Missing feature ([#93](https://github.com/bdougie/contributor.info/issues/93)) ([b7f559d](https://github.com/bdougie/contributor.info/commit/b7f559db1a4c2a3087b72cc8d04e4ba3c353af21))</li>
+<li>optimize skeleton loaders for performance and accessibility ([#89](https://github.com/bdougie/contributor.info/issues/89)) ([0870114](https://github.com/bdougie/contributor.info/commit/0870114af467c4e5fa8cc12ca0045e0c9a11c566))</li>
+</ul>
+<h3>🐛 Bug Fixes</h3>
+<ul>
+<li>build ([#85](https://github.com/bdougie/contributor.info/issues/85)) ([a8eff02](https://github.com/bdougie/contributor.info/commit/a8eff0273a1bdebec6954435a6c656b8c711364d))</li>
+<li>favicon ([#88](https://github.com/bdougie/contributor.info/issues/88)) ([4dd945e](https://github.com/bdougie/contributor.info/commit/4dd945e83fcd48d76d50adcb0b3951833a5df245))</li>
+<li>release on release ([adf2e21](https://github.com/bdougie/contributor.info/commit/adf2e21cc434a81c18ba87408a352fdc52dd899f))</li>
+<li>release.yml ([aea4bd8](https://github.com/bdougie/contributor.info/commit/aea4bd8e72b3506c63b4ac6bf63ab6af0c7d51d4))</li>
+<li>small ui and build fixes ([#87](https://github.com/bdougie/contributor.info/issues/87)) ([a5c90e8](https://github.com/bdougie/contributor.info/commit/a5c90e85d5fff56075496fe23ad2049760df1a66))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v1.1.0...v1.2.0">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v1.1.0...v1.2.0</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-1-2-0</guid>
+      <pubDate>Fri, 20 Jun 2025 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Features</category>
+      <category>Bug Fixes</category>
+    </item>
+    <item>
+      <title>Version 1.1.0 - 2025-06-17</title>
+      <description>1 new features.</description>
+      <content:encoded><![CDATA[<h2>Version 1.1.0</h2>
+<p><strong>Released on 2025-06-17</strong></p>
+<h3>🚀 Features</h3>
+<ul>
+<li>add changelog navigation with anchors, RSS feed, and SEO ([#84](https://github.com/bdougie/contributor.info/issues/84)) ([16e96c6](https://github.com/bdougie/contributor.info/commit/16e96c65a7ea86263ae43839f35f8768e2ba6b76))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v1.0.0...v1.1.0">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v1.0.0...v1.1.0</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-1-1-0</guid>
+      <pubDate>Tue, 17 Jun 2025 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Features</category>
+    </item>
+    <item>
+      <title>Version 1.0.0 - 2025-06-17</title>
+      <description>15 new features, 7 bug fixes.</description>
+      <content:encoded><![CDATA[<h2>Version 1.0.0</h2>
+<p><strong>Released on 2025-06-17</strong></p>
+<h3>🚀 Features</h3>
+<ul>
+<li>add comprehensive PRD for insights sidebar feature ([#59](https://github.com/bdougie/contributor.info/issues/59)) ([971d03f](https://github.com/bdougie/contributor.info/commit/971d03f9c5246877530387acc4dfdfff88a9e4ce))</li>
+<li>add persistent PR activity settings with Zustand ([#50](https://github.com/bdougie/contributor.info/issues/50)) ([dcc3461](https://github.com/bdougie/contributor.info/commit/dcc3461db786592078dae3367f3683842e94ef48)), closes [#40](https://github.com/bdougie/contributor.info/issues/40)</li>
+<li>Error monitoring ([#60](https://github.com/bdougie/contributor.info/issues/60)) ([b1644f2](https://github.com/bdougie/contributor.info/commit/b1644f276224309c8dbfaeba2229d4c9b90e2d9c))</li>
+<li>implement comprehensive production performance monitoring system ([#71](https://github.com/bdougie/contributor.info/issues/71)) ([f35ddb7](https://github.com/bdougie/contributor.info/commit/f35ddb7f1f0e743d8ebbb8340a9a91719780409c)), closes [#62](https://github.com/bdougie/contributor.info/issues/62)</li>
+<li>Implement Dynamic Social Media Cards with Supabase CDN ([#66](https://github.com/bdougie/contributor.info/issues/66)) ([c522e74](https://github.com/bdougie/contributor.info/commit/c522e74feeab42bf4e34775531536734549f9848)), closes [#67](https://github.com/bdougie/contributor.info/issues/67)</li>
+<li>implement improved cascade delete behavior for database ([#70](https://github.com/bdougie/contributor.info/issues/70)) ([53e753b](https://github.com/bdougie/contributor.info/commit/53e753bdacd3df1e0021f4b0e8c731cb2a24cda7)), closes [#61](https://github.com/bdougie/contributor.info/issues/61)</li>
+<li>implement insights sidebar with real-time PR attention detection ([#76](https://github.com/bdougie/contributor.info/issues/76)) ([1d3db43](https://github.com/bdougie/contributor.info/commit/1d3db43f45f1f45f7847267df9785bc775ce0ab6)), closes [#79](https://github.com/bdougie/contributor.info/issues/79)</li>
+<li>Leaderboard ([#27](https://github.com/bdougie/contributor.info/issues/27)) ([d5ef6e5](https://github.com/bdougie/contributor.info/commit/d5ef6e50c607af605a02fdb77bd3d2859ad00fa5)), closes [#28](https://github.com/bdougie/contributor.info/issues/28)</li>
+<li>make the changelog happen ([#82](https://github.com/bdougie/contributor.info/issues/82)) ([4db6f5f](https://github.com/bdougie/contributor.info/commit/4db6f5faba76578d91128bb935a4a857cea18367))</li>
+<li>only count merged PRs for contributor scoring ([#44](https://github.com/bdougie/contributor.info/issues/44)) ([4b7e4fd](https://github.com/bdougie/contributor.info/commit/4b7e4fd7c6235ebcf62b242f51369cd4a210428b))</li>
+<li>Phase 1 DB improvements - Enhanced Input Validation ([#69](https://github.com/bdougie/contributor.info/issues/69)) ([8a7675f](https://github.com/bdougie/contributor.info/commit/8a7675f78f124496fc8d9fdfc6982bfe11f9ff34))</li>
+<li>Separate charts onto dedicated pages and add Activity tab ([91c69b5](https://github.com/bdougie/contributor.info/commit/91c69b52e3fbf1c4df291ea0747d23a84f5056ac))</li>
+<li>skeleton loaders ([#36](https://github.com/bdougie/contributor.info/issues/36)) ([c2c6ce0](https://github.com/bdougie/contributor.info/commit/c2c6ce03abee92556ec0f79770840baffb3aca83))</li>
+<li>Social Card ([#65](https://github.com/bdougie/contributor.info/issues/65)) ([6bed3e1](https://github.com/bdougie/contributor.info/commit/6bed3e1e5b68719d4d0fd838c8aa585b2736deef))</li>
+<li>Storybook Setup ([#63](https://github.com/bdougie/contributor.info/issues/63)) ([f233335](https://github.com/bdougie/contributor.info/commit/f23333525b434f270d1a3205fabe77d0c5107cc9))</li>
+</ul>
+<h3>🐛 Bug Fixes</h3>
+<ul>
+<li>bad json ([#83](https://github.com/bdougie/contributor.info/issues/83)) ([33a0966](https://github.com/bdougie/contributor.info/commit/33a0966927a20bc7110550fc0e04e46e25535e1c))</li>
+<li>example-repos.tsx ([4360c29](https://github.com/bdougie/contributor.info/commit/4360c29b9872178f6e7385199d160567e2ffbd26))</li>
+<li>improve 404 page mobile interaction and color palette consistency ([#53](https://github.com/bdougie/contributor.info/issues/53)) ([1c6ee88](https://github.com/bdougie/contributor.info/commit/1c6ee881b6eec488c29aae134a96df26b0f0eb17))</li>
+<li>improve mobile responsiveness for contributions chart ([#52](https://github.com/bdougie/contributor.info/issues/52)) ([2c62ce4](https://github.com/bdougie/contributor.info/commit/2c62ce4831ca4313b918b33aef4e49d28b1e524d)), closes [#48](https://github.com/bdougie/contributor.info/issues/48)</li>
+<li>remove debug elements from login page ([#54](https://github.com/bdougie/contributor.info/issues/54)) ([4dc4870](https://github.com/bdougie/contributor.info/commit/4dc4870bec3d06e00efc7f0df572842d6a996eb9)), closes [#51](https://github.com/bdougie/contributor.info/issues/51)</li>
+<li>skip tests in Netlify production build to resolve vitest dependency issue ([#75](https://github.com/bdougie/contributor.info/issues/75)) ([3aec151](https://github.com/bdougie/contributor.info/commit/3aec151f61a13c80ae438dacdd9c688d00f445ab)), closes [#74](https://github.com/bdougie/contributor.info/issues/74)</li>
+<li>consolidate time range handling and fix display issues ([0b75489](https://github.com/bdougie/contributor.info/commit/0b75489e563b34f4e8efbef84b3a11a784c1bef5))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/commit/16e96c65a7ea86263ae43839f35f8768e2ba6b76">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/commit/16e96c65a7ea86263ae43839f35f8768e2ba6b76</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-1-0-0</guid>
+      <pubDate>Tue, 17 Jun 2025 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Features</category>
+      <category>Bug Fixes</category>
     </item>
   </channel>
 </rss>
