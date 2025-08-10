@@ -27,14 +27,16 @@ export default function Distribution() {
   
   // Initialize chart type based on mobile/network conditions
   const getInitialChartType = (): "donut" | "bar" | "treemap" => {
-    const chartFromUrl = searchParams.get("chart") as "donut" | "bar" | "treemap";
+    const chartFromUrl = searchParams.get("chart");
+    const validChartTypes = ["donut", "bar", "treemap"];
     
-    // If URL specifies a chart type, respect it unless it's problematic on mobile
-    if (chartFromUrl) {
-      if (shouldUseSimplifiedUI && chartFromUrl === "treemap") {
+    // Validate the chart type from URL
+    if (chartFromUrl && validChartTypes.includes(chartFromUrl)) {
+      const validChart = chartFromUrl as "donut" | "bar" | "treemap";
+      if (shouldUseSimplifiedUI && validChart === "treemap") {
         return "donut"; // Fall back to donut for mobile/slow connections
       }
-      return chartFromUrl;
+      return validChart;
     }
     
     // Default based on device/network capabilities
@@ -46,9 +48,16 @@ export default function Distribution() {
   // Sync selectedQuadrant and chartType with URL params
   useEffect(() => {
     const quadrantFromUrl = searchParams.get("filter");
-    const chartFromUrl = searchParams.get("chart") as "donut" | "bar" | "treemap";
+    const chartFromUrl = searchParams.get("chart");
+    
+    // Validate chart type - only allow valid values
+    const validChartTypes = ["donut", "bar", "treemap"];
+    const validatedChartType = validChartTypes.includes(chartFromUrl as string) 
+      ? chartFromUrl as "donut" | "bar" | "treemap"
+      : "treemap"; // Default to treemap for invalid values
+    
     setSelectedQuadrant(quadrantFromUrl);
-    setChartType(chartFromUrl || "treemap");
+    setChartType(validatedChartType);
   }, [searchParams]);
 
   // Adaptive chart type based on mobile/network conditions
