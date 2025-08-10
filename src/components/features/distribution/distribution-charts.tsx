@@ -172,7 +172,22 @@ function DistributionCharts({
 
   const renderDonutChart = () => {
     return (
-      <div className="w-full flex justify-center">
+      <div 
+        className="w-full flex justify-center relative"
+        onMouseMove={(e) => {
+          if (tooltipData) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setTooltipPosition({ 
+              x: e.clientX - rect.left + 10, // Add offset so tooltip doesn't block cursor
+              y: e.clientY - rect.top - 10 
+            });
+          }
+        }}
+        onMouseLeave={() => {
+          setTooltipData(null);
+          setTooltipPosition({ x: 0, y: 0 });
+        }}
+      >
         <Suspense fallback={<ChartSkeleton />}>
           <DonutChart
             data={donutData}
