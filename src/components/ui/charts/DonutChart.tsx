@@ -131,7 +131,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
       const isActive = segment.id === activeSegmentId;
       
       // Scale up active segment
-      const targetScale = isActive ? 1.08 : 1;
+      const targetScale = isActive ? 1.05 : 1;
       const segmentOuterRadius = scaledOuterRadius * targetScale;
 
       // Calculate animation progress for this segment
