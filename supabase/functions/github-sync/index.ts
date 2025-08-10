@@ -114,7 +114,7 @@ async function fetchAndProcessPullRequests(
       .select('id')
       .eq('owner', owner)
       .eq('name', repo)
-      .single()
+      .maybeSingle()
 
     if (!repoData) {
       console.error(`[GitHub Sync] Repository ${owner}/${repo} not found`)
@@ -320,7 +320,7 @@ async function processEvents(
     .select('id')
     .eq('owner', owner)
     .eq('name', repo)
-    .single()
+    .maybeSingle()
   
   if (!repoData) {
     console.error(`[GitHub Sync] Repository ${owner}/${repo} not found in database`)
@@ -344,7 +344,7 @@ async function processEvents(
       .from('github_events_cache')
       .select('id')
       .eq('event_id', eventId)
-      .single()
+      .maybeSingle()
 
     if (existing) continue // Skip duplicates
 
@@ -474,7 +474,7 @@ serve(async (req) => {
                   ignoreDuplicates: false
                 })
                 .select()
-                .single()
+                .maybeSingle()
               
               if (repoError) {
                 console.error(`[GitHub Sync] Error upserting repository: ${repoError.message}`)
@@ -495,7 +495,7 @@ serve(async (req) => {
           .select('last_event_at')
           .eq('repository_owner', repo.owner)
           .eq('repository_name', repo.name)
-          .single()
+          .maybeSingle()
 
         // Update sync status to in_progress
         await supabase
@@ -530,7 +530,7 @@ serve(async (req) => {
           .select('id')
           .eq('owner', repo.owner)
           .eq('name', repo.name)
-          .single()
+          .maybeSingle()
           
         if (repoData) {
           console.log(`[GitHub Sync] Running batch spam detection for existing PRs in ${repo.owner}/${repo.name}`)

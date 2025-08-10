@@ -49,7 +49,7 @@ export function useAutoTrackRepository({
               updated_at: new Date().toISOString()
             })
             .select()
-            .single()
+            .maybeSingle()
 
           if (insertError) {
             console.error('Failed to track repository %s/%s:', owner, repo, insertError)

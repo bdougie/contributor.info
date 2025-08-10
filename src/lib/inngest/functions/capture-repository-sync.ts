@@ -41,13 +41,16 @@ async function ensureContributorExists(githubUser: any): Promise<string | null> 
       ignoreDuplicates: false
     })
     .select('id')
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Error upserting contributor:', error);
     return null;
   }
 
+  if (!data) {
+    return null;
+  }
   return data.id;
 }
 
@@ -72,7 +75,7 @@ export const captureRepositorySync = inngest.createFunction(
         .from('repositories')
         .select('owner, name, last_updated_at')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         throw new Error(`Repository not found: ${repositoryId}`);

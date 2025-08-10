@@ -46,7 +46,7 @@ async function handleRepositoryTracked(event: CustomEvent<TrackingEventDetail>):
       .from('repositories')
       .select('id, full_name')
       .eq('full_name', full_name)
-      .single();
+      .maybeSingle();
     
     if (checkError && checkError.code !== 'PGRST116') {
       // PGRST116 means no rows found, which is expected for new repos
@@ -68,7 +68,7 @@ async function handleRepositoryTracked(event: CustomEvent<TrackingEventDetail>):
           updated_at: new Date().toISOString(),
         })
         .select()
-        .single();
+        .maybeSingle();
       
       if (insertError) {
         console.error('Error creating repository:', insertError);

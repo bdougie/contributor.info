@@ -106,7 +106,7 @@ export class PRTemplateService {
       .select('pr_template_content, pr_template_url, pr_template_hash, pr_template_fetched_at')
       .eq('owner', owner)
       .eq('name', repo)
-      .single();
+      .maybeSingle();
 
     if (error || !data?.pr_template_content) {
       return null;

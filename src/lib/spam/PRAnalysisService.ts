@@ -246,7 +246,7 @@ export class PRAnalysisService {
             .select('id')
             .eq('owner', owner)
             .eq('name', name)
-            .single();
+            .maybeSingle();
 
           if (repo?.id) {
             repositoryMatchResult = await this.prTemplateService.checkRepositorySpamPatterns(

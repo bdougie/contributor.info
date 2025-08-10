@@ -27,12 +27,15 @@ async function ensureContributorExists(author: any): Promise<string> {
       ignoreDuplicates: false,
     })
     .select('id')
-    .single();
+    .maybeSingle();
 
   if (error) {
     throw new Error(`Failed to ensure contributor exists: ${error.message}`);
   }
 
+  if (!data) {
+    throw new Error(`Failed to ensure contributor exists`);
+  }
   return data.id;
 }
 
@@ -58,7 +61,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         .select('*')
         .eq('repository_id', repositoryId)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
       
       return data;
     });
@@ -77,7 +80,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         .from('repositories')
         .select('owner, name, last_updated_at, pull_request_count')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;

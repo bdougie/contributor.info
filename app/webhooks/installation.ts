@@ -68,7 +68,7 @@ async function handleInstallationCreated(event: InstallationEvent) {
         },
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error storing installation:', error);
@@ -187,7 +187,7 @@ async function handleRepositoriesAdded(installation: any, repositories: any[]) {
       .from('github_app_installations')
       .select('id')
       .eq('installation_id', installation.id)
-      .single();
+      .maybeSingle();
 
     if (!installationRecord) return;
 
@@ -198,7 +198,7 @@ async function handleRepositoriesAdded(installation: any, repositories: any[]) {
         .from('repositories')
         .select('id')
         .eq('github_id', repo.id)
-        .single();
+        .maybeSingle();
 
       let repoId = existingRepo?.id;
 
@@ -214,7 +214,7 @@ async function handleRepositoriesAdded(installation: any, repositories: any[]) {
             // We'll need to fetch more details later
           })
           .select('id')
-          .single();
+          .maybeSingle();
 
         repoId = newRepo?.id;
       }
@@ -312,7 +312,7 @@ async function handleRepositoriesRemoved(installation: any, repositories: any[])
       .from('github_app_installations')
       .select('id')
       .eq('installation_id', installation.id)
-      .single();
+      .maybeSingle();
 
     if (!installationRecord) return;
 
@@ -322,7 +322,7 @@ async function handleRepositoriesRemoved(installation: any, repositories: any[])
         .from('repositories')
         .select('id')
         .eq('github_id', repo.id)
-        .single();
+        .maybeSingle();
 
       if (repoRecord) {
         await supabase

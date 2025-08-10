@@ -173,7 +173,7 @@ async function ensureRepositoryTracked(repo: any) {
       .from('repositories')
       .select('id')
       .eq('github_id', repo.id)
-      .single();
+      .maybeSingle();
     
     if (existing) {
       console.log(`Repository ${repo.full_name} already tracked`);
@@ -194,7 +194,7 @@ async function ensureRepositoryTracked(repo: any) {
         tracking_started_at: new Date().toISOString(),
       })
       .select('id')
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error(`Failed to create repository: ${error.message}`);

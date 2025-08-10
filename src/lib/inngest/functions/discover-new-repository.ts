@@ -70,7 +70,7 @@ export const discoverNewRepository = inngest.createFunction(
         .select('id, owner, name')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
       
       return data;
     });
@@ -156,7 +156,7 @@ export const discoverNewRepository = inngest.createFunction(
           is_active: true
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         // Handle unique constraint violation (repo was created by another process)
@@ -165,7 +165,7 @@ export const discoverNewRepository = inngest.createFunction(
             .from('repositories')
             .select('id')
             .eq('github_id', githubData.id)
-            .single();
+            .maybeSingle();
           
           if (existingRepo) {
             return existingRepo;

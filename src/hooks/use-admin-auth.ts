@@ -236,7 +236,7 @@ export async function logAdminAction(
         .from('app_users')
         .select('id')
         .eq('github_user_id', adminGitHubId)
-        .single();
+        .maybeSingle();
 
       if (userError || !adminUser) {
         console.warn('Admin user not found in app_users table, skipping action log');

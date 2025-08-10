@@ -367,7 +367,7 @@ export async function fetchPRDataWithFallback(
         .select('id')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
 
       if (emergencyRepoData) {
         const { data: emergencyData } = await supabase

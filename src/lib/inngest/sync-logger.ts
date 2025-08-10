@@ -20,11 +20,11 @@ export class SyncLogger {
         metadata: metadata || {}
       })
       .select('id')
-      .single();
+      .maybeSingle();
 
-    if (error) {
+    if (error || !data) {
       console.error('[SyncLogger] Failed to create sync log:', error);
-      throw error;
+      throw error || new Error('Failed to create sync log');
     }
 
     console.log(`[SyncLogger] Created sync log with ID: ${data.id}`);

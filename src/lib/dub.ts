@@ -207,7 +207,7 @@ export async function getUrlAnalytics(linkId: string) {
       .from('short_urls')
       .select('*')
       .eq('dub_id', linkId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Failed to get URL analytics:", error);

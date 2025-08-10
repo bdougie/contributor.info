@@ -66,7 +66,7 @@ export function useOnDemandSync({
         .select('*')
         .eq('repository_owner', owner)
         .eq('repository_name', repo)
-        .single()
+        .maybeSingle()
 
       if (syncError && syncError.code !== 'PGRST116') {
         return
@@ -186,7 +186,7 @@ export function useOnDemandSync({
           .select('*')
           .eq('repository_owner', owner)
           .eq('repository_name', repo)
-          .single()
+          .maybeSingle()
 
         if (error) {
           return

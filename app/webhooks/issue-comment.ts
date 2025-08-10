@@ -56,7 +56,7 @@ export async function handleIssueCommentEvent(event: IssueCommentEvent) {
         comment_author_id: await getOrCreateContributor(event.comment.user),
       })
       .select('id')
-      .single();
+      .maybeSingle();
 
     if (!commandRecord) {
       console.error('Failed to record command usage');
@@ -69,7 +69,7 @@ export async function handleIssueCommentEvent(event: IssueCommentEvent) {
       .select('*')
       .eq('number', event.issue.number)
       .eq('repository_id', event.repository.id)
-      .single();
+      .maybeSingle();
 
     if (!pullRequest) {
       // PR might not be in our database yet
@@ -200,7 +200,7 @@ async function getOrCreateContributor(user: any): Promise<string | null> {
         type: user.type,
       })
       .select('id')
-      .single();
+      .maybeSingle();
 
     return contributor?.id || null;
   } catch (error) {

@@ -48,7 +48,7 @@ export class JobStatusReporter {
           .from('progressive_capture_jobs')
           .select('started_at')
           .eq('id', update.jobId)
-          .single();
+          .maybeSingle();
         
         if (!existingJob?.started_at) {
           updates.started_at = new Date().toISOString();
@@ -83,7 +83,7 @@ export class JobStatusReporter {
           .from('progressive_capture_jobs')
           .select('metadata')
           .eq('id', update.jobId)
-          .single();
+          .maybeSingle();
 
         if (currentJob) {
           updates.metadata = {
@@ -151,7 +151,7 @@ export class JobStatusReporter {
         .from('progressive_capture_jobs')
         .select('*')
         .eq('id', jobId)
-        .single();
+        .maybeSingle();
 
       if (!job) return null;
 
@@ -159,7 +159,7 @@ export class JobStatusReporter {
         .from('progressive_capture_progress')
         .select('*')
         .eq('job_id', jobId)
-        .single();
+        .maybeSingle();
 
       // Handle potential null/undefined started_at
       if (!job.started_at) {
@@ -218,7 +218,7 @@ export class JobStatusReporter {
         .from('progressive_capture_jobs')
         .select('*, progressive_capture_progress(*)')
         .eq('id', jobId)
-        .single();
+        .maybeSingle();
 
       if (!job) return null;
 

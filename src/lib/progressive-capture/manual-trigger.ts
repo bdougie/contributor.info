@@ -181,7 +181,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
         .select('id')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
 
       if (error || !repoData) {
         console.log(`❌ Repository ${owner}/${repo} not found in database`);
@@ -221,7 +221,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (repoError || !repo) {
         return { success: false, error: `Repository not found: ${repoError?.message}` };
@@ -287,7 +287,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
         .select('id')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
 
       if (error || !repoData) {
         console.log(`❌ Repository ${owner}/${repo} not found in database`);

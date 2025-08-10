@@ -170,7 +170,7 @@ export const retryableSupabase = {
           .select('*')
           .eq('owner', owner)
           .eq('name', name)
-          .single();
+          .maybeSingle();
       },
       supabaseRetryConfig,
       'supabase-repositories'
@@ -215,7 +215,7 @@ export const retryableSupabase = {
           .from('repositories')
           .upsert(data, { onConflict: 'owner,name' })
           .select()
-          .single();
+          .maybeSingle();
       },
       supabaseRetryConfig,
       'supabase-upsert-repository'
