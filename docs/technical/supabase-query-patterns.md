@@ -190,6 +190,37 @@ if (!repo) {
 }
 ```
 
+## Prevention Measures
+
+### ESLint Rule
+
+The project includes an ESLint rule that automatically prevents `.single()` usage:
+
+```javascript
+// eslint.config.js
+'no-restricted-syntax': [
+  'error',
+  {
+    selector: 'CallExpression[callee.property.name="single"]',
+    message: 'Use .maybeSingle() instead of .single() to prevent 406 errors. .single() throws when no rows are found, while .maybeSingle() returns null safely.'
+  }
+]
+```
+
+This rule will:
+- Show an error when `.single()` is used anywhere in the codebase
+- Provide a helpful message explaining why `.maybeSingle()` should be used instead
+- Prevent builds/commits if `.single()` is detected (when pre-commit hooks are enabled)
+
+To test the linting:
+```bash
+# Run ESLint on a specific file
+npx eslint src/lib/supabase.ts
+
+# Run ESLint on entire codebase
+npm run lint
+```
+
 ## Summary
 
-**Default to `.maybeSingle()`** unless you have a specific reason to require exactly one row. This prevents 406 errors and makes your application more robust when dealing with data that might not exist yet.
+**Default to `.maybeSingle()`** unless you have a specific reason to require exactly one row. This prevents 406 errors and makes your application more robust when dealing with data that might not exist yet. The ESLint rule enforces this pattern automatically.
