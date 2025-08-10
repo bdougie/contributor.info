@@ -105,7 +105,7 @@
 
 [[redirects]]
   from = "/api/discover-repository"
-  to = "/.netlify/functions/api-discover-repository-simple"
+  to = "/.netlify/functions/api-discover-repository"
   status = 200
   force = true
 
