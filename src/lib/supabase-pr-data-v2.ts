@@ -261,7 +261,7 @@ export async function fetchPRDataWithSmartStrategy(
               .select('id')
               .eq('owner', owner)
               .eq('name', repo)
-              .single();
+              .maybeSingle();
 
             if (emergencyRepo) {
               const { data: emergencyData } = await supabase

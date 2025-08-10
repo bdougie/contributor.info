@@ -236,7 +236,7 @@ export async function fetchPRDataWithFallback(
           .select('id')
           .eq('owner', owner)
           .eq('name', repo)
-          .single();
+          .maybeSingle();
 
         if (!repoError && repoData) {
           const { data: cachedPRs, error: cacheError } = await supabase

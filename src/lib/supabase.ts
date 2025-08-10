@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { env } from './env';
 
 // Helper function to create the Supabase client
+// CACHE BUST: Fixed 406 errors by removing .single() calls - v2
 export function createSupabaseClient() {
   // Use universal environment access (works in both browser and server)
   const supabaseUrl = env.SUPABASE_URL;
