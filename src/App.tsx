@@ -19,6 +19,7 @@ const LotteryFactorRoute = lazy(() => import("@/components/features/repository/r
 const ContributionsRoute = lazy(() => import("@/components/features/repository/repo-view").then(m => ({ default: m.ContributionsRoute })));
 const DistributionRoute = lazy(() => import("@/components/features/repository/repo-view").then(m => ({ default: m.DistributionRoute })));
 
+// Auth components
 const LoginPage = lazy(() => import("@/components/features/auth/login-page"));
 const DebugAuthPage = lazy(() => import("@/components/features/auth/debug-auth-page"));
 const TestInsights = lazy(() => import("@/components/features/auth/test-insights"));

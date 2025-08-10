@@ -1,0 +1,43 @@
+#!/bin/sh
+
+# Pre-push hook that runs checks before pushing
+# This ensures code compiles and passes basic quality checks before pushing
+
+echo "🔨 Running pre-push checks..."
+
+# Run TypeScript compilation check
+echo "📝 Checking TypeScript compilation..."
+npx tsc --noEmit
+BUILD_STATUS=$?
+
+# Check if build failed
+if [ $BUILD_STATUS -ne 0 ]; then
+    echo "❌ TypeScript compilation failed! Please fix errors before pushing."
+    echo "💡 Run 'npx tsc --noEmit' to see the errors."
+    exit 1
+fi
+
+echo "✅ TypeScript compilation successful!"
+
+# Lint modified files for better performance
+echo "🧹 Linting modified files..."
+MODIFIED_FILES=$(git diff HEAD --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$')
+
+if [ -n "$MODIFIED_FILES" ]; then
+    echo "Linting files: $MODIFIED_FILES"
+    npx eslint "$MODIFIED_FILES" --max-warnings 5
+    LINT_STATUS=$?
+    
+    if [ $LINT_STATUS -ne 0 ]; then
+        echo "❌ Linting failed! Please fix errors before pushing."
+        echo "💡 Run 'npm run lint' to see all issues."
+        exit 1
+    fi
+    echo "✅ Linting passed!"
+else
+    echo "ℹ️ No modified TypeScript files to lint."
+fi
+
+echo "✅ All pre-push checks passed! Proceeding with push..."
+
+exit 0

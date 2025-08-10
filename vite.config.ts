@@ -2,20 +2,12 @@ import path from 'path';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
-import { analyzer } from 'vite-bundle-analyzer';
+import viteCompression from 'vite-plugin-compression';
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(() => ({
   base: '/',
   plugins: [
     react(),
-    // Only include bundle analyzer in development or when explicitly requested
-    ...(mode === 'development' || process.env.BUNDLE_ANALYZE === 'true' ? [
-      analyzer({
-        analyzerMode: 'static',
-        fileName: 'bundle-analysis',
-        openAnalyzer: false
-      })
-    ] : []),
     imagetools({
       defaultDirectives: (url) => {
         // Process images for WebP optimization
@@ -42,7 +34,21 @@ export default defineConfig(({ mode }) => ({
         }
         return new URLSearchParams();
       }
-    })
+    }),
+    // Brotli compression for static assets (safe, server-side)
+    viteCompression({
+      algorithm: 'brotliCompress',
+      ext: '.br',
+      threshold: 1024,
+      deleteOriginFile: false,
+    }),
+    // Also generate gzip for broader compatibility
+    viteCompression({
+      algorithm: 'gzip',
+      ext: '.gz',
+      threshold: 1024,
+      deleteOriginFile: false,
+    }),
   ],
   resolve: {
     alias: {
@@ -111,9 +117,22 @@ export default defineConfig(({ mode }) => ({
           arrowFunctions: true
         },
         // Ensure proper file extensions for module recognition
-        entryFileNames: `assets/[name]-[hash].js`,
-        chunkFileNames: `assets/[name]-[hash].js`,
-        assetFileNames: 'assets/[name]-[hash].[ext]',
+        entryFileNames: `js/[name]-[hash].js`,
+        chunkFileNames: `js/[name]-[hash].js`,
+        // Better asset organization
+        assetFileNames: (assetInfo) => {
+          const extType = assetInfo.name?.split('.').pop() || 'asset';
+          if (/png|jpe?g|svg|gif|webp|avif/i.test(extType)) {
+            return 'images/[name]-[hash][extname]';
+          }
+          if (/css/i.test(extType)) {
+            return 'css/[name]-[hash][extname]';
+          }
+          if (/woff2?|ttf|eot/i.test(extType)) {
+            return 'fonts/[name]-[hash][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
+        },
         // Allow modules to be properly hoisted for correct initialization order
         hoistTransitiveImports: true,
         // Balanced chunking strategy from production postmortem (2025-06-22)
@@ -165,21 +184,29 @@ export default defineConfig(({ mode }) => ({
     modulePreload: {
       polyfill: true, // Enable polyfill for proper module loading
       resolveDependencies: (_, deps) => {
-        // Preload React core first, then router
+        // Preload React vendor first, then router
         const sorted = deps.sort((a, b) => {
-          if (a.includes('react-core')) return -1;
-          if (b.includes('react-core')) return 1;
+          if (a.includes('react-vendor')) return -1;
+          if (b.includes('react-vendor')) return 1;
           if (a.includes('react-router')) return -1;
           if (b.includes('react-router')) return 1;
           return 0;
         });
         // Only preload critical chunks
         return sorted.filter(dep => 
-          dep.includes('react-core') || 
+          dep.includes('react-vendor') || 
           dep.includes('react-router')
         );
       }
     },
+    
+    // Remove console/debugger in production and strip legal comments
+    esbuild: {
+      drop: process.env.NODE_ENV === 'production' 
+        ? ['console', 'debugger'] 
+        : [],
+      legalComments: 'none'
+    }
   },
   css: {
     devSourcemap: true,

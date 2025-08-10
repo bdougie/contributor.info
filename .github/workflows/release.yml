@@ -47,6 +47,26 @@ jobs:
         run: npm ci
 
       # Build step removed - Netlify will handle the build with proper env vars
+      
+      - name: Update tracked repositories list
+        run: |
+          echo "📊 Updating tracked repositories list..."
+          node scripts/update-tracked-repos.js
+          
+          # Check if files changed
+          if git diff --quiet tracked-repositories.txt tracked-repositories.json tracked-repositories-stats.json 2>/dev/null; then
+            echo "✅ No changes to tracked repositories"
+          else
+            echo "📝 Tracked repositories list updated"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add tracked-repositories.txt tracked-repositories.json tracked-repositories-stats.json 2>/dev/null || true
+            git commit -m "chore: update tracked repositories list [skip ci]" || echo "No changes to commit"
+            git push origin HEAD || echo "Push failed, possibly due to no changes"
+          fi
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Run tests
         run: npm test -- --passWithNoTests
@@ -78,9 +98,22 @@ jobs:
         run: |
           mkdir -p public
           cp CHANGELOG.md public/CHANGELOG.md
-          git add public/CHANGELOG.md
-          git commit -m "chore: update public changelog after release ${{ steps.release.outputs.version }}"
-          git push
+          
+          # Generate RSS/Atom feeds from changelog
+          if [ -f scripts/changelog/generate-rss.js ]; then
+            node scripts/changelog/generate-rss.js
+          fi
+          
+          # Configure git with proper credentials
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Add and commit changes
+          git add public/CHANGELOG.md public/changelog-rss.xml public/changelog-atom.xml 2>/dev/null || true
+          git commit -m "chore: update public changelog and feeds after release ${{ steps.release.outputs.version }}" || echo "No changes to commit"
+          
+          # Push with the GitHub token using authenticated URL
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:main || echo "Push failed, possibly due to no changes"
           
   verify-sitemap:
     name: Verify Sitemap Accessibility
