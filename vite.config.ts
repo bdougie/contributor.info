@@ -156,17 +156,17 @@ export default defineConfig(() => ({
     modulePreload: {
       polyfill: true, // Enable polyfill for proper module loading
       resolveDependencies: (_, deps) => {
-        // Preload React core first, then router
+        // Preload React vendor first, then router
         const sorted = deps.sort((a, b) => {
-          if (a.includes('react-core')) return -1;
-          if (b.includes('react-core')) return 1;
+          if (a.includes('react-vendor')) return -1;
+          if (b.includes('react-vendor')) return 1;
           if (a.includes('react-router')) return -1;
           if (b.includes('react-router')) return 1;
           return 0;
         });
         // Only preload critical chunks
         return sorted.filter(dep => 
-          dep.includes('react-core') || 
+          dep.includes('react-vendor') || 
           dep.includes('react-router')
         );
       }
