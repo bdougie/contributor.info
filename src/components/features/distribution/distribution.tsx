@@ -208,13 +208,6 @@ export default function Distribution() {
                   </TabsTrigger>
                 </TabsList>
               )}
-              
-              {/* Show performance indicator for slow connections */}
-              {isSlowConnection && (
-                <div className="text-xs text-muted-foreground mt-1 text-center">
-                  Simplified UI for better performance
-                </div>
-              )}
             </div>
           </div>
 
