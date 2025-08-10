@@ -16,8 +16,9 @@ const ContributionsChart = lazy(() => {
     });
   }
   
-  // Load the actual component in production
-  return import('./contributions').then(module => ({ default: module.default }));
+  // TEMPORARY: Load comparison component for A/B testing
+  return import('./contributions-comparison').then(module => ({ default: module.default }));
+  // Original: return import('./contributions').then(module => ({ default: module.default }));
 });
 
 export default function ContributionsWrapper() {

@@ -74,6 +74,7 @@
     "similarity:check": "tsx scripts/actions-similarity.ts"
   },
   "dependencies": {
+    "@floating-ui/react": "^0.27.15",
     "@hookform/resolvers": "^3.9.0",
     "@netlify/functions": "^4.1.8",
     "@nivo/scatterplot": "^0.88.0",
@@ -88,10 +89,8 @@
     "@radix-ui/react-context-menu": "^2.2.1",
     "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-dropdown-menu": "^2.1.1",
-    "@radix-ui/react-hover-card": "^1.1.7",
     "@radix-ui/react-menubar": "^1.1.1",
     "@radix-ui/react-navigation-menu": "^1.2.0",
-    "@radix-ui/react-popover": "^1.1.1",
     "@radix-ui/react-progress": "^1.1.0",
     "@radix-ui/react-radio-group": "^1.2.0",
     "@radix-ui/react-scroll-area": "^1.1.0",
@@ -103,7 +102,6 @@
     "@radix-ui/react-toast": "^1.2.1",
     "@radix-ui/react-toggle": "^1.1.0",
     "@radix-ui/react-toggle-group": "^1.1.0",
-    "@radix-ui/react-tooltip": "^1.1.2",
     "@supabase/supabase-js": "^2.39.8",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/react-virtual": "^3.13.12",
