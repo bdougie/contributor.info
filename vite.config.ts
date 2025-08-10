@@ -107,37 +107,71 @@ export default defineConfig(() => ({
         assetFileNames: 'assets/[name]-[hash].[ext]',
         // Allow modules to be properly hoisted for correct initialization order
         hoistTransitiveImports: true,
-        // Balanced chunking strategy from production postmortem (2025-06-22)
-        // This approach maintains reliability while optimizing performance
+        // Optimized chunking strategy for route-based code splitting
         manualChunks: (id) => {
           // Prevent embeddings from being bundled
           if (id.includes('@xenova/transformers') || id.includes('onnxruntime-web')) {
             return 'embeddings-excluded';
           }
           
-          // All React and React-dependent libraries must be bundled together
-          // to prevent "Cannot read properties of undefined" errors
-          // This includes: React, ReactDOM, Router, Radix UI, Charts, Icons, etc.
-          if (id.includes('react') || 
-              id.includes('@radix-ui') || 
-              id.includes('@nivo') || 
-              id.includes('recharts') ||
-              id.includes('lucide-react')) {
-            return 'react-vendor';
+          // Core React libraries - keep minimal
+          if (id.includes('node_modules/react/') || 
+              id.includes('node_modules/react-dom/')) {
+            return 'react-core';
+          }
+          
+          // React Router - separate for better caching
+          if (id.includes('react-router')) {
+            return 'react-router';
+          }
+          
+          // Chart libraries - lazy loaded on chart pages
+          if (id.includes('@nivo') || id.includes('recharts') || id.includes('uplot')) {
+            return 'charts';
+          }
+          
+          // UI components - Radix UI, icons
+          if (id.includes('@radix-ui')) {
+            return 'ui-components';
+          }
+          
+          // Icons - separate chunk
+          if (id.includes('lucide-react')) {
+            return 'icons';
           }
           
           // Utility libraries that don't depend on React
-          if (id.includes('class-variance-authority')) return 'utils';
-          if (id.includes('clsx')) return 'utils';
-          if (id.includes('tailwind-merge')) return 'utils';
+          if (id.includes('class-variance-authority') || 
+              id.includes('clsx') || 
+              id.includes('tailwind-merge')) {
+            return 'styling-utils';
+          }
           
-          // Utilities - frequently used, good for caching
-          if (id.includes('date-fns')) return 'utils';
-          if (id.includes('zod')) return 'utils';
+          // Date/time utilities
+          if (id.includes('date-fns')) {
+            return 'date-utils';
+          }
+          
+          // Validation
+          if (id.includes('zod')) {
+            return 'validation';
+          }
           
           // State management and data
-          if (id.includes('zustand')) return 'data';
-          if (id.includes('@supabase/supabase-js')) return 'data';
+          if (id.includes('zustand')) {
+            return 'state';
+          }
+          
+          // Supabase client
+          if (id.includes('@supabase/supabase-js')) {
+            return 'supabase-client';
+          }
+          
+          // Other third-party libs
+          if (id.includes('node_modules/')) {
+            // Group small libs together
+            return 'vendor';
+          }
         },
       },
     },
