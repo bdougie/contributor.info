@@ -107,70 +107,52 @@ export default defineConfig(() => ({
         assetFileNames: 'assets/[name]-[hash].[ext]',
         // Allow modules to be properly hoisted for correct initialization order
         hoistTransitiveImports: true,
-        // Optimized chunking strategy for route-based code splitting
+        // Balanced chunking strategy - React must stay together to prevent initialization issues
         manualChunks: (id) => {
           // Prevent embeddings from being bundled
           if (id.includes('@xenova/transformers') || id.includes('onnxruntime-web')) {
             return 'embeddings-excluded';
           }
           
-          // Core React libraries - keep minimal
-          if (id.includes('node_modules/react/') || 
-              id.includes('node_modules/react-dom/')) {
-            return 'react-core';
+          // All React and React-dependent libraries MUST be bundled together
+          // to prevent "Cannot read properties of undefined" errors
+          // This is critical for production builds
+          if (id.includes('react') || 
+              id.includes('@radix-ui') || 
+              id.includes('lucide-react')) {
+            return 'react-vendor';
           }
           
-          // React Router - separate for better caching
-          if (id.includes('react-router')) {
-            return 'react-router';
-          }
-          
-          // Chart libraries - lazy loaded on chart pages
+          // Chart libraries - can be safely lazy loaded
           if (id.includes('@nivo') || id.includes('recharts') || id.includes('uplot')) {
             return 'charts';
-          }
-          
-          // UI components - Radix UI, icons
-          if (id.includes('@radix-ui')) {
-            return 'ui-components';
-          }
-          
-          // Icons - separate chunk
-          if (id.includes('lucide-react')) {
-            return 'icons';
           }
           
           // Utility libraries that don't depend on React
           if (id.includes('class-variance-authority') || 
               id.includes('clsx') || 
               id.includes('tailwind-merge')) {
-            return 'styling-utils';
+            return 'utils';
           }
           
           // Date/time utilities
           if (id.includes('date-fns')) {
-            return 'date-utils';
+            return 'utils';
           }
           
           // Validation
           if (id.includes('zod')) {
-            return 'validation';
+            return 'utils';
           }
           
           // State management and data
           if (id.includes('zustand')) {
-            return 'state';
+            return 'data';
           }
           
           // Supabase client
           if (id.includes('@supabase/supabase-js')) {
-            return 'supabase-client';
-          }
-          
-          // Other third-party libs
-          if (id.includes('node_modules/')) {
-            // Group small libs together
-            return 'vendor';
+            return 'data';
           }
         },
       },
@@ -190,18 +172,15 @@ export default defineConfig(() => ({
     modulePreload: {
       polyfill: true, // Enable polyfill for proper module loading
       resolveDependencies: (_, deps) => {
-        // Preload React core first, then router
+        // Preload React vendor first (critical for app to work)
         const sorted = deps.sort((a, b) => {
-          if (a.includes('react-core')) return -1;
-          if (b.includes('react-core')) return 1;
-          if (a.includes('react-router')) return -1;
-          if (b.includes('react-router')) return 1;
+          if (a.includes('react-vendor')) return -1;
+          if (b.includes('react-vendor')) return 1;
           return 0;
         });
         // Only preload critical chunks
         return sorted.filter(dep => 
-          dep.includes('react-core') || 
-          dep.includes('react-router')
+          dep.includes('react-vendor')
         );
       }
     },
