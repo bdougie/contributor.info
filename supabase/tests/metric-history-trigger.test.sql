@@ -228,9 +228,9 @@ BEGIN
   WHERE repository_id = v_repo_id
     AND title LIKE '%issues%';
 
-  -- Should only have one entry due to conflict handling
-  ASSERT v_result.issue_count <= 2,
-    'Test 10 Failed: Duplicate changelog entries should be handled';
+  -- Should only have one entry due to conflict handling (title is unique per repository)
+  ASSERT v_result.issue_count = 1,
+    'Test 10 Failed: Duplicate changelog entries should be prevented by unique constraint';
 
   -- Cleanup test data
   DELETE FROM repository_metrics_history WHERE repository_id = v_repo_id;

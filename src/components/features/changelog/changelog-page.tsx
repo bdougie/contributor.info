@@ -148,7 +148,10 @@ export function ChangelogPage() {
 
   return (
     <>
-      <ChangelogSEO />
+      <ChangelogSEO 
+        date={changelogEntries[0]?.date}
+        version={changelogEntries[0]?.version}
+      />
       <div className="max-w-7xl mx-auto py-2">
         {/* Mobile navigation - shows on top, full width */}
         <div className="lg:hidden mb-6">

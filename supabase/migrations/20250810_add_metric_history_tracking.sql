@@ -44,8 +44,8 @@ CREATE TABLE IF NOT EXISTS repository_changelogs (
   importance_score INTEGER DEFAULT 0 CHECK (importance_score >= 0 AND importance_score <= 100),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   
-  -- Ensure we don't duplicate entries
-  CONSTRAINT unique_changelog_entry UNIQUE (repository_id, title, created_at)
+  -- Ensure we don't duplicate entries (without timestamp for effective deduplication)
+  CONSTRAINT unique_changelog_entry UNIQUE (repository_id, title)
 );
 
 -- Create indexes for changelog
@@ -128,7 +128,7 @@ BEGIN
         'change_percentage', NEW.change_percentage
       ),
       v_importance
-    ) ON CONFLICT (repository_id, title, created_at) DO NOTHING;
+    ) ON CONFLICT (repository_id, title) DO NOTHING;
   END IF;
   
   RETURN NEW;

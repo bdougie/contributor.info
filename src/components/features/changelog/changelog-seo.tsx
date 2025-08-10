@@ -99,10 +99,10 @@ export function ChangelogSEO({
       {/* WebSub Hub Discovery (for future real-time updates) */}
       <link rel="hub" href="https://contributor.info/api/websub/hub" />
       
-      {/* Content freshness signals */}
-      <meta name="last-modified" content={new Date().toISOString()} />
+      {/* Content freshness signals - use actual changelog date */}
+      <meta name="last-modified" content={date ? new Date(date).toISOString() : new Date().toISOString()} />
       <meta name="revisit-after" content="7 days" />
-      <meta property="article:modified_time" content={new Date().toISOString()} />
+      <meta property="article:modified_time" content={date ? new Date(date).toISOString() : new Date().toISOString()} />
     </Helmet>
   );
 }

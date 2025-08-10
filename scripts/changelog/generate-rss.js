@@ -108,9 +108,8 @@ function parseDate(dateStr) {
   // Handle various date formats
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) {
-    // Log warning for debugging but continue with current date
-    console.warn(`Warning: Failed to parse date "${dateStr}", using current date as fallback`);
-    return new Date();
+    // Throw error for invalid dates to ensure changelog integrity
+    throw new Error(`Invalid date format in changelog: "${dateStr}". Please use a valid date format like "2025-01-15" or "January 15, 2025"`);
   }
   return date;
 }

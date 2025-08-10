@@ -49,22 +49,16 @@ describe('RSS/Atom Feed Generation', () => {
       expect(entries[0].date.getFullYear()).toBe(2025);
     });
 
-    it('should handle malformed dates with fallback', () => {
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+    it('should throw error for invalid dates', () => {
       const changelog = `
 ## [1.0.0](link) (invalid-date)
 ### 🚀 Features
 * Test feature
 `;
       
-      const entries = parseChangelog(changelog);
-      expect(entries[0].date).toBeInstanceOf(Date);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to parse date')
+      expect(() => parseChangelog(changelog)).toThrow(
+        'Invalid date format in changelog: "invalid-date"'
       );
-      
-      consoleSpy.mockRestore();
     });
 
     it('should categorize different section types', () => {
