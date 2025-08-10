@@ -8,6 +8,7 @@ import type { QuadrantData } from "@/hooks/use-distribution";
 import type { PullRequest } from "@/lib/types";
 import { useHierarchicalDistribution } from "@/hooks/use-hierarchical-distribution";
 import { DistributionTreemapEnhanced } from "./distribution-treemap-enhanced";
+import { getPrimaryLanguage } from '@/lib/language-utils';
 
 interface DistributionChartsProps {
   data: QuadrantData[];
@@ -25,67 +26,6 @@ const COLORS = {
   new: "#60a5fa",
   refactoring: "#f97316",
   maintenance: "#a78bfa",
-};
-
-// Language colors from GitHub
-const LANGUAGE_COLORS: Record<string, string> = {
-  JavaScript: "#f1e05a",
-  TypeScript: "#2b7489",
-  CSS: "#563d7c",
-  HTML: "#e34c26",
-  Python: "#3572A5",
-  Java: "#b07219",
-  Go: "#00ADD8",
-  Rust: "#dea584",
-  Other: "#cccccc",
-};
-
-// Helper function to get primary language for a PR
-const getPrimaryLanguage = (pr: PullRequest): { name: string; color: string } => {
-  if (pr.commits && pr.commits.length > 0) {
-    // Count changes by language
-    const languageChanges: Record<string, number> = {};
-    pr.commits.forEach((commit) => {
-      const lang = commit.language || "Other";
-      languageChanges[lang] = (languageChanges[lang] || 0) + commit.additions + commit.deletions;
-    });
-    
-    // Find language with most changes
-    const primaryLang = Object.entries(languageChanges)
-      .sort(([,a], [,b]) => b - a)[0]?.[0] || "Other";
-    
-    return {
-      name: primaryLang,
-      color: LANGUAGE_COLORS[primaryLang] || LANGUAGE_COLORS["Other"]
-    };
-  }
-  
-  // Fallback: infer from PR title
-  const titleLower = pr.title.toLowerCase();
-  let lang = "Other";
-  
-  if (titleLower.includes("typescript") || titleLower.includes(".ts")) {
-    lang = "TypeScript";
-  } else if (titleLower.includes("javascript") || titleLower.includes(".js")) {
-    lang = "JavaScript";
-  } else if (titleLower.includes("css") || titleLower.includes("style")) {
-    lang = "CSS";
-  } else if (titleLower.includes("html") || titleLower.includes("markup")) {
-    lang = "HTML";
-  } else if (titleLower.includes("python") || titleLower.includes(".py")) {
-    lang = "Python";
-  } else if (titleLower.includes("java") || titleLower.includes(".java")) {
-    lang = "Java";
-  } else if (titleLower.includes("go") || titleLower.includes(".go")) {
-    lang = "Go";
-  } else if (titleLower.includes("rust") || titleLower.includes(".rs")) {
-    lang = "Rust";
-  }
-  
-  return {
-    name: lang,
-    color: LANGUAGE_COLORS[lang] || LANGUAGE_COLORS["Other"]
-  };
 };
 
 function DistributionCharts({
@@ -108,6 +48,37 @@ function DistributionCharts({
     drillDown,
     drillUp,
   } = useHierarchicalDistribution(pullRequests, selectedQuadrant);
+
+  // Add state for contributor drill-down
+  const [selectedContributor, setSelectedContributor] = useState<string | null>(null);
+  const [contributorView, setContributorView] = useState<"overview" | "quadrant" | "contributor">("overview");
+
+  // Sync contributor view with the hierarchical distribution view
+  useEffect(() => {
+    setContributorView(currentView);
+  }, [currentView]);
+
+  // Handle contributor drill-down
+  const handleContributorClick = (contributorId: string) => {
+    setSelectedContributor(contributorId);
+    setContributorView("contributor");
+  };
+
+  // Handle PR click - open PR in new tab
+  const handlePRClick = (pr: PullRequest) => {
+    const url = `https://github.com/${pr.repository_owner}/${pr.repository_name}/pull/${pr.number}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  // Handle drill up from contributor view
+  const handleContributorDrillUp = () => {
+    if (contributorView === "contributor") {
+      setContributorView("quadrant");
+      setSelectedContributor(null);
+    } else {
+      drillUp();
+    }
+  };
 
   const totalContributions = data.reduce((sum, item) => sum + item.value, 0);
 
@@ -169,6 +140,14 @@ function DistributionCharts({
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
     </div>
   );
+
+  // Add pulse animation styles
+  const pulseStyles = `
+    @keyframes barPulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.2; }
+    }
+  `;
 
   const renderDonutChart = () => {
     return (
@@ -265,15 +244,28 @@ function DistributionCharts({
   const renderBarChart = () => {
     // Use a safer theme detection method
     const isDark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+    const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
     
-    // Create a custom bar chart that colors each bar individually
+    // Create a custom bar chart that colors each bar individually with selection state
     const barData = {
       labels: data.map(d => d.label),
-      datasets: data.map((item, index) => ({
-        label: item.label,
-        data: data.map((_, i) => i === index ? item.value : null),
-        color: COLORS[item.id as keyof typeof COLORS],
-      })),
+      datasets: data.map((item, index) => {
+        const isActive = item.id === activeSegment;
+        const baseColor = COLORS[item.id as keyof typeof COLORS];
+        
+        // Adjust color brightness/opacity based on selection state - less aggressive
+        const color = isActive 
+          ? baseColor 
+          : activeSegment 
+            ? `${baseColor}80` // Make non-selected bars slightly transparent (50% opacity)
+            : baseColor;
+        
+        return {
+          label: item.label,
+          data: data.map((_, i) => i === index ? item.value : null),
+          color: color,
+        };
+      }),
     };
 
     return (
@@ -295,27 +287,79 @@ function DistributionCharts({
               barWidth={0.6}
             />
             
-            {/* Add click overlay */}
+            {/* Add click overlay for interaction */}
             <div 
               className="absolute inset-0 pointer-events-auto" 
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const segmentWidth = rect.width / data.length;
+                const chartArea = e.currentTarget.querySelector('.u-wrap');
+                if (!chartArea) {
+                  const x = e.clientX - rect.left;
+                  const segmentWidth = rect.width / data.length;
+                  const index = Math.floor(x / segmentWidth);
+                  handleBarClick(index);
+                  return;
+                }
+                
+                // Get the actual chart plotting area bounds
+                const chartRect = chartArea.getBoundingClientRect();
+                const x = e.clientX - chartRect.left;
+                
+                // Account for the axis padding (usually around 40-60px on the left)
+                const plotWidth = chartRect.width;
+                const segmentWidth = plotWidth / data.length;
                 const index = Math.floor(x / segmentWidth);
-                handleBarClick(index);
+                
+                if (index >= 0 && index < data.length) {
+                  handleBarClick(index);
+                }
               }}
               onMouseMove={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const segmentWidth = rect.width / data.length;
-                const index = Math.floor(x / segmentWidth);
-                if (index >= 0 && index < data.length) {
-                  setTooltipData(data[index]);
-                  setTooltipPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                const chartArea = e.currentTarget.querySelector('.u-wrap');
+                
+                // Clear any existing timeout
+                if (hoverTimeout) {
+                  clearTimeout(hoverTimeout);
                 }
+                
+                // Set position immediately but delay tooltip display
+                setTooltipPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                
+                // Add delay before showing tooltip
+                const timeout = setTimeout(() => {
+                  if (!chartArea) {
+                    const x = e.clientX - rect.left;
+                    const segmentWidth = rect.width / data.length;
+                    const index = Math.floor(x / segmentWidth);
+                    if (index >= 0 && index < data.length) {
+                      setTooltipData(data[index]);
+                    }
+                    return;
+                  }
+                  
+                  const chartRect = chartArea.getBoundingClientRect();
+                  const x = e.clientX - chartRect.left;
+                  const plotWidth = chartRect.width;
+                  const segmentWidth = plotWidth / data.length;
+                  const index = Math.floor(x / segmentWidth);
+                  
+                  if (index >= 0 && index < data.length) {
+                    setTooltipData(data[index]);
+                  } else {
+                    setTooltipData(null);
+                  }
+                }, 300); // 300ms delay before showing tooltip
+                
+                setHoverTimeout(timeout);
               }}
-              onMouseLeave={() => setTooltipData(null)}
+              onMouseLeave={() => {
+                if (hoverTimeout) {
+                  clearTimeout(hoverTimeout);
+                  setHoverTimeout(null);
+                }
+                setTooltipData(null);
+              }}
               style={{ cursor: 'pointer' }}
             />
           </div>
@@ -370,8 +414,9 @@ function DistributionCharts({
     return (
       <DistributionTreemapEnhanced
         data={hierarchicalData}
-        currentView={currentView}
+        currentView={contributorView}
         selectedQuadrant={drillDownQuadrant}
+        selectedContributor={selectedContributor}
         onDrillDown={(quadrantId) => {
           // If treemap is drilling down and no external filter is set, sync with main filter
           if (!selectedQuadrant) {
@@ -379,15 +424,11 @@ function DistributionCharts({
           }
           drillDown(quadrantId);
         }}
-        onDrillUp={() => {
-          // If treemap is drilling up and external filter matches, clear main filter
-          if (selectedQuadrant === drillDownQuadrant && selectedQuadrant) {
-            onSegmentClick?.(selectedQuadrant); // Toggle off
-          }
-          drillUp();
-        }}
+        onDrillUp={handleContributorDrillUp}
+        onContributorClick={handleContributorClick}
+        onPRClick={handlePRClick}
         onNodeClick={() => {
-          // Handle contributor node clicks
+          // Handle other node clicks if needed
         }}
       />
     );
@@ -567,6 +608,7 @@ function DistributionCharts({
 
   return (
     <div className="space-y-4">
+      <style>{pulseStyles}</style>
 
       {/* Treemap: Always use overlay drawer */}
       {chartType === "treemap" ? (
