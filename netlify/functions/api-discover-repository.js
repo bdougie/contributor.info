@@ -1,3 +1,5 @@
+const fetch = require('node-fetch');
+
 exports.handler = async (event, context) => {
   // CORS headers
   const corsHeaders = {
@@ -46,20 +48,88 @@ exports.handler = async (event, context) => {
 
     console.log(`Repository discovery requested for ${owner}/${repo}`);
 
-    // For now, just return success
-    // The actual discovery will happen through manual tracking or other means
-    return {
-      statusCode: 200,
-      headers: { 
-        ...corsHeaders,
-        'Content-Type': 'application/json' 
-      },
-      body: JSON.stringify({ 
-        success: true,
-        message: `Discovery request acknowledged for ${owner}/${repo}`,
-        note: 'Repository will be tracked. Please refresh in a moment.'
-      })
-    };
+    // Try to send Inngest event
+    try {
+      // Determine which Inngest endpoint to use
+      const inngestEventKey = process.env.INNGEST_EVENT_KEY || 
+                             process.env.INNGEST_PRODUCTION_EVENT_KEY;
+      
+      let inngestUrl;
+      if (inngestEventKey) {
+        // Production Inngest
+        inngestUrl = `https://inn.gs/e/${inngestEventKey}`;
+        console.log('Using production Inngest endpoint');
+      } else {
+        // Fallback to local (won't work in production)
+        inngestUrl = 'http://localhost:8288/e/local';
+        console.log('Using local Inngest endpoint (will fail in production)');
+      }
+
+      // Send the event
+      const inngestResponse = await fetch(inngestUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: 'discover/repository.new',
+          data: {
+            owner,
+            repo,
+            source: 'user-discovery',
+            timestamp: new Date().toISOString()
+          }
+        })
+      });
+
+      const responseText = await inngestResponse.text();
+      
+      if (!inngestResponse.ok) {
+        console.error(`Inngest returned ${inngestResponse.status}: ${responseText}`);
+        throw new Error(`Inngest returned ${inngestResponse.status}`);
+      }
+
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.log('Inngest response (non-JSON):', responseText);
+        result = { status: 'sent' };
+      }
+
+      console.log(`Repository discovery initiated for ${owner}/${repo}:`, result);
+
+      return {
+        statusCode: 200,
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ 
+          success: true,
+          message: `Discovery started for ${owner}/${repo}`,
+          eventId: result.ids?.[0] || result.status || 'pending'
+        })
+      };
+
+    } catch (inngestError) {
+      console.error('Failed to send Inngest event:', inngestError.message || inngestError);
+      
+      // Still return success to UI but note the issue
+      return {
+        statusCode: 200,
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ 
+          success: true,
+          message: `Discovery request received for ${owner}/${repo}`,
+          warning: 'Background processing may be delayed',
+          debug: process.env.NODE_ENV === 'development' ? inngestError.message : undefined
+        })
+      };
+    }
 
   } catch (error) {
     console.error('Failed to process repository discovery:', error);
