@@ -45,6 +45,8 @@ export const DonutChart: React.FC<DonutChartProps> = ({
   const [dimensions, setDimensions] = useState({ width: propWidth, height: propHeight });
   const animationRef = useRef<number | null>(null);
   const progressRef = useRef<number>(0);
+  const [focusedSegmentIndex, setFocusedSegmentIndex] = useState<number>(-1);
+  const isMountedRef = useRef<boolean>(true);
 
   // Calculate actual dimensions based on container size
   const updateDimensions = useCallback(() => {
@@ -99,22 +101,26 @@ export const DonutChart: React.FC<DonutChartProps> = ({
     });
   }, [data]);
 
-  // Draw the chart
+  // Draw the chart with error handling
   const draw = useCallback((progress: number = 1) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    try {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        console.error('DonutChart: Unable to get 2D context from canvas');
+        return;
+      }
 
-    const segments = calculateSegments();
-    const centerX = dimensions.width / 2;
-    const centerY = dimensions.height / 2;
-    const scaledOuterRadius = Math.min(dimensions.width, dimensions.height) / 2 * 0.8;
-    const scaledInnerRadius = scaledOuterRadius * (innerRadius / outerRadius);
+      const segments = calculateSegments();
+      const centerX = dimensions.width / 2;
+      const centerY = dimensions.height / 2;
+      const scaledOuterRadius = Math.min(dimensions.width, dimensions.height) / 2 * 0.8;
+      const scaledInnerRadius = scaledOuterRadius * (innerRadius / outerRadius);
 
-    // Clear canvas
-    ctx.clearRect(0, 0, dimensions.width, dimensions.height);
+      // Clear canvas
+      ctx.clearRect(0, 0, dimensions.width, dimensions.height);
 
     // Enable anti-aliasing
     ctx.imageSmoothingEnabled = true;
@@ -175,26 +181,34 @@ export const DonutChart: React.FC<DonutChartProps> = ({
         ctx.fillText(centerSubLabel, centerX, centerY + 15);
       }
     }
+    } catch (error) {
+      console.error('DonutChart: Error during canvas rendering', error);
+    }
   }, [data, dimensions, innerRadius, outerRadius, activeSegmentId, hoveredSegment, showLabel, centerLabel, centerSubLabel, calculateSegments]);
 
-  // Animation loop
+  // Animation loop with proper cleanup
   const animate = useCallback(() => {
+    if (!isMountedRef.current) return;
+    
     progressRef.current = Math.min(1, progressRef.current + 0.05);
     draw(progressRef.current);
 
-    if (progressRef.current < 1) {
+    if (progressRef.current < 1 && isMountedRef.current) {
       animationRef.current = requestAnimationFrame(animate);
     }
   }, [draw]);
 
-  // Initial draw with animation
+  // Initial draw with animation and cleanup
   useEffect(() => {
+    isMountedRef.current = true;
     progressRef.current = 0;
     animate();
 
     return () => {
+      isMountedRef.current = false;
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
       }
     };
   }, [animate]);
@@ -299,6 +313,57 @@ export const DonutChart: React.FC<DonutChartProps> = ({
     }
   }, [hoveredSegment, onHover]);
 
+  // Keyboard navigation handlers
+  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLCanvasElement>) => {
+    const segments = calculateSegments();
+    if (segments.length === 0) return;
+
+    let newIndex = focusedSegmentIndex;
+
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        newIndex = (focusedSegmentIndex + 1) % segments.length;
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        newIndex = focusedSegmentIndex <= 0 ? segments.length - 1 : focusedSegmentIndex - 1;
+        break;
+      case 'Enter':
+      case ' ':
+        if (focusedSegmentIndex >= 0 && focusedSegmentIndex < segments.length) {
+          event.preventDefault();
+          const segment = segments[focusedSegmentIndex];
+          onClick?.(segment);
+        }
+        break;
+      case 'Escape':
+        setFocusedSegmentIndex(-1);
+        setHoveredSegment(null);
+        break;
+      default:
+        return;
+    }
+
+    if (newIndex !== focusedSegmentIndex) {
+      setFocusedSegmentIndex(newIndex);
+      if (newIndex >= 0 && newIndex < segments.length) {
+        const segment = segments[newIndex];
+        setHoveredSegment(segment.id);
+        onHover?.(segment);
+      }
+    }
+  }, [focusedSegmentIndex, onClick, onHover, calculateSegments]);
+
+  // Generate accessible description
+  const getAriaLabel = useCallback(() => {
+    const total = data.reduce((sum, item) => sum + item.value, 0);
+    const description = data.map(item => 
+      `${item.label}: ${item.value} (${item.percentage.toFixed(1)}%)`
+    ).join(', ');
+    return `Donut chart showing distribution. Total: ${total}. ${description}`;
+  }, [data]);
+
   return (
     <div 
       ref={containerRef}
@@ -312,8 +377,16 @@ export const DonutChart: React.FC<DonutChartProps> = ({
         onMouseMove={handleMouseMove}
         onClick={handleClick}
         onMouseLeave={handleMouseLeave}
+        onKeyDown={handleKeyDown}
         style={{ maxWidth: '100%', height: 'auto' }}
+        role="img"
+        aria-label={getAriaLabel()}
+        tabIndex={0}
+        aria-describedby="donut-chart-description"
       />
+      <span id="donut-chart-description" className="sr-only">
+        Use arrow keys to navigate between segments. Press Enter or Space to select a segment. Press Escape to clear selection.
+      </span>
     </div>
   );
 };

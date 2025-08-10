@@ -231,7 +231,8 @@ function DistributionCharts({
   };
 
   const renderBarChart = () => {
-    const isDark = document.documentElement.classList.contains('dark');
+    // Use a safer theme detection method
+    const isDark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
     
     // Create a custom bar chart that colors each bar individually
     const barData = {
