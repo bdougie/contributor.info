@@ -221,31 +221,39 @@ function DistributionCharts({
           />
         </Suspense>
         
-        {/* Custom Tooltip */}
+        {/* Enhanced Custom Tooltip */}
         {tooltipData && (
-          <div className="absolute pointer-events-none bg-background border rounded-lg shadow-lg p-3 max-w-xs z-50"
+          <div className="absolute pointer-events-none bg-background/95 backdrop-blur-sm border rounded-xl shadow-2xl p-4 max-w-xs z-50 transition-all duration-200 ease-out"
                style={{ 
                  display: tooltipData ? 'block' : 'none',
                  left: `${tooltipPosition.x}px`,
                  top: `${tooltipPosition.y}px`,
+                 opacity: tooltipData ? 1 : 0,
+                 transform: tooltipData ? 'scale(1)' : 'scale(0.95)',
                }}>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-3 mb-3">
               <div
-                className="w-3 h-3 rounded"
-                style={{ backgroundColor: COLORS[tooltipData.id as keyof typeof COLORS] }}
+                className="w-4 h-4 rounded-md shadow-sm"
+                style={{ 
+                  backgroundColor: COLORS[tooltipData.id as keyof typeof COLORS],
+                  boxShadow: `0 0 0 2px ${COLORS[tooltipData.id as keyof typeof COLORS]}20`
+                }}
               />
               <p className="font-semibold text-sm">{tooltipData.label}</p>
             </div>
-            <p className="text-xs text-muted-foreground mb-2">{tooltipData.description}</p>
-            <div className="space-y-1">
-              <p className="text-sm">
-                <span className="font-medium">{tooltipData.value}</span> PRs
+            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{tooltipData.description}</p>
+            <div className="space-y-2 bg-muted/30 rounded-lg p-2">
+              <p className="text-sm flex justify-between items-center">
+                <span className="text-muted-foreground">Pull Requests:</span>
+                <span className="font-semibold">{tooltipData.value}</span>
               </p>
-              <p className="text-sm text-muted-foreground">
-                {tooltipData.percentage.toFixed(1)}% of total contributions
+              <p className="text-sm flex justify-between items-center">
+                <span className="text-muted-foreground">Percentage:</span>
+                <span className="font-semibold">{tooltipData.percentage.toFixed(1)}%</span>
               </p>
             </div>
-            <p className="text-xs text-muted-foreground mt-2 border-t pt-2">
+            <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-muted/50 flex items-center gap-1">
+              <span className="inline-block w-1 h-1 bg-muted-foreground rounded-full"></span>
               Click to filter view
             </p>
           </div>
@@ -313,28 +321,35 @@ function DistributionCharts({
           </div>
         </Suspense>
         
-        {/* Custom Tooltip */}
+        {/* Enhanced Custom Tooltip */}
         {tooltipData && (
-          <div className="absolute pointer-events-none bg-background border rounded-lg shadow-lg p-3 max-w-xs z-50"
+          <div className="absolute pointer-events-none bg-background/95 backdrop-blur-sm border rounded-xl shadow-2xl p-4 max-w-xs z-50 transition-all duration-200 ease-out"
                style={{ 
                  display: tooltipData ? 'block' : 'none',
                  left: `${tooltipPosition.x}px`,
                  top: `${tooltipPosition.y}px`,
+                 opacity: tooltipData ? 1 : 0,
+                 transform: tooltipData ? 'scale(1)' : 'scale(0.95)',
                }}>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-3 mb-3">
               <div
-                className="w-3 h-3 rounded"
-                style={{ backgroundColor: COLORS[tooltipData.id as keyof typeof COLORS] }}
+                className="w-4 h-4 rounded-md shadow-sm"
+                style={{ 
+                  backgroundColor: COLORS[tooltipData.id as keyof typeof COLORS],
+                  boxShadow: `0 0 0 2px ${COLORS[tooltipData.id as keyof typeof COLORS]}20`
+                }}
               />
               <p className="font-semibold text-sm">{tooltipData.label}</p>
             </div>
-            <p className="text-xs text-muted-foreground mb-2">{tooltipData.description}</p>
-            <div className="space-y-1">
-              <p className="text-sm">
-                <span className="font-medium">{tooltipData.value}</span> PRs
+            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{tooltipData.description}</p>
+            <div className="space-y-2 bg-muted/30 rounded-lg p-2">
+              <p className="text-sm flex justify-between items-center">
+                <span className="text-muted-foreground">Pull Requests:</span>
+                <span className="font-semibold">{tooltipData.value}</span>
               </p>
-              <p className="text-sm text-muted-foreground">
-                {tooltipData.percentage.toFixed(1)}% of total contributions
+              <p className="text-sm flex justify-between items-center">
+                <span className="text-muted-foreground">Percentage:</span>
+                <span className="font-semibold">{tooltipData.percentage.toFixed(1)}%</span>
               </p>
             </div>
           </div>

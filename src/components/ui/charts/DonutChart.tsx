@@ -126,30 +126,50 @@ export const DonutChart: React.FC<DonutChartProps> = ({
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    // Draw segments
+    // Draw segments with enhanced effects
     segments.forEach(segment => {
       const isActive = segment.id === activeSegmentId;
       const isHovered = segment.id === hoveredSegment;
-      const segmentOuterRadius = isActive || isHovered ? scaledOuterRadius * 1.05 : scaledOuterRadius;
+      
+      // Smooth scale animation for hover/active states
+      const targetScale = isActive || isHovered ? 1.08 : 1;
+      const segmentOuterRadius = scaledOuterRadius * targetScale;
 
       // Calculate animation progress for this segment
       const segmentProgress = Math.min(1, progress * segments.length);
       const segmentEndAngle = segment.startAngle + (segment.endAngle - segment.startAngle) * segmentProgress;
+
+      // Add subtle shadow for hovered segments
+      if (isHovered) {
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+      }
 
       ctx.beginPath();
       ctx.arc(centerX, centerY, segmentOuterRadius, segment.startAngle, segmentEndAngle);
       ctx.arc(centerX, centerY, scaledInnerRadius, segmentEndAngle, segment.startAngle, true);
       ctx.closePath();
 
-      // Fill segment
+      // Fill segment with slight opacity variation
       ctx.fillStyle = segment.color;
+      ctx.globalAlpha = isHovered ? 1 : 0.95;
       ctx.fill();
+      ctx.globalAlpha = 1;
 
-      // Add stroke for active/hovered segments
+      // Add subtle glow for active/hovered segments
       if (isActive || isHovered) {
-        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--foreground') || '#000';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = segment.color;
+        ctx.lineWidth = isHovered ? 3 : 2;
+        ctx.globalAlpha = 0.5;
         ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      
+      if (isHovered) {
+        ctx.restore();
       }
 
       // Draw percentage labels
@@ -186,12 +206,21 @@ export const DonutChart: React.FC<DonutChartProps> = ({
     }
   }, [data, dimensions, innerRadius, outerRadius, activeSegmentId, hoveredSegment, showLabel, centerLabel, centerSubLabel, calculateSegments]);
 
-  // Animation loop with proper cleanup
+  // Animation loop with smooth easing
   const animate = useCallback(() => {
     if (!isMountedRef.current) return;
     
-    progressRef.current = Math.min(1, progressRef.current + 0.05);
-    draw(progressRef.current);
+    // Use smooth easing for more natural animation
+    const easeInOutCubic = (t: number): number => {
+      return t < 0.5 
+        ? 4 * t * t * t 
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    };
+    
+    const rawProgress = Math.min(1, progressRef.current + 0.025); // Slower increment for smoother animation
+    progressRef.current = rawProgress;
+    const easedProgress = easeInOutCubic(rawProgress);
+    draw(easedProgress);
 
     if (progressRef.current < 1 && isMountedRef.current) {
       animationRef.current = requestAnimationFrame(animate);
