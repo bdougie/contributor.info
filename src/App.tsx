@@ -242,12 +242,20 @@ function App() {
       Promise.all(coreImports).catch(console.warn);
       
       // Priority 2: Preload likely next routes (after initial render)
-      requestIdleCallback(() => {
+      // Use requestIdleCallback with fallback for browser compatibility
+      const schedulePreload = () => {
         Promise.all([
           import("@/components/features/repository/repo-view"),
           import("@/components/features/auth/login-page")
         ]).catch(console.warn);
-      }, { timeout: 2000 });
+      };
+      
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(schedulePreload, { timeout: 2000 });
+      } else {
+        // Fallback for browsers without requestIdleCallback (Safari, older browsers)
+        setTimeout(schedulePreload, 100);
+      }
       
       // Priority 3: Background progressive features (delayed)
       setTimeout(() => {
