@@ -23,7 +23,7 @@ export default function Distribution() {
   );
   
   // Use network-aware mobile detection for adaptive chart selection
-  const { isMobile, shouldUseSimplifiedUI, isSlowConnection } = useNetworkAwareDetection();
+  const { isMobile, shouldUseSimplifiedUI } = useNetworkAwareDetection();
   
   // Initialize chart type based on mobile/network conditions
   const getInitialChartType = (): "donut" | "bar" | "treemap" => {
