@@ -570,10 +570,10 @@ function DistributionCharts({
 
       {/* Treemap: Always use overlay drawer */}
       {chartType === "treemap" ? (
-        <Card className="relative overflow-hidden">
-          <CardContent className="p-6">
+        <Card className="relative">
+          <CardContent className="p-6 overflow-visible">
             {/* Chart Area - Always takes full space */}
-            <div className="h-[400px]">
+            <div className="h-[450px] overflow-visible">
               {renderTreemap()}
             </div>
           
@@ -629,8 +629,8 @@ function DistributionCharts({
 
           {/* Mobile: Overlay drawer */}
           <div className="block md:hidden">
-            <Card className="relative overflow-hidden">
-              <CardContent className="p-6">
+            <Card className="relative">
+              <CardContent className="p-6 overflow-visible">
                 <div className="h-[400px]">
                   {chartType === "donut" && renderDonutChart()}
                   {chartType === "bar" && renderBarChart()}

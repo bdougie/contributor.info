@@ -322,7 +322,7 @@ export function DistributionTreemapEnhanced({
           currentView === "quadrant" ? "treemap-drill-down" : ""
         }`}
       >
-        <ResponsiveContainer width="100%" height={400}>
+        <ResponsiveContainer width="100%" height={420} minHeight={420}>
           <Treemap
             data={getTreemapData()}
             dataKey="value"
@@ -330,6 +330,7 @@ export function DistributionTreemapEnhanced({
             content={<CustomTreemapContent />}
             animationBegin={0}
             animationDuration={100}
+            isAnimationActive={true}
           >
             {currentView === "quadrant" && (
               <Tooltip content={<CustomTooltip />} />
