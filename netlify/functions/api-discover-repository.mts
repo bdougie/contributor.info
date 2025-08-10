@@ -1,6 +1,35 @@
 import type { Context } from "@netlify/functions";
-import { inngest } from "../../src/lib/inngest/client";
-import { createSupabaseAdmin } from "../../src/lib/supabase-admin";
+import { Inngest } from "inngest";
+
+// Environment detection - treat deploy previews as production for signing
+const isProduction = () => {
+  const context = process.env.CONTEXT;
+  const nodeEnv = process.env.NODE_ENV;
+  
+  // Deploy previews should use production mode for proper signing
+  return context === 'production' || 
+         context === 'deploy-preview' || 
+         nodeEnv === 'production' ||
+         process.env.NETLIFY === 'true'; // All Netlify environments use production mode
+};
+
+// Get production environment variables
+const getProductionEnvVar = (key: string, fallbackKey?: string): string => {
+  // For production, use production-specific keys first
+  if (isProduction()) {
+    return process.env[`INNGEST_PRODUCTION_${key}`] || process.env[key] || (fallbackKey ? process.env[fallbackKey] : '') || '';
+  }
+  // For preview/dev, use existing keys
+  return process.env[key] || (fallbackKey ? process.env[fallbackKey] : '') || '';
+};
+
+// Create Inngest client with server-side keys
+const inngest = new Inngest({ 
+  id: process.env.VITE_INNGEST_APP_ID || 'contributor-info',
+  isDev: false, // Force production mode for proper request signing
+  eventKey: getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
+  signingKey: getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
+});
 
 /**
  * API endpoint to handle repository discovery
@@ -40,6 +69,14 @@ export default async (req: Request, context: Context) => {
       });
     }
 
+    // Log environment info for debugging
+    console.log("Repository Discovery - Environment:", {
+      context: process.env.CONTEXT,
+      isProduction: isProduction(),
+      hasEventKey: !!getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
+      hasSigningKey: !!getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY')
+    });
+
     // Send discovery event to Inngest
     const result = await inngest.send({
       name: 'discover/repository.new',
@@ -74,4 +111,8 @@ export default async (req: Request, context: Context) => {
       headers: { 'Content-Type': 'application/json' }
     });
   }
+};
+
+export const config = {
+  path: "/api/discover-repository"
 };
