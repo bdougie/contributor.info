@@ -6,6 +6,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { PWAInstallPrompt } from "@/components/ui/pwa-install-prompt";
 import { OfflineNotification } from "@/components/common/OfflineNotification";
 // Progressive capture modules loaded dynamically after initial render
+import { Layout, Home, NotFound } from "@/components/common/layout";
 import { ProtectedRoute, AdminRoute } from "@/components/features/auth";
 import { initializeWebVitalsMonitoring } from "@/lib/web-vitals-monitoring";
 import { initializeLLMCitationTracking } from "@/lib/llm-citation-tracking";
@@ -13,12 +14,6 @@ import { initAutoTrackingService, cleanupAutoTrackingService } from "@/lib/progr
 import { SVGSpriteInliner } from "@/components/ui/svg-sprite-loader";
 
 // Lazy load route components for better performance
-// Core layout components - lazy loaded with prefetch
-const Layout = lazy(() => import("@/components/common/layout").then(m => ({ default: m.Layout })));
-const Home = lazy(() => import("@/components/common/layout").then(m => ({ default: m.Home })));
-const NotFound = lazy(() => import("@/components/common/layout").then(m => ({ default: m.NotFound })));
-
-// Repository view components
 const RepoView = lazy(() => import("@/components/features/repository/repo-view"));
 const LotteryFactorRoute = lazy(() => import("@/components/features/repository/repo-view").then(m => ({ default: m.LotteryFactorRoute })));
 const ContributionsRoute = lazy(() => import("@/components/features/repository/repo-view").then(m => ({ default: m.ContributionsRoute })));
@@ -231,40 +226,25 @@ function App() {
     initAutoTrackingService();
     
     const initializeDeferred = async () => {
-      // Priority 1: Preload core layout components immediately
-      const coreImports = [
-        import("@/components/common/layout"), // Layout, Home, NotFound
+      // Priority 1: Preload most likely next routes immediately
+      const criticalImports = [
+        import("@/components/features/repository/repo-view"),
+        import("@/components/features/auth/login-page"),
         import("@/lib/supabase"), // Critical for data loading
         import("@/hooks/use-cached-repo-data")
       ];
       
-      // Start core loads immediately
-      Promise.all(coreImports).catch(console.warn);
+      // Start critical loads immediately
+      Promise.all(criticalImports).catch(console.warn);
       
-      // Priority 2: Preload likely next routes (after initial render)
-      // Use requestIdleCallback with fallback for browser compatibility
-      const schedulePreload = () => {
-        Promise.all([
-          import("@/components/features/repository/repo-view"),
-          import("@/components/features/auth/login-page")
-        ]).catch(console.warn);
-      };
-      
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(schedulePreload, { timeout: 2000 });
-      } else {
-        // Fallback for browsers without requestIdleCallback (Safari, older browsers)
-        setTimeout(schedulePreload, 100);
-      }
-      
-      // Priority 3: Background progressive features (delayed)
+      // Priority 2: Background progressive features (delayed)
       setTimeout(() => {
         Promise.all([
           import("@/lib/progressive-capture/manual-trigger"),
           import("@/lib/progressive-capture/smart-notifications"), 
           import("@/lib/progressive-capture/background-processor")
         ]).catch(console.warn);
-      }, 1000);
+      }, 500); // Reduced from 1000ms for better UX
     };
     
     initializeDeferred();

@@ -107,53 +107,37 @@ export default defineConfig(() => ({
         assetFileNames: 'assets/[name]-[hash].[ext]',
         // Allow modules to be properly hoisted for correct initialization order
         hoistTransitiveImports: true,
-        // Balanced chunking strategy - React must stay together to prevent initialization issues
+        // Balanced chunking strategy from production postmortem (2025-06-22)
+        // This approach maintains reliability while optimizing performance
         manualChunks: (id) => {
           // Prevent embeddings from being bundled
           if (id.includes('@xenova/transformers') || id.includes('onnxruntime-web')) {
             return 'embeddings-excluded';
           }
           
-          // All React and React-dependent libraries MUST be bundled together
+          // All React and React-dependent libraries must be bundled together
           // to prevent "Cannot read properties of undefined" errors
-          // This is critical for production builds
+          // This includes: React, ReactDOM, Router, Radix UI, Charts, Icons, etc.
           if (id.includes('react') || 
               id.includes('@radix-ui') || 
+              id.includes('@nivo') || 
+              id.includes('recharts') ||
               id.includes('lucide-react')) {
             return 'react-vendor';
           }
           
-          // Chart libraries - can be safely lazy loaded
-          if (id.includes('@nivo') || id.includes('recharts') || id.includes('uplot')) {
-            return 'charts';
-          }
-          
           // Utility libraries that don't depend on React
-          if (id.includes('class-variance-authority') || 
-              id.includes('clsx') || 
-              id.includes('tailwind-merge')) {
-            return 'utils';
-          }
+          if (id.includes('class-variance-authority')) return 'utils';
+          if (id.includes('clsx')) return 'utils';
+          if (id.includes('tailwind-merge')) return 'utils';
           
-          // Date/time utilities
-          if (id.includes('date-fns')) {
-            return 'utils';
-          }
-          
-          // Validation
-          if (id.includes('zod')) {
-            return 'utils';
-          }
+          // Utilities - frequently used, good for caching
+          if (id.includes('date-fns')) return 'utils';
+          if (id.includes('zod')) return 'utils';
           
           // State management and data
-          if (id.includes('zustand')) {
-            return 'data';
-          }
-          
-          // Supabase client
-          if (id.includes('@supabase/supabase-js')) {
-            return 'data';
-          }
+          if (id.includes('zustand')) return 'data';
+          if (id.includes('@supabase/supabase-js')) return 'data';
         },
       },
     },
@@ -172,15 +156,18 @@ export default defineConfig(() => ({
     modulePreload: {
       polyfill: true, // Enable polyfill for proper module loading
       resolveDependencies: (_, deps) => {
-        // Preload React vendor first (critical for app to work)
+        // Preload React vendor first, then router
         const sorted = deps.sort((a, b) => {
           if (a.includes('react-vendor')) return -1;
           if (b.includes('react-vendor')) return 1;
+          if (a.includes('react-router')) return -1;
+          if (b.includes('react-router')) return 1;
           return 0;
         });
         // Only preload critical chunks
         return sorted.filter(dep => 
-          dep.includes('react-vendor')
+          dep.includes('react-vendor') || 
+          dep.includes('react-router')
         );
       }
     },
