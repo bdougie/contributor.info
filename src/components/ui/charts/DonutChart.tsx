@@ -16,7 +16,7 @@ export interface DonutChartProps {
   outerRadius?: number;
   className?: string;
   onClick?: (segment: DonutChartData) => void;
-  onHover?: (segment: DonutChartData | null) => void;
+  onHover?: (segment: DonutChartData | null, event?: MouseEvent) => void;
   activeSegmentId?: string | null;
   showLabel?: boolean;
   centerLabel?: string;
@@ -243,7 +243,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
     if (distance < scaledInnerRadius || distance > scaledOuterRadius * 1.05) {
       if (hoveredSegment) {
         setHoveredSegment(null);
-        onHover?.(null);
+        onHover?.(null, event.nativeEvent);
       }
       canvas.style.cursor = 'default';
       return;
@@ -261,13 +261,13 @@ export const DonutChart: React.FC<DonutChartProps> = ({
       canvas.style.cursor = 'pointer';
       if (hoveredSegment !== segment.id) {
         setHoveredSegment(segment.id);
-        onHover?.(segment);
+        onHover?.(segment, event.nativeEvent);
       }
     } else {
       canvas.style.cursor = 'default';
       if (hoveredSegment) {
         setHoveredSegment(null);
-        onHover?.(null);
+        onHover?.(null, event.nativeEvent);
       }
     }
   }, [dimensions, innerRadius, outerRadius, hoveredSegment, onHover, calculateSegments]);
@@ -303,10 +303,10 @@ export const DonutChart: React.FC<DonutChartProps> = ({
     }
   }, [dimensions, innerRadius, outerRadius, onClick, calculateSegments]);
 
-  const handleMouseLeave = useCallback(() => {
+  const handleMouseLeave = useCallback((event?: React.MouseEvent<HTMLCanvasElement>) => {
     if (hoveredSegment) {
       setHoveredSegment(null);
-      onHover?.(null);
+      onHover?.(null, event?.nativeEvent);
     }
     if (canvasRef.current) {
       canvasRef.current.style.cursor = 'default';
@@ -350,7 +350,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
       if (newIndex >= 0 && newIndex < segments.length) {
         const segment = segments[newIndex];
         setHoveredSegment(segment.id);
-        onHover?.(segment);
+        onHover?.(segment, undefined);
       }
     }
   }, [focusedSegmentIndex, onClick, onHover, calculateSegments]);

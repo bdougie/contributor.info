@@ -175,13 +175,12 @@ function DistributionCharts({
       <div 
         className="w-full flex justify-center relative"
         onMouseMove={(e) => {
-          if (tooltipData) {
-            const rect = e.currentTarget.getBoundingClientRect();
-            setTooltipPosition({ 
-              x: e.clientX - rect.left + 10, // Add offset so tooltip doesn't block cursor
-              y: e.clientY - rect.top - 10 
-            });
-          }
+          // Always capture mouse position, not just when tooltip is visible
+          const rect = e.currentTarget.getBoundingClientRect();
+          setTooltipPosition({ 
+            x: e.clientX - rect.left + 10, // Add offset so tooltip doesn't block cursor
+            y: e.clientY - rect.top - 10 
+          });
         }}
         onMouseLeave={() => {
           setTooltipData(null);
@@ -196,10 +195,20 @@ function DistributionCharts({
             innerRadius={isMobile ? 40 : 60}
             outerRadius={isMobile ? 80 : 120}
             onClick={handleSegmentClick}
-            onHover={(segment) => {
+            onHover={(segment, event) => {
               if (segment) {
                 const quadrantData = data.find(d => d.id === segment.id);
                 setTooltipData(quadrantData || null);
+                // Update position immediately when hovering over a segment
+                if (event && quadrantData) {
+                  const rect = (event.target as HTMLElement).closest('.w-full')?.getBoundingClientRect();
+                  if (rect) {
+                    setTooltipPosition({
+                      x: event.clientX - rect.left + 10,
+                      y: event.clientY - rect.top - 10
+                    });
+                  }
+                }
               } else {
                 setTooltipData(null);
               }
