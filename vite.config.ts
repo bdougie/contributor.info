@@ -2,6 +2,7 @@ import path from 'path';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
+import viteCompression from 'vite-plugin-compression';
 
 export default defineConfig(() => ({
   base: '/',
@@ -33,7 +34,21 @@ export default defineConfig(() => ({
         }
         return new URLSearchParams();
       }
-    })
+    }),
+    // Brotli compression for static assets (safe, server-side)
+    viteCompression({
+      algorithm: 'brotliCompress',
+      ext: '.br',
+      threshold: 1024,
+      deleteOriginFile: false,
+    }),
+    // Also generate gzip for broader compatibility
+    viteCompression({
+      algorithm: 'gzip',
+      ext: '.gz',
+      threshold: 1024,
+      deleteOriginFile: false,
+    }),
   ],
   resolve: {
     alias: {
@@ -102,9 +117,22 @@ export default defineConfig(() => ({
           arrowFunctions: true
         },
         // Ensure proper file extensions for module recognition
-        entryFileNames: `assets/[name]-[hash].js`,
-        chunkFileNames: `assets/[name]-[hash].js`,
-        assetFileNames: 'assets/[name]-[hash].[ext]',
+        entryFileNames: `js/[name]-[hash].js`,
+        chunkFileNames: `js/[name]-[hash].js`,
+        // Better asset organization
+        assetFileNames: (assetInfo) => {
+          const extType = assetInfo.name?.split('.').pop() || 'asset';
+          if (/png|jpe?g|svg|gif|webp|avif/i.test(extType)) {
+            return 'images/[name]-[hash][extname]';
+          }
+          if (/css/i.test(extType)) {
+            return 'css/[name]-[hash][extname]';
+          }
+          if (/woff2?|ttf|eot/i.test(extType)) {
+            return 'fonts/[name]-[hash][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
+        },
         // Allow modules to be properly hoisted for correct initialization order
         hoistTransitiveImports: true,
         // Balanced chunking strategy from production postmortem (2025-06-22)
@@ -171,6 +199,14 @@ export default defineConfig(() => ({
         );
       }
     },
+    
+    // Remove console/debugger in production and strip legal comments
+    esbuild: {
+      drop: process.env.NODE_ENV === 'production' 
+        ? ['console', 'debugger'] 
+        : [],
+      legalComments: 'none'
+    }
   },
   css: {
     devSourcemap: true,
