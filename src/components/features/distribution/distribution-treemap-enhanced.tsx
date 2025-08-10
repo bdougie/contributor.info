@@ -3,12 +3,12 @@ import { ChevronLeft, Users } from '@/components/ui/icon';
 import { ResponsiveContainer, Treemap, Tooltip } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { QuadrantNode } from "@/hooks/use-hierarchical-distribution";
+import type { QuadrantNode, HierarchicalData } from "@/hooks/use-hierarchical-distribution";
 import type { PullRequest } from "@/lib/types";
-import { getPrimaryLanguage, LANGUAGE_COLORS } from "@/lib/language-utils";
+import { getPrimaryLanguage } from "@/lib/language-utils";
 
 interface DistributionTreemapEnhancedProps {
-  data: any;
+  data: HierarchicalData | null;
   currentView: "overview" | "quadrant" | "contributor";
   selectedQuadrant: string | null;
   selectedContributor?: string | null;
@@ -162,12 +162,12 @@ export function DistributionTreemapEnhanced({
       const quadrant = data.children.find(
         (q: QuadrantNode) => q.id === selectedQuadrant
       );
-      const contributor = quadrant?.children.find(
+      const contributor = quadrant?.children?.find(
         (c: any) => c.id === selectedContributor
       );
       
       // Transform PRs into treemap nodes
-      return contributor?.prs?.map((pr: PullRequest, index: number) => {
+      return contributor?.prs?.map((pr: PullRequest) => {
         const language = getPrimaryLanguage(pr);
         return {
           id: `pr-${pr.id}`,
@@ -184,8 +184,25 @@ export function DistributionTreemapEnhanced({
     return [];
   };
 
+  const [nodeHoverStates, setNodeHoverStates] = useState<Record<string, boolean>>({});
+
   const CustomTreemapContent = useCallback(
-    (props: any) => {
+    (props: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      name?: string;
+      title?: string;
+      id: string;
+      color?: string;
+      login?: string;
+      avatar_url?: string;
+      prs?: PullRequest[];
+      pr?: PullRequest;
+      language?: string;
+      languageColor?: string;
+    }) => {
       const {
         x,
         y,
@@ -207,7 +224,7 @@ export function DistributionTreemapEnhanced({
       const isPR = currentView === "contributor";
       const isOthers = login === "others";
       const showTransition = isTransitioning && (isContributor || isPR);
-      const [isHovered, setIsHovered] = useState(false);
+      const isHovered = nodeHoverStates[id] || false;
 
       const handleClick = () => {
         if (isQuadrant) {
@@ -222,14 +239,14 @@ export function DistributionTreemapEnhanced({
       };
 
       const handleMouseEnter = () => {
-        setIsHovered(true);
+        setNodeHoverStates(prev => ({ ...prev, [id]: true }));
         if (isContributor && prs) {
           setHoveredPRs(prs.slice(0, 5));
         }
       };
 
       const handleMouseLeave = () => {
-        setIsHovered(false);
+        setNodeHoverStates(prev => ({ ...prev, [id]: false }));
         setHoveredPRs([]);
       };
 
@@ -388,10 +405,10 @@ export function DistributionTreemapEnhanced({
         </g>
       );
     },
-    [currentView, selectedQuadrant, selectedContributor, onDrillDown, onContributorClick, onPRClick, onNodeClick, isTransitioning]
+    [currentView, selectedQuadrant, onDrillDown, onContributorClick, onPRClick, onNodeClick, isTransitioning, nodeHoverStates]
   );
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: any }> }) => {
     if (active && payload && payload[0]) {
       const data = payload[0].payload;
       const isContributor = currentView === "quadrant";
@@ -508,7 +525,7 @@ export function DistributionTreemapEnhanced({
             <span className="text-muted-foreground">/</span>
             <span className="font-medium">
               {(() => {
-                const quadrant = data.children?.find((q: QuadrantNode) => q.id === selectedQuadrant);
+                const quadrant = data?.children?.find((q: QuadrantNode) => q.id === selectedQuadrant);
                 const contributor = quadrant?.children?.find((c: any) => c.id === selectedContributor);
                 return contributor?.login || "PRs";
               })()}
@@ -548,7 +565,7 @@ export function DistributionTreemapEnhanced({
               data={getTreemapData()}
               dataKey="value"
               aspectRatio={4 / 3}
-              content={<CustomTreemapContent />}
+              content={CustomTreemapContent as any}
               animationBegin={0}
               animationDuration={300}
               isAnimationActive={true}
