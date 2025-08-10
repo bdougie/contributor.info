@@ -47,7 +47,7 @@ export async function fetchPRDataWithSmartStrategy(
           .select('id, repository_id, size, priority, size_calculated_at')
           .eq('organization_name', owner)
           .eq('repository_name', repo)
-          .single() as { data: TrackedRepositoryInfo | null; error: any };
+          .maybeSingle() as { data: TrackedRepositoryInfo | null; error: any };
 
         // Get repository ID (fallback to repositories table if not tracked)
         let repositoryId: string | null = null;
@@ -75,7 +75,7 @@ export async function fetchPRDataWithSmartStrategy(
             .select('id')
             .eq('owner', owner)
             .eq('name', repo)
-            .single();
+            .maybeSingle();
             
           if (repoData) {
             repositoryId = repoData.id;
@@ -261,7 +261,7 @@ export async function fetchPRDataWithSmartStrategy(
               .select('id')
               .eq('owner', owner)
               .eq('name', repo)
-              .single();
+              .maybeSingle();
 
             if (emergencyRepo) {
               const { data: emergencyData } = await supabase

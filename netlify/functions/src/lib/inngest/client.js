@@ -1,0 +1,60 @@
+import { Inngest } from "inngest";
+import { env, serverEnv } from '../env';
+// Detect development environment
+const isDevelopment = () => {
+    // Browser environment
+    if (typeof window !== 'undefined') {
+        return window.location.hostname === 'localhost' || env.DEV;
+    }
+    // Server environment - check multiple indicators
+    const nodeEnv = process.env.NODE_ENV;
+    const netlifyContext = process.env.CONTEXT;
+    // Explicitly check for production context
+    if (netlifyContext === 'production' || nodeEnv === 'production') {
+        return false;
+    }
+    // Default to development for safety
+    return env.MODE === 'development' || nodeEnv !== 'production';
+};
+// Get event key safely based on context
+const getEventKey = () => {
+    // In browser context, Inngest client only needs basic functionality
+    // Event key is only needed for sending events, which happens server-side
+    if (typeof window !== 'undefined') {
+        return 'browser-client'; // Placeholder for browser client
+    }
+    // Server context - prefer production keys to match production endpoint
+    const eventKey = process.env.INNGEST_PRODUCTION_EVENT_KEY ||
+        serverEnv.INNGEST_EVENT_KEY ||
+        process.env.INNGEST_EVENT_KEY;
+    // In production, ensure we have a real key
+    if (!isDevelopment() && (!eventKey || eventKey === 'dev-key')) {
+        console.warn('[Inngest] Production environment detected but no valid event key found');
+    }
+    return eventKey || 'dev-key';
+};
+// Get signing key for production
+const getSigningKey = () => {
+    if (typeof window !== 'undefined') {
+        return undefined; // Not needed in browser
+    }
+    // Prefer production signing key to match production endpoint
+    const signingKey = process.env.INNGEST_PRODUCTION_SIGNING_KEY ||
+        serverEnv.INNGEST_SIGNING_KEY ||
+        process.env.INNGEST_SIGNING_KEY;
+    // In production, we need a signing key
+    if (!isDevelopment() && !signingKey) {
+        console.warn('[Inngest] Production environment detected but no signing key found');
+    }
+    return signingKey;
+};
+// Create the Inngest client
+export const inngest = new Inngest({
+    id: env.INNGEST_APP_ID,
+    // Set to development mode for local testing
+    isDev: isDevelopment(),
+    // Add event key from environment (server-side only)
+    eventKey: getEventKey(),
+    // Add signing key for production verification
+    signingKey: getSigningKey(),
+});

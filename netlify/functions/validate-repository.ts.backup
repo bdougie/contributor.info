@@ -138,7 +138,6 @@ async function checkSupabase(owner: string, repo: string): Promise<{ exists: boo
           'apikey': VITE_SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
         },
       }
     );

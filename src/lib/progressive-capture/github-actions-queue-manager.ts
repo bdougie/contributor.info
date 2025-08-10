@@ -30,7 +30,7 @@ export class GitHubActionsQueueManager {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${this.GITHUB_TOKEN}`,
-            'Accept': 'application/vnd.github+json',
+            'Accept': 'application/vnd.github.v3+json',
             'X-GitHub-Api-Version': '2022-11-28',
             'Content-Type': 'application/json'
           },
@@ -133,7 +133,7 @@ export class GitHubActionsQueueManager {
         {
           headers: {
             'Authorization': `Bearer ${this.GITHUB_TOKEN}`,
-            'Accept': 'application/vnd.github+json',
+            'Accept': 'application/vnd.github.v3+json',
             'X-GitHub-Api-Version': '2022-11-28'
           }
         }
