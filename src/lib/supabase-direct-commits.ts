@@ -41,7 +41,7 @@ export async function fetchDirectCommitsWithDatabaseFallback(
           .select('id')
           .eq('owner', owner)
           .eq('name', repo)
-          .single();
+          .maybeSingle();
 
         if (repoError || !repoData) {
           // Simple breadcrumb logging without analytics

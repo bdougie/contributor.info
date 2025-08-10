@@ -52,29 +52,25 @@ export function useRepositoryDiscovery({
     const checkRepository = async () => {
       try {
         // Check if repository exists in database
+        // Using maybeSingle() to handle non-existent repos without 406 errors
+        console.log('[Repository Discovery] Checking repository:', `${owner}/${repo}`);
         const { data: repoData, error } = await supabase
           .from('repositories')
           .select('id, owner, name')
           .eq('owner', owner)
           .eq('name', repo)
-          .single();
+          .maybeSingle();
 
         if (error) {
-          // PGRST116 means "no rows found" which is expected for new repos
-          if (error.code === 'PGRST116') {
-            // Repository not found - this is expected, continue with discovery
-            console.log(`Repository ${owner}/${repo} not found, will initiate discovery`);
-          } else {
-            // Real error
-            console.error('Error checking repository:', error);
-            setState({
-              status: 'error',
-              repository: null,
-              message: 'Failed to check repository status',
-              isNewRepository: false
-            });
-            return;
-          }
+          // Real error occurred
+          console.error('Error checking repository:', error);
+          setState({
+            status: 'error',
+            repository: null,
+            message: 'Failed to check repository status',
+            isNewRepository: false
+          });
+          return;
         }
 
         if (repoData) {
@@ -198,7 +194,7 @@ export function useRepositoryDiscovery({
           .select('id, owner, name')
           .eq('owner', owner)
           .eq('name', repo)
-          .single();
+          .maybeSingle();
 
         if (repoData) {
           // Success! Repository is ready
