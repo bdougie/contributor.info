@@ -9,6 +9,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { marked } from 'marked';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -107,8 +108,8 @@ function parseDate(dateStr) {
   // Handle various date formats
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) {
-    // If parsing fails, try to parse common formats
-    // Format: "2025-07-14" or "July 14, 2025"
+    // Log warning for debugging but continue with current date
+    console.warn(`Warning: Failed to parse date "${dateStr}", using current date as fallback`);
     return new Date();
   }
   return date;
@@ -127,32 +128,47 @@ function escapeXml(text) {
 }
 
 /**
- * Convert markdown to HTML for feed content
+ * Convert markdown to HTML for feed content using marked library
  */
 function markdownToHtml(markdown) {
-  let html = markdown;
-  
-  // Convert headers
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  
-  // Convert bold
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  
-  // Convert links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-  
-  // Convert list items
-  html = html.replace(/^\* (.+)$/gm, '<li>$1</li>');
-  
-  // Wrap consecutive list items in ul tags
-  html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
-  
-  // Convert line breaks
-  html = html.replace(/\n\n/g, '</p><p>');
-  html = `<p>${html}</p>`;
-  
-  return html;
+  try {
+    // Configure marked for safe rendering
+    marked.setOptions({
+      breaks: true,
+      gfm: true,
+      headerIds: false,
+      mangle: false,
+      sanitize: false // We're escaping XML separately
+    });
+    
+    return marked.parse(markdown);
+  } catch (error) {
+    console.warn('Failed to parse markdown with marked, using fallback:', error.message);
+    // Fallback to simple conversion
+    let html = markdown;
+    
+    // Convert headers
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    
+    // Convert bold
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    
+    // Convert links
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+    
+    // Convert list items
+    html = html.replace(/^\* (.+)$/gm, '<li>$1</li>');
+    
+    // Wrap consecutive list items in ul tags
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
+    
+    // Convert line breaks
+    html = html.replace(/\n\n/g, '</p><p>');
+    html = `<p>${html}</p>`;
+    
+    return html;
+  }
 }
 
 /**

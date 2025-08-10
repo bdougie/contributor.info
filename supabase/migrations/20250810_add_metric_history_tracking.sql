@@ -28,6 +28,10 @@ CREATE INDEX idx_repository_metrics_history_type ON repository_metrics_history(m
 CREATE INDEX idx_repository_metrics_history_captured ON repository_metrics_history(captured_at DESC);
 CREATE INDEX idx_repository_metrics_history_significant ON repository_metrics_history(is_significant) WHERE is_significant = TRUE;
 CREATE INDEX idx_repository_metrics_history_trending ON repository_metrics_history(change_percentage DESC) WHERE change_percentage > 5;
+-- Composite index for trending queries optimization
+CREATE INDEX idx_metrics_trending_composite ON repository_metrics_history 
+  (captured_at DESC, is_significant, change_percentage DESC) 
+  WHERE captured_at > NOW() - INTERVAL '7 days';
 
 -- Create table for repository changelog entries (auto-generated from significant changes)
 CREATE TABLE IF NOT EXISTS repository_changelogs (
@@ -54,7 +58,7 @@ CREATE INDEX idx_repository_changelogs_importance ON repository_changelogs(impor
 CREATE OR REPLACE FUNCTION detect_significant_metric_change()
 RETURNS TRIGGER AS $$
 DECLARE
-  v_threshold DECIMAL := 5.0; -- 5% change threshold
+  v_threshold DECIMAL := 5.0; -- 5% change threshold for determining significant changes (adjustable based on metric volatility)
   v_changelog_title TEXT;
   v_changelog_description TEXT;
   v_change_type TEXT;
@@ -95,12 +99,14 @@ BEGIN
         v_importance := LEAST(100, ABS(NEW.change_percentage)::INTEGER);
     END CASE;
     
-    v_changelog_description := 'Metric changed from ' || COALESCE(NEW.previous_value::TEXT, 'unknown') || 
-                               ' to ' || NEW.current_value || ' (' || 
+    -- Use format() for safer string concatenation to prevent injection
+    v_changelog_description := format('Metric changed from %s to %s (%s%% change)', 
+                               COALESCE(NEW.previous_value::TEXT, 'unknown'),
+                               NEW.current_value, 
                                CASE 
-                                 WHEN NEW.change_percentage > 0 THEN '+' 
-                                 ELSE '' 
-                               END || ROUND(NEW.change_percentage) || '% change)';
+                                 WHEN NEW.change_percentage > 0 THEN '+' || ROUND(NEW.change_percentage)
+                                 ELSE ROUND(NEW.change_percentage)::TEXT
+                               END);
     
     -- Insert changelog entry (ignore conflicts)
     INSERT INTO repository_changelogs (
@@ -224,3 +230,27 @@ COMMENT ON TABLE repository_metrics_history IS 'Tracks changes in repository met
 COMMENT ON TABLE repository_changelogs IS 'Auto-generated changelog entries for significant repository changes';
 COMMENT ON VIEW trending_repositories IS 'Shows repositories with significant positive metric changes in the last 7 days';
 COMMENT ON FUNCTION get_repository_freshness IS 'Returns the data freshness status for a repository';
+
+-- Create a function for cleaning up old metric history (data older than 6 months)
+CREATE OR REPLACE FUNCTION cleanup_old_metrics_history()
+RETURNS INTEGER AS $$
+DECLARE
+  v_deleted_count INTEGER;
+BEGIN
+  -- Delete metric history older than 6 months, keeping significant changes for 1 year
+  DELETE FROM repository_metrics_history
+  WHERE 
+    (captured_at < NOW() - INTERVAL '6 months' AND is_significant = FALSE)
+    OR (captured_at < NOW() - INTERVAL '1 year');
+  
+  GET DIAGNOSTICS v_deleted_count = ROW_COUNT;
+  
+  -- Also cleanup old changelog entries (keep for 1 year)
+  DELETE FROM repository_changelogs
+  WHERE created_at < NOW() - INTERVAL '1 year';
+  
+  RETURN v_deleted_count;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION cleanup_old_metrics_history IS 'Removes old metric history data to manage storage. Keeps significant changes for 1 year, others for 6 months.';
