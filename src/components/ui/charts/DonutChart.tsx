@@ -126,11 +126,13 @@ export const DonutChart: React.FC<DonutChartProps> = ({
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    // Draw segments
+    // Draw segments with scaling for active segment only
     segments.forEach(segment => {
       const isActive = segment.id === activeSegmentId;
-      const isHovered = segment.id === hoveredSegment;
-      const segmentOuterRadius = isActive || isHovered ? scaledOuterRadius * 1.05 : scaledOuterRadius;
+      
+      // Scale up active segment
+      const targetScale = isActive ? 1.05 : 1;
+      const segmentOuterRadius = scaledOuterRadius * targetScale;
 
       // Calculate animation progress for this segment
       const segmentProgress = Math.min(1, progress * segments.length);
@@ -145,11 +147,13 @@ export const DonutChart: React.FC<DonutChartProps> = ({
       ctx.fillStyle = segment.color;
       ctx.fill();
 
-      // Add stroke for active/hovered segments
-      if (isActive || isHovered) {
-        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--foreground') || '#000';
+      // Add subtle glow for active segments
+      if (isActive) {
+        ctx.strokeStyle = segment.color;
         ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.5;
         ctx.stroke();
+        ctx.globalAlpha = 1;
       }
 
       // Draw percentage labels
@@ -184,14 +188,23 @@ export const DonutChart: React.FC<DonutChartProps> = ({
     } catch (error) {
       console.error('DonutChart: Error during canvas rendering', error);
     }
-  }, [data, dimensions, innerRadius, outerRadius, activeSegmentId, hoveredSegment, showLabel, centerLabel, centerSubLabel, calculateSegments]);
+  }, [data, dimensions, innerRadius, outerRadius, activeSegmentId, showLabel, centerLabel, centerSubLabel, calculateSegments]);
 
-  // Animation loop with proper cleanup
+  // Animation loop with smooth easing
   const animate = useCallback(() => {
     if (!isMountedRef.current) return;
     
-    progressRef.current = Math.min(1, progressRef.current + 0.05);
-    draw(progressRef.current);
+    // Use smooth easing for more natural animation
+    const easeInOutCubic = (t: number): number => {
+      return t < 0.5 
+        ? 4 * t * t * t 
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    };
+    
+    const rawProgress = Math.min(1, progressRef.current + 0.025); // Slower increment for smoother animation
+    progressRef.current = rawProgress;
+    const easedProgress = easeInOutCubic(rawProgress);
+    draw(easedProgress);
 
     if (progressRef.current < 1 && isMountedRef.current) {
       animationRef.current = requestAnimationFrame(animate);
@@ -213,12 +226,12 @@ export const DonutChart: React.FC<DonutChartProps> = ({
     };
   }, [animate]);
 
-  // Redraw on data or state changes
+  // Redraw on data or activeSegmentId changes, but not on hover
   useEffect(() => {
     if (progressRef.current === 1) {
       draw(1);
     }
-  }, [draw, activeSegmentId, hoveredSegment]);
+  }, [draw, activeSegmentId]);
 
   // Handle mouse events
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -368,7 +381,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
     <div 
       ref={containerRef}
       className={`donut-chart ${className}`}
-      style={{ width: responsive ? '100%' : propWidth }}
+      style={{ width: responsive ? '100%' : propWidth, position: 'relative' }}
     >
       <canvas
         ref={canvasRef}
@@ -378,7 +391,11 @@ export const DonutChart: React.FC<DonutChartProps> = ({
         onClick={handleClick}
         onMouseLeave={handleMouseLeave}
         onKeyDown={handleKeyDown}
-        style={{ maxWidth: '100%', height: 'auto' }}
+        style={{ 
+          maxWidth: '100%', 
+          height: 'auto',
+          cursor: hoveredSegment ? 'pointer' : 'default'
+        }}
         role="img"
         aria-label={getAriaLabel()}
         tabIndex={0}

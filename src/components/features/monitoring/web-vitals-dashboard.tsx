@@ -7,19 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getWebVitalsAnalytics } from '@/lib/web-vitals-analytics';
 import { THRESHOLDS } from '@/lib/web-vitals-monitoring';
-import { 
-  LineChart, 
-  Line, 
-  PieChart,
-  Pie,
-  Cell,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer 
-} from 'recharts';
+import { LineChart, DonutChart, type DonutChartData } from '@/components/ui/charts';
 import { NetlifyRUMIntegration } from './netlify-rum-integration';
 import { getTimeRangeHours, getRatingClass, getRatingBadgeVariant } from '@/lib/utils/performance-helpers';
 
@@ -273,30 +261,47 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
                   <CardDescription>User experience breakdown</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {summary[metric] && (
-                    <ResponsiveContainer width="100%" height={200}>
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: 'Good', value: summary[metric]!.good },
-                            { name: 'Needs Improvement', value: summary[metric]!.needsImprovement },
-                            { name: 'Poor', value: summary[metric]!.poor },
-                          ]}
-                          cx="50%"
-                          cy="50%"
+                  {summary[metric] && (() => {
+                    const total = summary[metric]!.good + summary[metric]!.needsImprovement + summary[metric]!.poor;
+                    const donutData: DonutChartData[] = [
+                      { 
+                        id: 'good', 
+                        label: 'Good', 
+                        value: summary[metric]!.good,
+                        percentage: (summary[metric]!.good / total) * 100,
+                        color: RATING_COLORS.good
+                      },
+                      { 
+                        id: 'needs-improvement', 
+                        label: 'Needs Improvement', 
+                        value: summary[metric]!.needsImprovement,
+                        percentage: (summary[metric]!.needsImprovement / total) * 100,
+                        color: RATING_COLORS['needs-improvement']
+                      },
+                      { 
+                        id: 'poor', 
+                        label: 'Poor', 
+                        value: summary[metric]!.poor,
+                        percentage: (summary[metric]!.poor / total) * 100,
+                        color: RATING_COLORS.poor
+                      },
+                    ];
+                    
+                    return (
+                      <div className="flex justify-center">
+                        <DonutChart
+                          data={donutData}
+                          width={200}
+                          height={200}
                           innerRadius={60}
                           outerRadius={80}
-                          paddingAngle={5}
-                          dataKey="value"
-                        >
-                          <Cell fill={RATING_COLORS.good} />
-                          <Cell fill={RATING_COLORS['needs-improvement']} />
-                          <Cell fill={RATING_COLORS.poor} />
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
+                          showLabel={false}
+                          centerLabel={`${Math.round((summary[metric]!.good / total) * 100)}%`}
+                          centerSubLabel="Good"
+                        />
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </div>
@@ -308,37 +313,51 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
                 <CardDescription>P75 values over time</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={historicalData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="time" 
-                      tickFormatter={(time: number) => new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {(() => {
+                  // Transform data for uPlot LineChart
+                  const timestamps = historicalData.map(d => new Date(d.time).getTime() / 1000);
+                  const values = historicalData.map(d => d[metric]);
+                  const threshold = THRESHOLDS[metric];
+                  const thresholdValues = historicalData.map(() => threshold);
+                  
+                  const chartData = {
+                    labels: timestamps,
+                    datasets: [
+                      {
+                        label: metric,
+                        data: values,
+                        color: '#8884d8',
+                        strokeWidth: 2,
+                        fill: false,
+                        points: false,
+                      },
+                      {
+                        label: 'Good Threshold',
+                        data: thresholdValues,
+                        color: '#10b981',
+                        strokeWidth: 1,
+                        fill: false,
+                        points: false,
+                      }
+                    ]
+                  };
+                  
+                  // Detect theme
+                  const isDark = typeof window !== 'undefined' && 
+                    window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+                  
+                  return (
+                    <LineChart
+                      data={chartData}
+                      height={300}
+                      isDark={isDark}
+                      showGrid={true}
+                      showLegend={true}
+                      xAxisLabel=""
+                      yAxisLabel={metric === 'CLS' ? 'Score' : 'Time (ms)'}
                     />
-                    <YAxis />
-                    <Tooltip 
-                      labelFormatter={(time: number) => new Date(time).toLocaleString()}
-                      formatter={(value: number) => formatMetricValue(metric, value)}
-                    />
-                    <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey={metric} 
-                      stroke="#8884d8" 
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                    {/* Threshold line */}
-                    <Line
-                      type="monotone"
-                      dataKey={() => THRESHOLDS[metric]}
-                      stroke="#10b981"
-                      strokeDasharray="5 5"
-                      name="Good Threshold"
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
