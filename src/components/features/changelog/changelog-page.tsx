@@ -54,18 +54,18 @@ export function ChangelogPage() {
 
   const parseChangelog = (content: string): ChangelogEntry[] => {
     const entries: ChangelogEntry[] = [];
-    // Updated regex to handle markdown links in version headers
-    const versionRegex = /## (\[([0-9.]+)\]\(([^)]+)\)|([0-9.]+)) \((.+?)\)/g;
+    // Simplified regex: matches ## [version](link) (date) or ## version (date)
+    const versionRegex = /## \[([0-9.]+)\]\(([^)]+)\) \((.+?)\)|## ([0-9.]+) \((.+?)\)/g;
     const matches = [...content.matchAll(versionRegex)];
 
     for (let i = 0; i < matches.length; i++) {
       const match = matches[i];
-      // match[2] is version from [version](link), match[4] is version without link
-      const version = match[2] || match[4];
-      // match[3] is the link URL if present
-      const versionLink = match[3];
-      // match[5] is the date
-      const date = match[5];
+      // For linked version: match[1]=version, match[2]=link, match[3]=date
+      // For unlinked version: match[4]=version, match[5]=date
+      const version = match[1] || match[4];
+      const versionLink = match[2] || undefined;
+      const date = match[3] || match[5];
+      
       const startIndex = match.index! + match[0].length;
       const endIndex = matches[i + 1]?.index || content.length;
       const entryContent = content.slice(startIndex, endIndex).trim();
@@ -148,7 +148,10 @@ export function ChangelogPage() {
 
   return (
     <>
-      <ChangelogSEO />
+      <ChangelogSEO 
+        date={changelogEntries[0]?.date}
+        version={changelogEntries[0]?.version}
+      />
       <div className="max-w-7xl mx-auto py-2">
         {/* Mobile navigation - shows on top, full width */}
         <div className="lg:hidden mb-6">
@@ -174,13 +177,32 @@ export function ChangelogPage() {
             <div className="flex gap-8">
               <div className="flex-1">
                 {/* Add page freshness indicator */}
-                <div className="mb-6 flex justify-between items-center">
-                  <h1 className="text-3xl font-bold">Changelog</h1>
-                  <LastUpdated 
-                    timestamp={pageLoadedAt}
-                    label="Changelog loaded"
-                    size="sm"
-                  />
+                <div className="mb-6 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h1 className="text-3xl font-bold">Changelog</h1>
+                    <div className="flex items-center gap-4">
+                      <LastUpdated 
+                        timestamp={pageLoadedAt}
+                        label="Page loaded"
+                        size="sm"
+                        showIcon={true}
+                      />
+                      {changelogEntries.length > 0 && (
+                        <LastUpdated 
+                          timestamp={changelogEntries[0].date}
+                          label="Latest release"
+                          size="sm"
+                          showIcon={true}
+                          className="text-primary"
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Track all updates, new features, and improvements. Subscribe to our{' '}
+                    <a href="/changelog-rss.xml" className="text-primary hover:underline">RSS</a> or{' '}
+                    <a href="/changelog-atom.xml" className="text-primary hover:underline">Atom</a> feeds for real-time updates.
+                  </p>
                 </div>
                 
             <div className="space-y-6">
