@@ -30,10 +30,23 @@ export function RepositoryTrackingCard({
   };
 
   const handleTrackRepository = async () => {
+    // Validate props before sending
+    if (!owner || !repo) {
+      console.error('Missing owner or repo:', { owner, repo });
+      setError('Invalid repository information');
+      toast.error('Invalid repository', {
+        description: 'Repository information is missing',
+        duration: 6000
+      });
+      return;
+    }
+    
     setIsTracking(true);
     setError(null);
 
     try {
+      console.log('Sending track request for:', { owner, repo });
+      
       // Call the new tracking API endpoint
       const response = await fetch('/.netlify/functions/api-track-repository', {
         method: 'POST',

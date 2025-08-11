@@ -56,8 +56,14 @@ export const discoverNewRepository = inngest.createFunction(
   { event: "discover/repository.new" },
   async ({ event, step }) => {
     const { owner, repo, source } = event.data;
+    
+    // Validate required fields
+    if (!owner || !repo) {
+      console.error('Missing required fields in discovery event:', event.data);
+      throw new NonRetriableError(`Missing required fields: owner=${owner}, repo=${repo}`);
+    }
+    
     const fullName = `${owner}/${repo}`;
-
     console.log(`Starting discovery for ${fullName} from ${source}`);
 
     // Create admin client for this function

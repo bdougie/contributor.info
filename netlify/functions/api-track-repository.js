@@ -33,6 +33,8 @@ exports.handler = async (event, context) => {
     // Parse request body
     const body = JSON.parse(event.body || '{}');
     const { owner, repo } = body;
+    
+    console.log('Track repository request received:', { owner, repo, body });
 
     if (!owner || !repo) {
       return {

@@ -332,19 +332,24 @@ export async function fetchPRDataWithFallback(
     console.log(`Repository ${owner}/${repo} not in database. Triggering discovery.`);
     
     // Trigger repository discovery for new repositories
-    try {
-      const { sendInngestEvent } = await import('./inngest/client-safe');
-      await sendInngestEvent({
-        name: 'discover/repository.new',
-        data: {
-          owner,
-          repo,
-          source: 'missing-repo-fallback',
-          timestamp: new Date().toISOString()
-        }
-      });
-    } catch (error) {
-      console.error('Failed to trigger repository discovery:', error);
+    // Validate that we have owner and repo before sending
+    if (owner && repo) {
+      try {
+        const { sendInngestEvent } = await import('./inngest/client-safe');
+        await sendInngestEvent({
+          name: 'discover/repository.new',
+          data: {
+            owner,
+            repo,
+            source: 'missing-repo-fallback',
+            timestamp: new Date().toISOString()
+          }
+        });
+      } catch (error) {
+        console.error('Failed to trigger repository discovery:', error);
+      }
+    } else {
+      console.error('Cannot trigger discovery - missing owner or repo:', { owner, repo });
     }
     
     return createPendingDataResult(
