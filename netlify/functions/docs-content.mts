@@ -1,10 +1,4 @@
 import type { Context, Config } from "@netlify/functions";
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export default async (req: Request, context: Context) => {
   // Only allow GET requests
@@ -35,51 +29,77 @@ export default async (req: Request, context: Context) => {
   }
 
   try {
+    // Import fs dynamically to avoid bundling issues
+    const { promises: fs } = await import('fs');
+    const path = await import('path');
+    
     // Try multiple potential paths where docs might be located
     const possiblePaths = [
-      // In production, files are in the dist folder
-      path.join(__dirname, '..', '..', 'dist', 'docs', filename),
-      // Alternative production path
-      path.join(__dirname, '..', '..', 'public', 'docs', filename),
-      // Local development path
-      path.join(process.cwd(), 'public', 'docs', filename),
-      // Another possible production path
+      // In production, try the included path first
+      path.join(process.cwd(), 'docs', filename),
+      // Try dist folder
       path.join(process.cwd(), 'dist', 'docs', filename),
+      // Try public folder
+      path.join(process.cwd(), 'public', 'docs', filename),
+      // Try relative to function
+      path.join(process.cwd(), '..', '..', 'docs', filename),
+      path.join(process.cwd(), '..', '..', 'dist', 'docs', filename),
+      path.join(process.cwd(), '..', '..', 'public', 'docs', filename),
     ];
 
     let content: string | null = null;
     let successPath: string | null = null;
+    const errors: string[] = [];
 
     for (const docPath of possiblePaths) {
       try {
         content = await fs.readFile(docPath, 'utf-8');
         successPath = docPath;
         break;
-      } catch (e) {
-        // Try next path
+      } catch (e: any) {
+        errors.push(`${docPath}: ${e.message}`);
         continue;
       }
     }
 
     if (!content) {
-      console.error(`Doc file ${filename} not found in any of the following paths:`, possiblePaths);
+      console.error(`Doc file ${filename} not found. Tried paths:`, errors);
       console.error('Current directory:', process.cwd());
-      console.error('__dirname:', __dirname);
       console.error('Environment:', {
         NETLIFY: process.env.NETLIFY,
         NODE_ENV: process.env.NODE_ENV,
       });
       
-      // Try to list what's actually in the directories for debugging
+      // Try to list what's actually in the current directory
       try {
-        const baseDir = path.join(__dirname, '..', '..');
-        const contents = await fs.readdir(baseDir);
-        console.error('Base directory contents:', contents);
+        const contents = await fs.readdir(process.cwd());
+        console.error('Current directory contents:', contents);
+        
+        // Check if docs folder exists
+        try {
+          const docsContents = await fs.readdir(path.join(process.cwd(), 'docs'));
+          console.error('Docs folder contents:', docsContents);
+        } catch {
+          console.error('No docs folder in current directory');
+        }
+        
+        // Check if dist folder exists
+        try {
+          const distContents = await fs.readdir(path.join(process.cwd(), 'dist'));
+          console.error('Dist folder contents:', distContents);
+        } catch {
+          console.error('No dist folder in current directory');
+        }
       } catch (e) {
-        console.error('Could not list base directory contents');
+        console.error('Could not list directory contents');
       }
       
-      return new Response(JSON.stringify({ error: 'Documentation file not found' }), {
+      return new Response(JSON.stringify({ 
+        error: 'Documentation file not found',
+        filename,
+        triedPaths: errors,
+        cwd: process.cwd()
+      }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       });
@@ -94,10 +114,14 @@ export default async (req: Request, context: Context) => {
         'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
       }
     });
-  } catch (error) {
-    console.error(`Error reading doc file ${filename}:`, error);
+  } catch (error: any) {
+    console.error(`Error in docs-content function for ${filename}:`, error);
     
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
