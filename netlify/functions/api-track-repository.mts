@@ -1,6 +1,6 @@
-const fetch = require('node-fetch');
+import type { Context } from "@netlify/functions";
 
-exports.handler = async (event, context) => {
+export default async (req: Request, context: Context) => {
   // CORS headers
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -10,51 +10,48 @@ exports.handler = async (event, context) => {
   };
 
   // Handle preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: ''
-    };
+  if (req.method === 'OPTIONS') {
+    return new Response('', {
+      status: 200,
+      headers: corsHeaders
+    });
   }
 
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
       headers: { 
         ...corsHeaders,
         'Content-Type': 'application/json' 
-      },
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+      }
+    });
   }
 
   try {
     // Parse request body
-    const body = JSON.parse(event.body || '{}');
+    const body = await req.json().catch(() => ({}));
     const { owner, repo } = body;
     
     console.log('Track repository request received:', { owner, repo, body });
 
     if (!owner || !repo) {
-      return {
-        statusCode: 400,
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Missing owner or repo',
+        message: 'Please provide both owner and repo parameters' 
+      }), {
+        status: 400,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({ 
-          success: false,
-          error: 'Missing owner or repo',
-          message: 'Please provide both owner and repo parameters' 
-        })
-      };
+        }
+      });
     }
 
     // Check if user is authenticated
     // In production, this would validate the Supabase session
     // For now, we'll accept all requests but log the authentication status
-    const authHeader = event.headers.authorization || event.headers.Authorization;
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
     const isAuthenticated = !!authHeader;
     
     console.log('Repository tracking requested for %s/%s (authenticated: %s)', owner, repo, isAuthenticated);
@@ -72,18 +69,17 @@ exports.handler = async (event, context) => {
       });
 
       if (githubResponse.status === 404) {
-        return {
-          statusCode: 404,
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: 'Repository not found',
+          message: `Repository ${owner}/${repo} not found on GitHub` 
+        }), {
+          status: 404,
           headers: { 
             ...corsHeaders,
             'Content-Type': 'application/json' 
-          },
-          body: JSON.stringify({ 
-            success: false,
-            error: 'Repository not found',
-            message: `Repository ${owner}/${repo} not found on GitHub` 
-          })
-        };
+          }
+        });
       }
 
       if (!githubResponse.ok) {
@@ -94,18 +90,17 @@ exports.handler = async (event, context) => {
 
       // Check if it's a private repository
       if (githubData.private) {
-        return {
-          statusCode: 403,
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: 'Private repository',
+          message: 'Cannot track private repositories' 
+        }), {
+          status: 403,
           headers: { 
             ...corsHeaders,
             'Content-Type': 'application/json' 
-          },
-          body: JSON.stringify({ 
-            success: false,
-            error: 'Private repository',
-            message: 'Cannot track private repositories' 
-          })
-        };
+          }
+        });
       }
 
     } catch (githubError) {
@@ -118,7 +113,7 @@ exports.handler = async (event, context) => {
       const inngestEventKey = process.env.INNGEST_EVENT_KEY || 
                              process.env.INNGEST_PRODUCTION_EVENT_KEY;
       
-      let inngestUrl;
+      let inngestUrl: string;
       if (inngestEventKey) {
         inngestUrl = `https://inn.gs/e/${inngestEventKey}`;
         console.log('Using production Inngest endpoint');
@@ -163,58 +158,60 @@ exports.handler = async (event, context) => {
       console.log(`Repository tracking initiated for ${owner}/${repo}:`, result);
       console.log('Inngest event sent successfully, eventIds:', result.ids);
 
-      return {
-        statusCode: 200,
+      return new Response(JSON.stringify({ 
+        success: true,
+        message: `Tracking started for ${owner}/${repo}`,
+        repositoryId: result.ids?.[0] || 'pending',
+        eventId: result.ids?.[0] || result.status || 'pending',
+        debug: {
+          inngestResult: result,
+          eventSent: true,
+          timestamp: new Date().toISOString()
+        }
+      }), {
+        status: 200,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({ 
-          success: true,
-          message: `Tracking started for ${owner}/${repo}`,
-          repositoryId: result.ids?.[0] || 'pending',
-          eventId: result.ids?.[0] || result.status || 'pending',
-          debug: {
-            inngestResult: result,
-            eventSent: true,
-            timestamp: new Date().toISOString()
-          }
-        })
-      };
+        }
+      });
 
-    } catch (inngestError) {
-      console.error('Failed to send Inngest event:', inngestError.message || inngestError);
+    } catch (inngestError: unknown) {
+      const errorMessage = inngestError instanceof Error ? inngestError.message : String(inngestError);
+      console.error('Failed to send Inngest event:', errorMessage);
       
       // Still return success but note the background processing issue
-      return {
-        statusCode: 200,
+      return new Response(JSON.stringify({ 
+        success: true,
+        message: `Tracking request received for ${owner}/${repo}`,
+        warning: 'Background processing may be delayed',
+        debug: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      }), {
+        status: 200,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({ 
-          success: true,
-          message: `Tracking request received for ${owner}/${repo}`,
-          warning: 'Background processing may be delayed',
-          debug: process.env.NODE_ENV === 'development' ? inngestError.message : undefined
-        })
-      };
+        }
+      });
     }
 
   } catch (error) {
     console.error('Failed to process repository tracking:', error);
     
-    return {
-      statusCode: 500,
+    return new Response(JSON.stringify({ 
+      success: false,
+      error: 'Internal server error',
+      message: 'Failed to track repository. Please try again.' 
+    }), {
+      status: 500,
       headers: { 
         ...corsHeaders,
         'Content-Type': 'application/json' 
-      },
-      body: JSON.stringify({ 
-        success: false,
-        error: 'Internal server error',
-        message: 'Failed to track repository. Please try again.' 
-      })
-    };
+      }
+    });
   }
+};
+
+export const config = {
+  path: "/api/track-repository"
 };
