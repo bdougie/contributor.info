@@ -92,11 +92,15 @@ export function useRepositoryDiscovery({
           isNewRepository: true
         });
 
+        // DISABLED: Old discovery flow - replaced with explicit tracking
         // Only initiate discovery once
-        if (!hasInitiatedDiscovery.current) {
-          hasInitiatedDiscovery.current = true;
-          await initiateDiscovery(owner, repo);
-        }
+        // if (!hasInitiatedDiscovery.current) {
+        //   hasInitiatedDiscovery.current = true;
+        //   await initiateDiscovery(owner, repo);
+        // }
+        
+        // Just set the state to indicate it needs tracking
+        // The user will use the new tracking card instead
 
       } catch (error) {
         console.error('Repository check error:', error);
