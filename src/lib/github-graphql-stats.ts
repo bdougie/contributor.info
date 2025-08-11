@@ -499,7 +499,7 @@ export async function updateContributorStatsInDatabase(
     .select('id')
     .eq('owner', stats.owner)
     .eq('name', stats.repo)
-    .single();
+    .maybeSingle();
 
   if (repoError || !repoData) {
     throw new Error('Repository not found in database');
@@ -520,7 +520,7 @@ export async function updateContributorStatsInDatabase(
         .from('contributors')
         .select('id')
         .eq('username', contributor.login)
-        .single();
+        .maybeSingle();
 
       let contributorId: string;
 
@@ -534,9 +534,9 @@ export async function updateContributorStatsInDatabase(
             github_id: 0, // GitHub ID not available from GraphQL query, using 0 as placeholder
           })
           .select('id')
-          .single();
+          .maybeSingle();
 
-        if (insertError) {
+        if (insertError || !newContributor) {
           console.error('Failed to create contributor %s:', contributor.login, insertError);
           continue;
         }
@@ -545,8 +545,10 @@ export async function updateContributorStatsInDatabase(
       } else if (contributorError) {
         console.error('Error fetching contributor %s:', contributor.login, contributorError);
         continue;
-      } else {
+      } else if (existingContributor) {
         contributorId = existingContributor.id;
+      } else {
+        continue;
       }
 
       // Update or insert monthly rankings

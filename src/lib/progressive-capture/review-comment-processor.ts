@@ -39,7 +39,7 @@ export class ReviewCommentProcessor {
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (repoError || !repo) {
         return { success: false, error: `Repository not found: ${repoError?.message}` };
@@ -88,7 +88,7 @@ export class ReviewCommentProcessor {
               ignoreDuplicates: false
             })
             .select()
-            .single();
+            .maybeSingle();
 
           if (reviewerError) {
             console.warn(`[Reviews Processor] Error upserting reviewer ${review.user.login}:`, reviewerError);
@@ -141,7 +141,7 @@ export class ReviewCommentProcessor {
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (repoError || !repo) {
         return { success: false, error: `Repository not found: ${repoError?.message}` };
@@ -210,7 +210,7 @@ export class ReviewCommentProcessor {
               ignoreDuplicates: false
             })
             .select()
-            .single();
+            .maybeSingle();
 
           if (commenterError) {
             console.warn(`[Comments Processor] Error upserting commenter ${comment.user.login}:`, commenterError);

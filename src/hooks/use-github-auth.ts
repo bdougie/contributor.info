@@ -47,19 +47,22 @@ export function useGitHubAuth() {
       const isAuthenticated = !!session;
       setIsLoggedIn(isAuthenticated);
       
-      // Close login dialog if logged in and check for redirect
+      // Close login dialog if logged in
       if (isAuthenticated) {
         if (showLoginDialog) {
           setShowLoginDialog(false);
         }
         
-        // Check if there's a redirect path stored
-        const redirectPath = localStorage.getItem('redirectAfterLogin');
-        if (redirectPath) {
-          // Clear the stored path
-          localStorage.removeItem('redirectAfterLogin');
-          // Navigate to the stored path
-          navigate(redirectPath);
+        // Only redirect if we're on the login page itself
+        // Otherwise let the OAuth redirect handle returning to the original page
+        if (window.location.pathname === '/login') {
+          const redirectPath = localStorage.getItem('redirectAfterLogin');
+          if (redirectPath) {
+            // Clear the stored path
+            localStorage.removeItem('redirectAfterLogin');
+            // Navigate to the stored path
+            navigate(redirectPath);
+          }
         }
       }
       
@@ -74,19 +77,22 @@ export function useGitHubAuth() {
         const loggedIn = !!session;
         setIsLoggedIn(loggedIn);
         
-        // Close login dialog if logged in and check for redirect
+        // Close login dialog if logged in
         if (loggedIn) {
           if (showLoginDialog) {
             setShowLoginDialog(false);
           }
           
-          // Check if there's a redirect path stored
-          const redirectPath = localStorage.getItem('redirectAfterLogin');
-          if (redirectPath) {
-            // Clear the stored path
-            localStorage.removeItem('redirectAfterLogin');
-            // Navigate to the stored path
-            navigate(redirectPath);
+          // Only redirect if we're on the login page
+          // OAuth redirect will handle returning to the original page
+          if (window.location.pathname === '/login') {
+            const redirectPath = localStorage.getItem('redirectAfterLogin');
+            if (redirectPath) {
+              // Clear the stored path
+              localStorage.removeItem('redirectAfterLogin');
+              // Navigate to the stored path
+              navigate(redirectPath);
+            }
           }
         }
     });
@@ -114,10 +120,11 @@ export function useGitHubAuth() {
         localStorage.setItem('redirectAfterLogin', currentPath);
       }
       // Start the login flow with the correct redirect URL
+      // Redirect back to the current page after login
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
-          redirectTo: window.location.origin, // This ensures redirect to your domain root
+          redirectTo: window.location.href, // Redirect back to current page
           scopes: 'public_repo read:user user:email',
         },
       });

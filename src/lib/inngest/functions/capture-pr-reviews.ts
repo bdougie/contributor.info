@@ -65,7 +65,7 @@ export const capturePrReviews = inngest.createFunction(
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         throw new Error(`Repository not found: ${repositoryId}`);
@@ -97,7 +97,7 @@ export const capturePrReviews = inngest.createFunction(
             .from('contributors')
             .select('id')
             .eq('github_id', review.user.id)
-            .single();
+            .maybeSingle();
           
           let reviewerId = existingContributor?.id;
           
@@ -112,9 +112,9 @@ export const capturePrReviews = inngest.createFunction(
                 is_bot: review.user.type === 'Bot' || review.user.login.includes('[bot]')
               })
               .select('id')
-              .single();
+              .maybeSingle();
               
-            if (contributorError) {
+            if (contributorError || !newContributor) {
               console.warn(`Failed to create reviewer ${review.user.login}:`, contributorError);
               continue;
             }

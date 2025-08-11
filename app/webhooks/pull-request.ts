@@ -237,7 +237,7 @@ async function checkIfShouldComment(event: PullRequestEvent): Promise<boolean> {
     .from('github_app_installation_settings')
     .select('*')
     .eq('installation_id', event.installation?.id)
-    .single();
+    .maybeSingle();
 
   if (settings) {
     // Check if commenting is enabled
@@ -262,7 +262,7 @@ async function checkIfShouldComment(event: PullRequestEvent): Promise<boolean> {
     .select('id')
     .eq('github_pr_id', event.pull_request.id)
     .eq('comment_posted', true)
-    .single();
+    .maybeSingle();
 
   if (existingComment) {
     return false;
@@ -290,7 +290,7 @@ async function storePRInsights(data: StorePRInsightsData) {
       .from('repositories')
       .select('id')
       .eq('github_id', data.repository.id)
-      .single();
+      .maybeSingle();
 
     if (!repo) {
       // Repository not tracked yet, skip storing insights
@@ -310,7 +310,7 @@ async function storePRInsights(data: StorePRInsightsData) {
         updated_at: data.pullRequest.updated_at,
       })
       .select('id')
-      .single();
+      .maybeSingle();
 
     if (!pr) return;
 
@@ -379,7 +379,7 @@ async function storePRSimilarityComment(data: StorePRSimilarityData) {
       .from('repositories')
       .select('id')
       .eq('github_id', data.repository.id)
-      .single();
+      .maybeSingle();
 
     if (!repo) {
       // Repository not tracked yet, skip storing
@@ -399,7 +399,7 @@ async function storePRSimilarityComment(data: StorePRSimilarityData) {
         updated_at: data.pullRequest.updated_at,
       })
       .select('id')
-      .single();
+      .maybeSingle();
 
     if (!pr) return;
 

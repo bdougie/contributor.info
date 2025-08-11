@@ -56,8 +56,14 @@ export const discoverNewRepository = inngest.createFunction(
   { event: "discover/repository.new" },
   async ({ event, step }) => {
     const { owner, repo, source } = event.data;
+    
+    // Validate required fields
+    if (!owner || !repo) {
+      console.error('Missing required fields in discovery event:', event.data);
+      throw new NonRetriableError(`Missing required fields: owner=${owner}, repo=${repo}`);
+    }
+    
     const fullName = `${owner}/${repo}`;
-
     console.log(`Starting discovery for ${fullName} from ${source}`);
 
     // Create admin client for this function
@@ -70,7 +76,7 @@ export const discoverNewRepository = inngest.createFunction(
         .select('id, owner, name')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
       
       return data;
     });
@@ -156,7 +162,7 @@ export const discoverNewRepository = inngest.createFunction(
           is_active: true
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         // Handle unique constraint violation (repo was created by another process)
@@ -165,7 +171,7 @@ export const discoverNewRepository = inngest.createFunction(
             .from('repositories')
             .select('id')
             .eq('github_id', githubData.id)
-            .single();
+            .maybeSingle();
           
           if (existingRepo) {
             return existingRepo;

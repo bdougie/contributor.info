@@ -287,7 +287,7 @@ export async function hasAnyPRData(owner: string, repo: string): Promise<boolean
       .select('id')
       .eq('owner', owner)
       .eq('name', repo)
-      .single();
+      .maybeSingle();
 
     if (!repoData) return false;
 

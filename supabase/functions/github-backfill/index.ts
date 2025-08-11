@@ -131,7 +131,7 @@ async function processBackfillEvents(
         .from('github_events_cache')
         .select('id')
         .eq('event_id', eventId)
-        .single()
+        .maybeSingle()
 
       if (existing) {
         continue // Skip duplicates

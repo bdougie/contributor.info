@@ -47,7 +47,7 @@ export async function generatePRInsights(
         )
       `)
       .eq('github_login', authorLogin)
-      .single();
+      .maybeSingle();
 
     if (!contributor) {
       // Return basic info if contributor not in database yet

@@ -329,22 +329,48 @@ export async function fetchPRDataWithFallback(
     // This prevents timeouts and rate limit issues
     // Instead, return a pending state and let background processing handle it
     
-    console.log(`Repository ${owner}/${repo} not in database. Skipping API fallback to prevent timeouts.`);
+    console.log(`Repository ${owner}/${repo} not in database. Checking discovery status.`);
     
-    // Trigger background sync instead of risky API call
-    try {
-      const { sendInngestEvent } = await import('./inngest/client-safe');
-      await sendInngestEvent({
-        name: 'capture/repository.sync',
-        data: {
-          owner,
-          repo,
-          priority: 'high',
-          source: 'missing-repo-fallback'
+    // Trigger repository discovery for new repositories
+    // Validate that we have owner and repo before sending
+    if (owner && repo) {
+      // Use a simple in-memory flag to prevent duplicate discovery triggers
+      const discoveryKey = `discovery_${owner}_${repo}`;
+      const globalWindow = window as any;
+      
+      if (!globalWindow.__discoveryInProgress) {
+        globalWindow.__discoveryInProgress = {};
+      }
+      
+      if (!globalWindow.__discoveryInProgress[discoveryKey]) {
+        globalWindow.__discoveryInProgress[discoveryKey] = true;
+        
+        try {
+          console.log(`Triggering discovery for ${owner}/${repo}`);
+          const { sendInngestEvent } = await import('./inngest/client-safe');
+          await sendInngestEvent({
+            name: 'discover/repository.new',
+            data: {
+              owner,
+              repo,
+              source: 'missing-repo-fallback',
+              timestamp: new Date().toISOString()
+            }
+          });
+          
+          // Clear flag after 5 seconds to allow retry if needed
+          setTimeout(() => {
+            delete globalWindow.__discoveryInProgress[discoveryKey];
+          }, 5000);
+        } catch (error) {
+          console.error('Failed to trigger repository discovery:', error);
+          delete globalWindow.__discoveryInProgress[discoveryKey];
         }
-      });
-    } catch (error) {
-      console.error('Failed to trigger background sync:', error);
+      } else {
+        console.log(`Discovery already in progress for ${owner}/${repo}, skipping duplicate trigger`);
+      }
+    } else {
+      console.error('Cannot trigger discovery - missing owner or repo:', { owner, repo });
     }
     
     return createPendingDataResult(
@@ -367,7 +393,7 @@ export async function fetchPRDataWithFallback(
         .select('id')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
 
       if (emergencyRepoData) {
         const { data: emergencyData } = await supabase

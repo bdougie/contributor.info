@@ -51,13 +51,16 @@ async function ensureContributorExists(githubUser: any): Promise<string | null> 
       ignoreDuplicates: false
     })
     .select('id')
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Error upserting contributor:', error);
     return null;
   }
 
+  if (!data) {
+    return null;
+  }
   return data.id;
 }
 
@@ -84,7 +87,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         .select('status')
         .eq('repository_id', repositoryId)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
       
       return !!data;
     });
@@ -95,7 +98,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         .from('repositories')
         .select('owner, name, last_updated_at')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;

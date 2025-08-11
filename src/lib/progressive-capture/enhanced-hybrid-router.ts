@@ -198,7 +198,7 @@ export class EnhancedHybridRouter {
           updated_at
         `)
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('[EnhancedHybridRouter] Error fetching repository:', error);
@@ -222,7 +222,7 @@ export class EnhancedHybridRouter {
         .select('*')
         .eq('repository_id', repositoryId)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         return null;

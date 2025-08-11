@@ -128,7 +128,7 @@ export class QueuePrioritizationService {
         .from('tracked_repositories')
         .select('id, repository_name, organization_name, size, priority, metrics')
         .eq('repository_id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         console.error('[QueuePrioritization] Failed to get repository metadata:', error);
@@ -222,7 +222,7 @@ export class QueuePrioritizationService {
         .eq('processor_type', processor)
         .order('metadata->priority_score', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       return nextJob;
     } catch (error) {

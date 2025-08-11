@@ -13,7 +13,8 @@ import {
   capturePrComments,
   captureRepositorySync,
   capturePrDetailsGraphQL,
-  classifyRepositorySize
+  classifyRepositorySize,
+  discoverNewRepository
 } from "../../src/lib/inngest/functions/index-without-embeddings";
 
 // Environment detection - treat deploy previews as production for signing
@@ -107,7 +108,9 @@ const inngestHandler = serve({
     captureRepositorySync,
     // Classification functions
     classifySingleRepository,
-    classifyRepositorySize
+    classifyRepositorySize,
+    // Discovery function
+    discoverNewRepository
   ],
   servePath: "/.netlify/functions/inngest-prod"
 });
@@ -138,7 +141,8 @@ const mainHandler = async (req: Request, context: Context) => {
         { id: "capture-pr-comments", event: "capture/pr.comments" },
         { id: "capture-repository-sync", event: "capture/repository.sync" },
         { id: "classify-single-repository", event: "classify/repository.single" },
-        { id: "classify-repository-size", event: "classify/repository.size" }
+        { id: "classify-repository-size", event: "classify/repository.size" },
+        { id: "discover-new-repository", event: "discover/repository.new" }
       ],
       usage: {
         testEvent: 'Send: { "name": "test/prod.hello", "data": { "message": "Hello!" } }',
