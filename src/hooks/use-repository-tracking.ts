@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useGitHubAuth } from './use-github-auth';
 
 export interface TrackingState {
-  status: 'checking' | 'not_tracked' | 'tracking' | 'tracked' | 'error';
+  status: 'checking' | 'not_tracked' | 'tracking' | 'tracked' | 'error' | 'timeout' | 'idle';
   repository: { id: string; owner: string; name: string } | null;
   message: string | null;
   error: string | null;
@@ -99,6 +99,12 @@ export function useRepositoryTracking({
 
   // Track repository explicitly (called by user action)
   const trackRepository = useCallback(async () => {
+    // Prevent multiple simultaneous tracking requests
+    if (state.status === 'tracking') {
+      console.warn('Repository tracking already in progress');
+      return { success: false, error: 'Tracking already in progress' };
+    }
+
     if (!owner || !repo) {
       return { success: false, error: 'Invalid repository' };
     }
@@ -185,8 +191,8 @@ export function useRepositoryTracking({
           clearInterval(pollInterval);
           setState(prev => ({
             ...prev,
-            status: 'error',
-            error: 'Tracking is taking longer than expected. Please refresh the page.'
+            status: 'timeout',
+            error: 'Tracking is taking longer than expected. The data sync is still running in the background.'
           }));
         }
       } catch (error) {
@@ -217,9 +223,19 @@ export function useRepositoryTracking({
     }
   }, [isLoggedIn, owner, repo, trackRepository]);
 
+  const retryTracking = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      status: 'idle',
+      error: null
+    }));
+    trackRepository();
+  }, [trackRepository]);
+
   return {
     ...state,
     trackRepository,
+    retryTracking,
     refreshStatus: checkRepository,
     isLoggedIn
   };

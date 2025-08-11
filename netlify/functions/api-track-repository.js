@@ -57,7 +57,7 @@ exports.handler = async (event, context) => {
     const authHeader = event.headers.authorization || event.headers.Authorization;
     const isAuthenticated = !!authHeader;
     
-    console.log(`Repository tracking requested for ${owner}/${repo} (authenticated: ${isAuthenticated})`);
+    console.log('Repository tracking requested for %s/%s (authenticated: %s)', owner, repo, isAuthenticated);
 
     // First, verify the repository exists on GitHub
     try {

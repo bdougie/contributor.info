@@ -1,3 +1,9 @@
+const { createClient } = require('@supabase/supabase-js');
+
+// Initialize Supabase client
+const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+
 exports.handler = async (event, context) => {
   // CORS headers
   const corsHeaders = {
@@ -45,24 +51,56 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // In a real implementation, this would check the database
-    // For now, we'll simulate checking if the repository has data
-    // This is a placeholder that always returns false initially
-    // The actual implementation would query Supabase
+    console.log('Checking repository status for %s/%s', owner, repo);
 
-    console.log(`Checking repository status for ${owner}/${repo}`);
+    // Check if we have Supabase credentials
+    if (!supabaseAnonKey) {
+      console.warn('Supabase credentials not configured, returning simulated response');
+      return {
+        statusCode: 200,
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ 
+          owner,
+          repo,
+          hasData: false,
+          message: 'Repository not yet available'
+        })
+      };
+    }
 
-    // Simulate checking database
-    // In production, this would be:
-    // const { data } = await supabase
-    //   .from('repositories')
-    //   .select('id')
-    //   .eq('owner', owner)
-    //   .eq('name', repo)
-    //   .maybeSingle();
+    // Initialize Supabase client
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // For now, return a simulated response
-    const hasData = false; // This would be !!data in production
+    // Check if repository exists in database
+    const { data, error } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('owner', owner)
+      .eq('name', repo)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Database query error:', error);
+      // Don't expose database errors to client
+      return {
+        statusCode: 200,
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ 
+          owner,
+          repo,
+          hasData: false,
+          message: 'Repository not yet available'
+        })
+      };
+    }
+
+    const hasData = !!data;
 
     return {
       statusCode: 200,

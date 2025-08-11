@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Lock, Loader2, AlertCircle } from '@/components/ui/icon';
@@ -31,6 +31,7 @@ export function RepositoryTrackingCard({
   const { isLoggedIn, login } = useGitHubAuth();
   const [isTracking, setIsTracking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Generate mock scatter plot data
   const mockData = useMemo(() => {
@@ -58,6 +59,11 @@ export function RepositoryTrackingCard({
   };
 
   const handleTrackRepository = async () => {
+    // Prevent duplicate tracking requests
+    if (isTracking) {
+      return;
+    }
+    
     // Validate props before sending
     if (!owner || !repo) {
       console.error('Missing owner or repo:', { owner, repo });
@@ -128,11 +134,26 @@ export function RepositoryTrackingCard({
     }
   };
 
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, []);
+
   const startPollingForData = () => {
     let pollCount = 0;
     const maxPolls = 60; // Poll for up to 2 minutes
 
-    const pollInterval = setInterval(async () => {
+    // Clear any existing interval before starting a new one
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+
+    pollIntervalRef.current = setInterval(async () => {
       pollCount++;
 
       try {
@@ -141,7 +162,10 @@ export function RepositoryTrackingCard({
         const data = await response.json();
 
         if (data.hasData) {
-          clearInterval(pollInterval);
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
           toast.success('Repository data is ready!', {
             description: 'Refreshing page...',
             duration: 2000
@@ -159,7 +183,10 @@ export function RepositoryTrackingCard({
         }
 
         if (pollCount >= maxPolls) {
-          clearInterval(pollInterval);
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
           toast.info('Data sync is taking longer than expected', {
             description: 'Please refresh the page in a few minutes.',
             duration: 10000
@@ -231,9 +258,32 @@ export function RepositoryTrackingCard({
         </div>
 
         {error && (
-          <div className="flex items-start gap-2 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-            <span>{error}</span>
+          <div className="space-y-2">
+            <div className="flex items-start gap-2 text-sm text-destructive">
+              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+            {error.includes('longer than expected') && (
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => window.location.reload()}
+                >
+                  Refresh Page
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setError(null);
+                    handleTrackRepository();
+                  }}
+                >
+                  Try Again
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
