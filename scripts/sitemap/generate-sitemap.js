@@ -195,7 +195,7 @@ async function generateSitemap() {
   // Add documentation pages
   for (const doc of docPages) {
     xml += generateUrl(
-      `/docs/${doc}.md`,
+      `/docs/${doc}`,
       PRIORITY_LEVELS.docs,
       CHANGE_FREQ.docs
     );
