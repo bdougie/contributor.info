@@ -1,4 +1,4 @@
-import { Bug, Key, TestTube, Palette, Activity, FileText, Globe, Monitor, BarChart3, Image, Link, Database, GitBranch } from '@/components/ui/icon';
+import { Bug, Key, TestTube, Palette, Activity, FileText, Globe, Image, Link, GitBranch } from '@/components/ui/icon';
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,20 +13,6 @@ interface DebugRoute {
 }
 
 const debugRoutes: DebugRoute[] = [
-  {
-    path: "/dev/analytics",
-    title: "Share Analytics",
-    description: "View social sharing metrics, popular repositories, and user engagement data",
-    icon: <BarChart3 className="h-4 w-4" />,
-    category: "monitoring"
-  },
-  {
-    path: "/dev/performance-monitoring",
-    title: "Performance Monitoring",
-    description: "Real-time database performance, GitHub API metrics, and system health monitoring",
-    icon: <Monitor className="h-4 w-4" />,
-    category: "monitoring"
-  },
   {
     path: "/dev/debug-auth",
     title: "Authentication Debug",
@@ -68,20 +54,6 @@ const debugRoutes: DebugRoute[] = [
     description: "Manual GitHub sync testing with real-time logging and debugging",
     icon: <GitBranch className="h-4 w-4" />,
     category: "testing"
-  },
-  {
-    path: "/dev/bulk-add-repos",
-    title: "Bulk Add Repositories",
-    description: "Add multiple repositories to tracking list for demos and testing",
-    icon: <Database className="h-4 w-4" />,
-    category: "dev"
-  },
-  {
-    path: "/dev/sync-tracked-repos",
-    title: "Sync Tracked Repositories",
-    description: "Manually trigger sync for tracked repositories to update their data",
-    icon: <Database className="h-4 w-4" />,
-    category: "dev"
   },
   {
     path: "/changelog",
@@ -128,7 +100,7 @@ export function DebugMenu() {
             Debug Menu
           </h1>
           <p className="text-muted-foreground">
-            Access debugging tools and development utilities
+            Public development tools and social media previews. For admin tools like analytics, performance monitoring, and bulk operations, visit <a href="/admin" className="text-blue-600 hover:underline">/admin</a>.
           </p>
         </div>
 
