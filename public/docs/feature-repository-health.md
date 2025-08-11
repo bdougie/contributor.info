@@ -25,18 +25,7 @@ Metrics that reveal how effectively the development process operates:
 ## Visual Health Indicators
 
 ### Color-Coded Status System
-![Health status indicators](/docs/images/features/repository-health/health-indicators.png)
-*Visual indicators for repository health metrics*
-
-The dashboard uses intuitive color coding to quickly communicate health status:
-
-- **🟢 Green (Healthy)**: Metrics within optimal ranges indicating strong project health
-- **🟡 Yellow (Attention)**: Metrics suggesting areas that need monitoring or improvement
-- **🔴 Red (Critical)**: Metrics indicating significant risks or immediate attention requirements
-- **⚪ Gray (Insufficient Data)**: Areas where more data is needed for accurate assessment
-
-### Trend Analysis
-Historical comparison shows whether health metrics are improving, stable, or declining over time, helping identify emerging issues before they become critical.
+![Health status indicators1539https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/assets/docs/images/features/repository-health/health-indicators.pngThe **Repository Health Dashboard** provides a comprehensive overview of your project's sustainability, contributor engagement, and workflow efficiency. This centralized health assessment helps maintainers identify strengths, risks, and opportunities for improvement.
 
 ## Health Dimensions
 
@@ -99,3 +88,14 @@ Health metrics inform decisions about where to focus maintainer attention, contr
 The dashboard provides clear, visual summaries suitable for communicating project status to stakeholders, sponsors, and governance committees.
 
 The Repository Health Dashboard transforms complex project metrics into clear, actionable insights that support informed decision-making and strategic project management.
+*Visual indicators for repository health metrics*
+
+The dashboard uses intuitive color coding to quickly communicate health status:
+
+- **🟢 Green (Healthy)**: Metrics within optimal ranges indicating strong project health
+- **🟡 Yellow (Attention)**: Metrics suggesting areas that need monitoring or improvement
+- **🔴 Red (Critical)**: Metrics indicating significant risks or immediate attention requirements
+- **⚪ Gray (Insufficient Data)**: Areas where more data is needed for accurate assessment
+
+### Trend Analysis
+Historical comparison shows whether health metrics are improving, stable, or declining over time, helping identify emerging issues before they become critical.

@@ -1,71 +1,23 @@
 # Recommendations
 
-The Recommendations insight provides actionable suggestions to improve repository health, contributor engagement, and development processes. These recommendations combine automated analysis with AI-powered insights.
+Actionable suggestions to improve your repository.
 
-## Overview
+## Types
 
-The system generates two types of recommendations:
-- **Rule-based recommendations**: From automated repository analysis
-- **AI-generated insights**: Using large language models with confidence scoring
+- **Rule-based**: Automated analysis
+- **AI-powered**: LLM insights with confidence scores
 
-## Recommendation Categories
+## Categories
 
-### Process Improvements
-- Workflow automation suggestions
-- Review process optimizations
-- Merge strategy recommendations
-- CI/CD enhancements
+- **Process**: Workflow and review optimizations
+- **Engagement**: Contributor onboarding and recognition
+- **Performance**: Merge times and bottlenecks
+- **Quality**: Testing and documentation
 
-### Contributor Engagement
-- Onboarding improvements
-- Good first issue identification
-- Recognition system suggestions
-- Community building tips
+## Priority
 
-### Performance Optimizations
-- Review time reduction strategies
-- Merge efficiency improvements
-- Bottleneck identification
-- Resource allocation guidance
+🔴 High - Critical impact  
+🟠 Medium - Worth implementing  
+🔵 Low - Nice to have
 
-### Quality Enhancements
-- Testing coverage recommendations
-- Documentation improvements
-- Code quality standards
-- Security best practices
-
-## Priority Levels
-
-Recommendations are categorized by priority:
-- **High**: Critical improvements with significant impact (red indicator)
-- **Medium**: Important enhancements worth implementing (orange indicator)
-- **Low**: Nice-to-have improvements (blue indicator)
-
-## Information Displayed
-
-Each recommendation card shows:
-- Category and priority level
-- Clear, actionable description
-- Confidence score (for AI-generated insights)
-- Implementation difficulty estimate
-- Direct links to relevant resources
-
-## AI Integration
-![AI-powered recommendations](/docs/images/insights/recommendations/ai-suggestions.png)
-*Smart suggestions for repository improvement*
-
-
-AI-powered recommendations include:
-- Confidence ratings (High/Medium/Low)
-- Context-aware suggestions based on repository patterns
-- Personalized advice for your specific workflow
-- Timestamp tracking for recommendation freshness
-
-## Interaction Features
-
-- **Dismissible cards**: Mark recommendations as completed
-- **Action buttons**: Quick access to implementation resources
-- **Progress tracking**: Monitor improvement implementation
-- **Refresh capability**: Generate new insights on demand
-
-*This documentation will be expanded with specific examples and configuration options.*
+Each card shows priority, description, confidence score, and action links.

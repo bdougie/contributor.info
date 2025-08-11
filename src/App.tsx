@@ -24,7 +24,8 @@ const DebugAuthPage = lazy(() => import("@/components/features/auth/debug-auth-p
 const TestInsights = lazy(() => import("@/components/features/auth/test-insights"));
 const DebugMenu = lazy(() => import("@/components/features/debug/debug-menu").then(m => ({ default: m.DebugMenu })));
 const ChangelogPage = lazy(() => import("@/components/features/changelog/changelog-page").then(m => ({ default: m.ChangelogPage })));
-const DocsPage = lazy(() => import("@/components/features/docs/docs-page").then(m => ({ default: m.DocsPage })));
+// Use optimized docs page that loads content dynamically
+const DocsPage = lazy(() => import("@/components/features/docs/docs-page-optimized"));
 const FeedPage = lazy(() => import("@/components/features/feed/feed-page"));
 const SpamFeedPage = lazy(() => import("@/components/features/feed/spam-feed-page"));
 const CardLayout = lazy(() => import("@/components/social-cards/card-layout"));

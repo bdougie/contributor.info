@@ -8,18 +8,82 @@ interface OptimizedImageProps {
   sizes?: string;
   width?: number;
   height?: number;
+  priority?: boolean;
+  lazy?: boolean;
 }
+
+// Check if URL is from Supabase Storage
+const isSupabaseUrl = (url: string): boolean => {
+  return url.includes('supabase.co/storage/') || url.includes('supabase.com/storage/');
+};
+
+// Check if URL is external (not a local file)
+const isExternalUrl = (url: string): boolean => {
+  return url.startsWith('http://') || url.startsWith('https://');
+};
 
 export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   src,
   alt,
   className = '',
-  loading = 'lazy',
+  loading,
   sizes,
   width,
-  height
+  height,
+  priority = false,
+  lazy = true
 }) => {
-  // Remove file extension to build paths
+  // Handle Supabase Storage URLs and other external URLs
+  if (isExternalUrl(src)) {
+    // For Supabase Storage, we can use image transformations
+    if (isSupabaseUrl(src)) {
+      // Supabase Storage supports on-the-fly transformations
+      // We can add width parameters to the URL for responsive images
+      const getTransformedUrl = (baseUrl: string, targetWidth?: number) => {
+        if (!targetWidth) return baseUrl;
+        
+        // Add transformation parameters to Supabase Storage URL
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        return `${baseUrl}${separator}width=${targetWidth}&quality=80`;
+      };
+      
+      const srcSet = [
+        `${getTransformedUrl(src, 640)} 640w`,
+        `${getTransformedUrl(src, 1024)} 1024w`,
+        `${getTransformedUrl(src, 1440)} 1440w`,
+        `${src} 2048w`
+      ].join(', ');
+      
+      return (
+        <img
+          src={src}
+          srcSet={srcSet}
+          sizes={sizes || '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw'}
+          alt={alt}
+          className={className}
+          loading={priority ? 'eager' : (loading || (lazy ? 'lazy' : 'eager'))}
+          width={width}
+          height={height}
+          decoding="async"
+        />
+      );
+    }
+    
+    // For other external URLs, just use them as-is
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className={className}
+        loading={priority ? 'eager' : (loading || (lazy ? 'lazy' : 'eager'))}
+        width={width}
+        height={height}
+        decoding="async"
+      />
+    );
+  }
+  
+  // For local files, use the optimized WebP versions
   const basePath = src.replace(/\.(png|jpg|jpeg)$/i, '');
   const extension = src.match(/\.(png|jpg|jpeg)$/i)?.[0] || '.png';
   
@@ -60,7 +124,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         src={src}
         alt={alt}
         className={className}
-        loading={loading}
+        loading={priority ? 'eager' : (loading || (lazy ? 'lazy' : 'eager'))}
         width={width}
         height={height}
         decoding="async"
@@ -76,8 +140,26 @@ export const SimpleOptimizedImage: React.FC<OptimizedImageProps> = ({
   className = '',
   loading = 'lazy',
   width,
-  height
+  height,
+  priority = false,
+  lazy = true
 }) => {
+  // Handle external URLs (including Supabase)
+  if (isExternalUrl(src)) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className={className}
+        loading={priority ? 'eager' : (loading || (lazy ? 'lazy' : 'eager'))}
+        width={width}
+        height={height}
+        decoding="async"
+      />
+    );
+  }
+  
+  // For local files, use WebP version
   const basePath = src.replace(/\.(png|jpg|jpeg)$/i, '');
   const webpSrc = `${basePath}.webp`;
 
@@ -88,7 +170,7 @@ export const SimpleOptimizedImage: React.FC<OptimizedImageProps> = ({
         src={src}
         alt={alt}
         className={className}
-        loading={loading}
+        loading={priority ? 'eager' : (loading || (lazy ? 'lazy' : 'eager'))}
         width={width}
         height={height}
         decoding="async"

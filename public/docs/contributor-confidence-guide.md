@@ -42,13 +42,10 @@ Our enhanced confidence calculation combines multiple factors using a weighted a
 The algorithm applies intelligent adjustments based on repository characteristics:
 
 - **Large Repository Scaling**: Popular repositories (10k+ stars/forks) get adjusted expectations since they naturally have lower conversion rates
-- **Time Window Optimization**: Longer analysis periods (90+ days) receive confidence boosts for stability
+- **Time Window**: Analysis based on recent 30-day activity window
 - **Maturity Factors**: Newer repositories get adjusted scoring to account for limited historical data
 
 ## Confidence Levels & Meanings
-![Confidence level indicators](/docs/images/guides/contributor-confidence/confidence-indicators.png)
-*Color-coded confidence levels for contributors*
-
 
 ### 🔴 Intimidating (0-30%)
 **"Your project can be Intimidating"**
@@ -88,10 +85,8 @@ The confidence calculation uses comprehensive GitHub event data:
 - **CommitCommentEvent**: Comments on commits
 - **PullRequestReviewEvent**: Pull request reviews
 
-### Time Range Options
-- **30 days**: Recent activity focus, good for active projects
-- **90 days**: Balanced view of contributor patterns
-- **365 days**: Long-term trends and comprehensive analysis
+### Analysis Period
+The confidence calculation analyzes the most recent 30 days of activity to provide current insights into your repository's contributor patterns.
 
 ## Understanding Your Score
 
@@ -148,11 +143,6 @@ The confidence calculation uses comprehensive GitHub event data:
 - Scores are most meaningful when tracking your own repository's progress over time
 - Direct comparisons should consider repository size, age, and domain differences
 - Focus on improving your own score rather than comparing to others
-
-### What time range should I use?
-- **30 days**: Best for active projects with regular activity
-- **90 days**: Good balance for most repositories
-- **365 days**: Comprehensive view for established projects
 
 ## Technical Details
 
