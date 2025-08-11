@@ -26,7 +26,7 @@ The card displays different states based on authentication:
 
 ### 3. Discovery Process
 When a user clicks "Track This Repository":
-1. Frontend sends request to `/api-track-repository` endpoint
+1. Frontend sends request to `/.netlify/functions/api-track-repository` endpoint
 2. Endpoint validates authentication and repository details
 3. Sends `discover/repository.new` event to Inngest
 4. Inngest function:
