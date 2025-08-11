@@ -114,12 +114,13 @@ export default async (req: Request, context: Context) => {
                              process.env.INNGEST_PRODUCTION_EVENT_KEY;
       
       let inngestUrl: string;
-      if (inngestEventKey) {
-        inngestUrl = `https://inn.gs/e/${inngestEventKey}`;
-        console.log('Using production Inngest endpoint');
-      } else {
+      // Check if we're in local development (special key or no key)
+      if (!inngestEventKey || inngestEventKey === 'local_development_only') {
         inngestUrl = 'http://localhost:8288/e/local';
         console.log('Using local Inngest endpoint');
+      } else {
+        inngestUrl = `https://inn.gs/e/${inngestEventKey}`;
+        console.log('Using production Inngest endpoint');
       }
 
       // Send the discovery event

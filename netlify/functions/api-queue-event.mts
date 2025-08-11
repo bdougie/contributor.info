@@ -25,11 +25,15 @@ const getProductionEnvVar = (key: string, fallbackKey?: string): string => {
 };
 
 // Create Inngest client with server-side keys
+const eventKey = getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY');
+const isLocalDev = !eventKey || eventKey === 'local_development_only';
+
 const inngest = new Inngest({ 
   id: process.env.VITE_INNGEST_APP_ID || 'contributor-info',
-  isDev: false, // Force production mode for proper request signing
-  eventKey: getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
+  isDev: isLocalDev, // Use dev mode for local development
+  eventKey: isLocalDev ? undefined : eventKey, // No event key for local dev
   signingKey: getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
+  baseUrl: isLocalDev ? 'http://localhost:8288' : undefined, // Use local Inngest for dev
 });
 
 export default async (req: Request, context: Context) => {
@@ -46,8 +50,10 @@ export default async (req: Request, context: Context) => {
     console.log("API Queue Event - Environment:", {
       context: process.env.CONTEXT,
       isProduction: isProduction(),
-      hasEventKey: !!getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
-      hasSigningKey: !!getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY')
+      isLocalDev: isLocalDev,
+      eventKey: eventKey ? `${eventKey.substring(0, 10)}...` : 'none',
+      hasSigningKey: !!getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
+      baseUrl: isLocalDev ? 'http://localhost:8288' : 'production'
     });
 
     // Parse the request body
