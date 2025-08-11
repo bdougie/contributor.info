@@ -1,4 +1,4 @@
-import { Shield, Users, BarChart3, Activity, GitBranch, AlertTriangle, Settings, Database, FileText, TrendingUp, Bug } from '@/components/ui/icon';
+import { Shield, Users, BarChart3, Activity, GitBranch, AlertTriangle, TrendingUp, Bug } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -108,7 +108,7 @@ export function AdminMenu() {
     },
     {
       title: 'Analytics Dashboard',
-      description: 'System-wide analytics, user metrics, and performance insights for administrators.',
+      description: 'Comprehensive analytics including system metrics, sharing analytics, referral traffic, and LLM citations.',
       icon: BarChart3,
       href: '/admin/analytics'
     },
@@ -123,27 +123,6 @@ export function AdminMenu() {
       description: 'Bulk repository operations, sync management, and data integrity tools.',
       icon: GitBranch,
       href: '/admin/bulk-add-repos'
-    },
-    {
-      title: 'System Configuration',
-      description: 'Application settings, feature flags, and system-wide configuration options.',
-      icon: Settings,
-      href: '/admin/settings',
-      badge: 'Future'
-    },
-    {
-      title: 'Database Tools',
-      description: 'Direct database access, query tools, and data management utilities.',
-      icon: Database,
-      href: '/admin/database',
-      badge: 'Future'
-    },
-    {
-      title: 'Audit Logs',
-      description: 'View administrative actions, user activity logs, and system events.',
-      icon: FileText,
-      href: '/admin/audit-logs',
-      badge: 'Future'
     }
   ];
 
