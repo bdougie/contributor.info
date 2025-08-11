@@ -147,9 +147,12 @@ jobs:
           fi
           
           echo ""
-          echo "📝 Note: Sitemaps must be manually submitted to:"
-          echo "- Google Search Console: https://search.google.com/search-console"
-          echo "- Bing Webmaster Tools: https://www.bing.com/webmasters"
+          echo "✅ Sitemaps verified! Automatic submission will be triggered."
+          echo ""
+          echo "📤 The 'Submit Sitemap to Search Engines' workflow will automatically:"
+          echo "- Submit sitemaps to Google"
+          echo "- Submit sitemaps to Bing"
+          echo "- Attempt IndexNow submission (if configured)"
           echo ""
           echo "✨ Sitemaps are also referenced in robots.txt for automatic discovery"
 
