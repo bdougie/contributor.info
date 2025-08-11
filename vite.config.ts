@@ -67,9 +67,17 @@ export default defineConfig(() => ({
       '@radix-ui/react-slot',
       '@radix-ui/react-avatar',
       '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tooltip',
       'class-variance-authority',
       'clsx',
-      'tailwind-merge'
+      'tailwind-merge',
+      // Add chart libraries to prevent initialization errors
+      'recharts',
+      'd3-scale',
+      'd3-shape',
+      'uplot'
     ],
     exclude: [
       '@storybook/test',
@@ -122,47 +130,67 @@ export default defineConfig(() => ({
         },
         // Allow modules to be properly hoisted for correct initialization order
         hoistTransitiveImports: true,
-        // Balanced chunking strategy from production postmortem (2025-06-22)
-        // This approach maintains reliability while optimizing performance
+        // Fix circular dependency issues with proper chunk splitting
         manualChunks: (id) => {
+          // CRITICAL: Split commonjsHelpers first to prevent circular deps
+          if (id.includes('commonjsHelpers')) {
+            return 'commonjs-helpers';
+          }
+          
           // Prevent embeddings from being bundled
           if (id.includes('@xenova/transformers') || id.includes('onnxruntime-web')) {
             return 'embeddings-excluded';
           }
           
-          // CRITICAL: Split React ecosystem for faster initial load
-          // Core React - absolutely essential, load first
-          if (id.includes('react-dom')) return 'react-dom';
-          if (id.includes('react') && !id.includes('react-dom') && !id.includes('react-router')) {
-            return 'react-core';
+          // Only process node_modules to avoid splitting app code incorrectly
+          if (!id.includes('node_modules')) {
+            return; // Let Vite handle app code bundling
           }
           
-          // React Router - needed for navigation but separate
-          if (id.includes('react-router')) return 'react-router';
-          
-          // Charts - heavy, only load when needed
-          if (id.includes('@nivo') || id.includes('recharts') || id.includes('d3')) {
-            return 'charts';
+          // Core React - must be loaded first
+          if (id.includes('node_modules/react-dom')) {
+            return 'vendor-react-dom';
+          }
+          if (id.includes('node_modules/react')) {
+            return 'vendor-react';
           }
           
-          // UI Components - Radix UI, can be lazy loaded
-          if (id.includes('@radix-ui')) return 'ui-components';
+          // Router
+          if (id.includes('react-router')) {
+            return 'vendor-router';
+          }
           
-          // Icons - separate bundle
-          if (id.includes('lucide-react')) return 'icons';
+          // Chart libraries and their dependencies
+          if (id.includes('recharts') || id.includes('d3-') || id.includes('uplot')) {
+            return 'vendor-charts';
+          }
           
-          // Utility libraries that don't depend on React
-          if (id.includes('class-variance-authority')) return 'utils';
-          if (id.includes('clsx')) return 'utils';
-          if (id.includes('tailwind-merge')) return 'utils';
+          // UI Components
+          if (id.includes('@radix-ui')) {
+            return 'vendor-ui';
+          }
           
-          // Utilities - frequently used, good for caching
-          if (id.includes('date-fns')) return 'utils';
-          if (id.includes('zod')) return 'utils';
+          // Icons
+          if (id.includes('lucide-react')) {
+            return 'vendor-icons';
+          }
           
-          // State management and data
-          if (id.includes('zustand')) return 'data';
-          if (id.includes('@supabase/supabase-js')) return 'data';
+          // Data and state
+          if (id.includes('@supabase') || id.includes('zustand')) {
+            return 'vendor-data';
+          }
+          
+          // Utils
+          if (id.includes('class-variance-authority') || 
+              id.includes('clsx') || 
+              id.includes('tailwind-merge') ||
+              id.includes('date-fns') ||
+              id.includes('zod')) {
+            return 'vendor-utils';
+          }
+          
+          // All other vendor code
+          return 'vendor';
         },
       },
     },

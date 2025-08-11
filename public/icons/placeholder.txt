@@ -1,0 +1,8 @@
+Placeholder for icon files.
+Icons should be generated from the favicon.svg file using proper tools.
+Required files:
+- icon-192x192.png
+- icon-512x512.png
+- icon-192x192-maskable.png
+- icon-512x512-maskable.png
+- search-96x96.png
