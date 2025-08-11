@@ -1,0 +1,8 @@
+/* Font optimization with font-display: swap */
+/* Using @import for simplicity - Google Fonts handles optimization automatically */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Apply Inter as default font with system fallbacks */
+body {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
