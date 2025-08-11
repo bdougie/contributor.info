@@ -157,7 +157,7 @@ jobs:
             echo "⏭️ Skipping IndexNow submission (no API key configured)"
             echo "To enable IndexNow:"
             echo "1. Generate a key at https://www.bing.com/indexnow"
-            echo "2. Add it as GitHub secret: INDEXNOW_API_KEY (the actual key value like '55251d2db6284d70b1f42122b0c27e52')"
+            echo "2. Add it as GitHub secret: INDEXNOW_API_KEY"
             echo "3. Deploy indexnow.txt file containing the key to https://contributor.info/indexnow.txt"
           fi
 
