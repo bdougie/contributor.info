@@ -2,7 +2,6 @@ import path from 'path';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
-import viteCompression from 'vite-plugin-compression';
 
 export default defineConfig(() => ({
   base: '/',
@@ -35,20 +34,8 @@ export default defineConfig(() => ({
         return new URLSearchParams();
       }
     }),
-    // Brotli compression for static assets (safe, server-side)
-    viteCompression({
-      algorithm: 'brotliCompress',
-      ext: '.br',
-      threshold: 1024,
-      deleteOriginFile: false,
-    }),
-    // Also generate gzip for broader compatibility
-    viteCompression({
-      algorithm: 'gzip',
-      ext: '.gz',
-      threshold: 1024,
-      deleteOriginFile: false,
-    }),
+    // Note: Netlify automatically provides Brotli and Gzip compression at the edge,
+    // so we don't need vite-plugin-compression for production deployments
   ],
   resolve: {
     alias: {
