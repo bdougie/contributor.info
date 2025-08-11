@@ -23,9 +23,6 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   const basePath = src.replace(/\.(png|jpg|jpeg)$/i, '');
   const extension = src.match(/\.(png|jpg|jpeg)$/i)?.[0] || '.png';
   
-  // Build WebP path
-  const webpSrc = `${basePath}.webp`;
-  
   // Build responsive srcset for WebP
   const webpSrcSet = [
     `${basePath}-sm.webp 640w`,

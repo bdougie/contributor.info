@@ -1,5 +1,6 @@
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 
 interface MarkdownProps {
   children: string;
@@ -41,6 +42,20 @@ export function Markdown({ children, className }: MarkdownProps) {
           const text = String(children);
           const id = generateHeadingId(text);
           return <h3 id={id}>{children}</h3>;
+        },
+        img: ({ src, alt }) => {
+          // Determine if image should be priority loaded (above the fold)
+          const isPriority = src?.includes('hero') || src?.includes('banner');
+          
+          return (
+            <OptimizedImage
+              src={src || ''}
+              alt={alt || ''}
+              lazy={!isPriority}
+              priority={isPriority}
+              className="rounded-lg shadow-sm"
+            />
+          );
         }
       }}
     >
