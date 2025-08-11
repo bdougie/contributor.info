@@ -1,5 +1,3 @@
-# Repository Search & Tracking
-
 Analyze any public GitHub repository's contributor patterns.
 
 ## Search Methods

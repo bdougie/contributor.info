@@ -1,5 +1,3 @@
-# Lottery Factor
-
 Measures knowledge concentration risk - how many contributors could you lose before the project fails?
 
 ## Risk Levels

@@ -1,5 +1,3 @@
-# Hover Cards
-
 Quick contributor information displayed on hover.
 
 ## Overview

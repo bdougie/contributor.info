@@ -1,5 +1,3 @@
-# Distribution Charts
-
 Visual breakdown of contributions by language and impact.
 
 ## Visualizations

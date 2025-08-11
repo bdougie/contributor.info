@@ -1,5 +1,3 @@
-# Recommendations
-
 Actionable suggestions to improve your repository.
 
 ## Types

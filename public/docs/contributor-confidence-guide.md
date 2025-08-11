@@ -1,5 +1,3 @@
-# Contributor Confidence User Guide
-
 ## What is Contributor Confidence?
 
 Contributor Confidence measures the likelihood that people who star or fork your repository will return to make meaningful contributions. This metric helps you understand how welcoming and approachable your project is to potential contributors.

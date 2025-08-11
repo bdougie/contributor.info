@@ -1,5 +1,3 @@
-# PR Activity
-
 Real-time pull request metrics for the last 30 days.
 
 ## Key Metrics

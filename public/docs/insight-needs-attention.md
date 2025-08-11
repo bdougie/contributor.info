@@ -1,5 +1,3 @@
-# Needs Attention
-
 PRs requiring immediate review, prioritized by urgency.
 
 ## Urgency Levels

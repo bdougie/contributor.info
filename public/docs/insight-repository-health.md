@@ -1,5 +1,3 @@
-# Repository Health
-
 AI-powered analysis of your repository's wellness based on 30 days of activity.
 
 ## Key Metrics
