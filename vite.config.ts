@@ -3,11 +3,21 @@ import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
 import viteCompression from 'vite-plugin-compression';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig(() => ({
   base: '/',
   plugins: [
     react(),
+    // Copy docs folder to dist for Netlify function access
+    viteStaticCopy({
+      targets: [
+        {
+          src: 'public/docs',
+          dest: '.'
+        }
+      ]
+    }),
     imagetools({
       defaultDirectives: (url) => {
         // Process images for WebP optimization

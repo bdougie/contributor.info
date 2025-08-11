@@ -205,6 +205,7 @@
     "vite": "^6.3.5",
     "vite-bundle-analyzer": "^1.2.1",
     "vite-plugin-compression": "^0.5.1",
+    "vite-plugin-static-copy": "^3.1.1",
     "vitest": "^3.1.1",
     "wait-on": "^8.0.3"
   }
