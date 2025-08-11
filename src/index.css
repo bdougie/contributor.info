@@ -4,30 +4,35 @@
 
 @layer base {
   :root {
-    /* Light mode - Enhanced with design system colors (HSL format) */
-    --background: 210 20% 98%;        /* #F8F9FA - slate-02 light background */
+    /* Light mode - Improved contrast with more grays and off-whites */
+    --background: 210 20% 96%;        /* #F1F3F5 - Medium gray background for better contrast */
     --foreground: 215 25% 27%;        /* #11181C - slate-12 */
-    --card: 0 0% 100%;                /* #FFFFFF - pure white for cards */
+    --card: 210 20% 98%;              /* #F8F9FA - Off-white for cards instead of pure white */
     --card-foreground: 215 25% 27%;   /* #11181C - slate-12 */
-    --popover: 0 0% 100%;             /* #FFFFFF */
+    --popover: 210 20% 98%;           /* #F8F9FA - Off-white for popovers */
     --popover-foreground: 215 25% 27%; /* #11181C - slate-12 */
     --primary: 14 100% 50%;           /* #FF5402 - Bright Orange for buttons/links */
     --primary-foreground: 0 0% 100%;  /* White text on bright orange */
-    --secondary: 210 20% 94%;         /* #ECEEF0 - slate-04 darker slate */
+    --secondary: 210 20% 92%;         /* #E1E5E9 - Slightly darker gray for sections */
     --secondary-foreground: 215 25% 27%; /* #11181C - slate-12 */
-    --muted: 210 20% 94%;             /* #ECEEF0 - slate-04 darker slate */
+    --muted: 210 20% 92%;             /* #E1E5E9 - Slightly darker gray for muted elements */
     --muted-foreground: 215 16% 47%;  /* #889096 - slate-09 */
-    --accent: 210 20% 94%;            /* #ECEEF0 - slate-04 darker slate */
+    --accent: 210 20% 92%;            /* #E1E5E9 - Slightly darker gray for accent elements */
     --accent-foreground: 215 25% 27%; /* #11181C - slate-12 */
     --destructive: 0 84.2% 60.2%;     /* Keep existing red */
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;            /* #ECEEF0 - slate-04 */
-    --input: 210 20% 96%;             /* #F1F3F5 - slate-03 */
+    --border: 220 13% 88%;            /* #DCE0E4 - Slightly darker border for better definition */
+    --input: 210 20% 94%;             /* #ECEEF0 - Slightly darker input backgrounds */
     --ring: 14 100% 50%;              /* #FF5402 - Bright Orange for light mode focus */
     --radius: 0.5rem;
     
     /* Content area backgrounds */
-    --content-background: 210 20% 94%; /* #ECEEF0 - darker slate for main content */
+    --content-background: 210 20% 94%; /* #ECEEF0 - darker slate for main content areas */
+    
+    /* Insights sidebar specific colors */
+    --insights-sidebar-bg: 215 25% 27%; /* #11181C - Dark/black sidebar in both modes */
+    --insights-sidebar-fg: 0 0% 98%;   /* Light text on dark sidebar */
+    --insights-sidebar-border: 215 25% 35%; /* Slightly lighter border */
   }
 
   .dark {
@@ -281,5 +286,72 @@
 
   .animate-slide-up {
     animation: slide-up 0.3s ease-out;
+  }
+
+  /* Insights Sidebar - Always Black Theme (Light & Dark Mode) */
+  .insights-sidebar {
+    background-color: hsl(var(--insights-sidebar-bg)) !important;
+    color: hsl(var(--insights-sidebar-fg)) !important;
+    border-left-color: hsl(var(--insights-sidebar-border)) !important;
+  }
+  
+  /* Ensure all child elements inherit proper colors */
+  .insights-sidebar * {
+    color: hsl(var(--insights-sidebar-fg)) !important;
+  }
+  
+  /* Special handling for interactive elements */
+  .insights-sidebar .text-muted-foreground {
+    color: hsl(var(--insights-sidebar-fg) / 0.7) !important;
+  }
+  
+  .insights-sidebar button {
+    color: hsl(var(--insights-sidebar-fg)) !important;
+  }
+  
+  .insights-sidebar button:hover {
+    background-color: hsl(var(--insights-sidebar-fg) / 0.1) !important;
+  }
+  
+  /* Borders and separators within sidebar */
+  .insights-sidebar .border-b {
+    border-bottom-color: hsl(var(--insights-sidebar-border)) !important;
+  }
+  
+  .insights-sidebar [data-orientation="horizontal"] {
+    background-color: hsl(var(--insights-sidebar-border)) !important;
+  }
+  
+  /* Icon colors in sidebar */
+  .insights-sidebar .text-blue-500,
+  .insights-sidebar .text-red-500,
+  .insights-sidebar .text-pink-500,
+  .insights-sidebar .text-purple-500,
+  .insights-sidebar .text-green-500 {
+    filter: brightness(1.5) saturate(1.2);
+  }
+  
+  /* Badge/count styling */
+  .insights-sidebar .bg-secondary {
+    background-color: hsl(var(--insights-sidebar-fg) / 0.2) !important;
+    color: hsl(var(--insights-sidebar-fg)) !important;
+  }
+  
+  .insights-sidebar .bg-destructive {
+    background-color: hsl(0 62.8% 50%) !important;
+    color: hsl(0 0% 100%) !important;
+  }
+  
+  /* Adjust main content when sidebar is present on repository pages */
+  @media (min-width: 768px) {
+    /* Adjust body padding for insights sidebar on repository pages */
+    body:has(.insights-sidebar) .container {
+      padding-right: 4rem; /* Base padding + space for collapsed sidebar */
+    }
+    
+    /* When sidebar is expanded (not collapsed), adjust for full width */
+    body:has(.insights-sidebar:not(:has(button[aria-label*="Expand"]))) .container {
+      padding-right: calc(420px + 1rem); /* Sidebar width + base padding */
+    }
   }
 }

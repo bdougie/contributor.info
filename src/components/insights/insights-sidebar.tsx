@@ -99,7 +99,7 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
       {/* Desktop Sidebar */}
       <div
         className={cn(
-          "hidden md:flex fixed right-0 top-0 h-full bg-background border-l transition-all duration-300 z-40",
+          "hidden md:flex fixed right-0 top-0 h-full insights-sidebar border-l transition-all duration-300 z-40",
           isCollapsed ? "w-16" : "w-[420px]",
           className
         )}

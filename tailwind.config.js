@@ -24,6 +24,11 @@ export default {
         content: {
           DEFAULT: 'hsl(var(--content-background))',
         },
+        'insights-sidebar': {
+          DEFAULT: 'hsl(var(--insights-sidebar-bg))',
+          foreground: 'hsl(var(--insights-sidebar-fg))',
+          border: 'hsl(var(--insights-sidebar-border))',
+        },
         popover: {
           DEFAULT: 'hsl(var(--popover))',
           foreground: 'hsl(var(--popover-foreground))',
