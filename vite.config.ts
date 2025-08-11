@@ -67,9 +67,17 @@ export default defineConfig(() => ({
       '@radix-ui/react-slot',
       '@radix-ui/react-avatar',
       '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tooltip',
       'class-variance-authority',
       'clsx',
-      'tailwind-merge'
+      'tailwind-merge',
+      // Add chart libraries to prevent initialization errors
+      'recharts',
+      'd3-scale',
+      'd3-shape',
+      'uplot'
     ],
     exclude: [
       '@storybook/test',
@@ -122,37 +130,15 @@ export default defineConfig(() => ({
         },
         // Allow modules to be properly hoisted for correct initialization order
         hoistTransitiveImports: true,
-        // Balanced chunking strategy from production postmortem (2025-06-22)
-        // This approach maintains reliability while optimizing performance
-        manualChunks: (id) => {
-          // Prevent embeddings from being bundled
-          if (id.includes('@xenova/transformers') || id.includes('onnxruntime-web')) {
-            return 'embeddings-excluded';
-          }
-          
-          // All React and React-dependent libraries must be bundled together
-          // to prevent "Cannot read properties of undefined" errors
-          // This includes: React, ReactDOM, Router, Radix UI, Charts, Icons, etc.
-          if (id.includes('react') || 
-              id.includes('@radix-ui') || 
-              id.includes('@nivo') || 
-              id.includes('recharts') ||
-              id.includes('lucide-react')) {
-            return 'react-vendor';
-          }
-          
-          // Utility libraries that don't depend on React
-          if (id.includes('class-variance-authority')) return 'utils';
-          if (id.includes('clsx')) return 'utils';
-          if (id.includes('tailwind-merge')) return 'utils';
-          
-          // Utilities - frequently used, good for caching
-          if (id.includes('date-fns')) return 'utils';
-          if (id.includes('zod')) return 'utils';
-          
-          // State management and data
-          if (id.includes('zustand')) return 'data';
-          if (id.includes('@supabase/supabase-js')) return 'data';
+        // Minimal manual chunking to avoid circular dependencies
+        // Only split the largest/most problematic libraries
+        manualChunks: {
+          // Keep React ecosystem together
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // Separate chart libraries as they're large and rarely change
+          'vendor-charts': ['recharts', 'uplot'],
+          // Exclude embeddings completely
+          'embeddings-excluded': ['@xenova/transformers', 'onnxruntime-web']
         },
       },
     },
@@ -167,22 +153,25 @@ export default defineConfig(() => ({
     chunkSizeWarningLimit: 1000, // Accepting larger chunks for reliability over micro-optimizations
     // Enable compression reporting
     reportCompressedSize: true,
-    // Module preload optimization - ensure React loads first
+    // Module preload optimization - load minimal React first
     modulePreload: {
       polyfill: true, // Enable polyfill for proper module loading
       resolveDependencies: (_, deps) => {
-        // Preload React vendor first, then router
+        // Preload only the absolute minimum for initial render
+        // Note: These names must match the keys in manualChunks above
         const sorted = deps.sort((a, b) => {
-          if (a.includes('react-vendor')) return -1;
-          if (b.includes('react-vendor')) return 1;
-          if (a.includes('react-router')) return -1;
-          if (b.includes('react-router')) return 1;
+          // Prioritize vendor-react chunk (contains react, react-dom, react-router-dom)
+          if (a.includes('vendor-react')) return -1;
+          if (b.includes('vendor-react')) return 1;
+          // Then load main app chunk
+          if (a.includes('index-')) return -1;
+          if (b.includes('index-')) return 1;
           return 0;
         });
-        // Only preload critical chunks
+        // Only preload the critical vendor-react chunk and main app
         return sorted.filter(dep => 
-          dep.includes('react-vendor') || 
-          dep.includes('react-router')
+          dep.includes('vendor-react') || 
+          dep.includes('index-')
         );
       }
     },
