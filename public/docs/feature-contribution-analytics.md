@@ -7,7 +7,7 @@ Contribution Analytics goes beyond simple commit counts to analyze the character
 ## Quadrant Classification System  
 
 ### The Four Contribution Quadrants
-![Contribution quadrant visualization642https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/assets/docs/images/features/contribution-analytics/quadrant-scatter-plot.pngThe **Contribution Analytics** feature provides detailed analysis of individual contributions using advanced metrics and categorization systems. This analytical view helps understand the nature and impact of different types of work within your repository.
+![Contribution quadrant visualization](https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/assets/docs/images/features/contribution-analytics/quadrant-scatter-plot.png)
 
 ## Visual Analytics
 

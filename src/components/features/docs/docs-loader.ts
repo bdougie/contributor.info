@@ -46,9 +46,9 @@ export const DOCS_METADATA: DocsMetadata[] = [
     category: "feature",
   },
   {
-    file: "feature-contributor-profiles.md",
-    title: "Contributor Profiles",
-    description: "Detailed profiles showcasing contributor achievements",
+    file: "feature-hover-cards.md",
+    title: "Hover Cards",
+    description: "Quick contributor information displayed on hover",
     category: "feature",
   },
   {
@@ -67,18 +67,6 @@ export const DOCS_METADATA: DocsMetadata[] = [
     file: "feature-repository-search.md",
     title: "Repository Search",
     description: "Finding and exploring GitHub repositories",
-    category: "feature",
-  },
-  {
-    file: "feature-social-cards.md",
-    title: "Social Cards",
-    description: "Shareable social media cards for repositories",
-    category: "feature",
-  },
-  {
-    file: "feature-time-range-analysis.md",
-    title: "Time Range Analysis",
-    description: "Analyzing contribution patterns over different time periods",
     category: "feature",
   },
   // Insights

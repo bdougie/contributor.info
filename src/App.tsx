@@ -24,8 +24,9 @@ const DebugAuthPage = lazy(() => import("@/components/features/auth/debug-auth-p
 const TestInsights = lazy(() => import("@/components/features/auth/test-insights"));
 const DebugMenu = lazy(() => import("@/components/features/debug/debug-menu").then(m => ({ default: m.DebugMenu })));
 const ChangelogPage = lazy(() => import("@/components/features/changelog/changelog-page").then(m => ({ default: m.ChangelogPage })));
-// Use optimized docs page that loads content dynamically
-const DocsPage = lazy(() => import("@/components/features/docs/docs-page-optimized"));
+// Documentation components with routing
+const DocsList = lazy(() => import("@/components/features/docs/docs-list").then(m => ({ default: m.DocsList })));
+const DocDetail = lazy(() => import("@/components/features/docs/doc-detail").then(m => ({ default: m.DocDetail })));
 const FeedPage = lazy(() => import("@/components/features/feed/feed-page"));
 const SpamFeedPage = lazy(() => import("@/components/features/feed/spam-feed-page"));
 const CardLayout = lazy(() => import("@/components/social-cards/card-layout"));
@@ -293,7 +294,8 @@ function App() {
             <Route path="/" element={<Layout />}>
               <Route index element={<Home />} />
               <Route path="/changelog" element={<ChangelogPage />} />
-              <Route path="/docs" element={<DocsPage />} />
+              <Route path="/docs" element={<DocsList />} />
+              <Route path="/docs/:slug" element={<DocDetail />} />
               <Route path="/widgets" element={<WidgetsPage />} />
               <Route path="/:owner/:repo/widgets" element={<WidgetsPage />} />
               <Route 

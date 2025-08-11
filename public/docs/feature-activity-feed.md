@@ -7,7 +7,7 @@ The activity feed presents a timeline of repository events including pull reques
 ## Feed Components
 
 ### Pull Request Timeline
-![Pull request activity timeline593https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/assets/docs/images/features/activity-feed/pr-timeline.pngThe **Repository Activity Feed** provides a real-time stream of pull request activity and contributor interactions within your repository. This chronological view helps you stay current with project developments and track team engagement patterns.
+![Pull request activity timeline](https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/assets/docs/images/features/activity-feed/pr-timeline.png)
 
 ## Activity Insights
 

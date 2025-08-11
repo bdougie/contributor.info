@@ -21,7 +21,7 @@ Rankings reset monthly, creating fresh opportunities for all contributors to be 
 ## Display Modes
 
 ### Winner Announcement Phase
-![Contributor of the month winner1280https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/assets/docs/images/features/contributor-of-month/winner-display.pngThe **Contributor of the Month** feature recognizes and celebrates the most impactful contributors to your repository during monthly periods. This gamified recognition system helps maintain contributor engagement and highlights valuable community members.
+![Contributor of the month winner](https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/assets/docs/images/features/contributor-of-month/winner-display.png)
 
 ## Recognition Elements
 

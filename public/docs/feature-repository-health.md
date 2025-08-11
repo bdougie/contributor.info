@@ -25,7 +25,7 @@ Metrics that reveal how effectively the development process operates:
 ## Visual Health Indicators
 
 ### Color-Coded Status System
-![Health status indicators1539https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/assets/docs/images/features/repository-health/health-indicators.pngThe **Repository Health Dashboard** provides a comprehensive overview of your project's sustainability, contributor engagement, and workflow efficiency. This centralized health assessment helps maintainers identify strengths, risks, and opportunities for improvement.
+![Health status indicators](https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/assets/docs/images/features/repository-health/health-indicators.png)
 
 ## Health Dimensions
 
