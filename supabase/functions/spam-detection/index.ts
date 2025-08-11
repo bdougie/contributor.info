@@ -85,7 +85,7 @@ serve(async (req) => {
           )
         `)
         .eq('id', pr_id)
-        .single()
+        .maybeSingle()
       
       if (prError || !pr) {
         throw new Error(`Pull request not found: ${pr_id}`)
@@ -290,7 +290,7 @@ serve(async (req) => {
           .select('id')
           .eq('owner', repository_owner)
           .eq('name', repository_name)
-          .single()
+          .maybeSingle()
         
         if (repoError || !repo) {
           throw new Error(`Repository not found: ${repository_owner}/${repository_name}`)

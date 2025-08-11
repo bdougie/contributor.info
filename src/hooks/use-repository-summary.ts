@@ -104,7 +104,7 @@ export function useRepositorySummary(
             .select('id, full_name, description, language, stargazers_count, forks_count, ai_summary, summary_generated_at, recent_activity_hash')
             .eq('owner', owner)
             .eq('name', repo)
-            .single();
+            .maybeSingle();
 
           if (error) throw error;
           return data;
@@ -199,7 +199,7 @@ export function useRepositorySummary(
             .select('*')
             .eq('owner', owner)
             .eq('name', repo)
-            .single();
+            .maybeSingle();
           
           const fallbackSummary = await generateLocalSummary(repoData || {}, pullRequests || []);
           setSummary(fallbackSummary);
@@ -232,7 +232,7 @@ export function useRepositorySummary(
             .select('id, full_name, description, language, stargazers_count, forks_count, ai_summary, summary_generated_at, recent_activity_hash')
             .eq('owner', owner)
             .eq('name', repo)
-            .single();
+            .maybeSingle();
 
           if (error) throw error;
           return data;

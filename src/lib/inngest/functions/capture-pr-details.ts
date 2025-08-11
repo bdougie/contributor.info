@@ -31,7 +31,7 @@ export const capturePrDetails = inngest.createFunction(
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         throw new Error(`Repository not found: ${repositoryId}`);
@@ -89,7 +89,7 @@ export const capturePrDetails = inngest.createFunction(
             ignoreDuplicates: false
           })
           .select('id')
-          .single();
+          .maybeSingle();
           
         const result = await Promise.race([dbPromise, timeoutPromise]);
         const { data: contributor, error } = result as { data: { id: string } | null; error: Error | null };

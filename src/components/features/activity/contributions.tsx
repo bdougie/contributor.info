@@ -23,7 +23,11 @@ import { useContributorRole } from "@/hooks/useContributorRoles";
 import { useParams } from "react-router-dom";
 import { useTheme } from "@/components/common/theming/theme-provider";
 
-function ContributionsChart() {
+interface ContributionsChartProps {
+  isRepositoryTracked?: boolean;
+}
+
+function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartProps) {
   const { stats, includeBots: contextIncludeBots } =
     useContext(RepoStatsContext);
   const { effectiveTimeRange } = useTimeRange();
@@ -306,6 +310,19 @@ function ContributionsChart() {
     (pr) => pr.user.type === "Bot"
   ).length;
   const hasBots = botCount > 0;
+
+  // Show placeholder when repository is not tracked
+  if (!isRepositoryTracked) {
+    return (
+      <div className={`${isMobile ? "h-[280px]" : "h-[400px]"} w-full flex items-center justify-center bg-muted/10 rounded-lg border-2 border-dashed border-muted-foreground/20`}>
+        <div className="text-center">
+          <p className="text-muted-foreground text-sm">
+            Track this repository to see contribution analytics
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 w-full overflow-hidden">

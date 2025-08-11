@@ -120,7 +120,7 @@ async function findSimilarIssuesDirect(issue: any, repository: any): Promise<any
       .from('repositories')
       .select('id')
       .eq('github_id', repository.id)
-      .single();
+      .maybeSingle();
     
     if (!dbRepo) {
       console.log('Repository not in database yet, no similar issues available');
@@ -211,7 +211,7 @@ async function ensureRepositoryTracked(repository: any) {
       .from('repositories')
       .select('id, github_id')
       .eq('github_id', repository.id)
-      .single();
+      .maybeSingle();
     
     if (existing) {
       console.log(`Repository ${repository.full_name} already tracked`);
@@ -224,7 +224,7 @@ async function ensureRepositoryTracked(repository: any) {
       .select('id, github_id')
       .eq('owner', repository.owner.login)
       .eq('name', repository.name)
-      .single();
+      .maybeSingle();
     
     if (wrongId) {
       console.log(`⚠️ Repository ${repository.full_name} has wrong GitHub ID: ${wrongId.github_id} vs ${repository.id}`);
@@ -265,7 +265,7 @@ async function ensureRepositoryTracked(repository: any) {
         tracking_started_at: new Date().toISOString(),
       })
       .select('id')
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error(`Failed to create repository: ${error.message}`);

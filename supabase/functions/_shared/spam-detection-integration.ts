@@ -69,7 +69,7 @@ export async function processPRWithSpamDetection(
         ignoreDuplicates: false
       })
       .select()
-      .single()
+      .maybeSingle()
     
     if (contributorError) {
       console.error(`[Spam Detection] Error upserting contributor ${author.login}:`, contributorError)

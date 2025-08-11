@@ -17,7 +17,6 @@ import { RepositoryHealthFactors } from "@/components/insights/sections/reposito
 import { LotteryFactorContent } from "./lottery-factor";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { SelfSelectionRate } from "@/components/features/contributor/self-selection-rate";
-import { useAutoTrackRepository } from "@/hooks/use-auto-track-repository";
 import { ContributorConfidenceCard } from "./contributor-confidence-card";
 import { calculateRepositoryConfidence, ConfidenceBreakdown } from "@/lib/insights/health-metrics";
 import { useOnDemandSync } from "@/hooks/use-on-demand-sync";
@@ -28,12 +27,6 @@ export function RepositoryHealthCard() {
   const { stats, lotteryFactor, directCommitsData, includeBots } =
     useContext(RepoStatsContext);
 
-  // Auto-track repository when user visits it
-  useAutoTrackRepository({
-    owner: owner || '',
-    repo: repo || '',
-    enabled: !!(owner && repo)
-  });
 
   // Local state for bot toggle to avoid page refresh
   const [localIncludeBots, setLocalIncludeBots] = useState(includeBots);

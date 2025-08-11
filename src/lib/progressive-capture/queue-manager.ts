@@ -245,7 +245,7 @@ export class DataCaptureQueueManager {
       .order('priority', { ascending: true }) // critical, high, medium, low
       .order('created_at', { ascending: true }) // FIFO within same priority
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       return null;
@@ -294,7 +294,7 @@ export class DataCaptureQueueManager {
       .from('data_capture_queue')
       .select('attempts, max_attempts')
       .eq('id', jobId)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !job) {
       return false;
@@ -361,7 +361,7 @@ export class DataCaptureQueueManager {
         .from('rate_limit_tracking')
         .select('calls_made, calls_remaining')
         .eq('hour_bucket', hourBucket.toISOString())
-        .single();
+        .maybeSingle();
 
       if (error) {
         // If rate limit tracking fails (permissions, etc), allow operations

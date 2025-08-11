@@ -70,7 +70,7 @@ export class AISummaryProcessor {
             .from('repositories')
             .select('*, pull_requests(*)')
             .eq('id', job.repository_id)
-            .single();
+            .maybeSingle();
 
           if (error) throw error;
           return data;
@@ -259,7 +259,7 @@ export class AISummaryProcessor {
         .from('repositories')
         .select('summary_generated_at, recent_activity_hash')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error || !repo) return true;
 

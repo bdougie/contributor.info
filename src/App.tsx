@@ -10,7 +10,6 @@ import { Layout, Home, NotFound } from "@/components/common/layout";
 import { ProtectedRoute, AdminRoute } from "@/components/features/auth";
 import { initializeWebVitalsMonitoring } from "@/lib/web-vitals-monitoring";
 import { initializeLLMCitationTracking } from "@/lib/llm-citation-tracking";
-import { initAutoTrackingService, cleanupAutoTrackingService } from "@/lib/progressive-capture/auto-track-on-404";
 import { SVGSpriteInliner } from "@/components/ui/svg-sprite-loader";
 
 // Lazy load route components for better performance
@@ -223,7 +222,6 @@ function App() {
   // Preload critical routes and initialize progressive features after mount
   useEffect(() => {
     // Initialize auto-tracking service for 404 interception
-    initAutoTrackingService();
     
     const initializeDeferred = async () => {
       // Priority 1: Preload most likely next routes immediately
@@ -251,7 +249,6 @@ function App() {
     
     // Cleanup on unmount
     return () => {
-      cleanupAutoTrackingService();
     };
   }, []);
 

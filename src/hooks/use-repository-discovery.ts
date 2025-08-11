@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
+// import { toast } from 'sonner'; // Commented out - no longer used after refactor
 
 export interface DiscoveryState {
   status: 'checking' | 'discovered' | 'discovering' | 'ready' | 'error';
@@ -35,8 +35,8 @@ export function useRepositoryDiscovery({
   
   const hasInitiatedDiscovery = useRef(false);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const pollCountRef = useRef(0);
-  const MAX_POLL_COUNT = 60; // Poll for up to 2 minutes (60 * 2 seconds)
+  // const pollCountRef = useRef(0); // Commented out - no longer used after refactor
+  // const MAX_POLL_COUNT = 60; // Commented out - no longer used after refactor
 
   useEffect(() => {
     if (!enabled || !owner || !repo) {
@@ -92,11 +92,15 @@ export function useRepositoryDiscovery({
           isNewRepository: true
         });
 
+        // DISABLED: Old discovery flow - replaced with explicit tracking
         // Only initiate discovery once
-        if (!hasInitiatedDiscovery.current) {
-          hasInitiatedDiscovery.current = true;
-          await initiateDiscovery(owner, repo);
-        }
+        // if (!hasInitiatedDiscovery.current) {
+        //   hasInitiatedDiscovery.current = true;
+        //   await initiateDiscovery(owner, repo);
+        // }
+        
+        // Just set the state to indicate it needs tracking
+        // The user will use the new tracking card instead
 
       } catch (error) {
         console.error('Repository check error:', error);
@@ -109,6 +113,9 @@ export function useRepositoryDiscovery({
       }
     };
 
+    // DEPRECATED: This function is no longer used - replaced with manual tracking
+    // Keeping for reference but commenting out to avoid TypeScript errors
+    /*
     const initiateDiscovery = async (owner: string, repo: string) => {
       try {
         // Show user-friendly notification
@@ -159,7 +166,10 @@ export function useRepositoryDiscovery({
         });
       }
     };
+    */
 
+    // DEPRECATED: Polling is no longer used - replaced with manual tracking
+    /*
     const startPolling = (owner: string, repo: string) => {
       // Clear any existing polling
       if (pollIntervalRef.current) {
@@ -225,6 +235,7 @@ export function useRepositoryDiscovery({
         }
       }, 2000);
     };
+    */
 
     checkRepository();
 

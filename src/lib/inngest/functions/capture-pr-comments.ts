@@ -85,7 +85,7 @@ export const capturePrComments = inngest.createFunction(
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         throw new Error(`Repository not found: ${repositoryId}`);
@@ -127,7 +127,7 @@ export const capturePrComments = inngest.createFunction(
             .from('contributors')
             .select('id')
             .eq('github_id', comment.user.id)
-            .single();
+            .maybeSingle();
           
           let commenterId = existingContributor?.id;
           
@@ -142,9 +142,9 @@ export const capturePrComments = inngest.createFunction(
                 is_bot: comment.user.type === 'Bot' || comment.user.login.includes('[bot]')
               })
               .select('id')
-              .single();
+              .maybeSingle();
               
-            if (contributorError) {
+            if (contributorError || !newContributor) {
               console.warn(`Failed to create commenter ${comment.user.login}:`, contributorError);
               continue;
             }
@@ -177,7 +177,7 @@ export const capturePrComments = inngest.createFunction(
             .from('contributors')
             .select('id')
             .eq('github_id', comment.user.id)
-            .single();
+            .maybeSingle();
           
           let commenterId = existingContributor?.id;
           
@@ -192,9 +192,9 @@ export const capturePrComments = inngest.createFunction(
                 is_bot: comment.user.type === 'Bot' || comment.user.login.includes('[bot]')
               })
               .select('id')
-              .single();
+              .maybeSingle();
               
-            if (contributorError) {
+            if (contributorError || !newContributor) {
               console.warn(`Failed to create commenter ${comment.user.login}:`, contributorError);
               continue;
             }

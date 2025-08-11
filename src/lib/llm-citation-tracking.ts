@@ -297,7 +297,7 @@ class LLMCitationTracker {
         .from('query_patterns')
         .select('id, frequency_count')
         .eq('pattern_text', pattern.pattern_text)
-        .single();
+        .maybeSingle();
 
       if (fetchError && fetchError.code !== 'PGRST116') { // Not found error
         throw fetchError;

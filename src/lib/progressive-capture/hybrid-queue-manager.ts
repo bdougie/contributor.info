@@ -197,7 +197,7 @@ export class HybridQueueManager {
         }
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error || !job) {
       throw new Error(`Failed to create job record: ${error?.message}`);
@@ -559,7 +559,7 @@ export class HybridQueueManager {
         .from('repositories')
         .select('id, owner, name, pull_request_count')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('[HybridQueue] Error fetching repository info:', error);

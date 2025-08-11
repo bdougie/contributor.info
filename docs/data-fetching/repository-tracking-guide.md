@@ -1,8 +1,11 @@
 # Repository Tracking Guide
 
+> **Note**: As of January 2025, repository tracking is now **manual and user-initiated**. 
+> See [Manual Repository Tracking](./manual-repository-tracking.md) for the current implementation.
+
 ## Overview
 
-The repository tracking system in contributor.info uses a relational database structure where `tracked_repositories` references `repositories` by UUID, not by owner/name strings.
+The repository tracking system in contributor.info uses a relational database structure where `tracked_repositories` references `repositories` by UUID, not by owner/name strings. Tracking is initiated by users through the UI, not automatically.
 
 ## Database Structure
 

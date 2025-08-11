@@ -44,7 +44,7 @@ async function handleIssueOpened(event: IssuesEvent) {
       .from('repositories')
       .select('id')
       .eq('github_id', event.repository.id)
-      .single();
+      .maybeSingle();
 
     if (!repository) {
       console.log('Repository not tracked, skipping issue storage');
@@ -62,7 +62,7 @@ async function handleIssueOpened(event: IssuesEvent) {
         type: event.issue.user.type,
       })
       .select('id')
-      .single();
+      .maybeSingle();
 
     // Store the issue
     const { data: issueData } = await supabase
@@ -86,7 +86,7 @@ async function handleIssueOpened(event: IssuesEvent) {
         is_pull_request: !!event.issue.pull_request,
       })
       .select('id')
-      .single();
+      .maybeSingle();
 
     // Process issue for similarity and generate embeddings
     if (!issueData) {

@@ -164,7 +164,7 @@ async function trackRepository(owner: string, repo: string): Promise<void> {
         added_at: new Date().toISOString(),
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       // Handle duplicate key error gracefully

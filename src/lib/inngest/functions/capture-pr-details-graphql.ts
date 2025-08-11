@@ -131,7 +131,7 @@ async function ensureContributorExists(githubUser: GitHubUser | null | undefined
         ignoreDuplicates: false
       })
       .select('id')
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error upserting contributor:', error, {
@@ -146,7 +146,10 @@ async function ensureContributorExists(githubUser: GitHubUser | null | undefined
       return null;
     }
 
-    return data.id;
+    if (!data) {
+    throw new Error(`Failed to ensure contributor exists`);
+  }
+  return data.id;
   } catch (err) {
     console.error('Exception in ensureContributorExists:', err, {
       githubUser: {
@@ -180,7 +183,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
@@ -261,7 +264,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           onConflict: 'github_id'
         })
         .select('id')
-        .single();
+        .maybeSingle();
 
       if (prError) {
         throw new Error(`Failed to store PR: ${prError.message}`);

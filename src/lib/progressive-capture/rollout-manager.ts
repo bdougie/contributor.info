@@ -125,7 +125,7 @@ export class HybridRolloutManager {
         .from('repository_categories')
         .select('*')
         .eq('repository_id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (fetchError) {
         console.error(`[RolloutManager] Error fetching category for ${repositoryId}:`, fetchError);
@@ -149,7 +149,7 @@ export class HybridRolloutManager {
         .select('*')
         .eq('feature_name', this.featureName)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
         console.error(`[RolloutManager] Error fetching rollout configuration:`, error);
