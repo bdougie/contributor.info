@@ -15,24 +15,25 @@ This application empowers repository maintainers, team leads, open source contri
 ## Key Features & Documentation
 
 ### Core Analytics Features
-- **[Lottery Factor Insights](https://contributor.info/docs/feature-lottery-factor.md)**: Project sustainability analysis and contributor distribution risk assessment with actionable recommendations
-- **[PR Activity Analytics](https://contributor.info/docs/insight-pr-activity.md)**: Real-time pull request monitoring, team velocity tracking, and workflow health metrics with time-series analysis
-- **[Distribution Charts](https://contributor.info/docs/feature-distribution-charts.md)**: Programming language distribution analysis and contribution pattern visualization using quadrant-based contributor analysis
-- **[Repository Health Dashboard](https://contributor.info/docs/feature-repository-health.md)**: Comprehensive project health assessment with sustainability metrics, contributor confidence scoring, and improvement recommendations
+- **[Lottery Factor Insights](https://contributor.info/docs/lottery-factor)**: Project sustainability analysis and contributor distribution risk assessment with actionable recommendations
+- **[PR Activity Analytics](https://contributor.info/docs/pr-activity)**: Real-time pull request monitoring, team velocity tracking, and workflow health metrics with time-series analysis
+- **[Distribution Charts](https://contributor.info/docs/distribution-charts)**: Programming language distribution analysis and contribution pattern visualization using quadrant-based contributor analysis
+- **[Repository Health Dashboard](https://contributor.info/docs/repository-health)**: Comprehensive project health assessment with sustainability metrics, contributor confidence scoring, and improvement recommendations
 
 ### Contributor & Community Features
-- **[Contributor of the Month](https://contributor.info/docs/feature-contributor-of-month.md)**: Monthly contributor recognition system with automated rankings, leaderboards, and achievement tracking
-- **[Contributor Profiles](https://contributor.info/docs/feature-contributor-profiles.md)**: Detailed individual contributor analysis including expertise areas, contribution patterns, impact metrics, and work behavior insights
-- **[Repository Activity Feed](https://contributor.info/docs/feature-activity-feed.md)**: Real-time chronological stream of pull request activity, contributor interactions, merge patterns, and project developments
+- **[Contributor of the Month](https://contributor.info/docs/contributor-of-month)**: Monthly contributor recognition system with automated rankings, leaderboards, and achievement tracking
+- **[Hover Cards](https://contributor.info/docs/hover-cards)**: Quick contributor information displayed on hover including stats, activity, and GitHub profile links
+- **[Repository Activity Feed](https://contributor.info/docs/activity-feed)**: Real-time chronological stream of pull request activity, contributor interactions, merge patterns, and project developments
 
 ### Advanced Analytics & Tools
-- **[Contribution Analytics](https://contributor.info/docs/feature-contribution-analytics.md)**: Advanced contribution classification using quadrant analysis for measuring contribution impact versus effort with trend analysis
-- **[Time Range Analysis](https://contributor.info/docs/feature-time-range-analysis.md)**: Flexible temporal analysis across 30, 60, and 90-day periods for trend identification, seasonal pattern detection, and project planning
-- **[Repository Search & Tracking](https://contributor.info/docs/feature-repository-search.md)**: Comprehensive repository discovery, analysis, and monitoring capabilities with intelligent search and automated tracking features
+- **[Contribution Analytics](https://contributor.info/docs/contribution-analytics)**: Advanced contribution classification using quadrant analysis for measuring contribution impact versus effort with trend analysis
+- **[Repository Search & Tracking](https://contributor.info/docs/repository-search)**: Comprehensive repository discovery, analysis, and monitoring capabilities with intelligent search and automated tracking features
+- **[Needs Attention](https://contributor.info/docs/needs-attention)**: Identifies pull requests requiring immediate review, prioritized by urgency with actionable insights
 
-### Integration & Sharing Features  
-- **[Social Cards](https://contributor.info/docs/feature-social-cards.md)**: Automated generation of shareable visual summaries for social media promotion, project marketing, and community engagement
-- **[Authentication & Protected Features](https://contributor.info/docs/feature-authentication.md)**: Secure GitHub OAuth integration with progressive enhancement, role-based access control, and advanced analytics access
+### Integration & Protected Features  
+- **[Authentication](https://contributor.info/docs/authentication)**: Secure GitHub OAuth integration with progressive enhancement, role-based access control, and advanced analytics access
+- **[Recommendations](https://contributor.info/docs/recommendations)**: AI-powered actionable suggestions to improve repository health, contributor engagement, and development processes
+- **[Contributor Confidence](https://contributor.info/docs/contributor-confidence-guide)**: Measures how welcoming and approachable your project is to potential contributors
 
 ## Technical Architecture & Data Sources
 

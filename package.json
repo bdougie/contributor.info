@@ -48,6 +48,9 @@
     "generate-social-cards": "node scripts/assets/generate-social-cards.js",
     "setup-storage": "node scripts/setup/setup-supabase-storage.js",
     "test-social-cards": "node scripts/testing-tools/test-social-cards.js",
+    "migrate-images": "node scripts/assets/migrate-to-supabase-storage.js",
+    "update-image-urls": "node scripts/assets/update-image-urls.js",
+    "cleanup-local-images": "node scripts/assets/cleanup-local-images.js",
     "monitor-cdn": "node scripts/performance/monitor-cdn-performance.js",
     "monitor-db": "node scripts/performance/monitor-database-performance.js",
     "monitor-db-snapshot": "node scripts/performance/monitor-database-performance.js snapshot",
@@ -202,6 +205,7 @@
     "vite": "^6.3.5",
     "vite-bundle-analyzer": "^1.2.1",
     "vite-plugin-compression": "^0.5.1",
+    "vite-plugin-static-copy": "^3.1.1",
     "vitest": "^3.1.1",
     "wait-on": "^8.0.3"
   }
