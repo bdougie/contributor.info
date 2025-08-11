@@ -158,19 +158,20 @@ export default defineConfig(() => ({
       polyfill: true, // Enable polyfill for proper module loading
       resolveDependencies: (_, deps) => {
         // Preload only the absolute minimum for initial render
+        // Note: These names must match the keys in manualChunks above
         const sorted = deps.sort((a, b) => {
-          if (a.includes('react-core')) return -1;
-          if (b.includes('react-core')) return 1;
-          if (a.includes('react-dom')) return -1;
-          if (b.includes('react-dom')) return 1;
-          if (a.includes('react-router')) return -1;
-          if (b.includes('react-router')) return 1;
+          // Prioritize vendor-react chunk (contains react, react-dom, react-router-dom)
+          if (a.includes('vendor-react')) return -1;
+          if (b.includes('vendor-react')) return 1;
+          // Then load main app chunk
+          if (a.includes('index-')) return -1;
+          if (b.includes('index-')) return 1;
           return 0;
         });
-        // Only preload the bare minimum React chunks
+        // Only preload the critical vendor-react chunk and main app
         return sorted.filter(dep => 
-          dep.includes('react-core') || 
-          dep.includes('react-dom')
+          dep.includes('vendor-react') || 
+          dep.includes('index-')
         );
       }
     },
