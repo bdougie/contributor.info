@@ -161,6 +161,7 @@ exports.handler = async (event, context) => {
       }
 
       console.log(`Repository tracking initiated for ${owner}/${repo}:`, result);
+      console.log('Inngest event sent successfully, eventIds:', result.ids);
 
       return {
         statusCode: 200,
@@ -172,7 +173,12 @@ exports.handler = async (event, context) => {
           success: true,
           message: `Tracking started for ${owner}/${repo}`,
           repositoryId: result.ids?.[0] || 'pending',
-          eventId: result.ids?.[0] || result.status || 'pending'
+          eventId: result.ids?.[0] || result.status || 'pending',
+          debug: {
+            inngestResult: result,
+            eventSent: true,
+            timestamp: new Date().toISOString()
+          }
         })
       };
 

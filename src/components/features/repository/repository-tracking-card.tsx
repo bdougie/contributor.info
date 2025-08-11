@@ -66,15 +66,24 @@ export function RepositoryTrackingCard({
         throw new Error('Invalid response from server');
       }
 
+      console.log('Track repository response:', result);
+
       if (!response.ok) {
         throw new Error(result.message || 'Failed to track repository');
       }
 
-      // Show success message
-      toast.success('Repository tracking initiated!', {
-        description: 'Data will be available in 1-2 minutes. The page will refresh automatically.',
-        duration: 8000
-      });
+      // Check if tracking was successful
+      if (result.success) {
+        console.log('Tracking initiated successfully, eventId:', result.eventId);
+        
+        // Show success message
+        toast.success('Repository tracking initiated!', {
+          description: 'Data will be available in 1-2 minutes. The page will refresh automatically.',
+          duration: 8000
+        });
+      } else {
+        throw new Error(result.message || 'Tracking failed');
+      }
 
       // Start polling for completion
       startPollingForData();

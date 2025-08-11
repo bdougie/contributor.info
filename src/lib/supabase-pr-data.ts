@@ -329,24 +329,45 @@ export async function fetchPRDataWithFallback(
     // This prevents timeouts and rate limit issues
     // Instead, return a pending state and let background processing handle it
     
-    console.log(`Repository ${owner}/${repo} not in database. Triggering discovery.`);
+    console.log(`Repository ${owner}/${repo} not in database. Checking discovery status.`);
     
     // Trigger repository discovery for new repositories
     // Validate that we have owner and repo before sending
     if (owner && repo) {
-      try {
-        const { sendInngestEvent } = await import('./inngest/client-safe');
-        await sendInngestEvent({
-          name: 'discover/repository.new',
-          data: {
-            owner,
-            repo,
-            source: 'missing-repo-fallback',
-            timestamp: new Date().toISOString()
-          }
-        });
-      } catch (error) {
-        console.error('Failed to trigger repository discovery:', error);
+      // Use a simple in-memory flag to prevent duplicate discovery triggers
+      const discoveryKey = `discovery_${owner}_${repo}`;
+      const globalWindow = window as any;
+      
+      if (!globalWindow.__discoveryInProgress) {
+        globalWindow.__discoveryInProgress = {};
+      }
+      
+      if (!globalWindow.__discoveryInProgress[discoveryKey]) {
+        globalWindow.__discoveryInProgress[discoveryKey] = true;
+        
+        try {
+          console.log(`Triggering discovery for ${owner}/${repo}`);
+          const { sendInngestEvent } = await import('./inngest/client-safe');
+          await sendInngestEvent({
+            name: 'discover/repository.new',
+            data: {
+              owner,
+              repo,
+              source: 'missing-repo-fallback',
+              timestamp: new Date().toISOString()
+            }
+          });
+          
+          // Clear flag after 5 seconds to allow retry if needed
+          setTimeout(() => {
+            delete globalWindow.__discoveryInProgress[discoveryKey];
+          }, 5000);
+        } catch (error) {
+          console.error('Failed to trigger repository discovery:', error);
+          delete globalWindow.__discoveryInProgress[discoveryKey];
+        }
+      } else {
+        console.log(`Discovery already in progress for ${owner}/${repo}, skipping duplicate trigger`);
       }
     } else {
       console.error('Cannot trigger discovery - missing owner or repo:', { owner, repo });
