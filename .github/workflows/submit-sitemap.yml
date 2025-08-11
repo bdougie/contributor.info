@@ -107,42 +107,58 @@ jobs:
           
           # IndexNow is a protocol supported by multiple search engines
           # We need an API key for this - should be added as a secret
-          # For now, we'll just document the process
-          
-          echo "ℹ️ IndexNow submission requires an API key"
-          echo "To enable IndexNow:"
-          echo "1. Generate a key at https://www.bing.com/indexnow"
-          echo "2. Add it as a GitHub secret: INDEXNOW_API_KEY"
-          echo "3. Place the key file at: https://contributor.info/<key>.txt"
           
           # If we have the API key, submit
           if [ -n "${{ secrets.INDEXNOW_API_KEY }}" ]; then
+            echo "🔑 IndexNow API key found, proceeding with submission..."
+            
             # Create JSON payload with recently updated URLs
+            # Note: contributor.info (without www) is the correct domain
             cat > indexnow.json << EOF
           {
             "host": "contributor.info",
             "key": "${{ secrets.INDEXNOW_API_KEY }}",
-            "keyLocation": "https://contributor.info/${{ secrets.INDEXNOW_API_KEY }}.txt",
+            "keyLocation": "https://contributor.info/indexnow.txt",
             "urlList": [
               "https://contributor.info/",
-              "https://contributor.info/sitemap.xml"
+              "https://contributor.info/sitemap.xml",
+              "https://contributor.info/changelog",
+              "https://contributor.info/docs"
             ]
           }
           EOF
             
+            echo "📝 Submitting the following payload:"
+            cat indexnow.json
+            
             # Submit to IndexNow
             response=$(curl -s -o /dev/null -w "%{http_code}" \
-              -H "Content-Type: application/json" \
+              -X POST \
+              -H "Content-Type: application/json; charset=utf-8" \
+              -H "Host: api.indexnow.org" \
               -d @indexnow.json \
-              "https://api.indexnow.org/indexnow")
+              "https://api.indexnow.org/IndexNow")
             
             if [ "$response" = "200" ] || [ "$response" = "202" ]; then
-              echo "✅ Successfully submitted to IndexNow"
+              echo "✅ Successfully submitted to IndexNow (Status: $response)"
+              echo "   Submitted URLs will be shared with Bing, Yandex, Seznam, and other participating search engines"
+            elif [ "$response" = "400" ]; then
+              echo "❌ Bad Request - Check the JSON payload format"
+            elif [ "$response" = "403" ]; then
+              echo "❌ Forbidden - Key validation failed. Ensure indexnow.txt is accessible at https://contributor.info/indexnow.txt"
+            elif [ "$response" = "422" ]; then
+              echo "⚠️ Unprocessable Entity - URLs don't belong to the host or invalid format"
+            elif [ "$response" = "429" ]; then
+              echo "⚠️ Too Many Requests - Rate limited, will retry later"
             else
-              echo "⚠️ IndexNow submission returned status code: $response"
+              echo "⚠️ IndexNow submission returned unexpected status code: $response"
             fi
           else
             echo "⏭️ Skipping IndexNow submission (no API key configured)"
+            echo "To enable IndexNow:"
+            echo "1. Generate a key at https://www.bing.com/indexnow"
+            echo "2. Add it as GitHub secret: INDEXNOW_API_KEY (the actual key value like '55251d2db6284d70b1f42122b0c27e52')"
+            echo "3. Deploy indexnow.txt file containing the key to https://contributor.info/indexnow.txt"
           fi
 
       - name: Create summary
