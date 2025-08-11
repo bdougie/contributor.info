@@ -35,7 +35,7 @@ export function RepositoryTrackingCard({
 
     try {
       // Call the new tracking API endpoint
-      const response = await fetch('/api/track-repository', {
+      const response = await fetch('/.netlify/functions/api-track-repository', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -44,7 +44,14 @@ export function RepositoryTrackingCard({
         body: JSON.stringify({ owner, repo })
       });
 
-      const result = await response.json();
+      const responseText = await response.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse response:', responseText);
+        throw new Error('Invalid response from server');
+      }
 
       if (!response.ok) {
         throw new Error(result.message || 'Failed to track repository');
@@ -80,7 +87,7 @@ export function RepositoryTrackingCard({
 
       try {
         // Check if repository now has data
-        const response = await fetch(`/api/repository-status?owner=${owner}&repo=${repo}`);
+        const response = await fetch(`/.netlify/functions/api-repository-status?owner=${owner}&repo=${repo}`);
         const data = await response.json();
 
         if (data.hasData) {

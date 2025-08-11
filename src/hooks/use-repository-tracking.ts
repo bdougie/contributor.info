@@ -116,7 +116,7 @@ export function useRepositoryTracking({
 
     try {
       // Call the tracking API endpoint
-      const response = await fetch('/api/track-repository', {
+      const response = await fetch('/.netlify/functions/api-track-repository', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
