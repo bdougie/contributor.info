@@ -2,13 +2,15 @@ import path from 'path';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
+import viteCompression from 'vite-plugin-compression';
 
-export default defineConfig({
+export default defineConfig(() => ({
+  base: '/',
   plugins: [
     react(),
     imagetools({
       defaultDirectives: (url) => {
-        // Only process images with query parameters
+        // Process images for WebP optimization
         if (url.searchParams.has('webp')) {
           return new URLSearchParams({
             format: 'webp',
@@ -17,13 +19,36 @@ export default defineConfig({
         }
         if (url.searchParams.has('avif')) {
           return new URLSearchParams({
-            format: 'avif',
+            format: 'avif', 
             quality: '70'
+          });
+        }
+        // Auto-generate WebP versions for all static images
+        if (url.searchParams.has('optimize')) {
+          return new URLSearchParams({
+            format: 'webp;png;jpg',
+            quality: '80',
+            w: url.searchParams.get('w') || '800',
+            h: url.searchParams.get('h') || '600'
           });
         }
         return new URLSearchParams();
       }
-    })
+    }),
+    // Brotli compression for static assets (safe, server-side)
+    viteCompression({
+      algorithm: 'brotliCompress',
+      ext: '.br',
+      threshold: 1024,
+      deleteOriginFile: false,
+    }),
+    // Also generate gzip for broader compatibility
+    viteCompression({
+      algorithm: 'gzip',
+      ext: '.gz',
+      threshold: 1024,
+      deleteOriginFile: false,
+    }),
   ],
   resolve: {
     alias: {
@@ -60,76 +85,87 @@ export default defineConfig({
       'tailwind-merge'
     ],
     exclude: [
-      'lucide-react', // Keep icons separate for better tree-shaking
       '@storybook/test',
       '@storybook/react',
       'vitest',
       '@testing-library/react',
-      '@testing-library/jest-dom'
+      '@testing-library/jest-dom',
+      '@xenova/transformers', // Exclude embeddings library
+      'onnxruntime-web' // Exclude ONNX runtime
     ],
-    force: true, // Force re-optimization for performance
+    // Remove force: true to avoid aggressive re-optimization
   },
   build: {
     // Enable CSS code splitting for better performance
     cssCodeSplit: true,
+    commonjsOptions: {
+      // Better handling of CommonJS modules (like some D3 packages)
+      transformMixedEsModules: true,
+      strictRequires: 'auto'
+    },
     rollupOptions: {
+      // Use default tree shaking to fix module loading issues
+      // (removing custom treeshake config entirely)
       // Remove the external configuration as it's causing build issues
       output: {
+        // Ensure proper module format
+        format: 'es',
+        // Use proper ES module syntax
+        generatedCode: {
+          constBindings: true,
+          objectShorthand: true,
+          arrowFunctions: true
+        },
         // Ensure proper file extensions for module recognition
-        entryFileNames: (chunkInfo) => {
-          // Force .js extension for all entry files, including App
-          const name = chunkInfo.name?.replace(/\.tsx?$/, '') || 'chunk';
-          return `assets/${name}-[hash].js`;
+        entryFileNames: `js/[name]-[hash].js`,
+        chunkFileNames: `js/[name]-[hash].js`,
+        // Better asset organization
+        assetFileNames: (assetInfo) => {
+          const extType = assetInfo.name?.split('.').pop() || 'asset';
+          if (/png|jpe?g|svg|gif|webp|avif/i.test(extType)) {
+            return 'images/[name]-[hash][extname]';
+          }
+          if (/css/i.test(extType)) {
+            return 'css/[name]-[hash][extname]';
+          }
+          if (/woff2?|ttf|eot/i.test(extType)) {
+            return 'fonts/[name]-[hash][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
         },
-        chunkFileNames: (chunkInfo) => {
-          // Force .js extension for all chunk files
-          return `assets/${chunkInfo.name}-[hash].js`;
-        },
-        assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Proven chunk splitting strategy from LIGHTHOUSE_OPTIMIZATIONS.md
-        manualChunks: {
-          // Core React - keep together for stability (Critical Path)
-          'react-core': ['react', 'react-dom'],
+        // Allow modules to be properly hoisted for correct initialization order
+        hoistTransitiveImports: true,
+        // Balanced chunking strategy from production postmortem (2025-06-22)
+        // This approach maintains reliability while optimizing performance
+        manualChunks: (id) => {
+          // Prevent embeddings from being bundled
+          if (id.includes('@xenova/transformers') || id.includes('onnxruntime-web')) {
+            return 'embeddings-excluded';
+          }
           
-          // Router and utilities (Critical Path)
-          'react-ecosystem': [
-            'react-router-dom',
-            'class-variance-authority',
-            'clsx',
-            'tailwind-merge'
-          ],
+          // All React and React-dependent libraries must be bundled together
+          // to prevent "Cannot read properties of undefined" errors
+          // This includes: React, ReactDOM, Router, Radix UI, Charts, Icons, etc.
+          if (id.includes('react') || 
+              id.includes('@radix-ui') || 
+              id.includes('@nivo') || 
+              id.includes('recharts') ||
+              id.includes('lucide-react')) {
+            return 'react-vendor';
+          }
           
-          // UI library - deferred loading when UI components needed
-          'ui-radix': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-select',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-tooltip',
-            '@radix-ui/react-slot'
-          ],
+          // Utility libraries that don't depend on React
+          if (id.includes('class-variance-authority')) return 'utils';
+          if (id.includes('clsx')) return 'utils';
+          if (id.includes('tailwind-merge')) return 'utils';
           
-          // Essential charts for PR contributions (Critical Path)
-          'charts-essential': [
-            '@nivo/scatterplot'  // Main PR contribution chart
-          ],
+          // Utilities - frequently used, good for caching
+          if (id.includes('date-fns')) return 'utils';
+          if (id.includes('zod')) return 'utils';
           
-          // Advanced visualization libraries - lazy loaded on chart pages
-          'charts-advanced': [
-            'recharts'  // Distribution analysis charts
-          ],
-          
-          // Icons - lazy loaded
-          'icons': ['lucide-react'],
-          
-          // Utilities
-          'utils': ['date-fns', 'zod'],
-          
-          // Data and state - deferred
-          'data': ['zustand', '@supabase/supabase-js'],
-          
-          // Analytics - removed (no longer using PostHog/Sentry)
+          // State management and data
+          if (id.includes('zustand')) return 'data';
+          if (id.includes('@supabase/supabase-js')) return 'data';
         },
       },
     },
@@ -141,30 +177,38 @@ export default defineConfig({
     minify: 'esbuild',
     target: 'es2020', // Modern target with good compatibility
     // Optimize chunk size warnings  
-    chunkSizeWarningLimit: 600, // Slightly more lenient given postmortem learnings
+    chunkSizeWarningLimit: 1000, // Accepting larger chunks for reliability over micro-optimizations
     // Enable compression reporting
     reportCompressedSize: true,
-    // Module preload optimization - only preload critical path
+    // Module preload optimization - ensure React loads first
     modulePreload: {
-      polyfill: true,
+      polyfill: true, // Enable polyfill for proper module loading
       resolveDependencies: (_, deps) => {
-        // Preload critical path + essential charts for PR contributions (~85 KiB total)
-        return deps.filter(dep => 
-          dep.includes('react-core') || 
-          dep.includes('react-ecosystem') ||
-          dep.includes('charts-essential') || // Include essential PR contribution chart
-          (!dep.includes('charts-advanced') && 
-           !dep.includes('ui-radix') &&
-           !dep.includes('icons') &&
-           !dep.includes('data') &&
-           !dep.includes('utils') &&
-           !dep.includes('test') &&
-           !dep.includes('storybook'))
+        // Preload React vendor first, then router
+        const sorted = deps.sort((a, b) => {
+          if (a.includes('react-vendor')) return -1;
+          if (b.includes('react-vendor')) return 1;
+          if (a.includes('react-router')) return -1;
+          if (b.includes('react-router')) return 1;
+          return 0;
+        });
+        // Only preload critical chunks
+        return sorted.filter(dep => 
+          dep.includes('react-vendor') || 
+          dep.includes('react-router')
         );
       }
     },
+    
+    // Remove console/debugger in production and strip legal comments
+    esbuild: {
+      drop: process.env.NODE_ENV === 'production' 
+        ? ['console', 'debugger'] 
+        : [],
+      legalComments: 'none'
+    }
   },
   css: {
     devSourcemap: true,
   },
-});
+}));

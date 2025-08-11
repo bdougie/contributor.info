@@ -231,7 +231,7 @@ async function findCodeOwners(
         .from('github_app_installations')
         .select('installation_id')
         .eq('repository_id', repo.id)
-        .single();
+        .maybeSingle();
         
       if (installation?.data) {
         octokit = await githubAppAuth.getInstallationOctokit(installation.data.installation_id);
@@ -375,7 +375,7 @@ async function findSubjectMatterExperts(files: string[], repo: Repository): Prom
       .from('repositories')
       .select('id')
       .eq('github_id', repo.id)
-      .single();
+      .maybeSingle();
     
     if (!dbRepo) {
       return [];
@@ -468,7 +468,7 @@ async function getReviewerStats(login: string, repo: Repository): Promise<{
         )
       `)
       .eq('github_login', login)
-      .single();
+      .maybeSingle();
     
     if (!contributor) {
       return {

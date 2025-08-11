@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
+import { Loader2, Database, CheckCircle, Zap, GitBranch, Clock, AlertCircle } from '@/components/ui/icon';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Database, CheckCircle, Zap, GitBranch, Clock, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DataProcessingIndicatorProps {

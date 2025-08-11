@@ -45,7 +45,7 @@ export class SmartDataNotifications {
         .select('id, last_updated_at')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
 
       if (repoError || !repoData) {
         if (import.meta.env?.DEV) {
@@ -175,7 +175,7 @@ export class SmartDataNotifications {
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error || !repoData) {
         return;
@@ -276,7 +276,7 @@ export class SmartDataNotifications {
         .eq('repository_id', repositoryId)
         .order('updated_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
       
       const now = new Date();
       const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);

@@ -9,7 +9,6 @@ npm run build
 ```
 
 This command will:
-1. Run all tests
 2. Check TypeScript types
 3. Build the production bundle
 
@@ -17,33 +16,16 @@ This command will:
 
 This is a React + TypeScript application that visualizes GitHub contributors and their contributions.
 
+### Repository Tracking System (Updated Jan 2025)
+
+The application now uses a **manual, user-initiated repository tracking system**:
+- Users explicitly choose which repositories to track via "Track This Repository" button
+- No automatic discovery or tracking happens without user action
+- Untracked repositories show a tracking card instead of errors
+- See `docs/data-fetching/manual-repository-tracking.md` for full details
+
 ## Design
-
-CSS is tailown. 
-
 All components should match the existing design language.
-
-## Code Style Guidelines
-
-### React Imports
-
-**Do not import React** unless you need specific React features (hooks, types, etc.). Modern React with JSX Transform handles JSX automatically.
-
-```typescript
-// ❌ Bad - unnecessary React import causes TypeScript errors
-import React from "react";
-import { cn } from "@/lib/utils";
-
-// ✅ Good - only import what you need
-import { cn } from "@/lib/utils";
-```
-
-Only import React when you need specific features:
-```typescript
-// ✅ Good - using React features
-import React, { useState, useEffect } from "react";
-import type { ReactNode } from "react";
-```
 
 ## Project Planning with PRDs
 
@@ -104,15 +86,6 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_TOKEN=your-service-role-key  # For admin operations
 ```
 
-### Database Schema
-
-The database has 11 core tables for storing GitHub contributor data:
-- `contributors`, `repositories`, `pull_requests`, `reviews`, `comments`
-- `organizations`, `contributor_organizations`, `tracked_repositories`
-- `monthly_rankings`, `daily_activity_snapshots`, `sync_logs`
-
-Plus 3 views: `contributor_stats`, `repository_stats`, `recent_activity`
-
 ### Key Files for Supabase
 
 - `supabase/migrations/20240614000000_initial_contributor_schema.sql` - Database schema
@@ -146,7 +119,6 @@ npx supabase status
 - Replaced all require() calls with proper ES module patterns in storybook
 - remember to mock external dependencies in tests
 - never use jest. only vitest
-- mock supabase in tests always
 - jest is leveraged in the storybook only
 - use the /docs folder for postmortems and /tasks for plans. remove plans when feature is implemented, but write docs when plans are completed
 - after visual changes always look for opportunity to improve performance
@@ -154,9 +126,17 @@ npx supabase status
 - use the supabase mcp server for migrations
 - `console.log(\`${owner}\`)` is a security vulnerability. We need to do `console.log(%s, owner)`
 - optimized for user experience with modern tooling and excellent dependency management. prioritize immediate value delivery over pure performance metrics.
-- never use any in typescript
+- never use "any" types in typescript
+- script need to be documented and organized into folders/readmes
 
 ## Known Issues
+
+### Repository Tracking Changes (Jan 2025)
+
+**Update**: The automatic repository tracking system has been replaced with manual, user-initiated tracking. 
+- Old auto-tracking hooks (`useAutoTrackRepository`) have been removed
+- Discovery now happens via explicit user action through UI buttons
+- This change improves transparency and user control over data collection
 
 ### TypeScript Environment Variable Warnings
 
@@ -201,4 +181,4 @@ When implementing features that load data or process information in the backgrou
 - Automatic detection and improvement of data quality
 - Subtle, helpful notifications (not technical jargon)
 - Graceful error handling and fallbacks
-```
+- check the bulletproof testing doc before fixing tests

@@ -47,6 +47,17 @@ function needsRegeneration(repo: Repository, activityHash: string): boolean {
   return generatedAt < fourteenDaysAgo || repo.recent_activity_hash !== activityHash;
 }
 
+// Humanize numbers (e.g., 27357 -> 27.4k)
+function humanizeNumber(num: number): string {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  }
+  return num.toString();
+}
+
 // Generate AI summary using OpenAI
 async function generateAISummary(repo: Repository, pullRequests: PullRequest[]): Promise<string> {
   const recentMergedPRs = pullRequests
@@ -69,7 +80,7 @@ async function generateAISummary(repo: Repository, pullRequests: PullRequest[]):
 Repository: ${repo.full_name}
 Description: ${repo.description || 'No description provided'}
 Language: ${repo.language || 'Not specified'}
-Stars: ${repo.stargazers_count} | Forks: ${repo.forks_count}
+Stars: ${humanizeNumber(repo.stargazers_count)} | Forks: ${humanizeNumber(repo.forks_count)}
 
 Recent Merged Pull Requests:
 ${formatPRList(recentMergedPRs)}
@@ -79,14 +90,15 @@ ${formatPRList(recentOpenPRs)}
 
 Provide a summary in 2-3 paragraphs using markdown formatting:
 
-1. First paragraph (2-3 sentences): What this repository does, its main purpose, and key features based on the name, description, and overall activity patterns.
+1. First paragraph (2-3 sentences): What this repository does, its main purpose, and key features based on the name, description, and overall activity patterns. When mentioning metrics, use the humanized format provided (e.g., "27.4k stars" not "27357 stars").
 
 2. Second paragraph (1-2 sentences): Recent development activity, highlighting notable improvements or changes from the merged PRs.
 
 3. Third paragraph (1-2 sentences): Start with "Current open pull requests suggest" and describe the current development focus areas based on open PRs.
 
 Use inline code markdown (backticks) for repository names, technical terms, and feature names.
-Keep it concise and informative for potential contributors.`;
+Keep it concise and informative for potential contributors.
+Always use humanized numbers (1.2k, 5.7M) rather than full numbers when referring to metrics.`;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000);
@@ -174,6 +186,7 @@ serve(async (req) => {
     console.log('Repository summary function started');
     
     if (!openaiApiKey) {
+      console.error('OpenAI API key is not configured in environment');
       throw new Error('OpenAI API key is not configured');
     }
     
@@ -204,28 +217,57 @@ serve(async (req) => {
     console.log('Generating new AI summary');
     
     // Generate new summary and embedding
-    const summary = await generateAISummary(repository, pullRequests || []);
-    const embedding = await generateEmbedding(summary);
+    let summary: string;
+    let embedding: number[] | null = null;
+    
+    try {
+      summary = await generateAISummary(repository, pullRequests || []);
+      console.log('AI summary generated successfully');
+    } catch (error) {
+      console.error('Failed to generate AI summary:', error);
+      throw new Error(`AI summary generation failed: ${error.message}`);
+    }
+    
+    try {
+      embedding = await generateEmbedding(summary);
+      console.log('Embedding generated successfully');
+    } catch (error) {
+      console.error('Failed to generate embedding:', error);
+      // Continue without embedding - it's not critical
+      embedding = null;
+    }
     
     // Update repository with new summary
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Supabase environment variables not configured');
+      throw new Error('Supabase configuration missing');
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    const updateData: any = {
+      ai_summary: summary,
+      summary_generated_at: new Date().toISOString(),
+      recent_activity_hash: activityHash
+    };
+    
+    // Only include embedding if it was generated successfully
+    if (embedding) {
+      updateData.embedding = `[${embedding.join(',')}]`; // Convert to PostgreSQL array format
+    }
     
     const { error } = await supabase
       .from('repositories')
-      .update({
-        ai_summary: summary,
-        embedding: `[${embedding.join(',')}]`, // Convert to PostgreSQL array format
-        summary_generated_at: new Date().toISOString(),
-        recent_activity_hash: activityHash
-      })
+      .update(updateData)
       .eq('id', repository.id);
     
     if (error) {
       console.error('Database update error:', error);
-      throw new Error('Failed to update repository summary');
+      console.error('Update data:', updateData);
+      throw new Error(`Failed to update repository summary: ${error.message}`);
     }
     
     console.log('Successfully generated and stored AI summary');
@@ -241,12 +283,22 @@ serve(async (req) => {
     
   } catch (error) {
     console.error('Repository summary error:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Provide more detailed error information
+    const errorDetails = {
+      error: error.message,
+      details: 'Failed to generate repository summary',
+      timestamp: new Date().toISOString(),
+      environment: {
+        hasOpenAIKey: !!openaiApiKey,
+        hasSupabaseUrl: !!Deno.env.get('SUPABASE_URL'),
+        hasSupabaseKey: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+      }
+    };
     
     return new Response(
-      JSON.stringify({
-        error: error.message,
-        details: 'Failed to generate repository summary'
-      }),
+      JSON.stringify(errorDetails),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

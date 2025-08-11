@@ -1,6 +1,7 @@
 import { bootstrapDataCaptureQueue, analyzeDataGaps } from './bootstrap-queue';
 import { ProgressiveCaptureNotifications } from './ui-notifications';
 import { AISummaryProcessor } from './ai-summary-processor';
+import { getQueueHealthStatus, getBatchCapabilityMessage } from '../utils/performance-helpers';
 
 // Lazy load Hybrid queue manager to avoid Buffer issues in browser
 let hybridQueueManager: any = null;
@@ -117,7 +118,7 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
 
 🔄 Processing Status:
   • Can make API calls: ${canMakeAPICalls ? '✅ Yes' : '❌ No (rate limited)'}
-  • Queue health: ${stats.total.pending > 0 ? '🟡 Active' : stats.total.completed > 0 ? '✅ Processed' : '⚪ Empty'}
+  • Queue health: ${getQueueHealthStatus(stats.total.pending, stats.total.completed, stats.total.failed || 0)}
 
 💡 Actions:
   • To process manually: ProgressiveCaptureTrigger.processNext()
@@ -161,7 +162,7 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
 🚀 Can make 100 API calls: ${canMake100 ? 'Yes' : 'No'}
 
 💡 Recommendations:
-${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • ⚡ Process small batches' : canMake1 ? '  • 🐌 Process one at a time' : '  • ❌ Wait for rate limit reset'}
+${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
     `);
 
     return { canMake1, canMake10, canMake100 };
@@ -180,7 +181,7 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
         .select('id')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
 
       if (error || !repoData) {
         console.log(`❌ Repository ${owner}/${repo} not found in database`);
@@ -220,7 +221,7 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (repoError || !repo) {
         return { success: false, error: `Repository not found: ${repoError?.message}` };
@@ -286,7 +287,7 @@ ${canMake100 ? '  • ✅ Good to process large batches' : canMake10 ? '  • �
         .select('id')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
 
       if (error || !repoData) {
         console.log(`❌ Repository ${owner}/${repo} not found in database`);

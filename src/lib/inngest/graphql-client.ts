@@ -197,11 +197,51 @@ export interface RateLimitInfo {
 
 export interface GraphQLResponse {
   repository: any;
-  rateLimit: RateLimitInfo;
+  rateLimit?: RateLimitInfo;
 }
 
 export interface PRDetailsResponse extends GraphQLResponse {
   pullRequest: any;
+}
+
+export interface PaginatedPRsResponse {
+  repository: {
+    pullRequests: {
+      pageInfo: {
+        hasNextPage: boolean;
+        endCursor: string | null;
+      };
+      nodes: Array<{
+        id: string;
+        databaseId: number;
+        number: number;
+        title: string;
+        body: string;
+        state: string;
+        isDraft: boolean;
+        createdAt: string;
+        updatedAt: string;
+        closedAt: string | null;
+        mergedAt: string | null;
+        merged: boolean;
+        additions: number;
+        deletions: number;
+        changedFiles: number;
+        baseRefName: string;
+        headRefName: string;
+        author: {
+          login: string;
+          avatarUrl: string;
+          databaseId?: number;
+        } | null;
+        commits: {
+          totalCount: number;
+        };
+        cursor?: string;
+      }>;
+    };
+  };
+  rateLimit?: RateLimitInfo;
 }
 
 export class GraphQLClient {
@@ -246,13 +286,13 @@ export class GraphQLClient {
       // Track metrics
       this.metrics.queriesExecuted++;
       this.metrics.totalPointsUsed += result.rateLimit?.cost || 0;
-      this.lastRateLimit = result.rateLimit;
+      this.lastRateLimit = result.rateLimit || null;
       
       // Log performance
       console.log(`[GraphQL] PR #${prNumber} query completed in ${duration}ms (cost: ${result.rateLimit?.cost} points)`);
       
       // Warn if approaching rate limits
-      if (result.rateLimit?.remaining < 1000) {
+      if (result.rateLimit && result.rateLimit.remaining < 1000) {
         console.warn(`[GraphQL] Rate limit low: ${result.rateLimit.remaining} points remaining`);
       }
 
@@ -291,7 +331,7 @@ export class GraphQLClient {
 
       this.metrics.queriesExecuted++;
       this.metrics.totalPointsUsed += result.rateLimit?.cost || 0;
-      this.lastRateLimit = result.rateLimit;
+      this.lastRateLimit = result.rateLimit || null;
 
       console.log(`[GraphQL] Recent PRs query for ${owner}/${repo} (cost: ${result.rateLimit?.cost} points)`);
 
@@ -308,6 +348,102 @@ export class GraphQLClient {
     } catch (error: any) {
       this.metrics.fallbackCount++;
       console.error(`[GraphQL] Recent PRs query failed for ${owner}/${repo}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a page of repository PRs using cursor-based pagination
+   * Used for progressive backfill to get historical PRs efficiently
+   */
+  async getRepositoryPRsPage(
+    owner: string, 
+    repo: string, 
+    pageSize: number = 25, 
+    cursor: string | null = null,
+    direction: 'ASC' | 'DESC' = 'DESC'
+  ): Promise<any[]> {
+    const PAGINATED_PRS_QUERY = `
+      query GetPaginatedPRs($owner: String!, $repo: String!, $first: Int!, $after: String, $orderBy: IssueOrder!) {
+        repository(owner: $owner, name: $repo) {
+          pullRequests(first: $first, after: $after, orderBy: $orderBy) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              id
+              databaseId
+              number
+              title
+              body
+              state
+              isDraft
+              createdAt
+              updatedAt
+              closedAt
+              mergedAt
+              merged
+              additions
+              deletions
+              changedFiles
+              baseRefName
+              headRefName
+              author {
+                login
+                avatarUrl
+                ... on User {
+                  databaseId
+                }
+                ... on Bot {
+                  databaseId
+                }
+              }
+              commits {
+                totalCount
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      const startTime = Date.now();
+      
+      const response = await this.client<PaginatedPRsResponse>({
+        query: PAGINATED_PRS_QUERY,
+        owner,
+        repo,
+        first: pageSize,
+        after: cursor,
+        orderBy: {
+          field: 'CREATED_AT',
+          direction
+        }
+      });
+
+      const duration = Date.now() - startTime;
+      console.log(`[GraphQL] Fetched page of ${response.repository.pullRequests.nodes.length} PRs in ${duration}ms`);
+
+      // Update metrics
+      this.metrics.queriesExecuted++;
+      if (response.rateLimit) {
+        this.lastRateLimit = response.rateLimit;
+      }
+
+      // Return PRs with cursor info
+      const prs = response.repository.pullRequests.nodes;
+      const pageInfo = response.repository.pullRequests.pageInfo;
+      
+      // Add cursor to last PR for tracking
+      if (prs.length > 0 && pageInfo.endCursor) {
+        prs[prs.length - 1].cursor = pageInfo.endCursor;
+      }
+
+      return prs;
+    } catch (error: any) {
+      console.error(`[GraphQL] Paginated PRs query failed for ${owner}/${repo}:`, error.message);
       throw error;
     }
   }
@@ -344,4 +480,14 @@ export class GraphQLClient {
       fallbackCount: 0
     };
   }
+}
+
+// Singleton instance for reuse
+let graphqlClient: GraphQLClient | null = null;
+
+export function getGraphQLClient(): GraphQLClient {
+  if (!graphqlClient) {
+    graphqlClient = new GraphQLClient();
+  }
+  return graphqlClient;
 }

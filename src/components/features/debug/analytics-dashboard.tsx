@@ -1,18 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"
+import { BarChart3, Share2, TrendingUp, Users, ExternalLink, RefreshCw, Calendar, Globe } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { 
-  BarChart3, 
-  Share2, 
-  TrendingUp, 
-  Users, 
-  ExternalLink,
-  RefreshCw,
-  Calendar,
-  Globe
-} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { formatDistanceToNow } from "date-fns";
 

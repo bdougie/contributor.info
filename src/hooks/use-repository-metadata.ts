@@ -53,7 +53,7 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
         .select('id')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
 
       if (repoError || !repoData) {
         // Repository not in database yet
@@ -68,21 +68,34 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
         .from('tracked_repositories')
         .select('size, priority, tracking_enabled, updated_at')
         .eq('repository_id', repoData.id)
-        .single();
+        .maybeSingle();
 
-      if (trackedError && trackedError.code !== 'PGRST116') {
-        // Error other than "no rows returned"
+      if (trackedError) {
+        // Real error occurred
         throw trackedError;
       }
 
       // Get most recent data update from pull_requests
-      const { data: prData } = await supabase
-        .from('pull_requests')
-        .select('created_at')
-        .eq('repository_id', repoData.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      let prData = null;
+      try {
+        const { data, error } = await supabase
+          .from('pull_requests')
+          .select('created_at')
+          .eq('repository_id', repoData.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        // Check if we have data (array with at least one item)
+        if (!error && data && data.length > 0) {
+          prData = data[0];
+        } else if (error && error.code !== 'PGRST116') {
+          // Log non-"no rows" errors but don't throw
+          console.warn('Error fetching PR metadata:', error);
+        }
+      } catch (err) {
+        // Catch any unexpected errors
+        console.warn('Failed to fetch PR metadata:', err);
+      }
 
       const lastDataUpdate = prData?.created_at || trackedData?.updated_at;
       const dataFreshness = calculateDataFreshness(lastDataUpdate);

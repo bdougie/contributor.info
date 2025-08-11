@@ -6,6 +6,33 @@
   NODE_VERSION = "20"
   NPM_VERSION = "10"
 
+# Enable standard Netlify processing
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+[build.processing.html]
+  pretty_urls = true
+
+[build.processing.images]
+  compress = true
+
+
+[dev]
+  command = "vite --port 5174"
+  framework = "#custom"
+  targetPort = 5174
+  publish = "dist"
+  autoLaunch = false
+  envFiles = [".env", ".env.local"]
+
 # Deploy contexts
 [context.production.environment]
   # Production-specific env vars can go here
@@ -18,6 +45,9 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+[functions.inngest-prod]
+  node_bundler = "esbuild"
+
 [functions.inngest]
   node_bundler = "esbuild"
 
@@ -26,6 +56,18 @@
 
 # Specific API routes (these must come first)
 [[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/health-check"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/inngest"
+  to = "/.netlify/functions/inngest-prod"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/hello"
   to = "/.netlify/functions/hello"
   status = 200
@@ -33,7 +75,7 @@
 
 [[redirects]]
   from = "/api/github/webhook"
-  to = "/.netlify/functions/github-webhook-simple"
+  to = "/.netlify/functions/github-webhook"
   status = 200
   force = true
 
@@ -44,66 +86,37 @@
   force = true
 
 [[redirects]]
+  from = "/api/github/webhook-status"
+  to = "/.netlify/functions/github-webhook-status"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/github/callback"
   to = "/.netlify/functions/github-callback"
   status = 200
   force = true
 
-# Headers for proper MIME types
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
+[[redirects]]
+  from = "/api/queue-event"
+  to = "/.netlify/functions/api-queue-event"
+  status = 200
+  force = true
 
-[[headers]]
-  for = "/*.mjs"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
-    
-[[headers]]
-  for = "/assets/*.js"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
+[[redirects]]
+  from = "/api/discover-repository"
+  to = "/.netlify/functions/api-discover-repository"
+  status = 200
+  force = true
 
-[[headers]]
-  for = "/*.jsx"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
+[[redirects]]
+  from = "/api/validate-repository"
+  to = "/.netlify/functions/validate-repository"
+  status = 200
+  force = true
 
-[[headers]]
-  for = "/*.tsx"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
-
-[[headers]]
-  for = "/*.ts"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
-
-[[headers]]
-  for = "/assets/*.tsx"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
-
-[[headers]]
-  for = "/assets/*.ts"
-  [headers.values]
-    Content-Type = "text/javascript; charset=utf-8"
-
-[[headers]]
-  for = "/*.css"
-  [headers.values]
-    Content-Type = "text/css"
-
-[[headers]]
-  for = "/*.json"
-  [headers.values]
-    Content-Type = "application/json"
-
-[[headers]]
-  for = "/*.wasm"
-  [headers.values]
-    Content-Type = "application/wasm"
+# Headers for proper MIME types and caching
+# Note: Some headers are also in public/_headers, but these are kept for compatibility
 
 # Redirect rules for SPA behavior (exclude functions and API routes)  
 [[redirects]]
@@ -117,3 +130,51 @@
   for = "/*.woff2"
   [headers.values]
     Content-Type = "font/woff2"
+
+# Image caching and optimization headers
+[[headers]]
+  for = "/*.webp"
+  [headers.values]
+    Content-Type = "image/webp"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.avif"
+  [headers.values]
+    Content-Type = "image/avif"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.jpg"
+  [headers.values]
+    Content-Type = "image/jpeg"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.jpeg"
+  [headers.values]
+    Content-Type = "image/jpeg"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Content-Type = "image/png"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.gif"
+  [headers.values]
+    Content-Type = "image/gif"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Content-Type = "image/svg+xml"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

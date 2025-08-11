@@ -1,5 +1,6 @@
 import { fetchPRDataWithFallback } from '../supabase-pr-data';
 import type { PullRequest } from '../types';
+import { getTrendDirection, getTrendDirectionReverse, getPeriodPrefix } from '@/lib/utils/performance-helpers';
 
 export interface TrendData {
   metric: string;
@@ -11,7 +12,7 @@ export interface TrendData {
   unit?: string;
   insight?: string;
   // Status information for proper error handling
-  status?: 'success' | 'large_repository_protected' | 'no_data' | 'error' | 'partial_data';
+  status?: 'success' | 'large_repository_protected' | 'no_data' | 'error' | 'partial_data' | 'pending';
   message?: string;
   repositoryName?: string;
 }
@@ -154,11 +155,11 @@ export async function calculateTrendMetrics(
     // Build trends array
     const trends: TrendData[] = [
       {
-        metric: `${periodLabel === "week" ? "Weekly" : periodLabel === "month" ? "Monthly" : "Daily"} PR Volume`,
+        metric: `${getPeriodPrefix(periodLabel)} PR Volume`,
         current: currentPRs.length,
         previous: previousPRs.length,
         change: prVolumeChange,
-        trend: prVolumeChange > 0 ? "up" : prVolumeChange < 0 ? "down" : "stable",
+        trend: getTrendDirection(prVolumeChange),
         icon: "GitPullRequest",
         unit: "PRs",
         insight: prVolumeChange > 0 
@@ -172,7 +173,7 @@ export async function calculateTrendMetrics(
         current: currentContributors.size,
         previous: previousContributors.size,
         change: contributorChange,
-        trend: contributorChange > 0 ? "up" : contributorChange < 0 ? "down" : "stable",
+        trend: getTrendDirection(contributorChange),
         icon: "Users",
         unit: "people",
         insight: currentContributors.size - previousContributors.size > 0
@@ -186,7 +187,7 @@ export async function calculateTrendMetrics(
         current: Math.round(currentAvgReview),
         previous: Math.round(previousAvgReview),
         change: reviewTimeChange,
-        trend: reviewTimeChange < 0 ? "down" : reviewTimeChange > 0 ? "up" : "stable",
+        trend: getTrendDirectionReverse(reviewTimeChange),
         icon: "Calendar",
         unit: "hours",
         insight: reviewTimeChange < 0
@@ -200,7 +201,7 @@ export async function calculateTrendMetrics(
         current: Math.round(currentCompletionRate),
         previous: Math.round(previousCompletionRate),
         change: completionChange,
-        trend: completionChange > 0 ? "up" : completionChange < 0 ? "down" : "stable",
+        trend: getTrendDirection(completionChange),
         icon: "Activity",
         unit: "%",
         insight: completionChange > 0
@@ -214,7 +215,7 @@ export async function calculateTrendMetrics(
         current: currentReviews,
         previous: previousReviews,
         change: reviewChange,
-        trend: reviewChange > 0 ? "up" : reviewChange < 0 ? "down" : "stable",
+        trend: getTrendDirection(reviewChange),
         icon: "GitPullRequestDraft",
         unit: "reviews",
         insight: reviewChange > 0
@@ -228,7 +229,7 @@ export async function calculateTrendMetrics(
         current: currentComments,
         previous: previousComments,
         change: commentChange,
-        trend: commentChange > 0 ? "up" : commentChange < 0 ? "down" : "stable",
+        trend: getTrendDirection(commentChange),
         icon: "MessageSquare",
         unit: "comments",
         insight: commentChange > 0
@@ -254,11 +255,11 @@ export async function calculateTrendMetrics(
  */
 function getEmptyTrends(
   periodLabel: string, 
-  status: 'success' | 'large_repository_protected' | 'no_data' | 'error' | 'partial_data' = 'no_data',
+  status: 'success' | 'large_repository_protected' | 'no_data' | 'error' | 'partial_data' | 'pending' = 'no_data',
   message?: string,
   repositoryName?: string
 ): TrendData[] {
-  const period = periodLabel === "week" ? "Weekly" : periodLabel === "month" ? "Monthly" : "Daily";
+  const period = getPeriodPrefix(periodLabel);
   
   return [
     {

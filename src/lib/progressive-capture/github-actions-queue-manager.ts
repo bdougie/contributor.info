@@ -16,8 +16,8 @@ export interface GitHubActionsJobInput {
 
 export class GitHubActionsQueueManager {
   private readonly GITHUB_TOKEN = env.GITHUB_TOKEN;
-  private readonly JOBS_REPO_OWNER = 'bdougie';
-  private readonly JOBS_REPO_NAME = 'jobs';
+  private readonly REPO_OWNER = 'bdougie';
+  private readonly REPO_NAME = 'contributor.info';
 
   /**
    * Dispatch a workflow to GitHub Actions
@@ -25,12 +25,12 @@ export class GitHubActionsQueueManager {
   async dispatchWorkflow(job: GitHubActionsJobInput): Promise<{ success: boolean; runId?: number; error?: string }> {
     try {
       const response = await fetch(
-        `https://api.github.com/repos/${this.JOBS_REPO_OWNER}/${this.JOBS_REPO_NAME}/actions/workflows/${job.workflow}/dispatches`,
+        `https://api.github.com/repos/${this.REPO_OWNER}/${this.REPO_NAME}/actions/workflows/${job.workflow}/dispatches`,
         {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${this.GITHUB_TOKEN}`,
-            'Accept': 'application/vnd.github+json',
+            'Accept': 'application/vnd.github.v3+json',
             'X-GitHub-Api-Version': '2022-11-28',
             'Content-Type': 'application/json'
           },
@@ -129,11 +129,11 @@ export class GitHubActionsQueueManager {
     try {
       // Query workflow runs to find our job
       const response = await fetch(
-        `https://api.github.com/repos/${this.JOBS_REPO_OWNER}/${this.JOBS_REPO_NAME}/actions/runs?created=>=${job.started_at}`,
+        `https://api.github.com/repos/${this.REPO_OWNER}/${this.REPO_NAME}/actions/runs?created=>=${job.started_at}`,
         {
           headers: {
             'Authorization': `Bearer ${this.GITHUB_TOKEN}`,
-            'Accept': 'application/vnd.github+json',
+            'Accept': 'application/vnd.github.v3+json',
             'X-GitHub-Api-Version': '2022-11-28'
           }
         }

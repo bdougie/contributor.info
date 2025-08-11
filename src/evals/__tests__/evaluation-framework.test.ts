@@ -327,4 +327,3 @@ describe('Feature Extraction', () => {
     expect(result.prediction).toBeDefined();
     expect(result.confidence).toBeGreaterThan(0);
   });
-});

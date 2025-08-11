@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { useEffect } from "react"
+import { Loader2 } from '@/components/ui/icon';
 import type { ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
-import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
   children: ReactNode;

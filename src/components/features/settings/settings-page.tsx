@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"
+import { ArrowLeft } from '@/components/ui/icon';
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
+import { LastUpdated } from "@/components/ui/last-updated";
+import { usePageTimestamp } from "@/hooks/use-data-timestamp";
 
 interface EmailPreferences {
   welcome_emails: boolean;
@@ -27,6 +29,9 @@ export function SettingsPage() {
     notification_emails: true,
     transactional_emails: true,
   });
+  
+  // Track when the page was loaded for freshness indicator
+  const { pageLoadedAt } = usePageTimestamp();
 
   useEffect(() => {
     const fetchUserAndPreferences = async () => {
@@ -115,7 +120,14 @@ export function SettingsPage() {
         Back
       </Button>
 
-      <h1 className="text-2xl font-semibold mb-8">Settings</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-semibold">Settings</h1>
+        <LastUpdated 
+          timestamp={pageLoadedAt}
+          label="Settings loaded"
+          size="sm"
+        />
+      </div>
 
       <div className="space-y-8">
         <section>

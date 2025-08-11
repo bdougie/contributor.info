@@ -17,6 +17,8 @@ The feed displays PR events in reverse chronological order with key details:
 - **Review Activity**: Code review submissions, approvals, and change requests
 - **Status Changes**: PR state transitions from draft to ready, or open to closed
 
+**Note**: The feed includes "Reviewed" and "Commented" activity toggles. For repositories synced before January 2025, these toggles may show limited results due to previous data capture limits. Use the backfill scripts in `scripts/` to capture missing review and comment data for complete activity visibility.
+
 ### Contributor Highlights
 Special feed items celebrate contributor achievements and milestones:
 

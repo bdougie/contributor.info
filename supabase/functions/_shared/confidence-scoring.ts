@@ -223,7 +223,7 @@ export async function updateContributorRole(
     .eq('user_id', metrics.userId)
     .eq('repository_owner', metrics.repositoryOwner)
     .eq('repository_name', metrics.repositoryName)
-    .single()
+    .maybeSingle()
 
   const roleData = {
     user_id: metrics.userId,
@@ -243,7 +243,7 @@ export async function updateContributorRole(
       onConflict: 'user_id,repository_owner,repository_name'
     })
     .select()
-    .single()
+    .maybeSingle()
 
   if (error) {
     console.error('Error updating role:', error)

@@ -92,6 +92,36 @@ node scripts/testing/phase5-test-runner.js
 - Performance impact analysis
 - Rollout safety validation
 
+### `test-repository-sync-fix.mjs`
+
+**Purpose**: Validate repository sync event data fix for "Repository not found: undefined" error.
+
+**When to use**:
+- After fixing event data issues
+- Testing Inngest event parameter changes
+- Validating queue data transformations
+- Debugging repository sync failures
+
+**What it tests**:
+- Required event parameters (repositoryId, days, reason)
+- Event data structure validation
+- Repository existence verification
+- API endpoint functionality (if available)
+
+**Usage**:
+```bash
+node scripts/testing/test-repository-sync-fix.mjs
+
+# With API endpoint testing
+API_ENDPOINT=https://contributor.info/api node scripts/testing/test-repository-sync-fix.mjs
+```
+
+**Output**:
+- Repository verification status
+- Event data validation results
+- API response (if endpoint provided)
+- Test completion summary
+
 ## Test Categories
 
 ### Edge Case Testing

@@ -302,4 +302,3 @@ describe('Issue Similarity Service', () => {
       expect(score).toBeLessThanOrEqual(1.0);
     });
   });
-});

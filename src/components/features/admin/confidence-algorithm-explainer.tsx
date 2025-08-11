@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState } from 'react'
+import { X, Calculator, Shield, Activity, Clock, AlertTriangle } from '@/components/ui/icon';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,14 +7,6 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { 
-  X, 
-  Calculator,
-  Shield, 
-  Activity, 
-  Clock,
-  AlertTriangle
-} from 'lucide-react';
 
 interface AlgorithmWeights {
   privileged_events_weight: number;
@@ -118,7 +111,6 @@ export function ConfidenceAlgorithmExplainer({ weights, onClose }: ConfidenceAlg
     if (percentage <= 35) return 'text-blue-600';
     return 'text-green-600';
   };
-
 
   return (
     <Card className="border-2 border-blue-200 bg-blue-50/50">

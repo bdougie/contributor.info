@@ -1,23 +1,14 @@
-import { useState, useEffect, Suspense } from "react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from "recharts";
+import { useState, useEffect, Suspense, useMemo } from "react"
+import { ChevronRight } from '@/components/ui/icon';
+import { DonutChart, type DonutChartData } from '@/components/ui/charts';
+import { BarChart as UPlotBarChart } from '@/components/ui/charts';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronRight } from "lucide-react";
 import type { QuadrantData } from "@/hooks/use-distribution";
 import type { PullRequest } from "@/lib/types";
 import { useHierarchicalDistribution } from "@/hooks/use-hierarchical-distribution";
 import { DistributionTreemapEnhanced } from "./distribution-treemap-enhanced";
+import { getPrimaryLanguage } from '@/lib/language-utils';
 
 interface DistributionChartsProps {
   data: QuadrantData[];
@@ -35,67 +26,6 @@ const COLORS = {
   new: "#60a5fa",
   refactoring: "#f97316",
   maintenance: "#a78bfa",
-};
-
-// Language colors from GitHub
-const LANGUAGE_COLORS: Record<string, string> = {
-  JavaScript: "#f1e05a",
-  TypeScript: "#2b7489",
-  CSS: "#563d7c",
-  HTML: "#e34c26",
-  Python: "#3572A5",
-  Java: "#b07219",
-  Go: "#00ADD8",
-  Rust: "#dea584",
-  Other: "#cccccc",
-};
-
-// Helper function to get primary language for a PR
-const getPrimaryLanguage = (pr: PullRequest): { name: string; color: string } => {
-  if (pr.commits && pr.commits.length > 0) {
-    // Count changes by language
-    const languageChanges: Record<string, number> = {};
-    pr.commits.forEach((commit) => {
-      const lang = commit.language || "Other";
-      languageChanges[lang] = (languageChanges[lang] || 0) + commit.additions + commit.deletions;
-    });
-    
-    // Find language with most changes
-    const primaryLang = Object.entries(languageChanges)
-      .sort(([,a], [,b]) => b - a)[0]?.[0] || "Other";
-    
-    return {
-      name: primaryLang,
-      color: LANGUAGE_COLORS[primaryLang] || LANGUAGE_COLORS["Other"]
-    };
-  }
-  
-  // Fallback: infer from PR title
-  const titleLower = pr.title.toLowerCase();
-  let lang = "Other";
-  
-  if (titleLower.includes("typescript") || titleLower.includes(".ts")) {
-    lang = "TypeScript";
-  } else if (titleLower.includes("javascript") || titleLower.includes(".js")) {
-    lang = "JavaScript";
-  } else if (titleLower.includes("css") || titleLower.includes("style")) {
-    lang = "CSS";
-  } else if (titleLower.includes("html") || titleLower.includes("markup")) {
-    lang = "HTML";
-  } else if (titleLower.includes("python") || titleLower.includes(".py")) {
-    lang = "Python";
-  } else if (titleLower.includes("java") || titleLower.includes(".java")) {
-    lang = "Java";
-  } else if (titleLower.includes("go") || titleLower.includes(".go")) {
-    lang = "Go";
-  } else if (titleLower.includes("rust") || titleLower.includes(".rs")) {
-    lang = "Rust";
-  }
-  
-  return {
-    name: lang,
-    color: LANGUAGE_COLORS[lang] || LANGUAGE_COLORS["Other"]
-  };
 };
 
 function DistributionCharts({
@@ -118,6 +48,37 @@ function DistributionCharts({
     drillDown,
     drillUp,
   } = useHierarchicalDistribution(pullRequests, selectedQuadrant);
+
+  // Add state for contributor drill-down
+  const [selectedContributor, setSelectedContributor] = useState<string | null>(null);
+  const [contributorView, setContributorView] = useState<"overview" | "quadrant" | "contributor">("overview");
+
+  // Sync contributor view with the hierarchical distribution view
+  useEffect(() => {
+    setContributorView(currentView);
+  }, [currentView]);
+
+  // Handle contributor drill-down
+  const handleContributorClick = (contributorId: string) => {
+    setSelectedContributor(contributorId);
+    setContributorView("contributor");
+  };
+
+  // Handle PR click - open PR in new tab
+  const handlePRClick = (pr: PullRequest) => {
+    const url = `https://github.com/${pr.repository_owner}/${pr.repository_name}/pull/${pr.number}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  // Handle drill up from contributor view
+  const handleContributorDrillUp = () => {
+    if (contributorView === "contributor") {
+      setContributorView("quadrant");
+      setSelectedContributor(null);
+    } else {
+      drillUp();
+    }
+  };
 
   const totalContributions = data.reduce((sum, item) => sum + item.value, 0);
 
@@ -144,41 +105,35 @@ function DistributionCharts({
     }
   }, [chartType, isMobile]);
 
-  const handleSegmentClick = (entry: any) => {
-    const quadrantId = entry.id || entry.dataKey;
+  const handleSegmentClick = (segment: DonutChartData | { id: string }) => {
+    const quadrantId = segment.id;
     setActiveSegment(quadrantId);
     onSegmentClick?.(quadrantId);
   };
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload[0]) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-background border rounded-lg shadow-lg p-3 max-w-xs">
-          <div className="flex items-center gap-2 mb-2">
-            <div
-              className="w-3 h-3 rounded"
-              style={{ backgroundColor: COLORS[data.id as keyof typeof COLORS] }}
-            />
-            <p className="font-semibold text-sm">{data.label}</p>
-          </div>
-          <p className="text-xs text-muted-foreground mb-2">{data.description}</p>
-          <div className="space-y-1">
-            <p className="text-sm">
-              <span className="font-medium">{data.value}</span> PRs
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {data.percentage.toFixed(1)}% of total contributions
-            </p>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2 border-t pt-2">
-            Click to filter view
-          </p>
-        </div>
-      );
+  const handleBarClick = (index: number) => {
+    if (index >= 0 && index < data.length) {
+      const quadrantId = data[index].id;
+      setActiveSegment(quadrantId);
+      onSegmentClick?.(quadrantId);
     }
-    return null;
   };
+
+  // Convert data to DonutChart format
+  const donutData = useMemo<DonutChartData[]>(() => {
+    return data.map(item => ({
+      id: item.id,
+      label: item.label,
+      value: item.value,
+      percentage: item.percentage,
+      color: COLORS[item.id as keyof typeof COLORS],
+    }));
+  }, [data]);
+
+
+  // Custom tooltip component
+  const [tooltipData, setTooltipData] = useState<QuadrantData | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
   const ChartSkeleton = () => (
     <div className="flex items-center justify-center h-full w-full">
@@ -186,159 +141,266 @@ function DistributionCharts({
     </div>
   );
 
-  const renderDonutChart = () => (
-    <div className="w-full">
-      {/* Mobile: Simplified view */}
-      <div className="block sm:hidden">
-        <Suspense fallback={<ChartSkeleton />}>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={false}
-                outerRadius={80}
-                innerRadius={40}
-                fill="#8884d8"
-                dataKey="value"
-                onClick={handleSegmentClick}
-                className="cursor-pointer"
-              >
-                {data.map((entry) => (
-                  <Cell
-                    key={`cell-${entry.id}`}
-                    fill={COLORS[entry.id as keyof typeof COLORS]}
-                    stroke={activeSegment === entry.id ? "currentColor" : "none"}
-                    strokeWidth={activeSegment === entry.id ? 2 : 0}
-                  />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-              <text
-                x="50%"
-                y="50%"
-                textAnchor="middle"
-                dominantBaseline="middle"
-                className="text-lg font-bold fill-foreground"
-              >
-                {totalContributions}
-              </text>
-              <text
-                x="50%"
-                y="50%"
-                dy={16}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                className="text-xs fill-muted-foreground"
-              >
-                Total PRs
-              </text>
-            </PieChart>
-          </ResponsiveContainer>
-        </Suspense>
-      </div>
+  // Add pulse animation styles
+  const pulseStyles = `
+    @keyframes barPulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.2; }
+    }
+  `;
 
-      {/* Desktop: Full featured view */}
-      <div className="hidden sm:block">
+  const renderDonutChart = () => {
+    return (
+      <div 
+        className="w-full flex justify-center relative"
+        onMouseMove={(e) => {
+          // Always capture mouse position, not just when tooltip is visible
+          const rect = e.currentTarget.getBoundingClientRect();
+          setTooltipPosition({ 
+            x: e.clientX - rect.left + 10, // Add offset so tooltip doesn't block cursor
+            y: e.clientY - rect.top - 10 
+          });
+        }}
+        onMouseLeave={() => {
+          setTooltipData(null);
+          setTooltipPosition({ x: 0, y: 0 });
+        }}
+      >
         <Suspense fallback={<ChartSkeleton />}>
-          <ResponsiveContainer width="100%" height={400}>
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ percentage }) => `${percentage.toFixed(0)}%`}
-                outerRadius={120}
-                innerRadius={60}
-                fill="#8884d8"
-                dataKey="value"
-                onClick={handleSegmentClick}
-                className="cursor-pointer"
-                animationBegin={0}
-                animationDuration={800}
-              >
-                {data.map((entry) => (
-                  <Cell
-                    key={`cell-${entry.id}`}
-                    fill={COLORS[entry.id as keyof typeof COLORS]}
-                    stroke={activeSegment === entry.id ? "currentColor" : "none"}
-                    strokeWidth={activeSegment === entry.id ? 2 : 0}
-                  />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-              <text
-                x="50%"
-                y="50%"
-                textAnchor="middle"
-                dominantBaseline="middle"
-                className="text-2xl font-bold fill-foreground"
-              >
-                {totalContributions}
-              </text>
-              <text
-                x="50%"
-                y="50%"
-                dy={20}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                className="text-sm fill-muted-foreground"
-              >
-                Total PRs
-              </text>
-            </PieChart>
-          </ResponsiveContainer>
-        </Suspense>
-      </div>
-    </div>
-  );
-
-  const renderBarChart = () => (
-    <Suspense fallback={<ChartSkeleton />}>
-      <ResponsiveContainer width="100%" height={isMobile ? 350 : 400}>
-        <BarChart 
-          data={data} 
-          margin={{ 
-            top: 20, 
-            right: 20, 
-            left: 10, 
-            bottom: isMobile ? 60 : 20 
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-          <XAxis
-            dataKey="label"
-            className="text-xs"
-            tick={{ fill: "currentColor", fontSize: isMobile ? 10 : 12 }}
-            angle={isMobile ? -45 : 0}
-            textAnchor={isMobile ? "end" : "middle"}
-            height={isMobile ? 60 : 30}
-          />
-          <YAxis className="text-xs" tick={{ fill: "currentColor", fontSize: 10 }} />
-          <Tooltip content={<CustomTooltip />} />
-          <Bar
-            dataKey="value"
+          <DonutChart
+            data={donutData}
+            width={isMobile ? 300 : 400}
+            height={isMobile ? 300 : 400}
+            innerRadius={isMobile ? 40 : 60}
+            outerRadius={isMobile ? 80 : 120}
             onClick={handleSegmentClick}
-            className="cursor-pointer"
-            radius={[4, 4, 0, 0]}
-            animationDuration={600}
-          >
-            {data.map((entry) => (
-              <Cell
-                key={`cell-${entry.id}`}
-                fill={COLORS[entry.id as keyof typeof COLORS]}
-                stroke={activeSegment === entry.id ? "currentColor" : "none"}
-                strokeWidth={activeSegment === entry.id ? 2 : 0}
+            onHover={(segment, event) => {
+              if (segment) {
+                const quadrantData = data.find(d => d.id === segment.id);
+                setTooltipData(quadrantData || null);
+                // Update position immediately when hovering over a segment
+                if (event && quadrantData) {
+                  const rect = (event.target as HTMLElement).closest('.w-full')?.getBoundingClientRect();
+                  if (rect) {
+                    setTooltipPosition({
+                      x: event.clientX - rect.left + 10,
+                      y: event.clientY - rect.top - 10
+                    });
+                  }
+                }
+              } else {
+                setTooltipData(null);
+              }
+            }}
+            activeSegmentId={activeSegment}
+            showLabel={!isMobile}
+            centerLabel={totalContributions.toString()}
+            centerSubLabel="Total PRs"
+            responsive={true}
+          />
+        </Suspense>
+        
+        {/* Enhanced Custom Tooltip */}
+        {tooltipData && (
+          <div className="absolute pointer-events-none bg-background/95 backdrop-blur-sm border rounded-xl shadow-2xl p-4 max-w-xs z-50 transition-all duration-200 ease-out"
+               style={{ 
+                 display: tooltipData ? 'block' : 'none',
+                 left: `${tooltipPosition.x}px`,
+                 top: `${tooltipPosition.y}px`,
+                 opacity: tooltipData ? 1 : 0,
+                 transform: tooltipData ? 'scale(1)' : 'scale(0.95)',
+               }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div
+                className="w-4 h-4 rounded-md shadow-sm"
+                style={{ 
+                  backgroundColor: COLORS[tooltipData.id as keyof typeof COLORS],
+                  boxShadow: `0 0 0 2px ${COLORS[tooltipData.id as keyof typeof COLORS]}20`
+                }}
               />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </Suspense>
-  );
+              <p className="font-semibold text-sm">{tooltipData.label}</p>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{tooltipData.description}</p>
+            <div className="space-y-2 bg-muted/30 rounded-lg p-2">
+              <p className="text-sm flex justify-between items-center">
+                <span className="text-muted-foreground">Pull Requests:</span>
+                <span className="font-semibold">{tooltipData.value}</span>
+              </p>
+              <p className="text-sm flex justify-between items-center">
+                <span className="text-muted-foreground">Percentage:</span>
+                <span className="font-semibold">{tooltipData.percentage.toFixed(1)}%</span>
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-muted/50 flex items-center gap-1">
+              <span className="inline-block w-1 h-1 bg-muted-foreground rounded-full"></span>
+              Click to filter view
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderBarChart = () => {
+    // Use a safer theme detection method
+    const isDark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+    const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
+    
+    // Create a custom bar chart that colors each bar individually with selection state
+    const barData = {
+      labels: data.map(d => d.label),
+      datasets: data.map((item, index) => {
+        const isActive = item.id === activeSegment;
+        const baseColor = COLORS[item.id as keyof typeof COLORS];
+        
+        // Adjust color brightness/opacity based on selection state - less aggressive
+        const color = isActive 
+          ? baseColor 
+          : activeSegment 
+            ? `${baseColor}80` // Make non-selected bars slightly transparent (50% opacity)
+            : baseColor;
+        
+        return {
+          label: item.label,
+          data: data.map((_, i) => i === index ? item.value : null),
+          color: color,
+        };
+      }),
+    };
+
+    return (
+      <div className="w-full" onMouseMove={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setTooltipPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+      }}>
+        <Suspense fallback={<ChartSkeleton />}>
+          <div className="relative">
+            <UPlotBarChart
+              data={barData}
+              height={isMobile ? 350 : 400}
+              isDark={isDark}
+              showGrid={true}
+              showLegend={false}
+              xAxisLabel=""
+              yAxisLabel="Pull Requests"
+              grouped={false}
+              barWidth={0.6}
+            />
+            
+            {/* Add click overlay for interaction */}
+            <div 
+              className="absolute inset-0 pointer-events-auto" 
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const chartArea = e.currentTarget.querySelector('.u-wrap');
+                if (!chartArea) {
+                  const x = e.clientX - rect.left;
+                  const segmentWidth = rect.width / data.length;
+                  const index = Math.floor(x / segmentWidth);
+                  handleBarClick(index);
+                  return;
+                }
+                
+                // Get the actual chart plotting area bounds
+                const chartRect = chartArea.getBoundingClientRect();
+                const x = e.clientX - chartRect.left;
+                
+                // Account for the axis padding (usually around 40-60px on the left)
+                const plotWidth = chartRect.width;
+                const segmentWidth = plotWidth / data.length;
+                const index = Math.floor(x / segmentWidth);
+                
+                if (index >= 0 && index < data.length) {
+                  handleBarClick(index);
+                }
+              }}
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const chartArea = e.currentTarget.querySelector('.u-wrap');
+                
+                // Clear any existing timeout
+                if (hoverTimeout) {
+                  clearTimeout(hoverTimeout);
+                }
+                
+                // Set position immediately but delay tooltip display
+                setTooltipPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                
+                // Add delay before showing tooltip
+                const timeout = setTimeout(() => {
+                  if (!chartArea) {
+                    const x = e.clientX - rect.left;
+                    const segmentWidth = rect.width / data.length;
+                    const index = Math.floor(x / segmentWidth);
+                    if (index >= 0 && index < data.length) {
+                      setTooltipData(data[index]);
+                    }
+                    return;
+                  }
+                  
+                  const chartRect = chartArea.getBoundingClientRect();
+                  const x = e.clientX - chartRect.left;
+                  const plotWidth = chartRect.width;
+                  const segmentWidth = plotWidth / data.length;
+                  const index = Math.floor(x / segmentWidth);
+                  
+                  if (index >= 0 && index < data.length) {
+                    setTooltipData(data[index]);
+                  } else {
+                    setTooltipData(null);
+                  }
+                }, 300); // 300ms delay before showing tooltip
+                
+                setHoverTimeout(timeout);
+              }}
+              onMouseLeave={() => {
+                if (hoverTimeout) {
+                  clearTimeout(hoverTimeout);
+                  setHoverTimeout(null);
+                }
+                setTooltipData(null);
+              }}
+              style={{ cursor: 'pointer' }}
+            />
+          </div>
+        </Suspense>
+        
+        {/* Enhanced Custom Tooltip */}
+        {tooltipData && (
+          <div className="absolute pointer-events-none bg-background/95 backdrop-blur-sm border rounded-xl shadow-2xl p-4 max-w-xs z-50 transition-all duration-200 ease-out"
+               style={{ 
+                 display: tooltipData ? 'block' : 'none',
+                 left: `${tooltipPosition.x}px`,
+                 top: `${tooltipPosition.y}px`,
+                 opacity: tooltipData ? 1 : 0,
+                 transform: tooltipData ? 'scale(1)' : 'scale(0.95)',
+               }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div
+                className="w-4 h-4 rounded-md shadow-sm"
+                style={{ 
+                  backgroundColor: COLORS[tooltipData.id as keyof typeof COLORS],
+                  boxShadow: `0 0 0 2px ${COLORS[tooltipData.id as keyof typeof COLORS]}20`
+                }}
+              />
+              <p className="font-semibold text-sm">{tooltipData.label}</p>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{tooltipData.description}</p>
+            <div className="space-y-2 bg-muted/30 rounded-lg p-2">
+              <p className="text-sm flex justify-between items-center">
+                <span className="text-muted-foreground">Pull Requests:</span>
+                <span className="font-semibold">{tooltipData.value}</span>
+              </p>
+              <p className="text-sm flex justify-between items-center">
+                <span className="text-muted-foreground">Percentage:</span>
+                <span className="font-semibold">{tooltipData.percentage.toFixed(1)}%</span>
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderTreemap = () => {
     if (!hierarchicalData) {
@@ -352,8 +414,9 @@ function DistributionCharts({
     return (
       <DistributionTreemapEnhanced
         data={hierarchicalData}
-        currentView={currentView}
+        currentView={contributorView}
         selectedQuadrant={drillDownQuadrant}
+        selectedContributor={selectedContributor}
         onDrillDown={(quadrantId) => {
           // If treemap is drilling down and no external filter is set, sync with main filter
           if (!selectedQuadrant) {
@@ -361,15 +424,11 @@ function DistributionCharts({
           }
           drillDown(quadrantId);
         }}
-        onDrillUp={() => {
-          // If treemap is drilling up and external filter matches, clear main filter
-          if (selectedQuadrant === drillDownQuadrant && selectedQuadrant) {
-            onSegmentClick?.(selectedQuadrant); // Toggle off
-          }
-          drillUp();
-        }}
+        onDrillUp={handleContributorDrillUp}
+        onContributorClick={handleContributorClick}
+        onPRClick={handlePRClick}
         onNodeClick={() => {
-          // Handle contributor node clicks
+          // Handle other node clicks if needed
         }}
       />
     );
@@ -549,13 +608,14 @@ function DistributionCharts({
 
   return (
     <div className="space-y-4">
+      <style>{pulseStyles}</style>
 
       {/* Treemap: Always use overlay drawer */}
       {chartType === "treemap" ? (
-        <Card className="relative overflow-hidden">
-          <CardContent className="p-6">
+        <Card className="relative">
+          <CardContent className="p-6 overflow-visible">
             {/* Chart Area - Always takes full space */}
-            <div className="h-[400px]">
+            <div className="h-[450px] overflow-visible">
               {renderTreemap()}
             </div>
           
@@ -611,8 +671,8 @@ function DistributionCharts({
 
           {/* Mobile: Overlay drawer */}
           <div className="block md:hidden">
-            <Card className="relative overflow-hidden">
-              <CardContent className="p-6">
+            <Card className="relative">
+              <CardContent className="p-6 overflow-visible">
                 <div className="h-[400px]">
                   {chartType === "donut" && renderDonutChart()}
                   {chartType === "bar" && renderBarChart()}

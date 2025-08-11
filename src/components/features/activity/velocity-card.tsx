@@ -1,4 +1,4 @@
-import { TrendingUp } from "lucide-react";
+import { TrendingUp } from '@/components/ui/icon';
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";

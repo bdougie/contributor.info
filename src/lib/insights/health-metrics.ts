@@ -258,6 +258,11 @@ export async function calculateHealthMetrics(
 const confidenceCache = new Map<string, { result: any; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+// Export for testing purposes only
+export function clearConfidenceCache() {
+  confidenceCache.clear();
+}
+
 function getCacheKey(owner: string, repo: string, timeRange: string, returnBreakdown: boolean): string {
   return `${owner}/${repo}:${timeRange}:${returnBreakdown}`;
 }
@@ -398,7 +403,7 @@ export async function calculateRepositoryConfidence(
       .select('stargazers_count, forks_count, id')
       .eq('owner', owner)
       .eq('name', repo)
-      .single();
+      .maybeSingle();
 
     if (!repoData) {
       console.warn(`Repository ${owner}/${repo} not found in database`);
@@ -825,7 +830,7 @@ async function calculateBasicFallback(
       .select('stargazers_count, forks_count, id')
       .eq('owner', owner)
       .eq('name', repo)
-      .single();
+      .maybeSingle();
 
     if (!repoData) return 0;
 
@@ -903,7 +908,7 @@ async function getCachedConfidenceScore(
       .eq('repository_name', repo)
       .eq('time_range_days', timeRangeDays)
       .gt('expires_at', new Date().toISOString())
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       return null;
@@ -941,7 +946,7 @@ async function cacheConfidenceScore(
       .select('last_sync_at')
       .eq('repository_owner', owner)
       .eq('repository_name', repo)
-      .single();
+      .maybeSingle();
 
     // Determine cache TTL based on repository activity
     const baseTTL = getConfidenceCacheTTL(owner, repo);

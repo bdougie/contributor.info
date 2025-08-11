@@ -1,5 +1,6 @@
 import type { PullRequestActivity } from '@/lib/types';
 import type { Database } from '@/types/database';
+import { getPRActivityType } from '@/lib/utils/performance-helpers';
 
 type DatabasePR = Database['public']['Tables']['pull_requests']['Row'] & {
   author: Database['public']['Tables']['contributors']['Row'];
@@ -17,7 +18,7 @@ export function convertDatabasePRToActivity(pr: DatabasePR): PullRequestActivity
 
   return {
     id: pr.id,
-    type: pr.merged ? 'merged' : pr.state === 'closed' ? 'closed' : 'opened',
+    type: getPRActivityType(pr) as 'opened' | 'closed' | 'merged',
     user: {
       id: String(pr.author.github_id),
       name: pr.author.username,

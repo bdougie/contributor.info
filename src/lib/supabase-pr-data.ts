@@ -1,11 +1,11 @@
 import { supabase } from './supabase';
-import { fetchPullRequests } from './github';
 import type { PullRequest } from './types';
 import { trackDatabaseOperation, trackRateLimit } from './simple-logging';
 import { 
   createLargeRepositoryResult, 
   createSuccessResult, 
   createNoDataResult,
+  createPendingDataResult,
   type DataResult 
 } from './errors/repository-errors';
 // Removed Sentry import - using simple logging instead
@@ -42,7 +42,7 @@ export async function fetchPRDataWithFallback(
       .select('id')
       .eq('owner', owner)
       .eq('name', repo)
-      .single();
+      .maybeSingle();
 
     if (repoError || !repoData) {
       // Fall through to GitHub API
@@ -209,15 +209,26 @@ export async function fetchPRDataWithFallback(
   } catch (error) {
   }
 
-  // Fallback to GitHub API - PROTECTED for large repositories to prevent resource exhaustion
-  // Large repositories like kubernetes/kubernetes can cause ERR_INSUFFICIENT_RESOURCES
-  // BUT: Only apply protection if we have cached data to show, otherwise use normal API flow
+  // Fallback to GitHub API - STRICTLY LIMITED to prevent resource exhaustion
+  // Only fetch basic repository info, never attempt to fetch all PRs for unknown repos
   try {
-    // Check if this is a potentially large repository with cached data
-    const largeRepos = ['kubernetes/kubernetes', 'microsoft/vscode'];
+    // List of known large repositories that should NEVER use API fallback
+    const protectedRepos = [
+      'kubernetes/kubernetes', 
+      'microsoft/vscode', 
+      'pytorch/pytorch',
+      'tensorflow/tensorflow',
+      'apache/spark',
+      'elastic/elasticsearch',
+      'facebook/react',
+      'angular/angular',
+      'nodejs/node',
+      'torvalds/linux'
+    ];
     const repoName = `${owner}/${repo}`;
     
-    if (largeRepos.includes(repoName)) {
+    // Never attempt API fallback for known large repositories
+    if (protectedRepos.some(repo => repoName.toLowerCase().includes(repo.toLowerCase()))) {
       // Check if we have cached data before applying protection
       try {
         const { data: repoData, error: repoError } = await supabase
@@ -225,7 +236,7 @@ export async function fetchPRDataWithFallback(
           .select('id')
           .eq('owner', owner)
           .eq('name', repo)
-          .single();
+          .maybeSingle();
 
         if (!repoError && repoData) {
           const { data: cachedPRs, error: cacheError } = await supabase
@@ -314,9 +325,59 @@ export async function fetchPRDataWithFallback(
       // This prevents showing empty arrays when we could get fresh data
     }
     
-    fallbackUsed = true;
-    const githubPRs = await fetchPullRequests(owner, repo, timeRange);
-    return createSuccessResult(githubPRs);
+    // NEW APPROACH: Never fetch all PRs via API for untracked repositories
+    // This prevents timeouts and rate limit issues
+    // Instead, return a pending state and let background processing handle it
+    
+    console.log(`Repository ${owner}/${repo} not in database. Checking discovery status.`);
+    
+    // Trigger repository discovery for new repositories
+    // Validate that we have owner and repo before sending
+    if (owner && repo) {
+      // Use a simple in-memory flag to prevent duplicate discovery triggers
+      const discoveryKey = `discovery_${owner}_${repo}`;
+      const globalWindow = window as any;
+      
+      if (!globalWindow.__discoveryInProgress) {
+        globalWindow.__discoveryInProgress = {};
+      }
+      
+      if (!globalWindow.__discoveryInProgress[discoveryKey]) {
+        globalWindow.__discoveryInProgress[discoveryKey] = true;
+        
+        try {
+          console.log(`Triggering discovery for ${owner}/${repo}`);
+          const { sendInngestEvent } = await import('./inngest/client-safe');
+          await sendInngestEvent({
+            name: 'discover/repository.new',
+            data: {
+              owner,
+              repo,
+              source: 'missing-repo-fallback',
+              timestamp: new Date().toISOString()
+            }
+          });
+          
+          // Clear flag after 5 seconds to allow retry if needed
+          setTimeout(() => {
+            delete globalWindow.__discoveryInProgress[discoveryKey];
+          }, 5000);
+        } catch (error) {
+          console.error('Failed to trigger repository discovery:', error);
+          delete globalWindow.__discoveryInProgress[discoveryKey];
+        }
+      } else {
+        console.log(`Discovery already in progress for ${owner}/${repo}, skipping duplicate trigger`);
+      }
+    } else {
+      console.error('Cannot trigger discovery - missing owner or repo:', { owner, repo });
+    }
+    
+    return createPendingDataResult(
+      repoName,
+      [],
+      'This repository needs to be set up first. We\'re working on it - check back in 1-2 minutes!'
+    );
   } catch (githubError) {
     // Track rate limiting specifically
     if (githubError instanceof Error && 
@@ -332,7 +393,7 @@ export async function fetchPRDataWithFallback(
         .select('id')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
 
       if (emergencyRepoData) {
         const { data: emergencyData } = await supabase

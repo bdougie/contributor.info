@@ -1,10 +1,5 @@
-import { useState, useEffect } from "react";
-import {
-  Heart,
-  AlertTriangle,
-  Sparkles,
-  Brain,
-} from "lucide-react";
+import { useState, useEffect } from "react"
+import { Heart, AlertTriangle, Sparkles, Brain,  } from '@/components/ui/icon';
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -70,7 +65,6 @@ export function InsightsHealth({
       setLlmLoading(false);
     }
   };
-
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 0.8) return "text-green-600";

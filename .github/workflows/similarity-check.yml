@@ -1,0 +1,274 @@
+name: Similarity Check
+
+on:
+  issues:
+    types: [opened, edited]
+  pull_request:
+    types: [opened, edited]
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: 'Repository (owner/repo format)'
+        required: false
+        default: ''
+      item_number:
+        description: 'Issue or PR number to check'
+        required: false
+        default: ''
+      item_type:
+        description: 'Type of item'
+        required: false
+        default: 'issues'
+        type: choice
+        options:
+          - issues
+          - pull_request
+      max_items:
+        description: 'Maximum items to process'
+        required: false
+        default: '100'
+      similarity_threshold:
+        description: 'Similarity threshold (0.0-1.0)'
+        required: false
+        default: '0.85'
+
+jobs:
+  check-similarity:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Determine repository and item
+        id: determine
+        run: |
+          # For workflow_dispatch
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "${{ github.event.inputs.repository }}" ]; then
+              echo "owner=$(echo ${{ github.event.inputs.repository }} | cut -d'/' -f1)" >> $GITHUB_OUTPUT
+              echo "repo=$(echo ${{ github.event.inputs.repository }} | cut -d'/' -f2)" >> $GITHUB_OUTPUT
+            else
+              echo "owner=${{ github.repository_owner }}" >> $GITHUB_OUTPUT
+              echo "repo=${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
+            fi
+            echo "item_number=${{ github.event.inputs.item_number }}" >> $GITHUB_OUTPUT
+            echo "item_type=${{ github.event.inputs.item_type }}" >> $GITHUB_OUTPUT
+            echo "max_items=${{ github.event.inputs.max_items }}" >> $GITHUB_OUTPUT
+            echo "similarity_threshold=${{ github.event.inputs.similarity_threshold }}" >> $GITHUB_OUTPUT
+          # For issues
+          elif [ "${{ github.event_name }}" = "issues" ]; then
+            echo "owner=${{ github.repository_owner }}" >> $GITHUB_OUTPUT
+            echo "repo=${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
+            echo "item_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+            echo "item_type=issues" >> $GITHUB_OUTPUT
+            echo "max_items=100" >> $GITHUB_OUTPUT
+            echo "similarity_threshold=0.85" >> $GITHUB_OUTPUT
+          # For pull requests
+          else
+            echo "owner=${{ github.repository_owner }}" >> $GITHUB_OUTPUT
+            echo "repo=${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
+            echo "item_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            echo "item_type=pull_request" >> $GITHUB_OUTPUT
+            echo "max_items=100" >> $GITHUB_OUTPUT
+            echo "similarity_threshold=0.85" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Run similarity check
+        id: similarity
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          # Build command based on inputs
+          COMMAND="npx tsx scripts/actions-similarity.ts --owner ${{ steps.determine.outputs.owner }} --repo ${{ steps.determine.outputs.repo }}"
+          
+          # Add optional parameters
+          if [ -n "${{ steps.determine.outputs.item_number }}" ]; then
+            COMMAND="$COMMAND --item-type ${{ steps.determine.outputs.item_type }} --item-number ${{ steps.determine.outputs.item_number }}"
+          fi
+          
+          COMMAND="$COMMAND --max-items ${{ steps.determine.outputs.max_items }} --similarity-threshold ${{ steps.determine.outputs.similarity_threshold }}"
+          
+          echo "Running: $COMMAND"
+          $COMMAND
+      
+      - name: Read similarity results
+        id: results
+        if: success()
+        run: |
+          if [ -f similarity-results.json ]; then
+            # Extract key information from results
+            SIMILAR_COUNT=$(jq -r '.similarItems | length // 0' similarity-results.json)
+            echo "similar_count=$SIMILAR_COUNT" >> $GITHUB_OUTPUT
+            
+            # Create a summary for commenting
+            if [ "$SIMILAR_COUNT" -gt 0 ]; then
+              echo "found_similar=true" >> $GITHUB_OUTPUT
+            else
+              echo "found_similar=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "found_similar=false" >> $GITHUB_OUTPUT
+            echo "similar_count=0" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Comment on issue with similar items
+        if: >
+          success() && 
+          steps.results.outputs.found_similar == 'true' && 
+          steps.determine.outputs.item_number != '' &&
+          github.event_name == 'issues'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('similarity-results.json', 'utf8'));
+            
+            // Group similar issues by state
+            const openIssues = results.similarItems.filter(item => item.state === 'open' && item.type === 'issue');
+            const closedIssues = results.similarItems.filter(item => item.state === 'closed' && item.type === 'issue');
+            
+            let comment = '## Potentially related issues\n\n';
+            comment += '_The following issues have been identified as potentially related based on semantic similarity analysis:_\n\n';
+            
+            // Add open issues section if any exist
+            if (openIssues.length > 0) {
+              comment += '### Open Issues\n\n';
+              for (const item of openIssues.slice(0, 3)) {
+                const similarity = Math.round(item.similarity * 100);
+                comment += `- **[#${item.number}](${item.html_url})**: ${item.title} _(${similarity}% similar)_\n`;
+              }
+              if (openIssues.length > 3) {
+                comment += `- _...and ${openIssues.length - 3} more open issue(s)_\n`;
+              }
+              comment += '\n';
+            }
+            
+            // Add closed issues section if any exist
+            if (closedIssues.length > 0) {
+              comment += '### Closed Issues\n\n';
+              for (const item of closedIssues.slice(0, 3)) {
+                const similarity = Math.round(item.similarity * 100);
+                comment += `- **[#${item.number}](${item.html_url})**: ${item.title} _(${similarity}% similar)_\n`;
+              }
+              if (closedIssues.length > 3) {
+                comment += `- _...and ${closedIssues.length - 3} more closed issue(s)_\n`;
+              }
+              comment += '\n';
+            }
+            
+            // Add helpful context
+            comment += '---\n';
+            comment += '_This helps identify duplicate issues and related discussions. ';
+            comment += 'Powered by semantic similarity analysis from [contributor.info](https://contributor.info)_';
+            
+            // Post comment
+            const issue_number = parseInt('${{ steps.determine.outputs.item_number }}');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              body: comment
+            });
+      
+      - name: Comment on PR with similar items
+        if: >
+          success() && 
+          steps.results.outputs.found_similar == 'true' && 
+          steps.determine.outputs.item_number != '' &&
+          github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('similarity-results.json', 'utf8'));
+            
+            // Separate issues and PRs
+            const relatedIssues = results.similarItems.filter(item => item.type === 'issue');
+            const relatedPRs = results.similarItems.filter(item => item.type === 'pull_request');
+            
+            let comment = '## Related Items Found\n\n';
+            
+            // Add related issues section
+            if (relatedIssues.length > 0) {
+              comment += '### Related Issues\n\n';
+              comment += 'This PR might address or relate to the following issues:\n\n';
+              for (const item of relatedIssues.slice(0, 5)) {
+                const similarity = Math.round(item.similarity * 100);
+                comment += `- **[#${item.number}](${item.html_url})**: ${item.title} _(${similarity}% similar, ${item.state})_\n`;
+              }
+              comment += '\n';
+            }
+            
+            // Add similar PRs section
+            if (relatedPRs.length > 0) {
+              comment += '### Similar Pull Requests\n\n';
+              for (const item of relatedPRs.slice(0, 3)) {
+                const similarity = Math.round(item.similarity * 100);
+                comment += `- **[#${item.number}](${item.html_url})**: ${item.title} _(${similarity}% similar, ${item.state})_\n`;
+              }
+              comment += '\n';
+            }
+            
+            comment += '---\n';
+            comment += '_This helps prevent duplicate work and identify related changes. ';
+            comment += 'Powered by [contributor.info](https://contributor.info)_';
+            
+            // Post comment
+            const issue_number = parseInt('${{ steps.determine.outputs.item_number }}');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              body: comment
+            });
+      
+      - name: Upload similarity results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: similarity-results
+          path: similarity-results.json
+          retention-days: 30
+      
+      - name: Create job summary
+        if: always()
+        run: |
+          echo "## Similarity Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f similarity-results.json ]; then
+            echo "- **Repository**: $(jq -r '.repository' similarity-results.json)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Items Processed**: $(jq -r '.processedItems' similarity-results.json)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Timestamp**: $(jq -r '.timestamp' similarity-results.json)" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "${{ steps.results.outputs.found_similar }}" = "true" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### 🎯 Similar Items Found: ${{ steps.results.outputs.similar_count }}" >> $GITHUB_STEP_SUMMARY
+              
+              # Add top 3 similar items to summary
+              jq -r '.similarItems[:3] | .[] | "- [\(.type) #\(.number)]: \(.title) (\(.similarity * 100 | round)% similar)"' similarity-results.json >> $GITHUB_STEP_SUMMARY
+            else
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### ✅ No similar items found above threshold" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⚠️ No results file generated" >> $GITHUB_STEP_SUMMARY
+          fi

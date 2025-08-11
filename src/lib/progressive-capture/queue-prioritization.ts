@@ -126,9 +126,9 @@ export class QueuePrioritizationService {
     try {
       const { data, error } = await supabase
         .from('tracked_repositories')
-        .select('id, name, size, priority, metrics')
-        .eq('id', repositoryId)
-        .single();
+        .select('id, repository_name, organization_name, size, priority, metrics')
+        .eq('repository_id', repositoryId)
+        .maybeSingle();
 
       if (error || !data) {
         console.error('[QueuePrioritization] Failed to get repository metadata:', error);
@@ -137,7 +137,7 @@ export class QueuePrioritizationService {
 
       return {
         id: data.id,
-        name: data.name,
+        name: `${data.organization_name}/${data.repository_name}`,
         size: data.size || 'medium',
         priority: data.priority || 'low',
         metrics: data.metrics
@@ -222,7 +222,7 @@ export class QueuePrioritizationService {
         .eq('processor_type', processor)
         .order('metadata->priority_score', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       return nextJob;
     } catch (error) {

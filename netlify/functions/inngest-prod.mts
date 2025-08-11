@@ -4,7 +4,7 @@ import { serve } from "inngest/lambda";
 import type { Context } from "@netlify/functions";
 
 // Import function creators for production client
-import { createCaptureRepositorySyncGraphQL, createClassifySingleRepository } from "./inngest-prod-functions";
+import { createCaptureRepositorySyncGraphQL, createClassifySingleRepository } from "./inngest-prod-functions.mjs";
 
 // Import all capture functions from the main library
 import {
@@ -13,8 +13,9 @@ import {
   capturePrComments,
   captureRepositorySync,
   capturePrDetailsGraphQL,
-  classifyRepositorySize
-} from "../../src/lib/inngest/functions";
+  classifyRepositorySize,
+  discoverNewRepository
+} from "../../src/lib/inngest/functions/index-without-embeddings";
 
 // Environment detection - treat deploy previews as production for signing
 const isProduction = () => {
@@ -107,13 +108,15 @@ const inngestHandler = serve({
     captureRepositorySync,
     // Classification functions
     classifySingleRepository,
-    classifyRepositorySize
+    classifyRepositorySize,
+    // Discovery function
+    discoverNewRepository
   ],
   servePath: "/.netlify/functions/inngest-prod"
 });
 
-// Export the Netlify handler
-export default async (req: Request, context: Context) => {
+// Create the main handler function
+const mainHandler = async (req: Request, context: Context) => {
   const url = new URL(req.url);
   
   // Handle GET requests with a detailed status page
@@ -138,7 +141,8 @@ export default async (req: Request, context: Context) => {
         { id: "capture-pr-comments", event: "capture/pr.comments" },
         { id: "capture-repository-sync", event: "capture/repository.sync" },
         { id: "classify-single-repository", event: "classify/repository.single" },
-        { id: "classify-repository-size", event: "classify/repository.size" }
+        { id: "classify-repository-size", event: "classify/repository.size" },
+        { id: "discover-new-repository", event: "discover/repository.new" }
       ],
       usage: {
         testEvent: 'Send: { "name": "test/prod.hello", "data": { "message": "Hello!" } }',
@@ -158,5 +162,6 @@ export default async (req: Request, context: Context) => {
   return inngestHandler(req, context);
 };
 
-// Also export as handler for compatibility
+// Export default as the wrapper and handler as the raw inngest handler
+export default mainHandler;
 export const handler = inngestHandler;

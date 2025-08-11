@@ -91,7 +91,7 @@ export async function getRepositorySpamStats(owner: string, repo: string) {
       .select('id')
       .eq('owner', owner)
       .eq('name', repo)
-      .single();
+      .maybeSingle();
 
     if (repoError || !repoData) {
       throw new Error('Repository not found');

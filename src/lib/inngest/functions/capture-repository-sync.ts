@@ -1,6 +1,7 @@
 import { inngest } from '../client';
 import { supabase } from '../../supabase';
 import type { GitHubPullRequest } from '../types';
+import { RATE_LIMIT_CONFIG } from '../queue-manager';
 
 // Rate limiting constants
 const MAX_PRS_PER_SYNC = 100;
@@ -40,13 +41,16 @@ async function ensureContributorExists(githubUser: any): Promise<string | null> 
       ignoreDuplicates: false
     })
     .select('id')
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Error upserting contributor:', error);
     return null;
   }
 
+  if (!data) {
+    return null;
+  }
   return data.id;
 }
 
@@ -71,7 +75,7 @@ export const captureRepositorySync = inngest.createFunction(
         .from('repositories')
         .select('owner, name, last_updated_at')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         throw new Error(`Repository not found: ${repositoryId}`);
@@ -194,7 +198,8 @@ export const captureRepositorySync = inngest.createFunction(
 
       // Limit the number of detail jobs to queue
       const MAX_DETAIL_JOBS = 20;
-      const MAX_REVIEW_COMMENT_JOBS = 10;
+      // Use centralized configuration for review/comment job limits
+      const MAX_REVIEW_COMMENT_JOBS = RATE_LIMIT_CONFIG.MAX_REVIEW_COMMENT_JOBS;
       
       let detailJobsQueued = 0;
       let reviewJobsQueued = 0;

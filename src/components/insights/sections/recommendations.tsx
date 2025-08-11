@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Sparkles, Lightbulb, Target, Zap, CheckCircle, Brain } from "lucide-react";
+import { useState, useEffect } from "react"
+import { Sparkles, Lightbulb, Target, Zap, CheckCircle, Brain } from '@/components/ui/icon';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

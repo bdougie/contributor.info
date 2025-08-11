@@ -26,7 +26,7 @@ export async function indexGitHistory(
       .from('repositories')
       .select('id')
       .eq('github_id', repository.id)
-      .single();
+      .maybeSingle();
     
     if (error || !dbRepo) {
       console.error('Error fetching repository from database:', error?.message || 'Repository not found');
@@ -129,7 +129,7 @@ export async function indexGitHistory(
               .from('contributors')
               .select('id')
               .eq('github_login', commit.author.login)
-              .single();
+              .maybeSingle();
             
             if (!existingContributor) {
               // Create contributor if doesn't exist
@@ -142,7 +142,7 @@ export async function indexGitHistory(
                   avatar_url: commit.author.avatar_url,
                 })
                 .select('id')
-                .single();
+                .maybeSingle();
               
               if (!newContributor) continue;
               contributorId = newContributor.id;

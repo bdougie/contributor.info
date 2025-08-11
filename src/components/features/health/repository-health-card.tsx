@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
-import { useContext, useState, useEffect, useRef } from "react";
+import { useContext, useState, useEffect, useRef } from "react"
+import { Bot } from '@/components/ui/icon';
 import {
   Card,
   CardContent,
@@ -10,14 +11,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Bot } from "lucide-react";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { RepositoryHealthOverall } from "@/components/insights/sections/repository-health-overall";
 import { RepositoryHealthFactors } from "@/components/insights/sections/repository-health-factors";
 import { LotteryFactorContent } from "./lottery-factor";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { SelfSelectionRate } from "@/components/features/contributor/self-selection-rate";
-import { useAutoTrackRepository } from "@/hooks/use-auto-track-repository";
 import { ContributorConfidenceCard } from "./contributor-confidence-card";
 import { calculateRepositoryConfidence, ConfidenceBreakdown } from "@/lib/insights/health-metrics";
 import { useOnDemandSync } from "@/hooks/use-on-demand-sync";
@@ -28,12 +27,6 @@ export function RepositoryHealthCard() {
   const { stats, lotteryFactor, directCommitsData, includeBots } =
     useContext(RepoStatsContext);
 
-  // Auto-track repository when user visits it
-  useAutoTrackRepository({
-    owner: owner || '',
-    repo: repo || '',
-    enabled: !!(owner && repo)
-  });
 
   // Local state for bot toggle to avoid page refresh
   const [localIncludeBots, setLocalIncludeBots] = useState(includeBots);
@@ -154,7 +147,7 @@ export function RepositoryHealthCard() {
   }
 
   return (
-    <Card>
+    <Card className="health-metrics-container">
       <CardHeader>
         <CardTitle>Repository Health</CardTitle>
         <CardDescription>

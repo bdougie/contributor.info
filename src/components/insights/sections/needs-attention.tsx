@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { AlertCircle, AlertTriangle, XCircle, FileText, GitCommit, MessageCircle, MessageSquare } from "lucide-react";
+import { useState, useEffect } from "react"
+import { AlertCircle, AlertTriangle, XCircle, FileText, GitCommit, MessageCircle, MessageSquare } from '@/components/ui/icon';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

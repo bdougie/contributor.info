@@ -1,118 +1,5 @@
 # GitHub Copilot Instructions for contributor.info
 
-This document provides guidance for GitHub Copilot when assisting with the contributor.info project.
-
-## Package Management Instructions
-
-### Use npm instead of yarn
-
-This project is primarily configured to use npm for package management. When suggesting commands, please use npm commands instead of yarn equivalents.
-
-| Preferred (npm) | Avoid (yarn) |
-|-----------------|--------------|
-| `npm install` | `yarn` or `yarn install` |
-| `npm run build` | `yarn build` |
-| `npm run dev` | `yarn dev` |
-| `npm run test` | `yarn test` |
-| `npm run lint` | `yarn lint` |
-| `npm run preview` | `yarn preview` |
-
-Example: When suggesting how to build the project, use:
-```bash
-npm run build
-```
-
-### Installing dependencies
-
-When adding new dependencies, use npm:
-
-```bash
-# Adding production dependencies
-npm install package-name
-
-# Adding development dependencies 
-npm install --save-dev package-name
-```
-
-## Project Structure and Code Style
-
-When generating or modifying code for this project, please follow these guidelines:
-
-1. Use TypeScript for all new files
-2. Follow the existing component structure and patterns
-3. Use Radix UI components where appropriate
-4. Use Tailwind CSS for styling
-5. Follow the existing naming conventions throughout the codebase
-
-## Type Definitions
-
-- Place shared interface/type definitions in `src/lib/types.ts`
-- Ensure types are properly exported and imported where needed
-- Use precise typing and avoid `any` where possible
-
-## Error Handling and Code Cleanup
-
-When fixing build errors or improving code quality:
-
-1. Always check for unused imports, variables, and types first
-2. Prioritize removing dead code rather than adding new code to fix type errors
-3. When encountering TypeScript errors about unused variables or imports:
-   - Remove the unused imports/variables rather than using them artificially
-   - Only add back variables/imports if they're truly needed
-4. Before implementing new features, check if similar functionality already exists
-5. Remove commented-out code that's no longer relevant
-
-Example approach for fixing TypeScript errors:
-```typescript
-// Instead of this:
-import { useState, useEffect } from 'react'; // useEffect is flagged as unused
-// Using useEffect artificially to avoid the error
-useEffect(() => {}, []); 
-
-// Do this:
-import { useState } from 'react'; // Remove the unused import entirely
-```
-
-## Error Handling in Catch Blocks
-When handling errors in catch blocks, always follow these guidelines:
-
-1. **Properly type-check errors before accessing properties**
-   - In TypeScript, caught errors have the type `unknown` by default
-   - Always use `instanceof Error` before accessing Error properties:
-
-```typescript
-try {
-  // code that might throw
-} catch (err) {
-  if (err instanceof Error && err.name === "AbortError") {
-    // Handle AbortError specifically
-  } else if (err instanceof Error) {
-    // Access standard Error properties safely
-    console.error(err.message);
-  } else {
-    // Handle non-Error objects
-    console.error("An unknown error occurred:", err);
-  }
-}
-```
-
-## Testing
-
-When writing tests:
-
-- Use Vitest for testing
-- Place test files in `__tests__` directories alongside the code being tested
-- Follow the existing testing patterns in the project
-
-## Suggested Commands for Common Tasks
-
-- Start development server: `npm run dev`
-- Run tests: `npm run test`
-- Run tests in watch mode: `npm run test:watch`
-- Build the project: `npm run build`
-- Preview the production build: `npm run preview`
-- Lint the codebase: `npm run lint`
-
 ## Build Commands
 
 When making changes to the codebase, please run the following commands to ensure code quality:
@@ -122,29 +9,15 @@ npm run build
 ```
 
 This command will:
-1. Run all tests
 2. Check TypeScript types
 3. Build the production bundle
 
-## React Imports Guidelines
+## Project Overview
 
-**Do not import React** unless you need specific React features (hooks, types, etc.). Modern React with JSX Transform handles JSX automatically.
+This is a React + TypeScript application that visualizes GitHub contributors and their contributions.
 
-```typescript
-// ❌ Bad - unnecessary React import causes TypeScript errors
-import React from "react";
-import { cn } from "@/lib/utils";
-
-// ✅ Good - only import what you need
-import { cn } from "@/lib/utils";
-```
-
-Only import React when you need specific features:
-```typescript
-// ✅ Good - using React features
-import React, { useState, useEffect } from "react";
-import type { ReactNode } from "react";
-```
+## Design
+All components should match the existing design language.
 
 ## Project Planning with PRDs
 
@@ -193,62 +66,7 @@ Create a PRD when:
 - **Todo Lists**: For tactical execution and task tracking during implementation
 - Use both together: PRD for overall strategy, todos for daily execution
 
-## Task Generation from PRDs
-
-When generating task lists from existing PRDs, follow this structured approach:
-
-### Goal
-
-To create detailed, step-by-step task lists in Markdown format based on existing Product Requirements Documents (PRDs). The task list should guide a developer through implementation.
-
-### Output Specifications
-
-- **Format:** Markdown (`.md`)
-- **Location:** `/tasks/`
-- **Filename:** `tasks-[prd-file-name].md` (e.g., `tasks-prd-user-profile-editing.md`)
-
-### Generation Process
-
-1. **Receive PRD Reference:** User points to a specific PRD file
-2. **Analyze PRD:** Read and analyze the functional requirements, user stories, and other sections
-3. **Phase 1: Generate Parent Tasks:** Create high-level tasks (typically ~5). Present to user and wait for confirmation
-4. **Wait for Confirmation:** Pause and wait for user to respond with "Go"
-5. **Phase 2: Generate Sub-Tasks:** Break down each parent task into smaller, actionable sub-tasks
-6. **Identify Relevant Files:** List potential files that need creation or modification
-7. **Generate Final Output:** Combine into structured Markdown format
-
-### Task List Output Format
-
-The generated task list must follow this structure:
-
-```markdown
-## Relevant Files
-
-- `path/to/potential/file1.ts` - Brief description of why this file is relevant
-- `path/to/file1.test.ts` - Unit tests for `file1.ts`
-- `path/to/another/file.tsx` - Brief description
-- `path/to/another/file.test.tsx` - Unit tests for `another/file.tsx`
-
-### Notes
-
-- Unit tests should typically be placed alongside the code files they are testing
-- Use `npx jest [optional/path/to/test/file]` to run tests
-
-## Tasks
-
-- [ ] 1.0 Parent Task Title
-  - [ ] 1.1 [Sub-task description 1.1]
-  - [ ] 1.2 [Sub-task description 1.2]
-- [ ] 2.0 Parent Task Title
-  - [ ] 2.1 [Sub-task description 2.1]
-- [ ] 3.0 Parent Task Title
-```
-
-### Target Audience
-
-Assume the primary reader of the task list is a **junior developer** who will implement the feature.
-
-## Supabase Integration Guidelines
+## Supabase Integration
 
 ### Environment Setup
 
@@ -258,82 +76,6 @@ The project uses Supabase for data persistence. Key environment variables:
 VITE_SUPABASE_URL=https://egcxzonpmmcirmgqdrla.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_TOKEN=your-service-role-key  # For admin operations
-```
-
-### Database Schema
-
-The database has 11 core tables for storing GitHub contributor data:
-- `contributors`, `repositories`, `pull_requests`, `reviews`, `comments`
-- `organizations`, `contributor_organizations`, `tracked_repositories`
-- `monthly_rankings`, `daily_activity_snapshots`, `sync_logs`
-
-Plus 3 views: `contributor_stats`, `repository_stats`, `recent_activity`
-
-### Debugging Supabase Issues
-
-#### 1. Check Migration Status
-```sql
--- Verify tables exist
-SELECT table_name FROM information_schema.tables 
-WHERE table_schema = 'public' ORDER BY table_name;
-
--- Check RLS status
-SELECT tablename, rowsecurity FROM pg_tables 
-WHERE schemaname = 'public';
-
--- Count records
-SELECT 'contributors' as table_name, COUNT(*) FROM contributors
-UNION ALL SELECT 'repositories', COUNT(*) FROM repositories
-UNION ALL SELECT 'pull_requests', COUNT(*) FROM pull_requests;
-```
-
-#### 2. Test Database Connection
-```javascript
-// Quick connection test
-import { supabase } from '@/lib/supabase';
-
-const { data, error } = await supabase
-  .from('contributors')
-  .select('*')
-  .limit(1);
-  
-console.log('Connection test:', { data, error });
-```
-
-#### 3. Common Issues & Fixes
-
-**Tables not found after migration:**
-- Check UUID extension: `CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`
-- Run migration via Supabase Dashboard if CLI fails
-
-**RLS blocking all access:**
-```sql
--- Check policies
-SELECT tablename, policyname FROM pg_policies 
-WHERE schemaname = 'public';
-
--- Quick fix - ensure public read
-CREATE POLICY "public_read" ON table_name 
-FOR SELECT USING (true);
-```
-
-**Authentication issues:**
-```javascript
-// Check auth state
-const { data: { session } } = await supabase.auth.getSession();
-console.log('Auth session:', session);
-```
-
-#### 4. Storage Monitoring
-```sql
--- Check database size (500MB free limit)
-SELECT pg_database_size(current_database()) / 1024 / 1024 as size_mb;
-
--- Table sizes
-SELECT tablename,
-  pg_size_pretty(pg_total_relation_size(tablename::regclass)) AS size
-FROM pg_tables WHERE schemaname = 'public'
-ORDER BY pg_total_relation_size(tablename::regclass) DESC;
 ```
 
 ### Key Files for Supabase
@@ -369,11 +111,59 @@ npx supabase status
 - Replaced all require() calls with proper ES module patterns in storybook
 - remember to mock external dependencies in tests
 - never use jest. only vitest
-- mock supabase in tests always
 - jest is leveraged in the storybook only
 - use the /docs folder for postmortems and /tasks for plans. remove plans when feature is implemented, but write docs when plans are completed
 - after visual changes always look for opportunity to improve performance
 - no premmature optimizations without testing
 - use the supabase mcp server for migrations
+- `console.log(\`${owner}\`)` is a security vulnerability. We need to do `console.log(%s, owner)`
+- optimized for user experience with modern tooling and excellent dependency management. prioritize immediate value delivery over pure performance metrics.
+- never use "any" types in typescript
+- script need to be documented and organized into folders/readmes
 
-FILENAMES should be `this-is-component.tsx` and not `ThisIsComponent.tsx` or `this_is_component.tsx`. Use kebab-case for filenames.
+## Known Issues
+
+### TypeScript Environment Variable Warnings
+
+**Problem**: TypeScript compilation shows errors like `Property 'env' does not exist on type 'ImportMeta'` for `import.meta.env` usage.
+
+**Root Cause**: Netlify Functions compile to CommonJS while Vite expects ESM. The `import.meta.env` pattern works at runtime but TypeScript struggles with mixed module contexts.
+
+**Solution**: Use the fallback pattern `import.meta.env?.VAR || process.env.VAR` in environment variable files:
+
+```typescript
+// ✅ Correct pattern - works in both ESM and CommonJS
+const VITE_GITHUB_TOKEN = import.meta.env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN;
+```
+
+**Status**: These are build-time warnings that don't affect runtime functionality. The application works correctly despite these TypeScript errors.
+
+**Files affected**: `src/lib/github.ts`, `src/lib/supabase.ts`, `src/lib/inngest/client.ts`
+
+## User Experience Standards
+
+This project follows an **invisible, Netflix-like user experience** where data loading and processing happens automatically in the background. Key principles:
+
+1. **Database-first**: Always query cached data before API calls
+2. **Auto-detection**: Automatically detect and fix data quality issues
+3. **Subtle notifications**: Keep users informed without interrupting workflow
+4. **Progressive enhancement**: Core functionality works immediately, enhanced features load in background
+5. **No manual intervention**: Users never need to click "Load Data" or understand technical details
+
+### Implementation Guidelines
+
+- **New Features**: Follow `/docs/user-experience/feature-template.md` for consistent UX patterns
+- **Data Loading**: Use `/docs/user-experience/implementation-checklist.md` for proper auto-detection integration
+- **User Notifications**: Reference `/docs/user-experience/invisible-data-loading.md` for notification standards
+
+### Key Files for UX Consistency
+- `src/lib/progressive-capture/smart-notifications.ts` - Auto-detection on page load
+- `src/lib/progressive-capture/background-processor.ts` - Invisible background work
+- `src/lib/progressive-capture/ui-notifications.ts` - User-friendly notifications
+
+When implementing features that load data or process information in the background, always ensure:
+- Immediate value with cached data
+- Automatic detection and improvement of data quality
+- Subtle, helpful notifications (not technical jargon)
+- Graceful error handling and fallbacks
+- check the bulletproof testing doc before fixing tests

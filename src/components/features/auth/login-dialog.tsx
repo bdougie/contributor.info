@@ -8,9 +8,9 @@ import {
   DialogOverlay,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { GithubIcon } from "lucide-react";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
-import { useState } from "react";
+import { useState } from "react"
+import { GithubIcon } from '@/components/ui/icon';
 
 interface LoginDialogProps {
   open: boolean;

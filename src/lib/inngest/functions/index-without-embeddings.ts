@@ -13,3 +13,6 @@ export { classifyRepositorySize, classifySingleRepository } from './classify-rep
 
 // PR activity updates
 export { updatePrActivity } from './update-pr-activity';
+
+// Repository discovery
+export { discoverNewRepository } from './discover-new-repository';

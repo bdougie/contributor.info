@@ -1,16 +1,4 @@
-import { 
-  Shield, 
-  Users, 
-  BarChart3, 
-  Activity, 
-  GitBranch, 
-  AlertTriangle,
-  Settings,
-  Database,
-  FileText,
-  TrendingUp,
-  Bug
-} from 'lucide-react';
+import { Shield, Users, BarChart3, Activity, GitBranch, AlertTriangle, Settings, Database, FileText, TrendingUp, Bug } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

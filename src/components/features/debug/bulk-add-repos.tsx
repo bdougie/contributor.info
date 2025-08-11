@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState } from "react"
+import { Database, Upload, CheckCircle, XCircle, Info, ExternalLink, Loader2 } from '@/components/ui/icon';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,13 +7,23 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { Database, Upload, CheckCircle, XCircle, Info } from "lucide-react";
+import { sendInngestEvent } from "@/lib/inngest/client-safe";
 
 interface ProcessResult {
   added: string[];
   skipped: string[];
   errors: string[];
   total: number;
+  repoIds?: Record<string, string>; // Map repo name to ID for backfill
+}
+
+interface BackfillJob {
+  repoName: string;
+  runId?: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  progress: number;
+  total: number;
+  message?: string;
 }
 
 export function BulkAddRepos() {
@@ -20,6 +31,10 @@ export function BulkAddRepos() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<ProcessResult | null>(null);
+  const [includeBackfill, setIncludeBackfill] = useState(true);
+  const [backfillDays, setBackfillDays] = useState(30);
+  const [maxPRs, setMaxPRs] = useState(1000);
+  const [backfillJobs, setBackfillJobs] = useState<Record<string, BackfillJob>>({});
   const { toast } = useToast();
 
   const parseRepoList = (text: string): string[] => {
@@ -34,30 +49,6 @@ export function BulkAddRepos() {
       });
   };
 
-  const checkExistingRepos = async (repos: string[]): Promise<Set<string>> => {
-    const repoChecks = repos.map(repo => {
-      const [owner, name] = repo.split('/');
-      return { organization_name: owner, repository_name: name };
-    });
-
-    const { data: existing, error } = await supabase
-      .from('tracked_repositories')
-      .select('organization_name, repository_name')
-      .in('organization_name', repoChecks.map(r => r.organization_name))
-      .in('repository_name', repoChecks.map(r => r.repository_name));
-
-    if (error) {
-      throw new Error(`Failed to check existing repos: ${error.message}`);
-    }
-
-    const existingSet = new Set<string>();
-    existing?.forEach(repo => {
-      existingSet.add(`${repo.organization_name}/${repo.repository_name}`);
-    });
-
-    return existingSet;
-  };
-
   const insertReposInBatches = async (
     repos: string[],
     batchSize: number = 15
@@ -66,14 +57,35 @@ export function BulkAddRepos() {
       added: [],
       skipped: [],
       errors: [],
-      total: repos.length
+      total: repos.length,
+      repoIds: {}
     };
 
-    // Check existing repos first
-    const existingRepos = await checkExistingRepos(repos);
-    
-    const newRepos = repos.filter(repo => !existingRepos.has(repo));
-    result.skipped = repos.filter(repo => existingRepos.has(repo));
+    // Check existing repos in repositories table
+    const repoChecks = repos.map(repo => {
+      const [owner, name] = repo.split('/');
+      return `(owner.eq.${owner},name.eq.${name})`;
+    });
+
+    // Check which repos already exist
+    const { data: existingRepos, error: checkError } = await supabase
+      .from('repositories')
+      .select('id, owner, name')
+      .or(repoChecks.join(','));
+
+    if (checkError) {
+      throw new Error(`Failed to check existing repos: ${checkError.message}`);
+    }
+
+    const existingMap = new Map<string, string>();
+    existingRepos?.forEach(repo => {
+      const key = `${repo.owner}/${repo.name}`;
+      existingMap.set(key, repo.id);
+      result.repoIds![key] = repo.id;
+    });
+
+    const newRepos = repos.filter(repo => !existingMap.has(repo));
+    result.skipped = repos.filter(repo => existingMap.has(repo));
 
     if (newRepos.length === 0) {
       setProgress(100);
@@ -84,29 +96,55 @@ export function BulkAddRepos() {
     for (let i = 0; i < newRepos.length; i += batchSize) {
       const batch = newRepos.slice(i, i + batchSize);
       
-      const insertData = batch.map(repo => {
+      // First, create entries in repositories table
+      const repoInsertData = batch.map(repo => {
         const [owner, name] = repo.split('/');
         return {
-          organization_name: owner,
-          repository_name: name,
-          tracking_enabled: true,
+          owner,
+          name,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
       });
 
       try {
-        const { error } = await supabase
-          .from('tracked_repositories')
-          .insert(insertData);
+        const { data: insertedRepos, error: repoError } = await supabase
+          .from('repositories')
+          .insert(repoInsertData)
+          .select('id, owner, name');
 
-        if (error) {
-          // Handle individual repo failures
+        if (repoError) {
+          console.error('Failed to insert repositories:', repoError);
           batch.forEach(repo => result.errors.push(repo));
-        } else {
-          result.added.push(...batch);
+        } else if (insertedRepos) {
+          // Store repo IDs for backfill
+          insertedRepos.forEach(repo => {
+            const key = `${repo.owner}/${repo.name}`;
+            result.repoIds![key] = repo.id;
+          });
+
+          // Then create entries in tracked_repositories
+          const trackedInsertData = insertedRepos.map(repo => ({
+            organization_name: repo.owner,
+            repository_name: repo.name,
+            tracking_enabled: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }));
+
+          const { error: trackedError } = await supabase
+            .from('tracked_repositories')
+            .insert(trackedInsertData);
+
+          if (trackedError) {
+            console.error('Failed to insert tracked repos:', trackedError);
+            batch.forEach(repo => result.errors.push(repo));
+          } else {
+            result.added.push(...batch);
+          }
         }
       } catch (error) {
+        console.error('Batch processing error:', error);
         batch.forEach(repo => result.errors.push(repo));
       }
 
@@ -150,6 +188,106 @@ export function BulkAddRepos() {
       const result = await insertReposInBatches(repos);
       setResult(result);
 
+      // Trigger backfill if requested
+      if (includeBackfill && (result.added.length > 0 || result.skipped.length > 0)) {
+        const reposToBackfill = [...result.added, ...result.skipped];
+        
+        // For large PR requests (>150), we need to create a progressive backfill
+        if (maxPRs > 150) {
+          // Create progressive backfill entries
+          for (const repoName of reposToBackfill) {
+            const repoId = result.repoIds?.[repoName];
+            if (repoId) {
+              try {
+                // Insert progressive backfill state
+                const { error: backfillError } = await supabase
+                  .from('progressive_backfill_state')
+                  .insert({
+                    repository_id: repoId,
+                    total_prs: maxPRs,
+                    processed_prs: 0,
+                    status: 'active',
+                    chunk_size: 25,
+                    metadata: {
+                      max_prs_limit: maxPRs,
+                      days_limit: backfillDays,
+                      triggered_from: 'bulk_add_ui',
+                      initiated_by: 'manual_bulk_add'
+                    }
+                  });
+                  
+                if (backfillError) {
+                  console.error('Failed to create progressive backfill:', backfillError);
+                }
+              } catch (error) {
+                console.error('Error creating backfill:', error);
+              }
+            }
+          }
+          
+          toast({
+            title: "Progressive backfill created",
+            description: `Fetching up to ${maxPRs} PRs for ${reposToBackfill.length} repositories. This will be processed by the automated workflow.`,
+            variant: "default"
+          });
+        } else {
+          // For smaller requests, use the regular sync
+          const backfillEvents = [];
+          
+          for (const repoName of reposToBackfill) {
+            const repoId = result.repoIds?.[repoName];
+            if (repoId) {
+              backfillEvents.push({
+                name: "capture/repository.sync.graphql" as const,
+                data: {
+                  repositoryId: repoId,
+                  days: backfillDays,
+                  priority: 'high' as const,
+                  reason: 'bulk_add_initial_backfill'
+                }
+              });
+            }
+          }
+          
+          if (backfillEvents.length > 0) {
+            try {
+              // Send events individually
+              for (const event of backfillEvents) {
+                await sendInngestEvent(event);
+              }
+              
+              // Initialize backfill job tracking
+              const jobs: Record<string, BackfillJob> = {};
+              reposToBackfill.forEach(repoName => {
+                const repoId = result.repoIds?.[repoName];
+                if (repoId) {
+                  jobs[repoId] = {
+                    repoName,
+                    status: 'pending',
+                    progress: 0,
+                    total: Math.min(maxPRs, 150)
+                  };
+                }
+              });
+              setBackfillJobs(jobs);
+              
+              toast({
+                title: "Backfill started",
+                description: `Fetching up to ${Math.min(maxPRs, 150)} PRs from the last ${backfillDays} days for ${backfillEvents.length} repositories`,
+                variant: "default"
+              });
+            } catch (error) {
+              console.error('Failed to trigger backfill:', error);
+              toast({
+                title: "Backfill failed to start",
+                description: "Repositories were added but backfill couldn't be started",
+                variant: "destructive"
+              });
+            }
+          }
+        }
+      }
+
       const successMessage = `${result.added.length} repos added, ${result.skipped.length} already tracked`;
       
       toast({
@@ -173,6 +311,7 @@ export function BulkAddRepos() {
     setInput("");
     setResult(null);
     setProgress(0);
+    setBackfillJobs({});
   };
 
   return (
@@ -216,6 +355,73 @@ nestjs/nest
               </div>
             )}
 
+            <div className="mb-4 space-y-3">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={includeBackfill}
+                  onChange={(e) => setIncludeBackfill(e.target.checked)}
+                  className="rounded"
+                  disabled={isProcessing}
+                />
+                <span className="text-sm">
+                  Fetch historical PR data (recommended)
+                </span>
+              </label>
+              {includeBackfill && (
+                <>
+                  <div className="ml-6 space-y-3">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Maximum number of PRs to fetch:
+                      </label>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="100"
+                          max="1000"
+                          step="100"
+                          value={maxPRs}
+                          onChange={(e) => setMaxPRs(Number(e.target.value))}
+                          className="flex-1"
+                          disabled={isProcessing}
+                        />
+                        <span className="text-sm font-medium w-20">
+                          {maxPRs} PRs
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Time window (days):
+                      </label>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="range"
+                          min="7"
+                          max="30"
+                          value={backfillDays}
+                          onChange={(e) => setBackfillDays(Number(e.target.value))}
+                          className="flex-1"
+                          disabled={isProcessing}
+                        />
+                        <span className="text-sm font-medium w-16">
+                          {backfillDays} days
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2 space-y-1 ml-6">
+                    <p>• Fetches up to {maxPRs} PRs OR {backfillDays} days of history (whichever limit is reached first)</p>
+                    <p>• Skips PRs already in the database</p>
+                    <p>• Estimated time: ~{Math.ceil(maxPRs / 200)} minutes per repository</p>
+                    <p>• For best performance, start with smaller values</p>
+                  </div>
+                </>
+              )}
+            </div>
+            
             <div className="flex gap-2">
               <Button 
                 onClick={handleProcess} 
@@ -283,6 +489,97 @@ nestjs/nest
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+        
+        {Object.keys(backfillJobs).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Backfill Progress</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open('https://app.inngest.com/env/production/runs', '_blank')}
+                  className="gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  View All Runs
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {Object.entries(backfillJobs).map(([repoId, job]) => (
+                  <div key={repoId} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {job.status === 'running' && (
+                          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                        )}
+                        {job.status === 'completed' && (
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                        )}
+                        {job.status === 'failed' && (
+                          <XCircle className="h-4 w-4 text-red-600" />
+                        )}
+                        {job.status === 'pending' && (
+                          <Info className="h-4 w-4 text-gray-400" />
+                        )}
+                        <span className="font-medium text-sm">{job.repoName}</span>
+                      </div>
+                      
+                      {job.runId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const url = `https://app.inngest.com/env/production/runs/${job.runId}`;
+                            window.open(url, '_blank');
+                          }}
+                          className="gap-1 text-xs"
+                        >
+                          View Run
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <Progress 
+                        value={(job.progress / job.total) * 100} 
+                        className="h-2"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>{job.message || `${job.progress}/${job.total} PRs`}</span>
+                        <span>{Math.round((job.progress / job.total) * 100)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-6 pt-4 border-t">
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Total Repos</p>
+                    <p className="font-medium">{Object.keys(backfillJobs).length}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Completed</p>
+                    <p className="font-medium text-green-600">
+                      {Object.values(backfillJobs).filter(j => j.status === 'completed').length}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">In Progress</p>
+                    <p className="font-medium text-blue-600">
+                      {Object.values(backfillJobs).filter(j => j.status === 'running').length}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}

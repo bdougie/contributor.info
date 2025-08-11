@@ -1,5 +1,5 @@
-import { useState, useRef, ReactNode } from "react";
-import { Download, Share2, Copy } from "lucide-react";
+import { useState, useRef, ReactNode } from "react"
+import { Download, Share2, Copy } from '@/components/ui/icon';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -43,7 +43,6 @@ export function ShareableCard({
   
   const location = useLocation();
   const dubConfig = getDubConfig();
-
 
   const handleCapture = async (action: 'download' | 'copy' | 'share') => {
     if (!cardRef.current) return;
@@ -161,7 +160,6 @@ export function ShareableCard({
       setIsCapturing(false);
     }
   };
-
 
   const trackShareEvent = async (action: string, type: string, metadata?: Record<string, any>) => {
     try {

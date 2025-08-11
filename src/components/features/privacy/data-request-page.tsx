@@ -1,7 +1,7 @@
+import { ArrowLeft, Mail } from '@/components/ui/icon';
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Mail } from "lucide-react";
 
 export function DataRequestPage() {
   const navigate = useNavigate();

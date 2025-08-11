@@ -1,5 +1,4 @@
 import { PullRequestActivity } from "@/lib/types";
-import { BotIcon } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -8,7 +7,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ContributorHoverCard } from "../contributor";
-import { useContext, useMemo, useState, useEffect } from "react";
+import { useContext, useMemo, useState, useEffect } from "react"
+import { BotIcon } from '@/components/ui/icon';
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import { createContributorStats, createContributorStatsWithOrgs } from "@/lib/contributor-utils";
 import { useContributorRole } from "@/hooks/useContributorRoles";
@@ -106,7 +106,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
   };
 
   return (
-    <div className="flex items-start space-x-3 p-2 sm:p-3 rounded-md hover:bg-muted/50 transition-colors">
+    <article className="flex items-start space-x-3 p-2 sm:p-3 rounded-md hover:bg-muted/50 transition-colors">
       <div className="relative flex-shrink-0">
         <ContributorHoverCard
           contributor={displayData}
@@ -131,6 +131,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
         </ContributorHoverCard>
         <div
           className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${getActivityColor()} border border-background`}
+          aria-hidden="true"
         ></div>
       </div>
 
@@ -143,7 +144,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
-                      <BotIcon className="h-3 w-3 text-muted-foreground ml-1" />
+                      <BotIcon className="h-3 w-3 text-muted-foreground ml-1" aria-label="Bot user" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Bot</p>
@@ -157,6 +158,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
                 className="text-orange-500 hover:underline"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label={`Pull request #${pullRequest.number}`}
               >
                 #{pullRequest.number}
               </a>
@@ -167,17 +169,18 @@ export function ActivityItem({ activity }: ActivityItemProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 title={`${repository.owner}/${repository.name}`}
+                aria-label={`Repository ${repository.owner}/${repository.name}`}
               >
                 {repository.owner}/{repository.name}
               </a>
             </div>
-            <p className="text-sm line-clamp-1 pr-2">{pullRequest.title}</p>
+            <h3 className="text-sm line-clamp-1 pr-2 font-normal">{pullRequest.title}</h3>
           </div>
-          <span className="text-xs text-muted-foreground whitespace-nowrap sm:ml-2">
+          <time className="text-xs text-muted-foreground whitespace-nowrap sm:ml-2">
             {timestamp}
-          </span>
+          </time>
         </div>
       </div>
-    </div>
+    </article>
   );
 }

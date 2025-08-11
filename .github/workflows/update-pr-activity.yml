@@ -41,4 +41,4 @@ jobs:
           UPDATE_DELAY_MS: ${{ vars.UPDATE_DELAY_MS || '1000' }}
           REPOSITORY_ID: ${{ github.event.inputs.repository_id }}
           DAYS: ${{ github.event.inputs.days }}
-        run: node scripts/trigger-pr-activity-updates.js
+        run: node scripts/data-sync/trigger-pr-activity-updates.js

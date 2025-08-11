@@ -1,19 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
+import { X, Users, Activity, Clock, Shield, AlertTriangle, Info, BarChart3 } from '@/components/ui/icon';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  X, 
-  Users, 
-  Activity, 
-  Clock, 
-  Shield, 
-  AlertTriangle,
-  Info,
-  BarChart3
-} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { ConfidenceAlgorithmExplainer } from './confidence-algorithm-explainer';
 

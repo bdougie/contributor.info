@@ -1,4 +1,4 @@
-import { TrendingUp, Users } from "lucide-react";
+import { TrendingUp, Users } from '@/components/ui/icon';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface RepoSocialCardProps {

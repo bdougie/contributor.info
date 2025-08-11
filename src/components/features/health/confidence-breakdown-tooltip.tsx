@@ -1,4 +1,4 @@
-import { HelpCircle, Star, MessageSquare, RotateCcw, CheckCircle } from "lucide-react";
+import { HelpCircle, Star, MessageSquare, RotateCcw, CheckCircle } from '@/components/ui/icon';
 import {
   Tooltip,
   TooltipContent,

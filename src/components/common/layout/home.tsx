@@ -1,9 +1,7 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { ExampleRepos } from "../../features/repository";
 import { useNavigate } from "react-router-dom";
@@ -32,7 +30,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+    <article className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
       <SocialMetaTags
         title="contributor.info - Visualizing Open Source Contributions"
         description="Discover and visualize GitHub contributors and their contributions. Track open source activity, analyze contribution patterns, and celebrate community impact."
@@ -41,24 +39,28 @@ export default function Home() {
       />
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="text-3xl font-bold text-center">
+          <h1 className="text-3xl font-bold text-center">
             Analyze GitHub Repository Contributors
-          </CardTitle>
-          <CardDescription className="text-center text-lg mt-2">
+          </h1>
+          <p className="text-center text-lg mt-2 text-muted-foreground">
             Enter a GitHub repository URL or owner/repo to visualize
             contribution patterns
-          </CardDescription>
+          </p>
         </CardHeader>
         <CardContent>
-          <GitHubSearchInput
-            placeholder="Search repositories (e.g., facebook/react)"
-            onSearch={handleSearch}
-            onSelect={handleSelectRepository}
-            buttonText="Analyze"
-          />
-          <ExampleRepos onSelect={handleSelectExample} />
+          <section>
+            <GitHubSearchInput
+              placeholder="Search repositories (e.g., facebook/react)"
+              onSearch={handleSearch}
+              onSelect={handleSelectRepository}
+              buttonText="Analyze"
+            />
+          </section>
+          <aside>
+            <ExampleRepos onSelect={handleSelectExample} />
+          </aside>
         </CardContent>
       </Card>
-    </div>
+    </article>
   );
 }

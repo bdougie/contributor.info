@@ -1,8 +1,8 @@
-import { useContext, useState, useEffect, Suspense, useMemo } from "react";
+import { useContext, useState, useEffect, Suspense, useMemo } from "react"
+import { PieChart, BarChart3, TreePine } from '@/components/ui/icon';
 import { useSearchParams, useParams } from "react-router-dom";
 import { CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { PieChart, BarChart3, TreePine } from "lucide-react";
 import { ShareableCard } from "@/components/features/sharing/shareable-card";
 import { LanguageLegend } from "./language-legend";
 import { LazyDistributionCharts } from "./distribution-charts-lazy";
@@ -23,18 +23,20 @@ export default function Distribution() {
   );
   
   // Use network-aware mobile detection for adaptive chart selection
-  const { isMobile, shouldUseSimplifiedUI, isSlowConnection } = useNetworkAwareDetection();
+  const { isMobile, shouldUseSimplifiedUI } = useNetworkAwareDetection();
   
   // Initialize chart type based on mobile/network conditions
   const getInitialChartType = (): "donut" | "bar" | "treemap" => {
-    const chartFromUrl = searchParams.get("chart") as "donut" | "bar" | "treemap";
+    const chartFromUrl = searchParams.get("chart");
+    const validChartTypes = ["donut", "bar", "treemap"];
     
-    // If URL specifies a chart type, respect it unless it's problematic on mobile
-    if (chartFromUrl) {
-      if (shouldUseSimplifiedUI && chartFromUrl === "treemap") {
+    // Validate the chart type from URL
+    if (chartFromUrl && validChartTypes.includes(chartFromUrl)) {
+      const validChart = chartFromUrl as "donut" | "bar" | "treemap";
+      if (shouldUseSimplifiedUI && validChart === "treemap") {
         return "donut"; // Fall back to donut for mobile/slow connections
       }
-      return chartFromUrl;
+      return validChart;
     }
     
     // Default based on device/network capabilities
@@ -46,9 +48,16 @@ export default function Distribution() {
   // Sync selectedQuadrant and chartType with URL params
   useEffect(() => {
     const quadrantFromUrl = searchParams.get("filter");
-    const chartFromUrl = searchParams.get("chart") as "donut" | "bar" | "treemap";
+    const chartFromUrl = searchParams.get("chart");
+    
+    // Validate chart type - only allow valid values
+    const validChartTypes = ["donut", "bar", "treemap"];
+    const validatedChartType = validChartTypes.includes(chartFromUrl as string) 
+      ? chartFromUrl as "donut" | "bar" | "treemap"
+      : "treemap"; // Default to treemap for invalid values
+    
     setSelectedQuadrant(quadrantFromUrl);
-    setChartType(chartFromUrl || "treemap");
+    setChartType(validatedChartType);
   }, [searchParams]);
 
   // Adaptive chart type based on mobile/network conditions
@@ -207,13 +216,6 @@ export default function Distribution() {
                     Treemap
                   </TabsTrigger>
                 </TabsList>
-              )}
-              
-              {/* Show performance indicator for slow connections */}
-              {isSlowConnection && (
-                <div className="text-xs text-muted-foreground mt-1 text-center">
-                  Simplified UI for better performance
-                </div>
               )}
             </div>
           </div>

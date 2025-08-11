@@ -1,33 +1,99 @@
-# Contributor.info
+# Contributor.info - Open Source Contribution Analytics Platform
 
-> A web application that analyzes GitHub repositories to provide insights about contributors, pull requests, and team dynamics. Users can sign in with GitHub, search any public repository, and discover contributor patterns, activity trends, and project health metrics.
+> A comprehensive web application that analyzes GitHub repositories to provide deep insights about contributors, pull requests, team dynamics, and project health. Users can sign in with GitHub OAuth, search any public repository, and discover detailed contributor patterns, activity trends, and actionable project health metrics.
 
-This application helps repository maintainers, team leads, and open source contributors understand project collaboration patterns. Key insights include contributor distribution analysis, pull request activity monitoring, lottery factor assessment for project sustainability, and team velocity tracking.
+## Core Purpose & Value Proposition
 
-The app provides real-time GitHub data visualization, contributor rankings and profiles, PR workflow analytics, and actionable recommendations for improving project health and contributor engagement.
+This application empowers repository maintainers, team leads, open source contributors, and project managers to understand project collaboration patterns through data-driven insights. The platform provides:
 
-## User Experience & Features
+- **Contributor Distribution Analysis**: Identify key contributors, maintainers, and community engagement patterns
+- **Pull Request Activity Monitoring**: Track team velocity, review cycles, and workflow health metrics  
+- **Project Sustainability Assessment**: Lottery factor analysis to identify contributor concentration risks
+- **Team Performance Analytics**: Velocity tracking, contribution patterns, and engagement metrics
+- **Real-time Data Visualization**: Interactive charts, contributor rankings, and comprehensive project dashboards
 
-- [Lottery Factor Insights](docs/feature-lottery-factor.md): Understanding project sustainability and contributor distribution risk assessment
-- [PR Activity Analytics](docs/insight-pr-activity.md): Real-time pull request monitoring, team velocity, and workflow health metrics
-- [Distribution Charts](docs/feature-distribution-charts.md): Language distribution analysis and contribution pattern visualization across programming languages and contributor quadrants
-- [Contributor of the Month](docs/feature-contributor-of-month.md): Monthly contributor recognition system with rankings, leaderboards, and achievement tracking
-- [Repository Activity Feed](docs/feature-activity-feed.md): Real-time chronological stream of pull request activity, contributor interactions, and project developments
-- [Contribution Analytics](docs/feature-contribution-analytics.md): Advanced contribution classification using quadrant analysis for impact and effort assessment
-- [Repository Search & Tracking](docs/feature-repository-search.md): Comprehensive repository discovery, analysis, and monitoring capabilities with search and tracking features
-- [Social Cards](docs/feature-social-cards.md): Automated generation of shareable visual summaries for social media and project promotion
-- [Contributor Profiles](docs/feature-contributor-profiles.md): Detailed individual contributor analysis including expertise areas, work patterns, and impact metrics
-- [Repository Health Dashboard](docs/feature-repository-health.md): Comprehensive project health assessment with sustainability metrics and actionable recommendations
-- [Time Range Analysis](docs/feature-time-range-analysis.md): Flexible temporal analysis across 30, 60, and 90-day periods for trend identification and planning
-- [Authentication & Protected Features](docs/feature-authentication.md): Secure GitHub OAuth integration with progressive enhancement and advanced analytics access
-- [Quick Start Guide](README.md): How to use the application - sign in, search repositories, and explore insights
+## Key Features & Documentation
 
-## Getting Started
+### Core Analytics Features
+- **[Lottery Factor Insights](https://contributor.info/docs/feature-lottery-factor.md)**: Project sustainability analysis and contributor distribution risk assessment with actionable recommendations
+- **[PR Activity Analytics](https://contributor.info/docs/insight-pr-activity.md)**: Real-time pull request monitoring, team velocity tracking, and workflow health metrics with time-series analysis
+- **[Distribution Charts](https://contributor.info/docs/feature-distribution-charts.md)**: Programming language distribution analysis and contribution pattern visualization using quadrant-based contributor analysis
+- **[Repository Health Dashboard](https://contributor.info/docs/feature-repository-health.md)**: Comprehensive project health assessment with sustainability metrics, contributor confidence scoring, and improvement recommendations
 
-- [Project Overview](README.md): Features overview, live application access, and basic usage instructions
-- [Contributing Guide](CONTRIBUTING.md): For developers who want to contribute to the project
+### Contributor & Community Features
+- **[Contributor of the Month](https://contributor.info/docs/feature-contributor-of-month.md)**: Monthly contributor recognition system with automated rankings, leaderboards, and achievement tracking
+- **[Contributor Profiles](https://contributor.info/docs/feature-contributor-profiles.md)**: Detailed individual contributor analysis including expertise areas, contribution patterns, impact metrics, and work behavior insights
+- **[Repository Activity Feed](https://contributor.info/docs/feature-activity-feed.md)**: Real-time chronological stream of pull request activity, contributor interactions, merge patterns, and project developments
 
-## Optional
+### Advanced Analytics & Tools
+- **[Contribution Analytics](https://contributor.info/docs/feature-contribution-analytics.md)**: Advanced contribution classification using quadrant analysis for measuring contribution impact versus effort with trend analysis
+- **[Time Range Analysis](https://contributor.info/docs/feature-time-range-analysis.md)**: Flexible temporal analysis across 30, 60, and 90-day periods for trend identification, seasonal pattern detection, and project planning
+- **[Repository Search & Tracking](https://contributor.info/docs/feature-repository-search.md)**: Comprehensive repository discovery, analysis, and monitoring capabilities with intelligent search and automated tracking features
 
-- [Development Documentation](CLAUDE.md): Technical guidelines and build commands for contributors
-- [Architecture Documentation](CONTRIBUTING.md): Database schema and technical implementation details
+### Integration & Sharing Features  
+- **[Social Cards](https://contributor.info/docs/feature-social-cards.md)**: Automated generation of shareable visual summaries for social media promotion, project marketing, and community engagement
+- **[Authentication & Protected Features](https://contributor.info/docs/feature-authentication.md)**: Secure GitHub OAuth integration with progressive enhancement, role-based access control, and advanced analytics access
+
+## Technical Architecture & Data Sources
+
+- **Data Source**: GitHub REST API and GraphQL API for comprehensive repository data
+- **Real-time Processing**: Progressive data capture with intelligent background synchronization
+- **Database**: Supabase PostgreSQL with optimized schemas for contribution analytics
+- **Frontend**: React + TypeScript with responsive design and progressive web app capabilities
+- **Authentication**: GitHub OAuth with secure token management
+- **Deployment**: Netlify with serverless functions for scalable API integration
+
+## Use Cases & Target Audience
+
+### Repository Maintainers
+- Monitor contributor engagement and identify community health trends
+- Assess project sustainability and contributor distribution risks
+- Track pull request velocity and review cycle efficiency
+- Identify potential maintainers and core contributors
+
+### Open Source Contributors
+- Discover contribution opportunities and understand project dynamics
+- Track personal contribution impact and growth over time
+- Understand team collaboration patterns and find mentorship opportunities
+- Analyze project health before contributing significant effort
+
+### Team Leads & Engineering Managers
+- Measure team velocity and identify workflow bottlenecks
+- Track individual and team performance metrics over time
+- Assess code review effectiveness and collaboration patterns
+- Plan resource allocation based on contributor capacity analysis
+
+### Project Stakeholders & Community Managers
+- Understand community engagement patterns and growth trends
+- Identify recognition opportunities for top contributors
+- Assess project health and sustainability for strategic planning
+- Generate insights for community building and retention strategies
+
+## Getting Started & User Guides
+
+- **[Live Application](https://contributor.info)**: Access the full application with GitHub authentication
+- **[Quick Start Guide](https://contributor.info/README.md)**: Step-by-step instructions for searching repositories and exploring insights
+- **[Feature Documentation](https://contributor.info/docs)**: Comprehensive guides for each analytics feature and dashboard
+
+## Development & Technical Resources
+
+- **[Contributing Guide](https://contributor.info/CONTRIBUTING.md)**: Developer onboarding, code contribution guidelines, and technical architecture overview
+- **[Development Documentation](https://contributor.info/CLAUDE.md)**: Technical guidelines, build commands, and development environment setup for contributors
+- **[API Documentation](https://contributor.info/docs)**: Integration guides and technical implementation details
+
+## Data & Privacy
+
+- **[Privacy Policy](https://contributor.info/privacy)**: Comprehensive data handling, storage, and user privacy protection policies
+- **[Terms of Service](https://contributor.info/terms)**: Platform usage terms, acceptable use policy, and service availability
+- **[Data Request Portal](https://contributor.info/privacy/data-request)**: User data export, deletion requests, and privacy control options
+
+## Popular Repository Examples
+
+The platform analyzes thousands of open source repositories. Popular examples include:
+- **React Ecosystem**: facebook/react, vercel/next.js, remix-run/remix
+- **JavaScript Frameworks**: vuejs/vue, angular/angular, sveltejs/svelte  
+- **Developer Tools**: microsoft/vscode, nodejs/node, prettier/prettier
+- **Machine Learning**: pytorch/pytorch, tensorflow/tensorflow, huggingface/transformers
+- **Infrastructure**: kubernetes/kubernetes, docker/docker, hashicorp/terraform
+
+Each repository analysis includes contributor quadrant analysis, lottery factor assessment, pull request activity tracking, and comprehensive health metrics with historical trend analysis.

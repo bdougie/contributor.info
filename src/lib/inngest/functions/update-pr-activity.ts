@@ -37,7 +37,7 @@ export const updatePrActivity = inngest.createFunction(
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (!repository) {
         throw new Error(`Repository not found: ${repositoryId}`);
@@ -92,7 +92,7 @@ export const updatePrActivity = inngest.createFunction(
           .in('sync_type', ['pr_comments', 'pr_reviews', 'pr_details'])
           .order('completed_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         const hoursSinceLastSync = lastSync?.completed_at 
           ? (Date.now() - new Date(lastSync.completed_at).getTime()) / (1000 * 60 * 60)

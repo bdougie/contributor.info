@@ -151,7 +151,7 @@ async function processFileEmbedding(
             .eq('repository_id', repositoryId)
             .eq('file_path', filePath)
             .eq('content_hash', contentHash)
-            .single();
+            .maybeSingle();
           
           // Supabase returns an error for no rows found, which is expected
           if (error && error.code !== 'PGRST116') {
@@ -207,7 +207,7 @@ export async function generateFileEmbeddings(
       .from('repositories')
       .select('id')
       .eq('github_id', repository.id)
-      .single();
+      .maybeSingle();
     
     if (!dbRepo) {
       console.error('Repository not found in database');

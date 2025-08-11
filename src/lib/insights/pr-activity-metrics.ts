@@ -21,7 +21,7 @@ export interface ActivityMetrics {
     change: number;
   };
   // Status information for proper error handling
-  status: 'success' | 'large_repository_protected' | 'no_data' | 'error' | 'partial_data';
+  status: 'success' | 'large_repository_protected' | 'no_data' | 'error' | 'partial_data' | 'pending';
   message?: string;
   repositoryName?: string;
 }

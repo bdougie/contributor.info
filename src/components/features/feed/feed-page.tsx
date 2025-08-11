@@ -10,6 +10,8 @@ import { useTimeRangeStore } from "@/lib/time-range-store";
 import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
 import { FeedSkeleton } from "@/components/skeletons";
 import { SocialMetaTags } from "@/components/common/layout";
+import { LastUpdated } from "@/components/ui/last-updated";
+import { useDataTimestamp } from "@/hooks/use-data-timestamp";
 
 export default function FeedPage() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -23,6 +25,11 @@ export default function FeedPage() {
     timeRange,
     includeBots
   );
+
+  // Track data timestamps for freshness indicators
+  const { lastUpdated } = useDataTimestamp([stats, lotteryFactor, directCommitsData], {
+    autoUpdate: true
+  });
 
   if (!owner || !repo) {
     return (
@@ -76,6 +83,16 @@ export default function FeedPage() {
         image={`social-cards/repo-${owner}-${repo}.png`}
       />
       
+      {/* Add timestamp indicator for feed freshness */}
+      {!stats.loading && (
+        <div className="mb-4 flex justify-end">
+          <LastUpdated 
+            timestamp={lastUpdated}
+            label="Feed updated"
+            size="sm"
+          />
+        </div>
+      )}
 
       <RepoStatsProvider
         value={{

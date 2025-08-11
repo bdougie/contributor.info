@@ -1,8 +1,8 @@
+import { Shield, AlertTriangle, Github } from '@/components/ui/icon';
 import { useAdminAuth } from '@/hooks/use-admin-auth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, AlertTriangle, Github } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface AdminRouteProps {

@@ -25,6 +25,13 @@ Comprehensive troubleshooting guide for Inngest issues:
 - Local vs production configuration
 - Emergency procedures
 
+### 🔒 [Inngest Client-Safe Event Sending](./inngest-client-safe.md) **NEW**
+Guide to the client-safe wrapper for Inngest events:
+- Browser-safe event sending without exposing keys
+- Unified API for client and server contexts
+- Migration guide from direct inngest.send() usage
+- Security benefits and implementation details
+
 ### 📋 [Rollout Quick Reference](./rollout-quick-reference.md) **NEW**
 Quick command reference for rollout management:
 - Console commands cheat sheet
@@ -35,6 +42,20 @@ Quick command reference for rollout management:
 ### 📋 [Phase 3 & 4 Summary](./PHASE3-PHASE4-SUMMARY.md)
 Executive summary of the Smart Data Fetching implementation, covering both Phase 3 (Smart Data Fetching Logic) and Phase 4 (Background Capture Optimization).
 
+### ⚙️ [GitHub Actions Workflows](./github-actions-workflows.md) **NEW**
+User-friendly guide to the automated workflows:
+- Sync Contributor Stats - Monthly rankings data collection
+- Update PR Activity - Recent activity processing
+- Manual trigger instructions
+- Monitoring and troubleshooting
+
+### 🔄 [Progressive Backfill Implementation](./progressive-backfill-implementation.md) **NEW**
+Technical guide to the progressive backfill system:
+- Chunked processing for large repositories (25-50 PRs per chunk)
+- Automatic progress tracking and resumability
+- Rate limit management and dynamic chunk sizing
+- Error handling with GitHub issue creation
+
 ### 🏗️ [Architecture Guide](./smart-data-fetching.md)
 Complete technical architecture including:
 - Repository size classification system
@@ -42,6 +63,14 @@ Complete technical architecture including:
 - Progressive data loading
 - Hybrid API strategy (GraphQL/REST)
 - Performance optimizations
+
+### 🎯 [Database-First Smart Fetching](./database-first-smart-fetching.md) **NEW**
+Comprehensive guide to the enhanced data fetching system:
+- Smart database-first approach eliminates timeouts
+- Automatic new repository detection and setup
+- Enhanced user notifications and status communication
+- DataStateIndicator component usage
+- Error handling and resilience patterns
 
 ### 🚦 [Queue Management](./queue-management.md)
 Deep dive into the queue management system:
@@ -58,6 +87,13 @@ Operational guide for monitoring system health:
 - Troubleshooting common issues
 - Performance optimization tips
 
+### 🔧 [Data Analysis Scripts](./data-analysis-scripts.md) **NEW**
+Scripts for testing and improving review/comment data capture:
+- Test review/comment data presence (`test-review-sync.mjs`)
+- Backfill missing data for existing repositories (`backfill-reviews-comments.mjs`)
+- When and how to use each script
+- Troubleshooting data capture issues
+
 ## Quick Links
 
 ### For Developers
@@ -65,6 +101,8 @@ Operational guide for monitoring system health:
 - [Fetch Strategies](./smart-data-fetching.md#fetch-strategy-engine)
 - [Queue Priority Scoring](./queue-management.md#priority-scoring-algorithm)
 - [API Integration](./queue-management.md#api-integration)
+- [Progressive Backfill System](./progressive-backfill-implementation.md)
+- [GitHub Actions Migration](../implementations/github-actions-migration-summary.md)
 
 ### For Operators
 - [Dashboard Access](./monitoring-capture-health.md#accessing-the-monitor)
@@ -107,6 +145,7 @@ Operational guide for monitoring system health:
 - ✅ 90% reduction in resource exhaustion errors
 - ✅ 85%+ background capture success rate (95% with retries)
 - ✅ All 6 implementation phases completed January 2025
+- ✅ Enhanced review/comment capture (up to 50 PRs per sync, previously 10)
 
 ## Getting Started
 

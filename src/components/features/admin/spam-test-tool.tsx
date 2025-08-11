@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState } from 'react'
+import { Search, AlertTriangle, CheckCircle, RefreshCw, ExternalLink, Bug } from '@/components/ui/icon';
 import { supabase } from '@/lib/supabase';
 import { SpamDetectionService } from '@/lib/spam';
 import { PRTemplateService } from '@/lib/spam/PRTemplateService';
@@ -9,14 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Search, 
-  AlertTriangle, 
-  CheckCircle, 
-  RefreshCw,
-  ExternalLink,
-  Bug
-} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { logAdminAction, useAdminGitHubId } from '@/hooks/use-admin-auth';
 

@@ -1,0 +1,53 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "node",
+    "lib": ["ES2022"],
+    "types": ["node", "@netlify/functions"],
+    
+    /* Strict checks for functions */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    
+    /* Module resolution checks */
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    
+    /* Error on missing imports */
+    "noEmit": false,
+    "outDir": "./dist/functions",
+    "rootDir": "./",
+    
+    /* Additional checks */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "netlify/functions/**/*.ts",
+    "netlify/functions/**/*.mts",
+    "src/lib/inngest/**/*.ts",
+    "src/lib/supabase.ts",
+    "src/lib/github.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

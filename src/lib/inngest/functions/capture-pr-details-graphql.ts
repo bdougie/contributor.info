@@ -2,6 +2,7 @@ import { inngest } from '../client';
 import { supabase } from '../../supabase';
 import { GraphQLClient } from '../graphql-client';
 import type { NonRetriableError } from 'inngest';
+import { getMergeableStatus } from '../../utils/performance-helpers';
 
 // Type definitions for GitHub user data
 interface GitHubUser {
@@ -17,7 +18,6 @@ interface ReviewComment {
   repository_id: string;
   pull_request_id: string;
   github_id: number;
-  pull_request_number: number;
   review_id?: number;
   body: string;
   path?: string;
@@ -131,7 +131,7 @@ async function ensureContributorExists(githubUser: GitHubUser | null | undefined
         ignoreDuplicates: false
       })
       .select('id')
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error upserting contributor:', error, {
@@ -146,7 +146,10 @@ async function ensureContributorExists(githubUser: GitHubUser | null | undefined
       return null;
     }
 
-    return data.id;
+    if (!data) {
+    throw new Error(`Failed to ensure contributor exists`);
+  }
+  return data.id;
   } catch (err) {
     console.error('Exception in ensureContributorExists:', err, {
       githubUser: {
@@ -180,7 +183,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
@@ -253,7 +256,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           closed_at: pullRequest.closedAt,
           merged_at: pullRequest.mergedAt,
           merged: pullRequest.merged || false,
-          mergeable: pullRequest.mergeable === 'MERGEABLE' ? true : pullRequest.mergeable === 'CONFLICTING' ? false : null,
+          mergeable: getMergeableStatus(pullRequest.mergeable),
           merged_by_id: mergedById,
           base_branch: pullRequest.baseRefName,
           head_branch: pullRequest.headRefName,
@@ -261,7 +264,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           onConflict: 'github_id'
         })
         .select('id')
-        .single();
+        .maybeSingle();
 
       if (prError) {
         throw new Error(`Failed to store PR: ${prError.message}`);
@@ -283,7 +286,6 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           repository_id: string;
           pull_request_id: string;
           github_id: number;
-          pull_request_number: number;
           state: string;
           body: string;
           author_id: string;
@@ -297,7 +299,6 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
               repository_id: repositoryId,
               pull_request_id: prInternalId,
               github_id: review.databaseId,
-              pull_request_number: pullRequest.number,
               state: review.state?.toLowerCase(),
               body: review.body,
               author_id: reviewAuthorId,
@@ -331,7 +332,6 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           repository_id: string;
           pull_request_id: string;
           github_id: number;
-          pull_request_number: number;
           body: string;
           commenter_id: string;
           created_at: string;
@@ -345,7 +345,6 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
               repository_id: repositoryId,
               pull_request_id: prInternalId,
               github_id: comment.databaseId,
-              pull_request_number: pullRequest.number,
               body: comment.body,
               commenter_id: commenterId,
               created_at: comment.createdAt,
@@ -396,7 +395,6 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
               repository_id: repositoryId,
               pull_request_id: prInternalId,
               github_id: comment.databaseId,
-              pull_request_number: pullRequest.number,
               review_id: review.databaseId,
               body: comment.body,
               path: comment.path,

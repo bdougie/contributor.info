@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"
+import { TrendingUp, TrendingDown, Link } from '@/components/ui/icon';
 import {
   Card,
   CardContent,
@@ -6,7 +7,6 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Link, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { PrCountCard } from "./pr-count-card";
 import { AvgTimeCard } from "./avg-time-card";
 import { VelocityCard } from "./velocity-card";
 import { calculatePrActivityMetrics, type ActivityMetrics } from "@/lib/insights/pr-activity-metrics";
-import { ProgressiveCaptureTrigger } from "@/lib/progressive-capture/manual-trigger";
+import { DataStateIndicator } from "@/components/ui/data-state-indicator";
 // Removed Sentry import - using simple logging instead
 
 interface MetricsAndTrendsCardProps {
@@ -69,21 +69,21 @@ function TrendCard({ trend, loading = false }: TrendCardProps) {
     <Card>
       <CardContent className="pt-6">
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <h4 className="text-sm font-medium">{trend.metric}</h4>
-          </div>
+          <h4 className="text-sm font-medium">{trend.metric}</h4>
 
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold">{trend.current}</span>
+          <dl className="flex items-baseline gap-2">
+            <dt className="sr-only">Current {trend.metric}</dt>
+            <dd className="text-2xl font-bold">{trend.current}</dd>
             {trend.unit && (
-              <span className="text-sm text-muted-foreground">
+              <dd className="text-sm text-muted-foreground">
                 {trend.unit}
-              </span>
+              </dd>
             )}
 
             <div className="flex items-center gap-1 ml-2">
               {getTrendIcon(trend.trend, trend.change)}
-              <span
+              <dt className="sr-only">Change from previous period</dt>
+              <dd
                 className={cn(
                   "text-sm font-medium",
                   getTrendColor(trend.change)
@@ -91,9 +91,9 @@ function TrendCard({ trend, loading = false }: TrendCardProps) {
               >
                 {trend.change > 0 ? "+" : ""}
                 {trend.change}%
-              </span>
+              </dd>
             </div>
-          </div>
+          </dl>
 
           {trend.insight && (
             <p className="text-xs text-muted-foreground">{trend.insight}</p>
@@ -274,73 +274,57 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Show status message for missing data, errors, or protection */}
-        {!loading && hasLowDataQuality(metrics, trends) && (
-          <div className="mb-6 p-4 bg-muted/50 rounded-lg border border-dashed">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">{getStatusMessage(metrics).title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {getStatusMessage(metrics).description}
+        {/* Show user-friendly status for all data states */}
+        {!loading && metrics && metrics.status !== 'success' && (
+          <DataStateIndicator 
+            status={metrics.status || 'success'}
+            message={metrics.message}
+            className="mb-6"
+          />
+        )}
+
+        {/* Show progressive capture option for data quality issues */}
+        {!loading && hasLowDataQuality(metrics, trends) && metrics?.status !== 'large_repository_protected' && (
+          <div className="mb-6 p-4 rounded-lg border bg-black dark:bg-white">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-white dark:text-black">Need complete data faster?</p>
+                <p className="text-xs text-white/70 dark:text-black/70 mt-1">
+                  Large repositories are queued for daily processing. Request priority indexing through our GitHub discussions or upgrade for faster processing.
                 </p>
               </div>
-              {metrics?.status !== 'large_repository_protected' && (
-                <Button 
-                  onClick={async () => {
-                    // Simple logging for user retry action
-                    console.log('User triggered progressive data capture:', {
+              <Button 
+                  onClick={() => {
+                    // Log user interest in prioritization
+                    console.log('User requested priority indexing:', {
                       repository: `${owner}/${repo}`,
                       status: metrics?.status || 'unknown',
-                      action: 'progressive_capture'
+                      action: 'request_priority'
                     });
                     
-                    try {
-                      // Netflix-like experience: Simple, user-friendly notification
-                      toast.info(`Updating ${owner}/${repo}...`, {
-                        description: 'Loading fresh data in the background',
-                        duration: 4000
-                      });
-                      
-                      await ProgressiveCaptureTrigger.quickFix(owner, repo);
-                      
-                      // Set expectation for longer processing due to rate limits
-                      setTimeout(() => {
-                        toast.success('Data update in progress', {
-                          description: 'Background processing may take a few minutes. Fresh data will be available shortly.',
-                          duration: 8000,
-                          action: {
-                            label: 'Check Status',
-                            onClick: () => window.location.reload()
-                          }
-                        });
-                      }, 3000); // Quick acknowledgment that jobs are queued
-                      
-                    } catch (error) {
-                      console.error('Background update failed:', error);
-                      toast.error('Unable to load fresh data', {
-                        description: 'Using cached data instead. Try refreshing in a moment.',
-                        duration: 10000,
-                        action: {
-                          label: 'Retry',
-                          onClick: () => window.location.reload()
-                        }
-                      });
-                    }
+                    // Open GitHub discussions in new tab with pre-filled repo info
+                    const discussionUrl = `https://github.com/bdougie/contributor.info/discussions/new?category=request-a-repo&title=Priority%20indexing%20request%20for%20${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+                    window.open(discussionUrl, '_blank');
+                    
+                    // Show helpful toast
+                    toast.info('Opening priority request form', {
+                      description: 'Let us know which repository you need indexed and we\'ll prioritize it in our queue.',
+                      duration: 6000
+                    });
                   }}
                   variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  title={metrics?.status === 'error' ? 'Retry loading data' : 'Refresh data'}
+                  size="sm"
+                  className="text-xs whitespace-nowrap border-black text-black hover:bg-black/10 dark:border-white dark:text-white dark:hover:bg-white/10"
+                  title="Request priority indexing"
                 >
-                  <RefreshCw className="h-4 w-4" />
+                  Request Priority
                 </Button>
-              )}
             </div>
           </div>
         )}
 
         {/* Metrics Section */}
-        <div>
+        <section>
           <h3 className="text-sm font-medium mb-3">Activity Metrics</h3>
           {loading || !metrics ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -370,10 +354,10 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
               </div>
             </div>
           )}
-        </div>
+        </section>
 
         {/* Trends Section */}
-        <div>
+        <section>
           <h3 className="text-sm font-medium mb-3">Trends</h3>
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -395,7 +379,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
               ))}
             </div>
           )}
-        </div>
+        </section>
       </CardContent>
     </Card>
   );

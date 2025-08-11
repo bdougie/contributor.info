@@ -32,16 +32,28 @@
     <link rel="preconnect" href="https://api.github.com" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://egcxzonpmmcirmgqdrla.supabase.co" crossorigin>
     <link rel="dns-prefetch" href="https://avatars.githubusercontent.com">
     <link rel="dns-prefetch" href="https://api.github.com">
     <link rel="dns-prefetch" href="https://github.com">
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <link rel="dns-prefetch" href="https://egcxzonpmmcirmgqdrla.supabase.co">
     
     <!-- Preload critical resources for LCP optimization -->
+    <!-- These will be transformed by Vite in production to correct hashed filenames -->
     <link rel="modulepreload" href="/src/main.tsx" />
-    <link rel="modulepreload" href="/src/App.tsx" />
-    <link rel="preload" as="style" href="/src/index.css" />
+    
+    <!-- Preload icon sprite for faster icon rendering -->
+    <link rel="preload" href="/icons.svg" as="image" type="image/svg+xml" />
+    
+    <!-- Preload critical fonts for faster text rendering -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
+    
+    <!-- Prefetch likely next navigations -->
+    <link rel="prefetch" href="/api/contributors" />
+    <link rel="prefetch" href="/api/repositories" />
     
     <!-- Prevent FOUC by detecting theme before render -->
     <script>
