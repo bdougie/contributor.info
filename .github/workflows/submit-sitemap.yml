@@ -1,0 +1,188 @@
+name: Submit Sitemap to Search Engines
+
+on:
+  # Run after successful deployment
+  workflow_run:
+    workflows: ["Release Automation"]
+    types:
+      - completed
+  # Also allow manual trigger
+  workflow_dispatch:
+  # Run weekly to ensure search engines stay updated
+  schedule:
+    - cron: '0 3 * * 1' # Every Monday at 3 AM UTC
+
+jobs:
+  submit-sitemap:
+    name: Submit Sitemap to Search Engines
+    runs-on: ubuntu-latest
+    # Only run if the triggering workflow succeeded or if manually triggered
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: Wait for deployment (if triggered by release)
+        if: github.event_name == 'workflow_run'
+        run: |
+          echo "Waiting 3 minutes for Netlify deployment to complete..."
+          sleep 180
+
+      - name: Verify sitemap accessibility
+        id: verify
+        run: |
+          echo "Verifying sitemap is accessible before submission..."
+          
+          # Check if sitemap is accessible
+          if curl -f -s -o /dev/null -w "%{http_code}" https://contributor.info/sitemap.xml | grep -q "200"; then
+            echo "✅ Sitemap is accessible"
+            echo "sitemap_available=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Sitemap is not accessible"
+            echo "sitemap_available=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Submit to Google
+        if: steps.verify.outputs.sitemap_available == 'true'
+        continue-on-error: true
+        run: |
+          echo "📤 Submitting sitemap to Google..."
+          
+          # Google sitemap ping endpoint
+          GOOGLE_PING="https://www.google.com/ping?sitemap=https://contributor.info/sitemap.xml"
+          
+          # Submit sitemap
+          response=$(curl -s -o /dev/null -w "%{http_code}" "$GOOGLE_PING")
+          
+          if [ "$response" = "200" ]; then
+            echo "✅ Successfully submitted sitemap to Google"
+          else
+            echo "⚠️ Google submission returned status code: $response"
+            echo "This is normal if Google is rate-limiting. The sitemap will be discovered via robots.txt"
+          fi
+          
+          # Also submit news sitemap
+          GOOGLE_NEWS_PING="https://www.google.com/ping?sitemap=https://contributor.info/sitemap-news.xml"
+          news_response=$(curl -s -o /dev/null -w "%{http_code}" "$GOOGLE_NEWS_PING")
+          
+          if [ "$news_response" = "200" ]; then
+            echo "✅ Successfully submitted news sitemap to Google"
+          else
+            echo "⚠️ Google news submission returned status code: $news_response"
+          fi
+
+      - name: Submit to Bing
+        if: steps.verify.outputs.sitemap_available == 'true'
+        continue-on-error: true
+        run: |
+          echo "📤 Submitting sitemap to Bing..."
+          
+          # Bing sitemap ping endpoint
+          BING_PING="https://www.bing.com/ping?sitemap=https://contributor.info/sitemap.xml"
+          
+          # Submit sitemap
+          response=$(curl -s -o /dev/null -w "%{http_code}" "$BING_PING")
+          
+          if [ "$response" = "200" ]; then
+            echo "✅ Successfully submitted sitemap to Bing"
+          else
+            echo "⚠️ Bing submission returned status code: $response"
+            echo "This is normal if Bing is rate-limiting. The sitemap will be discovered via robots.txt"
+          fi
+          
+          # Also submit news sitemap
+          BING_NEWS_PING="https://www.bing.com/ping?sitemap=https://contributor.info/sitemap-news.xml"
+          news_response=$(curl -s -o /dev/null -w "%{http_code}" "$BING_NEWS_PING")
+          
+          if [ "$news_response" = "200" ]; then
+            echo "✅ Successfully submitted news sitemap to Bing"
+          else
+            echo "⚠️ Bing news submission returned status code: $news_response"
+          fi
+
+      - name: Submit to IndexNow (Bing, Yandex, Seznam)
+        if: steps.verify.outputs.sitemap_available == 'true'
+        continue-on-error: true
+        run: |
+          echo "📤 Submitting to IndexNow API..."
+          
+          # IndexNow is a protocol supported by multiple search engines
+          # We need an API key for this - should be added as a secret
+          
+          # If we have the API key, submit
+          if [ -n "${{ secrets.INDEXNOW_API_KEY }}" ]; then
+            echo "🔑 IndexNow API key found, proceeding with submission..."
+            
+            # Create JSON payload with recently updated URLs
+            # Note: contributor.info (without www) is the correct domain
+            cat > indexnow.json << EOF
+          {
+            "host": "contributor.info",
+            "key": "${{ secrets.INDEXNOW_API_KEY }}",
+            "keyLocation": "https://contributor.info/indexnow.txt",
+            "urlList": [
+              "https://contributor.info/",
+              "https://contributor.info/sitemap.xml",
+              "https://contributor.info/changelog",
+              "https://contributor.info/docs"
+            ]
+          }
+          EOF
+            
+            echo "📝 Submitting the following payload:"
+            cat indexnow.json
+            
+            # Submit to IndexNow
+            response=$(curl -s -o /dev/null -w "%{http_code}" \
+              -X POST \
+              -H "Content-Type: application/json; charset=utf-8" \
+              -H "Host: api.indexnow.org" \
+              -d @indexnow.json \
+              "https://api.indexnow.org/IndexNow")
+            
+            if [ "$response" = "200" ] || [ "$response" = "202" ]; then
+              echo "✅ Successfully submitted to IndexNow (Status: $response)"
+              echo "   Submitted URLs will be shared with Bing, Yandex, Seznam, and other participating search engines"
+            elif [ "$response" = "400" ]; then
+              echo "❌ Bad Request - Check the JSON payload format"
+            elif [ "$response" = "403" ]; then
+              echo "❌ Forbidden - Key validation failed. Ensure indexnow.txt is accessible at https://contributor.info/indexnow.txt"
+            elif [ "$response" = "422" ]; then
+              echo "⚠️ Unprocessable Entity - URLs don't belong to the host or invalid format"
+            elif [ "$response" = "429" ]; then
+              echo "⚠️ Too Many Requests - Rate limited, will retry later"
+            else
+              echo "⚠️ IndexNow submission returned unexpected status code: $response"
+            fi
+          else
+            echo "⏭️ Skipping IndexNow submission (no API key configured)"
+            echo "To enable IndexNow:"
+            echo "1. Generate a key at https://www.bing.com/indexnow"
+            echo "2. Add it as GitHub secret: INDEXNOW_API_KEY"
+            echo "3. Deploy indexnow.txt file containing the key to https://contributor.info/indexnow.txt"
+          fi
+
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## 🔍 Sitemap Submission Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.verify.outputs.sitemap_available }}" = "true" ]; then
+            echo "### ✅ Sitemap Verified" >> $GITHUB_STEP_SUMMARY
+            echo "- Main sitemap: https://contributor.info/sitemap.xml" >> $GITHUB_STEP_SUMMARY
+            echo "- News sitemap: https://contributor.info/sitemap-news.xml" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Sitemap Not Accessible" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📤 Submission Status" >> $GITHUB_STEP_SUMMARY
+          echo "- Google: Ping sent (check Search Console for status)" >> $GITHUB_STEP_SUMMARY
+          echo "- Bing: Ping sent (check Webmaster Tools for status)" >> $GITHUB_STEP_SUMMARY
+          echo "- IndexNow: Check configuration for multi-engine submission" >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Verification Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [Google Search Console](https://search.google.com/search-console)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Bing Webmaster Tools](https://www.bing.com/webmasters)" >> $GITHUB_STEP_SUMMARY
+          echo "- [robots.txt](https://contributor.info/robots.txt)" >> $GITHUB_STEP_SUMMARY
