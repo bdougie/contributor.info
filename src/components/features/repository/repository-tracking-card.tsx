@@ -1,9 +1,19 @@
-import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { GitBranch, Lock, Loader2, AlertCircle } from '@/components/ui/icon';
+import { BarChart3, Lock, Loader2, AlertCircle } from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
+import {
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell
+} from 'recharts';
 
 interface RepositoryTrackingCardProps {
   owner: string;
@@ -21,6 +31,25 @@ export function RepositoryTrackingCard({
   const { isLoggedIn, login } = useGitHubAuth();
   const [isTracking, setIsTracking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Generate mock scatter plot data
+  const mockData = useMemo(() => {
+    const data = [];
+    const now = Date.now();
+    const contributors = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank'];
+    
+    // Generate 30 mock PR data points
+    for (let i = 0; i < 30; i++) {
+      data.push({
+        x: Math.floor(Math.random() * 30), // Days ago
+        y: Math.floor(Math.random() * 200) + 10, // Lines changed
+        contributor: contributors[Math.floor(Math.random() * contributors.length)],
+        opacity: 0.3 + Math.random() * 0.4 // Varying opacity for blur effect
+      });
+    }
+    
+    return data.sort((a, b) => a.x - b.x);
+  }, []);
 
   const handleLogin = async () => {
     // Store the repository path so we can auto-track after login
@@ -144,86 +173,118 @@ export function RepositoryTrackingCard({
     }, 2000); // Poll every 2 seconds
   };
 
-  // Calculate responsive height to match chart dimensions
-  const cardHeight = 'h-[280px] md:h-[400px]';
-
   return (
-    <Card className={`${cardHeight} ${className}`}>
-      <CardContent className="h-full flex flex-col items-center justify-center p-8">
-        <div className="text-center max-w-md mx-auto space-y-6">
-          {/* Repository Icon */}
-          <div className="flex justify-center mb-4">
-            <div className="p-4 bg-muted rounded-full">
-              <GitBranch className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </div>
-
-          {/* Repository Name */}
-          <div>
-            <h2 className="text-2xl font-semibold mb-2">
-              {owner}/{repo}
-            </h2>
-            <p className="text-muted-foreground">
-              This repository is not being tracked yet
-            </p>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 px-4 py-2 rounded-lg">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Benefits */}
-          <div className="text-sm text-muted-foreground space-y-1">
-            <p>Track this repository to unlock:</p>
-            <ul className="mt-2 space-y-1 text-left inline-block">
-              <li>• Contributor analytics and insights</li>
-              <li>• Pull request activity visualization</li>
-              <li>• Community health metrics</li>
-              <li>• Historical contribution trends</li>
-            </ul>
-          </div>
-
-          {/* Action Button */}
-          <div className="pt-2">
-            {!isLoggedIn ? (
-              <Button 
-                size="lg" 
-                onClick={handleLogin}
-                className="min-w-[200px]"
-              >
-                <Lock className="mr-2 h-4 w-4" />
-                Login to Track Repository
-              </Button>
-            ) : (
-              <Button 
-                size="lg" 
-                onClick={handleTrackRepository}
-                disabled={isTracking}
-                className="min-w-[200px]"
-              >
-                {isTracking ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Tracking Repository...
-                  </>
-                ) : (
-                  <>
-                    <GitBranch className="mr-2 h-4 w-4" />
-                    Track This Repository
-                  </>
-                )}
-              </Button>
-            )}
-          </div>
-
-          {/* Time Estimate */}
-          <p className="text-xs text-muted-foreground">
-            Data typically available within 1-2 minutes
+    <Card className={className}>
+      <CardHeader>
+        <div className="space-y-1">
+          <h2 className="text-xl font-semibold">{owner}/{repo}</h2>
+          <p className="text-sm text-muted-foreground">
+            Track this repository to get analysis of recent pull requests
           </p>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Mock scatter plot with blur effect */}
+        <div className="relative h-[200px] w-full">
+          {/* Blur overlay */}
+          <div className="absolute inset-0 backdrop-blur-[1px] bg-background/10 z-10 rounded-lg" />
+          
+          {/* Mock chart */}
+          <ResponsiveContainer width="100%" height="100%">
+            <ScatterChart
+              margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis 
+                dataKey="x" 
+                domain={[0, 30]}
+                ticks={[0, 7, 14, 21, 30]}
+                tickFormatter={(value) => `${value}d`}
+                className="text-xs"
+                stroke="currentColor"
+                opacity={0.5}
+              />
+              <YAxis 
+                dataKey="y"
+                domain={[0, 250]}
+                className="text-xs"
+                stroke="currentColor"
+                opacity={0.5}
+                label={{ value: 'Lines', angle: -90, position: 'insideLeft', className: 'text-xs' }}
+              />
+              <Tooltip 
+                content={() => null} // Hide tooltip for mock data
+              />
+              <Scatter 
+                data={mockData} 
+                fill="#3b82f6"
+              >
+                {mockData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill="#3b82f6" 
+                    fillOpacity={entry.opacity}
+                  />
+                ))}
+              </Scatter>
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-2 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Tracking prompt box similar to "Need complete data faster?" */}
+        <div className="p-4 rounded-lg border bg-black dark:bg-white">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-white dark:text-black">
+                Start tracking <strong>{owner}/{repo}</strong>
+              </p>
+              <p className="text-xs text-white/70 dark:text-black/70 mt-1">
+                Get contributor analytics, PR visualizations, and community health metrics. 
+                We'll analyze the repository and provide insights into contribution patterns.
+              </p>
+              <p className="text-xs text-white/60 dark:text-black/60 mt-2">
+                Takes 1-2 minutes
+              </p>
+            </div>
+            <div className="flex flex-col items-center">
+              {!isLoggedIn ? (
+                <Button 
+                  onClick={handleLogin}
+                  variant="default"
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  <Lock className="mr-2 h-4 w-4" />
+                  Login to Track
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleTrackRepository}
+                  disabled={isTracking}
+                  variant="default"
+                  className="bg-orange-500 hover:bg-orange-600 text-white disabled:bg-orange-300"
+                >
+                  {isTracking ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Tracking...
+                    </>
+                  ) : (
+                    <>
+                      <BarChart3 className="mr-2 h-4 w-4" />
+                      Track This Repo
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
