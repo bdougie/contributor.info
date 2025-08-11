@@ -48,6 +48,9 @@ eval-outputs/
 lighthouse-reports/
 analyze-lighthouse.cjs
 
+# IndexNow verification file (contains API key)
+indexnow.txt
+
 # Local Netlify folder
 .netlify
 
