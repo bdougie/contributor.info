@@ -33,11 +33,9 @@ const RepoCardLayout = lazy(() => import("@/components/social-cards/repo-card-la
 const SocialCardPreview = lazy(() => import("@/components/social-cards/preview"));
 const GitHubSyncDebug = lazy(() => import("@/components/debug/github-sync-debug").then(m => ({ default: m.GitHubSyncDebug })));
 const PerformanceMonitoringDashboard = lazy(() => import("@/components/performance-monitoring-dashboard").then(m => ({ default: m.PerformanceMonitoringDashboard })));
-const AnalyticsDashboard = lazy(() => import("@/components/features/debug/analytics-dashboard").then(m => ({ default: m.AnalyticsDashboard })));
 const ShareableChartsPreview = lazy(() => import("@/components/features/debug/shareable-charts-preview").then(m => ({ default: m.ShareableChartsPreview })));
 const DubTest = lazy(() => import("@/components/features/debug/dub-test").then(m => ({ default: m.DubTest })));
 const BulkAddRepos = lazy(() => import("@/components/features/debug/bulk-add-repos").then(m => ({ default: m.BulkAddRepos })));
-const SyncTrackedRepos = lazy(() => import("@/components/features/debug/sync-tracked-repos").then(m => ({ default: m.SyncTrackedRepos })));
 
 // Settings and Privacy components
 const SettingsPage = lazy(() => import("@/components/features/settings/settings-page").then(m => ({ default: m.SettingsPage })));
@@ -53,6 +51,7 @@ const SpamTestTool = lazy(() => import("@/components/features/admin").then(m => 
 const BulkSpamAnalysis = lazy(() => import("@/components/features/admin").then(m => ({ default: m.BulkSpamAnalysis })));
 const MaintainerManagement = lazy(() => import("@/components/features/admin/maintainer-management").then(m => ({ default: m.MaintainerManagement })));
 const ConfidenceAnalyticsDashboard = lazy(() => import("@/components/features/admin/confidence-analytics-dashboard").then(m => ({ default: m.ConfidenceAnalyticsDashboard })));
+const AdminAnalyticsDashboard = lazy(() => import("@/components/features/admin").then(m => ({ default: m.AdminAnalyticsDashboard })));
 const LLMCitationDashboard = lazy(() => import("@/components/features/analytics/llm-citation-dashboard").then(m => ({ default: m.LLMCitationDashboard })));
 const CaptureHealthMonitor = lazy(() => import("@/components/CaptureHealthMonitor").then(m => ({ default: m.CaptureHealthMonitor })));
 const OrgView = lazy(() => import("@/pages/org-view"));
@@ -334,11 +333,7 @@ function App() {
               />
               <Route
                 path="/dev/social-cards"
-                element={
-                  <ProtectedRoute>
-                    <SocialCardPreview />
-                  </ProtectedRoute>
-                }
+                element={<SocialCardPreview />}
               />
               <Route
                 path="/dev/sync-test"
@@ -349,50 +344,14 @@ function App() {
                 }
               />
               <Route
-                path="/dev/performance-monitoring"
-                element={
-                  <ProtectedRoute>
-                    <PerformanceMonitoringDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/dev/analytics"
-                element={
-                  <ProtectedRoute>
-                    <AnalyticsDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="/dev/shareable-charts"
-                element={
-                  <ProtectedRoute>
-                    <ShareableChartsPreview />
-                  </ProtectedRoute>
-                }
+                element={<ShareableChartsPreview />}
               />
               <Route
                 path="/dev/dub-test"
                 element={
                   <ProtectedRoute>
                     <DubTest />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/dev/bulk-add-repos"
-                element={
-                  <ProtectedRoute>
-                    <BulkAddRepos />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/dev/sync-tracked-repos"
-                element={
-                  <ProtectedRoute>
-                    <SyncTrackedRepos />
                   </ProtectedRoute>
                 }
               />
@@ -426,7 +385,7 @@ function App() {
                 path="/admin/analytics"
                 element={
                   <AdminRoute>
-                    <AnalyticsDashboard />
+                    <AdminAnalyticsDashboard />
                   </AdminRoute>
                 }
               />
