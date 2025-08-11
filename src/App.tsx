@@ -5,8 +5,10 @@ import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { PWAInstallPrompt } from "@/components/ui/pwa-install-prompt";
 import { OfflineNotification } from "@/components/common/OfflineNotification";
-// Progressive capture modules loaded dynamically after initial render
-import { Layout, Home, NotFound } from "@/components/common/layout";
+// Lazy load core components to reduce initial bundle
+const Layout = lazy(() => import("@/components/common/layout").then(m => ({ default: m.Layout })));
+const Home = lazy(() => import("@/components/common/layout").then(m => ({ default: m.Home })));
+const NotFound = lazy(() => import("@/components/common/layout").then(m => ({ default: m.NotFound })));
 import { ProtectedRoute, AdminRoute } from "@/components/features/auth";
 import { initializeWebVitalsMonitoring } from "@/lib/web-vitals-monitoring";
 import { initializeLLMCitationTracking } from "@/lib/llm-citation-tracking";
