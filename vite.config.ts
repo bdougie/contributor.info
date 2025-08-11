@@ -130,67 +130,15 @@ export default defineConfig(() => ({
         },
         // Allow modules to be properly hoisted for correct initialization order
         hoistTransitiveImports: true,
-        // Fix circular dependency issues with proper chunk splitting
-        manualChunks: (id) => {
-          // CRITICAL: Split commonjsHelpers first to prevent circular deps
-          if (id.includes('commonjsHelpers')) {
-            return 'commonjs-helpers';
-          }
-          
-          // Prevent embeddings from being bundled
-          if (id.includes('@xenova/transformers') || id.includes('onnxruntime-web')) {
-            return 'embeddings-excluded';
-          }
-          
-          // Only process node_modules to avoid splitting app code incorrectly
-          if (!id.includes('node_modules')) {
-            return; // Let Vite handle app code bundling
-          }
-          
-          // Core React - must be loaded first
-          if (id.includes('node_modules/react-dom')) {
-            return 'vendor-react-dom';
-          }
-          if (id.includes('node_modules/react')) {
-            return 'vendor-react';
-          }
-          
-          // Router
-          if (id.includes('react-router')) {
-            return 'vendor-router';
-          }
-          
-          // Chart libraries and their dependencies
-          if (id.includes('recharts') || id.includes('d3-') || id.includes('uplot')) {
-            return 'vendor-charts';
-          }
-          
-          // UI Components
-          if (id.includes('@radix-ui')) {
-            return 'vendor-ui';
-          }
-          
-          // Icons
-          if (id.includes('lucide-react')) {
-            return 'vendor-icons';
-          }
-          
-          // Data and state
-          if (id.includes('@supabase') || id.includes('zustand')) {
-            return 'vendor-data';
-          }
-          
-          // Utils
-          if (id.includes('class-variance-authority') || 
-              id.includes('clsx') || 
-              id.includes('tailwind-merge') ||
-              id.includes('date-fns') ||
-              id.includes('zod')) {
-            return 'vendor-utils';
-          }
-          
-          // All other vendor code
-          return 'vendor';
+        // Minimal manual chunking to avoid circular dependencies
+        // Only split the largest/most problematic libraries
+        manualChunks: {
+          // Keep React ecosystem together
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // Separate chart libraries as they're large and rarely change
+          'vendor-charts': ['recharts', 'uplot'],
+          // Exclude embeddings completely
+          'embeddings-excluded': ['@xenova/transformers', 'onnxruntime-web']
         },
       },
     },
