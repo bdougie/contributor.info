@@ -29,7 +29,7 @@ export function DocsSidebar({ className }: DocsSidebarProps) {
 
   return (
     <aside className={cn("w-64 shrink-0 hidden lg:block", className)}>
-      <nav className="sticky top-20 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto pr-4">
+      <nav className="sticky top-20 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto pr-4 bg-transparent" style={{ backgroundColor: 'transparent' }}>
         {/* All Docs Link */}
         <div>
           <Link 
@@ -37,8 +37,8 @@ export function DocsSidebar({ className }: DocsSidebarProps) {
             className={cn(
               "flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors",
               isDocsHome 
-                ? "bg-muted text-foreground" 
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                ? "text-foreground" 
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             <span>All Documentation</span>
@@ -78,8 +78,8 @@ export function DocsSidebar({ className }: DocsSidebarProps) {
                       className={cn(
                         "flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors",
                         active 
-                          ? "bg-muted text-foreground font-medium" 
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          ? "text-foreground font-medium" 
+                          : "text-muted-foreground hover:text-foreground"
                       )}
                     >
                       <span className="truncate">{doc.title}</span>
@@ -124,8 +124,8 @@ export function DocsSidebar({ className }: DocsSidebarProps) {
                       className={cn(
                         "flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors",
                         active 
-                          ? "bg-muted text-foreground font-medium" 
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          ? "text-foreground font-medium" 
+                          : "text-muted-foreground hover:text-foreground"
                       )}
                     >
                       <span className="truncate">{doc.title}</span>

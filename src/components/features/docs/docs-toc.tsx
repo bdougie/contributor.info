@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 interface TocItem {
   id: string;
@@ -99,7 +100,8 @@ export function DocsToc({ content, className }: DocsTocProps) {
   }
 
   return (
-    <div className={cn("w-64 bg-card border rounded-lg p-4", className)}>
+    <Card className={cn("w-64 p-4", className)}>
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">On this page</h3>
       <nav className="space-y-1">
         {tocItems.map((item) => (
           <Button
@@ -110,7 +112,7 @@ export function DocsToc({ content, className }: DocsTocProps) {
               "w-full justify-start px-2 py-1.5 h-auto text-left font-normal text-sm",
               item.level === 2 && "pl-4 text-xs",
               activeSection === item.id &&
-                "bg-accent text-accent-foreground font-medium"
+                "text-foreground font-medium"
             )}
             onClick={() => handleItemClick(item.id)}
           >
@@ -120,6 +122,6 @@ export function DocsToc({ content, className }: DocsTocProps) {
           </Button>
         ))}
       </nav>
-    </div>
+    </Card>
   );
 }
