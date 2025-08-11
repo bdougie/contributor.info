@@ -185,3 +185,37 @@
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# HTTP/2 Server Push for critical resources
+[[headers]]
+  for = "/"
+  [headers.values]
+    # Push critical JavaScript and CSS for faster delivery
+    Link = '''
+      </assets/react-core-*.js>; rel=preload; as=script; crossorigin,
+      </assets/index-*.css>; rel=preload; as=style,
+      </assets/index-*.js>; rel=preload; as=script; type=module; crossorigin
+    '''
+
+# Push resources for all HTML pages
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Link = '''
+      </assets/react-core-*.js>; rel=preload; as=script; crossorigin,
+      </assets/index-*.css>; rel=preload; as=style
+    '''
+
+# JavaScript MIME type fix
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/assets/*.js"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
+    Cache-Control = "public, max-age=31536000, immutable"
+    X-Content-Type-Options = "nosniff"
