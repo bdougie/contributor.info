@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Lock, Loader2, AlertCircle } from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
@@ -35,7 +35,6 @@ export function RepositoryTrackingCard({
   // Generate mock scatter plot data
   const mockData = useMemo(() => {
     const data = [];
-    const now = Date.now();
     const contributors = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank'];
     
     // Generate 30 mock PR data points
