@@ -1,0 +1,6 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#3b82f6"/>
+  <circle cx="256" cy="256" r="204.8" fill="white" opacity="0.2"/>
+  <text x="50%" y="50%" font-size="230.4" text-anchor="middle" dominant-baseline="central" fill="white">🌱</text>
+</svg>
