@@ -149,9 +149,11 @@ export const Breadcrumbs = () => {
         </div>
       ) : (
         /* Desktop: Standard breadcrumb */
-        <Breadcrumb className="hidden md:flex mb-4">
-          <BreadcrumbList>{items}</BreadcrumbList>
-        </Breadcrumb>
+        <div className="hidden md:block">
+          <Breadcrumb className="mb-4">
+            <BreadcrumbList>{items}</BreadcrumbList>
+          </Breadcrumb>
+        </div>
       )}
     </>
   );
