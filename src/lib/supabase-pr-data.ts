@@ -329,22 +329,22 @@ export async function fetchPRDataWithFallback(
     // This prevents timeouts and rate limit issues
     // Instead, return a pending state and let background processing handle it
     
-    console.log(`Repository ${owner}/${repo} not in database. Skipping API fallback to prevent timeouts.`);
+    console.log(`Repository ${owner}/${repo} not in database. Triggering discovery.`);
     
-    // Trigger background sync instead of risky API call
+    // Trigger repository discovery for new repositories
     try {
       const { sendInngestEvent } = await import('./inngest/client-safe');
       await sendInngestEvent({
-        name: 'capture/repository.sync',
+        name: 'discover/repository.new',
         data: {
           owner,
           repo,
-          priority: 'high',
-          source: 'missing-repo-fallback'
+          source: 'missing-repo-fallback',
+          timestamp: new Date().toISOString()
         }
       });
     } catch (error) {
-      console.error('Failed to trigger background sync:', error);
+      console.error('Failed to trigger repository discovery:', error);
     }
     
     return createPendingDataResult(
