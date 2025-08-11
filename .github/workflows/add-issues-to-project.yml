@@ -1,0 +1,56 @@
+name: Add Issues to Project
+
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  add-to-project:
+    name: Add issue to contributor.info project
+    runs-on: ubuntu-latest
+    steps:
+      # First, add the issue to the project
+      - name: Add issue to project board
+        uses: actions/add-to-project@v1.0.2
+        with:
+          # contributor.info project board
+          project-url: https://github.com/users/bdougie/projects/9
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Then, add the needs-triage label
+      - name: Add needs-triage label
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            try {
+              // First, try to create the label if it doesn't exist
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'needs-triage'
+              }).catch(async () => {
+                // Label doesn't exist, create it
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: 'needs-triage',
+                  color: 'FBCA04',
+                  description: 'Issues that need to be triaged'
+                });
+              });
+              
+              // Now add the label to the issue
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['needs-triage']
+              });
+              
+              console.log('Successfully added needs-triage label to issue #' + context.issue.number);
+            } catch (error) {
+              console.error('Error adding label:', error.message);
+              // Don't fail the workflow if label addition fails
+            }

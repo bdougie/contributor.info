@@ -109,6 +109,7 @@ Every PR automatically runs:
 - Performance Dashboard: `/admin/performance`
 - Bundle Analyzer: `npm run build:analyze`
 - Test Suite: `npm run test:performance`
+- [Netlify Compression Guide](./netlify-compression.md) - Built-in edge compression
 
 ## 📈 Performance Workflow
 
