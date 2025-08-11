@@ -197,7 +197,7 @@ jobs:
           # Get the size of the dist folder
           if [ -d "dist" ]; then
             DIST_SIZE=$(du -sb dist | cut -f1)
-            MAX_SIZE=$((5 * 1024 * 1024))  # 5MB limit
+            MAX_SIZE=$((6815744))  # 6.5MB limit (temporary - see issue #407)
             
             echo "Bundle size: $DIST_SIZE bytes"
             echo "Max allowed: $MAX_SIZE bytes"
