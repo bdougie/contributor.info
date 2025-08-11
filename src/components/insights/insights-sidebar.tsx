@@ -99,15 +99,15 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
       {/* Desktop Sidebar */}
       <div
         className={cn(
-          "hidden md:flex fixed right-0 top-0 h-full border-l transition-all duration-300 z-40",
-          "bg-muted text-foreground border-border",
+          "hidden md:flex fixed right-0 top-0 h-full border-l transition-all duration-300 z-40 dark",
+          "bg-slate-900 text-slate-100 border-slate-700",
           isCollapsed ? "w-16" : "w-[420px]",
           className
         )}
       >
         <div className="flex flex-col w-full h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="flex items-center justify-between p-4 border-b border-slate-700">
             {!isCollapsed && (
               <h2 className="text-lg font-semibold">Insights</h2>
             )}
@@ -153,7 +153,7 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                 <div className="space-y-6">
                   {sections.map((section, index) => (
                     <div key={section.id}>
-                      {index > 0 && <Separator className="mb-6" />}
+                      {index > 0 && <Separator className="mb-6 bg-slate-700" />}
                       <div 
                         className="cursor-pointer"
                         onClick={() => setActiveSection(activeSection === section.id ? null : section.id)}
@@ -164,7 +164,7 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                             <h3 className="font-medium">{section.title}</h3>
                           </div>
                           {section.count !== null && (
-                            <span className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                            <span className="text-sm text-slate-300 bg-slate-800 px-2 py-1 rounded-full">
                               {section.count}
                             </span>
                           )}
@@ -214,7 +214,7 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
               <Sparkles className="h-6 w-6" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-[80vh] bg-muted text-foreground border-border">
+          <SheetContent side="bottom" className="h-[80vh] dark bg-slate-900 text-slate-100 border-slate-700">
             <SheetHeader>
               <SheetTitle>Insights</SheetTitle>
             </SheetHeader>
@@ -222,7 +222,7 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
               <div className="space-y-6 pb-6">
                 {sections.map((section, index) => (
                   <div key={section.id}>
-                    {index > 0 && <Separator className="mb-6" />}
+                    {index > 0 && <Separator className="mb-6 bg-slate-700" />}
                     <div 
                       className="cursor-pointer"
                       onClick={() => setActiveSection(activeSection === section.id ? null : section.id)}
@@ -233,7 +233,7 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
                           <h3 className="font-medium">{section.title}</h3>
                         </div>
                         {section.count !== null && (
-                          <span className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                          <span className="text-sm text-slate-300 bg-slate-800 px-2 py-1 rounded-full">
                             {section.count}
                           </span>
                         )}
