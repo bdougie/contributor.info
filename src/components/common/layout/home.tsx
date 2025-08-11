@@ -1,3 +1,8 @@
+import {
+  Card,
+  CardContent,
+  CardHeader,
+} from "@/components/ui/card";
 import { ExampleRepos } from "../../features/repository";
 import { useNavigate } from "react-router-dom";
 import { SocialMetaTags } from "./meta-tags-provider";
@@ -32,17 +37,17 @@ export default function Home() {
         url="https://contributor.info"
         image="social-cards/home-card.webp"
       />
-      <div className="w-full max-w-2xl px-6">
-        <div className="space-y-6">
-          <div className="text-center space-y-3">
-            <h1 className="text-3xl font-bold">
-              Analyze GitHub Repository Contributors
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              Enter a GitHub repository URL or owner/repo to visualize
-              contribution patterns
-            </p>
-          </div>
+      <Card className="w-full max-w-2xl">
+        <CardHeader>
+          <h1 className="text-3xl font-bold text-center">
+            Analyze GitHub Repository Contributors
+          </h1>
+          <p className="text-center text-lg mt-2 text-muted-foreground">
+            Enter a GitHub repository URL or owner/repo to visualize
+            contribution patterns
+          </p>
+        </CardHeader>
+        <CardContent>
           <section>
             <GitHubSearchInput
               placeholder="Search repositories (e.g., facebook/react)"
@@ -54,8 +59,8 @@ export default function Home() {
           <aside>
             <ExampleRepos onSelect={handleSelectExample} />
           </aside>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </article>
   );
 }
