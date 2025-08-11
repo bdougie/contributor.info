@@ -73,7 +73,7 @@ main, .main-content {
 
 /* Organization header */
 .org-header {
-  min-height: 120px;
+  min-height: 80px;
 }
 
 /* Organization avatar container - match the actual avatar size */

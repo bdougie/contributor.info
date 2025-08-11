@@ -153,8 +153,10 @@ export default function Layout() {
         </div>
       </header>
       
-      <main className="container px-4 py-6 flex-1">
-        <Outlet />
+      <main className="flex-1 bg-muted/50 dark:bg-black">
+        <div className="container px-4 py-6">
+          <Outlet />
+        </div>
       </main>
       <footer className="border-t py-4">
         <div className="container px-4 text-center text-sm text-muted-foreground">
