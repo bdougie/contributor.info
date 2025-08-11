@@ -7,6 +7,20 @@ Contribution Analytics goes beyond simple commit counts to analyze the character
 ## Quadrant Classification System  
 
 ### The Four Contribution Quadrants
+![Contribution quadrant visualization](https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/assets/docs/images/features/contribution-analytics/quadrant-scatter-plot.png)
+
+## Visual Analytics
+
+### Scatter Plot Visualization
+The analytics display contributions as interactive scatter plots where position indicates quadrant membership and size reflects overall contribution magnitude.
+
+### Contributor Mapping
+Each contributor's work patterns become visible through their distribution across quadrants, revealing specializations and work preferences.
+
+### Time Series Analysis
+
+*Contributors mapped by impact and effort metrics*
+
 Every contribution is automatically classified into one of four categories based on impact and effort analysis:
 
 - **🟢 High Impact, High Effort**: Major features, significant refactoring, and architectural changes
@@ -29,17 +43,6 @@ Effort metrics consider:
 - **Revision Cycles**: Number of review iterations required
 - **Change Scope**: Breadth of modifications across the codebase
 - **Testing Requirements**: Associated test changes and coverage impact
-
-## Visual Analytics
-
-### Scatter Plot Visualization
-The analytics display contributions as interactive scatter plots where position indicates quadrant membership and size reflects overall contribution magnitude.
-
-### Contributor Mapping
-Each contributor's work patterns become visible through their distribution across quadrants, revealing specializations and work preferences.
-
-### Time Series Analysis
-Track how contribution patterns evolve over time, identifying shifts in project focus and contributor development.
 
 ## Insights and Patterns
 
@@ -68,7 +71,7 @@ Select specific quadrants to filter the entire repository view, focusing analysi
 Filter analytics to specific contributors to understand their individual contribution patterns and areas of expertise within the project.
 
 ### Time Range Correlation
-Analyze how contribution patterns change across different time periods, identifying seasonal patterns, project phases, and team evolution.
+Analyze how contribution patterns change over the 30-day period, identifying seasonal patterns, project phases, and team evolution.
 
 ## Strategic Applications
 
@@ -82,3 +85,27 @@ Identify contributors who might benefit from expanding into different quadrants 
 Understand the balance between feature development, maintenance, and infrastructure work to inform future planning and resource allocation.
 
 Contribution Analytics transforms raw GitHub data into strategic insights that help teams understand not just what work is being done, but the nature and impact of that work on project success.
+*Contributors mapped by impact and effort metrics*
+
+Every contribution is automatically classified into one of four categories based on impact and effort analysis:
+
+- **🟢 High Impact, High Effort**: Major features, significant refactoring, and architectural changes
+- **🟡 High Impact, Low Effort**: Critical bug fixes, security patches, and targeted improvements
+- **🔵 Low Impact, High Effort**: Documentation updates, test additions, and infrastructure work  
+- **⚪ Low Impact, Low Effort**: Minor tweaks, typo fixes, and routine maintenance
+
+### Impact Calculation
+Impact is determined by analyzing:
+
+- **Files Modified**: Number and type of files affected
+- **Lines Changed**: Total additions and deletions
+- **Code Complexity**: Structural changes to the codebase
+- **Review Activity**: Discussion volume and reviewer engagement
+
+### Effort Assessment
+Effort metrics consider:
+
+- **Development Time**: Time between commits and PR lifecycle
+- **Revision Cycles**: Number of review iterations required
+- **Change Scope**: Breadth of modifications across the codebase
+- **Testing Requirements**: Associated test changes and coverage impact

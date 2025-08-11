@@ -140,4 +140,4 @@ npm run test:ui   # Open Vitest UI
 
 ## License
 
-[MIT License](LICENSE)
+[MIT License](LICENSE)# Force rebuild

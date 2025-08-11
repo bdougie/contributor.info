@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 import type { BadgeConfig, WidgetData } from "./widget-types";
 
 interface BadgeGeneratorProps {
@@ -232,7 +233,14 @@ export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps)
   return (
     <div className={cn("badge-generator", className)}>
       <div className="badge-preview mb-4">
-        <img src={badgeUrl} alt="Badge preview" />
+        <OptimizedImage 
+          src={badgeUrl} 
+          alt="Badge preview"
+          width={200}
+          height={28}
+          priority={true}
+          className="inline-block"
+        />
       </div>
       
       <div className="embed-code p-3 bg-gray-50 dark:bg-gray-800 rounded-md">

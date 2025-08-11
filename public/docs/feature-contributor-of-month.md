@@ -21,16 +21,7 @@ Rankings reset monthly, creating fresh opportunities for all contributors to be 
 ## Display Modes
 
 ### Winner Announcement Phase
-At month-end, the system displays the top contributor with special recognition including their avatar, contribution statistics, and achievement badges. Winners receive prominent placement and celebration messaging.
-
-### Leaderboard Phase
-During active contribution periods, the feature shows a live leaderboard of the top 5 contributors with real-time updates as contributions are made throughout the month.
-
-### Activity States
-- **High Activity**: Multiple contributors actively competing with substantial contributions
-- **Moderate Activity**: Steady contribution flow with clear leader emerging
-- **Low Activity**: Minimal contributions, encouraging more participation
-- **No Activity**: Empty state with motivational messaging to start contributing
+![Contributor of the month winner](https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/assets/docs/images/features/contributor-of-month/winner-display.png)
 
 ## Recognition Elements
 
@@ -43,7 +34,7 @@ Top contributors receive visual recognition through badges and special status in
 ## Time Range Integration
 
 ### Monthly Focus
-While the primary focus is monthly rankings, contributors can also view activity across different time ranges (30, 60, 90 days) to understand longer-term contribution patterns and seasonal variations.
+While the primary focus is monthly rankings, contributors can also view activity over the 30-day period (30, 60, 90 days) to understand longer-term contribution patterns and seasonal variations.
 
 ### Historical Tracking
 The system maintains historical records of past winners and top contributors, creating a Hall of Fame effect that encourages sustained participation.
@@ -68,3 +59,12 @@ The algorithm balances quantity with quality to ensure that both prolific contri
 The monthly reset ensures that new contributors and those with varying schedules have equal opportunities to be recognized for their contributions.
 
 The Contributor of the Month feature transforms routine development activity into an engaging, community-building experience that celebrates the people who make open source projects successful.
+*Track top contributors throughout the month*
+
+During active contribution periods, the feature shows a live leaderboard of the top 5 contributors with real-time updates as contributions are made throughout the month.
+
+### Activity States
+- **High Activity**: Multiple contributors actively competing with substantial contributions
+- **Moderate Activity**: Steady contribution flow with clear leader emerging
+- **Low Activity**: Minimal contributions, encouraging more participation
+- **No Activity**: Empty state with motivational messaging to start contributing
