@@ -29,10 +29,11 @@ import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { DataProcessingIndicator } from "./data-processing-indicator";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { RepositoryInlineMetadata } from "@/components/ui/repository-inline-metadata";
-import { useRepositoryDiscovery } from "@/hooks/use-repository-discovery";
+import { useRepositoryTracking } from "@/hooks/use-repository-tracking";
 import { DataStateIndicator } from "@/components/ui/data-state-indicator";
 import { LastUpdated } from "@/components/ui/last-updated";
 import { useDataTimestamp } from "@/hooks/use-data-timestamp";
+import { RepositoryTrackingCard } from "./repository-tracking-card";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -46,11 +47,15 @@ export default function RepoView() {
   const dubConfig = getDubConfig();
   const { isLoggedIn } = useGitHubAuth();
   
-  // Handle repository discovery for new repositories
-  const discoveryState = useRepositoryDiscovery({
+  // Handle repository tracking for new repositories
+  const trackingState = useRepositoryTracking({
     owner,
     repo,
-    enabled: Boolean(owner && repo)
+    enabled: Boolean(owner && repo),
+    onTrackingComplete: () => {
+      // Refresh the page when tracking completes
+      window.location.reload();
+    }
   });
 
   // Determine current tab based on URL
@@ -164,17 +169,50 @@ export default function RepoView() {
     return <RepoViewSkeleton />;
   }
 
+  // Check if repository needs tracking (show tracking card instead of error)
+  if (trackingState.status === 'not_tracked' && !showSkeleton) {
+    return (
+      <article className="py-2">
+        <Breadcrumbs />
+        <section className="mb-8">
+          <Card>
+            <CardContent className="pt-6">
+              <GitHubSearchInput
+                placeholder="Search another repository (e.g., facebook/react)"
+                onSearch={(repositoryPath) => {
+                  const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+                  if (match) {
+                    const [, newOwner, newRepo] = match;
+                    navigate(`/${newOwner}/${newRepo}`);
+                  }
+                }}
+                onSelect={(repository: GitHubRepository) => {
+                  navigate(`/${repository.full_name}`);
+                }}
+              />
+              <aside>
+                <ExampleRepos onSelect={handleSelectExample} />
+              </aside>
+            </CardContent>
+          </Card>
+        </section>
+        <section className="grid gap-8">
+          <RepositoryTrackingCard 
+            owner={owner || ''} 
+            repo={repo || ''} 
+          />
+        </section>
+      </article>
+    );
+  }
+
   if (stats.error) {
     // Check if this is a 404 repository error
     const isRepoNotFound = stats.error.includes('not found') || 
                            stats.error.includes('does not exist') ||
                            stats.error.includes('404');
     
-    // If it's a new repository being tracked, don't show error
-    if (isRepoNotFound && discoveryState.isNewRepository) {
-      // Continue to show the normal view with skeleton loaders
-      // The tracking notification will inform the user
-    } else if (isRepoNotFound) {
+    if (isRepoNotFound) {
       return <RepoNotFound />;
     } else {
       // For other errors, show the generic error card
@@ -325,7 +363,8 @@ export default function RepoView() {
                 />
                 {/* Container with reserved space to prevent layout shifts */}
                 <div className="status-indicators-container smooth-height">
-                  {discoveryState.isNewRepository && !stats.loading && (
+                  {/* Show tracking status if currently tracking */}
+                  {trackingState.status === 'tracking' && (
                     <aside className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
                       <div className="flex items-start space-x-3">
                         <div className="flex-shrink-0">
@@ -335,18 +374,18 @@ export default function RepoView() {
                         </div>
                         <div className="flex-1">
                           <h2 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                            Welcome to {owner}/{repo}!
+                            Setting up {owner}/{repo}
                           </h2>
                           <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                            This is a new repository. We're gathering contributor data and it will be ready in about 1-2 minutes. 
-                            You can explore the interface while we work in the background.
+                            We're gathering contributor data and it will be ready in about 1-2 minutes. 
+                            The page will refresh automatically when ready.
                           </p>
                         </div>
                       </div>
                     </aside>
                   )}
                   {/* Show data state indicator for pending/partial data */}
-                  {!stats.loading && dataStatus && dataStatus.status !== 'success' && !discoveryState.isNewRepository && (
+                  {!stats.loading && dataStatus && dataStatus.status !== 'success' && trackingState.status === 'tracked' && (
                     <aside>
                       <DataStateIndicator
                         status={dataStatus.status}
