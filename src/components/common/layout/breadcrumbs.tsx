@@ -133,7 +133,7 @@ export const Breadcrumbs = () => {
       
       {/* Mobile: Pinned breadcrumb with back button */}
       {isMobile ? (
-        <div className="sticky top-0 z-40 bg-background md:hidden">
+        <div className="sticky top-0 z-40 bg-transparent md:hidden">
           <div className="container px-4 py-2">
             {getBackButton()}
             <div 
@@ -149,11 +149,9 @@ export const Breadcrumbs = () => {
         </div>
       ) : (
         /* Desktop: Standard breadcrumb */
-        <div className="hidden md:block">
-          <Breadcrumb className="mb-4">
-            <BreadcrumbList>{items}</BreadcrumbList>
-          </Breadcrumb>
-        </div>
+        <Breadcrumb className="hidden md:flex mb-4" style={{ background: 'transparent', border: 'none' }}>
+          <BreadcrumbList>{items}</BreadcrumbList>
+        </Breadcrumb>
       )}
     </>
   );

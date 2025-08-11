@@ -332,7 +332,7 @@ export default function RepoView() {
             </div>
           </CardHeader>
           <CardContent>
-            <nav className="space-y-4">
+            <nav className="space-y-4" style={{ background: 'transparent', border: 'none' }}>
               <Tabs
                 value={getCurrentTab()}
                 onValueChange={(value) => {

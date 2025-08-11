@@ -153,7 +153,7 @@ export default function Layout() {
         </div>
       </header>
       
-      <main className="flex-1 bg-muted/50">
+      <main className="flex-1 bg-muted/50 dark:bg-black">
         <div className="container px-4 py-6">
           <Outlet />
         </div>
