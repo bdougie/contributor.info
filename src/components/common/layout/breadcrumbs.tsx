@@ -133,7 +133,7 @@ export const Breadcrumbs = () => {
       
       {/* Mobile: Pinned breadcrumb with back button */}
       {isMobile ? (
-        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b md:hidden">
+        <div className="sticky top-0 z-40 bg-background md:hidden">
           <div className="container px-4 py-2">
             {getBackButton()}
             <div 
