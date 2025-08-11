@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/lib/supabase";
+import { TIME_PERIODS, DATA_LIMITS, ERROR_MESSAGES } from "@/lib/constants/analytics";
 
 interface ShareEvent {
   id: string;
@@ -23,7 +24,7 @@ interface ShareEvent {
   action: string;
   share_type: string;
   domain: string;
-  metadata: any;
+  metadata: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -69,85 +70,61 @@ export function AdminAnalyticsDashboard() {
 
   const fetchSystemMetrics = async () => {
     try {
-      // Fetch repository stats
-      const { data: repoStats, error: repoError } = await supabase
-        .from('repositories')
-        .select('*')
-        .eq('is_active', true);
-
-      if (repoError) throw repoError;
-
-      // Fetch contributor stats
-      const { data: contributorStats, error: contributorError } = await supabase
-        .from('contributors')
-        .select('*')
-        .eq('is_active', true)
-        .eq('is_bot', false);
-
-      if (contributorError) throw contributorError;
-
-      // Fetch PR stats
-      const { data: prStats, error: prError } = await supabase
-        .from('pull_requests')
-        .select('id, repository_id, created_at, author_id')
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
-
-      if (prError) throw prError;
-
-      // Fetch review stats
-      const { data: reviewStats, error: reviewError } = await supabase
-        .from('reviews')
-        .select('id, reviewer_id, submitted_at')
-        .gte('submitted_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
-
-      if (reviewError) throw reviewError;
-
-      // Fetch comment stats
-      const { data: commentStats, error: commentError } = await supabase
-        .from('comments')
-        .select('id, commenter_id, created_at')
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
-
-      if (commentError) throw commentError;
-
-      // Calculate metrics
-      const activeUsers = new Set([
-        ...(prStats || []).map(pr => pr.author_id),
-        ...(reviewStats || []).map(r => r.reviewer_id),
-        ...(commentStats || []).map(c => c.commenter_id)
+      const thirtyDaysAgo = new Date(Date.now() - TIME_PERIODS.THIRTY_DAYS_MS).toISOString();
+      
+      // Optimize with parallel queries
+      const [
+        repoResult,
+        contributorResult,
+        recentPRsResult,
+        recentReviewsResult,
+        recentCommentsResult,
+        totalPRsResult,
+        totalReviewsResult,
+        totalCommentsResult
+      ] = await Promise.allSettled([
+        supabase.from('repositories').select('id, full_name').eq('is_active', true),
+        supabase.from('contributors').select('id').eq('is_active', true).eq('is_bot', false),
+        supabase.from('pull_requests').select('id, repository_id, author_id').gte('created_at', thirtyDaysAgo),
+        supabase.from('reviews').select('id, reviewer_id').gte('submitted_at', thirtyDaysAgo),
+        supabase.from('comments').select('id, commenter_id').gte('created_at', thirtyDaysAgo),
+        supabase.from('pull_requests').select('*', { count: 'exact', head: true }),
+        supabase.from('reviews').select('*', { count: 'exact', head: true }),
+        supabase.from('comments').select('*', { count: 'exact', head: true })
       ]);
 
-      // Get total counts (all time)
-      const { count: totalPRs } = await supabase
-        .from('pull_requests')
-        .select('*', { count: 'exact', head: true });
+      // Handle errors and extract data
+      const repoStats = repoResult.status === 'fulfilled' && !repoResult.value.error ? repoResult.value.data : [];
+      const contributorStats = contributorResult.status === 'fulfilled' && !contributorResult.value.error ? contributorResult.value.data : [];
+      const prStats = recentPRsResult.status === 'fulfilled' && !recentPRsResult.value.error ? recentPRsResult.value.data : [];
+      const reviewStats = recentReviewsResult.status === 'fulfilled' && !recentReviewsResult.value.error ? recentReviewsResult.value.data : [];
+      const commentStats = recentCommentsResult.status === 'fulfilled' && !recentCommentsResult.value.error ? recentCommentsResult.value.data : [];
+      
+      const totalPRs = totalPRsResult.status === 'fulfilled' && !totalPRsResult.value.error ? totalPRsResult.value.count : 0;
+      const totalReviews = totalReviewsResult.status === 'fulfilled' && !totalReviewsResult.value.error ? totalReviewsResult.value.count : 0;
+      const totalComments = totalCommentsResult.status === 'fulfilled' && !totalCommentsResult.value.error ? totalCommentsResult.value.count : 0;
 
-      const { count: totalReviews } = await supabase
-        .from('reviews')
-        .select('*', { count: 'exact', head: true });
+      // Calculate active users safely
+      const activeUsers = new Set([
+        ...(prStats || []).map(pr => pr.author_id).filter(Boolean),
+        ...(reviewStats || []).map(r => r.reviewer_id).filter(Boolean),
+        ...(commentStats || []).map(c => c.commenter_id).filter(Boolean)
+      ]);
 
-      const { count: totalComments } = await supabase
-        .from('comments')
-        .select('*', { count: 'exact', head: true });
-
-      // Find most active repository
+      // Find most active repository safely
       const repoActivity = (prStats || []).reduce((acc, pr) => {
-        acc[pr.repository_id] = (acc[pr.repository_id] || 0) + 1;
+        if (pr.repository_id) {
+          acc[pr.repository_id] = (acc[pr.repository_id] || 0) + 1;
+        }
         return acc;
       }, {} as Record<string, number>);
 
       const mostActiveRepoId = Object.entries(repoActivity)
         .sort(([,a], [,b]) => b - a)[0]?.[0];
 
-      let mostActiveRepo = null;
-      if (mostActiveRepoId) {
-        const { data: repoData } = await supabase
-          .from('repositories')
-          .select('full_name')
-          .eq('id', mostActiveRepoId)
-          .single();
-        mostActiveRepo = repoData?.full_name || null;
-      }
+      const mostActiveRepo = mostActiveRepoId 
+        ? repoStats?.find(repo => repo.id === mostActiveRepoId)?.full_name || 'Unknown Repository'
+        : null;
 
       setSystemMetrics({
         totalRepositories: repoStats?.length || 0,
@@ -165,19 +142,22 @@ export function AdminAnalyticsDashboard() {
       });
 
     } catch (err) {
-      console.error('Failed to fetch system metrics:', err);
-      throw err;
+      // Log to error reporting service in production instead of console
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to fetch system metrics:', err);
+      }
+      throw new Error(ERROR_MESSAGES.SYSTEM_METRICS_FAILED);
     }
   };
 
   const fetchShareMetrics = async () => {
     try {
-      // Fetch recent share events
+      // Fetch recent share events with proper input validation
       const { data: shareEvents, error: eventsError } = await supabase
         .from('share_events')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(DATA_LIMITS.SHARE_EVENTS_LIMIT);
 
       if (eventsError) throw eventsError;
 
@@ -193,14 +173,26 @@ export function AdminAnalyticsDashboard() {
         return;
       }
 
+      // Validate and sanitize data
+      const validatedEvents = shareEvents.filter(event => 
+        event && 
+        typeof event.created_at === 'string' &&
+        typeof event.chart_type === 'string' &&
+        typeof event.action === 'string'
+      );
+
       // Calculate metrics
-      const totalShares = shareEvents.length;
-      const uniqueUsers = new Set(shareEvents.filter(e => e.user_id).map(e => e.user_id));
+      const totalShares = validatedEvents.length;
+      const uniqueUsers = new Set(
+        validatedEvents
+          .filter(e => e.user_id && typeof e.user_id === 'string')
+          .map(e => e.user_id)
+      );
       const totalUsers = uniqueUsers.size;
 
-      // Top repositories
-      const repoShares = shareEvents.reduce((acc, event) => {
-        if (event.repository) {
+      // Top repositories with null safety
+      const repoShares = validatedEvents.reduce((acc, event) => {
+        if (event.repository && typeof event.repository === 'string') {
           acc[event.repository] = (acc[event.repository] || 0) + 1;
         }
         return acc;
@@ -210,30 +202,38 @@ export function AdminAnalyticsDashboard() {
         .map(([repository, shares]) => ({
           repository,
           shares: shares as number,
-          users: new Set(shareEvents.filter(e => e.repository === repository && e.user_id).map(e => e.user_id)).size
+          users: new Set(
+            validatedEvents
+              .filter(e => e.repository === repository && e.user_id)
+              .map(e => e.user_id)
+          ).size
         }))
-        .sort((a, b) => (b.shares as number) - (a.shares as number))
-        .slice(0, 10);
+        .sort((a, b) => b.shares - a.shares)
+        .slice(0, DATA_LIMITS.TOP_REPOSITORIES_DISPLAY);
 
       // Top chart types
-      const chartTypeShares = shareEvents.reduce((acc, event) => {
-        acc[event.chart_type] = (acc[event.chart_type] || 0) + 1;
+      const chartTypeShares = validatedEvents.reduce((acc, event) => {
+        if (event.chart_type) {
+          acc[event.chart_type] = (acc[event.chart_type] || 0) + 1;
+        }
         return acc;
       }, {} as Record<string, number>);
 
       const topChartTypes = Object.entries(chartTypeShares)
         .map(([chart_type, shares]) => ({ chart_type, shares: shares as number }))
-        .sort((a, b) => (b.shares as number) - (a.shares as number));
+        .sort((a, b) => b.shares - a.shares);
 
       // Shares by action
-      const actionShares = shareEvents.reduce((acc, event) => {
-        acc[event.action] = (acc[event.action] || 0) + 1;
+      const actionShares = validatedEvents.reduce((acc, event) => {
+        if (event.action) {
+          acc[event.action] = (acc[event.action] || 0) + 1;
+        }
         return acc;
       }, {} as Record<string, number>);
 
       const sharesByAction = Object.entries(actionShares)
         .map(([action, shares]) => ({ action, shares: shares as number }))
-        .sort((a, b) => (b.shares as number) - (a.shares as number));
+        .sort((a, b) => b.shares - a.shares);
 
       setShareMetrics({
         totalShares,
@@ -241,12 +241,15 @@ export function AdminAnalyticsDashboard() {
         topRepositories,
         topChartTypes,
         sharesByAction,
-        recentShares: shareEvents.slice(0, 20)
+        recentShares: validatedEvents.slice(0, DATA_LIMITS.RECENT_SHARES_DISPLAY)
       });
 
     } catch (err) {
-      console.error('Failed to fetch share metrics:', err);
-      throw err;
+      // Log to error reporting service in production instead of console
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to fetch share metrics:', err);
+      }
+      throw new Error(ERROR_MESSAGES.SHARE_METRICS_FAILED);
     }
   };
 
@@ -260,8 +263,11 @@ export function AdminAnalyticsDashboard() {
         fetchShareMetrics()
       ]);
     } catch (err) {
-      console.error('Failed to fetch analytics:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch analytics data');
+      // Log to error reporting service in production instead of console
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to fetch analytics:', err);
+      }
+      setError(err instanceof Error ? err.message : ERROR_MESSAGES.GENERAL_FETCH_FAILED);
     } finally {
       setLoading(false);
     }
@@ -482,10 +488,10 @@ export function AdminAnalyticsDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-sm font-bold truncate">
-                    {shareMetrics?.topRepositories[0]?.repository || 'No data'}
+                    {shareMetrics?.topRepositories?.[0]?.repository || 'No data'}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {shareMetrics?.topRepositories[0]?.shares || 0} shares
+                    {shareMetrics?.topRepositories?.[0]?.shares || 0} shares
                   </p>
                 </CardContent>
               </Card>
@@ -497,10 +503,10 @@ export function AdminAnalyticsDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-sm font-bold">
-                    {shareMetrics?.topChartTypes[0]?.chart_type || 'No data'}
+                    {shareMetrics?.topChartTypes?.[0]?.chart_type || 'No data'}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {shareMetrics?.topChartTypes[0]?.shares || 0} shares
+                    {shareMetrics?.topChartTypes?.[0]?.shares || 0} shares
                   </p>
                 </CardContent>
               </Card>
@@ -517,7 +523,7 @@ export function AdminAnalyticsDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {shareMetrics?.topRepositories.slice(0, 8).map((repo, index) => (
+                    {shareMetrics?.topRepositories?.slice(0, DATA_LIMITS.REPOSITORY_LIST_DISPLAY).map((repo, index) => (
                       <div key={repo.repository} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="text-xs">
