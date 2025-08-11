@@ -186,25 +186,8 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# HTTP/2 Server Push for critical resources
-[[headers]]
-  for = "/"
-  [headers.values]
-    # Push critical JavaScript and CSS for faster delivery
-    Link = '''
-      </assets/react-core-*.js>; rel=preload; as=script; crossorigin,
-      </assets/index-*.css>; rel=preload; as=style,
-      </assets/index-*.js>; rel=preload; as=script; type=module; crossorigin
-    '''
-
-# Push resources for all HTML pages
-[[headers]]
-  for = "/*.html"
-  [headers.values]
-    Link = '''
-      </assets/react-core-*.js>; rel=preload; as=script; crossorigin,
-      </assets/index-*.css>; rel=preload; as=style
-    '''
+# Resource hints are handled via index.html and build-time injection
+# HTTP/2 Server Push removed due to wildcard limitations with hashed filenames
 
 # JavaScript MIME type fix
 [[headers]]
