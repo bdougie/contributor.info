@@ -14,10 +14,8 @@ jobs:
       - name: Add issue to project board
         uses: actions/add-to-project@v1.0.2
         with:
-          # TODO: Replace with your actual project URL
-          # You can find this by going to your project board and copying the URL
-          # Example: https://github.com/users/bdougie/projects/1
-          project-url: https://github.com/users/bdougie/projects/1
+          # contributor.info project board
+          project-url: https://github.com/users/bdougie/projects/9
           github-token: ${{ secrets.GITHUB_TOKEN }}
       
       # Then, add the needs-triage label
