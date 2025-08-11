@@ -16,6 +16,14 @@ This command will:
 
 This is a React + TypeScript application that visualizes GitHub contributors and their contributions.
 
+### Repository Tracking System (Updated Jan 2025)
+
+The application now uses a **manual, user-initiated repository tracking system**:
+- Users explicitly choose which repositories to track via "Track This Repository" button
+- No automatic discovery or tracking happens without user action
+- Untracked repositories show a tracking card instead of errors
+- See `docs/data-fetching/manual-repository-tracking.md` for full details
+
 ## Design
 All components should match the existing design language.
 
@@ -122,6 +130,13 @@ npx supabase status
 - script need to be documented and organized into folders/readmes
 
 ## Known Issues
+
+### Repository Tracking Changes (Jan 2025)
+
+**Update**: The automatic repository tracking system has been replaced with manual, user-initiated tracking. 
+- Old auto-tracking hooks (`useAutoTrackRepository`) have been removed
+- Discovery now happens via explicit user action through UI buttons
+- This change improves transparency and user control over data collection
 
 ### TypeScript Environment Variable Warnings
 
