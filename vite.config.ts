@@ -130,16 +130,26 @@ export default defineConfig(() => ({
             return 'embeddings-excluded';
           }
           
-          // All React and React-dependent libraries must be bundled together
-          // to prevent "Cannot read properties of undefined" errors
-          // This includes: React, ReactDOM, Router, Radix UI, Charts, Icons, etc.
-          if (id.includes('react') || 
-              id.includes('@radix-ui') || 
-              id.includes('@nivo') || 
-              id.includes('recharts') ||
-              id.includes('lucide-react')) {
-            return 'react-vendor';
+          // CRITICAL: Split React ecosystem for faster initial load
+          // Core React - absolutely essential, load first
+          if (id.includes('react-dom')) return 'react-dom';
+          if (id.includes('react') && !id.includes('react-dom') && !id.includes('react-router')) {
+            return 'react-core';
           }
+          
+          // React Router - needed for navigation but separate
+          if (id.includes('react-router')) return 'react-router';
+          
+          // Charts - heavy, only load when needed
+          if (id.includes('@nivo') || id.includes('recharts') || id.includes('d3')) {
+            return 'charts';
+          }
+          
+          // UI Components - Radix UI, can be lazy loaded
+          if (id.includes('@radix-ui')) return 'ui-components';
+          
+          // Icons - separate bundle
+          if (id.includes('lucide-react')) return 'icons';
           
           // Utility libraries that don't depend on React
           if (id.includes('class-variance-authority')) return 'utils';
@@ -167,22 +177,24 @@ export default defineConfig(() => ({
     chunkSizeWarningLimit: 1000, // Accepting larger chunks for reliability over micro-optimizations
     // Enable compression reporting
     reportCompressedSize: true,
-    // Module preload optimization - ensure React loads first
+    // Module preload optimization - load minimal React first
     modulePreload: {
       polyfill: true, // Enable polyfill for proper module loading
       resolveDependencies: (_, deps) => {
-        // Preload React vendor first, then router
+        // Preload only the absolute minimum for initial render
         const sorted = deps.sort((a, b) => {
-          if (a.includes('react-vendor')) return -1;
-          if (b.includes('react-vendor')) return 1;
+          if (a.includes('react-core')) return -1;
+          if (b.includes('react-core')) return 1;
+          if (a.includes('react-dom')) return -1;
+          if (b.includes('react-dom')) return 1;
           if (a.includes('react-router')) return -1;
           if (b.includes('react-router')) return 1;
           return 0;
         });
-        // Only preload critical chunks
+        // Only preload the bare minimum React chunks
         return sorted.filter(dep => 
-          dep.includes('react-vendor') || 
-          dep.includes('react-router')
+          dep.includes('react-core') || 
+          dep.includes('react-dom')
         );
       }
     },
