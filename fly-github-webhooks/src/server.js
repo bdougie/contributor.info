@@ -10,6 +10,7 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { logger } from './utils/logger.js';
+import { validateWebhookPayload, createSafeError } from './utils/validation.js';
 
 // Load environment variables
 dotenv.config();
@@ -165,6 +166,15 @@ app.post('/webhook', webhookLimiter, async (req, res) => {
 
     // Parse payload
     const payload = JSON.parse(req.body.toString());
+
+    // Validate payload structure
+    try {
+      validateWebhookPayload(payload, eventType);
+    } catch (validationError) {
+      logger.error('Payload validation failed: %s', validationError.message);
+      metrics.webhooksFailed++;
+      return res.status(400).json(createSafeError(validationError, 'validation'));
+    }
 
     // Log webhook details
     logger.webhook(
