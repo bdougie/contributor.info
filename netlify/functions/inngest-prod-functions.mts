@@ -92,13 +92,13 @@ export function createClassifySingleRepository(inngest: any) {
 
       // Step 1: Classify and update the repository
       const classification = await step.run('classify-repository', async () => {
-        console.log(`Classifying repository: ${owner}/${repo}`);
+        console.log('Classifying repository: %s/%s', owner, repo);
         
         try {
           // Use the classifier to classify and update the repository
           const size = await classifier.classifyAndUpdateRepository(repositoryId, owner, repo);
           
-          console.log(`Repository ${owner}/${repo} classified as: ${size}`);
+          console.log('Repository %s/%s classified as: %s', owner, repo, size);
           return size;
         } catch (error: any) {
           console.error(`Failed to classify repository ${owner}/${repo}:`, error);
@@ -193,12 +193,12 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
             MAX_PRS_PER_SYNC
           );
 
-          console.log(`✅ GraphQL recent PRs query successful for ${repository.owner}/${repository.name} (${prs.length} PRs found)`);
+          console.log('✅ GraphQL recent PRs query successful for %s/%s (%d PRs found)', repository.owner, repository.name, prs.length);
           
           // Log rate limit info
           const rateLimit = getGraphQLClient().getRateLimit();
           if (rateLimit) {
-            console.log(`📊 GraphQL rate limit: ${rateLimit.remaining}/${rateLimit.limit} remaining (cost: ${rateLimit.cost} points)`);
+            console.log('📊 GraphQL rate limit: %d/%d remaining (cost: %d points)', rateLimit.remaining, rateLimit.limit, rateLimit.cost);
           }
 
           return prs.slice(0, MAX_PRS_PER_SYNC); // Ensure we don't exceed our limit
@@ -294,7 +294,7 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
           }
 
           if (detailJobsQueued >= MAX_DETAIL_JOBS) {
-            console.log(`Reached GraphQL job queue limit (${MAX_DETAIL_JOBS}) for ${repository.owner}/${repository.name}`);
+            console.log('Reached GraphQL job queue limit (%d) for %s/%s', MAX_DETAIL_JOBS, repository.owner, repository.name);
             break;
           }
         }

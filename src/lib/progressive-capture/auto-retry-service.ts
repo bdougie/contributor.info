@@ -71,7 +71,7 @@ export class AutoRetryService {
         return;
       }
 
-      console.log(`[AutoRetry] Found ${failedJobs.length} failed jobs to process`);
+      console.log('[AutoRetry] Found %d failed jobs to process', failedJobs.length);
 
       for (const job of failedJobs) {
         await this.processFailedJob(job);
@@ -99,7 +99,7 @@ export class AutoRetryService {
         const requiredDelay = this.calculateBackoffDelay(retryCount);
         
         if (timeSinceLastRetry < requiredDelay) {
-          console.log(`[AutoRetry] Job ${job.id} not ready for retry (${timeSinceLastRetry}ms < ${requiredDelay}ms)`);
+          console.log('[AutoRetry] Job %s not ready for retry (%dms < %dms)', job.id, timeSinceLastRetry, requiredDelay);
           return;
         }
       }
@@ -129,7 +129,7 @@ export class AutoRetryService {
         return;
       }
 
-      console.log(`[AutoRetry] Retrying job ${job.id} (attempt ${retryCount + 1})`);
+      console.log('[AutoRetry] Retrying job %s (attempt %d)', job.id, retryCount + 1);
 
       // Update job metadata with retry information
       await supabase
@@ -154,7 +154,7 @@ export class AutoRetryService {
       // Create a new job with the same parameters
       const newJob = await this.createRetryJob(job);
       
-      console.log(`[AutoRetry] Created retry job ${newJob.id} for failed job ${job.id}`);
+      console.log('[AutoRetry] Created retry job %s for failed job %s', newJob.id, job.id);
       
       // Mark original job as retried
       await jobStatusReporter.reportStatus({
@@ -257,7 +257,7 @@ export class AutoRetryService {
       }
       
       repositoryName = `${repo.owner}/${repo.name}`;
-      console.log(`[AutoRetry] Found repository name: ${repositoryName}`);
+      console.log('[AutoRetry] Found repository name: %s', repositoryName);
     }
     
     // Extract job data from original
@@ -358,7 +358,7 @@ export class AutoRetryService {
     config: Partial<RetryConfig>
   ): Promise<void> {
     // This could be stored in a database table for persistence
-    console.log(`[AutoRetry] Configuring retry policy for ${jobType}:`, config);
+    console.log('[AutoRetry] Configuring retry policy for %s:', jobType, config);
     
     // For now, we'll use the default config
     // In a production system, this would update a retry_policies table
