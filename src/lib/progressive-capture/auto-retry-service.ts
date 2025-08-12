@@ -404,7 +404,16 @@ export class AutoRetryService {
         successfulRetries: 0,
         failedRetries: 0,
         averageRetryCount: 0,
-        permanentFailures: 0
+        permanentFailures: 0,
+        cacheMetrics: {
+          cacheSize: 0,
+          cacheHitRate: 0,
+          repositoriesCached: 0
+        },
+        dataQualityMetrics: {
+          jobsWithMissingRepoName: 0,
+          jobsRecoveredViaFetch: 0
+        }
       };
     }
   }
