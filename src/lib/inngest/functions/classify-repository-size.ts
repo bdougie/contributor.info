@@ -1,6 +1,7 @@
 import { inngest } from '../client';
 import { RepositorySizeClassifier } from '../../repository-size-classifier';
 import { supabase } from '../../supabase';
+import { NonRetriableError } from 'inngest';
 
 // Type for tracked repository with nested repository data
 interface TrackedRepositoryWithRepo {
@@ -36,7 +37,7 @@ export const classifyRepositorySize = inngest.createFunction(
     // Initialize classifier
     const githubToken = import.meta.env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
     if (!githubToken) {
-      throw new Error('GitHub token not configured');
+      throw new NonRetriableError('GitHub token not configured');
     }
 
     const classifier = new RepositorySizeClassifier(githubToken);
@@ -141,13 +142,13 @@ export const classifySingleRepository = inngest.createFunction(
     // Validate required fields
     if (!repositoryId || !owner || !repo) {
       console.error('Missing required fields in event data:', event.data);
-      throw new Error(`Missing required fields: repositoryId=${repositoryId}, owner=${owner}, repo=${repo}`);
+      throw new NonRetriableError(`Missing required fields: repositoryId=${repositoryId}, owner=${owner}, repo=${repo}`);
     }
 
     // Initialize classifier
     const githubToken = import.meta.env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
     if (!githubToken) {
-      throw new Error('GitHub token not configured');
+      throw new NonRetriableError('GitHub token not configured');
     }
 
     const classifier = new RepositorySizeClassifier(githubToken);
