@@ -27,6 +27,7 @@ lodash/lodash
 microsoft/vscode
 moment/moment
 nestjs/nest
+ollama/ollama
 open-sauced/app
 pgvector/pgvector
 pingcap/tidb

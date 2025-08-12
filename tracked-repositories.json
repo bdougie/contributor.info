@@ -116,6 +116,10 @@
     "name": "nest"
   },
   {
+    "owner": "ollama",
+    "name": "ollama"
+  },
+  {
     "owner": "open-sauced",
     "name": "app"
   },
@@ -153,6 +157,10 @@
   },
   {
     "owner": "supabase",
+    "name": "supabase"
+  },
+  {
+    "owner": "Supabase",
     "name": "supabase"
   },
   {
