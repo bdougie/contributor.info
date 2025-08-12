@@ -45,7 +45,6 @@
     "test-storybook": "npm run build-storybook && npx concurrently -k -s first -n \"SB,TEST\" -c \"magenta,blue\" \"npx http-server storybook-static --port 6006 --silent\" \"npx wait-on tcp:6006 && npx test-storybook --url http://127.0.0.1:6006\"",
     "test-storybook-a11y": "npm run build-storybook && npx concurrently -k -s first -n \"SB,TEST\" -c \"magenta,blue\" \"npx http-server storybook-static --port 6006 --silent\" \"npx wait-on tcp:6006 && npx test-storybook --url http://127.0.0.1:6006 --includeTags accessibility\"",
     "test-storybook-direct": "./.storybook/run-interaction-tests-direct.sh",
-    "generate-social-cards": "node scripts/assets/generate-social-cards.js",
     "setup-storage": "node scripts/setup/setup-supabase-storage.js",
     "test-social-cards": "node scripts/testing-tools/test-social-cards.js",
     "migrate-images": "node scripts/assets/migrate-to-supabase-storage.js",
