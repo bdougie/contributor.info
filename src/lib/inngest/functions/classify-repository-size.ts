@@ -137,6 +137,12 @@ export const classifySingleRepository = inngest.createFunction(
   { event: 'classify/repository.single' },
   async ({ event, step }) => {
     const { repositoryId, owner, repo } = event.data;
+    
+    // Validate required fields
+    if (!repositoryId || !owner || !repo) {
+      console.error('Missing required fields in event data:', event.data);
+      throw new Error(`Missing required fields: repositoryId=${repositoryId}, owner=${owner}, repo=${repo}`);
+    }
 
     // Initialize classifier
     const githubToken = import.meta.env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
