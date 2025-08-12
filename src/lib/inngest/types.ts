@@ -66,6 +66,7 @@ export interface GitHubComment {
 
 export interface DatabaseComment {
   github_id: string;
+  repository_id: string;
   pull_request_id: string;
   commenter_id?: string;
   body: string;
