@@ -1,12 +1,15 @@
+import Logger from '../utils/logger.js';
+
 /**
  * Pull Request webhook handler
  * Handles pull request events from GitHub
  */
 
-export async function handlePullRequestEvent(payload, githubApp, supabase) {
+export async function handlePullRequestEvent(payload, githubApp, supabase, parentLogger) {
+  const logger = parentLogger ? parentLogger.child('PullRequest') : new Logger('PullRequest');
   const { pull_request: pr, repository: repo, installation, action } = payload;
   
-  console.log(`Processing PR ${action}: #${pr.number} in ${repo.full_name}`);
+  logger.info('Processing PR %s: #%s in %s', action, pr.number, repo.full_name);
   
   try {
     // Get installation Octokit
@@ -17,38 +20,38 @@ export async function handlePullRequestEvent(payload, githubApp, supabase) {
       case 'opened':
       case 'reopened':
         // Track PR in database
-        await trackPullRequest(pr, repo, supabase);
+        await trackPullRequest(pr, repo, supabase, logger);
         break;
         
       case 'closed':
         if (pr.merged) {
-          console.log(`PR #${pr.number} was merged`);
+          logger.info('PR #%s was merged', pr.number);
           // Update PR status in database
-          await updatePRStatus(pr, repo, 'merged', supabase);
+          await updatePRStatus(pr, repo, 'merged', supabase, logger);
         } else {
-          console.log(`PR #${pr.number} was closed without merging`);
-          await updatePRStatus(pr, repo, 'closed', supabase);
+          logger.info('PR #%s was closed without merging', pr.number);
+          await updatePRStatus(pr, repo, 'closed', supabase, logger);
         }
         break;
         
       case 'synchronize':
-        console.log(`PR #${pr.number} was updated with new commits`);
+        logger.info('PR #%s was updated with new commits', pr.number);
         // Update PR data
-        await updatePullRequest(pr, repo, supabase);
+        await updatePullRequest(pr, repo, supabase, logger);
         break;
         
       default:
-        console.log(`Unhandled PR action: ${action}`);
+        logger.info('Unhandled PR action: %s', action);
     }
     
     return { success: true };
   } catch (error) {
-    console.error('Error handling pull request event:', error);
+    logger.error('Error handling pull request event:', error);
     throw error;
   }
 }
 
-async function trackPullRequest(pr, repo, supabase) {
+async function trackPullRequest(pr, repo, supabase, logger) {
   try {
     const { data, error } = await supabase
       .from('pull_requests')
@@ -76,16 +79,16 @@ async function trackPullRequest(pr, repo, supabase) {
       });
       
     if (error) {
-      console.error('Error tracking PR in database:', error);
+      logger.error('Error tracking PR in database:', error);
     } else {
-      console.log(`✅ Tracked PR #${pr.number} in database`);
+      logger.info('✅ Tracked PR #%s in database', pr.number);
     }
   } catch (error) {
-    console.error('Error tracking pull request:', error);
+    logger.error('Error tracking pull request:', error);
   }
 }
 
-async function updatePRStatus(pr, repo, status, supabase) {
+async function updatePRStatus(pr, repo, status, supabase, logger) {
   try {
     const { error } = await supabase
       .from('pull_requests')
@@ -99,16 +102,16 @@ async function updatePRStatus(pr, repo, status, supabase) {
       .eq('github_id', pr.id);
       
     if (error) {
-      console.error('Error updating PR status:', error);
+      logger.error('Error updating PR status:', error);
     } else {
-      console.log(`✅ Updated PR #${pr.number} status to ${status}`);
+      logger.info('✅ Updated PR #%s status to %s', pr.number, status);
     }
   } catch (error) {
-    console.error('Error updating PR status:', error);
+    logger.error('Error updating PR status:', error);
   }
 }
 
-async function updatePullRequest(pr, repo, supabase) {
+async function updatePullRequest(pr, repo, supabase, logger) {
   try {
     const { error } = await supabase
       .from('pull_requests')
@@ -124,11 +127,11 @@ async function updatePullRequest(pr, repo, supabase) {
       .eq('github_id', pr.id);
       
     if (error) {
-      console.error('Error updating PR:', error);
+      logger.error('Error updating PR:', error);
     } else {
-      console.log(`✅ Updated PR #${pr.number} data`);
+      logger.info('✅ Updated PR #%s data', pr.number);
     }
   } catch (error) {
-    console.error('Error updating pull request:', error);
+    logger.error('Error updating pull request:', error);
   }
 }

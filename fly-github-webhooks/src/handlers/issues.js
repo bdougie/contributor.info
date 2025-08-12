@@ -1,44 +1,47 @@
+import Logger from '../utils/logger.js';
+
 /**
  * Issues webhook handler
  * Handles issue events from GitHub
  */
 
-export async function handleIssuesEvent(payload, githubApp, supabase) {
+export async function handleIssuesEvent(payload, githubApp, supabase, parentLogger) {
+  const logger = parentLogger ? parentLogger.child('Issues') : new Logger('Issues');
   const { issue, repository: repo, installation, action } = payload;
   
-  console.log(`Processing issue ${action}: #${issue.number} in ${repo.full_name}`);
+  logger.info('Processing issue %s: #%s in %s', action, issue.number, repo.full_name);
   
   try {
     // Handle different issue actions
     switch (action) {
       case 'opened':
-        await trackIssue(issue, repo, supabase);
+        await trackIssue(issue, repo, supabase, logger);
         break;
         
       case 'closed':
-        await updateIssueStatus(issue, repo, 'closed', supabase);
+        await updateIssueStatus(issue, repo, 'closed', supabase, logger);
         break;
         
       case 'reopened':
-        await updateIssueStatus(issue, repo, 'open', supabase);
+        await updateIssueStatus(issue, repo, 'open', supabase, logger);
         break;
         
       case 'edited':
-        await updateIssue(issue, repo, supabase);
+        await updateIssue(issue, repo, supabase, logger);
         break;
         
       default:
-        console.log(`Unhandled issue action: ${action}`);
+        logger.info('Unhandled issue action: %s', action);
     }
     
     return { success: true };
   } catch (error) {
-    console.error('Error handling issue event:', error);
+    logger.error('Error handling issue event:', error);
     throw error;
   }
 }
 
-async function trackIssue(issue, repo, supabase) {
+async function trackIssue(issue, repo, supabase, logger) {
   try {
     // Ensure repository is tracked
     const { error: repoError } = await supabase
@@ -58,7 +61,7 @@ async function trackIssue(issue, repo, supabase) {
       });
     
     if (repoError) {
-      console.error('Error upserting repository:', repoError);
+      logger.error('Error upserting repository:', repoError);
       throw repoError;
     }
     
@@ -76,7 +79,7 @@ async function trackIssue(issue, repo, supabase) {
       });
     
     if (contributorError) {
-      console.error('Error upserting contributor:', contributorError);
+      logger.error('Error upserting contributor:', contributorError);
       throw contributorError;
     }
     
@@ -101,16 +104,16 @@ async function trackIssue(issue, repo, supabase) {
       });
       
     if (error) {
-      console.error('Error tracking issue:', error);
+      logger.error('Error tracking issue:', error);
     } else {
-      console.log(`✅ Tracked issue #${issue.number} in database`);
+      logger.info('✅ Tracked issue #%s in database', issue.number);
     }
   } catch (error) {
-    console.error('Error tracking issue:', error);
+    logger.error('Error tracking issue:', error);
   }
 }
 
-async function updateIssueStatus(issue, repo, status, supabase) {
+async function updateIssueStatus(issue, repo, status, supabase, logger) {
   try {
     const { error } = await supabase
       .from('issues')
@@ -122,16 +125,16 @@ async function updateIssueStatus(issue, repo, status, supabase) {
       .eq('github_id', issue.id);
       
     if (error) {
-      console.error('Error updating issue status:', error);
+      logger.error('Error updating issue status:', error);
     } else {
-      console.log(`✅ Updated issue #${issue.number} status to ${status}`);
+      logger.info('✅ Updated issue #%s status to %s', issue.number, status);
     }
   } catch (error) {
-    console.error('Error updating issue status:', error);
+    logger.error('Error updating issue status:', error);
   }
 }
 
-async function updateIssue(issue, repo, supabase) {
+async function updateIssue(issue, repo, supabase, logger) {
   try {
     const { error } = await supabase
       .from('issues')
@@ -144,11 +147,11 @@ async function updateIssue(issue, repo, supabase) {
       .eq('github_id', issue.id);
       
     if (error) {
-      console.error('Error updating issue:', error);
+      logger.error('Error updating issue:', error);
     } else {
-      console.log(`✅ Updated issue #${issue.number} data`);
+      logger.info('✅ Updated issue #%s data', issue.number);
     }
   } catch (error) {
-    console.error('Error updating issue:', error);
+    logger.error('Error updating issue:', error);
   }
 }

@@ -1,13 +1,16 @@
+import Logger from '../utils/logger.js';
+
 /**
  * Direct PR opened handler
  * Posts welcome comments on newly opened PRs
  */
 
-export async function handlePROpenedDirect(payload, githubApp, supabase) {
+export async function handlePROpenedDirect(payload, githubApp, supabase, parentLogger) {
+  const logger = parentLogger ? parentLogger.child('PROpenedDirect') : new Logger('PROpenedDirect');
   const { pull_request: pr, repository: repo, installation } = payload;
   
-  console.log(`Processing opened PR #${pr.number} in ${repo.full_name}`);
-  console.log(`  PR author: ${pr.user.login}`);
+  logger.info('Processing opened PR #%s in %s', pr.number, repo.full_name);
+  logger.info('  PR author: %s', pr.user.login);
   
   try {
     // Get installation Octokit
@@ -36,14 +39,14 @@ export async function handlePROpenedDirect(payload, githubApp, supabase) {
       body: comment
     });
     
-    console.log(`✅ Posted welcome comment on PR #${pr.number}`);
+    logger.info('✅ Posted welcome comment on PR #%s', pr.number);
     
     // Track PR in database
-    await trackPullRequest(pr, repo, supabase);
+    await trackPullRequest(pr, repo, supabase, logger);
     
     return { success: true, commented: true };
   } catch (error) {
-    console.error('Error handling PR opened:', error);
+    logger.error('Error handling PR opened:', error);
     // Don't throw - we don't want to trigger retries for comment failures
     return { success: false, error: error.message };
   }
@@ -66,12 +69,12 @@ async function checkIfFirstPR(username, repo, octokit) {
     // If we only find 1 PR (the current one), it's their first
     return userPrs.length <= 1;
   } catch (error) {
-    console.error('Error checking PR history:', error);
+    logger.error('Error checking PR history:', error);
     return false;
   }
 }
 
-async function trackPullRequest(pr, repo, supabase) {
+async function trackPullRequest(pr, repo, supabase, logger) {
   try {
     // First ensure the repository is tracked
     await supabase
@@ -129,8 +132,8 @@ async function trackPullRequest(pr, repo, supabase) {
         onConflict: 'github_id'
       });
       
-    console.log(`✅ Tracked PR #${pr.number} in database`);
+    logger.info('✅ Tracked PR #%s in database', pr.number);
   } catch (error) {
-    console.error('Error tracking PR in database:', error);
+    logger.error('Error tracking PR in database:', error);
   }
 }

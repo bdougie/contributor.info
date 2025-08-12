@@ -1,12 +1,15 @@
+import Logger from '../utils/logger.js';
+
 /**
  * Issue comment webhook handler
  * Handles comment events on issues and PRs
  */
 
-export async function handleIssueCommentEvent(payload, githubApp, supabase) {
+export async function handleIssueCommentEvent(payload, githubApp, supabase, parentLogger) {
+  const logger = parentLogger ? parentLogger.child('IssueComment') : new Logger('IssueComment');
   const { comment, issue, repository: repo, installation, action } = payload;
   
-  console.log(`Processing comment ${action} on #${issue.number} in ${repo.full_name}`);
+  logger.info('Processing comment %s on #%s in %s', action, issue.number, repo.full_name);
   
   try {
     // Get installation Octokit
@@ -15,14 +18,14 @@ export async function handleIssueCommentEvent(payload, githubApp, supabase) {
     // Handle different comment actions
     switch (action) {
       case 'created':
-        await trackComment(comment, issue, repo, supabase);
+        await trackComment(comment, issue, repo, supabase, logger);
         
         // Check for special commands in comments
         await handleCommentCommands(comment, issue, repo, octokit);
         break;
         
       case 'edited':
-        await updateComment(comment, issue, repo, supabase);
+        await updateComment(comment, issue, repo, supabase, logger);
         break;
         
       case 'deleted':
@@ -30,12 +33,12 @@ export async function handleIssueCommentEvent(payload, githubApp, supabase) {
         break;
         
       default:
-        console.log(`Unhandled comment action: ${action}`);
+        logger.info('Unhandled comment action: %s', action);
     }
     
     return { success: true };
   } catch (error) {
-    console.error('Error handling comment event:', error);
+    logger.error('Error handling comment event:', error);
     throw error;
   }
 }
@@ -71,12 +74,12 @@ async function handleCommentCommands(comment, issue, repo, octokit) {
         content: '+1'
       });
     } catch (error) {
-      console.error('Error assigning user:', error);
+      logger.error('Error assigning user:', error);
     }
   }
 }
 
-async function trackComment(comment, issue, repo, supabase) {
+async function trackComment(comment, issue, repo, supabase, logger) {
   try {
     // Track the commenter
     await supabase
@@ -112,16 +115,16 @@ async function trackComment(comment, issue, repo, supabase) {
       });
       
     if (error) {
-      console.error('Error tracking comment:', error);
+      logger.error('Error tracking comment:', error);
     } else {
-      console.log(`✅ Tracked ${comment_type} on #${issue.number}`);
+      logger.info('✅ Tracked %s on #%s', comment_type, issue.number);
     }
   } catch (error) {
-    console.error('Error tracking comment:', error);
+    logger.error('Error tracking comment:', error);
   }
 }
 
-async function updateComment(comment, issue, repo, supabase) {
+async function updateComment(comment, issue, repo, supabase, logger) {
   try {
     const { error } = await supabase
       .from('comments')
@@ -132,16 +135,16 @@ async function updateComment(comment, issue, repo, supabase) {
       .eq('github_id', comment.id);
       
     if (error) {
-      console.error('Error updating comment:', error);
+      logger.error('Error updating comment:', error);
     } else {
-      console.log(`✅ Updated comment ${comment.id}`);
+      logger.info('✅ Updated comment %s', comment.id);
     }
   } catch (error) {
-    console.error('Error updating comment:', error);
+    logger.error('Error updating comment:', error);
   }
 }
 
-async function deleteComment(comment, supabase) {
+async function deleteComment(comment, supabase, logger) {
   try {
     const { error } = await supabase
       .from('comments')
@@ -149,11 +152,11 @@ async function deleteComment(comment, supabase) {
       .eq('github_id', comment.id);
       
     if (error) {
-      console.error('Error deleting comment:', error);
+      logger.error('Error deleting comment:', error);
     } else {
-      console.log(`✅ Deleted comment ${comment.id} from database`);
+      logger.info('✅ Deleted comment %s from database', comment.id);
     }
   } catch (error) {
-    console.error('Error deleting comment:', error);
+    logger.error('Error deleting comment:', error);
   }
 }

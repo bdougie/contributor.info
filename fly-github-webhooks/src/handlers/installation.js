@@ -3,44 +3,47 @@
  * Handles GitHub App installation events
  */
 
-export async function handleInstallationEvent(payload, githubApp, supabase) {
+import Logger from '../utils/logger.js';
+
+export async function handleInstallationEvent(payload, githubApp, supabase, parentLogger) {
+  const logger = parentLogger ? parentLogger.child('Installation') : new Logger('Installation');
   const { action, installation, repositories, sender } = payload;
   
-  console.log(`Processing installation ${action} by ${sender.login}`);
-  console.log(`  Installation ID: ${installation.id}`);
-  console.log(`  Account: ${installation.account.login} (${installation.account.type})`);
+  logger.info('Processing installation %s by %s', action, sender.login);
+  logger.info('  Installation ID: %d', installation.id);
+  logger.info('  Account: %s (%s)', installation.account.login, installation.account.type);
   
   try {
     switch (action) {
       case 'created':
-        await handleNewInstallation(installation, repositories, supabase);
+        await handleNewInstallation(installation, repositories, supabase, logger);
         break;
         
       case 'deleted':
-        await handleRemovedInstallation(installation, supabase);
+        await handleRemovedInstallation(installation, supabase, logger);
         break;
         
       case 'repositories_added':
-        await handleRepositoriesAdded(installation, repositories, supabase);
+        await handleRepositoriesAdded(installation, repositories, supabase, logger);
         break;
         
       case 'repositories_removed':
-        await handleRepositoriesRemoved(installation, repositories, supabase);
+        await handleRepositoriesRemoved(installation, repositories, supabase, logger);
         break;
         
       default:
-        console.log(`Unhandled installation action: ${action}`);
+        logger.warn('Unhandled installation action: %s', action);
     }
     
     return { success: true };
   } catch (error) {
-    console.error('Error handling installation event:', error);
+    logger.error('Error handling installation event: %s', error.message);
     throw error;
   }
 }
 
-async function handleNewInstallation(installation, repositories, supabase) {
-  console.log(`🎉 New installation for ${installation.account.login}`);
+async function handleNewInstallation(installation, repositories, supabase, logger) {
+  logger.info('🎉 New installation for %s', installation.account.login);
   
   try {
     // Track the installation
@@ -62,34 +65,34 @@ async function handleNewInstallation(installation, repositories, supabase) {
       });
       
     if (installError) {
-      console.error('Error tracking installation:', installError);
+      logger.error('Error tracking installation: %s', installError.message);
     } else {
-      console.log(`✅ Tracked installation ${installation.id}`);
+      logger.info('✅ Tracked installation %d', installation.id);
     }
     
     // Track repositories if provided
     if (repositories && repositories.length > 0) {
       for (const repo of repositories) {
-        await trackRepository(repo, installation.id, supabase);
+        await trackRepository(repo, installation.id, supabase, logger);
       }
-      console.log(`✅ Tracked ${repositories.length} repositories`);
+      logger.info('✅ Tracked %d repositories', repositories.length);
     }
     
     // Log summary
-    console.log(`Installation complete:`, {
-      account: installation.account.login,
-      type: installation.account.type,
-      repositories: repositories?.length || 'all',
-      permissions: Object.keys(installation.permissions || {}).join(', ')
-    });
+    logger.info('Installation complete: account=%s type=%s repositories=%s permissions=%s',
+      installation.account.login,
+      installation.account.type,
+      repositories?.length || 'all',
+      Object.keys(installation.permissions || {}).join(', ')
+    );
     
   } catch (error) {
-    console.error('Error handling new installation:', error);
+    logger.error('Error handling new installation: %s', error.message);
   }
 }
 
-async function handleRemovedInstallation(installation, supabase) {
-  console.log(`❌ Installation removed for ${installation.account.login}`);
+async function handleRemovedInstallation(installation, supabase, logger) {
+  logger.info('❌ Installation removed for %s', installation.account.login);
   
   try {
     // Mark installation as deleted
@@ -101,30 +104,30 @@ async function handleRemovedInstallation(installation, supabase) {
       .eq('github_id', installation.id);
       
     if (error) {
-      console.error('Error marking installation as deleted:', error);
+      logger.error('Error marking installation as deleted: %s', error.message);
     } else {
-      console.log(`✅ Marked installation ${installation.id} as deleted`);
+      logger.info('✅ Marked installation %d as deleted', installation.id);
     }
   } catch (error) {
-    console.error('Error handling removed installation:', error);
+    logger.error('Error handling removed installation: %s', error.message);
   }
 }
 
-async function handleRepositoriesAdded(installation, repositories, supabase) {
-  console.log(`➕ Adding ${repositories.length} repositories to installation ${installation.id}`);
+async function handleRepositoriesAdded(installation, repositories, supabase, logger) {
+  logger.info('➕ Adding %d repositories to installation %d', repositories.length, installation.id);
   
   try {
     for (const repo of repositories) {
-      await trackRepository(repo, installation.id, supabase);
+      await trackRepository(repo, installation.id, supabase, logger);
     }
-    console.log(`✅ Added ${repositories.length} repositories`);
+    logger.info('✅ Added %d repositories', repositories.length);
   } catch (error) {
-    console.error('Error adding repositories:', error);
+    logger.error('Error adding repositories: %s', error.message);
   }
 }
 
-async function handleRepositoriesRemoved(installation, repositories, supabase) {
-  console.log(`➖ Removing ${repositories.length} repositories from installation ${installation.id}`);
+async function handleRepositoriesRemoved(installation, repositories, supabase, logger) {
+  logger.info('➖ Removing %d repositories from installation %d', repositories.length, installation.id);
   
   try {
     for (const repo of repositories) {
@@ -138,16 +141,16 @@ async function handleRepositoriesRemoved(installation, repositories, supabase) {
         .eq('installation_id', installation.id);
         
       if (error) {
-        console.error('Error removing repository %s:', repo.full_name, error);
+        logger.error('Error removing repository %s: %s', repo.full_name, error.message);
       }
     }
-    console.log(`✅ Removed ${repositories.length} repositories`);
+    logger.info('✅ Removed %d repositories', repositories.length);
   } catch (error) {
-    console.error('Error removing repositories:', error);
+    logger.error('Error removing repositories: %s', error.message);
   }
 }
 
-async function trackRepository(repo, installationId, supabase) {
+async function trackRepository(repo, installationId, supabase, logger) {
   try {
     // Track the repository
     await supabase
@@ -177,8 +180,8 @@ async function trackRepository(repo, installationId, supabase) {
         onConflict: 'installation_id,repository_id'
       });
       
-    console.log('  ✅ Tracked repository %s', repo.full_name);
+    logger.info('  ✅ Tracked repository %s', repo.full_name);
   } catch (error) {
-    console.error('Error tracking repository %s:', repo.full_name, error);
+    logger.error('Error tracking repository %s: %s', repo.full_name, error.message);
   }
 }

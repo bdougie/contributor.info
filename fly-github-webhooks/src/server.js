@@ -9,6 +9,8 @@ import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { logger } from './utils/logger.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -47,7 +49,7 @@ const requiredEnvVars = [
 
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 if (missingEnvVars.length > 0) {
-  console.error('❌ Missing required environment variables:', missingEnvVars);
+  logger.error('❌ Missing required environment variables: %s', missingEnvVars.join(', '));
   process.exit(1);
 }
 
@@ -61,9 +63,9 @@ try {
       secret: process.env.GITHUB_APP_WEBHOOK_SECRET
     }
   });
-  console.log('✅ GitHub App initialized successfully');
+  logger.info('✅ GitHub App initialized successfully');
 } catch (error) {
-  console.error('❌ Failed to initialize GitHub App:', error);
+  logger.error('❌ Failed to initialize GitHub App: %s', error.message);
   process.exit(1);
 }
 
@@ -152,11 +154,11 @@ app.post('/webhook', webhookLimiter, async (req, res) => {
     const eventType = req.headers['x-github-event'];
     const deliveryId = req.headers['x-github-delivery'];
 
-    console.log(`📨 Webhook received: ${eventType} (${deliveryId})`);
+    logger.info('📨 Webhook received: %s (%s)', eventType, deliveryId);
 
     // Verify signature
     if (!verifyWebhookSignature(req.body, signature, process.env.GITHUB_APP_WEBHOOK_SECRET)) {
-      console.error('❌ Invalid webhook signature');
+      logger.error('❌ Invalid webhook signature');
       metrics.webhooksFailed++;
       return res.status(401).json({ error: 'Invalid signature' });
     }
@@ -165,60 +167,60 @@ app.post('/webhook', webhookLimiter, async (req, res) => {
     const payload = JSON.parse(req.body.toString());
 
     // Log webhook details
-    console.log({
-      event: eventType,
-      delivery: deliveryId,
-      repository: payload.repository?.full_name || 'unknown',
-      action: payload.action,
-      installation: payload.installation?.id
-    });
+    logger.webhook(
+      eventType,
+      deliveryId,
+      payload.repository?.full_name,
+      payload.action,
+      payload.installation?.id
+    );
 
     // Process webhook based on event type
     try {
       switch (eventType) {
         case 'ping':
-          console.log('🏓 GitHub App ping received');
+          logger.info('🏓 GitHub App ping received');
           break;
 
         case 'installation':
-          console.log('🔧 Installation %s: %s', payload.action, payload.installation?.account?.login);
-          await handleInstallationEvent(payload, githubApp, supabase);
+          logger.info('🔧 Installation %s: %s', payload.action, payload.installation?.account?.login);
+          await handleInstallationEvent(payload, githubApp, supabase, logger);
           break;
 
         case 'pull_request':
-          console.log(`🔀 PR ${payload.action}: #${payload.pull_request?.number}`);
+          logger.info('🔀 PR %s: #%d', payload.action, payload.pull_request?.number);
           if (payload.action === 'opened') {
-            await handlePROpenedDirect(payload, githubApp, supabase);
+            await handlePROpenedDirect(payload, githubApp, supabase, logger);
           } else if (payload.action === 'labeled') {
-            await handleLabeledEvent(payload, githubApp, supabase);
+            await handleLabeledEvent(payload, githubApp, supabase, logger);
           } else {
-            await handlePullRequestEvent(payload, githubApp, supabase);
+            await handlePullRequestEvent(payload, githubApp, supabase, logger);
           }
           break;
 
         case 'issues':
-          console.log(`📝 Issue ${payload.action}: #${payload.issue?.number}`);
+          logger.info('📝 Issue %s: #%d', payload.action, payload.issue?.number);
           if (payload.action === 'opened') {
-            await handleIssueOpenedDirect(payload, githubApp, supabase);
+            await handleIssueOpenedDirect(payload, githubApp, supabase, logger);
           } else if (payload.action === 'labeled') {
-            await handleLabeledEvent(payload, githubApp, supabase);
+            await handleLabeledEvent(payload, githubApp, supabase, logger);
           } else {
-            await handleIssuesEvent(payload, githubApp, supabase);
+            await handleIssuesEvent(payload, githubApp, supabase, logger);
           }
           break;
 
         case 'issue_comment':
-          console.log(`💬 Issue comment ${payload.action} on #${payload.issue?.number}`);
-          await handleIssueCommentEvent(payload, githubApp, supabase);
+          logger.info('💬 Issue comment %s on #%d', payload.action, payload.issue?.number);
+          await handleIssueCommentEvent(payload, githubApp, supabase, logger);
           break;
 
         default:
-          console.log(`⚠️ Unhandled event type: ${eventType}`);
+          logger.warn('⚠️ Unhandled event type: %s', eventType);
       }
 
       metrics.webhooksProcessed++;
     } catch (processingError) {
-      console.error('❌ Error processing webhook:', processingError);
+      logger.error('❌ Error processing webhook: %s', processingError.message);
       metrics.webhooksFailed++;
       // Don't throw - we still want to return 200 to GitHub
     }
@@ -230,7 +232,7 @@ app.post('/webhook', webhookLimiter, async (req, res) => {
       metrics.processingTime.shift(); // Keep only last 100 samples
     }
 
-    console.log(`✅ Webhook processed in ${processingTime}ms`);
+    logger.info('✅ Webhook processed in %dms', processingTime);
 
     // Always return 200 to prevent GitHub retries
     res.status(200).json({
@@ -241,7 +243,7 @@ app.post('/webhook', webhookLimiter, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Webhook error:', error);
+    logger.error('❌ Webhook error: %s', error.message);
     metrics.webhooksFailed++;
     
     // Still return 200 to prevent GitHub retries
@@ -274,7 +276,7 @@ function verifyWebhookSignature(payload, signature, secret) {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Express error:', err);
+  logger.error('Express error: %s', err.message);
   res.status(500).json({
     error: 'Internal server error',
     message: process.env.NODE_ENV === 'development' ? err.message : undefined
@@ -283,7 +285,7 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 GitHub Webhook Handler running on port ${PORT}`);
-  console.log(`📊 Metrics available at http://localhost:${PORT}/metrics`);
-  console.log(`🏥 Health check at http://localhost:${PORT}/health`);
+  logger.info('🚀 GitHub Webhook Handler running on port %d', PORT);
+  logger.info('📊 Metrics available at http://localhost:%d/metrics', PORT);
+  logger.info('🏥 Health check at http://localhost:%d/health', PORT);
 });

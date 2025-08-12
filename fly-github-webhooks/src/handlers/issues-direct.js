@@ -1,13 +1,16 @@
+import Logger from '../utils/logger.js';
+
 /**
  * Direct issue opened handler
  * Posts welcome comments on newly opened issues
  */
 
-export async function handleIssueOpenedDirect(payload, githubApp, supabase) {
+export async function handleIssueOpenedDirect(payload, githubApp, supabase, parentLogger) {
+  const logger = parentLogger ? parentLogger.child('IssueOpenedDirect') : new Logger('IssueOpenedDirect');
   const { issue, repository: repo, installation } = payload;
   
-  console.log(`Processing opened issue #${issue.number} in ${repo.full_name}`);
-  console.log(`  Issue author: ${issue.user.login}`);
+  logger.info('Processing opened issue #%s in %s', issue.number, repo.full_name);
+  logger.info('  Issue author: %s', issue.user.login);
   
   try {
     // Get installation Octokit
@@ -46,14 +49,14 @@ export async function handleIssueOpenedDirect(payload, githubApp, supabase) {
       body: comment
     });
     
-    console.log(`✅ Posted welcome comment on issue #${issue.number}`);
+    logger.info('✅ Posted welcome comment on issue #%s', issue.number);
     
     // Track issue in database
-    await trackIssue(issue, repo, supabase);
+    await trackIssue(issue, repo, supabase, logger);
     
     return { success: true, commented: true };
   } catch (error) {
-    console.error('Error handling issue opened:', error);
+    logger.error('Error handling issue opened:', error);
     // Don't throw - we don't want to trigger retries for comment failures
     return { success: false, error: error.message };
   }
@@ -75,12 +78,12 @@ async function checkIfFirstIssue(username, repo, octokit) {
     // If we only find 1 issue (the current one), it's their first
     return actualIssues.length <= 1;
   } catch (error) {
-    console.error('Error checking issue history:', error);
+    logger.error('Error checking issue history:', error);
     return false;
   }
 }
 
-async function trackIssue(issue, repo, supabase) {
+async function trackIssue(issue, repo, supabase, logger) {
   try {
     // First ensure the repository is tracked
     await supabase
@@ -132,8 +135,8 @@ async function trackIssue(issue, repo, supabase) {
         onConflict: 'github_id'
       });
       
-    console.log(`✅ Tracked issue #${issue.number} in database`);
+    logger.info('✅ Tracked issue #%s in database', issue.number);
   } catch (error) {
-    console.error('Error tracking issue in database:', error);
+    logger.error('Error tracking issue in database:', error);
   }
 }

@@ -3,33 +3,36 @@
  * Handles when labels are added to issues or PRs
  */
 
-export async function handleLabeledEvent(payload, githubApp, supabase) {
+import Logger from '../utils/logger.js';
+
+export async function handleLabeledEvent(payload, githubApp, supabase, parentLogger) {
+  const logger = parentLogger ? parentLogger.child('Labeled') : new Logger('Labeled');
   const { label, issue, pull_request, repository: repo, installation } = payload;
   
   // Determine if this is an issue or PR
   const item = pull_request || issue;
   const itemType = pull_request ? 'pull request' : 'issue';
   
-  console.log(`Label "${label.name}" added to ${itemType} #${item.number} in ${repo.full_name}`);
+  logger.info('Label "%s" added to %s #%d in %s', label.name, itemType, item.number, repo.full_name);
   
   try {
     // Get installation Octokit
     const octokit = await githubApp.getInstallationOctokit(installation.id);
     
     // Handle specific labels with automated responses
-    await handleSpecialLabels(label, item, itemType, repo, octokit);
+    await handleSpecialLabels(label, item, itemType, repo, octokit, logger);
     
     // Update labels in database
-    await updateLabelsInDatabase(item, itemType, repo, supabase);
+    await updateLabelsInDatabase(item, itemType, repo, supabase, logger);
     
     return { success: true };
   } catch (error) {
-    console.error('Error handling labeled event:', error);
+    logger.error('Error handling labeled event: %s', error.message);
     throw error;
   }
 }
 
-async function handleSpecialLabels(label, item, itemType, repo, octokit) {
+async function handleSpecialLabels(label, item, itemType, repo, octokit, logger) {
   const labelName = label.name.toLowerCase();
   
   try {
@@ -50,7 +53,7 @@ async function handleSpecialLabels(label, item, itemType, repo, octokit) {
         body: comment
       });
       
-      console.log(`✅ Posted good first issue guidance on #${item.number}`);
+      logger.info('✅ Posted good first issue guidance on #%d', item.number);
     }
     
     // Help wanted label
@@ -67,7 +70,7 @@ async function handleSpecialLabels(label, item, itemType, repo, octokit) {
         body: comment
       });
       
-      console.log(`✅ Posted help wanted message on #${item.number}`);
+      logger.info('✅ Posted help wanted message on #%d', item.number);
     }
     
     // Bug label
@@ -90,7 +93,7 @@ async function handleSpecialLabels(label, item, itemType, repo, octokit) {
           body: comment
         });
         
-        console.log(`✅ Posted bug report template on #${item.number}`);
+        logger.info('✅ Posted bug report template on #%d', item.number);
       }
     }
     
@@ -104,16 +107,16 @@ async function handleSpecialLabels(label, item, itemType, repo, octokit) {
         content: 'eyes'
       });
       
-      console.log('✅ Acknowledged priority label on #%d', item.number);
+      logger.info('✅ Acknowledged priority label on #%d', item.number);
     }
     
   } catch (error) {
-    console.error('Error handling special label "%s":', label.name, error);
+    logger.error('Error handling special label "%s": %s', label.name, error.message);
     // Don't throw - we don't want label handling to fail the webhook
   }
 }
 
-async function updateLabelsInDatabase(item, itemType, repo, supabase) {
+async function updateLabelsInDatabase(item, itemType, repo, supabase, logger) {
   try {
     const labels = item.labels.map(l => l.name);
     
@@ -127,9 +130,9 @@ async function updateLabelsInDatabase(item, itemType, repo, supabase) {
         .eq('github_id', item.id);
         
       if (error) {
-        console.error('Error updating PR labels:', error);
+        logger.error('Error updating PR labels: %s', error.message);
       } else {
-        console.log(`✅ Updated labels for PR #${item.number}`);
+        logger.info('✅ Updated labels for PR #%d', item.number);
       }
     } else {
       const { error } = await supabase
@@ -141,12 +144,12 @@ async function updateLabelsInDatabase(item, itemType, repo, supabase) {
         .eq('github_id', item.id);
         
       if (error) {
-        console.error('Error updating issue labels:', error);
+        logger.error('Error updating issue labels: %s', error.message);
       } else {
-        console.log(`✅ Updated labels for issue #${item.number}`);
+        logger.info('✅ Updated labels for issue #%d', item.number);
       }
     }
   } catch (error) {
-    console.error('Error updating labels in database:', error);
+    logger.error('Error updating labels in database: %s', error.message);
   }
 }
