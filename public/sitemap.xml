@@ -416,10 +416,28 @@
     <lastmod>2025-07-03</lastmod>
   </url>
   <url>
-    <loc>https://contributor.info/facebook/docusaurus</loc>
+    <loc>https://contributor.info/pytorch/pytorch</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <lastmod>2025-08-12</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/pytorch/pytorch/health</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-08-12</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/pytorch/pytorch/distribution</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-08-12</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/Ad-Astra-Innovia/frontend</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-08-04</lastmod>
+    <lastmod>2025-08-07</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/topoteretes/cognee</loc>
@@ -512,28 +530,10 @@
     <lastmod>2025-08-04</lastmod>
   </url>
   <url>
-    <loc>https://contributor.info/Ad-Astra-Innovia/frontend</loc>
+    <loc>https://contributor.info/facebook/docusaurus</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-08-07</lastmod>
-  </url>
-  <url>
-    <loc>https://contributor.info/pytorch/pytorch</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-    <lastmod>2025-08-12</lastmod>
-  </url>
-  <url>
-    <loc>https://contributor.info/pytorch/pytorch/health</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-    <lastmod>2025-08-12</lastmod>
-  </url>
-  <url>
-    <loc>https://contributor.info/pytorch/pytorch/distribution</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-    <lastmod>2025-08-12</lastmod>
+    <lastmod>2025-08-04</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/lodash/lodash</loc>

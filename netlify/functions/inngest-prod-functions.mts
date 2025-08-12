@@ -75,6 +75,12 @@ export function createClassifySingleRepository(inngest: any) {
     { event: 'classify/repository.single' },
     async ({ event, step }: any) => {
       const { repositoryId, owner, repo } = event.data;
+      
+      // Validate required fields
+      if (!repositoryId || !owner || !repo) {
+        console.error('Missing required fields in event data:', event.data);
+        throw new Error(`Missing required fields: repositoryId=${repositoryId}, owner=${owner}, repo=${repo}`) as NonRetriableError;
+      }
 
       // Initialize classifier
       const githubToken = process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
@@ -127,6 +133,13 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
     { event: "capture/repository.sync.graphql" },
     async ({ event, step }: any) => {
       const { repositoryId, days, priority, reason } = event.data;
+      
+      // Validate repositoryId first
+      if (!repositoryId) {
+        console.error('Missing repositoryId in event data:', event.data);
+        throw new Error(`Missing required field: repositoryId`) as NonRetriableError;
+      }
+      
       const effectiveDays = Math.min(days || DEFAULT_DAYS_LIMIT, DEFAULT_DAYS_LIMIT);
 
       // Step 1: Get repository details and check if it was recently processed
