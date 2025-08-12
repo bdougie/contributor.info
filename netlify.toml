@@ -51,9 +51,6 @@
 [functions.inngest]
   node_bundler = "esbuild"
 
-[functions.github-webhook]
-  node_bundler = "esbuild"
-
 # Specific API routes (these must come first)
 [[redirects]]
   from = "/api/health"
@@ -70,24 +67,6 @@
 [[redirects]]
   from = "/api/hello"
   to = "/.netlify/functions/hello"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/github/webhook"
-  to = "/.netlify/functions/github-webhook"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/github/webhook-test"
-  to = "/.netlify/functions/github-webhook-test"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/github/webhook-status"
-  to = "/.netlify/functions/github-webhook-status"
   status = 200
   force = true
 
