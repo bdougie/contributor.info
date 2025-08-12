@@ -222,6 +222,7 @@ export class ReviewCommentProcessor {
             .from('comments')
             .upsert({
               github_id: comment.id,
+              repository_id: repositoryId,
               pull_request_id: metadata.pr_id,
               commenter_id: commenter.id,
               body: comment.body,
