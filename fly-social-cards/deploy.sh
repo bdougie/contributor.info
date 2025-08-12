@@ -2,7 +2,7 @@
 
 # Fly.io deployment script for social cards service
 
-set -e
+set -eo pipefail
 
 echo "🚀 Deploying social cards service to Fly.io..."
 
@@ -37,7 +37,8 @@ if ! fly secrets list | grep -q "SUPABASE_URL"; then
 fi
 
 if ! fly secrets list | grep -q "SUPABASE_ANON_KEY"; then
-    read -p "Enter SUPABASE_ANON_KEY: " SUPABASE_ANON_KEY
+    read -s -p "Enter SUPABASE_ANON_KEY: " SUPABASE_ANON_KEY
+    echo  # Add newline after hidden input
     fly secrets set SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
 fi
 

@@ -231,11 +231,11 @@ app.get('/social-cards/:type?', rateLimit, async (req, res) => {
       
       if (supabase) {
         try {
-        // Get global stats
+        // Get global stats (head: true returns only count, not data)
         const [repoCount, contribCount, prCount] = await Promise.all([
-          supabase.from('repositories').select('*', { count: 'exact', head: false }),
-          supabase.from('contributors').select('*', { count: 'exact', head: false }),
-          supabase.from('pull_requests').select('*', { count: 'exact', head: false })
+          supabase.from('repositories').select('*', { count: 'exact', head: true }),
+          supabase.from('contributors').select('*', { count: 'exact', head: true }),
+          supabase.from('pull_requests').select('*', { count: 'exact', head: true })
         ]);
 
         cardData.stats = {

@@ -97,7 +97,7 @@ export default function SocialCardPreview() {
               Repository Card: {currentRepo.owner}/{currentRepo.repo}
               <Button variant="outline" size="sm" asChild>
                 <a 
-                  href={`${flyServiceUrl}/social-cards/repo?owner=${currentRepo.owner}&repo=${currentRepo.repo}`} 
+                  href={`${flyServiceUrl}/social-cards/repo?owner=${encodeURIComponent(currentRepo.owner)}&repo=${encodeURIComponent(currentRepo.repo)}`} 
                   target="_blank" 
                   rel="noopener noreferrer"
                 >
@@ -116,7 +116,7 @@ export default function SocialCardPreview() {
               )}
               <img
                 key={`${currentRepo.owner}/${currentRepo.repo}`}
-                src={`${flyServiceUrl}/social-cards/repo?owner=${currentRepo.owner}&repo=${currentRepo.repo}`}
+                src={`${flyServiceUrl}/social-cards/repo?owner=${encodeURIComponent(currentRepo.owner)}&repo=${encodeURIComponent(currentRepo.repo)}`}
                 alt={`${currentRepo.owner}/${currentRepo.repo} social card preview`}
                 onLoad={() => setLoading(prev => ({ ...prev, repo: false }))}
                 style={{ 
@@ -127,7 +127,7 @@ export default function SocialCardPreview() {
               />
             </div>
             <div className="mt-4 text-sm text-muted-foreground">
-              <p>URL: {flyServiceUrl}/social-cards/repo?owner={currentRepo.owner}&repo={currentRepo.repo}</p>
+              <p>URL: {flyServiceUrl}/social-cards/repo?owner={encodeURIComponent(currentRepo.owner)}&repo={encodeURIComponent(currentRepo.repo)}</p>
               <p>Dimensions: 1200x630px</p>
               <p>Format: SVG with real-time data from Supabase</p>
             </div>
@@ -146,8 +146,8 @@ export default function SocialCardPreview() {
 <meta name="twitter:image" content="${flyServiceUrl}/social-cards/home" />
 
 <!-- Repository page -->
-<meta property="og:image" content="${flyServiceUrl}/social-cards/repo?owner=${currentRepo.owner}&repo=${currentRepo.repo}" />
-<meta name="twitter:image" content="${flyServiceUrl}/social-cards/repo?owner=${currentRepo.owner}&repo=${currentRepo.repo}" />`}
+<meta property="og:image" content="${flyServiceUrl}/social-cards/repo?owner=${encodeURIComponent(currentRepo.owner)}&repo=${encodeURIComponent(currentRepo.repo)}" />
+<meta name="twitter:image" content="${flyServiceUrl}/social-cards/repo?owner=${encodeURIComponent(currentRepo.owner)}&repo=${encodeURIComponent(currentRepo.repo)}" />`}
             </pre>
           </CardContent>
         </Card>

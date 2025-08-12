@@ -105,7 +105,7 @@ const generateRepoCard = (data) => {
   const { title, subtitle, stats } = data;
   const safeTitle = escapeHtml(title);
   const safeSubtitle = escapeHtml(subtitle);
-  const [owner, repo] = safeTitle.split('/');
+  const [owner = '', repo = ''] = safeTitle.split('/');
 
   return `<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
     ${generateGradient('bgGradient', ['#0f172a', '#1e293b'])}
