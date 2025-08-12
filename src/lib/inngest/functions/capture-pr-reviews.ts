@@ -3,6 +3,7 @@ import { supabase } from '../../supabase';
 import { getOctokit } from '../github-client';
 import type { DatabaseReview } from '../types';
 import { SyncLogger } from '../sync-logger';
+import { NonRetriableError } from 'inngest';
 
 // Extended GitHub Review type with user details
 interface GitHubReviewWithUser {
@@ -68,7 +69,7 @@ export const capturePrReviews = inngest.createFunction(
         .maybeSingle();
 
       if (error || !data) {
-        throw new Error(`Repository not found: ${repositoryId}`);
+        throw new NonRetriableError(`Repository not found: ${repositoryId}`);
       }
       return data;
     });
@@ -88,6 +89,7 @@ export const capturePrReviews = inngest.createFunction(
 
         // Process each review and ensure reviewers exist in contributors table
         const processedReviews: DatabaseReview[] = [];
+        let failedContributorCreations = 0;
         
         for (const review of reviewsData as GitHubReviewWithUser[]) {
           if (!review.user) continue; // Skip reviews without user data
@@ -115,7 +117,8 @@ export const capturePrReviews = inngest.createFunction(
               .maybeSingle();
               
             if (contributorError || !newContributor) {
-              console.warn(`Failed to create reviewer ${review.user.login}:`, contributorError);
+              console.warn(`Failed to create reviewer ${review.user.login}:`, contributorError?.message || 'Unknown error');
+              failedContributorCreations++;
               continue;
             }
             
@@ -139,17 +142,18 @@ export const capturePrReviews = inngest.createFunction(
           github_api_calls_used: apiCallsUsed,
           metadata: {
             reviewsFound: (reviewsData as GitHubReviewWithUser[]).length,
-            reviewsWithUsers: processedReviews.length
+            reviewsWithUsers: processedReviews.length,
+            failedContributorCreations: failedContributorCreations
           }
         });
 
-        return processedReviews;
+        return { reviews: processedReviews, failedContributorCreations };
       } catch (error: unknown) {
         console.error(`Error fetching reviews for PR #${prNumber}:`, error);
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
           console.warn(`PR #${prNumber} not found, skipping reviews`);
-          return [];
+          return { reviews: [], failedContributorCreations: 0 };
         }
         if (apiError.status === 403) {
           throw new Error(`Rate limit exceeded while fetching reviews for PR #${prNumber}. Will retry later.`);
@@ -160,28 +164,28 @@ export const capturePrReviews = inngest.createFunction(
 
     // Step 3: Store reviews in database
     const storedCount = await step.run("store-reviews", async () => {
-      if (reviews.length === 0) {
+      if (reviews.reviews.length === 0) {
         return 0;
       }
 
       // Batch insert reviews
       const { error } = await supabase
         .from('reviews')
-        .upsert(reviews, {
+        .upsert(reviews.reviews, {
           onConflict: 'github_id',
           ignoreDuplicates: false,
         });
 
       if (error) {
         await syncLogger.fail(`Failed to store reviews: ${error.message}`, {
-          records_processed: reviews.length,
-          records_failed: reviews.length,
+          records_processed: reviews.reviews.length,
+          records_failed: reviews.reviews.length,
           github_api_calls_used: apiCallsUsed
         });
         throw new Error(`Failed to store reviews: ${error.message}`);
       }
 
-      return reviews.length;
+      return reviews.reviews.length;
     });
 
     // Step 4: Update PR timestamp (review counts are tracked via foreign key relationships)
@@ -205,7 +209,8 @@ export const capturePrReviews = inngest.createFunction(
         records_inserted: storedCount,
         github_api_calls_used: apiCallsUsed,
         metadata: {
-          reviewsCount: storedCount
+          reviewsCount: storedCount,
+          failedContributorCreations: reviews.failedContributorCreations
         }
       });
     });
