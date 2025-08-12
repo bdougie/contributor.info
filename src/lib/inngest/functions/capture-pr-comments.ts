@@ -3,6 +3,7 @@ import { supabase } from '../../supabase';
 import { getOctokit } from '../github-client';
 import type { DatabaseComment } from '../types';
 import { SyncLogger } from '../sync-logger';
+import type { NonRetriableError } from 'inngest';
 
 // Extended types for PR comments from GitHub API
 interface GitHubPRComment {
@@ -88,7 +89,7 @@ export const capturePrComments = inngest.createFunction(
         .maybeSingle();
 
       if (error || !data) {
-        throw new Error(`Repository not found: ${repositoryId}`);
+        throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
       }
       return data;
     });
@@ -118,6 +119,7 @@ export const capturePrComments = inngest.createFunction(
         // Process comments and ensure commenters exist in contributors table
         const processedPrComments: DatabaseComment[] = [];
         const processedIssueComments: DatabaseComment[] = [];
+        let failedContributorCreations = 0;
         
         for (const comment of prCommentsData as GitHubPRComment[]) {
           if (!comment.user) continue;
@@ -145,7 +147,8 @@ export const capturePrComments = inngest.createFunction(
               .maybeSingle();
               
             if (contributorError || !newContributor) {
-              console.warn(`Failed to create commenter ${comment.user.login}:`, contributorError);
+              console.warn(`Failed to create commenter ${comment.user.login}:`, contributorError?.message || 'Unknown error');
+              failedContributorCreations++;
               continue;
             }
             
@@ -195,7 +198,8 @@ export const capturePrComments = inngest.createFunction(
               .maybeSingle();
               
             if (contributorError || !newContributor) {
-              console.warn(`Failed to create commenter ${comment.user.login}:`, contributorError);
+              console.warn(`Failed to create commenter ${comment.user.login}:`, contributorError?.message || 'Unknown error');
+              failedContributorCreations++;
               continue;
             }
             
@@ -219,20 +223,22 @@ export const capturePrComments = inngest.createFunction(
           github_api_calls_used: apiCallsUsed,
           metadata: {
             prCommentsFound: processedPrComments.length,
-            issueCommentsFound: processedIssueComments.length
+            issueCommentsFound: processedIssueComments.length,
+            failedContributorCreations: failedContributorCreations
           }
         });
 
         return {
           prComments: processedPrComments,
           issueComments: processedIssueComments,
+          failedContributorCreations: failedContributorCreations,
         };
       } catch (error: unknown) {
         console.error(`Error fetching comments for PR #${prNumber}:`, error);
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
           console.warn(`PR #${prNumber} not found, skipping comments`);
-          return { prComments: [], issueComments: [] };
+          return { prComments: [], issueComments: [], failedContributorCreations: 0 };
         }
         if (apiError.status === 403) {
           throw new Error(`Rate limit exceeded while fetching comments for PR #${prNumber}. Will retry later.`);
@@ -292,7 +298,8 @@ export const capturePrComments = inngest.createFunction(
         metadata: {
           reviewCommentsCount: commentsData.prComments.length,
           issueCommentsCount: commentsData.issueComments.length,
-          totalCommentsCount: storedCount
+          totalCommentsCount: storedCount,
+          failedContributorCreations: commentsData.failedContributorCreations
         }
       });
     });

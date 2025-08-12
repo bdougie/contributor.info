@@ -211,7 +211,9 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           throw new Error(`GraphQL rate limit exceeded for ${repository.owner}/${repository.name}#${prNumber}`);
         }
         
-        console.warn(`GraphQL failed for PR #${prNumber}, falling back to REST:`, errorMessage);
+        // Sanitize error logging to avoid exposing sensitive information
+        const errorType = error instanceof Error ? error.constructor.name : 'UnknownError';
+        console.warn(`GraphQL failed for PR #${prNumber}, falling back to REST:`, errorType);
         throw error; // This will trigger the fallback to REST version
       }
     });
