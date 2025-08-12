@@ -36,7 +36,7 @@ const inngest = new Inngest({
   baseUrl: isLocalDev ? 'http://localhost:8288' : undefined, // Use local Inngest for dev
 });
 
-export default async (req: Request, context: Context) => {
+export default async (req: Request, _context: Context) => {
   // Only allow POST requests
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {

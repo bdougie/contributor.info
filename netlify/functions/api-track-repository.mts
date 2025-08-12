@@ -1,6 +1,6 @@
 import type { Context } from "@netlify/functions";
 
-export default async (req: Request, context: Context) => {
+export default async (req: Request, _context: Context) => {
   // CORS headers
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -32,11 +32,44 @@ export default async (req: Request, context: Context) => {
     const body = await req.json().catch(() => ({}));
     const { owner, repo } = body;
 
+    // Validate repository parameters
+    const isValidRepoName = (name: string) => /^[a-zA-Z0-9._-]+$/.test(name);
+    
     if (!owner || !repo) {
       return new Response(JSON.stringify({ 
         success: false,
         error: 'Missing owner or repo',
         message: 'Please provide both owner and repo parameters' 
+      }), {
+        status: 400,
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json' 
+        }
+      });
+    }
+
+    // Validate format to prevent injection attacks
+    if (!isValidRepoName(owner) || !isValidRepoName(repo)) {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Invalid repository format',
+        message: 'Repository names can only contain letters, numbers, dots, underscores, and hyphens' 
+      }), {
+        status: 400,
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json' 
+        }
+      });
+    }
+
+    // Validate length constraints
+    if (owner.length > 39 || repo.length > 100) {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Invalid repository name length',
+        message: 'Repository or organization name is too long' 
       }), {
         status: 400,
         headers: { 
@@ -162,7 +195,10 @@ export default async (req: Request, context: Context) => {
       });
 
     } catch (inngestError: unknown) {
-      const errorMessage = inngestError instanceof Error ? inngestError.message : String(inngestError);
+      // Log error for debugging but don't expose to client
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Inngest error:', inngestError);
+      }
       
       // Still return success but note the background processing issue
       return new Response(JSON.stringify({ 
