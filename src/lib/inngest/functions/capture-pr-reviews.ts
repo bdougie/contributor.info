@@ -3,7 +3,7 @@ import { supabase } from '../../supabase';
 import { getOctokit } from '../github-client';
 import type { DatabaseReview } from '../types';
 import { SyncLogger } from '../sync-logger';
-import type { NonRetriableError } from 'inngest';
+import { NonRetriableError } from 'inngest';
 
 // Extended GitHub Review type with user details
 interface GitHubReviewWithUser {
@@ -69,7 +69,7 @@ export const capturePrReviews = inngest.createFunction(
         .maybeSingle();
 
       if (error || !data) {
-        throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
+        throw new NonRetriableError(`Repository not found: ${repositoryId}`);
       }
       return data;
     });

@@ -3,7 +3,7 @@ import { supabase } from '../../supabase';
 import { getOctokit } from '../github-client';
 import type { DatabaseComment } from '../types';
 import { SyncLogger } from '../sync-logger';
-import type { NonRetriableError } from 'inngest';
+import { NonRetriableError } from 'inngest';
 
 // Extended types for PR comments from GitHub API
 interface GitHubPRComment {
@@ -89,7 +89,7 @@ export const capturePrComments = inngest.createFunction(
         .maybeSingle();
 
       if (error || !data) {
-        throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
+        throw new NonRetriableError(`Repository not found: ${repositoryId}`);
       }
       return data;
     });

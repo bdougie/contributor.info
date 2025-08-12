@@ -3,7 +3,7 @@ import { supabase } from '../../supabase';
 import { makeGitHubRequest } from '../github-client';
 import type { GitHubPullRequest } from '../types';
 import { SyncLogger } from '../sync-logger';
-import type { NonRetriableError } from 'inngest';
+import { NonRetriableError } from 'inngest';
 
 export const capturePrDetails = inngest.createFunction(
   {
@@ -47,7 +47,7 @@ export const capturePrDetails = inngest.createFunction(
         .maybeSingle();
 
       if (error || !data) {
-        throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
+        throw new NonRetriableError(`Repository not found: ${repositoryId}`);
       }
       return data;
     });
@@ -57,7 +57,6 @@ export const capturePrDetails = inngest.createFunction(
     // Step 2: Fetch PR details from GitHub (with timeout)
     const githubPrData = await step.run("fetch-pr-details", async () => {
       try {
-        console.log(`Fetching PR #${prNumber} details from ${repository.owner}/${repository.name}`);
         // Add a race condition with timeout to prevent hanging
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('GitHub API timeout')), 15000); // 15 second timeout
@@ -71,7 +70,9 @@ export const capturePrDetails = inngest.createFunction(
         await syncLogger.update({
           github_api_calls_used: apiCallsUsed,
           metadata: {
-            prDetailsFound: true
+            prDetailsFound: true,
+            prNumber,
+            repository: `${repository.owner}/${repository.name}`
           }
         });
         
@@ -79,8 +80,14 @@ export const capturePrDetails = inngest.createFunction(
       } catch (error: unknown) {
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
-          console.warn(`PR #${prNumber} not found in ${repository.owner}/${repository.name}`);
-          throw new Error(`PR #${prNumber} not found in ${repository.owner}/${repository.name}`) as NonRetriableError;
+          await syncLogger.update({
+            metadata: {
+              prNotFound: true,
+              prNumber,
+              repository: `${repository.owner}/${repository.name}`
+            }
+          });
+          throw new NonRetriableError(`PR #${prNumber} not found in ${repository.owner}/${repository.name}`);
         }
         if (error instanceof Error && error.message === 'GitHub API timeout') {
           throw new Error(`Timeout fetching PR #${prNumber} from ${repository.owner}/${repository.name}`);
@@ -176,8 +183,6 @@ export const capturePrDetails = inngest.createFunction(
         }
       });
     });
-
-    console.log(`✅ Successfully captured details for PR #${prNumber} in repository ${repositoryId}`);
 
     return {
       success: true,
