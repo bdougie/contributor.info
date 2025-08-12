@@ -26,7 +26,7 @@ The card displays different states based on authentication:
 
 ### 3. Discovery Process
 When a user clicks "Track This Repository":
-1. Frontend sends request to `/.netlify/functions/api-track-repository` endpoint
+1. Frontend sends request to `/api/track-repository` endpoint
 2. Endpoint validates authentication and repository details
 3. Sends `discover/repository.new` event to Inngest
 4. Inngest function:
@@ -52,10 +52,12 @@ When a user clicks "Track This Repository":
   - Provides tracking status updates
 
 #### Backend
-- **Tracking API Endpoint** (`netlify/functions/api-track-repository.js`)
+- **Tracking API Endpoint** (`netlify/functions/api-track-repository.mts`)
+  - ES module format for compatibility with `"type": "module"` in package.json
   - Authenticates user requests
   - Validates repository parameters
   - Sends discovery events to Inngest
+  - Automatically detects local vs production environment
 
 - **Discovery Function** (`src/lib/inngest/functions/discover-new-repository.ts`)
   - Fetches GitHub repository data
@@ -105,25 +107,37 @@ The previous auto-tracking system has been completely removed:
 
 ## Configuration
 
-No special configuration required. The system uses existing environment variables:
+### Environment Variables
+The system uses existing environment variables:
 - `VITE_SUPABASE_URL`: Database connection
 - `VITE_SUPABASE_ANON_KEY`: Public database key
 - `GITHUB_TOKEN`: For fetching repository data
 - `INNGEST_EVENT_KEY`: For sending background job events
+
+### Local Development
+For local development, the system automatically detects and routes to local Inngest:
+- Set `INNGEST_EVENT_KEY=local_development_only` in `.env`
+- Events will be sent to `http://localhost:8288` instead of production
+- No production events will be triggered during local testing
 
 ## Testing
 
 To test the tracking flow locally:
 
 ```bash
-# Start Inngest dev server
-npx inngest-cli@latest dev
+# Start the development environment (includes Inngest)
+npm start
 
-# Start development server
-npm run dev
+# This starts:
+# - Vite dev server on port 5174
+# - Netlify dev server on port 8888
+# - Inngest dev server on port 8288
 
 # Visit an untracked repository
-# Example: http://localhost:5173/some-org/some-repo
+# Example: http://localhost:8888/some-org/some-repo
+
+# Monitor Inngest events at:
+# http://localhost:8288/events
 ```
 
 ## Monitoring

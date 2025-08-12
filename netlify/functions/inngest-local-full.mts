@@ -13,7 +13,8 @@ import {
   captureRepositorySyncGraphQL,
   classifyRepositorySize,
   classifySingleRepository,
-  updatePrActivity
+  updatePrActivity,
+  discoverNewRepository
 } from "../../src/lib/inngest/functions/index-without-embeddings";
 
 // Ensure GITHUB_TOKEN is available
@@ -80,7 +81,9 @@ const inngestHandler = serve({
     classifyRepositorySize,
     classifySingleRepository,
     // PR activity updates
-    updatePrActivity
+    updatePrActivity,
+    // Repository discovery
+    discoverNewRepository
   ],
   servePath: "/.netlify/functions/inngest-local-full",
   landingPage: true
@@ -97,7 +100,7 @@ export default async (req: Request, context: Context) => {
       status: "active",
       endpoint: "http://localhost:8888/.netlify/functions/inngest-local-full",
       isDev: true,
-      functionCount: 9,
+      functionCount: 11,
       functions: [
         { id: "local-test-function", event: "test/local.hello" },
         { id: "capture-pr-details", event: "capture/pr.details" },
@@ -107,7 +110,9 @@ export default async (req: Request, context: Context) => {
         { id: "capture-pr-details-graphql", event: "capture/pr.details.graphql" },
         { id: "capture-repository-sync-graphql", event: "capture/repository.sync.graphql" },
         { id: "classify-repository-size", event: "classify/repository.size" },
-        { id: "classify-single-repository", event: "classify/repository.single" }
+        { id: "classify-single-repository", event: "classify/repository.single" },
+        { id: "update-pr-activity", event: "update/pr.activity" },
+        { id: "discover-new-repository", event: "discover/repository.new" }
       ],
       instructions: {
         inngestDev: "Run: npx inngest-cli@latest dev -u http://localhost:8888/.netlify/functions/inngest-local-full",
