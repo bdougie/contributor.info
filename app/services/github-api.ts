@@ -1,19 +1,21 @@
 import { Octokit } from '@octokit/rest';
 import { createAppAuth } from '@octokit/auth-app';
-import { getPrivateKey } from '../../netlify/functions/utils/get-private-key.mts';
 
 // Initialize Octokit instance
 let octokit: Octokit;
 
 /**
  * Get authenticated Octokit instance
+ * Note: This is legacy code from the Netlify webhook implementation.
+ * The actual webhook handling is now done by the Fly.io service.
  */
 async function getOctokit(): Promise<Octokit> {
   if (octokit) {
     return octokit;
   }
 
-  const privateKey = await getPrivateKey();
+  // Try to use GitHub App authentication if private key is available
+  const privateKey = process.env.GITHUB_APP_PRIVATE_KEY;
   
   if (privateKey && process.env.GITHUB_APP_ID) {
     // Use GitHub App authentication
@@ -21,7 +23,7 @@ async function getOctokit(): Promise<Octokit> {
       authStrategy: createAppAuth,
       auth: {
         appId: parseInt(process.env.GITHUB_APP_ID),
-        privateKey,
+        privateKey: privateKey.replace(/\\n/g, '\n'),
         installationId: process.env.GITHUB_APP_INSTALLATION_ID 
           ? parseInt(process.env.GITHUB_APP_INSTALLATION_ID)
           : undefined,
