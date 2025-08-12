@@ -78,26 +78,6 @@ jobs:
             cp CHANGELOG.md public/CHANGELOG.md
           fi
 
-      - name: Create release trigger commit
-        if: github.event.inputs.release_type != 'auto'
-        run: |
-          echo "Manual release type: ${{ github.event.inputs.release_type }}"
-          
-          # Configure git
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Create an empty commit with the appropriate message
-          if [ "${{ github.event.inputs.release_type }}" = "major" ]; then
-            git commit --allow-empty -m "feat!: Manual major release trigger
-
-BREAKING CHANGE: Manually triggered major version bump via GitHub Actions workflow dispatch."
-          elif [ "${{ github.event.inputs.release_type }}" = "minor" ]; then
-            git commit --allow-empty -m "feat: Manual minor release trigger via workflow dispatch"
-          elif [ "${{ github.event.inputs.release_type }}" = "patch" ]; then
-            git commit --allow-empty -m "fix: Manual patch release trigger via workflow dispatch"
-          fi
-
       - name: Create Release
         id: release
         uses: cycjimmy/semantic-release-action@v4
