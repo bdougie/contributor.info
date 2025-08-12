@@ -7,13 +7,59 @@ import { generateSocialCard } from './card-generator.js';
 dotenv.config();
 
 const app = express();
+
+// Simple in-memory rate limiting
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 60; // 60 requests per minute
+
+function rateLimit(req, res, next) {
+  const clientId = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+  
+  if (!rateLimitMap.has(clientId)) {
+    rateLimitMap.set(clientId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return next();
+  }
+  
+  const clientData = rateLimitMap.get(clientId);
+  
+  if (now > clientData.resetTime) {
+    clientData.count = 1;
+    clientData.resetTime = now + RATE_LIMIT_WINDOW_MS;
+    return next();
+  }
+  
+  if (clientData.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return res.status(429).json({ 
+      error: 'Too many requests', 
+      retryAfter: Math.ceil((clientData.resetTime - now) / 1000) 
+    });
+  }
+  
+  clientData.count++;
+  next();
+}
+
+// Clean up old entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [clientId, data] of rateLimitMap.entries()) {
+    if (now > data.resetTime + RATE_LIMIT_WINDOW_MS) {
+      rateLimitMap.delete(clientId);
+    }
+  }
+}, RATE_LIMIT_WINDOW_MS);
 const PORT = process.env.PORT || 8080;
 
 // Initialize Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co',
-  process.env.SUPABASE_ANON_KEY || ''
-);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+// Only initialize if environment variables are provided
+const supabase = supabaseUrl && supabaseKey 
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -30,14 +76,32 @@ app.get('/metrics', (req, res) => {
   });
 });
 
-// Main social card generation endpoint
-app.get('/social-cards/:type?', async (req, res) => {
+// Input validation helper
+function validateInput(input, pattern = /^[a-zA-Z0-9_.-]+$/) {
+  if (!input) return true; // Empty is ok
+  if (typeof input !== 'string') return false;
+  if (input.length > 100) return false; // Max length check
+  return pattern.test(input);
+}
+
+// Main social card generation endpoint (with rate limiting)
+app.get('/social-cards/:type?', rateLimit, async (req, res) => {
   const startTime = Date.now();
   global.requestCount = (global.requestCount || 0) + 1;
 
   try {
     const { type = 'home' } = req.params;
     const { owner, repo, username, title, subtitle } = req.query;
+    
+    // Validate inputs
+    if (!validateInput(owner) || !validateInput(repo) || !validateInput(username)) {
+      return res.status(400).json({ error: 'Invalid input parameters' });
+    }
+    
+    // Validate title and subtitle (allow spaces)
+    if (!validateInput(title, /^[a-zA-Z0-9_.\-\s]+$/) || !validateInput(subtitle, /^[a-zA-Z0-9_.\-\s]+$/)) {
+      return res.status(400).json({ error: 'Invalid title or subtitle' });
+    }
 
     let cardData = {
       title: title || 'contributor.info',
@@ -52,8 +116,9 @@ app.get('/social-cards/:type?', async (req, res) => {
       cardData.subtitle = 'Past 6 months';
       cardData.type = 'repo';
 
-      // Try to fetch real data from Supabase
-      try {
+      // Try to fetch real data from Supabase if client is available
+      if (supabase) {
+        try {
         const { data: repoData, error } = await supabase
           .from('repositories')
           .select(`
@@ -97,9 +162,18 @@ app.get('/social-cards/:type?', async (req, res) => {
             totalPRs: repoData.pull_requests?.[0]?.count || 0
           };
         }
-      } catch (dbError) {
-        console.error('Database fetch error:', dbError);
-        // Use fallback data
+        } catch (dbError) {
+          console.error('Database fetch error: %s', dbError.message);
+          // Use fallback data
+          cardData.stats = {
+            weeklyPRVolume: 10,
+            activeContributors: 25,
+            totalContributors: 50,
+            totalPRs: 200
+          };
+        }
+      } else {
+        // No database client, use fallback data
         cardData.stats = {
           weeklyPRVolume: 10,
           activeContributors: 25,
@@ -114,7 +188,8 @@ app.get('/social-cards/:type?', async (req, res) => {
       cardData.subtitle = 'Open Source Contributor';
       cardData.type = 'user';
 
-      try {
+      if (supabase) {
+        try {
         const { data: userData, error } = await supabase
           .from('contributors')
           .select(`
@@ -132,8 +207,16 @@ app.get('/social-cards/:type?', async (req, res) => {
             pullRequests: userData.pull_requests?.[0]?.count || 0
           };
         }
-      } catch (dbError) {
-        console.error('User data fetch error:', dbError);
+        } catch (dbError) {
+          console.error('User data fetch error: %s', dbError.message);
+          cardData.stats = {
+            repositories: 10,
+            contributors: 1,
+            pullRequests: 100
+          };
+        }
+      } else {
+        // No database client, use fallback data
         cardData.stats = {
           repositories: 10,
           contributors: 1,
@@ -146,7 +229,8 @@ app.get('/social-cards/:type?', async (req, res) => {
       cardData.title = 'contributor.info';
       cardData.subtitle = 'Visualizing Open Source Contributions';
       
-      try {
+      if (supabase) {
+        try {
         // Get global stats
         const [repoCount, contribCount, prCount] = await Promise.all([
           supabase.from('repositories').select('*', { count: 'exact', head: false }),
@@ -159,8 +243,16 @@ app.get('/social-cards/:type?', async (req, res) => {
           contributors: contribCount.count || 0,
           pullRequests: prCount.count || 0
         };
-      } catch (dbError) {
-        console.error('Global stats fetch error:', dbError);
+        } catch (dbError) {
+          console.error('Global stats fetch error: %s', dbError.message);
+          cardData.stats = {
+            repositories: 500,
+            contributors: 10000,
+            pullRequests: 50000
+          };
+        }
+      } else {
+        // No database client, use fallback data
         cardData.stats = {
           repositories: 500,
           contributors: 10000,
@@ -188,7 +280,7 @@ app.get('/social-cards/:type?', async (req, res) => {
     res.status(200).send(svg);
 
   } catch (error) {
-    console.error('Social card generation error:', error);
+    console.error('Social card generation error: %s', error.message);
     
     // Send error card
     const errorSvg = generateSocialCard({
@@ -207,8 +299,8 @@ app.get('/social-cards/:type?', async (req, res) => {
   }
 });
 
-// Legacy endpoint compatibility
-app.get('/api/social-cards', async (req, res) => {
+// Legacy endpoint compatibility (with rate limiting)
+app.get('/api/social-cards', rateLimit, async (req, res) => {
   const { owner, repo, username } = req.query;
   
   let type = 'home';
@@ -220,9 +312,17 @@ app.get('/api/social-cards', async (req, res) => {
   res.redirect(301, newUrl);
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Social cards service running on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
-  console.log(`Metrics: http://localhost:${PORT}/metrics`);
-});
+// Start server (only if not in test mode)
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log('Social cards service running on port %s', PORT);
+    console.log('Health check: http://localhost:%s/health', PORT);
+    console.log('Metrics: http://localhost:%s/metrics', PORT);
+    if (!supabase) {
+      console.warn('Warning: Running without database connection. Using fallback data only.');
+    }
+  });
+}
+
+// Export for testing
+export { app };
