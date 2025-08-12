@@ -1,12 +1,13 @@
-# Social Cards Production Deployment Guide
+# Social Cards Production Deployment Guide (Deprecated)
 
-## Overview
+## Note: This documentation is for the OLD build-time generation system which has been replaced
 
-This guide covers the complete deployment and maintenance process for the dynamic social card system implemented for contributor.info. The system generates Open Graph and Twitter Card images using Supabase Storage and build-time generation.
+**Current System**: Social cards are now served dynamically by a Fly.io service.
+See `/docs/social-cards.md` for the current implementation.
 
-## Architecture
+## Legacy Architecture (No Longer Used)
 
-### Chosen Approach: Supabase Storage + Build-Time Generation
+### Previous Approach: Supabase Storage + Build-Time Generation
 
 **Why Supabase over Netlify Functions:**
 - **Performance**: Zero latency after first load via global CDN
