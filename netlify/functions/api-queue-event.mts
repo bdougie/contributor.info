@@ -46,16 +46,6 @@ export default async (req: Request, context: Context) => {
   }
 
   try {
-    // Log environment info for debugging
-    console.log("API Queue Event - Environment:", {
-      context: process.env.CONTEXT,
-      isProduction: isProduction(),
-      isLocalDev: isLocalDev,
-      eventKey: eventKey ? `${eventKey.substring(0, 10)}...` : 'none',
-      hasSigningKey: !!getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
-      baseUrl: isLocalDev ? 'http://localhost:8288' : 'production'
-    });
-
     // Parse the request body
     const body = await req.json();
     const { eventName, data } = body;
@@ -68,8 +58,6 @@ export default async (req: Request, context: Context) => {
         headers: { "Content-Type": "application/json" }
       });
     }
-
-    console.log("Sending event to Inngest:", { eventName, dataKeys: Object.keys(data) });
 
     // Send the event to Inngest server-side
     const result = await inngest.send({
@@ -87,8 +75,6 @@ export default async (req: Request, context: Context) => {
     });
 
   } catch (error) {
-    console.error("Failed to queue event:", error);
-    
     return new Response(JSON.stringify({
       error: "Failed to queue event",
       message: error instanceof Error ? error.message : "Unknown error"

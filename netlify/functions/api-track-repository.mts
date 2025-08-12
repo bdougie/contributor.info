@@ -31,8 +31,6 @@ export default async (req: Request, context: Context) => {
     // Parse request body
     const body = await req.json().catch(() => ({}));
     const { owner, repo } = body;
-    
-    console.log('Track repository request received:', { owner, repo, body });
 
     if (!owner || !repo) {
       return new Response(JSON.stringify({ 
@@ -53,8 +51,6 @@ export default async (req: Request, context: Context) => {
     // For now, we'll accept all requests but log the authentication status
     const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
     const isAuthenticated = !!authHeader;
-    
-    console.log('Repository tracking requested for %s/%s (authenticated: %s)', owner, repo, isAuthenticated);
 
     // First, verify the repository exists on GitHub
     try {
@@ -104,7 +100,6 @@ export default async (req: Request, context: Context) => {
       }
 
     } catch (githubError) {
-      console.error('GitHub verification failed:', githubError);
       // Continue anyway - the repository might exist but we hit rate limits
     }
 
@@ -117,10 +112,8 @@ export default async (req: Request, context: Context) => {
       // Check if we're in local development (special key or no key)
       if (!inngestEventKey || inngestEventKey === 'local_development_only') {
         inngestUrl = 'http://localhost:8288/e/local';
-        console.log('Using local Inngest endpoint');
       } else {
         inngestUrl = `https://inn.gs/e/${inngestEventKey}`;
-        console.log('Using production Inngest endpoint');
       }
 
       // Send the discovery event
@@ -144,7 +137,6 @@ export default async (req: Request, context: Context) => {
       const responseText = await inngestResponse.text();
       
       if (!inngestResponse.ok) {
-        console.error(`Inngest returned ${inngestResponse.status}: ${responseText}`);
         throw new Error(`Inngest returned ${inngestResponse.status}`);
       }
 
@@ -152,23 +144,15 @@ export default async (req: Request, context: Context) => {
       try {
         result = JSON.parse(responseText);
       } catch (e) {
-        console.log('Inngest response (non-JSON):', responseText);
         result = { status: 'sent' };
       }
 
-      console.log(`Repository tracking initiated for ${owner}/${repo}:`, result);
-      console.log('Inngest event sent successfully, eventIds:', result.ids);
 
       return new Response(JSON.stringify({ 
         success: true,
         message: `Tracking started for ${owner}/${repo}`,
         repositoryId: result.ids?.[0] || 'pending',
-        eventId: result.ids?.[0] || result.status || 'pending',
-        debug: {
-          inngestResult: result,
-          eventSent: true,
-          timestamp: new Date().toISOString()
-        }
+        eventId: result.ids?.[0] || result.status || 'pending'
       }), {
         status: 200,
         headers: { 
@@ -179,14 +163,12 @@ export default async (req: Request, context: Context) => {
 
     } catch (inngestError: unknown) {
       const errorMessage = inngestError instanceof Error ? inngestError.message : String(inngestError);
-      console.error('Failed to send Inngest event:', errorMessage);
       
       // Still return success but note the background processing issue
       return new Response(JSON.stringify({ 
         success: true,
         message: `Tracking request received for ${owner}/${repo}`,
-        warning: 'Background processing may be delayed',
-        debug: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+        warning: 'Background processing may be delayed'
       }), {
         status: 200,
         headers: { 
@@ -197,7 +179,6 @@ export default async (req: Request, context: Context) => {
     }
 
   } catch (error) {
-    console.error('Failed to process repository tracking:', error);
     
     return new Response(JSON.stringify({ 
       success: false,
