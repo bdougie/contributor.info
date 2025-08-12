@@ -5,7 +5,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { App } from '@octokit/app';
 import { createClient } from '@supabase/supabase-js';
-
+import rateLimit from 'express-rate-limit';
 // Load environment variables
 dotenv.config();
 
@@ -124,7 +124,7 @@ app.get('/', (req, res) => {
 });
 
 // GitHub webhook endpoint
-app.post('/webhook', async (req, res) => {
+app.post('/webhook', webhookLimiter, async (req, res) => {
   const startTime = Date.now();
   metrics.webhooksReceived++;
 
