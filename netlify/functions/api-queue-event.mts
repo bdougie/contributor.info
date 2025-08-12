@@ -25,14 +25,18 @@ const getProductionEnvVar = (key: string, fallbackKey?: string): string => {
 };
 
 // Create Inngest client with server-side keys
+const eventKey = getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY');
+const isLocalDev = !eventKey || eventKey === 'local_development_only';
+
 const inngest = new Inngest({ 
   id: process.env.VITE_INNGEST_APP_ID || 'contributor-info',
-  isDev: false, // Force production mode for proper request signing
-  eventKey: getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
+  isDev: isLocalDev, // Use dev mode for local development
+  eventKey: isLocalDev ? undefined : eventKey, // No event key for local dev
   signingKey: getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
+  baseUrl: isLocalDev ? 'http://localhost:8288' : undefined, // Use local Inngest for dev
 });
 
-export default async (req: Request, context: Context) => {
+export default async (req: Request, _context: Context) => {
   // Only allow POST requests
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -42,14 +46,6 @@ export default async (req: Request, context: Context) => {
   }
 
   try {
-    // Log environment info for debugging
-    console.log("API Queue Event - Environment:", {
-      context: process.env.CONTEXT,
-      isProduction: isProduction(),
-      hasEventKey: !!getProductionEnvVar('EVENT_KEY', 'INNGEST_EVENT_KEY'),
-      hasSigningKey: !!getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY')
-    });
-
     // Parse the request body
     const body = await req.json();
     const { eventName, data } = body;
@@ -62,8 +58,6 @@ export default async (req: Request, context: Context) => {
         headers: { "Content-Type": "application/json" }
       });
     }
-
-    console.log("Sending event to Inngest:", { eventName, dataKeys: Object.keys(data) });
 
     // Send the event to Inngest server-side
     const result = await inngest.send({
@@ -81,8 +75,6 @@ export default async (req: Request, context: Context) => {
     });
 
   } catch (error) {
-    console.error("Failed to queue event:", error);
-    
     return new Response(JSON.stringify({
       error: "Failed to queue event",
       message: error instanceof Error ? error.message : "Unknown error"

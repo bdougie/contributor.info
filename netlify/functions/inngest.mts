@@ -10,6 +10,7 @@ import {
   captureRepositorySyncGraphQL,
   classifyRepositorySize,
   classifySingleRepository,
+  discoverNewRepository,
 } from "../../src/lib/inngest/functions/index-without-embeddings";
 
 // Create the Inngest serve handler
@@ -26,6 +27,8 @@ const inngestHandler = serve({
     // Classification functions
     classifyRepositorySize,
     classifySingleRepository,
+    // Discovery function
+    discoverNewRepository,
   ],
   servePath: "/.netlify/functions/inngest",
 });
@@ -45,7 +48,8 @@ export default async (req: Request, context: Context) => {
         "capture-pr-details-graphql",
         "capture-repository-sync-graphql",
         "classify-repository-size",
-        "classify-single-repository"
+        "classify-single-repository",
+        "discover-new-repository"
       ],
       environment: {
         context: process.env.CONTEXT || "unknown",

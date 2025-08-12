@@ -82,7 +82,7 @@ export function RepositoryTrackingCard({
       console.log('Sending track request for:', { owner, repo });
       
       // Call the new tracking API endpoint
-      const response = await fetch('/.netlify/functions/api-track-repository', {
+      const response = await fetch('/api/track-repository', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
