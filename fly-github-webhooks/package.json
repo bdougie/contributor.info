@@ -1,0 +1,29 @@
+{
+  "name": "fly-github-webhooks",
+  "version": "1.0.0",
+  "description": "GitHub App webhook handler service for contributor.info",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@octokit/app": "^15.1.0",
+    "@octokit/webhooks": "^13.3.0",
+    "@supabase/supabase-js": "^2.46.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.0.1",
+    "helmet": "^8.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

@@ -98,10 +98,12 @@ contributor.info/
 │   ├── Vite build system
 │   ├── Tailwind CSS styling
 │   └── Progressive enhancement
-├── Backend (Supabase)
-│   ├── PostgreSQL database
-│   ├── Edge Functions
-│   └── Real-time subscriptions
+├── Backend Services
+│   ├── Supabase (PostgreSQL database)
+│   ├── Netlify (Static hosting & functions)
+│   └── Fly.io Services
+│       ├── GitHub Webhooks (fly-github-webhooks/)
+│       └── Social Cards (fly-social-cards/)
 ├── Data Pipeline
 │   ├── GitHub API integration
 │   ├── Smart data fetching
@@ -111,6 +113,16 @@ contributor.info/
     ├── Contributor analysis
     └── Automated insights
 ```
+
+### Infrastructure Services
+
+| Service | Platform | Purpose | Status |
+|---------|----------|---------|--------|
+| Main App | Netlify | Static hosting, serverless functions | ✅ Active |
+| Database | Supabase | PostgreSQL, real-time, auth | ✅ Active |
+| GitHub Webhooks | Fly.io | Webhook processing | ✅ Active |
+| Social Cards | Fly.io | Dynamic OG image generation | ✅ Active |
+| Background Jobs | Inngest | Async processing | ✅ Active |
 
 ### Data Flow
 

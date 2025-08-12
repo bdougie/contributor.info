@@ -16,8 +16,8 @@
   ```
 
 ### Webhook
-- **Webhook URL**: `https://contributor.info/api/github/webhook`
-  - For local testing: Use ngrok URL like `https://abc123.ngrok.io/api/github/webhook`
+- **Webhook URL**: `https://contributor-info-webhooks.fly.dev/webhook`
+  - For local testing: Use ngrok URL like `https://abc123.ngrok.io/webhook` (when running the Fly.io service locally)
 - **Webhook secret**: Generate a secure random string (save this!)
 
 ### Permissions
@@ -71,8 +71,7 @@ GITHUB_APP_CLIENT_ID=Iv1.abc123def456
 GITHUB_APP_CLIENT_SECRET=your_client_secret_here
 
 # App URLs (update for production)
-GITHUB_APP_WEBHOOK_URL=https://contributor.info/api/github/webhook
-GITHUB_APP_CALLBACK_URL=https://contributor.info/api/github/callback
+GITHUB_APP_WEBHOOK_URL=https://contributor-info-webhooks.fly.dev/webhook
 ```
 
 For easier handling, you can base64 encode the private key:
