@@ -118,6 +118,17 @@ export class AutoRetryService {
         return;
       }
 
+      // Validate job has repository_id (repository_name can be fetched if missing)
+      if (!job.repository_id) {
+        console.error(`[AutoRetry] ❌ Job ${job.id} missing repository_id, cannot retry:`, {
+          jobId: job.id,
+          jobType: job.job_type,
+          metadata: job.metadata
+        });
+        await this.markJobAsPermanentlyFailed(job.id);
+        return;
+      }
+
       console.log(`[AutoRetry] Retrying job ${job.id} (attempt ${retryCount + 1})`);
 
       // Update job metadata with retry information
@@ -215,17 +226,52 @@ export class AutoRetryService {
    * Create a new job for retry
    */
   private async createRetryJob(originalJob: RetryableJob): Promise<any> {
+    // Validate required fields before retry
+    if (!originalJob.repository_id) {
+      console.error('[AutoRetry] Cannot retry job without repository_id:', {
+        jobId: originalJob.id,
+        jobType: originalJob.job_type,
+        metadata: originalJob.metadata
+      });
+      throw new Error(`Cannot retry job ${originalJob.id}: missing repository_id`);
+    }
+    
+    // If repository_name is missing, fetch it from the database
+    let repositoryName = originalJob.metadata?.repository_name;
+    if (!repositoryName) {
+      console.log('[AutoRetry] Repository name missing, fetching from database for job:', originalJob.id);
+      
+      const { data: repo, error } = await supabase
+        .from('repositories')
+        .select('owner, name')
+        .eq('id', originalJob.repository_id)
+        .single();
+      
+      if (error || !repo) {
+        console.error('[AutoRetry] Failed to fetch repository details:', {
+          jobId: originalJob.id,
+          repositoryId: originalJob.repository_id,
+          error: error?.message
+        });
+        throw new Error(`Cannot retry job ${originalJob.id}: repository not found`);
+      }
+      
+      repositoryName = `${repo.owner}/${repo.name}`;
+      console.log(`[AutoRetry] Found repository name: ${repositoryName}`);
+    }
+    
     // Extract job data from original
     const jobData = {
       repositoryId: originalJob.repository_id,
-      repositoryName: originalJob.metadata?.repository_name,
+      repositoryName: repositoryName,
       timeRange: originalJob.metadata?.time_range_days,
       maxItems: originalJob.metadata?.max_items,
       triggerSource: 'automatic' as const,
       metadata: {
         retry_of: originalJob.id,
         retry_attempt: (originalJob.metadata?.retry_count || 0) + 1,
-        original_error: originalJob.error
+        original_error: originalJob.error,
+        repository_name_fetched: !originalJob.metadata?.repository_name // Track if we had to fetch it
       }
     };
 
