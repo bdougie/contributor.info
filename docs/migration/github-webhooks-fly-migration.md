@@ -101,8 +101,8 @@ fly-github-webhooks/
    fly secrets set GITHUB_APP_ID=xxx -a contributor-info-webhooks
    fly secrets set GITHUB_APP_PRIVATE_KEY="..." -a contributor-info-webhooks
    fly secrets set GITHUB_APP_WEBHOOK_SECRET=xxx -a contributor-info-webhooks
-   fly secrets set VITE_SUPABASE_URL=xxx -a contributor-info-webhooks
-   fly secrets set VITE_SUPABASE_ANON_KEY=xxx -a contributor-info-webhooks
+   fly secrets set SUPABASE_URL=xxx -a contributor-info-webhooks
+   fly secrets set SUPABASE_ANON_KEY=xxx -a contributor-info-webhooks
    ```
 
 ### Continuous Deployment

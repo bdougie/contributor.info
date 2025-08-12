@@ -9,9 +9,6 @@ export async function handleIssuesEvent(payload, githubApp, supabase) {
   console.log(`Processing issue ${action}: #${issue.number} in ${repo.full_name}`);
   
   try {
-    // Get installation Octokit
-    const octokit = await githubApp.getInstallationOctokit(installation.id);
-    
     // Handle different issue actions
     switch (action) {
       case 'opened':
@@ -44,7 +41,7 @@ export async function handleIssuesEvent(payload, githubApp, supabase) {
 async function trackIssue(issue, repo, supabase) {
   try {
     // Ensure repository is tracked
-    await supabase
+    const { error: repoError } = await supabase
       .from('repositories')
       .upsert({
         github_id: repo.id,
@@ -60,8 +57,13 @@ async function trackIssue(issue, repo, supabase) {
         onConflict: 'github_id'
       });
     
+    if (repoError) {
+      console.error('Error upserting repository:', repoError);
+      throw repoError;
+    }
+    
     // Track the contributor
-    await supabase
+    const { error: contributorError } = await supabase
       .from('contributors')
       .upsert({
         github_id: issue.user.id,
@@ -72,6 +74,11 @@ async function trackIssue(issue, repo, supabase) {
       }, {
         onConflict: 'github_id'
       });
+    
+    if (contributorError) {
+      console.error('Error upserting contributor:', contributorError);
+      throw contributorError;
+    }
     
     // Track the issue
     const { error } = await supabase

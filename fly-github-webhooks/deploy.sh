@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Fly.io deployment script for GitHub Webhook Handler
-set -e
+set -euo pipefail
 
 echo "🚀 Deploying GitHub Webhook Handler to Fly.io"
 
@@ -35,17 +35,16 @@ if ! app_exists; then
     fly secrets set GITHUB_APP_ID="$github_app_id" -a contributor-info-webhooks
     
     echo "GitHub App Private Key (paste the entire key, then press Ctrl+D):"
-    github_private_key=$(cat)
-    fly secrets set GITHUB_APP_PRIVATE_KEY="$github_private_key" -a contributor-info-webhooks
+    fly secrets set GITHUB_APP_PRIVATE_KEY --stdin -a contributor-info-webhooks < /dev/stdin
     
     read -p "GitHub Webhook Secret: " webhook_secret
     fly secrets set GITHUB_APP_WEBHOOK_SECRET="$webhook_secret" -a contributor-info-webhooks
     
     read -p "Supabase URL: " supabase_url
-    fly secrets set VITE_SUPABASE_URL="$supabase_url" -a contributor-info-webhooks
+    fly secrets set SUPABASE_URL="$supabase_url" -a contributor-info-webhooks
     
     read -p "Supabase Anon Key: " supabase_key
-    fly secrets set VITE_SUPABASE_ANON_KEY="$supabase_key" -a contributor-info-webhooks
+    fly secrets set SUPABASE_ANON_KEY="$supabase_key" -a contributor-info-webhooks
 else
     echo "✅ App already exists"
 fi
@@ -58,14 +57,14 @@ fly deploy -a contributor-info-webhooks
 echo "📊 Checking deployment status..."
 fly status -a contributor-info-webhooks
 
-# Get the app URL
-app_url=$(fly apps list | grep contributor-info-webhooks | awk '{print $2}')
+# Get the app URL using fly info
+app_hostname=$(fly info -a contributor-info-webhooks --json | grep -o '"hostname":"[^"]*"' | cut -d'"' -f4)
 echo ""
 echo "✅ Deployment complete!"
-echo "🌐 Webhook URL: https://${app_url}.fly.dev/webhook"
+echo "🌐 Webhook URL: https://${app_hostname}/webhook"
 echo ""
 echo "📝 Next steps:"
-echo "1. Update your GitHub App webhook URL to: https://${app_url}.fly.dev/webhook"
+echo "1. Update your GitHub App webhook URL to: https://${app_hostname}/webhook"
 echo "2. Verify webhook delivery in GitHub App settings"
 echo "3. Monitor logs with: fly logs -a contributor-info-webhooks"
-echo "4. View metrics at: https://${app_url}.fly.dev/metrics"
+echo "4. View metrics at: https://${app_hostname}/metrics"

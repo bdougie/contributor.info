@@ -138,7 +138,7 @@ async function handleRepositoriesRemoved(installation, repositories, supabase) {
         .eq('installation_id', installation.id);
         
       if (error) {
-        console.error(`Error removing repository ${repo.full_name}:`, error);
+        console.error('Error removing repository %s:', repo.full_name, error);
       }
     }
     console.log(`✅ Removed ${repositories.length} repositories`);
@@ -177,8 +177,8 @@ async function trackRepository(repo, installationId, supabase) {
         onConflict: 'installation_id,repository_id'
       });
       
-    console.log(`  ✅ Tracked repository ${repo.full_name}`);
+    console.log('  ✅ Tracked repository %s', repo.full_name);
   } catch (error) {
-    console.error(`Error tracking repository ${repo.full_name}:`, error);
+    console.error('Error tracking repository %s:', repo.full_name, error);
   }
 }

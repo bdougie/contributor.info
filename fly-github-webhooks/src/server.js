@@ -3,11 +3,20 @@ import crypto from 'crypto';
 import helmet from 'helmet';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
 import { App } from '@octokit/app';
 import { createClient } from '@supabase/supabase-js';
-import rateLimit from 'express-rate-limit';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 // Load environment variables
 dotenv.config();
+
+// Get package version
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'));
+const VERSION = packageJson.version;
 
 // Initialize Express app
 const app = express();
@@ -18,13 +27,22 @@ app.use(helmet());
 app.use(cors());
 app.use(express.raw({ type: 'application/json', limit: '10mb' }));
 
+// Rate limiting for webhook endpoint
+const webhookLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many webhook requests, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Environment validation
 const requiredEnvVars = [
   'GITHUB_APP_ID',
   'GITHUB_APP_PRIVATE_KEY',
   'GITHUB_APP_WEBHOOK_SECRET',
-  'VITE_SUPABASE_URL',
-  'VITE_SUPABASE_ANON_KEY'
+  'SUPABASE_URL',
+  'SUPABASE_ANON_KEY'
 ];
 
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -51,8 +69,8 @@ try {
 
 // Initialize Supabase client
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
 );
 
 // Import webhook handlers
@@ -119,11 +137,11 @@ app.get('/', (req, res) => {
       metrics: '/metrics',
       webhook: '/webhook'
     },
-    version: '1.0.0'
+    version: VERSION
   });
 });
 
-// GitHub webhook endpoint
+// GitHub webhook endpoint with rate limiting
 app.post('/webhook', webhookLimiter, async (req, res) => {
   const startTime = Date.now();
   metrics.webhooksReceived++;
@@ -163,7 +181,7 @@ app.post('/webhook', webhookLimiter, async (req, res) => {
           break;
 
         case 'installation':
-          console.log(`🔧 Installation ${payload.action}:`, payload.installation?.account?.login);
+          console.log('🔧 Installation %s: %s', payload.action, payload.installation?.account?.login);
           await handleInstallationEvent(payload, githubApp, supabase);
           break;
 

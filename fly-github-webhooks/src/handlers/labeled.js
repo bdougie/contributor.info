@@ -104,11 +104,11 @@ async function handleSpecialLabels(label, item, itemType, repo, octokit) {
         content: 'eyes'
       });
       
-      console.log(`✅ Acknowledged priority label on #${item.number}`);
+      console.log('✅ Acknowledged priority label on #%d', item.number);
     }
     
   } catch (error) {
-    console.error(`Error handling special label "${label.name}":`, error);
+    console.error('Error handling special label "%s":', label.name, error);
     // Don't throw - we don't want label handling to fail the webhook
   }
 }

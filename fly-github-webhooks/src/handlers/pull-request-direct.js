@@ -51,16 +51,20 @@ export async function handlePROpenedDirect(payload, githubApp, supabase) {
 
 async function checkIfFirstPR(username, repo, octokit) {
   try {
+    // Note: GitHub API doesn't support 'creator' parameter for pulls.list
+    // We need to fetch more PRs and filter by author
     const { data: prs } = await octokit.rest.pulls.list({
       owner: repo.owner.login,
       repo: repo.name,
       state: 'all',
-      creator: username,
-      per_page: 2
+      per_page: 100
     });
     
+    // Filter PRs by the specific user
+    const userPrs = prs.filter(pr => pr.user.login === username);
+    
     // If we only find 1 PR (the current one), it's their first
-    return prs.length <= 1;
+    return userPrs.length <= 1;
   } catch (error) {
     console.error('Error checking PR history:', error);
     return false;

@@ -46,8 +46,8 @@ kill_timeout = 5
   port = 8080
   path = "/metrics"
 
-# Machine configuration
-[[vm]]
+# Machine configuration (using new format)
+[vm]
   cpu_kind = "shared"
   cpus = 1
-  memory_mb = 256
+  memory = "256mb"

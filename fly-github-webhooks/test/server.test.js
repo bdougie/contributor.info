@@ -103,6 +103,7 @@ describe('GitHub Webhook Handler', () => {
       const response = await fetch(`${serverUrl}/webhook`, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'x-github-event': 'ping',
           'x-github-delivery': 'test-delivery-1'
         },
@@ -116,6 +117,7 @@ describe('GitHub Webhook Handler', () => {
       const response = await fetch(`${serverUrl}/webhook`, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'x-github-event': 'ping',
           'x-github-delivery': 'test-delivery-2',
           'x-hub-signature-256': 'sha256=invalid'
@@ -134,6 +136,7 @@ describe('GitHub Webhook Handler', () => {
       const response = await fetch(`${serverUrl}/webhook`, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'x-github-event': 'ping',
           'x-github-delivery': 'test-delivery-3',
           'x-hub-signature-256': signature
@@ -153,6 +156,7 @@ describe('GitHub Webhook Handler', () => {
       const response = await fetch(`${serverUrl}/webhook`, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'x-github-event': 'ping',
           'x-github-delivery': 'test-ping',
           'x-hub-signature-256': signature
@@ -173,6 +177,7 @@ describe('GitHub Webhook Handler', () => {
       const response = await fetch(`${serverUrl}/webhook`, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'x-github-event': 'pull_request',
           'x-github-delivery': 'test-pr-opened',
           'x-hub-signature-256': signature
@@ -192,6 +197,7 @@ describe('GitHub Webhook Handler', () => {
       const response = await fetch(`${serverUrl}/webhook`, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'x-github-event': 'issues',
           'x-github-delivery': 'test-issue-opened',
           'x-hub-signature-256': signature

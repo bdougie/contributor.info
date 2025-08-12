@@ -17,7 +17,7 @@
 
 ### Webhook
 - **Webhook URL**: `https://contributor-info-webhooks.fly.dev/webhook`
-  - For local testing: Use ngrok URL like `https://abc123.ngrok.io/webhook`
+  - For local testing: Use ngrok URL like `https://abc123.ngrok.io/webhook` (when running the Fly.io service locally)
 - **Webhook secret**: Generate a secure random string (save this!)
 
 ### Permissions

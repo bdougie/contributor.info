@@ -54,8 +54,8 @@ GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----..."
 GITHUB_APP_WEBHOOK_SECRET=your_webhook_secret
 
 # Supabase Configuration
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_anon_key
 ```
 
 ### Deploy to Fly.io
