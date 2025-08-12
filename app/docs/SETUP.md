@@ -72,7 +72,6 @@ GITHUB_APP_CLIENT_SECRET=your_client_secret_here
 
 # App URLs (update for production)
 GITHUB_APP_WEBHOOK_URL=https://contributor-info-webhooks.fly.dev/webhook
-GITHUB_APP_CALLBACK_URL=https://contributor.info/api/github/callback
 ```
 
 For easier handling, you can base64 encode the private key:
