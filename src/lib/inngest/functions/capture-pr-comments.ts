@@ -157,6 +157,7 @@ export const capturePrComments = inngest.createFunction(
           
           processedPrComments.push({
             github_id: comment.id.toString(),
+            repository_id: repositoryId,
             pull_request_id: prId,
             commenter_id: commenterId,
             body: comment.body,
@@ -208,6 +209,7 @@ export const capturePrComments = inngest.createFunction(
           
           processedIssueComments.push({
             github_id: comment.id.toString(),
+            repository_id: repositoryId,
             pull_request_id: prId,
             commenter_id: commenterId,
             body: comment.body,
