@@ -31,9 +31,6 @@ const DocsList = lazy(() => import("@/components/features/docs/docs-list").then(
 const DocDetail = lazy(() => import("@/components/features/docs/doc-detail").then(m => ({ default: m.DocDetail })));
 const FeedPage = lazy(() => import("@/components/features/feed/feed-page"));
 const SpamFeedPage = lazy(() => import("@/components/features/feed/spam-feed-page"));
-const CardLayout = lazy(() => import("@/components/social-cards/card-layout"));
-const HomeSocialCardWithData = lazy(() => import("@/components/social-cards/home-card-with-data"));
-const RepoCardLayout = lazy(() => import("@/components/social-cards/repo-card-layout"));
 const SocialCardPreview = lazy(() => import("@/components/social-cards/preview"));
 const GitHubSyncDebug = lazy(() => import("@/components/debug/github-sync-debug").then(m => ({ default: m.GitHubSyncDebug })));
 const PerformanceMonitoringDashboard = lazy(() => import("@/components/performance-monitoring-dashboard").then(m => ({ default: m.PerformanceMonitoringDashboard })));
@@ -264,33 +261,6 @@ function App() {
           <Suspense fallback={<PageSkeleton />}>
             <Routes>
             <Route path="/login" element={<LoginPage />} />
-
-            {/* Social card routes */}
-            <Route
-              path="/social-cards"
-              element={
-                <CardLayout>
-                  <HomeSocialCardWithData />
-                </CardLayout>
-              }
-            />
-            <Route
-              path="/social-cards/home"
-              element={
-                <CardLayout
-                  title="contributor.info - Open Source Contributions"
-                  description="Discover and visualize GitHub contributors and their contributions. Track open source activity, analyze contribution patterns, and celebrate community impact."
-                  image="social-cards/home-card.png"
-                  url="https://contributor.info"
-                >
-                  <HomeSocialCardWithData />
-                </CardLayout>
-              }
-            />
-            <Route
-              path="/social-cards/:owner/:repo"
-              element={<RepoCardLayout />}
-            />
 
             <Route path="/" element={<Layout />}>
               <Route index element={<Home />} />

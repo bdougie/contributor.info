@@ -11,21 +11,21 @@ The social cards system for contributor.info provides rich, dynamic preview imag
 
 ## Architecture Overview
 
-### Build-Time Generation
-Social cards are generated during the build process using:
-- **Playwright** for browser automation and screenshot capture
-- **Dedicated routes** at `/social-cards/*` for rendering
-- **Supabase Storage** for CDN distribution
-- **1-year cache headers** for optimal performance
+### Dynamic Generation via Fly.io
+Social cards are now dynamically generated using:
+- **Fly.io Service** for real-time card generation
+- **Supabase Integration** for live data
+- **SVG Format** for lightweight, scalable images
+- **CDN Caching** for optimal performance
 
-### CDN Distribution
-Generated cards are distributed globally via Supabase's CDN:
+### Service Endpoints
 ```
-https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/social-cards/
-├── home-card.png                    # Homepage social card
-├── repo-facebook-react.png          # Repository cards
-├── repo-vuejs-vue.png
-└── repo-{owner}-{repo}.png          # Dynamic repository cards
+https://contributor-info-social-cards.fly.dev/
+├── /health                          # Service health check
+├── /metrics                         # Performance metrics
+├── /social-cards/home              # Homepage social card
+├── /social-cards/repo?owner=X&repo=Y  # Repository cards
+└── /social-cards/user?username=X   # User profile cards
 ```
 
 ## Card Types
@@ -97,17 +97,17 @@ https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/social-cards/
 
 ## Development Workflow
 
-### Building Social Cards
+### Testing Social Cards
 ```bash
-# Full build with social cards
-npm run build
+# View the preview interface
+npm run dev
+# Navigate to http://localhost:5173/dev/social-cards
 
-# Generate cards only
-npm run generate-social-cards
+# Test the Fly.io service directly
+curl https://contributor-info-social-cards.fly.dev/health
 
-# Test card generation locally
-npm run dev  # Start dev server
-npm run generate-social-cards  # Generate from local server
+# Generate a test card
+curl "https://contributor-info-social-cards.fly.dev/social-cards/repo?owner=facebook&repo=react"
 ```
 
 ### Testing Cards
@@ -123,11 +123,11 @@ npm run chromatic
 ```
 
 ### Adding New Cards
-1. **Add route** in `src/App.tsx` under `/social-cards/*`
-2. **Create component** following the 1200x630 dimension standard
-3. **Add to generation script** in `scripts/generate-social-cards.js`
+1. **Update Fly.io service** in `fly-social-cards/src/card-generator.js`
+2. **Add new endpoint** in `fly-social-cards/src/server.js`
+3. **Update meta tags** in `src/components/common/layout/meta-tags-provider.tsx`
 4. **Create Storybook story** for visual testing
-5. **Test across platforms** using validator tools
+5. **Deploy to Fly.io** and test across platforms
 
 ## Visual Testing with Chromatic
 

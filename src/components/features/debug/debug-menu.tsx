@@ -30,7 +30,7 @@ const debugRoutes: DebugRoute[] = [
   {
     path: "/dev/social-cards",
     title: "Social Card Preview",
-    description: "Preview and test social media card generation",
+    description: "Preview social media cards from Fly.io service",
     icon: <Palette className="h-4 w-4" />,
     category: "dev"
   },

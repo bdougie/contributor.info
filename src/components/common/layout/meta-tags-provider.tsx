@@ -62,29 +62,46 @@ export function SocialMetaTags({
   let imageUrl = image;
   let fallbackImageUrl = image;
   
+  // Use Fly.io service URL (with fallback to production domain when deployed)
+  const socialCardsBaseUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://contributor-info-social-cards.fly.dev'
+    : 'https://contributor-info-social-cards.fly.dev'; // Always use Fly.io in production
+  
   if (!image.startsWith("http")) {
-    // Check if it's a social card path - use dynamic Edge Function for generation
+    // Check if it's a social card path - use Fly.io service for generation
     if (image.includes("social-cards/")) {
       // Extract parameters from image path for dynamic generation
       const isRepoCard = image.includes('repo-');
+      const isUserCard = image.includes('user-');
       
       if (isRepoCard) {
-        // For repo cards, try to extract owner/repo from URL or use Netlify function
+        // For repo cards, try to extract owner/repo from URL
         const urlPath = currentUrl.replace(/^https?:\/\/[^\/]+/, '');
         const pathMatch = urlPath.match(/\/([^\/]+)\/([^\/]+)/);
         
         if (pathMatch) {
           const [, owner, repo] = pathMatch;
-          imageUrl = `https://contributor.info/api/social-cards?owner=${owner}&repo=${repo}`;
+          imageUrl = `${socialCardsBaseUrl}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`;
         } else {
-          imageUrl = `https://contributor.info/api/social-cards`;
+          imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
+        }
+      } else if (isUserCard) {
+        // For user cards, extract username from URL
+        const urlPath = currentUrl.replace(/^https?:\/\/[^\/]+/, '');
+        const userMatch = urlPath.match(/\/user\/([^\/]+)/);
+        
+        if (userMatch) {
+          const [, username] = userMatch;
+          imageUrl = `${socialCardsBaseUrl}/social-cards/user?username=${encodeURIComponent(username)}`;
+        } else {
+          imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
         }
       } else {
-        // For home/general cards - use Netlify function
-        imageUrl = `https://contributor.info/api/social-cards`;
+        // For home/general cards - use Fly.io service
+        imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
       }
       
-      // Use local static fallback
+      // Use local static fallback as backup
       fallbackImageUrl = `https://contributor.info${image.replace('social-cards/', '/')}`;
     } else {
       imageUrl = `https://contributor.info${image}`;
