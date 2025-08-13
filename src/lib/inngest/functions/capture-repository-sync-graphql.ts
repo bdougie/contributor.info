@@ -78,6 +78,13 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
   { event: "capture/repository.sync.graphql" },
   async ({ event, step }) => {
     const { repositoryId, days, priority, reason } = event.data;
+    
+    // Validate repositoryId first
+    if (!repositoryId) {
+      console.error('Missing repositoryId in event data:', event.data);
+      throw new Error(`Missing required field: repositoryId`) as NonRetriableError;
+    }
+    
     const effectiveDays = Math.min(days || DEFAULT_DAYS_LIMIT, DEFAULT_DAYS_LIMIT);
 
     // Step 1: Check if repository has active backfill
