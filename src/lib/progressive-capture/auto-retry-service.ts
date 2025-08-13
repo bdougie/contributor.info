@@ -29,6 +29,11 @@ export class AutoRetryService {
     backoffMultiplier: 2
   };
 
+  // Simple in-memory cache for repository metadata
+  // In production, consider using Redis or a similar caching solution
+  private repositoryCache = new Map<string, { owner: string; name: string; cachedAt: number }>();
+  private readonly CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour cache TTL
+
   /**
    * Check for failed jobs and retry them
    */
@@ -71,7 +76,7 @@ export class AutoRetryService {
         return;
       }
 
-      console.log(`[AutoRetry] Found ${failedJobs.length} failed jobs to process`);
+      console.log('[AutoRetry] Found %d failed jobs to process', failedJobs.length);
 
       for (const job of failedJobs) {
         await this.processFailedJob(job);
@@ -99,7 +104,7 @@ export class AutoRetryService {
         const requiredDelay = this.calculateBackoffDelay(retryCount);
         
         if (timeSinceLastRetry < requiredDelay) {
-          console.log(`[AutoRetry] Job ${job.id} not ready for retry (${timeSinceLastRetry}ms < ${requiredDelay}ms)`);
+          console.log('[AutoRetry] Job %s not ready for retry (%dms < %dms)', job.id, timeSinceLastRetry, requiredDelay);
           return;
         }
       }
@@ -118,7 +123,18 @@ export class AutoRetryService {
         return;
       }
 
-      console.log(`[AutoRetry] Retrying job ${job.id} (attempt ${retryCount + 1})`);
+      // Validate job has repository_id (repository_name can be fetched if missing)
+      if (!job.repository_id) {
+        console.error(`[AutoRetry] ❌ Job ${job.id} missing repository_id, cannot retry:`, {
+          jobId: job.id,
+          jobType: job.job_type,
+          metadata: job.metadata
+        });
+        await this.markJobAsPermanentlyFailed(job.id);
+        return;
+      }
+
+      console.log('[AutoRetry] Retrying job %s (attempt %d)', job.id, retryCount + 1);
 
       // Update job metadata with retry information
       await supabase
@@ -143,7 +159,7 @@ export class AutoRetryService {
       // Create a new job with the same parameters
       const newJob = await this.createRetryJob(job);
       
-      console.log(`[AutoRetry] Created retry job ${newJob.id} for failed job ${job.id}`);
+      console.log('[AutoRetry] Created retry job %s for failed job %s', newJob.id, job.id);
       
       // Mark original job as retried
       await jobStatusReporter.reportStatus({
@@ -215,17 +231,62 @@ export class AutoRetryService {
    * Create a new job for retry
    */
   private async createRetryJob(originalJob: RetryableJob): Promise<any> {
+    // Validate required fields before retry
+    if (!originalJob.repository_id) {
+      console.error('[AutoRetry] Cannot retry job without repository_id:', {
+        jobId: originalJob.id,
+        jobType: originalJob.job_type,
+        metadata: originalJob.metadata
+      });
+      throw new Error(`Cannot retry job ${originalJob.id}: missing repository_id`);
+    }
+    
+    // If repository_name is missing, check cache first, then fetch from database
+    let repositoryName = originalJob.metadata?.repository_name;
+    if (!repositoryName) {
+      // Check cache first
+      const cached = this.getCachedRepository(originalJob.repository_id);
+      if (cached) {
+        repositoryName = `${cached.owner}/${cached.name}`;
+        console.log('[AutoRetry] Repository name found in cache: %s', repositoryName);
+      } else {
+        console.log('[AutoRetry] Repository name missing, fetching from database for job:', originalJob.id);
+        
+        const { data: repo, error } = await supabase
+          .from('repositories')
+          .select('owner, name')
+          .eq('id', originalJob.repository_id)
+          .single();
+        
+        if (error || !repo) {
+          console.error('[AutoRetry] Failed to fetch repository details:', {
+            jobId: originalJob.id,
+            repositoryId: originalJob.repository_id,
+            error: error?.message
+          });
+          throw new Error(`Cannot retry job ${originalJob.id}: repository not found`);
+        }
+        
+        // Cache the repository metadata
+        this.cacheRepository(originalJob.repository_id, repo.owner, repo.name);
+        
+        repositoryName = `${repo.owner}/${repo.name}`;
+        console.log('[AutoRetry] Found repository name: %s', repositoryName);
+      }
+    }
+    
     // Extract job data from original
     const jobData = {
       repositoryId: originalJob.repository_id,
-      repositoryName: originalJob.metadata?.repository_name,
+      repositoryName: repositoryName,
       timeRange: originalJob.metadata?.time_range_days,
       maxItems: originalJob.metadata?.max_items,
       triggerSource: 'automatic' as const,
       metadata: {
         retry_of: originalJob.id,
         retry_attempt: (originalJob.metadata?.retry_count || 0) + 1,
-        original_error: originalJob.error
+        original_error: originalJob.error,
+        repository_name_fetched: !originalJob.metadata?.repository_name // Track if we had to fetch it
       }
     };
 
@@ -234,7 +295,7 @@ export class AutoRetryService {
   }
 
   /**
-   * Get retry statistics
+   * Get retry statistics including cache metrics
    */
   async getRetryStats(): Promise<{
     totalRetries: number;
@@ -242,6 +303,15 @@ export class AutoRetryService {
     failedRetries: number;
     averageRetryCount: number;
     permanentFailures: number;
+    cacheMetrics: {
+      cacheSize: number;
+      cacheHitRate: number;
+      repositoriesCached: number;
+    };
+    dataQualityMetrics: {
+      jobsWithMissingRepoName: number;
+      jobsRecoveredViaFetch: number;
+    };
   }> {
     try {
       const { data: jobs } = await supabase
@@ -256,7 +326,16 @@ export class AutoRetryService {
           successfulRetries: 0,
           failedRetries: 0,
           averageRetryCount: 0,
-          permanentFailures: 0
+          permanentFailures: 0,
+          cacheMetrics: {
+            cacheSize: this.repositoryCache.size,
+            cacheHitRate: 0,
+            repositoriesCached: this.repositoryCache.size
+          },
+          dataQualityMetrics: {
+            jobsWithMissingRepoName: 0,
+            jobsRecoveredViaFetch: 0
+          }
         };
       }
 
@@ -285,12 +364,38 @@ export class AutoRetryService {
       const failedRetries = stats.totalRetries - successfulRetries;
       const averageRetryCount = jobs.length > 0 ? stats.totalRetries / jobs.length : 0;
 
+      // Get data quality metrics
+      const { data: jobsWithMissingData } = await supabase
+        .from('progressive_capture_jobs')
+        .select('id, metadata')
+        .is('metadata->repository_name', null)
+        .not('repository_id', 'is', null);
+      
+      const jobsWithMissingRepoName = jobsWithMissingData?.length || 0;
+      const jobsRecoveredViaFetch = jobs.filter(
+        job => job.metadata?.repository_name_fetched === true
+      ).length;
+
+      // Calculate cache hit rate (this would need to be tracked over time for accuracy)
+      // For now, we'll estimate based on cache size
+      const cacheHitRate = this.repositoryCache.size > 0 ? 
+        Math.min(this.repositoryCache.size / 100, 1) : 0; // Simple estimate
+
       return {
         totalRetries: stats.totalRetries,
         successfulRetries,
         failedRetries,
         averageRetryCount,
-        permanentFailures: stats.permanentFailures
+        permanentFailures: stats.permanentFailures,
+        cacheMetrics: {
+          cacheSize: this.repositoryCache.size,
+          cacheHitRate,
+          repositoriesCached: this.repositoryCache.size
+        },
+        dataQualityMetrics: {
+          jobsWithMissingRepoName,
+          jobsRecoveredViaFetch
+        }
       };
     } catch (error) {
       console.error('[AutoRetry] Error getting retry stats:', error);
@@ -299,7 +404,16 @@ export class AutoRetryService {
         successfulRetries: 0,
         failedRetries: 0,
         averageRetryCount: 0,
-        permanentFailures: 0
+        permanentFailures: 0,
+        cacheMetrics: {
+          cacheSize: 0,
+          cacheHitRate: 0,
+          repositoriesCached: 0
+        },
+        dataQualityMetrics: {
+          jobsWithMissingRepoName: 0,
+          jobsRecoveredViaFetch: 0
+        }
       };
     }
   }
@@ -312,10 +426,61 @@ export class AutoRetryService {
     config: Partial<RetryConfig>
   ): Promise<void> {
     // This could be stored in a database table for persistence
-    console.log(`[AutoRetry] Configuring retry policy for ${jobType}:`, config);
+    console.log('[AutoRetry] Configuring retry policy for %s:', jobType, config);
     
     // For now, we'll use the default config
     // In a production system, this would update a retry_policies table
+  }
+
+  /**
+   * Get cached repository metadata
+   */
+  private getCachedRepository(repositoryId: string): { owner: string; name: string } | null {
+    const cached = this.repositoryCache.get(repositoryId);
+    
+    if (!cached) {
+      return null;
+    }
+    
+    // Check if cache entry is expired
+    if (Date.now() - cached.cachedAt > this.CACHE_TTL_MS) {
+      this.repositoryCache.delete(repositoryId);
+      return null;
+    }
+    
+    return { owner: cached.owner, name: cached.name };
+  }
+
+  /**
+   * Cache repository metadata
+   */
+  private cacheRepository(repositoryId: string, owner: string, name: string): void {
+    this.repositoryCache.set(repositoryId, {
+      owner,
+      name,
+      cachedAt: Date.now()
+    });
+    
+    // Implement simple cache size limit (LRU-style)
+    if (this.repositoryCache.size > 1000) {
+      // Remove oldest entries when cache gets too large
+      const entriesToRemove = this.repositoryCache.size - 900;
+      const iterator = this.repositoryCache.keys();
+      for (let i = 0; i < entriesToRemove; i++) {
+        const key = iterator.next().value;
+        if (key) {
+          this.repositoryCache.delete(key);
+        }
+      }
+    }
+  }
+
+  /**
+   * Clear repository cache (useful for testing or manual refresh)
+   */
+  clearCache(): void {
+    this.repositoryCache.clear();
+    console.log('[AutoRetry] Repository cache cleared');
   }
 
   /**

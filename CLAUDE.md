@@ -131,6 +131,23 @@ npx supabase status
 
 ## Known Issues
 
+### Repository Not Found: undefined (Jan 2025)
+
+**Problem**: Inngest functions were throwing "Repository not found: undefined" errors in production.
+
+**Root Cause**: Failed jobs in the `progressive_capture_jobs` table had `repository_id` but were missing `repository_name` in their metadata. When the auto-retry service attempted to retry these jobs, it would fail because the hybrid queue manager requires both fields.
+
+**Solution Implemented**:
+1. **Defensive validation**: Added early validation in Inngest functions to catch undefined `repositoryId` and provide clear error messages
+2. **Auto-healing**: Modified auto-retry service to fetch missing `repository_name` from database when retrying jobs
+3. **Caching**: Added in-memory cache for repository metadata to reduce database queries during retries
+4. **Monitoring**: Added tracking flag (`repository_name_fetched: true`) to identify jobs that needed data recovery
+
+**Prevention**: 
+- Always ensure jobs are created with complete metadata
+- Use the validation pattern in Inngest functions for all required fields
+- Monitor for `repository_name_fetched` flag to identify data quality issues
+
 ### Repository Tracking Changes (Jan 2025)
 
 **Update**: The automatic repository tracking system has been replaced with manual, user-initiated tracking. 

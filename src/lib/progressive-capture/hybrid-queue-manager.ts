@@ -216,6 +216,16 @@ export class HybridQueueManager {
    * Queue job with Inngest for real-time processing
    */
   private async queueWithInngest(jobId: string, jobType: string, data: JobData): Promise<void> {
+    // Validate required fields before sending to Inngest
+    if (!data.repositoryId) {
+      console.error('[HybridQueue] Cannot queue Inngest job without repositoryId:', {
+        jobId,
+        jobType,
+        data
+      });
+      throw new Error(`Cannot queue Inngest job ${jobId}: missing repositoryId`);
+    }
+    
     // Track job in database
     await this.updateJobStatus(jobId, 'processing');
     
@@ -238,6 +248,17 @@ export class HybridQueueManager {
       ...data,
       jobId
     });
+    
+    // Final validation before sending event
+    if (!eventData.repositoryId) {
+      console.error('[HybridQueue] Event data missing repositoryId after mapping:', {
+        jobId,
+        jobType,
+        eventData,
+        originalData: data
+      });
+      throw new Error(`Event data missing repositoryId for job ${jobId}`);
+    }
 
     // If we're in the browser, use the API endpoint
     if (typeof window !== 'undefined') {
