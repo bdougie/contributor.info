@@ -81,13 +81,13 @@ export const captureRepositorySync = inngest.createFunction(
         throw new Error(`Repository not found: ${repositoryId}`);
       }
 
-      // Check if repository was synced recently (within 24 hours)
+      // Check if repository was synced recently (within 1 hour)
       if (data.last_updated_at) {
         const lastSyncTime = new Date(data.last_updated_at).getTime();
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
         
-        if (hoursSinceSync < 24 && reason !== 'manual') {
-          throw new Error(`Repository ${data.owner}/${data.name} was synced ${Math.round(hoursSinceSync)} hours ago. Skipping to prevent rate limiting.`);
+        if (hoursSinceSync < 1 && reason !== 'manual') {
+          throw new Error(`Repository ${data.owner}/${data.name} was synced ${Math.round(hoursSinceSync * 60)} minutes ago. Skipping to prevent rate limiting.`);
         }
       }
 

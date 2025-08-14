@@ -91,8 +91,8 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         const lastSyncTime = new Date(data.last_updated_at).getTime();
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
         
-        if (hoursSinceSync < 12) {
-          throw new Error(`Repository ${data.owner}/${data.name} was synced ${Math.round(hoursSinceSync)} hours ago. Skipping to prevent excessive API usage.`) as NonRetriableError;
+        if (hoursSinceSync < 1) {
+          throw new Error(`Repository ${data.owner}/${data.name} was synced ${Math.round(hoursSinceSync * 60)} minutes ago. Skipping to prevent excessive API usage.`) as NonRetriableError;
         }
       }
 
