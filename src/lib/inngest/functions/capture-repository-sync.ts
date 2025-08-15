@@ -87,7 +87,10 @@ export const captureRepositorySync = inngest.createFunction(
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
         
         if (hoursSinceSync < RATE_LIMIT_CONFIG.COOLDOWN_HOURS && reason !== 'manual') {
-          throw new Error(`Repository ${data.owner}/${data.name} was synced ${Math.round(hoursSinceSync * 60)} minutes ago. Skipping to prevent rate limiting.`);
+          const timeAgo = hoursSinceSync < 1 
+            ? `${Math.round(hoursSinceSync * 60)} minutes`
+            : `${Math.round(hoursSinceSync)} hours`;
+          throw new Error(`Repository ${data.owner}/${data.name} was synced ${timeAgo} ago. Skipping to prevent rate limiting.`);
         }
       }
 
