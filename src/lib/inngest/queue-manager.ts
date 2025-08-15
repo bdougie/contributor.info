@@ -8,7 +8,7 @@ export const RATE_LIMIT_CONFIG = {
   MAX_JOBS_PER_BATCH: 10,
   MAX_REVIEW_COMMENT_JOBS: 50, // Increased to ensure complete review/comment data capture
   LARGE_REPO_THRESHOLD: 1000,
-  COOLDOWN_HOURS: 24,
+  COOLDOWN_HOURS: 1, // Repository sync cooldown period in hours
   DEFAULT_DAYS_LIMIT: 30,
 };
 

@@ -1,6 +1,7 @@
 import { inngest } from '../client';
 import { supabase } from '../../supabase';
 import { GraphQLClient } from '../graphql-client';
+import { RATE_LIMIT_CONFIG } from '../queue-manager';
 import type { NonRetriableError } from 'inngest';
 
 // Rate limiting constants for GraphQL (more generous)
@@ -116,7 +117,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         const lastSyncTime = new Date(data.last_updated_at).getTime();
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
         
-        if (hoursSinceSync < 12) {
+        if (hoursSinceSync < RATE_LIMIT_CONFIG.COOLDOWN_HOURS) {
           throw new Error(`Repository ${data.owner}/${data.name} was synced ${Math.round(hoursSinceSync)} hours ago. Skipping to prevent excessive API usage.`) as NonRetriableError;
         }
       }
