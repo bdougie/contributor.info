@@ -81,7 +81,7 @@ export const captureRepositorySync = inngest.createFunction(
         throw new Error(`Repository not found: ${repositoryId}`);
       }
 
-      // Check if repository was synced recently (within COOLDOWN_HOURS)
+      // Check if repository was synced recently
       if (data.last_updated_at) {
         const lastSyncTime = new Date(data.last_updated_at).getTime();
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);

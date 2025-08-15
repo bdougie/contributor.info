@@ -112,7 +112,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
       }
 
-      // Skip sync time check if repository has active backfill or manual trigger
+      // Check if repository was synced recently (skip if has active backfill or manual trigger)
       if (data.last_updated_at && !hasActiveBackfill && reason !== 'manual') {
         const lastSyncTime = new Date(data.last_updated_at).getTime();
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);

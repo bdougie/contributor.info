@@ -87,7 +87,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
       }
 
-      // Modified sync time check
+      // Check if repository was synced recently
       if (shouldCheckSyncTime && data.last_updated_at) {
         const lastSyncTime = new Date(data.last_updated_at).getTime();
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
