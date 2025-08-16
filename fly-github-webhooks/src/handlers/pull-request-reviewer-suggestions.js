@@ -59,29 +59,49 @@ export async function handlePRWithReviewerSuggestions(payload, githubApp, supaba
 
 async function generateContributorInsights(pr, repo, supabase, logger) {
   try {
-    // Get contributor's PR history from database
+    // First get the internal contributor ID from GitHub ID
+    const { data: contributor } = await supabase
+      .from('contributors')
+      .select('id')
+      .eq('github_id', pr.user.id)
+      .maybeSingle();
+    
+    if (!contributor) {
+      // If contributor doesn't exist yet, return default insights
+      return {
+        totalPRs: 1,
+        mergedPRs: 0,
+        reviewsGiven: 0,
+        commentsLeft: 0,
+        approvalRate: 0
+      };
+    }
+    
+    const contributorId = contributor.id;
+    
+    // Get contributor's PR history from database using internal contributor ID
     const { data: prHistory } = await supabase
       .from('pull_requests')
       .select('id, state, merged, created_at')
       .eq('repository_id', repo.id)
-      .eq('author_id', pr.user.id);
+      .eq('author_id', contributorId);
     
     const totalPRs = prHistory?.length || 0;
     const mergedPRs = prHistory?.filter(p => p.merged).length || 0;
     
-    // Get review history
+    // Get review history using internal contributor ID
     const { data: reviews } = await supabase
       .from('reviews')
       .select('id')
-      .eq('reviewer_id', pr.user.id);
+      .eq('reviewer_id', contributorId);
     
     const reviewsGiven = reviews?.length || 0;
     
-    // Get comment history
+    // Get comment history using internal contributor ID
     const { data: comments } = await supabase
       .from('comments')
       .select('id')
-      .eq('commenter_id', pr.user.id);
+      .eq('commenter_id', contributorId);
     
     const commentsLeft = comments?.length || 0;
     
@@ -109,15 +129,26 @@ async function generateContributorInsights(pr, repo, supabase, logger) {
 
 async function generateReviewerSuggestions(pr, repo, supabase, octokit, logger) {
   try {
-    // Get files changed in the PR
-    const { data: files } = await octokit.rest.pulls.listFiles({
-      owner: repo.owner.login,
-      repo: repo.name,
-      pull_number: pr.number,
-      per_page: 100
-    });
+    // Get all files changed in the PR (handle pagination for PRs with >100 files)
+    const allFiles = [];
+    let page = 1;
+    let hasMore = true;
     
-    const changedFiles = files.map(f => f.filename);
+    while (hasMore) {
+      const { data: files } = await octokit.rest.pulls.listFiles({
+        owner: repo.owner.login,
+        repo: repo.name,
+        pull_number: pr.number,
+        per_page: 100,
+        page
+      });
+      
+      allFiles.push(...files);
+      hasMore = files.length === 100;
+      page++;
+    }
+    
+    const changedFiles = allFiles.map(f => f.filename);
     logger.info('PR #%s changed %d files', pr.number, changedFiles.length);
     
     // Find contributors who have worked on similar files

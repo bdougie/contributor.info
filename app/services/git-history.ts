@@ -18,7 +18,7 @@ export async function indexGitHistory(
   octokit: Octokit,
   since?: Date
 ): Promise<void> {
-  console.log(`Starting git history indexing for ${repository.full_name}`);
+  console.log(`[Git History] Starting git history indexing for ${repository.full_name}`);
   
   try {
     // Get or create repository record
@@ -29,7 +29,7 @@ export async function indexGitHistory(
       .maybeSingle();
     
     if (error || !dbRepo) {
-      console.error('Error fetching repository from database:', error?.message || 'Repository not found');
+      console.error('[Git History] Error fetching repository from database:', error?.message || 'Repository not found');
       return;
     }
     
@@ -83,13 +83,13 @@ export async function indexGitHistory(
           });
         
         if (error) {
-          console.error('Error inserting file contributors:', error);
+          console.error('[Git History] Error inserting file contributors:', error);
         } else {
           totalFlushedRecords += batch.length;
         }
       }
       
-      console.log(`Flushed ${allFileContributors.length} file contributor records`);
+      console.log(`[Git History] Flushed ${allFileContributors.length} file contributor records`);
       
       // Clear the map to free memory
       fileContributors.clear();
@@ -132,7 +132,7 @@ export async function indexGitHistory(
               .maybeSingle();
             
             if (fetchError) {
-              console.error(`Error fetching contributor ${commit.author.login}:`, fetchError);
+              console.error(`[Git History] Error fetching contributor ${commit.author.login}:`, fetchError);
               continue;
             }
             
@@ -150,7 +150,7 @@ export async function indexGitHistory(
                 .maybeSingle();
               
               if (insertError) {
-                console.error(`Error creating contributor ${commit.author.login}:`, insertError);
+                console.error(`[Git History] Error creating contributor ${commit.author.login}:`, insertError);
                 continue;
               }
               
@@ -199,14 +199,14 @@ export async function indexGitHistory(
               await new Promise(resolve => setTimeout(resolve, 100));
             }
           } catch (error) {
-            console.error(`Error processing commit ${commit.sha}:`, error);
+            console.error(`[Git History] Error processing commit ${commit.sha}:`, error);
           }
         }
         
         hasMoreCommits = commits.length === 100;
         page++;
       } catch (error) {
-        console.error(`Error fetching commits page ${page}:`, error);
+        console.error(`[Git History] Error fetching commits page ${page}:`, error);
         hasMoreCommits = false;
       }
     }
@@ -214,11 +214,11 @@ export async function indexGitHistory(
     // Final flush for any remaining data
     await flushFileContributors();
     
-    console.log(`Git history indexing completed for ${repository.full_name}`);
-    console.log(`Processed ${processedCommits} commits, flushed ${totalFlushedRecords} file contributor records`);
+    console.log(`[Git History] Git history indexing completed for ${repository.full_name}`);
+    console.log(`[Git History] Processed ${processedCommits} commits, flushed ${totalFlushedRecords} file contributor records`);
     
   } catch (error) {
-    console.error('Error indexing git history:', error);
+    console.error('[Git History] Error indexing git history:', error);
     throw error;
   }
 }
@@ -260,7 +260,7 @@ export async function findFileContributors(
       .in('file_path', filePaths);
     
     if (error) {
-      console.error('Error fetching file contributors:', error);
+      console.error('[Git History] Error fetching file contributors:', error);
       return new Map();
     }
     
@@ -312,7 +312,7 @@ export async function findFileContributors(
     
     return contributorMap;
   } catch (error) {
-    console.error('Error finding file contributors:', error);
+    console.error('[Git History] Error finding file contributors:', error);
     return new Map();
   }
 }
