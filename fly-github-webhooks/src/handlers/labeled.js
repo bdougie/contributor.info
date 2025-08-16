@@ -73,6 +73,31 @@ async function handleSpecialLabels(label, item, itemType, repo, octokit, logger)
       logger.info('✅ Posted help wanted message on #%d', item.number);
     }
     
+    // contributor.info label - for testing and debugging
+    else if (labelName === 'contributor.info') {
+      const timestamp = new Date().toISOString();
+      const comment = `🤖 **Contributor.info Webhook Test**\n\n` +
+                     `✅ Webhook successfully received and processed!\n\n` +
+                     `**Debug Information:**\n` +
+                     `- Timestamp: ${timestamp}\n` +
+                     `- Event Type: \`labeled\`\n` +
+                     `- ${itemType === 'pull request' ? 'PR' : 'Issue'} Number: #${item.number}\n` +
+                     `- Repository: ${repo.full_name}\n` +
+                     `- Label Applied: \`${label.name}\`\n` +
+                     `- Author: @${item.user.login}\n` +
+                     `- Webhook Service: [Health Status](https://contributor-info-webhooks.fly.dev/health)\n\n` +
+                     `This is an automated test response from the contributor.info GitHub App webhook handler.`;
+      
+      await octokit.rest.issues.createComment({
+        owner: repo.owner.login,
+        repo: repo.name,
+        issue_number: item.number,
+        body: comment
+      });
+      
+      logger.info('✅ Posted contributor.info test response on #%d', item.number);
+    }
+    
     // Bug label
     else if (labelName === 'bug') {
       // Only comment if this is a newly opened issue
