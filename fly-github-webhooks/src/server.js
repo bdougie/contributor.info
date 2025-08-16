@@ -79,6 +79,7 @@ const supabase = createClient(
 // Import webhook handlers
 import { handlePullRequestEvent } from './handlers/pull-request.js';
 import { handlePROpenedDirect } from './handlers/pull-request-direct.js';
+import { handlePRWithReviewerSuggestions } from './handlers/pull-request-reviewer-suggestions.js';
 import { handleIssuesEvent } from './handlers/issues.js';
 import { handleIssueOpenedDirect } from './handlers/issues-direct.js';
 import { handleIssueCommentEvent } from './handlers/issue-comment.js';
@@ -199,8 +200,9 @@ app.post('/webhook', webhookLimiter, async (req, res) => {
 
         case 'pull_request':
           logger.info('🔀 PR %s: #%d', payload.action, payload.pull_request?.number);
-          if (payload.action === 'opened') {
-            await handlePROpenedDirect(payload, githubApp, supabase, logger);
+          if (payload.action === 'opened' || payload.action === 'ready_for_review') {
+            // Use the new handler with reviewer suggestions
+            await handlePRWithReviewerSuggestions(payload, githubApp, supabase, logger);
           } else if (payload.action === 'labeled') {
             await handleLabeledEvent(payload, githubApp, supabase, logger);
           } else {
