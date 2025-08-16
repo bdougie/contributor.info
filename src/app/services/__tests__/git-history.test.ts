@@ -4,16 +4,18 @@ import { Logger } from '../../../../app/services/logger';
 import { Octokit } from '@octokit/rest';
 import { Repository } from '../../../../app/types/github';
 
+// Create mock logger instance
+const mockLoggerInstance = {
+  info: vi.fn(),
+  error: vi.fn(),
+  warn: vi.fn(),
+  debug: vi.fn(),
+  child: vi.fn().mockReturnThis()
+};
+
 // Mock the logger module
 vi.mock('../../../../app/services/logger', () => ({
-  Logger: vi.fn().mockImplementation((context: string) => ({
-    context,
-    info: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-    debug: vi.fn(),
-    child: vi.fn().mockReturnThis()
-  }))
+  Logger: vi.fn().mockImplementation(() => mockLoggerInstance)
 }));
 
 // Mock supabase
@@ -30,6 +32,12 @@ describe('Git History Service', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Reset logger mock functions
+    mockLoggerInstance.info.mockClear();
+    mockLoggerInstance.error.mockClear();
+    mockLoggerInstance.warn.mockClear();
+    mockLoggerInstance.debug.mockClear();
 
     // Setup repository mock
     mockRepository = {
@@ -58,8 +66,8 @@ describe('Git History Service', () => {
       }
     } as Partial<Octokit>;
 
-    // Get logger instance
-    mockLogger = new Logger('Git History');
+    // Logger instance is already mocked
+    mockLogger = mockLoggerInstance;
   });
 
   describe('Structured Logging', () => {
@@ -81,7 +89,7 @@ describe('Git History Service', () => {
       await indexGitHistory(mockRepository, mockOctokit as Octokit);
 
       // Verify structured logger was used for errors
-      expect(mockLogger.error).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
         'Error fetching repository from database: %s',
         'Database connection failed'
       );
@@ -164,7 +172,7 @@ describe('Git History Service', () => {
       await indexGitHistory(mockRepository, mockOctokit as Octokit);
 
       // Verify parameterized logging was used (prevents format string attacks)
-      expect(mockLogger.error).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
         'Error fetching contributor %s: %s',
         maliciousUsername,
         'Contributor not found'
@@ -215,12 +223,12 @@ describe('Git History Service', () => {
       await indexGitHistory(mockRepository, mockOctokit as Octokit);
 
       // Verify progress logging
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.info).toHaveBeenCalledWith(
         'Starting git history indexing for %s',
         'test/repo'
       );
       
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.info).toHaveBeenCalledWith(
         'Git history indexing completed for %s',
         'test/repo'
       );
@@ -403,7 +411,7 @@ describe('Git History Service', () => {
       await indexGitHistory(mockRepository, mockOctokit as Octokit);
 
       // Verify error was logged properly
-      expect(mockLogger.error).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
         'Error processing commit %s: %s',
         'abc123',
         'API rate limit exceeded'
@@ -454,7 +462,7 @@ describe('Git History Service', () => {
       await indexGitHistory(mockRepository, mockOctokit as Octokit);
 
       // Verify error was logged
-      expect(mockLogger.error).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
         'Error fetching commits page %d: %s',
         1,
         'Network error'
