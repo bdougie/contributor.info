@@ -286,7 +286,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
         {/* Show progressive capture option for data quality issues */}
         {!loading && hasLowDataQuality(metrics, trends) && metrics?.status !== 'large_repository_protected' && (
           <div className="mb-6 p-4 rounded-lg border bg-black dark:bg-white">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex-1">
                 <p className="text-sm font-medium text-white dark:text-black">Need complete data faster?</p>
                 <p className="text-xs text-white/70 dark:text-black/70 mt-1">
@@ -314,7 +314,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                   }}
                   variant="outline"
                   size="sm"
-                  className="text-xs whitespace-nowrap border-black text-black hover:bg-black/10 dark:border-white dark:text-white dark:hover:bg-white/10"
+                  className="text-xs whitespace-nowrap border-black text-black hover:bg-black/10 dark:border-white dark:text-white dark:hover:bg-white/10 w-full sm:w-auto"
                   title="Request priority indexing"
                 >
                   Request Priority
