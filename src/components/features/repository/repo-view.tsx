@@ -34,6 +34,7 @@ import { DataStateIndicator } from "@/components/ui/data-state-indicator";
 import { LastUpdated } from "@/components/ui/last-updated";
 import { useDataTimestamp } from "@/hooks/use-data-timestamp";
 import { RepositoryTrackingCard } from "./repository-tracking-card";
+import { GitHubAppInstallButton } from "./github-app-install-button";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -318,17 +319,24 @@ export default function RepoView() {
                   )}
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleShare}
-                disabled={isGeneratingUrl}
-                className="h-8 w-8 flex-shrink-0 stable-button"
-                title={isGeneratingUrl ? "Generating short link..." : "Copy repository link"}
-                aria-label={isGeneratingUrl ? "Generating short link..." : "Copy repository link"}
-              >
-                <Link className={`h-4 w-4 ${isGeneratingUrl ? 'animate-pulse' : ''}`} />
-              </Button>
+              <div className="flex gap-2 flex-shrink-0">
+                <GitHubAppInstallButton
+                  owner={owner || ''}
+                  repo={repo || ''}
+                  size="sm"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleShare}
+                  disabled={isGeneratingUrl}
+                  className="h-8 w-8 stable-button"
+                  title={isGeneratingUrl ? "Generating short link..." : "Copy repository link"}
+                  aria-label={isGeneratingUrl ? "Generating short link..." : "Copy repository link"}
+                >
+                  <Link className={`h-4 w-4 ${isGeneratingUrl ? 'animate-pulse' : ''}`} />
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
