@@ -2,6 +2,7 @@ import { inngest } from "../client";
 import { supabase } from "../../supabase";
 import { NonRetriableError } from "inngest";
 import { getGraphQLClient } from "../graphql-client";
+import { RATE_LIMIT_CONFIG } from '../queue-manager';
 
 // Constants
 const MAX_PRS_PER_SYNC = 150;
@@ -86,13 +87,16 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
       }
 
-      // Modified sync time check
+      // Check if repository was synced recently
       if (shouldCheckSyncTime && data.last_updated_at) {
         const lastSyncTime = new Date(data.last_updated_at).getTime();
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
         
-        if (hoursSinceSync < 12) {
-          throw new Error(`Repository ${data.owner}/${data.name} was synced ${Math.round(hoursSinceSync)} hours ago. Skipping to prevent excessive API usage.`) as NonRetriableError;
+        if (hoursSinceSync < RATE_LIMIT_CONFIG.COOLDOWN_HOURS) {
+          const timeAgo = hoursSinceSync < 1 
+            ? `${Math.round(hoursSinceSync * 60)} minutes`
+            : `${Math.round(hoursSinceSync)} hours`;
+          throw new Error(`Repository ${data.owner}/${data.name} was synced ${timeAgo} ago. Skipping to prevent excessive API usage.`) as NonRetriableError;
         }
       }
 
