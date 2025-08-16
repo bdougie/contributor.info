@@ -170,14 +170,14 @@ export default function Distribution() {
     >
       <CardContent className="space-y-6 w-full overflow-hidden pt-6">
         <Tabs value={chartType} onValueChange={(value) => handleChartTypeChange(value as "donut" | "bar" | "treemap")}>
-          <div className="flex items-center justify-between mb-4 gap-4">
-            {/* Statistics on the left */}
-            <div className="text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
+            {/* Statistics - full width on mobile, left-aligned on desktop */}
+            <div className="text-sm text-muted-foreground flex-shrink min-w-0">
               <div>{totalFiles.toLocaleString()} files touched</div>
-              <div>
+              <div className="break-words">
                 {selectedQuadrant ? filteredPRs.length : totalContributions} merged pull
                 requests {selectedQuadrant ? "shown" : "analyzed"}
-                {dominantQuadrant && ` · Primary focus: ${dominantQuadrant.label}`}
+                {dominantQuadrant && !isMobile && ` · Primary focus: ${dominantQuadrant.label}`}
               </div>
               {selectedQuadrant && (
                 <div className="text-xs">
@@ -186,34 +186,34 @@ export default function Distribution() {
               )}
             </div>
 
-            {/* Tabs on the right - adaptive based on device capabilities */}
-            <div>
+            {/* Tabs - full width on mobile, right-aligned on desktop */}
+            <div className="w-full sm:w-auto">
               {/* Mobile/Slow Connection: Only show donut and bar */}
               {shouldUseSimplifiedUI ? (
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="donut" className="text-sm flex items-center gap-1">
-                    <PieChart className="h-4 w-4" />
-                    <span className={isMobile ? "hidden xs:inline" : ""}>Donut</span>
+                  <TabsTrigger value="donut" className="text-xs sm:text-sm flex items-center justify-center gap-1 px-2">
+                    <PieChart className="h-4 w-4 flex-shrink-0" />
+                    <span className="hidden min-[400px]:inline">Donut</span>
                   </TabsTrigger>
-                  <TabsTrigger value="bar" className="text-sm flex items-center gap-1">
-                    <BarChart3 className="h-4 w-4" />
-                    <span className={isMobile ? "hidden xs:inline" : ""}>Bar</span>
+                  <TabsTrigger value="bar" className="text-xs sm:text-sm flex items-center justify-center gap-1 px-2">
+                    <BarChart3 className="h-4 w-4 flex-shrink-0" />
+                    <span className="hidden min-[400px]:inline">Bar</span>
                   </TabsTrigger>
                 </TabsList>
               ) : (
                 /* Desktop/Fast Connection: Show all three */
                 <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="donut" className="text-sm flex items-center gap-1">
+                  <TabsTrigger value="donut" className="text-sm flex items-center justify-center gap-1">
                     <PieChart className="h-4 w-4" />
-                    Donut
+                    <span className="hidden md:inline">Donut</span>
                   </TabsTrigger>
-                  <TabsTrigger value="bar" className="text-sm flex items-center gap-1">
+                  <TabsTrigger value="bar" className="text-sm flex items-center justify-center gap-1">
                     <BarChart3 className="h-4 w-4" />
-                    Bar
+                    <span className="hidden md:inline">Bar</span>
                   </TabsTrigger>
-                  <TabsTrigger value="treemap" className="text-sm flex items-center gap-1">
+                  <TabsTrigger value="treemap" className="text-sm flex items-center justify-center gap-1">
                     <TreePine className="h-4 w-4" />
-                    Treemap
+                    <span className="hidden md:inline">Treemap</span>
                   </TabsTrigger>
                 </TabsList>
               )}
