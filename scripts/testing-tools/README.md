@@ -39,6 +39,9 @@ Testing tools cover:
 | Script | Purpose | When to Run |
 |--------|---------|-------------|
 | `test-social-cards.js` | Social card generation | Card issues |
+| `test-social-card-speed.js` | Social card performance testing | Speed optimization |
+| `test-dub-api-direct.js` | dub.co link shortening testing | URL shortening issues |
+| `test-social-elements.html` | Interactive browser test suite | Manual validation |
 | `test-storybook-interactions.sh` | Storybook interaction tests | UI changes |
 | `test-visual-regression.sh` | Visual regression testing | Before release |
 | `test-visual-workflow.sh` | Visual testing workflow | CI/CD |
@@ -99,6 +102,16 @@ node scripts/testing-tools/test-update-activity.mjs --days 7
 
 # Test social cards
 node scripts/testing-tools/test-social-cards.js --all
+
+# Test social card speed performance
+node scripts/testing-tools/test-social-card-speed.js
+
+# Test dub.co integration
+VITE_DUB_CO_KEY="your_key" node scripts/testing-tools/test-dub-api-direct.js
+
+# Interactive browser testing
+npm run dev
+# Then open: http://localhost:5174/test-social-elements.html
 ```
 
 ### Utility & Security Testing
