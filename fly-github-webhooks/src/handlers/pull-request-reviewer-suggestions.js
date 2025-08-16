@@ -59,7 +59,25 @@ export async function handlePRWithReviewerSuggestions(payload, githubApp, supaba
 
 async function generateContributorInsights(pr, repo, supabase, logger) {
   try {
-    // First get the internal contributor ID from GitHub ID
+    // First get the internal repository ID from GitHub ID
+    const { data: repoData, error: repoError } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('github_id', repo.id)
+      .maybeSingle();
+    
+    if (repoError || !repoData) {
+      logger.error('Repository not found in database:', repoError?.message || 'Not tracked');
+      return {
+        totalPRs: 1,
+        mergedPRs: 0,
+        reviewsGiven: 0,
+        commentsLeft: 0,
+        approvalRate: 0
+      };
+    }
+    
+    // Get the internal contributor ID from GitHub ID
     const { data: contributor } = await supabase
       .from('contributors')
       .select('id')
@@ -78,30 +96,43 @@ async function generateContributorInsights(pr, repo, supabase, logger) {
     }
     
     const contributorId = contributor.id;
+    const repositoryId = repoData.id;
     
-    // Get contributor's PR history from database using internal contributor ID
-    const { data: prHistory } = await supabase
+    // Get contributor's PR history from database using internal IDs
+    const { data: prHistory, error: prError } = await supabase
       .from('pull_requests')
       .select('id, state, merged, created_at')
-      .eq('repository_id', repo.id)
+      .eq('repository_id', repositoryId)
       .eq('author_id', contributorId);
+    
+    if (prError) {
+      logger.error('Error fetching PR history:', prError.message);
+    }
     
     const totalPRs = prHistory?.length || 0;
     const mergedPRs = prHistory?.filter(p => p.merged).length || 0;
     
     // Get review history using internal contributor ID
-    const { data: reviews } = await supabase
+    const { data: reviews, error: reviewError } = await supabase
       .from('reviews')
       .select('id')
       .eq('reviewer_id', contributorId);
     
+    if (reviewError) {
+      logger.error('Error fetching reviews:', reviewError.message);
+    }
+    
     const reviewsGiven = reviews?.length || 0;
     
     // Get comment history using internal contributor ID
-    const { data: comments } = await supabase
+    const { data: comments, error: commentError } = await supabase
       .from('comments')
       .select('id')
       .eq('commenter_id', contributorId);
+    
+    if (commentError) {
+      logger.error('Error fetching comments:', commentError.message);
+    }
     
     const commentsLeft = comments?.length || 0;
     
@@ -204,8 +235,20 @@ async function generateReviewerSuggestions(pr, repo, supabase, octokit, logger) 
 
 async function findFileContributors(filePaths, repo, supabase, logger) {
   try {
-    // Get contributors who have modified these files
-    const { data: fileContributors } = await supabase
+    // First get the internal repository ID
+    const { data: repoData, error: repoError } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('github_id', repo.id)
+      .maybeSingle();
+    
+    if (repoError || !repoData) {
+      logger.error('Repository not found for file contributors:', repoError?.message || 'Not tracked');
+      return [];
+    }
+    
+    // Get contributors who have modified these files - remove the limit to get more relevant data
+    const { data: fileContributors, error: fcError } = await supabase
       .from('file_contributors')
       .select(`
         contributor_id,
@@ -216,9 +259,13 @@ async function findFileContributors(filePaths, repo, supabase, logger) {
           avatar_url
         )
       `)
-      .eq('repository_id', repo.id)
-      .in('file_path', filePaths)
-      .limit(10);
+      .eq('repository_id', repoData.id)
+      .in('file_path', filePaths);
+    
+    if (fcError) {
+      logger.error('Error fetching file contributors:', fcError.message);
+      return [];
+    }
     
     if (!fileContributors || fileContributors.length === 0) {
       return [];
@@ -254,8 +301,20 @@ async function findFileContributors(filePaths, repo, supabase, logger) {
 
 async function findFrequentReviewers(authorLogin, repo, supabase, logger) {
   try {
-    // Find reviewers who have reviewed this author's PRs before
-    const { data: reviews } = await supabase
+    // First get the internal repository ID
+    const { data: repoData, error: repoError } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('github_id', repo.id)
+      .maybeSingle();
+    
+    if (repoError || !repoData) {
+      logger.error('Repository not found for reviewers:', repoError?.message || 'Not tracked');
+      return [];
+    }
+    
+    // Find reviewers who have reviewed PRs in this repository - remove limit for better data
+    const { data: reviews, error: reviewError } = await supabase
       .from('reviews')
       .select(`
         reviewer_id,
@@ -268,8 +327,12 @@ async function findFrequentReviewers(authorLogin, repo, supabase, logger) {
           repository_id
         )
       `)
-      .eq('pull_requests.repository_id', repo.id)
-      .limit(50);
+      .eq('pull_requests.repository_id', repoData.id);
+    
+    if (reviewError) {
+      logger.error('Error fetching reviews:', reviewError.message);
+      return [];
+    }
     
     if (!reviews || reviews.length === 0) {
       return [];

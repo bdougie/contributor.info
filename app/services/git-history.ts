@@ -1,6 +1,7 @@
 import { Octokit } from '@octokit/rest';
 import { supabase } from '../../src/lib/supabase';
 import { Repository } from '../types/github';
+import { Logger } from './logger';
 
 interface FileContributor {
   file_path: string;
@@ -18,7 +19,8 @@ export async function indexGitHistory(
   octokit: Octokit,
   since?: Date
 ): Promise<void> {
-  console.log(`[Git History] Starting git history indexing for ${repository.full_name}`);
+  const logger = new Logger('Git History');
+  logger.info('Starting git history indexing for %s', repository.full_name);
   
   try {
     // Get or create repository record
@@ -29,7 +31,7 @@ export async function indexGitHistory(
       .maybeSingle();
     
     if (error || !dbRepo) {
-      console.error('[Git History] Error fetching repository from database:', error?.message || 'Repository not found');
+      logger.error('Error fetching repository from database: %s', error?.message || 'Repository not found');
       return;
     }
     
@@ -83,13 +85,13 @@ export async function indexGitHistory(
           });
         
         if (error) {
-          console.error('[Git History] Error inserting file contributors:', error);
+          logger.error('Error inserting file contributors: %s', error.message);
         } else {
           totalFlushedRecords += batch.length;
         }
       }
       
-      console.log(`[Git History] Flushed ${allFileContributors.length} file contributor records`);
+      logger.info('Flushed %d file contributor records', allFileContributors.length);
       
       // Clear the map to free memory
       fileContributors.clear();
@@ -128,11 +130,11 @@ export async function indexGitHistory(
             const { data: existingContributor, error: fetchError } = await supabase
               .from('contributors')
               .select('id')
-              .eq('github_login', commit.author.login)
+              .eq('username', commit.author.login)
               .maybeSingle();
             
             if (fetchError) {
-              console.error(`[Git History] Error fetching contributor ${commit.author.login}:`, fetchError);
+              logger.error('Error fetching contributor %s: %s', commit.author.login, fetchError.message);
               continue;
             }
             
@@ -142,15 +144,16 @@ export async function indexGitHistory(
                 .from('contributors')
                 .insert({
                   github_id: commit.author.id,
-                  github_login: commit.author.login,
-                  name: commit.commit.author?.name || commit.author.login,
+                  username: commit.author.login,
+                  display_name: commit.commit.author?.name || commit.author.login,
                   avatar_url: commit.author.avatar_url,
+                  profile_url: `https://github.com/${commit.author.login}`,
                 })
                 .select('id')
                 .maybeSingle();
               
               if (insertError) {
-                console.error(`[Git History] Error creating contributor ${commit.author.login}:`, insertError);
+                logger.error('Error creating contributor %s: %s', commit.author.login, insertError.message);
                 continue;
               }
               
@@ -199,14 +202,14 @@ export async function indexGitHistory(
               await new Promise(resolve => setTimeout(resolve, 100));
             }
           } catch (error) {
-            console.error(`[Git History] Error processing commit ${commit.sha}:`, error);
+            logger.error('Error processing commit %s: %s', commit.sha, (error as Error).message);
           }
         }
         
         hasMoreCommits = commits.length === 100;
         page++;
       } catch (error) {
-        console.error(`[Git History] Error fetching commits page ${page}:`, error);
+        logger.error('Error fetching commits page %d: %s', page, (error as Error).message);
         hasMoreCommits = false;
       }
     }
@@ -214,11 +217,11 @@ export async function indexGitHistory(
     // Final flush for any remaining data
     await flushFileContributors();
     
-    console.log(`[Git History] Git history indexing completed for ${repository.full_name}`);
-    console.log(`[Git History] Processed ${processedCommits} commits, flushed ${totalFlushedRecords} file contributor records`);
+    logger.info('Git history indexing completed for %s', repository.full_name);
+    logger.info('Processed %d commits, flushed %d file contributor records', processedCommits, totalFlushedRecords);
     
   } catch (error) {
-    console.error('[Git History] Error indexing git history:', error);
+    logger.error('Error indexing git history: %s', (error as Error).message);
     throw error;
   }
 }
