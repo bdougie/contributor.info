@@ -105,7 +105,7 @@ export function GitHubAppInstallButton({
         // User needs admin permission to install GitHub Apps
         // The permissions object will have admin: true if the user is an admin/owner
         const hasPermission = repoData.permissions?.admin === true || repoData.permissions?.maintain === true;
-        console.log(`User permissions for ${owner}/${repo}:`, {
+        console.log("User permissions for %s/%s:", owner, repo, {
           permissions: repoData.permissions,
           canInstall: hasPermission,
           isOwner: repoData.owner?.login === session.user?.user_metadata?.user_name
