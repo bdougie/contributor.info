@@ -33,7 +33,7 @@ When working on larger features or multi-step implementations, use Product Requi
 
 ### PRD Best Practices
 
-1. **Location**: Store PRDs in the `/docs/product-requirements/` folder with descriptive names (e.g., `prd-skeleton-loaders.md`)
+1. **Location**: Store PRDs in the `/tasks/` folder with descriptive names (e.g., `prd-skeleton-loaders.md`)
 
 2. **Structure**: Include these sections:
    - **Project Overview**: Objective, background, success metrics
@@ -55,7 +55,7 @@ When working on larger features or multi-step implementations, use Product Requi
    - Document architectural decisions and patterns established
 
 5. **Examples**:
-   - See `/docs/product-requirements/` for well-structured PRD examples
+   - See `/tasks/prd-skeleton-loaders.md` for a well-structured PRD example
    - Notice how it breaks skeleton implementation into logical phases
    - Each phase has clear deliverables and acceptance criteria
 
