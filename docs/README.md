@@ -18,6 +18,7 @@ This directory contains all technical documentation for the contributor.info pro
 
 ### Development
 - [Data Fetching](./data-fetching/) - Data fetching strategies and implementation
+- [Development](./development/) - Development tools and patterns documentation
 - [Features](./features/) - Feature implementation documentation
 - [GitHub App](./github-app/) - GitHub App integration documentation
 - [Implementations](./implementations/) - Completed feature implementations
@@ -26,7 +27,12 @@ This directory contains all technical documentation for the contributor.info pro
 - [Debugging](./debugging/) - Debugging guides and solutions
 - [Troubleshooting](./troubleshooting/) - Common issues and solutions
 - [Postmortem](./postmortem/) - Incident reports and resolutions
+- [Project Reports](./project-reports/) - Performance analysis and project reports
 - [Reports](./reports/) - Performance and analysis reports
+
+### Planning & Requirements
+- [Product Requirements](./product-requirements/) - PRDs and execution plans
+- [Root Files](./root-files/) - Archived root-level documentation
 
 ### Policies
 - [Privacy](./privacy/) - Privacy policies and data handling

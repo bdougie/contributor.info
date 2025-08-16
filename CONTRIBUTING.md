@@ -221,7 +221,7 @@ test('displays contributor information', () => {
 
 - Check existing [issues](https://github.com/bdougie/contributor.info/issues) and [discussions](https://github.com/bdougie/contributor.info/discussions)
 - For large changes, create an issue to discuss the approach first
-- Review our [Project Requirements Documents](./tasks/) for planned features
+- Review our [Product Requirements Documents](./docs/product-requirements/) for planned features
 
 ### 2. Making Changes
 
@@ -326,7 +326,7 @@ For security vulnerabilities, please email security@contributor.info instead of 
 - **[Migration Documentation](./supabase/MIGRATION_GUIDE.md)** - Database schema changes
 - **[API Documentation](./supabase/README.md)** - Database schema and API reference
 - **[Security Policies](./supabase/RLS_POLICIES.md)** - Row Level Security configuration
-- **[Project Planning](./tasks/)** - PRDs and task documentation
+- **[Product Requirements](./docs/product-requirements/)** - PRDs and task documentation
 
 ## 🤝 Community
 
