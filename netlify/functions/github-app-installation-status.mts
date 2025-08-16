@@ -9,8 +9,8 @@ export default async (req: Request, _context: Context) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Credentials': 'true'
+    'Access-Control-Allow-Methods': 'GET, OPTIONS'
+    // Note: Removed Allow-Credentials as it's incompatible with wildcard origin
   };
 
   // Handle preflight
@@ -78,12 +78,15 @@ export default async (req: Request, _context: Context) => {
     
   } catch (error) {
     console.error("Error checking GitHub App installation:", error);
-    return new Response(JSON.stringify({ installed: false }), {
-      status: 200,
+    return new Response(JSON.stringify({ 
+      error: "Internal server error",
+      installed: false 
+    }), {
+      status: 500,
       headers: {
         ...corsHeaders,
-        "Content-Type": "application/json",
-        "Cache-Control": "max-age=60",
+        "Content-Type": "application/json"
+        // No caching for error responses
       }
     });
   }
