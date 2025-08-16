@@ -419,18 +419,5 @@ const DonutChartComponent: React.FC<DonutChartProps> = ({
 };
 
 // Memoize the component to prevent unnecessary re-renders
-export const DonutChart = React.memo(DonutChartComponent, (prevProps, nextProps) => {
-  // Custom comparison to prevent re-renders on unchanged data
-  return (
-    JSON.stringify(prevProps.data) === JSON.stringify(nextProps.data) &&
-    prevProps.width === nextProps.width &&
-    prevProps.height === nextProps.height &&
-    prevProps.innerRadius === nextProps.innerRadius &&
-    prevProps.outerRadius === nextProps.outerRadius &&
-    prevProps.activeSegmentId === nextProps.activeSegmentId &&
-    prevProps.showLabel === nextProps.showLabel &&
-    prevProps.centerLabel === nextProps.centerLabel &&
-    prevProps.centerSubLabel === nextProps.centerSubLabel &&
-    prevProps.responsive === nextProps.responsive
-  );
-});
+// Using default shallow comparison to ensure callbacks and all props are properly compared
+export const DonutChart = React.memo(DonutChartComponent);
