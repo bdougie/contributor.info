@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Elements Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 3px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .loading { background-color: #e2e3e5; border-color: #d6d8db; color: #383d41; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .url-test { margin: 10px 0; }
+        .url-test input { width: 400px; padding: 5px; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Social Elements Test Suite</h1>
+    
+    <div class="test-section">
+        <h2>1. Environment Variables</h2>
+        <div id="env-test" class="test-result loading">Testing...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Dub.co API Test</h2>
+        <button onclick="testDubAPI()">Test Dub.co Link Creation</button>
+        <div id="dub-test" class="test-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Social Card Generation Test</h2>
+        <button onclick="testSocialCards()">Test Social Card URLs</button>
+        <div id="social-test" class="test-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Meta Tags Verification</h2>
+        <button onclick="testMetaTags()">Check Current Page Meta Tags</button>
+        <div id="meta-test" class="test-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>5. Custom URL Tests</h2>
+        <div class="url-test">
+            <input type="text" id="custom-url" placeholder="Enter URL to test" value="http://localhost:5174/facebook/react">
+            <button onclick="testCustomURL()">Test Custom URL</button>
+        </div>
+        <div id="custom-test" class="test-result"></div>
+    </div>
+
+    <script>
+        // Test environment variables
+        function testEnvironment() {
+            const results = [];
+            
+            // Check for DUB_CO_KEY
+            const dubKey = import.meta.env?.VITE_DUB_CO_KEY;
+            results.push(`DUB_CO_KEY: ${dubKey ? '✅ Present' : '❌ Missing'}`);
+            if (dubKey) {
+                results.push(`DUB_CO_KEY format: ${dubKey.startsWith('dub_') ? '✅ Valid' : '❌ Invalid'}`);
+            }
+            
+            // Check environment mode
+            results.push(`Environment: ${import.meta.env.DEV ? 'Development' : 'Production'}`);
+            results.push(`Mode: ${import.meta.env.MODE}`);
+            
+            document.getElementById('env-test').innerHTML = results.join('<br>');
+            document.getElementById('env-test').className = 'test-result ' + (dubKey ? 'success' : 'error');
+        }
+        
+        // Test Dub.co API
+        async function testDubAPI() {
+            const resultDiv = document.getElementById('dub-test');
+            resultDiv.className = 'test-result loading';
+            resultDiv.innerHTML = 'Testing Dub.co API...';
+            
+            try {
+                // Test URL shortening
+                const testUrl = window.location.href;
+                const response = await fetch('/api/test-dub', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: testUrl, title: 'Test Chart' })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.className = 'test-result success';
+                    resultDiv.innerHTML = `✅ Dub.co API working<br>Short URL: ${data.shortLink || 'N/A'}`;
+                } else {
+                    const error = await response.text();
+                    resultDiv.className = 'test-result error';
+                    resultDiv.innerHTML = `❌ Dub.co API error: ${error}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `❌ Dub.co API error: ${error.message}`;
+            }
+        }
+        
+        // Test social card generation
+        async function testSocialCards() {
+            const resultDiv = document.getElementById('social-test');
+            resultDiv.className = 'test-result loading';
+            resultDiv.innerHTML = 'Testing social card generation...';
+            
+            const baseUrl = 'https://contributor-info-social-cards.fly.dev';
+            const tests = [
+                { name: 'Home Card', url: `${baseUrl}/social-cards/home` },
+                { name: 'Repo Card', url: `${baseUrl}/social-cards/repo?owner=facebook&repo=react` },
+                { name: 'User Card', url: `${baseUrl}/social-cards/user?username=gaearon` }
+            ];
+            
+            const results = [];
+            
+            for (const test of tests) {
+                try {
+                    const response = await fetch(test.url);
+                    const status = response.ok ? '✅' : '❌';
+                    const statusText = response.ok ? 'Working' : `Error ${response.status}`;
+                    results.push(`${test.name}: ${status} ${statusText}`);
+                    
+                    if (response.ok) {
+                        // Create image element to test actual rendering
+                        const img = new Image();
+                        img.src = test.url;
+                        img.style.maxWidth = '200px';
+                        img.style.margin = '5px';
+                        img.alt = test.name;
+                        resultDiv.appendChild(img);
+                    }
+                } catch (error) {
+                    results.push(`${test.name}: ❌ Network error`);
+                }
+            }
+            
+            resultDiv.className = 'test-result ' + (results.every(r => r.includes('✅')) ? 'success' : 'error');
+            resultDiv.innerHTML = results.join('<br>') + '<br><br>';
+        }
+        
+        // Test meta tags
+        function testMetaTags() {
+            const resultDiv = document.getElementById('meta-test');
+            
+            const metaTags = {
+                'og:title': document.querySelector('meta[property="og:title"]')?.content,
+                'og:description': document.querySelector('meta[property="og:description"]')?.content,
+                'og:image': document.querySelector('meta[property="og:image"]')?.content,
+                'og:url': document.querySelector('meta[property="og:url"]')?.content,
+                'twitter:card': document.querySelector('meta[name="twitter:card"]')?.content,
+                'twitter:image': document.querySelector('meta[name="twitter:image"]')?.content
+            };
+            
+            const results = [];
+            for (const [tag, value] of Object.entries(metaTags)) {
+                const status = value ? '✅' : '❌';
+                results.push(`${tag}: ${status} ${value || 'Missing'}`);
+            }
+            
+            resultDiv.className = 'test-result ' + (Object.values(metaTags).every(v => v) ? 'success' : 'error');
+            resultDiv.innerHTML = results.join('<br>');
+        }
+        
+        // Test custom URL
+        async function testCustomURL() {
+            const url = document.getElementById('custom-url').value;
+            const resultDiv = document.getElementById('custom-test');
+            
+            if (!url) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = '❌ Please enter a URL';
+                return;
+            }
+            
+            resultDiv.className = 'test-result loading';
+            resultDiv.innerHTML = 'Testing custom URL...';
+            
+            try {
+                // Test if URL generates proper social card
+                const urlObj = new URL(url);
+                const pathMatch = urlObj.pathname.match(/^\/([^\/]+)\/([^\/]+)/);
+                
+                if (pathMatch) {
+                    const [, owner, repo] = pathMatch;
+                    const socialCardUrl = `https://contributor-info-social-cards.fly.dev/social-cards/repo?owner=${owner}&repo=${repo}`;
+                    
+                    const response = await fetch(socialCardUrl);
+                    const status = response.ok ? '✅' : '❌';
+                    
+                    resultDiv.className = 'test-result ' + (response.ok ? 'success' : 'error');
+                    resultDiv.innerHTML = `
+                        Repository: ${owner}/${repo}<br>
+                        Social Card: ${status} ${response.ok ? 'Generated' : `Error ${response.status}`}<br>
+                        URL: <a href="${socialCardUrl}" target="_blank">${socialCardUrl}</a>
+                    `;
+                    
+                    if (response.ok) {
+                        const img = new Image();
+                        img.src = socialCardUrl;
+                        img.style.maxWidth = '300px';
+                        img.style.marginTop = '10px';
+                        img.alt = 'Generated social card';
+                        resultDiv.appendChild(document.createElement('br'));
+                        resultDiv.appendChild(img);
+                    }
+                } else {
+                    resultDiv.className = 'test-result error';
+                    resultDiv.innerHTML = '❌ URL format not recognized. Expected: /owner/repo';
+                }
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                resultDiv.innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+        
+        // Run environment test on load
+        testEnvironment();
+    </script>
+</body>
+</html>
