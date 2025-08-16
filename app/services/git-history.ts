@@ -125,15 +125,20 @@ export async function indexGitHistory(
             // Get or create contributor
             let contributorId: string;
             
-            const { data: existingContributor } = await supabase
+            const { data: existingContributor, error: fetchError } = await supabase
               .from('contributors')
               .select('id')
               .eq('github_login', commit.author.login)
               .maybeSingle();
             
+            if (fetchError) {
+              console.error(`Error fetching contributor ${commit.author.login}:`, fetchError);
+              continue;
+            }
+            
             if (!existingContributor) {
               // Create contributor if doesn't exist
-              const { data: newContributor } = await supabase
+              const { data: newContributor, error: insertError } = await supabase
                 .from('contributors')
                 .insert({
                   github_id: commit.author.id,
@@ -143,6 +148,11 @@ export async function indexGitHistory(
                 })
                 .select('id')
                 .maybeSingle();
+              
+              if (insertError) {
+                console.error(`Error creating contributor ${commit.author.login}:`, insertError);
+                continue;
+              }
               
               if (!newContributor) continue;
               contributorId = newContributor.id;
@@ -234,7 +244,7 @@ export async function findFileContributors(
 ): Promise<Map<string, { login: string; name: string; avatarUrl: string; fileCount: number; totalCommits: number }>> {
   try {
     // Query file contributors for the given files
-    const { data: fileContributors } = await supabase
+    const { data: fileContributors, error } = await supabase
       .from('file_contributors')
       .select(`
         contributor_id,
@@ -248,6 +258,11 @@ export async function findFileContributors(
       `)
       .eq('repository_id', repositoryId)
       .in('file_path', filePaths);
+    
+    if (error) {
+      console.error('Error fetching file contributors:', error);
+      return new Map();
+    }
     
     if (!fileContributors || fileContributors.length === 0) {
       return new Map();
