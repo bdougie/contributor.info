@@ -69,28 +69,6 @@
     </news:news>
   </url>
   <url>
-    <loc>https://contributor.info/prometheus/prometheus</loc>
-    <news:news>
-      <news:publication>
-        <news:name>Contributor.info</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>2025-08-14</news:publication_date>
-      <news:title>prometheus/prometheus - Contributor Updates</news:title>
-    </news:news>
-  </url>
-  <url>
-    <loc>https://contributor.info/angular/angular</loc>
-    <news:news>
-      <news:publication>
-        <news:name>Contributor.info</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>2025-08-14</news:publication_date>
-      <news:title>angular/angular - Contributor Updates</news:title>
-    </news:news>
-  </url>
-  <url>
     <loc>https://contributor.info/pytorch/pytorch</loc>
     <news:news>
       <news:publication>
@@ -99,17 +77,6 @@
       </news:publication>
       <news:publication_date>2025-08-16</news:publication_date>
       <news:title>pytorch/pytorch - Contributor Updates</news:title>
-    </news:news>
-  </url>
-  <url>
-    <loc>https://contributor.info/duckdb/duckdb</loc>
-    <news:news>
-      <news:publication>
-        <news:name>Contributor.info</news:name>
-        <news:language>en</news:language>
-      </news:publication>
-      <news:publication_date>2025-08-14</news:publication_date>
-      <news:title>duckdb/duckdb - Contributor Updates</news:title>
     </news:news>
   </url>
 </urlset>

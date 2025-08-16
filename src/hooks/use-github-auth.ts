@@ -125,7 +125,7 @@ export function useGitHubAuth() {
         provider: 'github',
         options: {
           redirectTo: window.location.href, // Redirect back to current page
-          scopes: 'public_repo read:user user:email',
+          scopes: 'repo read:user user:email', // 'repo' scope needed to check repository permissions
         },
       });
       
