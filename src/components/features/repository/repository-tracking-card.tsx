@@ -289,7 +289,7 @@ export function RepositoryTrackingCard({
 
         {/* Tracking prompt box similar to "Need complete data faster?" */}
         <div className="p-4 rounded-lg border bg-black dark:bg-white">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex-1">
               <p className="text-sm font-medium text-white dark:text-black">
                 Start tracking <strong>{owner}/{repo}</strong>
@@ -302,12 +302,12 @@ export function RepositoryTrackingCard({
                 Takes 1-2 minutes
               </p>
             </div>
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center sm:items-end">
               {!isLoggedIn ? (
                 <Button 
                   onClick={handleLogin}
                   variant="default"
-                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                  className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto"
                 >
                   <Lock className="mr-2 h-4 w-4" />
                   Login to Track
@@ -317,7 +317,7 @@ export function RepositoryTrackingCard({
                   onClick={handleTrackRepository}
                   disabled={isTracking}
                   variant="default"
-                  className="bg-orange-500 hover:bg-orange-600 text-white disabled:bg-orange-300"
+                  className="bg-orange-500 hover:bg-orange-600 text-white disabled:bg-orange-300 w-full sm:w-auto"
                 >
                   {isTracking ? (
                     <>
