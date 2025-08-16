@@ -203,11 +203,16 @@ export async function generateFileEmbeddings(
   
   try {
     // Get repository record
-    const { data: dbRepo } = await supabase
+    const { data: dbRepo, error: repoError } = await supabase
       .from('repositories')
       .select('id')
       .eq('github_id', repository.id)
       .maybeSingle();
+    
+    if (repoError) {
+      console.error('Error fetching repository:', repoError);
+      return;
+    }
     
     if (!dbRepo) {
       console.error('Repository not found in database');
@@ -281,11 +286,16 @@ export async function findSimilarFiles(
     const similarFiles = new Map<string, { path: string; similarity: number }[]>();
     
     // Get embeddings for the input files
-    const { data: inputEmbeddings } = await supabase
+    const { data: inputEmbeddings, error: embeddingsError } = await supabase
       .from('file_embeddings')
       .select('file_path, embedding')
       .eq('repository_id', repositoryId)
       .in('file_path', filePaths);
+    
+    if (embeddingsError) {
+      console.error('Error fetching file embeddings:', embeddingsError);
+      return similarFiles;
+    }
     
     if (!inputEmbeddings || inputEmbeddings.length === 0) {
       return similarFiles;
@@ -294,12 +304,17 @@ export async function findSimilarFiles(
     // For each input file, find similar files
     for (const inputFile of inputEmbeddings) {
       // Use Supabase's vector similarity search
-      const { data: similar } = await supabase.rpc('match_file_embeddings', {
+      const { data: similar, error: rpcError } = await supabase.rpc('match_file_embeddings', {
         query_embedding: inputFile.embedding,
         repository_id: repositoryId,
         match_threshold: threshold,
         match_count: 10,
       });
+      
+      if (rpcError) {
+        console.error('Error finding similar files via RPC:', rpcError);
+        continue;
+      }
       
       if (similar && similar.length > 0) {
         similarFiles.set(

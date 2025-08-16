@@ -1,6 +1,7 @@
 import { Octokit } from '@octokit/rest';
 import { supabase } from '../../src/lib/supabase';
 import { Repository } from '../types/github';
+import { Logger } from './logger';
 
 interface FileContributor {
   file_path: string;
@@ -18,7 +19,8 @@ export async function indexGitHistory(
   octokit: Octokit,
   since?: Date
 ): Promise<void> {
-  console.log(`Starting git history indexing for ${repository.full_name}`);
+  const logger = new Logger('Git History');
+  logger.info('Starting git history indexing for %s', repository.full_name);
   
   try {
     // Get or create repository record
@@ -29,7 +31,7 @@ export async function indexGitHistory(
       .maybeSingle();
     
     if (error || !dbRepo) {
-      console.error('Error fetching repository from database:', error?.message || 'Repository not found');
+      logger.error('Error fetching repository from database: %s', error?.message || 'Repository not found');
       return;
     }
     
@@ -83,13 +85,13 @@ export async function indexGitHistory(
           });
         
         if (error) {
-          console.error('Error inserting file contributors:', error);
+          logger.error('Error inserting file contributors: %s', error.message);
         } else {
           totalFlushedRecords += batch.length;
         }
       }
       
-      console.log(`Flushed ${allFileContributors.length} file contributor records`);
+      logger.info('Flushed %d file contributor records', allFileContributors.length);
       
       // Clear the map to free memory
       fileContributors.clear();
@@ -125,24 +127,35 @@ export async function indexGitHistory(
             // Get or create contributor
             let contributorId: string;
             
-            const { data: existingContributor } = await supabase
+            const { data: existingContributor, error: fetchError } = await supabase
               .from('contributors')
               .select('id')
-              .eq('github_login', commit.author.login)
+              .eq('username', commit.author.login)
               .maybeSingle();
+            
+            if (fetchError) {
+              logger.error('Error fetching contributor %s: %s', commit.author.login, fetchError.message);
+              continue;
+            }
             
             if (!existingContributor) {
               // Create contributor if doesn't exist
-              const { data: newContributor } = await supabase
+              const { data: newContributor, error: insertError } = await supabase
                 .from('contributors')
                 .insert({
                   github_id: commit.author.id,
-                  github_login: commit.author.login,
-                  name: commit.commit.author?.name || commit.author.login,
+                  username: commit.author.login,
+                  display_name: commit.commit.author?.name || commit.author.login,
                   avatar_url: commit.author.avatar_url,
+                  profile_url: `https://github.com/${commit.author.login}`,
                 })
                 .select('id')
                 .maybeSingle();
+              
+              if (insertError) {
+                logger.error('Error creating contributor %s: %s', commit.author.login, insertError.message);
+                continue;
+              }
               
               if (!newContributor) continue;
               contributorId = newContributor.id;
@@ -189,14 +202,14 @@ export async function indexGitHistory(
               await new Promise(resolve => setTimeout(resolve, 100));
             }
           } catch (error) {
-            console.error(`Error processing commit ${commit.sha}:`, error);
+            logger.error('Error processing commit %s: %s', commit.sha, (error as Error).message);
           }
         }
         
         hasMoreCommits = commits.length === 100;
         page++;
       } catch (error) {
-        console.error(`Error fetching commits page ${page}:`, error);
+        logger.error('Error fetching commits page %d: %s', page, (error as Error).message);
         hasMoreCommits = false;
       }
     }
@@ -204,11 +217,11 @@ export async function indexGitHistory(
     // Final flush for any remaining data
     await flushFileContributors();
     
-    console.log(`Git history indexing completed for ${repository.full_name}`);
-    console.log(`Processed ${processedCommits} commits, flushed ${totalFlushedRecords} file contributor records`);
+    logger.info('Git history indexing completed for %s', repository.full_name);
+    logger.info('Processed %d commits, flushed %d file contributor records', processedCommits, totalFlushedRecords);
     
   } catch (error) {
-    console.error('Error indexing git history:', error);
+    logger.error('Error indexing git history: %s', (error as Error).message);
     throw error;
   }
 }
@@ -234,7 +247,7 @@ export async function findFileContributors(
 ): Promise<Map<string, { login: string; name: string; avatarUrl: string; fileCount: number; totalCommits: number }>> {
   try {
     // Query file contributors for the given files
-    const { data: fileContributors } = await supabase
+    const { data: fileContributors, error } = await supabase
       .from('file_contributors')
       .select(`
         contributor_id,
@@ -248,6 +261,11 @@ export async function findFileContributors(
       `)
       .eq('repository_id', repositoryId)
       .in('file_path', filePaths);
+    
+    if (error) {
+      console.error('[Git History] Error fetching file contributors:', error);
+      return new Map();
+    }
     
     if (!fileContributors || fileContributors.length === 0) {
       return new Map();
@@ -297,7 +315,7 @@ export async function findFileContributors(
     
     return contributorMap;
   } catch (error) {
-    console.error('Error finding file contributors:', error);
+    console.error('[Git History] Error finding file contributors:', error);
     return new Map();
   }
 }
