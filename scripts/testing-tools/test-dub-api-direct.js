@@ -1,11 +1,22 @@
 #!/usr/bin/env node
 
-// Direct Dub.co API Test
-// Tests the dub.co API directly without imports
+/**
+ * Direct Dub.co API Test
+ * Tests the dub.co API directly without imports to validate URL shortening functionality
+ * 
+ * @fileoverview Comprehensive testing suite for dub.co API integration
+ * @author Claude Code
+ */
 
 const DUB_API_KEY = process.env.VITE_DUB_CO_KEY;
 const DOMAIN = process.env.NODE_ENV === 'production' ? "oss.fyi" : "dub.sh";
 
+/**
+ * Main test function for dub.co API functionality
+ * @async
+ * @function testDubAPI
+ * @returns {Promise<void>}
+ */
 async function testDubAPI() {
   console.log('🔗 Direct Dub.co API Test\n');
   
@@ -88,7 +99,12 @@ async function testDubAPI() {
       console.log('- UTM Source:', data.utmSource);
     }
   } catch (error) {
-    console.log('❌ Network error:', error.message);
+    console.error('❌ Network error:', error.message);
+    if (error.code === 'ECONNREFUSED') {
+      console.error('💡 Check if dub.co API is accessible from your network');
+    } else if (error.code === 'ENOTFOUND') {
+      console.error('💡 DNS resolution failed - check your internet connection');
+    }
   }
 
   console.log('\n---\n');
@@ -114,7 +130,8 @@ async function testDubAPI() {
       console.log('❌ Analytics error:', errorText);
     }
   } catch (error) {
-    console.log('❌ Analytics error:', error.message);
+    console.error('❌ Analytics error:', error.message);
+    console.error('💡 Analytics may require different API permissions');
   }
 
   console.log('\n---\n');

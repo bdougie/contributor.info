@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 
-// Social Card Speed Test
-// Tests the delivery speed of social cards from the Fly.io service
+/**
+ * Social Card Speed Test
+ * Tests the delivery speed of social cards from the Fly.io service
+ * 
+ * @fileoverview Performance testing suite for social card generation and delivery
+ * @author Claude Code
+ */
 
 const baseUrl = 'https://contributor-info-social-cards.fly.dev';
 
@@ -23,6 +28,13 @@ const testUrls = [
   { name: 'Custom Title', url: `${baseUrl}/social-cards/home?title=Custom%20Title&subtitle=Custom%20Subtitle` },
 ];
 
+/**
+ * Measures the response time for a social card request
+ * @async
+ * @function measureRequestTime
+ * @param {string} url - The URL to test
+ * @returns {Promise<Object>} Response time and status information
+ */
 async function measureRequestTime(url) {
   const startTime = Date.now();
   
@@ -58,6 +70,12 @@ async function measureRequestTime(url) {
   }
 }
 
+/**
+ * Runs comprehensive speed tests for social card generation
+ * @async
+ * @function runSpeedTest
+ * @returns {Promise<void>}
+ */
 async function runSpeedTest() {
   console.log('🚀 Social Card Speed Test\n');
   console.log('Testing delivery speed from:', baseUrl);
