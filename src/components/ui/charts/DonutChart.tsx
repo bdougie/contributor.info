@@ -24,7 +24,7 @@ export interface DonutChartProps {
   responsive?: boolean;
 }
 
-export const DonutChart: React.FC<DonutChartProps> = ({
+const DonutChartComponent: React.FC<DonutChartProps> = ({
   data,
   width: propWidth = 400,
   height: propHeight = 400,
@@ -60,12 +60,16 @@ export const DonutChart: React.FC<DonutChartProps> = ({
     setDimensions({ width: size, height: size });
   }, [responsive, propWidth, propHeight]);
 
-  // Handle resize
+  // Handle resize with debounce to prevent excessive re-renders
   useEffect(() => {
     if (!responsive) return;
 
+    let resizeTimeout: NodeJS.Timeout;
     const handleResize = () => {
-      requestAnimationFrame(updateDimensions);
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        requestAnimationFrame(updateDimensions);
+      }, 150); // Debounce resize events
     };
 
     updateDimensions();
@@ -77,6 +81,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
     }
 
     return () => {
+      clearTimeout(resizeTimeout);
       window.removeEventListener('resize', handleResize);
       resizeObserver.disconnect();
     };
@@ -214,8 +219,13 @@ export const DonutChart: React.FC<DonutChartProps> = ({
   // Initial draw with animation and cleanup
   useEffect(() => {
     isMountedRef.current = true;
-    progressRef.current = 0;
-    animate();
+    // Only reset progress on initial mount, not on every re-render
+    if (progressRef.current === 0) {
+      animate();
+    } else {
+      // If already animated, just draw without animation
+      draw(1);
+    }
 
     return () => {
       isMountedRef.current = false;
@@ -224,7 +234,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
         animationRef.current = null;
       }
     };
-  }, [animate]);
+  }, [animate, draw]);
 
   // Redraw on data or activeSegmentId changes, but not on hover
   useEffect(() => {
@@ -407,3 +417,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
     </div>
   );
 };
+
+// Memoize the component to prevent unnecessary re-renders
+// Using default shallow comparison to ensure callbacks and all props are properly compared
+export const DonutChart = React.memo(DonutChartComponent);

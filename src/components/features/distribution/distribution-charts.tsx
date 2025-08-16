@@ -169,8 +169,8 @@ function DistributionCharts({
         <Suspense fallback={<ChartSkeleton />}>
           <DonutChart
             data={donutData}
-            width={isMobile ? 300 : 400}
-            height={isMobile ? 300 : 400}
+            width={isMobile ? 280 : 400}
+            height={isMobile ? 280 : 400}
             innerRadius={isMobile ? 40 : 60}
             outerRadius={isMobile ? 80 : 120}
             onClick={handleSegmentClick}
@@ -277,7 +277,7 @@ function DistributionCharts({
           <div className="relative">
             <UPlotBarChart
               data={barData}
-              height={isMobile ? 350 : 400}
+              height={isMobile ? 300 : 400}
               isDark={isDark}
               showGrid={true}
               showLegend={false}
@@ -435,12 +435,12 @@ function DistributionCharts({
   };
 
   const renderLegend = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mt-3 sm:mt-6">
       {data.map((item) => (
         <button
           key={item.id}
           onClick={() => handleSegmentClick({ id: item.id })}
-          className={`flex items-start gap-3 p-3 rounded-lg transition-all text-left ${
+          className={`flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg transition-all text-left ${
             activeSegment === item.id
               ? "bg-accent ring-2 ring-primary"
               : "hover:bg-accent/50"
@@ -476,11 +476,19 @@ function DistributionCharts({
     if (!shouldShowDrawer) return null;
     
     return (
-      <div className={`absolute top-0 right-0 h-full bg-background border-l shadow-lg transition-transform duration-300 ease-in-out ${
+      <>
+        {/* Mobile backdrop overlay */}
+        {isMobile && !isDrawerCollapsed && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-30 sm:hidden"
+            onClick={() => setIsPRListCollapsed(true)}
+          />
+        )}
+      <div className={`fixed sm:absolute top-0 right-0 h-full bg-background border-l shadow-lg transition-transform duration-300 ease-in-out z-40 ${
         isDrawerCollapsed 
           ? "translate-x-full" 
           : "translate-x-0"
-      } w-80 max-w-[90%]`}>
+      } w-[85vw] sm:w-80 max-w-[320px]`}>
         <div className="p-4 h-full flex flex-col">
           <div className="flex items-center justify-between mb-4 flex-shrink-0">
             <div className="flex items-center gap-2 min-w-0">
@@ -542,6 +550,7 @@ function DistributionCharts({
           </div>
         </div>
       </div>
+      </>
     );
   };
 
@@ -613,9 +622,9 @@ function DistributionCharts({
       {/* Treemap: Always use overlay drawer */}
       {chartType === "treemap" ? (
         <Card className="relative">
-          <CardContent className="p-6 overflow-visible">
-            {/* Chart Area - Always takes full space */}
-            <div className="h-[450px] overflow-visible">
+          <CardContent className="p-4 sm:p-6 overflow-visible">
+            {/* Chart Area - Responsive height */}
+            <div className="h-[350px] sm:h-[450px] overflow-visible">
               {renderTreemap()}
             </div>
           
@@ -624,21 +633,22 @@ function DistributionCharts({
           
           {/* Drawer Toggle Button - Only visible when drawer is closed and for treemap */}
           {selectedQuadrant && chartType === "treemap" && isPRListCollapsed && (
-            <div className="absolute top-4 right-4">
+            <div className="absolute top-4 right-4 z-30">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsPRListCollapsed(false)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 shadow-md bg-background/95 backdrop-blur-sm"
               >
                 <div
-                  className="w-3 h-3 rounded"
+                  className="w-3 h-3 rounded flex-shrink-0"
                   style={{ backgroundColor: COLORS[selectedQuadrant as keyof typeof COLORS] }}
                 />
-                <span className="hidden sm:inline">
+                <span className="hidden sm:inline text-xs">
                   {data.find(d => d.id === selectedQuadrant)?.label}
                 </span>
-                <ChevronRight className="h-4 w-4 rotate-180" />
+                <span className="sm:hidden text-xs">PRs</span>
+                <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 rotate-180" />
               </Button>
             </div>
           )}
@@ -672,8 +682,8 @@ function DistributionCharts({
           {/* Mobile: Overlay drawer */}
           <div className="block md:hidden">
             <Card className="relative">
-              <CardContent className="p-6 overflow-visible">
-                <div className="h-[400px]">
+              <CardContent className="p-4 sm:p-6 overflow-visible">
+                <div className="flex items-center justify-center">
                   {chartType === "donut" && renderDonutChart()}
                   {chartType === "bar" && renderBarChart()}
                 </div>
@@ -683,21 +693,19 @@ function DistributionCharts({
               
               {/* Drawer Toggle Button - Only visible when drawer is closed on mobile */}
               {selectedQuadrant && isPRListCollapsed && (
-                <div className="absolute top-4 right-4">
+                <div className="absolute top-4 right-4 z-30">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setIsPRListCollapsed(false)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 shadow-md bg-background/95 backdrop-blur-sm"
                   >
                     <div
-                      className="w-3 h-3 rounded"
+                      className="w-3 h-3 rounded flex-shrink-0"
                       style={{ backgroundColor: COLORS[selectedQuadrant as keyof typeof COLORS] }}
                     />
-                    <span className="hidden sm:inline">
-                      {data.find(d => d.id === selectedQuadrant)?.label}
-                    </span>
-                    <ChevronRight className="h-4 w-4 rotate-180" />
+                    <span className="text-xs">View PRs</span>
+                    <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 rotate-180" />
                   </Button>
                 </div>
               )}
