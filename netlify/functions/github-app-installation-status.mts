@@ -77,7 +77,7 @@ export default async (req: Request, _context: Context) => {
     });
     
   } catch (error) {
-    console.error("Error checking GitHub App installation:", error);
+    // Return error response without logging
     return new Response(JSON.stringify({ 
       error: "Internal server error",
       installed: false 

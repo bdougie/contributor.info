@@ -54,7 +54,7 @@ export function GitHubAppInstallButton({
       const isContributorInfoRepo = owner === "bdougie" && repo === "contributor.info";
       setIsInstalled(isContributorInfoRepo);
     } catch (error) {
-      console.error("Failed to check GitHub App installation status:", error);
+      // Silently fail and assume not installed
       setIsInstalled(false);
     } finally {
       setIsChecking(false);
@@ -91,7 +91,7 @@ export function GitHubAppInstallButton({
         setCanInstall(false);
       }
     } catch (error) {
-      console.error("Failed to check user permissions:", error);
+      // Silently fail and assume user cannot install
       setCanInstall(false);
     }
   }
