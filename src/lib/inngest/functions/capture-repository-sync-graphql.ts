@@ -2,20 +2,12 @@ import { inngest } from '../client';
 import { supabase } from '../../supabase';
 import { GraphQLClient } from '../graphql-client';
 import type { NonRetriableError } from 'inngest';
+import { getThrottleHours, QUEUE_CONFIG } from '../../progressive-capture/throttle-config';
 
 // Rate limiting constants for GraphQL (more generous)
-const MAX_PRS_PER_SYNC = 150; // Higher than REST due to efficiency
+const MAX_PRS_PER_SYNC = QUEUE_CONFIG.maxPrsPerSync || 150; // Higher than REST due to efficiency
 const LARGE_REPO_THRESHOLD = 1000;
 const DEFAULT_DAYS_LIMIT = 30;
-
-// Dynamic throttling based on sync reason
-const THROTTLE_CONFIG = {
-  'manual': 0.083, // 5 minutes for manual syncs
-  'auto-fix': 0.25, // 15 minutes for auto-fix
-  'scheduled': 2, // 2 hours for scheduled syncs
-  'pr-activity': 1, // 1 hour for PR activity
-  'default': 0.5 // 30 minutes default
-};
 
 // GraphQL client instance - lazy initialization to avoid module load failures
 let graphqlClient: GraphQLClient | null = null;
@@ -126,7 +118,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
         
         // Get throttle threshold based on reason
-        const throttleHours = THROTTLE_CONFIG[reason as keyof typeof THROTTLE_CONFIG] || THROTTLE_CONFIG.default;
+        const throttleHours = getThrottleHours(reason);
         
         // Check if we have actual data (PRs with reviews/comments)
         const { data: prData } = await supabase
@@ -200,10 +192,16 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
 
         console.log(`✅ GraphQL recent PRs query successful for ${repository.owner}/${repository.name} (${prs.length} PRs found)`);
         
-        // Log rate limit info
+        // Log and monitor rate limit info
         const rateLimit = client.getRateLimit();
         if (rateLimit) {
           console.log(`📊 GraphQL rate limit: ${rateLimit.remaining}/${rateLimit.limit} remaining (cost: ${rateLimit.cost} points)`);
+          
+          // Track rate limit usage with telemetry
+          const { queueTelemetry } = await import('../../progressive-capture/queue-telemetry');
+          // Default to 1 hour reset if not provided
+          const resetTime = new Date(Date.now() + 3600 * 1000);
+          queueTelemetry.trackRateLimit('graphql', rateLimit.remaining, rateLimit.limit, resetTime);
         }
 
         return prs.slice(0, MAX_PRS_PER_SYNC); // Ensure we don't exceed our limit

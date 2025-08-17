@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Lock, Loader2 } from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
@@ -11,6 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { POLLING_CONFIG, isSyncAllowed } from '@/lib/progressive-capture/throttle-config';
 
 interface ManualSyncButtonProps {
   owner: string;
@@ -36,16 +37,21 @@ export function ManualSyncButton({
   const { isLoggedIn, login } = useGitHubAuth();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState<string | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup polling interval on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   // Calculate if sync is allowed based on last update time
   const canSync = () => {
-    if (!lastUpdated) return true;
-    
-    const lastUpdateTime = new Date(lastUpdated);
-    const minutesSinceUpdate = (Date.now() - lastUpdateTime.getTime()) / (1000 * 60);
-    
-    // Allow sync if more than 5 minutes have passed
-    return minutesSinceUpdate >= 5;
+    return isSyncAllowed(lastUpdated, 'manual');
   };
 
   // Format time since last update
@@ -150,10 +156,17 @@ export function ManualSyncButton({
 
   const startPollingForCompletion = (repoId: string | undefined) => {
     if (!repoId) return;
+    
+    // Clear any existing polling interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    
     let pollCount = 0;
-    const maxPolls = 30; // Poll for up to 1 minute
+    const maxPolls = POLLING_CONFIG.maxPolls;
 
-    const pollInterval = setInterval(async () => {
+    pollIntervalRef.current = setInterval(async () => {
       pollCount++;
 
       try {
@@ -168,9 +181,12 @@ export function ManualSyncButton({
           const updateTime = new Date(repoData.last_updated_at);
           const secondsSinceUpdate = (Date.now() - updateTime.getTime()) / 1000;
           
-          // If updated within last 30 seconds, consider it complete
-          if (secondsSinceUpdate < 30) {
-            clearInterval(pollInterval);
+          // If updated within completion threshold, consider it complete
+          if (secondsSinceUpdate < POLLING_CONFIG.completionThreshold) {
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
             toast.success('Sync complete!', {
               description: 'Data has been refreshed successfully.',
               duration: 5000
@@ -184,7 +200,10 @@ export function ManualSyncButton({
         }
 
         if (pollCount >= maxPolls) {
-          clearInterval(pollInterval);
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
           toast.info('Sync in progress', {
             description: 'The sync is taking longer than expected. Please refresh the page in a minute.',
             duration: 10000
@@ -194,7 +213,7 @@ export function ManualSyncButton({
         // Silently continue polling
         console.error('Polling error:', err);
       }
-    }, 2000); // Poll every 2 seconds
+    }, POLLING_CONFIG.interval);
   };
 
   const buttonContent = (

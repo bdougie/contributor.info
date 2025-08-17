@@ -7,6 +7,7 @@ import { queuePrioritizationService } from './queue-prioritization';
 import { autoRetryService } from './auto-retry-service';
 import { mapQueueDataToEventData } from '../inngest/types/event-data';
 import { enhancedHybridRouter } from './enhanced-hybrid-router';
+import { queueTelemetry, trackJobLifecycle } from './queue-telemetry';
 
 // Import rollout console for global availability
 import './rollout-console';
@@ -259,15 +260,32 @@ export class HybridQueueManager {
    * Queue job with Inngest for real-time processing
    */
   private async queueWithInngest(jobId: string, jobType: string, data: JobData): Promise<void> {
+    // Start job lifecycle tracking
+    const jobTracker = trackJobLifecycle(jobId, jobType, data.repositoryId);
+    
     // Validate required fields before sending to Inngest
     if (!data.repositoryId) {
-      console.error('[HybridQueue] Cannot queue Inngest job without repositoryId:', {
+      const errorDetails = {
         jobId,
         jobType,
         data
+      };
+      
+      console.error('[HybridQueue] Cannot queue Inngest job without repositoryId:', errorDetails);
+      
+      // Track validation error
+      queueTelemetry.trackValidationError({
+        jobId,
+        jobType,
+        errorType: 'missing_repository_id',
+        details: errorDetails
       });
+      
+      jobTracker.failure('Missing repositoryId');
       throw new Error(`Cannot queue Inngest job ${jobId}: missing repositoryId`);
     }
+    
+    jobTracker.start();
     
     // Track job in database
     await this.updateJobStatus(jobId, 'processing');
@@ -294,12 +312,23 @@ export class HybridQueueManager {
     
     // Final validation before sending event
     if (!eventData.repositoryId) {
-      console.error('[HybridQueue] Event data missing repositoryId after mapping:', {
+      const errorDetails = {
         jobId,
         jobType,
         eventData,
         originalData: data
+      };
+      
+      console.error('[HybridQueue] Event data missing repositoryId after mapping:', errorDetails);
+      
+      // Track validation error for monitoring
+      queueTelemetry.trackValidationError({
+        jobId,
+        jobType,
+        errorType: 'missing_repository_id',
+        details: errorDetails
       });
+      
       throw new Error(`Event data missing repositoryId for job ${jobId}`);
     }
 
