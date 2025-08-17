@@ -7,3 +7,4 @@ export {
 export { default as RepoNotFound } from './repo-not-found';
 export { RepoStatsSummary } from './repo-stats-summary';
 export { ExampleRepos } from './example-repos';
+export { ManualSyncButton } from './manual-sync-button';

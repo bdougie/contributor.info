@@ -2,16 +2,20 @@
 import { Inngest } from "inngest";
 import type { Context } from "@netlify/functions";
 
-// Environment detection - treat deploy previews as production for signing
+// Environment detection - local dev should use dev mode
 const isProduction = () => {
   const context = process.env.CONTEXT;
   const nodeEnv = process.env.NODE_ENV;
   
+  // Local development should use dev mode
+  if (!context && nodeEnv !== 'production') {
+    return false; // Local dev
+  }
+  
   // Deploy previews should use production mode for proper signing
   return context === 'production' || 
          context === 'deploy-preview' || 
-         nodeEnv === 'production' ||
-         process.env.NETLIFY === 'true'; // All Netlify environments use production mode
+         nodeEnv === 'production';
 };
 
 // Get production environment variables
@@ -31,17 +35,41 @@ const isLocalDev = !eventKey || eventKey === 'local_development_only';
 const inngest = new Inngest({ 
   id: process.env.VITE_INNGEST_APP_ID || 'contributor-info',
   isDev: isLocalDev, // Use dev mode for local development
-  eventKey: isLocalDev ? undefined : eventKey, // No event key for local dev
-  signingKey: getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
+  eventKey: isLocalDev ? 'local-dev-key' : eventKey, // Use local dev key for local
+  signingKey: isLocalDev ? undefined : getProductionEnvVar('SIGNING_KEY', 'INNGEST_SIGNING_KEY'),
   baseUrl: isLocalDev ? 'http://localhost:8288' : undefined, // Use local Inngest for dev
 });
 
+// Log configuration in dev
+if (isLocalDev) {
+  console.log('[api-queue-event] Running in local dev mode');
+  console.log('[api-queue-event] Inngest baseUrl: http://localhost:8288');
+}
+
 export default async (req: Request, _context: Context) => {
+  // CORS headers for local development
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+
+  // Handle OPTIONS request for CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders
+    });
+  }
+
   // Only allow POST requests
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { "Content-Type": "application/json" }
+      headers: { 
+        "Content-Type": "application/json",
+        ...corsHeaders
+      }
     });
   }
 
@@ -55,8 +83,17 @@ export default async (req: Request, _context: Context) => {
         error: "Missing required fields: eventName and data" 
       }), {
         status: 400,
-        headers: { "Content-Type": "application/json" }
+        headers: { 
+          "Content-Type": "application/json",
+          ...corsHeaders
+        }
       });
+    }
+
+    // Log the event being sent in dev
+    if (isLocalDev) {
+      console.log('[api-queue-event] Sending event:', eventName);
+      console.log('[api-queue-event] Event data:', JSON.stringify(data, null, 2));
     }
 
     // Send the event to Inngest server-side
@@ -65,26 +102,34 @@ export default async (req: Request, _context: Context) => {
       data: data
     });
 
+    if (isLocalDev) {
+      console.log('[api-queue-event] Event sent successfully:', result);
+    }
+
     return new Response(JSON.stringify({
       success: true,
       message: "Event queued successfully",
-      eventId: result.ids?.[0]
+      eventId: result.ids?.[0],
+      eventIds: result.ids
     }), {
       status: 200,
-      headers: { "Content-Type": "application/json" }
+      headers: { 
+        "Content-Type": "application/json",
+        ...corsHeaders
+      }
     });
 
   } catch (error) {
+    console.error('[api-queue-event] Error:', error);
     return new Response(JSON.stringify({
       error: "Failed to queue event",
       message: error instanceof Error ? error.message : "Unknown error"
     }), {
       status: 500,
-      headers: { "Content-Type": "application/json" }
+      headers: { 
+        "Content-Type": "application/json",
+        ...corsHeaders
+      }
     });
   }
-};
-
-export const config = {
-  path: "/api/queue-event"
 };

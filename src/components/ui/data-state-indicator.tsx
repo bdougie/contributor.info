@@ -2,6 +2,7 @@ import { AlertCircle, CheckCircle2, Clock, Database, RefreshCw, Loader2 } from '
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import type { DataResult } from "@/lib/errors/repository-errors";
+import { ManualSyncButton } from "@/components/features/repository/manual-sync-button";
 
 interface DataStateIndicatorProps {
   status: DataResult<any>['status'];
@@ -10,6 +11,9 @@ interface DataStateIndicatorProps {
     isStale?: boolean;
     lastUpdate?: string;
     dataCompleteness?: number;
+    repositoryId?: string;
+    owner?: string;
+    repo?: string;
   };
   onRefresh?: () => void;
   className?: string;
@@ -160,16 +164,29 @@ export function DataStateIndicator({
             )}
           </div>
         </div>
-        {onRefresh && status !== 'pending' && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRefresh}
-            className="ml-4"
-          >
-            <RefreshCw className="h-3 w-3 mr-1" />
-            Refresh
-          </Button>
+        {(onRefresh || (metadata?.owner && metadata?.repo)) && status !== 'pending' && (
+          metadata?.owner && metadata?.repo ? (
+            <ManualSyncButton
+              owner={metadata.owner}
+              repo={metadata.repo}
+              repositoryId={metadata.repositoryId}
+              lastUpdated={metadata.lastUpdate}
+              variant="ghost"
+              size="sm"
+              className="ml-4"
+              showLabel={true}
+            />
+          ) : onRefresh ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRefresh}
+              className="ml-4"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Refresh
+            </Button>
+          ) : null
         )}
       </div>
       {status === 'partial_data' && metadata?.dataCompleteness !== undefined && metadata.dataCompleteness < 75 && (
