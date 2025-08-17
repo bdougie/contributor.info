@@ -48,6 +48,10 @@
     "name": "continue"
   },
   {
+    "owner": "dlt-hub",
+    "name": "dlt"
+  },
+  {
     "owner": "duckdb",
     "name": "duckdb"
   },

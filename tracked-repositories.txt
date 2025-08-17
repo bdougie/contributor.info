@@ -10,6 +10,7 @@ BlueMatthew/WechatExporter
 clickhouse/clickhouse
 cline/cline
 continuedev/continue
+dlt-hub/dlt
 duckdb/duckdb
 etcd-io/etcd
 excalidraw/excalidraw
