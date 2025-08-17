@@ -60,6 +60,23 @@ export class HybridQueueManager {
       throw new Error('repositoryName is required for queueing jobs');
     }
 
+    // Check if this is a newly tracked repository (< 24 hours)
+    const isNewlyTracked = await this.isNewlyTrackedRepository(data.repositoryId);
+    if (isNewlyTracked) {
+      console.log(`[HybridQueue] Repository ${data.repositoryName} is newly tracked (<24h), applying priority boost`);
+      // Override priority to critical for new repos
+      data.metadata = {
+        ...data.metadata,
+        priority: 'critical',
+        isNewlyTracked: true,
+        originalPriority: data.metadata?.priority || 'medium'
+      };
+      // Force manual trigger source to bypass throttling
+      if (!data.triggerSource || data.triggerSource === 'automatic') {
+        data.triggerSource = 'manual';
+      }
+    }
+
     // Check if repository is eligible for hybrid rollout
     const isEligible = await hybridRolloutManager.isRepositoryEligible(data.repositoryId);
     
@@ -133,6 +150,32 @@ export class HybridQueueManager {
       await this.updateJobStatus(job.id, 'failed', error instanceof Error ? error.message : 'Unknown error');
       
       throw error;
+    }
+  }
+
+  /**
+   * Check if a repository was tracked within the last 24 hours
+   */
+  private async isNewlyTrackedRepository(repositoryId: string): Promise<boolean> {
+    try {
+      const { data: repo, error } = await supabase
+        .from('repositories')
+        .select('first_tracked_at')
+        .eq('id', repositoryId)
+        .single();
+
+      if (error || !repo?.first_tracked_at) {
+        return false;
+      }
+
+      const trackedAt = new Date(repo.first_tracked_at);
+      const hoursSinceTracked = (Date.now() - trackedAt.getTime()) / (1000 * 60 * 60);
+      
+      // Consider "newly tracked" if tracked within last 24 hours
+      return hoursSinceTracked < 24;
+    } catch (error) {
+      console.error('[HybridQueue] Error checking if repository is newly tracked:', error);
+      return false;
     }
   }
 

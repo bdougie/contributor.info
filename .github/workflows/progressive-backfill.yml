@@ -2,8 +2,8 @@ name: Progressive Repository Backfill
 
 on:
   schedule:
-    # Run every 30 minutes
-    - cron: '*/30 * * * *'
+    # Run every 15 minutes for faster processing of new repos
+    - cron: '*/15 * * * *'
   workflow_dispatch:
     inputs:
       repository_id:
