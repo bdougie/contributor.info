@@ -65,7 +65,10 @@ export const handler: Handler = async (event) => {
 
         // Trigger a refresh of the repository data in the UI
         // Also trigger an Inngest sync to pull the data into our system
-        const events = [
+        const events: Array<{
+          name: string;
+          data: any;
+        }> = [
           {
             name: 'repository/backfill-completed',
             data: {
@@ -86,7 +89,7 @@ export const handler: Handler = async (event) => {
             data: {
               repositoryId: repoData.id,
               days: 30,
-              priority: 'high',
+              priority: 'high' as const,
               reason: 'Manual backfill completed via gh-datapipe',
             },
           });

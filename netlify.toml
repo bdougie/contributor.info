@@ -106,6 +106,13 @@
   status = 200
   force = true
 
+# GitHub App installation status
+[[redirects]]
+  from = "/api/github-app/installation-status"
+  to = "/.netlify/functions/github-app-installation-status"
+  status = 200
+  force = true
+
 # Manual Backfill API endpoints
 [[redirects]]
   from = "/api/backfill/trigger"
