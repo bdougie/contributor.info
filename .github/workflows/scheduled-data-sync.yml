@@ -67,8 +67,9 @@ jobs:
             process.env.VITE_SUPABASE_ANON_KEY
           );
           
-          const MAX_CONCURRENT = 5;
-          const BATCH_DELAY = 2000; // 2 seconds between batches
+          const MAX_CONCURRENT = 3; // Reduced to prevent overwhelming the API
+          const BATCH_DELAY = 5000; // 5 seconds between batches
+          const MAX_RETRIES = 2;
           
           async function syncPRActivity() {
             const repoFilter = process.env.REPOSITORY_FILTER;
@@ -118,41 +119,58 @@ jobs:
                 const { owner, name, id } = repo.repositories;
                 console.log(`  📋 ${owner}/${name}`);
                 
-                try {
-                  const response = await fetch(process.env.API_ENDPOINT, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      eventName: 'update/pr.activity',
-                      data: {
-                        repositoryId: id,
-                        days: 7 // Check last 7 days for activity
-                      }
-                    })
-                  });
-                  
-                  if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                // Retry logic for failed requests
+                let lastError;
+                for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                  try {
+                    // Add timeout to prevent hanging on large repositories
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+                    
+                    const response = await fetch(process.env.API_ENDPOINT, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        eventName: 'update/pr.activity',
+                        data: {
+                          repositoryId: id,
+                          days: 7 // Check last 7 days for activity
+                        }
+                      }),
+                      signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                      throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    console.log(`    ✅ Queued: ${result.eventId}`);
+                    
+                    return { 
+                      repository: `${owner}/${name}`, 
+                      status: 'success',
+                      eventId: result.eventId 
+                    };
+                  } catch (error) {
+                    lastError = error;
+                    if (attempt < MAX_RETRIES) {
+                      console.log(`    ⚠️ Attempt ${attempt} failed, retrying...`);
+                      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
+                    }
                   }
-                  
-                  const result = await response.json();
-                  console.log(`    ✅ Queued: ${result.eventId}`);
-                  
-                  return { 
-                    repository: `${owner}/${name}`, 
-                    status: 'success',
-                    eventId: result.eventId 
-                  };
-                } catch (error) {
-                  console.error(`    ❌ Failed: ${error.message}`);
-                  return { 
-                    repository: `${owner}/${name}`, 
-                    status: 'failed',
-                    error: error.message 
-                  };
                 }
+                
+                console.error(`    ❌ Failed after ${MAX_RETRIES} attempts: ${lastError.message}`);
+                return { 
+                  repository: `${owner}/${name}`, 
+                  status: 'failed',
+                  error: lastError.message 
+                };
               });
               
               const batchResults = await Promise.all(batchPromises);
@@ -175,11 +193,19 @@ jobs:
             console.log(`   📋 Total: ${results.length}`);
             
             if (failed > 0) {
-              console.log('\n❌ Failed repositories:');
+              console.log('\n⚠️ Failed repositories:');
               results
                 .filter(r => r.status === 'failed')
                 .forEach(r => console.log(`   - ${r.repository}: ${r.error}`));
-              process.exit(1);
+              
+              // Only fail the job if more than 50% of repositories failed
+              const failureRate = failed / results.length;
+              if (failureRate > 0.5) {
+                console.error(`\n❌ High failure rate: ${(failureRate * 100).toFixed(1)}% - marking job as failed`);
+                process.exit(1);
+              } else {
+                console.log(`\n⚠️ Failure rate: ${(failureRate * 100).toFixed(1)}% - continuing despite some failures`);
+              }
             }
           }
           
