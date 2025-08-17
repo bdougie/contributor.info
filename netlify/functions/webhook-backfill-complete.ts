@@ -46,14 +46,16 @@ export const handler: Handler = async (event) => {
         // Update repository metadata to mark last backfill time
         const [owner, name] = repository.split('/');
         
-        const { error: updateError } = await supabase
+        const { data: repoData, error: updateError } = await supabase
           .from('repositories')
           .update({
             last_manual_backfill: new Date().toISOString(),
             manual_backfill_job_id: payload.job_id,
           })
           .eq('owner', owner)
-          .eq('name', name);
+          .eq('name', name)
+          .select('id')
+          .single();
 
         if (updateError) {
           console.error('[webhook-backfill-complete] Failed to update repository:', updateError);
@@ -62,17 +64,35 @@ export const handler: Handler = async (event) => {
         }
 
         // Trigger a refresh of the repository data in the UI
-        // This could be done via WebSocket, SSE, or by invalidating cache
-        await inngest.send({
-          name: 'repository/backfill-completed',
-          data: {
-            repository,
-            jobId: payload.job_id,
-            rowsProcessed: payload.result?.rows_processed,
-            duration: payload.result?.duration_seconds,
-            timestamp: payload.timestamp,
-          },
-        });
+        // Also trigger an Inngest sync to pull the data into our system
+        const events = [
+          {
+            name: 'repository/backfill-completed',
+            data: {
+              repository,
+              jobId: payload.job_id,
+              rowsProcessed: payload.result?.rows_processed,
+              duration: payload.result?.duration_seconds,
+              timestamp: payload.timestamp,
+            },
+          }
+        ];
+
+        // If we have the repository ID, trigger internal sync
+        if (repoData?.id) {
+          events.push({
+            // Trigger internal sync to pull gh-datapipe data into our database
+            name: 'capture/repository.sync.graphql',
+            data: {
+              repositoryId: repoData.id,
+              days: 30,
+              priority: 'high',
+              reason: 'Manual backfill completed via gh-datapipe',
+            },
+          });
+        }
+
+        await inngest.send(events);
       }
 
       // Log success metrics
