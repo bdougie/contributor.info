@@ -154,13 +154,34 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
           throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
         }
 
-        // Check if repository was synced recently (within 12 hours for GraphQL - more frequent due to efficiency)
+        // Check if repository was synced recently - different thresholds based on reason
         if (data.last_updated_at) {
           const lastSyncTime = new Date(data.last_updated_at).getTime();
           const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
           
-          if (hoursSinceSync < 12 && reason !== 'manual') {
-            throw new Error(`Repository ${data.owner}/${data.name} was synced ${Math.round(hoursSinceSync)} hours ago. Skipping to prevent excessive API usage.`) as NonRetriableError;
+          // Different thresholds based on sync reason
+          let minHoursBetweenSyncs = 12; // Default for GraphQL sync
+          
+          if (reason === 'scheduled') {
+            minHoursBetweenSyncs = 2; // Allow more frequent scheduled syncs
+          } else if (reason === 'pr-activity') {
+            minHoursBetweenSyncs = 1; // Allow very frequent PR activity updates
+          } else if (reason === 'manual') {
+            minHoursBetweenSyncs = 0; // Always allow manual syncs
+          }
+          
+          if (hoursSinceSync < minHoursBetweenSyncs && reason !== 'manual') {
+            // Better formatting for the time display
+            let timeDisplay: string;
+            if (hoursSinceSync < 1) {
+              const minutesSinceSync = Math.round(hoursSinceSync * 60);
+              timeDisplay = `${minutesSinceSync} minute${minutesSinceSync !== 1 ? 's' : ''}`;
+            } else {
+              const roundedHours = Math.round(hoursSinceSync * 10) / 10; // Round to 1 decimal
+              timeDisplay = `${roundedHours} hour${roundedHours !== 1 ? 's' : ''}`;
+            }
+            
+            throw new Error(`Repository ${data.owner}/${data.name} was synced ${timeDisplay} ago. Skipping to prevent excessive API usage (minimum ${minHoursBetweenSyncs} hours between syncs for ${reason || 'default'} sync).`) as NonRetriableError;
           }
         }
 

@@ -133,10 +133,12 @@ jobs:
                         'Content-Type': 'application/json',
                       },
                       body: JSON.stringify({
-                        eventName: 'update/pr.activity',
+                        eventName: 'capture/repository.sync.graphql',
                         data: {
                           repositoryId: id,
-                          days: 7 // Check last 7 days for activity
+                          days: 7, // Check last 7 days for activity
+                          reason: 'pr-activity', // Mark as PR activity update for less aggressive throttling
+                          priority: 'normal'
                         }
                       }),
                       signal: controller.signal
