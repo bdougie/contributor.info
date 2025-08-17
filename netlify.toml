@@ -94,6 +94,37 @@
   status = 200
   force = true
 
+# Manual Backfill API endpoints
+[[redirects]]
+  from = "/api/backfill/trigger"
+  to = "/.netlify/functions/backfill-trigger"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/backfill/status/*"
+  to = "/.netlify/functions/backfill-status"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/backfill/cancel/*"
+  to = "/.netlify/functions/backfill-cancel"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/backfill/events"
+  to = "/.netlify/functions/backfill-events"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/webhook/backfill-complete"
+  to = "/.netlify/functions/webhook-backfill-complete"
+  status = 200
+  force = true
+
 # Headers for proper MIME types and caching
 # Note: Some headers are also in public/_headers, but these are kept for compatibility
 
