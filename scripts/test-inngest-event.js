@@ -5,8 +5,9 @@
  * Run with: node scripts/test-inngest-event.js
  */
 
+const INNGEST_DEV_URL = 'http://localhost:8288';
+
 async function sendTestEvent() {
-  const INNGEST_DEV_URL = 'http://localhost:8288';
   
   console.log('📤 Sending test event to Inngest dev server...\n');
   
@@ -49,8 +50,6 @@ async function sendTestEvent() {
 
 // Also test a repository sync event
 async function sendRepositorySyncEvent() {
-  const INNGEST_DEV_URL = 'http://localhost:8288';
-  
   console.log('\n📤 Sending repository sync test event...\n');
   
   try {
