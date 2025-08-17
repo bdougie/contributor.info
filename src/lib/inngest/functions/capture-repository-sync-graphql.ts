@@ -1,11 +1,11 @@
 import { inngest } from '../client';
 import { supabase } from '../../supabase';
 import { GraphQLClient } from '../graphql-client';
-import { RATE_LIMIT_CONFIG } from '../queue-manager';
 import type { NonRetriableError } from 'inngest';
+import { getThrottleHours, QUEUE_CONFIG } from '../../progressive-capture/throttle-config';
 
 // Rate limiting constants for GraphQL (more generous)
-const MAX_PRS_PER_SYNC = 150; // Higher than REST due to efficiency
+const MAX_PRS_PER_SYNC = QUEUE_CONFIG.maxPrsPerSync || 150; // Higher than REST due to efficiency
 const LARGE_REPO_THRESHOLD = 1000;
 const DEFAULT_DAYS_LIMIT = 30;
 
@@ -112,17 +112,57 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
       }
 
-      // Check if repository was synced recently (skip if has active backfill or manual trigger)
-      if (data.last_updated_at && !hasActiveBackfill && reason !== 'manual') {
+      // Check if repository was synced recently (skip based on reason and data completeness)
+      if (data.last_updated_at && !hasActiveBackfill) {
         const lastSyncTime = new Date(data.last_updated_at).getTime();
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
         
-        if (hoursSinceSync < RATE_LIMIT_CONFIG.COOLDOWN_HOURS) {
-          const timeAgo = hoursSinceSync < 1 
-            ? `${Math.round(hoursSinceSync * 60)} minutes`
-            : `${Math.round(hoursSinceSync)} hours`;
-          throw new Error(`Repository ${data.owner}/${data.name} was synced ${timeAgo} ago. Skipping to prevent excessive API usage.`) as NonRetriableError;
+        // Get throttle threshold based on reason
+        const throttleHours = getThrottleHours(reason);
+        
+        // Check if we have actual data (PRs with reviews/comments)
+        const { data: prData } = await supabase
+          .from('pull_requests')
+          .select('id')
+          .eq('repository_id', repositoryId)
+          .limit(10); // Check first 10 PRs
+          
+        const { count: reviewCount } = await supabase
+          .from('reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('repository_id', repositoryId);
+          
+        // Only check comments if we have PRs to check
+        let commentCount = 0;
+        if (prData && prData.length > 0) {
+          const commentResult = await supabase
+            .from('comments')
+            .select('*', { count: 'exact', head: true })
+            .in('pull_request_id', prData.map(pr => pr.id));
+          commentCount = commentResult.count || 0;
         }
+        
+        const hasCompleteData = prData && prData.length > 0 && 
+                               ((reviewCount || 0) > 0 || commentCount > 0);
+        
+        // If data is incomplete, be more lenient with throttling
+        const effectiveThrottleHours = hasCompleteData ? throttleHours : Math.min(throttleHours, 0.083); // 5 min max if no data
+        
+        // Only skip if we're within the throttle window
+        if (hoursSinceSync < effectiveThrottleHours) {
+          // But still allow if it's been less than 5 minutes and we have NO data at all
+          if (!hasCompleteData && hoursSinceSync < 0.083) {
+            console.log(`Repository ${data.owner}/${data.name} has no engagement data - allowing immediate sync`);
+          } else {
+            const timeAgo = hoursSinceSync < 1 
+              ? `${Math.round(hoursSinceSync * 60)} minutes`
+              : `${Math.round(hoursSinceSync)} hours`;
+            const dataStatus = hasCompleteData ? 'has complete data' : 'has incomplete data';
+            throw new Error(`Repository ${data.owner}/${data.name} was synced ${timeAgo} ago and ${dataStatus}. Skipping to prevent excessive API usage.`) as NonRetriableError;
+          }
+        }
+        
+        console.log(`Repository ${data.owner}/${data.name} sync allowed - reason: ${reason}, last sync: ${hoursSinceSync.toFixed(2)}h ago, has data: ${hasCompleteData}`);
       }
 
       return data;
@@ -157,10 +197,16 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
 
         console.log(`✅ GraphQL recent PRs query successful for ${repository.owner}/${repository.name} (${prs.length} PRs found)`);
         
-        // Log rate limit info
+        // Log and monitor rate limit info
         const rateLimit = client.getRateLimit();
         if (rateLimit) {
           console.log(`📊 GraphQL rate limit: ${rateLimit.remaining}/${rateLimit.limit} remaining (cost: ${rateLimit.cost} points)`);
+          
+          // Track rate limit usage with telemetry
+          const { queueTelemetry } = await import('../../progressive-capture/queue-telemetry');
+          // Default to 1 hour reset if not provided
+          const resetTime = new Date(Date.now() + 3600 * 1000);
+          queueTelemetry.trackRateLimit('graphql', rateLimit.remaining, rateLimit.limit, resetTime);
         }
 
         return prs.slice(0, MAX_PRS_PER_SYNC); // Ensure we don't exceed our limit

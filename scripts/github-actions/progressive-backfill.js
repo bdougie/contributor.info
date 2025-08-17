@@ -125,7 +125,8 @@ async function getRepositoriesForBackfill(specificRepoId) {
           id,
           owner,
           name,
-          pull_request_count
+          pull_request_count,
+          first_tracked_at
         )
       `)
       .eq('repository_id', specificRepoId)
@@ -139,7 +140,7 @@ async function getRepositoriesForBackfill(specificRepoId) {
     return [data];
   }
 
-  // Get all active backfills
+  // Get all active backfills, prioritizing newly tracked repos
   const { data: activeBackfills, error } = await supabase
     .from('progressive_backfill_state')
     .select(`
@@ -148,21 +149,48 @@ async function getRepositoriesForBackfill(specificRepoId) {
         id,
         owner,
         name,
-        pull_request_count
+        pull_request_count,
+        first_tracked_at
       )
     `)
     .eq('status', 'active')
-    .order('updated_at', { ascending: true }) // Process least recently updated first
-    .limit(5); // Process up to 5 repositories per run
+    .limit(10); // Get more to allow for sorting
 
   if (error) {
     throw new Error(`Failed to fetch active backfills: ${error.message}`);
   }
 
+  // Sort backfills to prioritize newly tracked repositories
+  const sortedBackfills = (activeBackfills || []).sort((a, b) => {
+    const aTrackedAt = new Date(a.repositories.first_tracked_at);
+    const bTrackedAt = new Date(b.repositories.first_tracked_at);
+    const aHoursSinceTracked = (Date.now() - aTrackedAt.getTime()) / (1000 * 60 * 60);
+    const bHoursSinceTracked = (Date.now() - bTrackedAt.getTime()) / (1000 * 60 * 60);
+    
+    // Prioritize repos tracked within last 24 hours
+    if (aHoursSinceTracked < 24 && bHoursSinceTracked >= 24) return -1;
+    if (bHoursSinceTracked < 24 && aHoursSinceTracked >= 24) return 1;
+    
+    // Then sort by least recently updated
+    return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+  });
+
+  // Take top 5 for processing
+  const topBackfills = sortedBackfills.slice(0, 5);
+  
+  // Log if we're prioritizing new repos
+  topBackfills.forEach(backfill => {
+    const trackedAt = new Date(backfill.repositories.first_tracked_at);
+    const hoursSinceTracked = (Date.now() - trackedAt.getTime()) / (1000 * 60 * 60);
+    if (hoursSinceTracked < 24) {
+      console.log(`🆕 Prioritizing newly tracked repo: ${backfill.repositories.owner}/${backfill.repositories.name} (tracked ${Math.round(hoursSinceTracked)}h ago)`);
+    }
+  });
+
   // Also check for repositories that need new backfills
   const newBackfills = await findRepositoriesNeedingBackfill();
   
-  return [...(activeBackfills || []), ...newBackfills];
+  return [...topBackfills, ...newBackfills];
 }
 
 async function findRepositoriesNeedingBackfill() {
@@ -259,6 +287,15 @@ async function processRepository(backfillData) {
   console.log(`\n🔄 Processing ${repo.owner}/${repo.name}`);
   console.log(`   Progress: ${backfillData.processed_prs}/${backfillData.total_prs} PRs (${Math.round((backfillData.processed_prs / backfillData.total_prs) * 100)}%)`);
 
+  // Check if this is a newly tracked repository
+  const trackedAt = new Date(repo.first_tracked_at);
+  const hoursSinceTracked = (Date.now() - trackedAt.getTime()) / (1000 * 60 * 60);
+  const isNewlyTracked = hoursSinceTracked < 24;
+  
+  if (isNewlyTracked) {
+    console.log(`   🆕 Newly tracked repository (${Math.round(hoursSinceTracked)}h ago) - using optimized settings`);
+  }
+
   // Initialize helpers with error handling
   let calculator, tracker;
   
@@ -267,7 +304,7 @@ async function processRepository(backfillData) {
     calculator = new ChunkCalculator({
       prCount: backfillData.total_prs,
       rateLimit: rateLimit,
-      priority: 'medium'
+      priority: isNewlyTracked ? 'critical' : 'medium'
     });
     tracker = new ProgressTracker(supabase, backfillData.id);
   } catch (error) {
@@ -282,8 +319,13 @@ async function processRepository(backfillData) {
     return;
   }
 
-  // Calculate optimal chunk size
-  const chunkSize = options.chunkSize || calculator.calculateOptimalChunkSize();
+  // Calculate optimal chunk size (smaller for new repos for faster initial results)
+  let chunkSize = options.chunkSize || calculator.calculateOptimalChunkSize();
+  if (isNewlyTracked && !options.chunkSize) {
+    // Use smaller chunks (10 PRs) for newly tracked repos
+    chunkSize = Math.min(10, chunkSize);
+    console.log(`   Using smaller chunk size for faster initial results`);
+  }
   console.log(`   Chunk size: ${chunkSize} PRs`);
 
   // Process chunks

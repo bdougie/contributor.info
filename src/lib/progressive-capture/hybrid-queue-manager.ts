@@ -7,6 +7,7 @@ import { queuePrioritizationService } from './queue-prioritization';
 import { autoRetryService } from './auto-retry-service';
 import { mapQueueDataToEventData } from '../inngest/types/event-data';
 import { enhancedHybridRouter } from './enhanced-hybrid-router';
+import { queueTelemetry, trackJobLifecycle } from './queue-telemetry';
 
 // Import rollout console for global availability
 import './rollout-console';
@@ -17,7 +18,7 @@ export interface JobData {
   timeRange?: number; // days
   prNumbers?: number[];
   maxItems?: number;
-  triggerSource?: 'manual' | 'scheduled' | 'automatic';
+  triggerSource?: 'manual' | 'scheduled' | 'automatic' | 'auto-fix';
   metadata?: Record<string, any>;
 }
 
@@ -58,6 +59,23 @@ export class HybridQueueManager {
     }
     if (!data.repositoryName) {
       throw new Error('repositoryName is required for queueing jobs');
+    }
+
+    // Check if this is a newly tracked repository (< 24 hours)
+    const isNewlyTracked = await this.isNewlyTrackedRepository(data.repositoryId);
+    if (isNewlyTracked) {
+      console.log(`[HybridQueue] Repository ${data.repositoryName} is newly tracked (<24h), applying priority boost`);
+      // Override priority to critical for new repos
+      data.metadata = {
+        ...data.metadata,
+        priority: 'critical',
+        isNewlyTracked: true,
+        originalPriority: data.metadata?.priority || 'medium'
+      };
+      // Force manual trigger source to bypass throttling
+      if (!data.triggerSource || data.triggerSource === 'automatic') {
+        data.triggerSource = 'manual';
+      }
     }
 
     // Check if repository is eligible for hybrid rollout
@@ -133,6 +151,32 @@ export class HybridQueueManager {
       await this.updateJobStatus(job.id, 'failed', error instanceof Error ? error.message : 'Unknown error');
       
       throw error;
+    }
+  }
+
+  /**
+   * Check if a repository was tracked within the last 24 hours
+   */
+  private async isNewlyTrackedRepository(repositoryId: string): Promise<boolean> {
+    try {
+      const { data: repo, error } = await supabase
+        .from('repositories')
+        .select('first_tracked_at')
+        .eq('id', repositoryId)
+        .single();
+
+      if (error || !repo?.first_tracked_at) {
+        return false;
+      }
+
+      const trackedAt = new Date(repo.first_tracked_at);
+      const hoursSinceTracked = (Date.now() - trackedAt.getTime()) / (1000 * 60 * 60);
+      
+      // Consider "newly tracked" if tracked within last 24 hours
+      return hoursSinceTracked < 24;
+    } catch (error) {
+      console.error('[HybridQueue] Error checking if repository is newly tracked:', error);
+      return false;
     }
   }
 
@@ -216,15 +260,32 @@ export class HybridQueueManager {
    * Queue job with Inngest for real-time processing
    */
   private async queueWithInngest(jobId: string, jobType: string, data: JobData): Promise<void> {
+    // Start job lifecycle tracking
+    const jobTracker = trackJobLifecycle(jobId, jobType, data.repositoryId);
+    
     // Validate required fields before sending to Inngest
     if (!data.repositoryId) {
-      console.error('[HybridQueue] Cannot queue Inngest job without repositoryId:', {
+      const errorDetails = {
         jobId,
         jobType,
         data
+      };
+      
+      console.error('[HybridQueue] Cannot queue Inngest job without repositoryId:', errorDetails);
+      
+      // Track validation error
+      queueTelemetry.trackValidationError({
+        jobId,
+        jobType,
+        errorType: 'missing_repository_id',
+        details: errorDetails
       });
+      
+      jobTracker.failure('Missing repositoryId');
       throw new Error(`Cannot queue Inngest job ${jobId}: missing repositoryId`);
     }
+    
+    jobTracker.start();
     
     // Track job in database
     await this.updateJobStatus(jobId, 'processing');
@@ -251,18 +312,34 @@ export class HybridQueueManager {
     
     // Final validation before sending event
     if (!eventData.repositoryId) {
-      console.error('[HybridQueue] Event data missing repositoryId after mapping:', {
+      const errorDetails = {
         jobId,
         jobType,
         eventData,
         originalData: data
+      };
+      
+      console.error('[HybridQueue] Event data missing repositoryId after mapping:', errorDetails);
+      
+      // Track validation error for monitoring
+      queueTelemetry.trackValidationError({
+        jobId,
+        jobType,
+        errorType: 'missing_repository_id',
+        details: errorDetails
       });
+      
       throw new Error(`Event data missing repositoryId for job ${jobId}`);
     }
 
-    // If we're in the browser, use the API endpoint
+    // If we're in the browser, use the Netlify function endpoint
     if (typeof window !== 'undefined') {
-      const response = await fetch('/api/queue-event', {
+      // In development, Netlify functions run on port 8888
+      const functionUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:8888/.netlify/functions/api-queue-event'
+        : '/.netlify/functions/api-queue-event';
+        
+      const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -274,9 +351,12 @@ export class HybridQueueManager {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to queue event: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        console.error('[HybridQueue] Failed to queue event via API:', errorData);
+        throw new Error(`Failed to queue event: ${errorData.error || response.statusText}`);
       }
       
+      console.log('[HybridQueue] Event queued successfully via API for', eventData.repositoryId);
       return;
     }
     

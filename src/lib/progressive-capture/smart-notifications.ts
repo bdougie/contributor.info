@@ -237,7 +237,15 @@ export class SmartDataNotifications {
         if (import.meta.env?.DEV) {
           console.log(`⏳ Queuing historical data job for ${owner}/${repo} with priority: ${priority}`);
         }
-        promises.push(hybridQueueManager.queueHistoricalDataCapture(repositoryId, `${owner}/${repo}`, 30));
+        // Use queueJob directly to pass auto-fix reason
+        promises.push(hybridQueueManager.queueJob('historical-pr-sync', {
+          repositoryId,
+          repositoryName: `${owner}/${repo}`,
+          timeRange: 30,
+          triggerSource: 'auto-fix', // Special reason for lenient throttling
+          maxItems: 1000,
+          metadata: { priority }
+        }));
       }
       
       const results = await Promise.all(promises);
