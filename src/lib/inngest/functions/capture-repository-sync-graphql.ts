@@ -9,6 +9,15 @@ const MAX_PRS_PER_SYNC = 150; // Higher than REST due to efficiency
 const LARGE_REPO_THRESHOLD = 1000;
 const DEFAULT_DAYS_LIMIT = 30;
 
+// Dynamic throttling based on sync reason
+const THROTTLE_CONFIG = {
+  'manual': 0.083, // 5 minutes for manual syncs
+  'auto-fix': 0.25, // 15 minutes for auto-fix
+  'scheduled': 2, // 2 hours for scheduled syncs
+  'pr-activity': 1, // 1 hour for PR activity
+  'default': 0.5 // 30 minutes default
+};
+
 // GraphQL client instance - lazy initialization to avoid module load failures
 let graphqlClient: GraphQLClient | null = null;
 
@@ -112,17 +121,52 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
       }
 
-      // Check if repository was synced recently (skip if has active backfill or manual trigger)
-      if (data.last_updated_at && !hasActiveBackfill && reason !== 'manual') {
+      // Check if repository was synced recently (skip based on reason and data completeness)
+      if (data.last_updated_at && !hasActiveBackfill) {
         const lastSyncTime = new Date(data.last_updated_at).getTime();
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
         
-        if (hoursSinceSync < RATE_LIMIT_CONFIG.COOLDOWN_HOURS) {
-          const timeAgo = hoursSinceSync < 1 
-            ? `${Math.round(hoursSinceSync * 60)} minutes`
-            : `${Math.round(hoursSinceSync)} hours`;
-          throw new Error(`Repository ${data.owner}/${data.name} was synced ${timeAgo} ago. Skipping to prevent excessive API usage.`) as NonRetriableError;
+        // Get throttle threshold based on reason
+        const throttleHours = THROTTLE_CONFIG[reason as keyof typeof THROTTLE_CONFIG] || THROTTLE_CONFIG.default;
+        
+        // Check if we have actual data (PRs with reviews/comments)
+        const { data: prData } = await supabase
+          .from('pull_requests')
+          .select('id')
+          .eq('repository_id', repositoryId)
+          .limit(10); // Check first 10 PRs
+          
+        const { count: reviewCount } = await supabase
+          .from('reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('repository_id', repositoryId);
+          
+        const { count: commentCount } = await supabase
+          .from('comments')
+          .select('*', { count: 'exact', head: true })
+          .in('pull_request_id', prData?.map(pr => pr.id) || []);
+        
+        const hasCompleteData = prData && prData.length > 0 && 
+                               ((reviewCount || 0) > 0 || (commentCount || 0) > 0);
+        
+        // If data is incomplete, be more lenient with throttling
+        const effectiveThrottleHours = hasCompleteData ? throttleHours : Math.min(throttleHours, 0.083); // 5 min max if no data
+        
+        // Only skip if we're within the throttle window
+        if (hoursSinceSync < effectiveThrottleHours) {
+          // But still allow if it's been less than 5 minutes and we have NO data at all
+          if (!hasCompleteData && hoursSinceSync < 0.083) {
+            console.log(`Repository ${data.owner}/${data.name} has no engagement data - allowing immediate sync`);
+          } else {
+            const timeAgo = hoursSinceSync < 1 
+              ? `${Math.round(hoursSinceSync * 60)} minutes`
+              : `${Math.round(hoursSinceSync)} hours`;
+            const dataStatus = hasCompleteData ? 'has complete data' : 'has incomplete data';
+            throw new Error(`Repository ${data.owner}/${data.name} was synced ${timeAgo} ago and ${dataStatus}. Skipping to prevent excessive API usage.`) as NonRetriableError;
+          }
         }
+        
+        console.log(`Repository ${data.owner}/${data.name} sync allowed - reason: ${reason}, last sync: ${hoursSinceSync.toFixed(2)}h ago, has data: ${hasCompleteData}`);
       }
 
       return data;

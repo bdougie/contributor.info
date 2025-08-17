@@ -303,9 +303,14 @@ export class HybridQueueManager {
       throw new Error(`Event data missing repositoryId for job ${jobId}`);
     }
 
-    // If we're in the browser, use the API endpoint
+    // If we're in the browser, use the Netlify function endpoint
     if (typeof window !== 'undefined') {
-      const response = await fetch('/api/queue-event', {
+      // In development, Netlify functions run on port 8888
+      const functionUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:8888/.netlify/functions/api-queue-event'
+        : '/.netlify/functions/api-queue-event';
+        
+      const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -317,9 +322,12 @@ export class HybridQueueManager {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to queue event: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        console.error('[HybridQueue] Failed to queue event via API:', errorData);
+        throw new Error(`Failed to queue event: ${errorData.error || response.statusText}`);
       }
       
+      console.log('[HybridQueue] Event queued successfully via API for', eventData.repositoryId);
       return;
     }
     

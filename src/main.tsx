@@ -7,9 +7,9 @@ import { MetaTagsProvider, SchemaMarkup } from './components/common/layout';
 
 // Sentry removed - was causing React hooks conflicts
 
-// Enable service worker for offline support
-// Works in both dev and prod for testing offline functionality
-if ('serviceWorker' in navigator) {
+// Enable service worker for offline support (production only)
+// Disabled in development to prevent caching issues
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then(registration => {
@@ -36,6 +36,16 @@ if ('serviceWorker' in navigator) {
       .catch(registrationError => {
         console.log('SW registration failed: ', registrationError);
       });
+  });
+}
+
+// In development, unregister any existing service worker
+if ('serviceWorker' in navigator && !import.meta.env.PROD) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    registrations.forEach(registration => {
+      registration.unregister();
+      console.log('SW unregistered for development');
+    });
   });
 }
 
