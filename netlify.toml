@@ -45,10 +45,24 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Inngest functions need longer timeouts for processing
 [functions.inngest-prod]
   node_bundler = "esbuild"
 
 [functions.inngest]
+  node_bundler = "esbuild"
+
+[functions.inngest-local-full]
+  node_bundler = "esbuild"
+
+# Manual backfill functions may take longer
+[functions.backfill-trigger]
+  node_bundler = "esbuild"
+
+[functions.backfill-status]
+  node_bundler = "esbuild"
+
+[functions.backfill-events]
   node_bundler = "esbuild"
 
 # Specific API routes (these must come first)
