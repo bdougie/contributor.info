@@ -167,10 +167,10 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
           } else if (reason === 'pr-activity') {
             minHoursBetweenSyncs = 1; // Allow very frequent PR activity updates
           } else if (reason === 'manual') {
-            minHoursBetweenSyncs = 0; // Always allow manual syncs
+            minHoursBetweenSyncs = 5 / 60; // 5-minute cooldown for manual syncs
           }
           
-          if (hoursSinceSync < minHoursBetweenSyncs && reason !== 'manual') {
+          if (hoursSinceSync < minHoursBetweenSyncs) {
             // Better formatting for the time display
             let timeDisplay: string;
             if (hoursSinceSync < 1) {

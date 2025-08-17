@@ -132,13 +132,18 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
           .select('*', { count: 'exact', head: true })
           .eq('repository_id', repositoryId);
           
-        const { count: commentCount } = await supabase
-          .from('comments')
-          .select('*', { count: 'exact', head: true })
-          .in('pull_request_id', prData?.map(pr => pr.id) || []);
+        // Only check comments if we have PRs to check
+        let commentCount = 0;
+        if (prData && prData.length > 0) {
+          const commentResult = await supabase
+            .from('comments')
+            .select('*', { count: 'exact', head: true })
+            .in('pull_request_id', prData.map(pr => pr.id));
+          commentCount = commentResult.count || 0;
+        }
         
         const hasCompleteData = prData && prData.length > 0 && 
-                               ((reviewCount || 0) > 0 || (commentCount || 0) > 0);
+                               ((reviewCount || 0) > 0 || commentCount > 0);
         
         // If data is incomplete, be more lenient with throttling
         const effectiveThrottleHours = hasCompleteData ? throttleHours : Math.min(throttleHours, 0.083); // 5 min max if no data

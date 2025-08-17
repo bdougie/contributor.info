@@ -24,6 +24,11 @@ on:
 env:
   NODE_VERSION: '20'
 
+# Prevent concurrent runs to avoid race conditions
+concurrency:
+  group: progressive-backfill
+  cancel-in-progress: false
+
 jobs:
   backfill:
     name: Progressive Backfill

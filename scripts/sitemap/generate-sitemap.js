@@ -154,7 +154,7 @@ function escapeXml(text) {
 function formatDate(date) {
   if (!date) return null;
   const d = new Date(date);
-  return d.toISOString().split('T')[0];
+  return d.toISOString(); // Return full ISO string with time for W3C compliance
 }
 
 function generateUrl(path, priority, changefreq, lastmod = null) {

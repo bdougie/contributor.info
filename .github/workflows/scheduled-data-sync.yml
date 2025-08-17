@@ -122,11 +122,11 @@ jobs:
                 // Retry logic for failed requests
                 let lastError;
                 for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                  // Add timeout to prevent hanging on large repositories
+                  const controller = new AbortController();
+                  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+                  
                   try {
-                    // Add timeout to prevent hanging on large repositories
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-                    
                     const response = await fetch(process.env.API_ENDPOINT, {
                       method: 'POST',
                       headers: {
@@ -143,8 +143,6 @@ jobs:
                       }),
                       signal: controller.signal
                     });
-                    
-                    clearTimeout(timeoutId);
                     
                     if (!response.ok) {
                       throw new Error(`HTTP ${response.status}`);
@@ -164,6 +162,9 @@ jobs:
                       console.log(`    ⚠️ Attempt ${attempt} failed, retrying...`);
                       await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
                     }
+                  } finally {
+                    // Always clear the timeout, whether success or failure
+                    clearTimeout(timeoutId);
                   }
                 }
                 
