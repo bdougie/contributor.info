@@ -17,7 +17,7 @@ export interface JobData {
   timeRange?: number; // days
   prNumbers?: number[];
   maxItems?: number;
-  triggerSource?: 'manual' | 'scheduled' | 'automatic';
+  triggerSource?: 'manual' | 'scheduled' | 'automatic' | 'auto-fix';
   metadata?: Record<string, any>;
 }
 

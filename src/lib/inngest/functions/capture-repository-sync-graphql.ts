@@ -1,7 +1,6 @@
 import { inngest } from '../client';
 import { supabase } from '../../supabase';
 import { GraphQLClient } from '../graphql-client';
-import { RATE_LIMIT_CONFIG } from '../queue-manager';
 import type { NonRetriableError } from 'inngest';
 
 // Rate limiting constants for GraphQL (more generous)
