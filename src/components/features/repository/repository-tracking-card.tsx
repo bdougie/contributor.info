@@ -158,7 +158,7 @@ export function RepositoryTrackingCard({
 
       try {
         // Check if repository now has data
-        const response = await fetch(`/.netlify/functions/api-repository-status?owner=${owner}&repo=${repo}`);
+        const response = await fetch(`/api/repository-status?owner=${owner}&repo=${repo}`);
         const data = await response.json();
 
         if (data.hasData) {

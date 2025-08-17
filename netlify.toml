@@ -94,6 +94,18 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/api/track-repository"
+  to = "/.netlify/functions/api-track-repository"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/repository-status"
+  to = "/.netlify/functions/api-repository-status"
+  status = 200
+  force = true
+
 # Manual Backfill API endpoints
 [[redirects]]
   from = "/api/backfill/trigger"
