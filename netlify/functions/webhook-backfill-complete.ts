@@ -1,6 +1,7 @@
 import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { inngest } from '../../src/lib/inngest/client';
+import crypto from 'crypto';
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -8,12 +9,45 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
+// Verify webhook signature using HMAC
+function verifyWebhookSignature(body: string, signature: string | undefined): boolean {
+  if (!signature) return false;
+  
+  // Use the same GH_DATPIPE_KEY for both API auth and webhook verification
+  const webhookSecret = process.env.GH_DATPIPE_KEY;
+  if (!webhookSecret) {
+    console.error('[webhook-backfill-complete] No GH_DATPIPE_KEY configured for webhook verification');
+    return false;
+  }
+  
+  const expectedSignature = crypto
+    .createHmac('sha256', webhookSecret)
+    .update(body)
+    .digest('hex');
+  
+  // Timing-safe comparison to prevent timing attacks
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+
 export const handler: Handler = async (event) => {
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
       body: JSON.stringify({ error: 'Method not allowed' }),
+    };
+  }
+
+  // Verify webhook signature
+  const signature = event.headers['x-webhook-signature'] || event.headers['x-gh-datpipe-signature'];
+  if (!verifyWebhookSignature(event.body || '', signature)) {
+    console.error('[webhook-backfill-complete] Invalid webhook signature');
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ error: 'Unauthorized' }),
     };
   }
 

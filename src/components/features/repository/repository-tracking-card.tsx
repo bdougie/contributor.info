@@ -79,7 +79,7 @@ export function RepositoryTrackingCard({
     setError(null);
 
     try {
-      console.log('Sending track request for:', { owner, repo });
+      console.log('Sending track request for: %s/%s', owner, repo);
       
       // Call the new tracking API endpoint
       const response = await fetch('/api/track-repository', {
@@ -96,11 +96,11 @@ export function RepositoryTrackingCard({
       try {
         result = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response:', responseText);
+        console.error('Failed to parse response: %s', responseText);
         throw new Error('Invalid response from server');
       }
 
-      console.log('Track repository response:', result);
+      console.log('Track repository response: %o', result);
 
       if (!response.ok) {
         throw new Error(result.message || 'Failed to track repository');
@@ -108,7 +108,7 @@ export function RepositoryTrackingCard({
 
       // Check if tracking was successful
       if (result.success) {
-        console.log('Tracking initiated successfully, eventId:', result.eventId);
+        console.log('Tracking initiated successfully, eventId: %s', result.eventId);
         
         // Show success message
         toast.success('Repository tracking initiated!', {
