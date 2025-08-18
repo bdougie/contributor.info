@@ -57,6 +57,18 @@ export default defineConfig(() => ({
         './src/lib/supabase.ts',
         './src/lib/github.ts'
       ]
+    },
+    // Proxy API calls to Netlify functions during development
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8888',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '/.netlify/functions')
+      },
+      '/.netlify/functions': {
+        target: 'http://localhost:8888',
+        changeOrigin: true
+      }
     }
   },
   optimizeDeps: {

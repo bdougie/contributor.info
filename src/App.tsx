@@ -33,6 +33,7 @@ const FeedPage = lazy(() => import("@/components/features/feed/feed-page"));
 const SpamFeedPage = lazy(() => import("@/components/features/feed/spam-feed-page"));
 const SocialCardPreview = lazy(() => import("@/components/social-cards/preview"));
 const GitHubSyncDebug = lazy(() => import("@/components/debug/github-sync-debug").then(m => ({ default: m.GitHubSyncDebug })));
+const ManualBackfillDebug = lazy(() => import("@/components/features/debug/manual-backfill-debug").then(m => ({ default: m.ManualBackfillDebug })));
 const PerformanceMonitoringDashboard = lazy(() => import("@/components/performance-monitoring-dashboard").then(m => ({ default: m.PerformanceMonitoringDashboard })));
 const ShareableChartsPreview = lazy(() => import("@/components/features/debug/shareable-charts-preview").then(m => ({ default: m.ShareableChartsPreview })));
 const DubTest = lazy(() => import("@/components/features/debug/dub-test").then(m => ({ default: m.DubTest })));
@@ -315,6 +316,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <GitHubSyncDebug />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dev/manual-backfill"
+                element={
+                  <ProtectedRoute>
+                    <ManualBackfillDebug />
                   </ProtectedRoute>
                 }
               />

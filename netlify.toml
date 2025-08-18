@@ -45,10 +45,24 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Inngest functions need longer timeouts for processing
 [functions.inngest-prod]
   node_bundler = "esbuild"
 
 [functions.inngest]
+  node_bundler = "esbuild"
+
+[functions.inngest-local-full]
+  node_bundler = "esbuild"
+
+# Manual backfill functions may take longer
+[functions.backfill-trigger]
+  node_bundler = "esbuild"
+
+[functions.backfill-status]
+  node_bundler = "esbuild"
+
+[functions.backfill-events]
   node_bundler = "esbuild"
 
 # Specific API routes (these must come first)
@@ -91,6 +105,56 @@
 [[redirects]]
   from = "/api/validate-repository"
   to = "/.netlify/functions/validate-repository"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/track-repository"
+  to = "/.netlify/functions/api-track-repository"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/repository-status"
+  to = "/.netlify/functions/api-repository-status"
+  status = 200
+  force = true
+
+# GitHub App installation status
+[[redirects]]
+  from = "/api/github-app/installation-status"
+  to = "/.netlify/functions/github-app-installation-status"
+  status = 200
+  force = true
+
+# Manual Backfill API endpoints
+[[redirects]]
+  from = "/api/backfill/trigger"
+  to = "/.netlify/functions/backfill-trigger"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/backfill/status/*"
+  to = "/.netlify/functions/backfill-status"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/backfill/cancel/*"
+  to = "/.netlify/functions/backfill-cancel"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/backfill/events"
+  to = "/.netlify/functions/backfill-events"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/webhook/backfill-complete"
+  to = "/.netlify/functions/webhook-backfill-complete"
   status = 200
   force = true
 
