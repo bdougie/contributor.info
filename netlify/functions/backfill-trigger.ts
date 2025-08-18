@@ -2,13 +2,18 @@ import { Handler } from '@netlify/functions';
 import { manualBackfillServerClient } from '../../src/lib/manual-backfill/server-client';
 
 export const handler: Handler = async (event) => {
+  // Standard headers for all responses
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
       headers: {
+        ...headers,
         'Allow': 'POST',
-        'Content-Type': 'application/json',
       },
       body: JSON.stringify({ error: 'Method not allowed' }),
     };
@@ -18,6 +23,7 @@ export const handler: Handler = async (event) => {
   if (!process.env.GH_DATPIPE_KEY) {
     return {
       statusCode: 503,
+      headers,
       body: JSON.stringify({ 
         error: 'Service unavailable', 
         message: 'Manual backfill service is not configured' 
@@ -32,6 +38,7 @@ export const handler: Handler = async (event) => {
     if (!body.repository) {
       return {
         statusCode: 400,
+        headers,
         body: JSON.stringify({ 
           error: 'Bad request', 
           message: 'Repository is required' 
@@ -43,6 +50,7 @@ export const handler: Handler = async (event) => {
     if (!body.repository.match(/^[a-zA-Z0-9-_.]+\/[a-zA-Z0-9-_.]+$/)) {
       return {
         statusCode: 400,
+        headers,
         body: JSON.stringify({ 
           error: 'Bad request', 
           message: 'Invalid repository format. Expected: owner/name' 
@@ -60,9 +68,7 @@ export const handler: Handler = async (event) => {
 
     return {
       statusCode: 202,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(result),
     };
   } catch (error) {
@@ -73,6 +79,7 @@ export const handler: Handler = async (event) => {
     
     return {
       statusCode,
+      headers,
       body: JSON.stringify({ 
         error: 'Internal server error', 
         message: errorMessage 

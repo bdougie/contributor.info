@@ -33,13 +33,18 @@ function verifyWebhookSignature(body: string, signature: string | undefined): bo
 }
 
 export const handler: Handler = async (event) => {
+  // Standard headers for all responses
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
       headers: {
+        ...headers,
         'Allow': 'POST',
-        'Content-Type': 'application/json',
       },
       body: JSON.stringify({ error: 'Method not allowed' }),
     };
@@ -51,6 +56,7 @@ export const handler: Handler = async (event) => {
     console.error('[webhook-backfill-complete] Invalid webhook signature');
     return {
       statusCode: 401,
+      headers,
       body: JSON.stringify({ error: 'Unauthorized' }),
     };
   }
@@ -69,6 +75,7 @@ export const handler: Handler = async (event) => {
     if (!payload.job_id || !payload.status) {
       return {
         statusCode: 400,
+        headers,
         body: JSON.stringify({ 
           error: 'Bad request', 
           message: 'Invalid webhook payload' 
@@ -166,9 +173,7 @@ export const handler: Handler = async (event) => {
     // Return success response to acknowledge webhook receipt
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({ 
         success: true,
         message: 'Webhook processed successfully',
@@ -180,6 +185,7 @@ export const handler: Handler = async (event) => {
     
     return {
       statusCode: 500,
+      headers,
       body: JSON.stringify({ 
         error: 'Internal server error', 
         message: 'Failed to process webhook' 

@@ -1,13 +1,18 @@
 import { Handler } from '@netlify/functions';
 
 export const handler: Handler = async (event) => {
+  // Standard headers for all responses
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+
   // Only allow GET requests
   if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
       headers: {
+        ...headers,
         'Allow': 'GET',
-        'Content-Type': 'application/json',
       },
       body: JSON.stringify({ error: 'Method not allowed' }),
     };
@@ -17,6 +22,7 @@ export const handler: Handler = async (event) => {
   if (!jobId) {
     return {
       statusCode: 400,
+      headers,
       body: JSON.stringify({ error: 'Missing job_id parameter' }),
     };
   }
@@ -27,6 +33,7 @@ export const handler: Handler = async (event) => {
     console.error('[backfill-events-proxy] No GH_DATPIPE_KEY configured');
     return {
       statusCode: 500,
+      headers,
       body: JSON.stringify({ error: 'Server configuration error' }),
     };
   }
@@ -40,6 +47,7 @@ export const handler: Handler = async (event) => {
     // For now, return an error indicating SSE is not supported
     return {
       statusCode: 501,
+      headers,
       body: JSON.stringify({ 
         error: 'Server-Sent Events not supported in Netlify Functions',
         message: 'Please use polling endpoint /api/backfill/status/:jobId instead'
@@ -49,6 +57,7 @@ export const handler: Handler = async (event) => {
     console.error('[backfill-events-proxy] Error:', error);
     return {
       statusCode: 500,
+      headers,
       body: JSON.stringify({ error: 'Internal server error' }),
     };
   }
