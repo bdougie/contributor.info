@@ -1,4 +1,4 @@
-import { Bug, Key, TestTube, Palette, Activity, FileText, Globe, Image, Link, GitBranch } from '@/components/ui/icon';
+import { Bug, Key, TestTube, Palette, Activity, FileText, Globe, Image, Link, GitBranch, Database } from '@/components/ui/icon';
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,6 +53,13 @@ const debugRoutes: DebugRoute[] = [
     title: "GitHub Sync Test",
     description: "Manual GitHub sync testing with real-time logging and debugging",
     icon: <GitBranch className="h-4 w-4" />,
+    category: "testing"
+  },
+  {
+    path: "/dev/manual-backfill",
+    title: "Manual Backfill",
+    description: "Trigger manual data backfill for repositories using gh-datapipe API",
+    icon: <Database className="h-4 w-4" />,
     category: "testing"
   },
   {

@@ -43,9 +43,15 @@ export function GitHubAppInstallButton({
           const data = await response.json();
           setIsInstalled(data.installed);
           return;
+        } else if (response.status === 404) {
+          // 404 means the app is not installed - this is expected, not an error
+          setIsInstalled(false);
+          return;
         }
+        // Other status codes (500, etc.) fall through to Supabase fallback
       } catch (apiError) {
-        // API not available, fall back to direct Supabase check
+        // Network error or other issues, fall back to direct Supabase check
+        console.debug('GitHub app installation status API unavailable, using fallback');
       }
       
       // Fallback: For now, just check if this is the contributor.info repo

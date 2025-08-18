@@ -2,7 +2,7 @@ import { AlertCircle, CheckCircle2, Clock, Database, RefreshCw, Loader2 } from '
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import type { DataResult } from "@/lib/errors/repository-errors";
-import { ManualSyncButton } from "@/components/features/repository/manual-sync-button";
+import { UnifiedSyncButton } from "@/components/features/repository/unified-sync-button";
 
 interface DataStateIndicatorProps {
   status: DataResult<any>['status'];
@@ -166,7 +166,7 @@ export function DataStateIndicator({
         </div>
         {(onRefresh || (metadata?.owner && metadata?.repo)) && status !== 'pending' && (
           metadata?.owner && metadata?.repo ? (
-            <ManualSyncButton
+            <UnifiedSyncButton
               owner={metadata.owner}
               repo={metadata.repo}
               repositoryId={metadata.repositoryId}
@@ -175,6 +175,7 @@ export function DataStateIndicator({
               size="sm"
               className="ml-4"
               showLabel={true}
+              autoTriggerOnLoad={false}
             />
           ) : onRefresh ? (
             <Button

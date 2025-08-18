@@ -35,7 +35,7 @@ import { LastUpdated } from "@/components/ui/last-updated";
 import { useDataTimestamp } from "@/hooks/use-data-timestamp";
 import { RepositoryTrackingCard } from "./repository-tracking-card";
 import { GitHubAppInstallButton } from "./github-app-install-button";
-import { ManualSyncButton } from "./manual-sync-button";
+import { UnifiedSyncButton } from "./unified-sync-button";
 
 export default function RepoView() {
   const { owner, repo } = useParams();
@@ -326,13 +326,14 @@ export default function RepoView() {
                   repo={repo || ''}
                   size="sm"
                 />
-                <ManualSyncButton
+                <UnifiedSyncButton
                   owner={owner || ''}
                   repo={repo || ''}
                   lastUpdated={lastUpdated}
                   variant="outline"
                   size="icon"
                   showLabel={false}
+                  autoTriggerOnLoad={true}
                 />
                 <Button
                   variant="outline"
