@@ -20,4 +20,3 @@ jobs:
       - uses: continuedev/continue/actions/base-review@bdougie/continue-agent
         with:
           continue-api-key: ${{ secrets.CONTINUE_API_KEY }}
-          use_github_app: true
