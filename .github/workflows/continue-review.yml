@@ -8,6 +8,9 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  issues: write
+  actions: read
+  checks: write
 
 jobs:
   review:
