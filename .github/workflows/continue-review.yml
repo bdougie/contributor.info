@@ -17,6 +17,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Generate Continue App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.CONTINUE_APP_ID }}
+          private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY }}
+      
       - uses: continuedev/continue/actions/base-review@bdougie/continue-agent
         with:
           continue-api-key: ${{ secrets.CONTINUE_API_KEY }}
+          github-token: ${{ steps.app-token.outputs.token }}
