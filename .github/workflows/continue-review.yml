@@ -24,7 +24,8 @@ jobs:
           app-id: ${{ secrets.CONTINUE_APP_ID }}
           private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY }}
       
-      - uses: continuedev/continue/actions/base-review@bdougie/continue-agent
+      # TODO: Pin to specific SHA after Continue merges GitHub App token support
+      - uses: continuedev/continue/actions/base-review@main
         with:
           continue-api-key: ${{ secrets.CONTINUE_API_KEY }}
           github-token: ${{ steps.app-token.outputs.token }}
