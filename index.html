@@ -53,7 +53,13 @@
     <!-- Preload icon sprite if using SVG icons -->
     <link rel="preload" href="/icons.svg" as="image" type="image/svg+xml" fetchpriority="low">
     
-    <!-- Vite will inject modulepreload links for critical chunks automatically -->
+    <!-- Modulepreload for critical vendor chunks -->
+    <!-- Vite automatically injects the correct modulepreload links during build -->
+    <!-- The placeholder comments below help Vite identify where to inject them -->
+    <!--vite-plugin-pwa:modulepreload-->
+    <!--/vite-plugin-pwa:modulepreload-->
+    
+    <!-- Vite will inject additional modulepreload links for critical chunks automatically -->
     
     <!-- Prefetch likely next navigations -->
     <!-- Note: API endpoints are now handled by Supabase client-side queries -->
