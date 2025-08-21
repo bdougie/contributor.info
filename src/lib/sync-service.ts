@@ -225,7 +225,12 @@ export class SyncService {
     payload: any
   ): Promise<SyncResult> {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      throw new Error('Supabase functions not configured');
+      console.warn('Supabase functions not configured. This is expected in deploy previews.');
+      return {
+        success: false,
+        message: 'Supabase functions not configured yet',
+        router: 'supabase'
+      };
     }
     
     const response = await fetch(
@@ -243,6 +248,16 @@ export class SyncService {
     const result = await response.json();
     
     if (!response.ok) {
+      // Handle 404 gracefully - function not deployed yet
+      if (response.status === 404) {
+        console.warn(`Supabase function ${functionName} not found. Deploy it with: supabase functions deploy ${functionName}`);
+        return {
+          success: false,
+          message: `Function not deployed. Run: supabase functions deploy ${functionName}`,
+          router: 'supabase'
+        };
+      }
+      
       throw new Error(result.error || 'Supabase function failed');
     }
     
@@ -260,7 +275,17 @@ export class SyncService {
     });
     
     if (!response.ok) {
-      const error = await response.json();
+      // Handle 404 gracefully in development/preview environments
+      if (response.status === 404) {
+        console.warn(`Function ${functionName} not found. This is expected in deploy previews before the PR is merged.`);
+        return {
+          success: false,
+          message: 'Function not deployed yet. This is expected in deploy previews.',
+          router: 'inngest'
+        };
+      }
+      
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
       throw new Error(error.error || 'Netlify function failed');
     }
     
