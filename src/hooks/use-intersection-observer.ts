@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, RefObject } from 'react';
+import { useEffect, useRef, useState, RefObject, useCallback } from 'react';
 
 interface UseIntersectionObserverOptions extends IntersectionObserverInit {
   triggerOnce?: boolean;
@@ -31,49 +31,54 @@ export function useIntersectionObserver(
   const [hasIntersected, setHasIntersected] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasIntersectedRef = useRef(false);
 
-  useEffect(() => {
-    if (!ref.current) return;
+  // Use callback to memoize the observer callback
+  const handleIntersection = useCallback<IntersectionObserverCallback>((entries) => {
+    entries.forEach((entry) => {
+      const shouldLoad = entry.isIntersecting;
 
-    // If already intersected and triggerOnce is true, don't observe again
-    if (hasIntersected && triggerOnce) return;
-
-    const callback: IntersectionObserverCallback = (entries) => {
-      entries.forEach((entry) => {
-        const shouldLoad = entry.isIntersecting;
-
-        if (shouldLoad && delay > 0) {
-          // Apply delay if specified (useful for staggered loading)
-          timeoutRef.current = setTimeout(() => {
-            setIsIntersecting(true);
-            if (!hasIntersected) {
-              setHasIntersected(true);
-            }
-          }, delay);
-        } else if (shouldLoad) {
+      if (shouldLoad && delay > 0) {
+        // Apply delay if specified (useful for staggered loading)
+        timeoutRef.current = setTimeout(() => {
           setIsIntersecting(true);
-          if (!hasIntersected) {
+          if (!hasIntersectedRef.current) {
+            hasIntersectedRef.current = true;
             setHasIntersected(true);
           }
-        } else if (!triggerOnce) {
-          // Only update if not triggerOnce mode
-          setIsIntersecting(false);
+        }, delay);
+      } else if (shouldLoad) {
+        setIsIntersecting(true);
+        if (!hasIntersectedRef.current) {
+          hasIntersectedRef.current = true;
+          setHasIntersected(true);
         }
+      } else if (!triggerOnce) {
+        // Only update if not triggerOnce mode
+        setIsIntersecting(false);
+      }
 
-        // Disconnect after first intersection if triggerOnce
-        if (shouldLoad && triggerOnce && observerRef.current) {
-          observerRef.current.disconnect();
-        }
-      });
-    };
+      // Disconnect after first intersection if triggerOnce
+      if (shouldLoad && triggerOnce && observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    });
+  }, [triggerOnce, delay]);
 
-    observerRef.current = new IntersectionObserver(callback, {
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    // If already intersected and triggerOnce is true, don't observe again
+    if (hasIntersectedRef.current && triggerOnce) return;
+
+    observerRef.current = new IntersectionObserver(handleIntersection, {
       threshold,
       root,
       rootMargin,
     });
 
-    observerRef.current.observe(ref.current);
+    observerRef.current.observe(element);
 
     return () => {
       if (timeoutRef.current) {
@@ -83,7 +88,7 @@ export function useIntersectionObserver(
         observerRef.current.disconnect();
       }
     };
-  }, [threshold, root, rootMargin, triggerOnce, delay, hasIntersected]);
+  }, [threshold, root, rootMargin, triggerOnce, handleIntersection]);
 
   return { ref, isIntersecting, hasIntersected };
 }
