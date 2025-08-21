@@ -47,6 +47,24 @@ export const LazySheetFooter = lazy(() =>
   }))
 );
 
+export const LazySheetClose = lazy(() => 
+  import('@/components/ui/sheet').then(module => ({
+    default: module.SheetClose
+  }))
+);
+
+export const LazySheetPortal = lazy(() => 
+  import('@/components/ui/sheet').then(module => ({
+    default: module.SheetPortal
+  }))
+);
+
+export const LazySheetOverlay = lazy(() => 
+  import('@/components/ui/sheet').then(module => ({
+    default: module.SheetOverlay
+  }))
+);
+
 // Loading fallback for sheets with flexible positioning
 interface SheetSkeletonProps {
   side?: 'left' | 'right' | 'top' | 'bottom';
