@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Contributor.info</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 600px;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .icon svg {
+            width: 60px;
+            height: 60px;
+            fill: white;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 24px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .cached-info {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .cached-info h2 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+        
+        .cached-list {
+            list-style: none;
+            text-align: left;
+        }
+        
+        .cached-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .cached-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .check {
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .check::after {
+            content: '✓';
+            font-size: 12px;
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            p {
+                font-size: 1.1rem;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4s1.79-4 4-4h.71C7.37 7.69 9.48 6 12 6c3.04 0 5.5 2.46 5.5 5.5v.5H19c1.66 0 3 1.34 3 3s-1.34 3-3 3z"/>
+            </svg>
+        </div>
+        
+        <h1>You're Offline</h1>
+        
+        <div class="status" id="connection-status">
+            No internet connection detected
+        </div>
+        
+        <p>
+            Don't worry! You can still browse previously visited pages and cached content. 
+            We'll automatically sync when you're back online.
+        </p>
+        
+        <div class="actions">
+            <button onclick="checkConnection()">Check Connection</button>
+            <button onclick="window.location.reload()">Retry</button>
+        </div>
+        
+        <div class="cached-info">
+            <h2>Available Offline</h2>
+            <ul class="cached-list">
+                <li>
+                    <span class="check"></span>
+                    <span>Recently viewed repositories</span>
+                </li>
+                <li>
+                    <span class="check"></span>
+                    <span>Contributor avatars and profiles</span>
+                </li>
+                <li>
+                    <span class="check"></span>
+                    <span>Chart data and visualizations</span>
+                </li>
+                <li>
+                    <span class="check"></span>
+                    <span>Your preferences and settings</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        // Check connection status
+        function checkConnection() {
+            const statusEl = document.getElementById('connection-status');
+            
+            if (navigator.onLine) {
+                statusEl.textContent = 'Connection restored! Redirecting...';
+                statusEl.style.background = 'rgba(72, 187, 120, 0.3)';
+                
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1500);
+            } else {
+                statusEl.textContent = 'Still offline';
+                statusEl.style.background = 'rgba(245, 101, 101, 0.3)';
+                
+                setTimeout(() => {
+                    statusEl.textContent = 'No internet connection detected';
+                    statusEl.style.background = 'rgba(255, 255, 255, 0.2)';
+                }, 2000);
+            }
+        }
+        
+        // Auto-check when connection is restored
+        window.addEventListener('online', () => {
+            checkConnection();
+        });
+        
+        // Periodically check connection
+        setInterval(() => {
+            if (navigator.onLine) {
+                checkConnection();
+            }
+        }, 5000);
+        
+        // Service worker communication
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            // Request cache status
+            const messageChannel = new MessageChannel();
+            
+            messageChannel.port1.onmessage = (event) => {
+                console.log('Cache status:', event.data);
+            };
+            
+            navigator.serviceWorker.controller.postMessage(
+                { type: 'CACHE_STATUS' },
+                [messageChannel.port2]
+            );
+        }
+    </script>
+</body>
+</html>
