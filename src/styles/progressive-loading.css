@@ -1,0 +1,120 @@
+/* Progressive loading animations */
+
+/* Skeleton to content transition */
+.progressive-chart-container {
+  position: relative;
+}
+
+.progressive-chart-skeleton,
+.progressive-chart-lowfi,
+.progressive-chart-highfi {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Fade in animation for each stage */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Skeleton stage */
+.progressive-chart-skeleton {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+/* Low-fidelity stage */
+.progressive-chart-lowfi {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* High-fidelity stage */
+.progressive-chart-highfi {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Avatar loading with blur effect */
+.avatar-loading {
+  filter: blur(8px);
+  transition: filter 0.3s ease-in-out;
+}
+
+.avatar-loaded {
+  filter: blur(0);
+}
+
+/* Scatterplot point animations */
+.scatter-point-enter {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+.scatter-point-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+/* Loading shimmer effect for skeleton */
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.1) 20%,
+    rgba(255, 255, 255, 0.2) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Dark mode adjustments */
+.dark .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.05) 20%,
+    rgba(255, 255, 255, 0.1) 60%,
+    rgba(255, 255, 255, 0)
+  );
+}
+
+/* Smooth transition between chart states */
+.progressive-chart-container[data-stage="skeleton"] .progressive-chart-skeleton {
+  opacity: 1;
+  z-index: 3;
+}
+
+.progressive-chart-container[data-stage="low-fi"] .progressive-chart-lowfi {
+  opacity: 1;
+  z-index: 2;
+}
+
+.progressive-chart-container[data-stage="high-fi"] .progressive-chart-highfi {
+  opacity: 1;
+  z-index: 1;
+}
+
+/* Hide non-active stages */
+.progressive-chart-container[data-stage="low-fi"] .progressive-chart-skeleton,
+.progressive-chart-container[data-stage="high-fi"] .progressive-chart-skeleton,
+.progressive-chart-container[data-stage="high-fi"] .progressive-chart-lowfi {
+  opacity: 0;
+  pointer-events: none;
+}

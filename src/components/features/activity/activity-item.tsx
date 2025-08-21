@@ -1,5 +1,5 @@
 import { PullRequestActivity } from "@/lib/types";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
 import {
   Tooltip,
   TooltipContent,
@@ -116,18 +116,15 @@ export function ActivityItem({ activity }: ActivityItemProps) {
           reviewsCount={activityCounts.reviews}
           commentsCount={activityCounts.comments}
         >
-          <Avatar className="h-8 w-8 cursor-pointer">
-            <AvatarImage 
-              src={`${user.avatar}?s=64`}
-              alt={user.name}
-              loading="lazy"
-              width={32}
-              height={32}
-            />
-            <AvatarFallback>
-              {user.name ? user.name.charAt(0).toUpperCase() : "?"}
-            </AvatarFallback>
-          </Avatar>
+          <OptimizedAvatar 
+            className="h-8 w-8 cursor-pointer"
+            src={user.avatar}
+            alt={user.name}
+            fallback={user.name ? user.name.charAt(0).toUpperCase() : "?"}
+            size={32}
+            lazy={true}
+            priority={false}
+          />
         </ContributorHoverCard>
         <div
           className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${getActivityColor()} border border-background`}

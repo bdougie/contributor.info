@@ -149,6 +149,8 @@ export default defineConfig(() => ({
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           // Separate chart libraries as they're large and rarely change
           'vendor-charts': ['recharts', 'uplot'],
+          // Nivo scatterplot in its own chunk (lazy loaded)
+          'nivo-scatterplot': ['@nivo/scatterplot'],
           // Exclude embeddings completely
           'embeddings-excluded': ['@xenova/transformers', 'onnxruntime-web']
         },

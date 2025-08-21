@@ -1,4 +1,5 @@
 @import './styles/fonts.css';
+@import './styles/progressive-loading.css';
 
 @tailwind base;
 @tailwind components;
