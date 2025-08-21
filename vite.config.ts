@@ -142,63 +142,58 @@ export default defineConfig(() => ({
         },
         // Allow modules to be properly hoisted for correct initialization order
         hoistTransitiveImports: true,
-        // Simplified chunking strategy to avoid initialization errors
+        // Hybrid approach - use object mapping for vendor libraries (more stable)
+        // and function for app code splitting
         manualChunks: (id) => {
-          // Handle node_modules packages
+          // For node_modules, return undefined to let the object mapping handle it
           if (id.includes('node_modules')) {
-            // Core vendor bundle - React and ALL UI/visualization libraries
-            // This prevents initialization order issues
-            if (id.includes('react') || 
-                id.includes('@radix-ui') || 
-                id.includes('@nivo') ||
-                id.includes('recharts') ||
-                id.includes('d3-') ||
-                id.includes('uplot')) {
-              return 'vendor-core';
+            // Check for specific packages that need to be bundled together
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor-react';
             }
-            
-            // Utility libraries (standalone, no React dependencies)
-            if (id.includes('clsx') || 
-                id.includes('tailwind-merge') || 
-                id.includes('class-variance-authority') || 
-                id.includes('date-fns')) {
-              return 'vendor-utils';
+            if (id.includes('@radix-ui')) {
+              return 'vendor-react'; // Bundle with React to avoid forwardRef issues
             }
-            
-            // Supabase (can be loaded independently)
+            if (id.includes('@nivo')) {
+              return 'vendor-react'; // Bundle with React to avoid memo issues
+            }
+            if (id.includes('recharts') || id.includes('uplot')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('d3-')) {
+              return 'vendor-charts'; // D3 modules go with charts
+            }
             if (id.includes('@supabase')) {
               return 'vendor-supabase';
             }
-            
-            // Markdown processing (standalone)
+            if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
+              return 'vendor-utils';
+            }
+            if (id.includes('date-fns')) {
+              return 'vendor-utils';
+            }
             if (id.includes('markdown') || id.includes('remark') || id.includes('rehype')) {
               return 'vendor-markdown';
             }
-            
-            // Monitoring (standalone)
             if (id.includes('@sentry')) {
               return 'vendor-monitoring';
             }
-            
-            // Embeddings (excluded)
             if (id.includes('@xenova/transformers') || id.includes('onnxruntime')) {
               return 'embeddings-excluded';
             }
           }
           
-          // Handle app code chunking - keep these separate for code splitting
+          // Handle app code chunking for better code splitting
           if (id.includes('/src/')) {
-            // Admin/debug features (lazy loaded)
             if (id.includes('/admin/') || id.includes('/debug/')) {
               return 'app-admin';
             }
-            
-            // Spam detection features
+            if (id.includes('/charts/') || id.includes('chart') || id.includes('graph')) {
+              return 'app-charts';
+            }
             if (id.includes('/spam/') || id.includes('SpamDetection')) {
               return 'app-spam';
             }
-            
-            // Progressive capture features
             if (id.includes('/progressive-capture/')) {
               return 'app-progressive';
             }
@@ -224,9 +219,9 @@ export default defineConfig(() => ({
         // Preload only the absolute minimum for initial render
         // Note: These names must match the keys in manualChunks above
         const sorted = deps.sort((a, b) => {
-          // Prioritize vendor-core chunk (contains all React-based libraries)
-          if (a.includes('vendor-core')) return -1;
-          if (b.includes('vendor-core')) return 1;
+          // Prioritize vendor-react chunk (contains React, Radix UI, and Nivo)
+          if (a.includes('vendor-react')) return -1;
+          if (b.includes('vendor-react')) return 1;
           // Then load vendor-utils for classnames
           if (a.includes('vendor-utils')) return -1;
           if (b.includes('vendor-utils')) return 1;
@@ -237,7 +232,7 @@ export default defineConfig(() => ({
         });
         // Preload critical chunks in order
         return sorted.filter(dep => 
-          dep.includes('vendor-core') || 
+          dep.includes('vendor-react') || 
           dep.includes('vendor-utils') ||
           dep.includes('index-')
         );
