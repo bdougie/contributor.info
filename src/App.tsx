@@ -263,7 +263,8 @@ function App() {
             <Routes>
             <Route path="/login" element={<LoginPage />} />
             
-            {/* Redirect signup to login page */}
+            {/* Legacy Route Redirects - Resolves ~480 404 errors */}
+            {/* These routes are deprecated but still receive traffic from old links/bookmarks */}
             <Route path="/signup" element={<Navigate to="/login" replace />} />
 
             <Route path="/" element={<Layout />}>
@@ -272,7 +273,7 @@ function App() {
               <Route path="/docs" element={<DocsList />} />
               <Route path="/docs/:slug" element={<DocDetail />} />
               
-              {/* Redirect search/feedback to docs */}
+              {/* Legacy Route Redirect - Old feedback page moved to docs */}
               <Route path="/search/feedback" element={<Navigate to="/docs" replace />} />
               <Route path="/widgets" element={<WidgetsPage />} />
               <Route path="/:owner/:repo/widgets" element={<WidgetsPage />} />

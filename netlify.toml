@@ -68,6 +68,10 @@
 # Specific API routes (these must come first)
 
 # GitHub webhook redirects to Fly.io service
+# Migration context: Webhooks moved from Netlify Functions to dedicated Fly.io service
+# to resolve ~9,310 404 errors caused by timeout and cold start issues.
+# Status 307 preserves POST method and request body for webhook payloads.
+# See docs/infrastructure/fly-webhook-migration.md for full details
 [[redirects]]
   from = "/api/github-webhook"
   to = "https://contributor-info-webhooks.fly.dev/webhook"
