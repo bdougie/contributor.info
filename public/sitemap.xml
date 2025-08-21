@@ -386,24 +386,6 @@
     <lastmod>2025-06-29T17:38:56.218Z</lastmod>
   </url>
   <url>
-    <loc>https://contributor.info/pytorch/pytorch</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-    <lastmod>2025-08-18T01:11:37.934Z</lastmod>
-  </url>
-  <url>
-    <loc>https://contributor.info/pytorch/pytorch/health</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-    <lastmod>2025-08-18T01:11:37.934Z</lastmod>
-  </url>
-  <url>
-    <loc>https://contributor.info/pytorch/pytorch/distribution</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-    <lastmod>2025-08-18T01:11:37.934Z</lastmod>
-  </url>
-  <url>
     <loc>https://contributor.info/Supabase/supabase</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
@@ -458,10 +440,10 @@
     <lastmod>2025-08-08T17:32:38.572Z</lastmod>
   </url>
   <url>
-    <loc>https://contributor.info/Ad-Astra-Innovia/frontend</loc>
+    <loc>https://contributor.info/Robdel12/DraftPatch</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-08-07T17:46:04.172Z</lastmod>
+    <lastmod>2025-07-05T14:45:32.107Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/dlt-hub/dlt</loc>
@@ -536,10 +518,28 @@
     <lastmod>2025-08-04T15:09:53.258Z</lastmod>
   </url>
   <url>
-    <loc>https://contributor.info/Robdel12/DraftPatch</loc>
+    <loc>https://contributor.info/Ad-Astra-Innovia/frontend</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-07-05T14:45:32.107Z</lastmod>
+    <lastmod>2025-08-07T17:46:04.172Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/pytorch/pytorch</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <lastmod>2025-08-21T01:08:01.047Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/pytorch/pytorch/health</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-08-21T01:08:01.047Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/pytorch/pytorch/distribution</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-08-21T01:08:01.047Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/lodash/lodash</loc>
