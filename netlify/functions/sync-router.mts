@@ -294,7 +294,7 @@ export const health = async () => {
       status: 'healthy',
       router: 'sync-router',
       supabaseEnabled: supabaseAvailable,
-      useSupabaseFunctions: USE_SUPABASE_FUNCTIONS === 'true',
+      useSupabaseFunctions: USE_SUPABASE_FUNCTIONS,
       timestamp: new Date().toISOString(),
     }),
   };
