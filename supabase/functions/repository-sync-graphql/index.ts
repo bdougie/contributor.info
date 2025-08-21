@@ -58,6 +58,7 @@ const PULL_REQUESTS_QUERY = `
             oid
           }
           author {
+            __typename
             ... on User {
               id
               databaseId
@@ -97,7 +98,14 @@ const PULL_REQUESTS_QUERY = `
               body
               submittedAt
               author {
+                __typename
                 ... on User {
+                  id
+                  databaseId
+                  login
+                  avatarUrl
+                }
+                ... on Bot {
                   id
                   databaseId
                   login
@@ -114,8 +122,19 @@ const PULL_REQUESTS_QUERY = `
               body
               createdAt
               author {
-                login
-                avatarUrl
+                __typename
+                ... on User {
+                  id
+                  databaseId
+                  login
+                  avatarUrl
+                }
+                ... on Bot {
+                  id
+                  databaseId
+                  login
+                  avatarUrl
+                }
               }
             }
           }
@@ -280,7 +299,7 @@ async function handleRequest(req: Request): Promise<Response> {
           // Ensure author exists
           let authorId = null;
           if (pr.author) {
-            const isBot = !pr.author.email; // Bots don't have email in GraphQL
+            const isBot = pr.author.__typename === 'Bot';
             authorId = await ensureContributorGraphQL(supabase, pr.author, isBot);
           }
           
@@ -325,7 +344,8 @@ async function handleRequest(req: Request): Promise<Response> {
             for (const review of pr.reviews.nodes) {
               if (!review || !review.author) continue;
               
-              const reviewerId = await ensureContributorGraphQL(supabase, review.author, false);
+              const isReviewerBot = review.author.__typename === 'Bot';
+              const reviewerId = await ensureContributorGraphQL(supabase, review.author, isReviewerBot);
               
               if (reviewerId) {
                 await supabase
@@ -351,7 +371,8 @@ async function handleRequest(req: Request): Promise<Response> {
             for (const comment of pr.comments.nodes) {
               if (!comment || !comment.author) continue;
               
-              const commenterId = await ensureContributorGraphQL(supabase, comment.author, false);
+              const isCommenterBot = comment.author.__typename === 'Bot';
+              const commenterId = await ensureContributorGraphQL(supabase, comment.author, isCommenterBot);
               
               if (commenterId) {
                 await supabase
