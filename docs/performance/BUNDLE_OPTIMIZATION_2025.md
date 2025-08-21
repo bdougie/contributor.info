@@ -1,5 +1,7 @@
 # Bundle Optimization & Tree Shaking Fix (2025-08-08)
 
+> **UPDATE 2025-08-21**: See [Bundle Splitting Attempt Postmortem](../postmortem/bundle-splitting-attempt-2025-08-21.md) for critical lessons about React module constraints. Key learning: aggressive library splitting breaks React initialization.
+
 ## 🚀 Executive Summary
 
 Successfully reduced bundle sizes by **55%** and resolved critical performance issues that were causing Lighthouse scores to drop below 70/100.
@@ -195,6 +197,13 @@ There are still ~74 nested ternaries in the codebase that should be refactored o
 - **Issue:** https://github.com/rollup/rollup/issues/5747
 - **Status:** Open, awaiting fix
 - **Workaround:** Conservative tree shaking settings + helper functions
+
+### React Module Initialization Constraints (Added 2025-08-21)
+- **Issue:** Aggressive bundle splitting breaks React initialization
+- **Constraint:** ALL React-dependent code must be in the same chunk
+- **Affected Libraries:** Radix UI (forwardRef), Nivo (memo), Recharts (hidden deps)
+- **Solution:** Keep vendor-react as monolithic bundle (~1.2MB)
+- **Details:** See [Bundle Splitting Postmortem](../postmortem/bundle-splitting-attempt-2025-08-21.md)
 
 ## 🎯 Next Steps
 
