@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
 import { Suspense, lazy, useEffect } from "react";
 import { ThemeProvider } from "@/components/common/theming";
 import { Toaster } from "@/components/ui/sonner";
@@ -262,12 +262,19 @@ function App() {
           <Suspense fallback={<PageSkeleton />}>
             <Routes>
             <Route path="/login" element={<LoginPage />} />
+            
+            {/* Legacy Route Redirects - Resolves ~480 404 errors */}
+            {/* These routes are deprecated but still receive traffic from old links/bookmarks */}
+            <Route path="/signup" element={<Navigate to="/login" replace />} />
 
             <Route path="/" element={<Layout />}>
               <Route index element={<Home />} />
               <Route path="/changelog" element={<ChangelogPage />} />
               <Route path="/docs" element={<DocsList />} />
               <Route path="/docs/:slug" element={<DocDetail />} />
+              
+              {/* Legacy Route Redirect - Old feedback page moved to docs */}
+              <Route path="/search/feedback" element={<Navigate to="/docs" replace />} />
               <Route path="/widgets" element={<WidgetsPage />} />
               <Route path="/:owner/:repo/widgets" element={<WidgetsPage />} />
               <Route 
