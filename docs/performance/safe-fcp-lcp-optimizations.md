@@ -1,19 +1,28 @@
 # Safe FCP/LCP Optimization Strategies
 
-## Current Performance Issues
+**Last Updated:** 2025-08-21
+
+## Current Performance Issues (After Bundle Splitting Attempt)
 - **FCP**: 4.1-4.3s (target < 1.8s)
 - **LCP**: 4.4-5.2s (target < 2.5s)
-- **Initial JS**: 388KB gzipped (react-vendor bundle)
-- **Total JS**: 600KB+ gzipped
+- **Main Bundle**: 859KB (reduced from 1,158KB)
+- **Vendor-React**: 1,231KB (contains ALL React ecosystem)
+- **Lighthouse Score**: 65-70 (target 80+)
 
 ## Why We Can't Split React Vendor Bundle
 
-As documented in the [Production Deployment Postmortem (2025-06-22)](../postmortem/production-deployment-2025-06-22.md), splitting React into smaller chunks causes:
-- Race conditions in module initialization
-- "Cannot read properties of undefined" errors
-- Complete production failures
+### Historical Context
+1. **[Production Deployment Postmortem (2025-06-22)](../postmortem/production-deployment-2025-06-22.md)**: First discovered the issue
+2. **[Bundle Splitting Attempt (2025-08-21)](../postmortem/bundle-splitting-attempt-2025-08-21.md)**: Confirmed through extensive testing
 
-React and all React-dependent libraries MUST stay bundled together.
+### Confirmed Constraints
+Through multiple attempts, we've confirmed these libraries CANNOT be separated from React:
+- **Radix UI**: Uses `React.forwardRef`
+- **Nivo**: Uses `React.memo`
+- **Recharts/D3**: Hidden React dependencies
+- **App Components**: Use `React.createContext`
+
+React and all React-dependent libraries MUST stay bundled together in a ~1.2MB vendor chunk.
 
 ## Safe Optimization Strategies
 
