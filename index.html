@@ -54,9 +54,10 @@
     <link rel="preload" href="/icons.svg" as="image" type="image/svg+xml" fetchpriority="low">
     
     <!-- Modulepreload for critical vendor chunks -->
-    <!-- These will be automatically updated by Vite in production builds -->
-    <link rel="modulepreload" href="/js/vendor-react.js" as="script" fetchpriority="high">
-    <link rel="modulepreload" href="/js/index.js" as="script" fetchpriority="high">
+    <!-- Vite automatically injects the correct modulepreload links during build -->
+    <!-- The placeholder comments below help Vite identify where to inject them -->
+    <!--vite-plugin-pwa:modulepreload-->
+    <!--/vite-plugin-pwa:modulepreload-->
     
     <!-- Vite will inject additional modulepreload links for critical chunks automatically -->
     

@@ -471,9 +471,7 @@ export default function RepoView() {
 export function LotteryFactorRoute() {
   return (
     <ErrorBoundary context="Repository Health Analysis">
-      <ProgressiveChartWrapper>
-        <RepositoryHealthCard />
-      </ProgressiveChartWrapper>
+      <RepositoryHealthCard />
     </ErrorBoundary>
   );
 }
@@ -489,24 +487,18 @@ export function ContributionsRoute() {
   return (
     <div className="space-y-8">
       {/* Progressive loading: Charts load independently */}
-      <ErrorBoundary context="Contributions Chart">
-        <ProgressiveChartWrapper>
-          <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
-            <LazyContributions />
-          </Suspense>
-        </ProgressiveChartWrapper>
+      <ErrorBoundary context="Contributions Chart" fallback={<div className="h-96 bg-muted rounded-lg flex items-center justify-center text-muted-foreground">Failed to load chart</div>}>
+        <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
+          <LazyContributions />
+        </Suspense>
       </ErrorBoundary>
       
       <ErrorBoundary context="Metrics and Trends">
-        <ProgressiveChartWrapper>
-          <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
-        </ProgressiveChartWrapper>
+        <MetricsAndTrendsCard owner={owner} repo={repo} timeRange={timeRange} />
       </ErrorBoundary>
       
       <ErrorBoundary context="Contributor of the Month">
-        <ProgressiveChartWrapper>
-          <ContributorOfMonthWrapper />
-        </ProgressiveChartWrapper>
+        <ContributorOfMonthWrapper />
       </ErrorBoundary>
     </div>
   );
@@ -515,20 +507,7 @@ export function ContributionsRoute() {
 export function DistributionRoute() {
   return (
     <ErrorBoundary context="Distribution Analysis">
-      <ProgressiveChartWrapper>
-        <Distribution />
-      </ProgressiveChartWrapper>
+      <Distribution />
     </ErrorBoundary>
   );
-}
-
-// Progressive Chart Wrapper - simplified since routes are already lazy loaded
-function ProgressiveChartWrapper({ 
-  children 
-}: { 
-  children: React.ReactNode;
-}) {
-  // Remove Suspense here since the routes are already lazy loaded with Suspense in App.tsx
-  // This double Suspense was causing the blank page issue
-  return <>{children}</>;
 }

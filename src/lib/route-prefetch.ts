@@ -3,14 +3,43 @@
  * Preloads likely next routes to enable near-instant transitions
  */
 
-// Cache to track already prefetched routes
+// Cache to track already prefetched routes with memory management
 const prefetchedRoutes = new Set<string>();
+const MAX_PREFETCH_CACHE_SIZE = 50; // Prevent unbounded growth
+
+/**
+ * Validate route pattern for security
+ */
+const isValidRoute = (route: string): boolean => {
+  // Allow only alphanumeric, hyphens, underscores, and forward slashes
+  // Prevent directory traversal and other malicious patterns
+  return /^\/[\w-]*(\/[\w-]+)*\/?$/.test(route) && !route.includes('..');
+};
+
+/**
+ * Safely import a module with error handling
+ */
+const validateImport = async (importFn: () => Promise<any>, moduleName: string): Promise<boolean> => {
+  try {
+    await importFn();
+    return true;
+  } catch (err) {
+    console.warn(`Failed to prefetch ${moduleName}:`, err);
+    return false;
+  }
+};
 
 /**
  * Prefetch a route's code chunk for faster navigation
  * Uses requestIdleCallback to avoid blocking main thread
  */
 export const prefetchRoute = (routePath: string) => {
+  // Validate route for security
+  if (!isValidRoute(routePath)) {
+    console.warn(`Invalid route pattern: ${routePath}`);
+    return;
+  }
+
   // Skip if already prefetched
   if (prefetchedRoutes.has(routePath)) {
     return;
@@ -21,56 +50,95 @@ export const prefetchRoute = (routePath: string) => {
     return;
   }
 
+  // Manage cache size to prevent memory leaks
+  if (prefetchedRoutes.size >= MAX_PREFETCH_CACHE_SIZE) {
+    // Remove the oldest entry (first item in Set)
+    const firstKey = prefetchedRoutes.values().next().value;
+    if (firstKey) {
+      prefetchedRoutes.delete(firstKey);
+    }
+  }
+
   // Use requestIdleCallback for non-critical loading
-  const prefetchFn = () => {
-    // Map routes to their lazy-loaded chunks
-    // These imports trigger Vite to download the chunks but don't execute them
+  const prefetchFn = async () => {
+    let success = false;
+    
+    // Map routes to their lazy-loaded chunks with validation
     switch (routePath) {
       case '/':
         // Home page is already loaded
+        success = true;
         break;
       case '/changelog':
-        import('@/components/features/changelog/changelog-page');
+        success = await validateImport(
+          () => import('@/components/features/changelog/changelog-page'),
+          'changelog-page'
+        );
         break;
       case '/docs':
-        import('@/components/features/docs/docs-list');
+        success = await validateImport(
+          () => import('@/components/features/docs/docs-list'),
+          'docs-list'
+        );
         break;
       case '/feed':
-        import('@/components/features/feed/feed-page');
+        success = await validateImport(
+          () => import('@/components/features/feed/feed-page'),
+          'feed-page'
+        );
         break;
       case '/settings':
-        import('@/components/features/settings/settings-page');
+        success = await validateImport(
+          () => import('@/components/features/settings/settings-page'),
+          'settings-page'
+        );
         break;
       case '/login':
-        import('@/components/features/auth/login-page');
+        success = await validateImport(
+          () => import('@/components/features/auth/login-page'),
+          'login-page'
+        );
         break;
       case '/privacy':
-        import('@/components/features/privacy/privacy-policy-page');
+        success = await validateImport(
+          () => import('@/components/features/privacy/privacy-policy-page'),
+          'privacy-policy-page'
+        );
         break;
       case '/terms':
-        import('@/components/features/privacy/terms-page');
+        success = await validateImport(
+          () => import('@/components/features/privacy/terms-page'),
+          'terms-page'
+        );
         break;
       case '/data-request':
-        import('@/components/features/privacy/data-request-page');
+        success = await validateImport(
+          () => import('@/components/features/privacy/data-request-page'),
+          'data-request-page'
+        );
         break;
       default:
         // For dynamic routes like /owner/repo, prefetch the main repo view
-        if (routePath.match(/^\/[^/]+\/[^/]+$/)) {
-          import('@/components/features/repository/repo-view').catch(() => {
-            // Fallback if not found
-          });
+        if (routePath.match(/^\/[\w-]+\/[\w-]+$/)) {
+          success = await validateImport(
+            () => import('@/components/features/repository/repo-view'),
+            'repo-view'
+          );
         }
         // For org routes
-        if (routePath.match(/^\/orgs\/[^/]+$/)) {
-          import('@/pages/org-view').catch(() => {
-            // Fallback if not found  
-          });
+        else if (routePath.match(/^\/orgs\/[\w-]+$/)) {
+          success = await validateImport(
+            () => import('@/pages/org-view'),
+            'org-view'
+          );
         }
         break;
     }
 
-    // Mark as prefetched
-    prefetchedRoutes.add(routePath);
+    // Only mark as prefetched if successful
+    if (success) {
+      prefetchedRoutes.add(routePath);
+    }
   };
 
   // Use requestIdleCallback if available, otherwise setTimeout
@@ -127,4 +195,19 @@ export const prefetchCriticalRoutes = () => {
       prefetchRoutes(criticalRoutes);
     }, 2000);
   }
+};
+
+/**
+ * Clear the prefetch cache
+ * Useful for memory management in long-running sessions
+ */
+export const clearPrefetchCache = () => {
+  prefetchedRoutes.clear();
+};
+
+/**
+ * Get current cache size for monitoring
+ */
+export const getPrefetchCacheSize = () => {
+  return prefetchedRoutes.size;
 };
