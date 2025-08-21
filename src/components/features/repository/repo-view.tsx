@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Link } from '@/components/ui/icon';
 import { useParams, useNavigate, useLocation, Outlet } from "react-router-dom";
 import {
@@ -14,8 +14,9 @@ import { useTimeRangeStore } from "@/lib/time-range-store";
 import { toast } from "sonner";
 import { RepoStatsProvider } from "@/lib/repo-stats-context";
 import { RepositoryHealthCard } from "../health";
-import { Contributions, MetricsAndTrendsCard } from "../activity";
+import { MetricsAndTrendsCard } from "../activity";
 import { Distribution } from "../distribution";
+import { LazyContributions } from "../charts/lazy-charts";
 import { ContributorOfMonthWrapper } from "../contributor";
 import { ExampleRepos } from "./example-repos";
 import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
@@ -490,7 +491,9 @@ export function ContributionsRoute() {
       {/* Progressive loading: Charts load independently */}
       <ErrorBoundary context="Contributions Chart">
         <ProgressiveChartWrapper>
-          <Contributions />
+          <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
+            <LazyContributions />
+          </Suspense>
         </ProgressiveChartWrapper>
       </ErrorBoundary>
       

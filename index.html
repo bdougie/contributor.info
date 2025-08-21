@@ -53,7 +53,12 @@
     <!-- Preload icon sprite if using SVG icons -->
     <link rel="preload" href="/icons.svg" as="image" type="image/svg+xml" fetchpriority="low">
     
-    <!-- Vite will inject modulepreload links for critical chunks automatically -->
+    <!-- Modulepreload for critical vendor chunks -->
+    <!-- These will be automatically updated by Vite in production builds -->
+    <link rel="modulepreload" href="/js/vendor-react.js" as="script" fetchpriority="high">
+    <link rel="modulepreload" href="/js/index.js" as="script" fetchpriority="high">
+    
+    <!-- Vite will inject additional modulepreload links for critical chunks automatically -->
     
     <!-- Prefetch likely next navigations -->
     <!-- Note: API endpoints are now handled by Supabase client-side queries -->
