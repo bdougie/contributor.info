@@ -34,11 +34,13 @@ export class SyncMonitoring {
    * Record sync metrics
    */
   static async recordSync(metrics: SyncMetrics): Promise<void> {
-    // Add to in-memory store
-    this.metrics.push(metrics);
-    if (this.metrics.length > this.MAX_METRICS) {
-      this.metrics.shift(); // Remove oldest
+    // Add to in-memory store with proper array management
+    // Create a new array to avoid race conditions
+    const newMetrics = [...this.metrics, metrics];
+    if (newMetrics.length > this.MAX_METRICS) {
+      newMetrics.shift(); // Remove oldest
     }
+    this.metrics = newMetrics;
     
     // Store in database for long-term analysis
     try {

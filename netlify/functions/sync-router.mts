@@ -67,6 +67,30 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    // Validate repository format
+    if (!repository.includes('/') || repository.split('/').length !== 2) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Invalid repository format',
+          details: 'Repository must be in format: owner/name'
+        }),
+      };
+    }
+
+    const [owner, name] = repository.split('/');
+    if (!owner || !name) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Invalid repository format',
+          details: 'Both owner and name are required'
+        }),
+      };
+    }
+
     // Determine routing strategy
     const useSupabase = shouldUseSupabase(repository, action, options);
 

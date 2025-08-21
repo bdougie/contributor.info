@@ -68,6 +68,20 @@ async function handleRequest(req: Request): Promise<Response> {
     const { owner, name, fullSync = false, daysLimit = DEFAULT_DAYS_LIMIT, prLimit = MAX_PRS_PER_SYNC, resumeFrom } = 
       await req.json() as SyncRequest;
     
+    // Validate input parameters
+    if (!owner || !name) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing required fields', 
+          details: 'Both owner and name are required' 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+    
     // Initialize Supabase client with service role
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
