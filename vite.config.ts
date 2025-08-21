@@ -186,15 +186,8 @@ export default defineConfig(() => ({
             }
           }
           
-          // Handle app code chunking - only split truly independent code
-          if (id.includes('/src/')) {
-            // Only split admin/debug since they're lazy loaded with dynamic imports
-            if (id.includes('/admin/') || id.includes('/debug/')) {
-              return 'app-admin';
-            }
-            // Don't split other app code - it uses React components
-            // Let it stay in the main bundle to avoid context issues
-          }
+          // Don't split app code - it all uses React components
+          // Let everything stay in the main bundle to avoid initialization issues
         },
       },
     },
