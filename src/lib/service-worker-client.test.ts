@@ -39,11 +39,15 @@ const mockRegistration = {
 describe('Service Worker Client', () => {
   let originalNavigator: Navigator;
   let originalWindow: Window & typeof globalThis;
+  let originalAddEventListener: typeof window.addEventListener;
+  let originalRemoveEventListener: typeof window.removeEventListener;
 
   beforeEach(() => {
     // Store original values
     originalNavigator = global.navigator;
     originalWindow = global.window;
+    originalAddEventListener = global.window.addEventListener;
+    originalRemoveEventListener = global.window.removeEventListener;
     
     // Reset the service worker client state
     (swClient as any).initialized = false;
@@ -73,7 +77,7 @@ describe('Service Worker Client', () => {
       configurable: true
     });
 
-    // Mock window events
+    // Mock window events using spies to preserve original functions
     global.window.addEventListener = vi.fn();
     global.window.removeEventListener = vi.fn();
 
@@ -120,6 +124,8 @@ describe('Service Worker Client', () => {
     // Restore original values
     global.navigator = originalNavigator;
     global.window = originalWindow;
+    global.window.addEventListener = originalAddEventListener;
+    global.window.removeEventListener = originalRemoveEventListener;
     vi.clearAllMocks();
   });
 

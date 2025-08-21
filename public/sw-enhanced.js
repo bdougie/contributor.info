@@ -164,7 +164,9 @@ async function cacheFirst(request, cacheName, maxAge) {
     
     if (networkResponse.ok) {
       await cache.put(request, addTimestamp(networkResponse.clone()));
-      await limitCacheSize(cacheName, CACHE_LIMITS[cacheName] || 100);
+      // Use the base cache name for limit lookup
+      const cacheKey = Object.keys(CACHE_LIMITS).find(key => cacheName === CACHES[key]) || 'RUNTIME';
+      await limitCacheSize(cacheName, CACHE_LIMITS[cacheKey] || 100);
     }
     
     return networkResponse;
@@ -204,7 +206,9 @@ async function staleWhileRevalidate(request, cacheName, maxAge) {
     fetch(request).then(response => {
       if (response.ok) {
         cache.put(request, addTimestamp(response.clone()));
-        limitCacheSize(cacheName, CACHE_LIMITS[cacheName] || 100);
+        // Use the base cache name for limit lookup
+        const cacheKey = Object.keys(CACHE_LIMITS).find(key => cacheName === CACHES[key]) || 'RUNTIME';
+        limitCacheSize(cacheName, CACHE_LIMITS[cacheKey] || 100);
         
         // Notify clients about the update
         self.clients.matchAll().then(clients => {
@@ -228,7 +232,9 @@ async function staleWhileRevalidate(request, cacheName, maxAge) {
     
     if (networkResponse.ok) {
       await cache.put(request, addTimestamp(networkResponse.clone()));
-      await limitCacheSize(cacheName, CACHE_LIMITS[cacheName] || 100);
+      // Use the base cache name for limit lookup
+      const cacheKey = Object.keys(CACHE_LIMITS).find(key => cacheName === CACHES[key]) || 'RUNTIME';
+      await limitCacheSize(cacheName, CACHE_LIMITS[cacheKey] || 100);
     }
     
     return networkResponse;
@@ -246,7 +252,9 @@ async function networkFirst(request, cacheName) {
     if (networkResponse.ok) {
       const cache = await caches.open(cacheName);
       await cache.put(request, addTimestamp(networkResponse.clone()));
-      await limitCacheSize(cacheName, CACHE_LIMITS[cacheName] || 100);
+      // Use the base cache name for limit lookup
+      const cacheKey = Object.keys(CACHE_LIMITS).find(key => cacheName === CACHES[key]) || 'RUNTIME';
+      await limitCacheSize(cacheName, CACHE_LIMITS[cacheKey] || 100);
     }
     
     return networkResponse;
@@ -516,8 +524,8 @@ async function handleBackgroundSync() {
   });
 }
 
-// Log cache statistics periodically
-if (typeof self.setInterval !== 'undefined') {
+// Log cache statistics periodically (development only)
+if (typeof self.setInterval !== 'undefined' && self.location.hostname === 'localhost') {
   setInterval(async () => {
     const cacheNames = await caches.keys();
     console.log('[SW] Active caches:', cacheNames);
