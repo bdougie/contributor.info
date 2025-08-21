@@ -23,6 +23,7 @@ _https://contributor.info/widgets_
 - **Real-time Data** - Live updates from GitHub API
 - **Beautiful UI** - Responsive design with dark/light mode
 - **Embeddable Widgets** - Share repository stats in your README
+- **Long-Running Sync Support** - Process large repositories (pytorch/pytorch) without timeouts using Supabase Edge Functions
 
 ## 🚀 Quick Start
 
@@ -115,6 +116,47 @@ npm run test:ui   # Open Vitest UI
 └─────────────────┘  └─────────────────┘
 ```
 
+## 🏗 Architecture
+
+### Hybrid Sync System
+
+The application uses an intelligent hybrid routing system to handle repository syncs without timeouts:
+
+```
+┌─────────────────────────────────────┐
+│           User Interface            │
+│     React + TypeScript + Vite      │
+└───────────┬─────────────────────────┘
+            │
+            ▼
+┌─────────────────────────────────────┐
+│        Sync Service Router          │
+│   (Intelligent Request Routing)     │
+│  ┌─────────────┐  ┌───────────────┐ │
+│  │  Quick Ops  │  │  Long-Running │ │
+│  │  (<10 sec)  │  │   (>30 sec)   │ │
+│  └──────┬──────┘  └───────┬───────┘ │
+└─────────┼──────────────────┼─────────┘
+          ▼                  ▼
+┌─────────────────┐  ┌─────────────────┐
+│ Netlify Functions│  │ Supabase Edge  │
+│   + Inngest     │  │   Functions     │
+│  (10-26s limit) │  │ (150s limit)   │
+└────────┬────────┘  └───────┬─────────┘
+          │                  │
+          ▼                  ▼
+┌─────────────────────────────────────┐
+│         Supabase Database           │
+│    (PostgreSQL + Realtime + RLS)    │
+└─────────────────────────────────────┘
+```
+
+**Key Features:**
+- **Automatic Routing**: Detects large repositories and routes to appropriate service
+- **No Timeouts**: Large repos like `pytorch/pytorch` sync completely
+- **Resumable Syncs**: Can continue from where it left off
+- **Performance Monitoring**: Tracks execution times and success rates
+
 ## ⚡ Tech Stack
 
 **Frontend**
@@ -126,7 +168,9 @@ npm run test:ui   # Open Vitest UI
 **Backend & Data**
 - Supabase (database & auth)
 - GitHub API (real-time data)
-- Edge Functions (serverless)
+- Netlify Functions (quick operations <26s)
+- Supabase Edge Functions (long operations <150s)
+- [gh-datapipe](https://github.com/open-source-ready/gh-datapipe) (massive historical imports, no limits)
 
 **Development**
 - Vitest (testing) - [Testing Guide](./docs/testing/README.md)
