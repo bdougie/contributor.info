@@ -2,14 +2,13 @@
 // More efficient than REST API for bulk operations
 // Supports up to 150 seconds execution time on paid plans
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders } from '../_shared/cors.ts'
 
-// CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+// Deno.serve is the new way to create edge functions
+Deno.serve(async (req) => {
+  return await handleRequest(req)
+})
 
 interface SyncRequest {
   owner: string;
@@ -132,7 +131,7 @@ const PULL_REQUESTS_QUERY = `
   }
 `;
 
-serve(async (req) => {
+async function handleRequest(req: Request): Promise<Response> {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -412,7 +411,7 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
-})
+}
 
 // Helper function for GraphQL contributor data
 async function ensureContributorGraphQL(supabase: any, author: any, isBot: boolean): Promise<string | null> {

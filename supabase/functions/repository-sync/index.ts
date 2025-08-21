@@ -1,14 +1,14 @@
 // Supabase Edge Function for long-running repository sync operations
 // Supports up to 150 seconds execution time on paid plans (50s on free tier)
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders } from '../_shared/cors.ts'
 
-// CORS headers for browser requests
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+// Deno.serve is the new way to create edge functions
+Deno.serve(async (req) => {
+  // Function will be wrapped here
+  return await handleRequest(req)
+})
 
 interface SyncRequest {
   owner: string;
@@ -55,7 +55,7 @@ const MAX_PRS_PER_SYNC = 100;
 const DEFAULT_DAYS_LIMIT = 30;
 const GITHUB_API_BASE = 'https://api.github.com';
 
-serve(async (req) => {
+async function handleRequest(req: Request): Promise<Response> {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -303,7 +303,7 @@ serve(async (req) => {
       }
     )
   }
-})
+}
 
 // Helper function to ensure contributor exists
 async function ensureContributor(supabase: any, githubUser: any): Promise<string | null> {
