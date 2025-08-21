@@ -319,9 +319,12 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                 }}
                 crossOrigin="anonymous"
                 onError={(e) => {
-                  // Fallback to GitHub identicon on error
+                  // Fallback to GitHub identicon on error, but only once
                   const target = e.target as HTMLImageElement;
-                  target.src = `https://github.com/identicons/${props.node.data.contributor}.png`;
+                  if (!target.dataset.retried) {
+                    target.dataset.retried = 'true';
+                    target.src = `https://github.com/identicons/${props.node.data.contributor}.png`;
+                  }
                 }}
               />
               <AvatarFallback

@@ -27,7 +27,7 @@ const BATCH_SIZE = 100;
 class SupabaseAvatarCache {
   private memoryCache: Map<number, CachedAvatarResult> = new Map();
   private batchQueue: Set<number> = new Set();
-  private batchTimeout: NodeJS.Timeout | null = null;
+  private batchTimeout: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * Get cached avatar URL for a contributor
@@ -290,9 +290,11 @@ class SupabaseAvatarCache {
   private queueCacheUpdate(githubId: number, username: string, avatarUrl: string): void {
     this.batchQueue.add(githubId);
 
-    // Store the update data
-    const updateKey = `update_${githubId}`;
-    sessionStorage.setItem(updateKey, JSON.stringify({ username, avatarUrl }));
+    // Store the update data (check if sessionStorage exists for SSR safety)
+    if (typeof sessionStorage !== 'undefined') {
+      const updateKey = `update_${githubId}`;
+      sessionStorage.setItem(updateKey, JSON.stringify({ username, avatarUrl }));
+    }
 
     // Debounce batch processing
     if (this.batchTimeout) {
@@ -311,13 +313,23 @@ class SupabaseAvatarCache {
     if (this.batchQueue.size === 0) return;
 
     const updates = Array.from(this.batchQueue).map(githubId => {
+      // Check if sessionStorage exists for SSR safety
+      if (typeof sessionStorage === 'undefined') return null;
+      
       const updateKey = `update_${githubId}`;
       const updateData = sessionStorage.getItem(updateKey);
       sessionStorage.removeItem(updateKey);
       
       if (updateData) {
-        const { username, avatarUrl } = JSON.parse(updateData);
-        return { githubId, username, avatarUrl };
+        try {
+          const parsed = JSON.parse(updateData);
+          // Validate the parsed shape
+          if (parsed && typeof parsed.username === 'string' && typeof parsed.avatarUrl === 'string') {
+            return { githubId, username: parsed.username, avatarUrl: parsed.avatarUrl };
+          }
+        } catch (error) {
+          console.error('Failed to parse avatar cache update data:', error);
+        }
       }
       return null;
     }).filter(Boolean);

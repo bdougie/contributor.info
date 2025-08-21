@@ -25,7 +25,7 @@ BEGIN
            AND expires_at IS NOT NULL 
            AND expires_at > NOW();
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql STABLE;
 
 -- Function to get cached avatar URL if valid, null otherwise
 CREATE OR REPLACE FUNCTION get_cached_avatar_url(
