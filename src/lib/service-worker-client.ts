@@ -25,15 +25,21 @@ class ServiceWorkerClient {
   private messageHandlers: Map<string, Function[]> = new Map();
   private prefetchQueue: Set<string> = new Set();
   private prefetchTimer: NodeJS.Timeout | null = null;
+  private initialized = false;
 
   constructor() {
-    this.init();
+    // Only initialize in browser environment, not in tests
+    if (typeof window !== 'undefined' && !process.env.VITEST) {
+      this.init();
+    }
   }
 
   /**
    * Initialize service worker and set up event listeners
    */
-  private async init() {
+  async init() {
+    if (this.initialized) return;
+    this.initialized = true;
     if (!('serviceWorker' in navigator)) {
       console.warn('[SW Client] Service Worker not supported');
       return;

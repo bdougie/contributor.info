@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { swClient, usePrefetchRoute, useServiceWorkerStatus, useOnlineStatus, usePrefetchOnInteraction } from './service-worker-client';
 import { renderHook, act } from '@testing-library/react';
+
+// Set VITEST env var before importing to prevent auto-init
+process.env.VITEST = 'true';
+
+import { swClient, usePrefetchRoute, useServiceWorkerStatus, useOnlineStatus, usePrefetchOnInteraction } from './service-worker-client';
 
 // Mock the global objects
 const mockServiceWorker = {
@@ -40,6 +44,13 @@ describe('Service Worker Client', () => {
     // Store original values
     originalNavigator = global.navigator;
     originalWindow = global.window;
+    
+    // Reset the service worker client state
+    (swClient as any).initialized = false;
+    (swClient as any).sw = null;
+    (swClient as any).messageHandlers.clear();
+    (swClient as any).prefetchQueue.clear();
+    (swClient as any).prefetchTimer = null;
 
     // Mock navigator.serviceWorker
     Object.defineProperty(global.navigator, 'serviceWorker', {
@@ -114,8 +125,8 @@ describe('Service Worker Client', () => {
 
   describe('Service Worker Registration', () => {
     it('should register service worker on initialization', async () => {
-      // Wait for async initialization
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Manually initialize since auto-init is disabled in tests
+      await swClient.init();
 
       expect(navigator.serviceWorker.register).toHaveBeenCalledWith(
         '/sw-enhanced.js',
@@ -141,6 +152,8 @@ describe('Service Worker Client', () => {
 
   describe('Route Prefetching', () => {
     it('should batch prefetch requests', async () => {
+      // Initialize first
+      await swClient.init();
       vi.useFakeTimers();
 
       swClient.prefetchRoute('/changelog');
@@ -170,7 +183,9 @@ describe('Service Worker Client', () => {
       vi.useRealTimers();
     });
 
-    it('should map dynamic routes correctly', () => {
+    it('should map dynamic routes correctly', async () => {
+      // Initialize first
+      await swClient.init();
       vi.useFakeTimers();
 
       swClient.prefetchRoute('/owner/repo');
@@ -191,7 +206,8 @@ describe('Service Worker Client', () => {
   });
 
   describe('Cache Management', () => {
-    it('should clear cache when requested', () => {
+    it('should clear cache when requested', async () => {
+      await swClient.init();
       swClient.clearCache('test-cache');
 
       expect(mockServiceWorker.postMessage).toHaveBeenCalledWith(
@@ -202,7 +218,8 @@ describe('Service Worker Client', () => {
       );
     });
 
-    it('should clear all caches when no name specified', () => {
+    it('should clear all caches when no name specified', async () => {
+      await swClient.init();
       swClient.clearCache();
 
       expect(mockServiceWorker.postMessage).toHaveBeenCalledWith(
@@ -320,7 +337,8 @@ describe('Service Worker Client', () => {
         expect(result.current).toHaveProperty('onTouchStart');
       });
 
-      it('should prefetch only once on multiple interactions', () => {
+      it('should prefetch only once on multiple interactions', async () => {
+        await swClient.init();
         vi.useFakeTimers();
         const { result } = renderHook(() => usePrefetchOnInteraction('/test'));
 
@@ -342,7 +360,8 @@ describe('Service Worker Client', () => {
   });
 
   describe('Message Handling', () => {
-    it('should handle CACHE_UPDATED messages', () => {
+    it('should handle CACHE_UPDATED messages', async () => {
+      await swClient.init();
       const handler = vi.fn();
       swClient.on('CACHE_UPDATED', handler);
 
@@ -366,7 +385,8 @@ describe('Service Worker Client', () => {
       );
     });
 
-    it('should handle BACKGROUND_SYNC messages', () => {
+    it('should handle BACKGROUND_SYNC messages', async () => {
+      await swClient.init();
       const handler = vi.fn();
       swClient.on('BACKGROUND_SYNC', handler);
 
@@ -392,7 +412,8 @@ describe('Service Worker Client', () => {
   });
 
   describe('Prefetch Resources', () => {
-    it('should send prefetch message for multiple resources', () => {
+    it('should send prefetch message for multiple resources', async () => {
+      await swClient.init();
       const resources = ['/js/vendor.js', '/js/app.js', '/css/styles.css'];
       
       swClient.prefetchResources(resources);
