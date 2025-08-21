@@ -186,20 +186,14 @@ export default defineConfig(() => ({
             }
           }
           
-          // Handle app code chunking for better code splitting
+          // Handle app code chunking - only split truly independent code
           if (id.includes('/src/')) {
+            // Only split admin/debug since they're lazy loaded with dynamic imports
             if (id.includes('/admin/') || id.includes('/debug/')) {
               return 'app-admin';
             }
-            if (id.includes('/charts/') || id.includes('chart') || id.includes('graph')) {
-              return 'app-charts';
-            }
-            if (id.includes('/spam/') || id.includes('SpamDetection')) {
-              return 'app-spam';
-            }
-            if (id.includes('/progressive-capture/')) {
-              return 'app-progressive';
-            }
+            // Don't split other app code - it uses React components
+            // Let it stay in the main bundle to avoid context issues
           }
         },
       },
