@@ -3,10 +3,66 @@ import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
 
-export default defineConfig(() => ({
+export default defineConfig(({ mode }) => {
+  // CDN configuration - active when building with --mode cdn
+  const useCDN = mode === 'cdn';
+  
+  return {
   base: '/',
   plugins: [
     react(),
+    // Inject CDN import maps and preconnect hints when enabled
+    useCDN && {
+      name: 'cdn-transform',
+      transformIndexHtml(html: string) {
+        // Add CDN preconnect hints
+        const cdnHints = `
+    <!-- CDN Optimization (HTTP/2 multiplexing) -->
+    <link rel="preconnect" href="https://esm.sh" crossorigin>
+    <link rel="dns-prefetch" href="https://esm.sh">`;
+
+        // Add import map for ESM CDN modules
+        const importMap = `
+    <!-- Import map for CDN libraries (reduces bundle by ~400KB) -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.3.1",
+        "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+        "react-dom": "https://esm.sh/react-dom@18.3.1",
+        "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+        "react-router-dom": "https://esm.sh/react-router-dom@6.28.0?deps=react@18.3.1",
+        "@tanstack/react-query": "https://esm.sh/@tanstack/react-query@5.62.8?deps=react@18.3.1",
+        "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.47.10",
+        "recharts": "https://esm.sh/recharts@2.15.0?deps=react@18.3.1"
+      }
+    }
+    </script>`;
+
+        // Insert CDN configuration
+        html = html.replace(
+          '<!-- Performance optimizations -->',
+          '<!-- Performance optimizations -->' + cdnHints
+        );
+        
+        // Try multiple possible script tag patterns
+        if (html.includes('src="/src/main.tsx"')) {
+          html = html.replace(
+            '<script type="module" src="/src/main.tsx"></script>',
+            importMap + '\n    <script type="module" src="/src/main.tsx"></script>'
+          );
+        } else {
+          // In production build, Vite changes the script tag
+          // Insert before the closing </head> tag instead
+          html = html.replace(
+            '</head>',
+            importMap + '\n  </head>'
+          );
+        }
+
+        return html;
+      }
+    },
     imagetools({
       defaultDirectives: (url) => {
         // Process images for WebP optimization
@@ -36,7 +92,7 @@ export default defineConfig(() => ({
     }),
     // Note: Netlify automatically provides Brotli and Gzip compression at the edge,
     // so we don't need vite-plugin-compression for production deployments
-  ],
+  ].filter(Boolean),
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -113,7 +169,17 @@ export default defineConfig(() => ({
     rollupOptions: {
       // Use default tree shaking to fix module loading issues
       // (removing custom treeshake config entirely)
-      // Remove the external configuration as it's causing build issues
+      // Mark CDN libraries as external when CDN is enabled
+      external: useCDN ? [
+        'react',
+        'react/jsx-runtime',
+        'react-dom',
+        'react-dom/client',
+        'react-router-dom',
+        '@tanstack/react-query',
+        '@supabase/supabase-js',
+        'recharts'
+      ] : [],
       output: {
         // Ensure proper module format
         format: 'es',
@@ -147,27 +213,35 @@ export default defineConfig(() => ({
         manualChunks: (id) => {
           // For node_modules, handle package-specific grouping below or return undefined for default chunking
           if (id.includes('node_modules')) {
+            // Skip CDN packages when CDN is enabled
+            if (useCDN) {
+              const cdnPackages = ['react', 'react-dom', 'react-router', '@tanstack/react-query', '@supabase/supabase-js', 'recharts'];
+              if (cdnPackages.some(pkg => id.includes(pkg))) {
+                return undefined; // Let rollup handle these as external
+              }
+            }
+            
             // Check for specific packages that need to be bundled together
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+            if (!useCDN && (id.includes('react') || id.includes('react-dom') || id.includes('react-router'))) {
               return 'vendor-react';
             }
             if (id.includes('@radix-ui')) {
-              return 'vendor-react'; // Bundle with React to avoid forwardRef issues
+              return useCDN ? 'vendor-ui' : 'vendor-react'; // Separate chunk when using CDN
             }
             if (id.includes('@nivo')) {
-              return 'vendor-react'; // Bundle with React to avoid memo issues
+              return useCDN ? 'vendor-charts' : 'vendor-react';
             }
             if (id.includes('recharts')) {
-              return 'vendor-react'; // Recharts also needs React context
+              return useCDN ? undefined : 'vendor-react'; // External when using CDN
             }
             if (id.includes('d3-')) {
-              return 'vendor-react'; // D3 modules used by Recharts need to be together
+              return useCDN ? 'vendor-charts' : 'vendor-react';
             }
             if (id.includes('uplot')) {
-              return 'vendor-react'; // Keep all visualization libraries together
+              return useCDN ? 'vendor-charts' : 'vendor-react';
             }
             if (id.includes('@supabase')) {
-              return 'vendor-supabase';
+              return useCDN ? undefined : 'vendor-supabase'; // External when using CDN
             }
             if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
               return 'vendor-utils';
@@ -199,7 +273,7 @@ export default defineConfig(() => ({
     minify: 'esbuild',
     target: 'es2020', // Modern target with good compatibility
     // Optimize chunk size warnings  
-    chunkSizeWarningLimit: 1300, // Increased to accommodate 1.2MB vendor-react bundle
+    chunkSizeWarningLimit: useCDN ? 500 : 1300, // Lower limit when using CDN
     // Enable compression reporting
     reportCompressedSize: true,
     // Module preload optimization - load minimal React first
@@ -222,7 +296,8 @@ export default defineConfig(() => ({
         });
         // Preload critical chunks in order
         return sorted.filter(dep => 
-          dep.includes('vendor-react') || 
+          (!useCDN && dep.includes('vendor-react')) || // Skip React preload when using CDN
+          (useCDN && dep.includes('vendor-ui')) || // Preload UI components when using CDN
           dep.includes('vendor-utils') ||
           dep.includes('index-')
         );
@@ -240,4 +315,4 @@ export default defineConfig(() => ({
   css: {
     devSourcemap: true,
   },
-}));
+}});

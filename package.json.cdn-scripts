@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "build:cdn": "node scripts/sitemap/generate-sitemap.js && tsc -b && vite build --mode cdn",
+    "build:analyze:cdn": "node scripts/sitemap/generate-sitemap.js && tsc -b && vite build --mode cdn && npx vite-bundle-visualizer"
+  }
+}
