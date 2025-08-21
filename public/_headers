@@ -1,30 +1,62 @@
+## Enhanced Caching Headers - Phase 3 Performance Optimization
+## Aggressive caching strategies for near-instant return visits
+
+# Global security headers
 /*
   X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()
 
-# Force no-cache for HTML pages to fix routing issues
+# HTML pages - Network first with must-revalidate
 /index.html
   Cache-Control: no-cache, no-store, must-revalidate
   Pragma: no-cache
   Expires: 0
+  Content-Type: text/html; charset=utf-8
   
 /docs/*
   Cache-Control: no-cache, no-store, must-revalidate
   Pragma: no-cache
   Expires: 0
+  Content-Type: text/html; charset=utf-8
 
+# Service Workers - Never cache (critical for updates)
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+  Service-Worker-Allowed: /
+  Content-Type: text/javascript; charset=utf-8
+
+/sw-enhanced.js
+  Cache-Control: no-cache, no-store, must-revalidate
+  Service-Worker-Allowed: /
+  Content-Type: text/javascript; charset=utf-8
+
+# JavaScript modules - Aggressive caching for production builds
 /*.js
   Content-Type: text/javascript; charset=utf-8
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
   X-Content-Type-Options: nosniff
 
 /*.mjs
   Content-Type: text/javascript; charset=utf-8
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
   X-Content-Type-Options: nosniff
 
+# Vendor chunks - Immutable 1 year cache
+/js/vendor-*.js
+  Content-Type: text/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
+
+# App chunks - Long cache with revalidation
 /js/*.js
   Content-Type: text/javascript; charset=utf-8
   Cache-Control: public, max-age=31536000, immutable
   X-Content-Type-Options: nosniff
 
+# Vite build assets - Immutable (hashed filenames)
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
@@ -34,7 +66,7 @@
   X-Content-Type-Options: nosniff
 
 /assets/*.css
-  Content-Type: text/css
+  Content-Type: text/css; charset=utf-8
   Cache-Control: public, max-age=31536000, immutable
 
 # Image caching headers for performance optimization
@@ -80,14 +112,63 @@
   Content-Type: image/x-icon
   Cache-Control: public, max-age=31536000, immutable
 
-# Generic image paths
+# Generic image paths - Aggressive caching with stale-while-revalidate
 /images/*
-  Cache-Control: public, max-age=604800, must-revalidate
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
   Accept-CH: DPR, Width, Viewport-Width
   Vary: Accept, DPR, Width
 
+# Icons - Very long cache
+/icons/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+  Accept-CH: DPR, Width, Viewport-Width
+
+# Fonts - Immutable cache for web fonts
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: font/woff2
+  
+/*.woff
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: font/woff
+
+/*.ttf
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: font/ttf
+
+/*.eot
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: application/vnd.ms-fontobject
+
+# JSON data - Short cache with revalidation
 /*.json
-  Content-Type: application/json
+  Content-Type: application/json; charset=utf-8
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
 
 /manifest.json
-  Content-Type: application/manifest+json
+  Content-Type: application/manifest+json; charset=utf-8
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+
+# Sitemaps - Daily cache
+/sitemap.xml
+  Content-Type: application/xml; charset=utf-8
+  Cache-Control: public, max-age=86400, stale-while-revalidate=86400
+
+/sitemap-*.xml
+  Content-Type: application/xml; charset=utf-8
+  Cache-Control: public, max-age=86400, stale-while-revalidate=86400
+
+# Offline fallback page
+/offline.html
+  Content-Type: text/html; charset=utf-8
+  Cache-Control: public, max-age=3600, must-revalidate
+
+# API responses - No caching (handled by service worker)
+/api/*
+  Cache-Control: no-cache, must-revalidate
+  Content-Type: application/json; charset=utf-8
+
+# Netlify Functions
+/.netlify/functions/*
+  Cache-Control: no-cache, must-revalidate
+  Content-Type: application/json; charset=utf-8
