@@ -142,17 +142,80 @@ export default defineConfig(() => ({
         },
         // Allow modules to be properly hoisted for correct initialization order
         hoistTransitiveImports: true,
-        // Minimal manual chunking to avoid circular dependencies
-        // Only split the largest/most problematic libraries
-        manualChunks: {
-          // Keep React ecosystem together
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          // Separate chart libraries as they're large and rarely change
-          'vendor-charts': ['recharts', 'uplot'],
-          // Nivo scatterplot in its own chunk (lazy loaded)
-          'nivo-scatterplot': ['@nivo/scatterplot'],
-          // Exclude embeddings completely
-          'embeddings-excluded': ['@xenova/transformers', 'onnxruntime-web']
+        // Optimized manual chunking for better performance
+        manualChunks: (id) => {
+          // Handle node_modules packages
+          if (id.includes('node_modules')) {
+            // React ecosystem
+            if (id.includes('react') && !id.includes('@radix-ui')) {
+              return 'vendor-react';
+            }
+            
+            // Radix UI components
+            if (id.includes('@radix-ui')) {
+              return 'vendor-ui';
+            }
+            
+            // Utility libraries
+            if (id.includes('clsx') || id.includes('tailwind-merge') || 
+                id.includes('class-variance-authority') || id.includes('date-fns')) {
+              return 'vendor-utils';
+            }
+            
+            // Supabase
+            if (id.includes('@supabase')) {
+              return 'vendor-supabase';
+            }
+            
+            // Chart libraries
+            if (id.includes('recharts') || id.includes('uplot') || 
+                id.includes('d3-scale') || id.includes('d3-shape') || id.includes('d3-')) {
+              return 'vendor-charts';
+            }
+            
+            // Nivo
+            if (id.includes('@nivo')) {
+              return 'nivo-scatterplot';
+            }
+            
+            // Embeddings (excluded)
+            if (id.includes('@xenova/transformers') || id.includes('onnxruntime')) {
+              return 'embeddings-excluded';
+            }
+            
+            // Other large libraries
+            if (id.includes('markdown') || id.includes('remark') || id.includes('rehype')) {
+              return 'vendor-markdown';
+            }
+            
+            // Sentry monitoring
+            if (id.includes('@sentry')) {
+              return 'vendor-monitoring';
+            }
+          }
+          
+          // Handle app code chunking
+          if (id.includes('/src/')) {
+            // Admin/debug features (lazy loaded)
+            if (id.includes('/admin/') || id.includes('/debug/')) {
+              return 'app-admin';
+            }
+            
+            // Chart components
+            if (id.includes('/charts/') || id.includes('chart') || id.includes('graph')) {
+              return 'app-charts';
+            }
+            
+            // Spam detection features
+            if (id.includes('/spam/') || id.includes('SpamDetection')) {
+              return 'app-spam';
+            }
+            
+            // Progressive capture features
+            if (id.includes('/progressive-capture/')) {
+              return 'app-progressive';
+            }
+          }
         },
       },
     },
