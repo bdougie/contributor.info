@@ -70,3 +70,22 @@ $$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION is_avatar_cache_valid IS 'Checks if avatar cache is valid (not expired)';
 COMMENT ON FUNCTION get_cached_avatar_url IS 'Returns cached avatar URL if valid, null if expired';
 COMMENT ON FUNCTION update_avatar_cache IS 'Updates avatar cache with TTL expiration';
+
+-- Add index for faster avatar cache lookups
+CREATE INDEX IF NOT EXISTS idx_contributors_avatar_cache 
+ON contributors(github_id, avatar_cache_expires_at) 
+WHERE avatar_cached_at IS NOT NULL;
+
+-- Add RLS policies for avatar cache columns (read-only for public)
+ALTER TABLE contributors ENABLE ROW LEVEL SECURITY;
+
+-- Allow public read access to avatar cache
+CREATE POLICY "Avatar cache is viewable by everyone" 
+ON contributors FOR SELECT 
+USING (true);
+
+-- Only service role can update avatar cache
+CREATE POLICY "Avatar cache updates require service role" 
+ON contributors FOR UPDATE 
+USING (auth.jwt() ->> 'role' = 'service_role')
+WITH CHECK (auth.jwt() ->> 'role' = 'service_role');
