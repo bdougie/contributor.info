@@ -142,10 +142,10 @@ export default defineConfig(() => ({
         },
         // Allow modules to be properly hoisted for correct initialization order
         hoistTransitiveImports: true,
-        // Hybrid approach - use object mapping for vendor libraries (more stable)
-        // and function for app code splitting
+        // Hybrid approach - use function-based chunking for all packages
+        // to ensure proper grouping of React ecosystem libraries
         manualChunks: (id) => {
-          // For node_modules, return undefined to let the object mapping handle it
+          // For node_modules, handle package-specific grouping below or return undefined for default chunking
           if (id.includes('node_modules')) {
             // Check for specific packages that need to be bundled together
             if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
@@ -199,7 +199,7 @@ export default defineConfig(() => ({
     minify: 'esbuild',
     target: 'es2020', // Modern target with good compatibility
     // Optimize chunk size warnings  
-    chunkSizeWarningLimit: 1000, // Accepting larger chunks for reliability over micro-optimizations
+    chunkSizeWarningLimit: 1300, // Increased to accommodate 1.2MB vendor-react bundle
     // Enable compression reporting
     reportCompressedSize: true,
     // Module preload optimization - load minimal React first

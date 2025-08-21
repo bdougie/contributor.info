@@ -40,6 +40,19 @@ function startDevServer() {
     });
 
     devServer.on('error', reject);
+    
+    // Handle server crash before becoming ready
+    devServer.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Dev server exited with code ${code}`));
+      }
+    });
+    
+    devServer.on('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Dev server exited unexpectedly with code ${code}`));
+      }
+    });
   });
 }
 

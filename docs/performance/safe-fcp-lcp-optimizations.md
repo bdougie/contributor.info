@@ -16,13 +16,13 @@
 2. **[Bundle Splitting Attempt (2025-08-21)](../postmortem/bundle-splitting-attempt-2025-08-21.md)**: Confirmed through extensive testing
 
 ### Confirmed Constraints
-Through multiple attempts, we've confirmed these libraries CANNOT be separated from React:
-- **Radix UI**: Uses `React.forwardRef`
-- **Nivo**: Uses `React.memo`
-- **Recharts/D3**: Hidden React dependencies
-- **App Components**: Use `React.createContext`
+Through multiple attempts in this specific implementation, we've found that these libraries cause initialization errors when separated from React in our Vite build configuration:
+- **Radix UI**: Uses `React.forwardRef` at initialization
+- **Nivo**: Uses `React.memo` at initialization
+- **Recharts/D3**: Complex interdependencies with React internals
+- **App Components**: Use `React.createContext` and other hooks
 
-React and all React-dependent libraries MUST stay bundled together in a ~1.2MB vendor chunk.
+In our current implementation, React and all React-dependent UI/visualization libraries are bundled together, resulting in a ~1.2MB vendor chunk.
 
 ## Safe Optimization Strategies
 

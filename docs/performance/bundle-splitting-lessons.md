@@ -5,7 +5,7 @@
 
 ## The Core Lesson
 
-**React's architecture fundamentally constrains how you can split bundles.** Any code that uses React APIs must be initialized together with React itself.
+**React's architecture fundamentally constrains how you can split bundles.** Libraries that directly use React APIs (like forwardRef, memo, createContext) must be loaded after React is available. While React components can be code-split and lazily loaded once React is present, libraries with initialization-time dependencies on React APIs must be bundled together or carefully ordered to prevent initialization errors.
 
 ## What DOESN'T Work ❌
 
@@ -217,7 +217,7 @@ If bundle size is critical:
 
 ## Conclusion
 
-The fundamental lesson: **React's architecture creates a natural ~1.2MB floor for bundle size** when including a full UI ecosystem. Attempts to break this apart lead to initialization failures.
+The fundamental lesson: **In this specific implementation, bundling React with all UI libraries and chart dependencies results in a ~1.2MB vendor bundle**. This is not a React limitation but rather the combined size of React (45KB min+gzip), Radix UI, Recharts, Nivo, D3, and other visualization libraries. Attempts to break this apart led to initialization failures due to complex interdependencies.
 
 Accept this constraint and focus optimization efforts on:
 - Route-based code splitting

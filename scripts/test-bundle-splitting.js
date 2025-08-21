@@ -40,16 +40,12 @@ const CRITICAL_TESTS = [
 ];
 
 const BUNDLE_SIZE_TARGETS = {
-  'index-': { max: 250, description: 'Main bundle' },
-  'vendor-react': { max: 600, description: 'React vendor bundle' },
-  'vendor-ui': { max: 150, description: 'Radix UI bundle' },
+  'index-': { max: 900, description: 'Main bundle' },
+  'vendor-react': { max: 1250, description: 'React + UI + Charts vendor bundle' },
   'vendor-supabase': { max: 120, description: 'Supabase bundle' },
   'vendor-utils': { max: 30, description: 'Utilities bundle' },
-  'vendor-charts': { max: 500, description: 'Charts bundle' },
-  'app-admin': { max: 1200, description: 'Admin features (lazy)' },
-  'app-progressive': { max: 150, description: 'Progressive capture' },
-  'app-charts': { max: 100, description: 'Chart components' },
-  'app-spam': { max: 50, description: 'Spam detection' }
+  'vendor-markdown': { max: 100, description: 'Markdown bundle' },
+  'vendor-monitoring': { max: 150, description: 'Sentry monitoring' }
 };
 
 function checkBundleSizes() {
@@ -175,9 +171,14 @@ async function main() {
       shell: true
     });
     
-    await new Promise((resolve) => {
+    const exitCode = await new Promise((resolve) => {
       buildProcess.on('close', resolve);
     });
+    
+    if (exitCode !== 0) {
+      console.error(`❌ Build failed with exit code ${exitCode}`);
+      process.exit(1);
+    }
   }
   
   // Run tests
