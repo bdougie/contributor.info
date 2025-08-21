@@ -138,6 +138,9 @@ async function handleRequest(req: Request): Promise<Response> {
     let hasMore = true;
     let cursor = resumeFrom;
     
+    // If resuming, we need to find where we left off
+    const resumeDate = resumeFrom ? new Date(resumeFrom) : null;
+    
     while (hasMore && pullRequests.length < prLimit) {
       // Check execution time to avoid timeout (leave 10s buffer)
       const elapsedSeconds = (Date.now() - startTime) / 1000;
@@ -192,18 +195,36 @@ async function handleRequest(req: Request): Promise<Response> {
         break;
       }
       
-      // Filter by date if not full sync
+      // Filter by date and resume cursor
+      let reachedResumePoint = false;
       const filteredPrs = prs.filter(pr => {
         const prDate = new Date(pr.updated_at);
+        
+        // If resuming, skip PRs until we get past the ones we already processed
+        if (resumeDate) {
+          // Since PRs are sorted by updated_at DESC, we skip newer PRs until we reach the resume point
+          if (prDate > resumeDate) {
+            return false; // Skip PRs newer than resume point (already processed)
+          } else if (prDate.getTime() === resumeDate.getTime()) {
+            reachedResumePoint = true;
+            return false; // Skip the PR at the exact resume point (already processed)
+          }
+        }
+        
         return prDate >= cutoffDate;
       });
       
       pullRequests.push(...filteredPrs);
       
-      // Check if we've gone past the cutoff date
-      if (!fullSync && filteredPrs.length < prs.length) {
+      // Check if we should stop fetching
+      if (reachedResumePoint) {
+        // We've reached the resume point, all older PRs are already processed
+        hasMore = false;
+      } else if (!fullSync && filteredPrs.length < prs.length) {
+        // We've gone past the cutoff date
         hasMore = false;
       } else if (prs.length < 100) {
+        // No more pages available
         hasMore = false;
       } else {
         page++;
@@ -276,13 +297,12 @@ async function handleRequest(req: Request): Promise<Response> {
       })
       .eq('id', repoData.id)
     
-    // Clear sync progress if completed
-    if (!resumeFrom) {
-      await supabase
-        .from('sync_progress')
-        .delete()
-        .eq('repository_id', repoData.id)
-    }
+    // Clear sync progress if this was a complete sync (not partial)
+    // Only clear if we processed everything and didn't hit the time limit
+    await supabase
+      .from('sync_progress')
+      .delete()
+      .eq('repository_id', repoData.id)
     
     // Return success response
     return new Response(
