@@ -7,35 +7,37 @@ import { MetaTagsProvider, SchemaMarkup } from './components/common/layout';
 
 // Sentry removed - was causing React hooks conflicts
 
-// Enable service worker for offline support (production only)
+// Import service worker client for enhanced caching
+import { swClient } from './lib/service-worker-client';
+
+// Enable enhanced service worker for optimal performance (production only)
 // Disabled in development to prevent caching issues
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => {
-        console.log('SW registered: ', registration);
-        
-        // Check for updates on page focus
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // New service worker available, notify user
-                console.log('New content available, refresh to update');
-              }
-            });
-          }
-        });
-        
-        // Check for updates periodically
-        setInterval(() => {
-          registration.update();
-        }, 60 * 60 * 1000); // Check every hour
-      })
-      .catch(registrationError => {
-        console.log('SW registration failed: ', registrationError);
-      });
+    // The service worker client handles registration internally
+    // It will use sw-enhanced.js with aggressive caching strategies
+    
+    // Set up connection change handler for offline support
+    swClient.onConnectionChange((online) => {
+      if (online) {
+        console.log('Connection restored');
+        // Could show a toast notification here
+      } else {
+        console.log('Connection lost - offline mode active');
+        // Could show offline indicator
+      }
+    });
+    
+    // Listen for cache updates
+    swClient.on('CACHE_UPDATED', (event: any) => {
+      console.log('Cache updated for:', event.url);
+      // Could trigger a subtle UI update here
+    });
+    
+    // Listen for background sync
+    swClient.on('BACKGROUND_SYNC', (event: any) => {
+      console.log('Background sync:', event.status);
+    });
   });
 }
 
