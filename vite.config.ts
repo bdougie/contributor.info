@@ -2,6 +2,7 @@ import path from 'path';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
+import { viteCDNPlugin } from './src/vite-plugin-cdn';
 
 export default defineConfig(({ mode }) => {
   // CDN configuration - active when building with --mode cdn
@@ -11,8 +12,10 @@ export default defineConfig(({ mode }) => {
   base: '/',
   plugins: [
     react(),
-    // Inject CDN import maps and preconnect hints when enabled
-    useCDN && {
+    // Use CDN plugin when in CDN mode
+    useCDN && viteCDNPlugin(),
+    // Original import map approach (disabled for now)
+    false && useCDN && {
       name: 'cdn-transform',
       transformIndexHtml(html: string) {
         // Add CDN preconnect hints
@@ -169,17 +172,8 @@ export default defineConfig(({ mode }) => {
     rollupOptions: {
       // Use default tree shaking to fix module loading issues
       // (removing custom treeshake config entirely)
-      // Mark CDN libraries as external when CDN is enabled
-      external: useCDN ? [
-        'react',
-        'react/jsx-runtime',
-        'react-dom',
-        'react-dom/client',
-        'react-router-dom',
-        '@tanstack/react-query',
-        '@supabase/supabase-js',
-        'recharts'
-      ] : [],
+      // External configuration is handled by the CDN plugin when enabled
+      external: [],
       output: {
         // Ensure proper module format
         format: 'es',
