@@ -213,7 +213,10 @@ export class SyncService {
     });
     
     if (!response.ok) {
-      const error = await response.json();
+      // Try to parse error as JSON, but handle non-JSON responses
+      const error = await response.json().catch(() => ({ 
+        error: `HTTP ${response.status}: ${response.statusText}` 
+      }));
       throw new Error(error.error || 'Sync failed');
     }
     
@@ -245,8 +248,6 @@ export class SyncService {
       }
     );
     
-    const result = await response.json();
-    
     if (!response.ok) {
       // Handle 404 gracefully - function not deployed yet
       if (response.status === 404) {
@@ -258,8 +259,14 @@ export class SyncService {
         };
       }
       
+      // Try to parse error as JSON, but handle non-JSON responses
+      const result = await response.json().catch(() => ({ 
+        error: `HTTP ${response.status}: ${response.statusText}` 
+      }));
       throw new Error(result.error || 'Supabase function failed');
     }
+    
+    const result = await response.json();
     
     return { ...result, router: 'supabase' };
   }

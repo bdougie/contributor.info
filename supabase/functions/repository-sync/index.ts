@@ -144,7 +144,8 @@ async function handleRequest(req: Request): Promise<Response> {
     while (hasMore && pullRequests.length < prLimit) {
       // Check execution time to avoid timeout (leave 10s buffer)
       const elapsedSeconds = (Date.now() - startTime) / 1000;
-      const maxExecutionTime = Deno.env.get('SUPABASE_FUNCTION_TIMEOUT') === '150' ? 140 : 40; // 10s buffer
+      const timeout = parseInt(Deno.env.get('SUPABASE_FUNCTION_TIMEOUT') || '50', 10);
+      const maxExecutionTime = timeout - 10; // Leave 10s buffer for cleanup
       
       if (elapsedSeconds > maxExecutionTime) {
         // Save progress and return partial results
