@@ -2,7 +2,10 @@ import { useState, useCallback, useEffect } from "react"
 import { ChevronLeft, Users } from '@/components/ui/icon';
 import { ResponsiveContainer, Treemap, Tooltip } from "recharts";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
+import { ProgressiveChart } from "@/components/ui/charts/ProgressiveChart";
+import { SkeletonChart } from "@/components/skeletons/base/skeleton-chart";
+import { supabaseAvatarCache } from "@/lib/supabase-avatar-cache";
 import type { QuadrantNode, HierarchicalData } from "@/hooks/use-hierarchical-distribution";
 import type { PullRequest } from "@/lib/types";
 import { getPrimaryLanguage } from "@/lib/language-utils";
@@ -40,6 +43,67 @@ export function DistributionTreemapEnhanced({
   const [hoveredPRs, setHoveredPRs] = useState<PullRequest[]>([]);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [viewAnimation, setViewAnimation] = useState<"drill-in" | "drill-out" | "">("");
+  const [cachedAvatars, setCachedAvatars] = useState<Map<number, string>>(new Map());
+  
+  // Load cached avatars for better performance
+  useEffect(() => {
+    const loadAvatars = async () => {
+      if (!data) return;
+      
+      // Extract unique contributors with their GitHub IDs
+      const contributors = new Map<number, string>();
+      
+      const extractContributors = (node: any) => {
+        if (node.login && node.avatar_url) {
+          // Try to extract GitHub ID from avatar URL or use a hash
+          const match = node.avatar_url.match(/u\/(\d+)/);
+          const githubId = match ? parseInt(match[1]) : 
+            // Fallback: use a deterministic hash based on login
+            Math.abs(node.login.split('').reduce((a: number, b: string) => {
+              a = ((a << 5) - a) + b.charCodeAt(0);
+              return a & a;
+            }, 0));
+          
+          contributors.set(githubId, node.avatar_url);
+        }
+        if (node.children) {
+          node.children.forEach(extractContributors);
+        }
+      };
+      
+      if (data.children) {
+        data.children.forEach((quadrant: QuadrantNode) => {
+          if (quadrant.children) {
+            quadrant.children.forEach(extractContributors);
+          }
+        });
+      }
+      
+      // Load from cache
+      const githubIds = Array.from(contributors.keys());
+      if (githubIds.length > 0) {
+        try {
+          const cached = await supabaseAvatarCache.getAvatarUrls(
+            githubIds.map(id => ({
+              githubId: id,
+              username: '',
+              fallbackUrl: contributors.get(id)
+            }))
+          );
+          
+          const avatarMap = new Map<number, string>();
+          cached.forEach((result, githubId) => {
+            avatarMap.set(githubId, result.url);
+          });
+          setCachedAvatars(avatarMap);
+        } catch (error) {
+          console.error('Failed to load cached avatars:', error);
+        }
+      }
+    };
+    
+    loadAvatars();
+  }, [data]);
   
   // Handle view transitions
   useEffect(() => {
@@ -376,26 +440,29 @@ export function DistributionTreemapEnhanced({
                     onMouseLeave={handleMouseLeave}
                   >
                     <div style={{ background: 'transparent', width: '100%', height: '100%' }}>
-                      <Avatar
+                      <OptimizedAvatar
                         className="w-full h-full border-2 border-white cursor-pointer"
-                        style={{
-                          width: Math.min(width, height) * 0.6,
-                          height: Math.min(width, height) * 0.6,
-                          minWidth: "24px",
-                          minHeight: "24px",
-                          maxWidth: "60px",
-                          maxHeight: "60px",
-                          background: 'transparent',
-                        }}
-                      >
-                        <AvatarImage
-                          src={avatar_url}
-                          alt={login || "Contributor"}
-                        />
-                        <AvatarFallback className="bg-background text-xs">
-                          {(login || "U").slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                        src={(() => {
+                          // Try to get cached avatar URL
+                          if (avatar_url) {
+                            const match = avatar_url.match(/u\/(\d+)/);
+                            const githubId = match ? parseInt(match[1]) : 
+                              // Fallback: use a deterministic hash based on login
+                              Math.abs((login || '').split('').reduce((a: number, b: string) => {
+                                a = ((a << 5) - a) + b.charCodeAt(0);
+                                return a & a;
+                              }, 0));
+                            
+                            return cachedAvatars.get(githubId) || avatar_url;
+                          }
+                          return avatar_url;
+                        })()}
+                        alt={login || "Contributor"}
+                        fallback={(login || "U").slice(0, 2).toUpperCase()}
+                        size={Math.min(60, Math.min(width, height) * 0.6) as any}
+                        lazy={true}
+                        priority={false}
+                      />
                     </div>
                   </foreignObject>
                 )
@@ -405,7 +472,7 @@ export function DistributionTreemapEnhanced({
         </g>
       );
     },
-    [currentView, selectedQuadrant, onDrillDown, onContributorClick, onPRClick, onNodeClick, isTransitioning, nodeHoverStates]
+    [currentView, selectedQuadrant, onDrillDown, onContributorClick, onPRClick, onNodeClick, isTransitioning, nodeHoverStates, cachedAvatars]
   );
 
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: any }> }) => {
@@ -560,21 +627,35 @@ export function DistributionTreemapEnhanced({
             viewAnimation === "drill-out" ? "treemap-drill-out" : ""
           }`}
         >
-          <ResponsiveContainer width="100%" height={420} minHeight={420}>
-            <Treemap
-              data={getTreemapData()}
-              dataKey="value"
-              aspectRatio={4 / 3}
-              content={CustomTreemapContent as any}
-              animationBegin={0}
-              animationDuration={300}
-              isAnimationActive={true}
-            >
+          <ProgressiveChart
+            skeleton={
+              <SkeletonChart 
+                variant="quadrant" 
+                height="lg"
+                showAxes={false}
+              />
+            }
+            highFidelity={
+              <ResponsiveContainer width="100%" height={420} minHeight={420}>
+                <Treemap
+                  data={getTreemapData()}
+                  dataKey="value"
+                  aspectRatio={4 / 3}
+                  content={CustomTreemapContent as any}
+                  animationBegin={0}
+                  animationDuration={300}
+                  isAnimationActive={true}
+                >
               {(currentView === "quadrant" || currentView === "contributor") && (
                 <Tooltip content={<CustomTooltip />} />
               )}
             </Treemap>
-          </ResponsiveContainer>
+              </ResponsiveContainer>
+            }
+            priority={false}
+            highFiDelay={200}
+            className="h-[420px] w-full"
+          />
         </div>
       </div>
     </div>
