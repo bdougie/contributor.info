@@ -66,6 +66,20 @@
   node_bundler = "esbuild"
 
 # Specific API routes (these must come first)
+
+# GitHub webhook redirects to Fly.io service
+[[redirects]]
+  from = "/api/github-webhook"
+  to = "https://contributor-info-webhooks.fly.dev/webhook"
+  status = 307
+  force = true
+
+[[redirects]]
+  from = "/api/github/webhook"
+  to = "https://contributor-info-webhooks.fly.dev/webhook"
+  status = 307
+  force = true
+
 [[redirects]]
   from = "/api/health"
   to = "/.netlify/functions/health-check"
