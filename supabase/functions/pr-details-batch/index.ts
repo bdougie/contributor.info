@@ -22,11 +22,11 @@ interface BatchRequest {
 const GITHUB_GRAPHQL_API = 'https://api.github.com/graphql';
 
 // GraphQL query for batch fetching PR details with reviews and comments
-const BATCH_PR_QUERY = `
-  query GetPRDetails($owner: String!, $name: String!, $numbers: [Int!]!) {
+// Query for a single PR - we'll batch these
+const SINGLE_PR_QUERY = `
+  query GetPRDetail($owner: String!, $name: String!, $number: Int!) {
     repository(owner: $owner, name: $name) {
-      pullRequests: pullRequestsCollection(numbers: $numbers) {
-        nodes {
+      pullRequest(number: $number) {
           id
           databaseId
           number
@@ -111,7 +111,6 @@ const BATCH_PR_QUERY = `
           }
         }
       }
-    }
     rateLimit {
       limit
       cost
@@ -251,45 +250,50 @@ async function handleRequest(req: Request): Promise<Response> {
       
       const batch = numbersToProcess.slice(i, i + batchSize);
       
-      // Execute GraphQL query for batch
-      const response = await fetch(GITHUB_GRAPHQL_API, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${githubToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: BATCH_PR_QUERY,
-          variables: { owner, name, numbers: batch }
+      // Process each PR individually (GitHub GraphQL doesn't support batch PR queries)
+      for (const prNumber of batch) {
+        // Execute GraphQL query for single PR
+        const response = await fetch(GITHUB_GRAPHQL_API, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${githubToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query: SINGLE_PR_QUERY,
+            variables: { owner, name, number: prNumber }
+          })
         })
-      })
-      
-      if (!response.ok) {
-        console.error(`GitHub API error for batch:`, response.status)
-        totalErrors += batch.length;
-        continue;
-      }
-      
-      const result = await response.json();
-      
-      if (result.errors) {
-        console.error(`GraphQL errors:`, result.errors)
-        totalErrors += batch.length;
-        continue;
-      }
-      
-      // Check rate limit
-      const rateLimit = result.data.rateLimit;
-      if (rateLimit.remaining < 5) {
-        console.warn('Very low rate limit:', rateLimit.remaining)
-        // Could implement rate limit pause here
-      }
-      
-      // Process each PR in the batch
-      const pullRequests = result.data.repository.pullRequests.nodes;
-      
-      for (const pr of pullRequests) {
-        if (!pr) continue;
+        
+        if (!response.ok) {
+          console.error(`GitHub API error for PR #${prNumber}:`, response.status)
+          totalErrors++;
+          continue;
+        }
+        
+        const result = await response.json();
+        
+        if (result.errors) {
+          console.error(`GraphQL errors for PR #${prNumber}:`, result.errors)
+          totalErrors++;
+          continue;
+        }
+        
+        // Check rate limit
+        const rateLimit = result.data.rateLimit;
+        if (rateLimit.remaining < 5) {
+          console.warn('Very low rate limit:', rateLimit.remaining)
+          // Could implement rate limit pause here
+        }
+        
+        // Process the PR
+        const pr = result.data.repository.pullRequest;
+        
+        if (!pr) {
+          console.warn(`PR #${prNumber} not found`);
+          totalErrors++;
+          continue;
+        }
         
         try {
           // Ensure author exists
@@ -470,12 +474,25 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 }
 
+// Simple hash function to generate deterministic IDs from usernames
+function hashCode(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  // Ensure positive number and add offset to avoid conflicts with real GitHub IDs
+  return Math.abs(hash) + 1000000000;
+}
+
 // Helper function to ensure contributor exists
 async function ensureContributor(supabase: any, author: any, isBot: boolean): Promise<string | null> {
   if (!author) return null;
   
-  // For minimal author data (comments), generate a temporary ID
-  const githubId = author.databaseId || Math.floor(Math.random() * 1000000);
+  // If no databaseId, use a deterministic hash based on username
+  // This prevents collisions while ensuring consistency
+  const githubId = author.databaseId || hashCode(author.login);
   
   const { data, error } = await supabase
     .from('contributors')

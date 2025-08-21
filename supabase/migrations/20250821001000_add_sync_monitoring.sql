@@ -177,10 +177,10 @@ ALTER TABLE sync_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE batch_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sync_metrics ENABLE ROW LEVEL SECURITY;
 
--- Allow public read access to metrics (for monitoring dashboards)
-CREATE POLICY "Public can read sync metrics" 
+-- Only authenticated users can read sync metrics (prevents data leakage)
+CREATE POLICY "Authenticated users can read sync metrics" 
 ON sync_metrics FOR SELECT 
-USING (true);
+USING (auth.role() IN ('authenticated', 'service_role'));
 
 -- Only service role can write to monitoring tables
 CREATE POLICY "Service role can manage sync progress" 
@@ -197,8 +197,8 @@ CREATE POLICY "Service role can insert sync metrics"
 ON sync_metrics FOR INSERT 
 WITH CHECK (auth.role() = 'service_role');
 
--- Grant permissions
-GRANT SELECT ON sync_metrics TO anon, authenticated;
+-- Grant permissions (only authenticated, not anon)
+GRANT SELECT ON sync_metrics TO authenticated;
 GRANT ALL ON sync_progress TO service_role;
 GRANT ALL ON batch_progress TO service_role;
 GRANT ALL ON sync_metrics TO service_role;
