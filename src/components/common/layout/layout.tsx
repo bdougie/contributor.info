@@ -12,6 +12,7 @@ import {
 import { LazyNavigationSheet } from "./lazy-navigation-sheet";
 import { supabase } from "@/lib/supabase";
 import { useTimeRangeStore } from "@/lib/time-range-store";
+import { usePrefetchOnIntent, prefetchCriticalRoutes } from "@/lib/route-prefetch";
 
 export default function Layout() {
   const { timeRange, setTimeRange } = useTimeRangeStore();
@@ -19,6 +20,10 @@ export default function Layout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Prefetch handlers for navigation links
+  const changelogPrefetch = usePrefetchOnIntent('/changelog');
+  const docsPrefetch = usePrefetchOnIntent('/docs');
   
   // Check if current page needs time range controls
   const needsTimeRange = () => {
@@ -39,6 +44,9 @@ export default function Layout() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(!!session);
     });
+    
+    // Prefetch critical routes after initial load
+    prefetchCriticalRoutes();
 
     return () => subscription.unsubscribe();
   }, []);
@@ -64,6 +72,7 @@ export default function Layout() {
                     to="/changelog"
                     onClick={() => setIsMenuOpen(false)}
                     className="text-base hover:text-primary transition-colors"
+                    {...changelogPrefetch}
                   >
                     Changelog
                   </Link>
@@ -71,6 +80,7 @@ export default function Layout() {
                     to="/docs"
                     onClick={() => setIsMenuOpen(false)}
                     className="text-base hover:text-primary transition-colors"
+                    {...docsPrefetch}
                   >
                     Docs
                   </Link>
