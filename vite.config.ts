@@ -146,14 +146,10 @@ export default defineConfig(() => ({
         manualChunks: (id) => {
           // Handle node_modules packages
           if (id.includes('node_modules')) {
-            // React ecosystem
-            if (id.includes('react') && !id.includes('@radix-ui')) {
+            // React ecosystem - MUST include Radix UI to avoid loading order issues
+            // Radix UI depends on React, so they must be in the same chunk
+            if (id.includes('react') || id.includes('@radix-ui')) {
               return 'vendor-react';
-            }
-            
-            // Radix UI components
-            if (id.includes('@radix-ui')) {
-              return 'vendor-ui';
             }
             
             // Utility libraries
@@ -237,17 +233,21 @@ export default defineConfig(() => ({
         // Preload only the absolute minimum for initial render
         // Note: These names must match the keys in manualChunks above
         const sorted = deps.sort((a, b) => {
-          // Prioritize vendor-react chunk (contains react, react-dom, react-router-dom)
+          // Prioritize vendor-react chunk (contains react, react-dom, react-router-dom, and Radix UI)
           if (a.includes('vendor-react')) return -1;
           if (b.includes('vendor-react')) return 1;
+          // Then load vendor-utils for classnames
+          if (a.includes('vendor-utils')) return -1;
+          if (b.includes('vendor-utils')) return 1;
           // Then load main app chunk
           if (a.includes('index-')) return -1;
           if (b.includes('index-')) return 1;
           return 0;
         });
-        // Only preload the critical vendor-react chunk and main app
+        // Preload critical chunks in order
         return sorted.filter(dep => 
           dep.includes('vendor-react') || 
+          dep.includes('vendor-utils') ||
           dep.includes('index-')
         );
       }
