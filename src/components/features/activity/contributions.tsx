@@ -1,9 +1,11 @@
-import { useState, useContext, useEffect, useRef, Suspense, lazy } from "react";
+import { useState, useContext, useEffect, useRef, lazy } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { animated } from "@react-spring/web";
 import { supabaseAvatarCache } from "@/lib/supabase-avatar-cache";
+import { ProgressiveChart } from "@/components/ui/charts/ProgressiveChart";
+import { SkeletonChart } from "@/components/skeletons/base/skeleton-chart";
 
 // Lazy load the heavy visualization component
 const ResponsiveScatterPlot = lazy(() => 
@@ -429,12 +431,16 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           </div>
         </div>
         <div className={`${isMobile ? "h-[280px]" : "h-[400px]"} w-full overflow-hidden relative`}>
-          <Suspense fallback={
-            <div className="flex items-center justify-center h-full w-full">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
-            </div>
-          }>
-            <ResponsiveScatterPlot
+          <ProgressiveChart
+            skeleton={
+              <SkeletonChart 
+                variant="scatter" 
+                height={isMobile ? "sm" : "lg"}
+                showAxes={true}
+              />
+            }
+            highFidelity={
+              <ResponsiveScatterPlot
               nodeSize={isMobile ? 20 : 35}
               data={data}
               margin={{
@@ -495,7 +501,11 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                 },
               }}
             />
-          </Suspense>
+            }
+            priority={false}
+            highFiDelay={300}
+            className="h-full w-full"
+          />
         </div>
     </div>
   );
