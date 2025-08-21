@@ -1,5 +1,5 @@
 import { PullRequestActivity } from "@/lib/types";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
 import {
   Tooltip,
   TooltipContent,
@@ -142,10 +142,15 @@ export function SpamAwareActivityItem({ activity }: SpamAwareActivityItemProps) 
           commentsCount={activityCounts.comments}
         >
           <div className="relative">
-            <Avatar className="h-8 w-8 cursor-pointer">
-              <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback>{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
+            <OptimizedAvatar 
+              className="h-8 w-8 cursor-pointer"
+              src={user.avatar}
+              alt={user.name}
+              fallback={user.name.slice(0, 2).toUpperCase()}
+              size={32}
+              lazy={true}
+              priority={false}
+            />
             {user.isBot && (
               <TooltipProvider>
                 <Tooltip>

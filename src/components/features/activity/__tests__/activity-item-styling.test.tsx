@@ -1,8 +1,43 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { ActivityItem } from '../activity-item'
 import { RepoStatsContext } from '@/lib/repo-stats-context'
 import type { PullRequestActivity } from '@/lib/types'
+
+// Mock IntersectionObserver
+class MockIntersectionObserver {
+  callback: IntersectionObserverCallback;
+  elements: Set<Element> = new Set();
+  
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback;
+  }
+  
+  observe(element: Element) {
+    this.elements.add(element);
+  }
+  
+  unobserve(element: Element) {
+    this.elements.delete(element);
+  }
+  
+  disconnect() {
+    this.elements.clear();
+  }
+}
+
+let mockObserver: MockIntersectionObserver | null = null;
+
+beforeEach(() => {
+  global.IntersectionObserver = vi.fn().mockImplementation((callback) => {
+    mockObserver = new MockIntersectionObserver(callback);
+    return mockObserver;
+  }) as any;
+});
+
+afterEach(() => {
+  mockObserver = null;
+});
 
 // Mock the dependencies
 vi.mock('@/hooks/useContributorRoles', () => ({

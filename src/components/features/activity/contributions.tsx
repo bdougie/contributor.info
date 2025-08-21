@@ -1,8 +1,11 @@
-import { useState, useContext, useEffect, useRef, Suspense, lazy } from "react";
+import { useState, useContext, useEffect, useRef, lazy } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { animated } from "@react-spring/web";
+import { supabaseAvatarCache } from "@/lib/supabase-avatar-cache";
+import { ProgressiveChart } from "@/components/ui/charts/ProgressiveChart";
+import { SkeletonChart } from "@/components/skeletons/base/skeleton-chart";
 
 // Lazy load the heavy visualization component
 const ResponsiveScatterPlot = lazy(() => 
@@ -41,6 +44,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" && window.innerWidth < 768
   );
+  const [cachedAvatars, setCachedAvatars] = useState<Map<number, string>>(new Map());
   const effectiveTimeRangeNumber = parseInt(effectiveTimeRange, 10);
   const mobileMaxDays = 7; // Aggressive filtering for mobile
 
@@ -148,6 +152,51 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
     setLocalIncludeBots(contextIncludeBots);
   }, [contextIncludeBots]);
 
+  // Load cached avatars when PR data changes
+  useEffect(() => {
+    const loadCachedAvatars = async () => {
+      if (!safeStats.pullRequests?.length) return;
+
+      // Extract unique contributors
+      const contributors = Array.from(
+        new Map(
+          safeStats.pullRequests.map(pr => [
+            pr.user.id,
+            {
+              githubId: pr.user.id,
+              username: pr.user.login,
+              fallbackUrl: pr.user.avatar_url
+            }
+          ])
+        ).values()
+      );
+
+      try {
+        // Batch load cached avatars
+        const avatarResults = await supabaseAvatarCache.getAvatarUrls(contributors);
+        
+        // Convert to Map for component state
+        const avatarMap = new Map<number, string>();
+        avatarResults.forEach((result, githubId) => {
+          avatarMap.set(githubId, result.url);
+        });
+        
+        setCachedAvatars(avatarMap);
+      } catch (error) {
+        // Fallback to original URLs on error
+        const fallbackMap = new Map<number, string>();
+        contributors.forEach(c => {
+          if (c.fallbackUrl) {
+            fallbackMap.set(c.githubId, c.fallbackUrl);
+          }
+        });
+        setCachedAvatars(fallbackMap);
+      }
+    };
+
+    loadCachedAvatars();
+  }, [safeStats.pullRequests]);
+
   // Force re-render when theme changes to update Nivo theme
   const nivoTheme = getNivoTheme();
 
@@ -183,11 +232,13 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         }
 
         const linesTouched = pr.additions + pr.deletions;
+        // Use cached avatar URL with fallback to original
+        const avatarUrl = cachedAvatars.get(pr.user.id) || pr.user.avatar_url;
         return {
           x: daysAgo,
           y: Math.max(linesTouched, 1), // Ensure minimum visibility of 1 line
           contributor: pr.user.login,
-          image: pr.user.avatar_url,
+          image: avatarUrl,
           _pr: pr, // store full PR for hover card
         };
       })
@@ -267,6 +318,14 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                   height: '100%'
                 }}
                 crossOrigin="anonymous"
+                onError={(e) => {
+                  // Fallback to GitHub identicon on error, but only once
+                  const target = e.target as HTMLImageElement;
+                  if (!target.dataset.retried) {
+                    target.dataset.retried = 'true';
+                    target.src = `https://github.com/identicons/${props.node.data.contributor}.png`;
+                  }
+                }}
               />
               <AvatarFallback
                 style={{
@@ -375,12 +434,16 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           </div>
         </div>
         <div className={`${isMobile ? "h-[280px]" : "h-[400px]"} w-full overflow-hidden relative`}>
-          <Suspense fallback={
-            <div className="flex items-center justify-center h-full w-full">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
-            </div>
-          }>
-            <ResponsiveScatterPlot
+          <ProgressiveChart
+            skeleton={
+              <SkeletonChart 
+                variant="scatter" 
+                height={isMobile ? "sm" : "lg"}
+                showAxes={true}
+              />
+            }
+            highFidelity={
+              <ResponsiveScatterPlot
               nodeSize={isMobile ? 20 : 35}
               data={data}
               margin={{
@@ -441,7 +504,11 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                 },
               }}
             />
-          </Suspense>
+            }
+            priority={false}
+            highFiDelay={300}
+            className="h-full w-full"
+          />
         </div>
     </div>
   );

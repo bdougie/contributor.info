@@ -1,5 +1,5 @@
 import { TrendingUp, Users } from '@/components/ui/icon';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
 
 interface RepoSocialCardProps {
   owner: string;
@@ -80,12 +80,15 @@ export default function RepoSocialCard({ owner, repo, timeRange, stats }: RepoSo
                       key={`contributor-avatar-${contributor.login}`}
                       className="w-10 h-10 overflow-hidden rounded-full transition-all duration-300 border-2 border-white"
                     >
-                      <Avatar className="w-full h-full">
-                        <AvatarImage src={contributor.avatar_url} alt={contributor.login} loading="lazy" />
-                        <AvatarFallback className="text-xs bg-gray-700 text-white">
-                          {contributor.login[0].toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      <OptimizedAvatar 
+                        className="w-full h-full"
+                        src={contributor.avatar_url}
+                        alt={contributor.login}
+                        fallback={contributor.login[0].toUpperCase()}
+                        size={40}
+                        lazy={true}
+                        priority={false}
+                      />
                     </div>
                   ))}
                 </div>
