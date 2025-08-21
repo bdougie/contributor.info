@@ -368,7 +368,7 @@ psql $DATABASE_URL -c "SELECT * FROM sync_metrics ORDER BY created_at DESC LIMIT
   - Pro tier: 2M invocations/month
 - **Execution time**: Billed per GB-second
   - Most syncs use < 256MB RAM
-  - 150s execution ≈ 0.04 GB-seconds
+  - 150s execution at 256MB = 37.5 GB-seconds (150s × 0.25GB)
 - **Database storage**: Metrics add ~1KB per sync
 
 ## Future Improvements
