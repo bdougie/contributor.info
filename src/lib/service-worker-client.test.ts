@@ -39,15 +39,13 @@ const mockRegistration = {
 describe('Service Worker Client', () => {
   let originalNavigator: Navigator;
   let originalWindow: Window & typeof globalThis;
-  let originalAddEventListener: typeof window.addEventListener;
-  let originalRemoveEventListener: typeof window.removeEventListener;
+  let addEventListenerSpy: ReturnType<typeof vi.spyOn>;
+  let removeEventListenerSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     // Store original values
     originalNavigator = global.navigator;
     originalWindow = global.window;
-    originalAddEventListener = global.window.addEventListener;
-    originalRemoveEventListener = global.window.removeEventListener;
     
     // Reset the service worker client state
     (swClient as any).initialized = false;
@@ -77,9 +75,9 @@ describe('Service Worker Client', () => {
       configurable: true
     });
 
-    // Mock window events using spies to preserve original functions
-    global.window.addEventListener = vi.fn();
-    global.window.removeEventListener = vi.fn();
+    // Use vi.spyOn for window events to ensure proper cleanup
+    addEventListenerSpy = vi.spyOn(global.window, 'addEventListener').mockImplementation(vi.fn());
+    removeEventListenerSpy = vi.spyOn(global.window, 'removeEventListener').mockImplementation(vi.fn());
 
     // Mock MessageChannel
     global.MessageChannel = vi.fn().mockImplementation(() => ({
@@ -124,8 +122,11 @@ describe('Service Worker Client', () => {
     // Restore original values
     global.navigator = originalNavigator;
     global.window = originalWindow;
-    global.window.addEventListener = originalAddEventListener;
-    global.window.removeEventListener = originalRemoveEventListener;
+    
+    // Restore spies - vi.spyOn automatically restores the original implementation
+    addEventListenerSpy.mockRestore();
+    removeEventListenerSpy.mockRestore();
+    
     vi.clearAllMocks();
   });
 
