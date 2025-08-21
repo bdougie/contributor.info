@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react"
-import { Menu } from '@/components/ui/icon';
+import { useState, useEffect } from "react";
 import { Outlet, useNavigate, Link, useLocation } from "react-router-dom";
 import { ModeToggle } from "../theming";
 import { AuthButton } from "../../features/auth";
@@ -10,13 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { LazyNavigationSheet } from "./lazy-navigation-sheet";
 import { supabase } from "@/lib/supabase";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 
@@ -56,18 +49,8 @@ export default function Layout() {
         <div className="container flex h-16 items-center px-4">
           {/* Hamburger Menu - Now on all screen sizes */}
           <div className="flex items-center space-x-4">
-            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-              <SheetTrigger asChild>
-                <button className="p-2 hover:bg-accent rounded-md">
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Open menu</span>
-                </button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[300px] sm:w-[350px]">
-                <SheetHeader>
-                  <SheetTitle>Menu</SheetTitle>
-                </SheetHeader>
-                <nav className="flex flex-col space-y-4 mt-6" aria-label="Main navigation">
+            <LazyNavigationSheet isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen}>
+              <nav className="flex flex-col space-y-4 mt-6" aria-label="Main navigation">
                   <button
                     onClick={() => {
                       navigate("/");
@@ -135,8 +118,7 @@ export default function Layout() {
                     </nav>
                   </section>
                 </nav>
-              </SheetContent>
-            </Sheet>
+            </LazyNavigationSheet>
             
             <button
               onClick={() => navigate("/")}
