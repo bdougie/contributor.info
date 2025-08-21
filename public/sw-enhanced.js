@@ -284,7 +284,7 @@ async function prefetchRoutes(routes) {
         await cache.put(route, addTimestamp(response.clone()));
       }
     } catch (error) {
-      console.error(`[SW] Failed to prefetch ${route}:`, error);
+      console.error('[SW] Failed to prefetch route: %s', route, error);
     }
   });
   
