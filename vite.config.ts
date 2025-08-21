@@ -146,9 +146,9 @@ export default defineConfig(() => ({
         manualChunks: (id) => {
           // Handle node_modules packages
           if (id.includes('node_modules')) {
-            // React ecosystem - MUST include Radix UI to avoid loading order issues
-            // Radix UI depends on React, so they must be in the same chunk
-            if (id.includes('react') || id.includes('@radix-ui')) {
+            // React ecosystem - MUST include libraries that depend on React
+            // to avoid loading order issues (forwardRef, memo, etc.)
+            if (id.includes('react') || id.includes('@radix-ui') || id.includes('@nivo')) {
               return 'vendor-react';
             }
             
@@ -167,11 +167,6 @@ export default defineConfig(() => ({
             if (id.includes('recharts') || id.includes('uplot') || 
                 id.includes('d3-scale') || id.includes('d3-shape') || id.includes('d3-')) {
               return 'vendor-charts';
-            }
-            
-            // Nivo
-            if (id.includes('@nivo')) {
-              return 'nivo-scatterplot';
             }
             
             // Embeddings (excluded)
