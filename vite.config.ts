@@ -157,11 +157,14 @@ export default defineConfig(() => ({
             if (id.includes('@nivo')) {
               return 'vendor-react'; // Bundle with React to avoid memo issues
             }
-            if (id.includes('recharts') || id.includes('uplot')) {
-              return 'vendor-charts';
+            if (id.includes('recharts')) {
+              return 'vendor-react'; // Recharts also needs React context
             }
             if (id.includes('d3-')) {
-              return 'vendor-charts'; // D3 modules go with charts
+              return 'vendor-react'; // D3 modules used by Recharts need to be together
+            }
+            if (id.includes('uplot')) {
+              return 'vendor-react'; // Keep all visualization libraries together
             }
             if (id.includes('@supabase')) {
               return 'vendor-supabase';
