@@ -147,7 +147,8 @@ class SupabaseAvatarCache {
       }
 
       // Return GitHub default avatar as last resort
-      const defaultUrl = `https://github.com/identicons/${username}.png`;
+      // Use avatars.githubusercontent.com which provides CORS headers
+      const defaultUrl = `https://avatars.githubusercontent.com/u/${githubId}?v=4`;
       const result: CachedAvatarResult = {
         url: defaultUrl,
         isCached: false,
@@ -175,9 +176,9 @@ class SupabaseAvatarCache {
         };
       }
 
-      // Final fallback
+      // Final fallback - use GitHub avatar API with CORS headers
       return {
-        url: `https://github.com/identicons/${username}.png`,
+        url: `https://avatars.githubusercontent.com/u/${githubId}?v=4`,
         isCached: false,
         source: 'github'
       };
@@ -264,8 +265,8 @@ class SupabaseAvatarCache {
                 this.queueCacheUpdate(contributor.githubId, contributor.username, contributor.fallbackUrl);
               }
             } else {
-              // Use GitHub default
-              const defaultUrl = `https://github.com/identicons/${contributor.username}.png`;
+              // Use GitHub default - avatars API with CORS headers
+              const defaultUrl = `https://avatars.githubusercontent.com/u/${contributor.githubId}?v=4`;
               const result: CachedAvatarResult = {
                 url: defaultUrl,
                 isCached: false,
@@ -282,8 +283,9 @@ class SupabaseAvatarCache {
       for (const contributor of uncachedContributors) {
         if (!results.has(contributor.githubId)) {
           const localCached = localCache.get(contributor.username);
+          // Use GitHub avatar API with CORS headers as final fallback
           const url = localCached || contributor.fallbackUrl || 
-                     `https://github.com/identicons/${contributor.username}.png`;
+                     `https://avatars.githubusercontent.com/u/${contributor.githubId}?v=4`;
           const result: CachedAvatarResult = {
             url,
             isCached: !!localCached,
