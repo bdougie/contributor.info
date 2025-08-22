@@ -29,7 +29,9 @@ class ServiceWorkerClient {
 
   constructor() {
     // Only initialize in browser environment, not in tests
-    if (typeof window !== 'undefined' && !process.env.VITEST) {
+    // Check for process.env safely to avoid ReferenceError
+    const isVitest = typeof process !== 'undefined' && process.env?.VITEST;
+    if (typeof window !== 'undefined' && !isVitest) {
       this.init();
     }
   }
