@@ -174,7 +174,7 @@ async function trackRepository(owner: string, repo: string): Promise<void> {
         console.error('Error tracking repository:', error);
       }
     } else {
-      console.log(`Successfully tracked repository: ${owner}/${repo}`);
+      console.log('Successfully tracked repository: %s/%s', owner, repo);
       
       // Trigger initial data sync (using existing infrastructure)
       try {

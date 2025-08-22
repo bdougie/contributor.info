@@ -75,7 +75,7 @@ export function ManualBackfillDebug() {
                 <ManualBackfill 
                   repository={repository}
                   onComplete={() => {
-                    console.log(`Backfill completed for ${repository}`);
+                    console.log('Backfill completed for %s', repository);
                     // Could navigate to the repository view or show a success message
                   }}
                 />

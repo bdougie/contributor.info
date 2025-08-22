@@ -145,6 +145,17 @@ Use for:
   - Fetch reviews and comments
   - GraphQL optimization
 
+### 4. queue-event
+- **Purpose**: Queue events to Inngest for background processing
+- **Timeout**: 150s (paid tier)
+- **Endpoint**: `{SUPABASE_URL}/functions/v1/queue-event`
+- **Migration Date**: August 22, 2025
+- **Features**:
+  - Handles event queuing with better reliability than Netlify
+  - Supports CORS for browser-based requests
+  - Automatic retry logic
+  - See [Queue Event Migration Documentation](./queue-event-migration.md) for details
+
 ## Client Usage
 
 ### TypeScript/JavaScript

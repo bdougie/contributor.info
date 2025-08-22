@@ -110,7 +110,7 @@ export class JobStatusReporter {
         await this.updateProgress(update.jobId, update.progress);
       }
 
-      console.log(`[JobStatusReporter] Updated job ${update.jobId} status to ${update.status}`);
+      console.log('[JobStatusReporter] Updated job %s status to %s', update.jobId, update.status);
     } catch (error) {
       console.error('[JobStatusReporter] Error reporting status:', error);
       throw error;
@@ -313,7 +313,7 @@ export class JobStatusReporter {
         await Promise.all(batch.map(update => this.reportStatus(update)));
       }
       
-      console.log(`[JobStatusReporter] Bulk updated ${updates.length} job statuses`);
+      console.log('[JobStatusReporter] Bulk updated %s job statuses', updates.length);
     } catch (error) {
       console.error('[JobStatusReporter] Error in bulk update:', error);
       throw error;

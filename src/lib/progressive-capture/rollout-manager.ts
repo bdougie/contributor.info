@@ -83,7 +83,7 @@ export class HybridRolloutManager {
     try {
       // Check environment variable override first
       if (this.emergencyStopOverride) {
-        console.log(`[RolloutManager] Emergency stop active - repository ${repositoryId} not eligible`);
+        console.log('[RolloutManager] Emergency stop active - repository %s not eligible', repositoryId);
         return false;
       }
 
@@ -211,7 +211,7 @@ export class HybridRolloutManager {
         console.error(`[RolloutManager] Error logging rollout history:`, historyError);
       }
 
-      console.log(`[RolloutManager] Updated rollout percentage from ${previousPercentage}% to ${percentage}%`);
+      console.log('[RolloutManager] Updated rollout percentage from %s% to %s%', previousPercentage, percentage);
       return true;
     } catch (error) {
       console.error(`[RolloutManager] Exception updating rollout percentage:`, error);
@@ -261,7 +261,7 @@ export class HybridRolloutManager {
         console.error(`[RolloutManager] Error logging emergency stop:`, historyError);
       }
 
-      console.log(`[RolloutManager] Emergency stop activated: ${reason}`);
+      console.log('[RolloutManager] Emergency stop activated: %s', reason);
       return true;
     } catch (error) {
       console.error(`[RolloutManager] Exception during emergency stop:`, error);
@@ -313,7 +313,7 @@ export class HybridRolloutManager {
         console.error(`[RolloutManager] Error logging whitelist update:`, historyError);
       }
 
-      console.log(`[RolloutManager] Added ${repositoryIds.length} repositories to whitelist`);
+      console.log('[RolloutManager] Added %s repositories to whitelist', repositoryIds.length);
       return true;
     } catch (error) {
       console.error(`[RolloutManager] Exception adding to whitelist:`, error);
@@ -367,7 +367,7 @@ export class HybridRolloutManager {
         console.error(`[RolloutManager] Error logging whitelist update:`, historyError);
       }
 
-      console.log(`[RolloutManager] Removed ${repositoryIds.length} repositories from whitelist`);
+      console.log('[RolloutManager] Removed %s repositories from whitelist', repositoryIds.length);
       return true;
     } catch (error) {
       console.error(`[RolloutManager] Exception removing from whitelist:`, error);
@@ -562,7 +562,7 @@ export class HybridRolloutManager {
 
       // Check if error rate exceeds threshold
       if (stats.error_rate > config.max_error_rate && stats.active_jobs > 10) {
-        console.log(`[RolloutManager] Error rate ${stats.error_rate.toFixed(2)}% exceeds threshold ${config.max_error_rate}%`);
+        console.log('[RolloutManager] Error rate %s% exceeds threshold %s%', stats.error_rate.toFixed(2), config.max_error_rate);
         
         // Trigger rollback to 0%
         const rollbackSuccess = await this.updateRolloutPercentage(

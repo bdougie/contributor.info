@@ -15,12 +15,15 @@ Testing tools cover:
 ### Authentication & API
 | Script | Purpose | When to Run |
 |--------|---------|-------------|
+| `test-github-app-status.js` | Test GitHub App installation status | App installation |
 | `test-github-auth.mjs` | Test GitHub API authentication | Auth issues |
 | `test-api-fallback-prevention.mjs` | Verify efficient API usage | Performance testing |
 
 ### Queue System (Inngest)
 | Script | Purpose | When to Run |
 |--------|---------|-------------|
+| `test-queue-endpoint.js` | Test local queue-event endpoint | Local development |
+| `test-supabase-queue.js` | Test Supabase Edge Function queue | Production testing |
 | `test-inngest.js` | Test Inngest queue functionality | Queue issues |
 | `test-inngest-direct.mjs` | Direct event sending tests | Event debugging |
 | `test-production-inngest.js` | Production queue validation | Pre-deployment |
@@ -70,6 +73,12 @@ npm run test:api
 
 ### Queue System Testing
 ```bash
+# Test local queue endpoint (requires .env file)
+source .env && node scripts/testing-tools/test-queue-endpoint.js
+
+# Test Supabase queue endpoint (requires .env file)
+source .env && node scripts/testing-tools/test-supabase-queue.js
+
 # Test local Inngest
 node scripts/testing-tools/test-inngest.js
 

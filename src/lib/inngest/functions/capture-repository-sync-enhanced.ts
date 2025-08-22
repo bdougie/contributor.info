@@ -107,7 +107,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
     const shouldInitiateBackfill = await step.run("check-initiate-backfill", async () => {
       // Skip if already being backfilled
       if (backfillState) {
-        console.log(`Repository ${repository.owner}/${repository.name} is already being backfilled`);
+        console.log('Repository %s/%s is already being backfilled', repository.owner, repository.name);
         return false;
       }
 
@@ -126,7 +126,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
       
       // Initiate backfill if less than 80% complete
       if (completeness < 0.8) {
-        console.log(`Repository ${repository.owner}/${repository.name} is only ${Math.round(completeness * 100)}% complete, initiating backfill`);
+        console.log('Repository %s/%s is only %s% complete, initiating backfill', repository.owner, repository.name, Math.round(completeness * 100));
         
         // Create backfill state
         const { error } = await supabase
@@ -194,12 +194,12 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
           MAX_PRS_PER_SYNC
         );
 
-        console.log(`✅ GraphQL recent PRs query successful for ${repository.owner}/${repository.name} (${prs.length} PRs found)`);
+        console.log('✅ GraphQL recent PRs query successful for %s/%s (%s PRs found)', repository.owner, repository.name, prs.length);
         
         // Log rate limit info
         const rateLimit = client.getRateLimit();
         if (rateLimit) {
-          console.log(`📊 GraphQL rate limit: ${rateLimit.remaining}/${rateLimit.limit} remaining (cost: ${rateLimit.cost} points)`);
+          console.log('📊 GraphQL rate limit: %s/%s remaining (cost: %s points)', rateLimit.remaining, rateLimit.limit, rateLimit.cost);
         }
 
         return prs.slice(0, MAX_PRS_PER_SYNC);
@@ -297,7 +297,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         }
 
         if (detailJobsQueued >= MAX_DETAIL_JOBS) {
-          console.log(`Reached GraphQL job queue limit (${MAX_DETAIL_JOBS}) for ${repository.owner}/${repository.name}`);
+          console.log('Reached GraphQL job queue limit (%s) for %s/%s', MAX_DETAIL_JOBS, repository.owner, repository.name);
           break;
         }
       }

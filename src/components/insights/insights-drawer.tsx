@@ -31,7 +31,7 @@ export function InsightsDrawer() {
         );
       }
 
-      console.log(`Analyzing repository: ${owner}/${repo}`);
+      console.log('Analyzing repository: %s/%s', owner, repo);
 
       // Use the local analysis function
       const analysisResult = await analyzePullRequests(owner, repo);

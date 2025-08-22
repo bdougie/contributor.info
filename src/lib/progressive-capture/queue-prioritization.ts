@@ -200,7 +200,7 @@ export class QueuePrioritizationService {
         })
       );
 
-      console.log(`[QueuePrioritization] Prioritized ${jobsWithScores.length} jobs`);
+      console.log('[QueuePrioritization] Prioritized %s jobs', jobsWithScores.length);
     } catch (error) {
       console.error('[QueuePrioritization] Error prioritizing queue:', error);
     }
@@ -282,7 +282,7 @@ export class QueuePrioritizationService {
               .eq('id', job.id);
           }
           
-          console.log(`[QueuePrioritization] Rebalanced ${jobsToMove.length} jobs`);
+          console.log('[QueuePrioritization] Rebalanced %s jobs', jobsToMove.length);
         }
       }
     } catch (error) {

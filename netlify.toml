@@ -108,11 +108,13 @@
   status = 200
   force = true
 
+# Queue event endpoint - migrated to Supabase Edge Function for better timeout handling
 [[redirects]]
   from = "/api/queue-event"
-  to = "/.netlify/functions/api-queue-event"
+  to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/queue-event"
   status = 200
   force = true
+  headers = {X-Forwarded-Host = "contributor.info"}
 
 [[redirects]]
   from = "/api/discover-repository"

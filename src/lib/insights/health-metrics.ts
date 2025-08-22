@@ -366,14 +366,14 @@ export async function calculateRepositoryConfidence(
       const memoryResult = getFromCache(cacheKey);
       if (memoryResult !== null) {
         const scoreForLogging = typeof memoryResult === 'number' ? memoryResult : memoryResult.score;
-        console.log(`[Confidence] Using in-memory cached result for ${owner}/${repo}: ${scoreForLogging}%`);
+        console.log('[Confidence] Using in-memory cached result for %s/%s: %s%', owner, repo, scoreForLogging);
         return memoryResult;
       }
 
       // Check database cache if in-memory miss
       const cachedResult = await getCachedConfidenceScore(supabase, owner, repo, daysBack);
       if (cachedResult !== null) {
-        console.log(`[Confidence] Using database cached score for ${owner}/${repo}: ${cachedResult.score}%`);
+        console.log('[Confidence] Using database cached score for %s/%s: %s%', owner, repo, cachedResult.score);
         
         // Store in memory cache for faster future access
         const cacheValue = returnMetadata ? {
@@ -465,7 +465,7 @@ export async function calculateRepositoryConfidence(
     // Cache the result for future use (both database and memory)
     await cacheConfidenceScore(supabase, owner, repo, daysBack, finalScore, calculationTime);
 
-    console.log(`[Confidence] Calculated confidence for ${owner}/${repo}: ${finalScore}% (${calculationTime}ms)`);
+    console.log('[Confidence] Calculated confidence for %s/%s: %s% (%sms)', owner, repo, finalScore, calculationTime);
     
     if (returnBreakdown) {
       const breakdownData = typeof starForkResult === 'object' ? starForkResult : {
@@ -915,7 +915,7 @@ async function getCachedConfidenceScore(
     }
 
     const age = Date.now() - new Date(data.calculated_at).getTime();
-    console.log(`[Confidence Cache] Found cached score: ${data.confidence_score}% (${Math.round(age / 1000)}s old)`);
+    console.log('[Confidence Cache] Found cached score: %s% (%ss old)', data.confidence_score, Math.round(age / 1000));
     
     return {
       score: data.confidence_score,
@@ -972,7 +972,7 @@ async function cacheConfidenceScore(
     if (error) {
       console.warn('[Confidence Cache] Error storing cache:', error);
     } else {
-      console.log(`[Confidence Cache] Stored score for ${owner}/${repo} (expires in ${Math.round(baseTTL / 3600)}h)`);
+      console.log('[Confidence Cache] Stored score for %s/%s (expires in %sh)', owner, repo, Math.round(baseTTL / 3600));
     }
   } catch (error) {
     console.warn('[Confidence Cache] Error caching score:', error);
@@ -1020,7 +1020,7 @@ export async function invalidateConfidenceCache(
     if (error) {
       console.warn(`[Confidence Cache] Error invalidating cache for ${owner}/${repo}:`, error);
     } else {
-      console.log(`[Confidence Cache] Invalidated cache for ${owner}/${repo}`);
+      console.log('[Confidence Cache] Invalidated cache for %s/%s', owner, repo);
     }
   } catch (error) {
     console.warn('[Confidence Cache] Error invalidating cache:', error);
