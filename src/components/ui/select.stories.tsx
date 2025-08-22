@@ -328,10 +328,10 @@ export const SelectInteraction: Story = {
     expect(option).toBeInTheDocument();
     userEvent.click(option);
 
-    // Wait for dropdown to close - check for select content instead of listbox
-    // waitFor removed - sync onlyElementToDisappear(() => 
-      document.querySelector('[data-radix-select-content][data-state="open"]')
-    );
+    // Dropdown should close immediately - no waiting per bulletproof guidelines
+    // Check for closed state synchronously
+    const selectContent = document.querySelector('[data-radix-select-content][data-state="open"]');
+    expect(selectContent).toBeNull();
 
     // Check that the value is selected
     expect(trigger).toHaveTextContent("Apple");
@@ -387,10 +387,10 @@ export const KeyboardNavigation: Story = {
     // Select with Enter
     userEvent.keyboard("{Enter}");
 
-    // Wait for dropdown to close
-    // waitFor removed - sync onlyElementToDisappear(() => 
-      document.querySelector('[data-radix-select-content][data-state="open"]')
-    );
+    // Dropdown should close immediately - no waiting per bulletproof guidelines
+    // Check for closed state synchronously
+    const selectContent = document.querySelector('[data-radix-select-content][data-state="open"]');
+    expect(selectContent).toBeNull();
 
     // Check that option 3 is selected (based on actual keyboard navigation behavior)
     expect(trigger).toHaveTextContent("Option 3");
@@ -439,12 +439,12 @@ export const ControlledSelect: Story = {
     const option = screen.getByRole("option", { name: "Controlled Option 1" });
     userEvent.click(option);
 
-    // Wait for dropdown to close
-    // waitFor removed - sync onlyElementToDisappear(() => 
-      document.querySelector('[data-radix-select-content][data-state="open"]')
-    );
+    // Dropdown should close immediately - no waiting per bulletproof guidelines
+    // Check for closed state synchronously
+    const selectDropdown = document.querySelector('[data-radix-select-content][data-state="open"]');
+    expect(selectDropdown).toBeNull();
 
-    // Check that the value is updated - wait for state change
+    // Check that the value is updated - state change should be synchronous
     expect(valueDisplay).toHaveTextContent("Selected: controlled1");
   },
   tags: ["interaction"],
