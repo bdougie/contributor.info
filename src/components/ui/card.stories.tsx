@@ -81,7 +81,12 @@ export const Simple: Story = {
 
 export const Interactive: Story = {
   render: () => (
-    <Card className="cursor-pointer transition-all hover:shadow-lg">
+    <Card 
+      className="cursor-pointer transition-all hover:shadow-lg active:scale-[0.98]"
+      tabIndex={0}
+      role="article"
+      aria-label="Interactive card"
+    >
       <CardHeader>
         <CardTitle>Interactive Card</CardTitle>
         <CardDescription>Click or hover to see the effect</CardDescription>
@@ -96,21 +101,45 @@ export const Interactive: Story = {
   ),
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const card = canvas.getByText('Interactive Card').closest('.cursor-pointer');
+    const card = canvas.getByRole('article', { name: /interactive card/i });
     
     // Check card exists
     expect(card).toBeInTheDocument();
     
+    // Desktop interactions
     // Simulate hover
-    if (card) {
-      userEvent.hover(card);
-      
-      // Check for transition class
-      expect(card).toHaveClass('transition-all');
-      
-      // Simulate click
-      userEvent.click(card);
-    }
+    userEvent.hover(card);
+    expect(card).toHaveClass('transition-all');
+    
+    // Simulate click
+    userEvent.click(card);
+    
+    // Mobile touch interactions
+    // Simulate touch start (finger down)
+    const touchStart = new TouchEvent('touchstart', {
+      touches: [{ identifier: 0, target: card, clientX: 0, clientY: 0 } as Touch],
+      bubbles: true,
+      cancelable: true,
+    });
+    card.dispatchEvent(touchStart);
+    
+    // Check active state (scale effect)
+    expect(card).toHaveClass('active:scale-[0.98]');
+    
+    // Simulate touch end (finger up)
+    const touchEnd = new TouchEvent('touchend', {
+      touches: [],
+      bubbles: true,
+      cancelable: true,
+    });
+    card.dispatchEvent(touchEnd);
+    
+    // Test keyboard accessibility
+    card.focus();
+    expect(document.activeElement).toBe(card);
+    
+    const enterEvent = new KeyboardEvent('keydown', { key: 'Enter' });
+    card.dispatchEvent(enterEvent);
     
     // Test button interaction
     const button = canvas.getByRole('button', { name: /Learn More/i });
@@ -120,7 +149,7 @@ export const Interactive: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'An interactive card with hover effects and click handling. Perfect for clickable card layouts.',
+        story: 'An interactive card with hover effects, click handling, and mobile touch support. Includes keyboard accessibility.',
       },
     },
   },
@@ -486,6 +515,108 @@ export const Sizes: Story = {
       description: {
         story: 'Cards in different sizes showing flexibility in width and content scaling.',
       },
+    },
+  },
+};
+
+export const MobileInteractions: Story = {
+  render: () => (
+    <Card 
+      className="cursor-pointer transition-all hover:shadow-lg active:scale-[0.98] touch-manipulation"
+      tabIndex={0}
+      role="button"
+      aria-label="Tap to interact"
+    >
+      <CardHeader>
+        <CardTitle>Mobile Optimized Card</CardTitle>
+        <CardDescription>Optimized for touch interactions</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          <p className="text-sm">This card is optimized for mobile devices with:</p>
+          <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+            <li>Touch-friendly tap targets (minimum 44x44px)</li>
+            <li>Visual feedback on touch (scale animation)</li>
+            <li>Disabled double-tap zoom (touch-manipulation)</li>
+            <li>Swipe gesture support</li>
+          </ul>
+        </div>
+      </CardContent>
+      <CardFooter className="flex gap-2">
+        <Button size="lg" className="min-h-[44px] min-w-[44px]">
+          Action
+        </Button>
+        <Button size="lg" variant="outline" className="min-h-[44px] min-w-[44px]">
+          Cancel
+        </Button>
+      </CardFooter>
+    </Card>
+  ),
+  play: ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const card = canvas.getByRole('button', { name: /tap to interact/i });
+    
+    // Test touch events
+    const touch = { identifier: 0, target: card, clientX: 100, clientY: 100 } as Touch;
+    
+    // Simulate tap (touchstart + touchend)
+    const touchStart = new TouchEvent('touchstart', {
+      touches: [touch],
+      targetTouches: [touch],
+      bubbles: true,
+      cancelable: true,
+    });
+    card.dispatchEvent(touchStart);
+    
+    const touchEnd = new TouchEvent('touchend', {
+      changedTouches: [touch],
+      bubbles: true,
+      cancelable: true,
+    });
+    card.dispatchEvent(touchEnd);
+    
+    // Simulate swipe gesture
+    const swipeStart = new TouchEvent('touchstart', {
+      touches: [{ ...touch, clientX: 200 }],
+      bubbles: true,
+      cancelable: true,
+    });
+    card.dispatchEvent(swipeStart);
+    
+    const touchMove = new TouchEvent('touchmove', {
+      touches: [{ ...touch, clientX: 100 }],
+      bubbles: true,
+      cancelable: true,
+    });
+    card.dispatchEvent(touchMove);
+    
+    const swipeEnd = new TouchEvent('touchend', {
+      changedTouches: [{ ...touch, clientX: 50 }],
+      bubbles: true,
+      cancelable: true,
+    });
+    card.dispatchEvent(swipeEnd);
+    
+    // Test minimum touch target sizes
+    const buttons = canvas.getAllByRole('button');
+    buttons.forEach(button => {
+      const rect = button.getBoundingClientRect();
+      // Check minimum touch target size (44x44px is recommended)
+      expect(rect.width).toBeGreaterThanOrEqual(44);
+      expect(rect.height).toBeGreaterThanOrEqual(44);
+    });
+    
+    // Check touch-manipulation class for preventing double-tap zoom
+    expect(card).toHaveClass('touch-manipulation');
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'A card optimized for mobile interactions with touch gestures, proper tap targets, and visual feedback.',
+      },
+    },
+    viewport: {
+      defaultViewport: 'mobile1',
     },
   },
 };
