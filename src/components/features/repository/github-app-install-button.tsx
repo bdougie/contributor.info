@@ -68,23 +68,31 @@ export function GitHubAppInstallButton({
       }
       
       // Fallback: Check the database for GitHub App installation status
-      // This is a temporary fallback until the API is fully operational
+      // Check if the repository has an associated app installation
       try {
-        const { data: repoData, error } = await supabase
+        const { data: repoData, error: repoError } = await supabase
           .from('repositories')
-          .select('github_app_installed')
+          .select('id')
           .eq('owner', owner)
           .eq('name', repo)
-          .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 or 1 rows
+          .maybeSingle();
         
-        if (!error && repoData) {
-          setIsInstalled(repoData.github_app_installed || false);
+        if (!repoError && repoData) {
+          // Repository exists, now check if it has an app installation
+          const { data: appData, error: appError } = await supabase
+            .from('app_enabled_repositories')
+            .select('id')
+            .eq('repository_id', repoData.id)
+            .maybeSingle();
+          
+          setIsInstalled(!appError && !!appData);
         } else {
-          // Repository not in database or error occurred
+          // Repository not in database
           setIsInstalled(false);
         }
       } catch (dbError) {
         // If all else fails, assume not installed
+        console.debug('Error checking app installation status:', dbError);
         setIsInstalled(false);
       }
     } catch (error) {
