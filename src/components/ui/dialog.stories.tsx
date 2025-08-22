@@ -648,8 +648,8 @@ export const DialogKeyboardNavigation: Story = {
     const secondInput = screen.getByPlaceholderText("Second input");
     const focusableButton = screen.getByRole("button", { name: "Focusable button" });
 
-    // Wait for initial focus to settle
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // No waiting - synchronous testing only per bulletproof guidelines
+    // Check focus immediately
 
     // Based on latest error logs, first input gets focus first, so start from there
     expect(firstInput).toHaveFocus();

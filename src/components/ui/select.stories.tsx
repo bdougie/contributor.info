@@ -317,10 +317,10 @@ export const SelectInteraction: Story = {
     // Try keyboard method to open (more reliable than click for Radix)
     userEvent.keyboard("{Space}");
 
-    // Wait longer for animation/transition
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // No waiting - synchronous testing only per bulletproof guidelines
+    // Dropdown should open immediately
 
-    // Wait for the dropdown to open (uses portal)
+    // Check for the dropdown to be open (uses portal)
     // waitFor removed - sync onlySelectOpen();
 
     // Select option using screen queries (since it's in portal)
@@ -363,7 +363,7 @@ export const KeyboardNavigation: Story = {
     userEvent.keyboard("{Space}");
 
     // Add delay for processing
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // No waiting - synchronous only
 
     // Wait for dropdown to open
     // waitFor removed - sync onlySelectOpen();
@@ -430,7 +430,7 @@ export const ControlledSelect: Story = {
     userEvent.keyboard("{Space}");
     
     // Wait longer for processing
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // No waiting - synchronous only
     
     // Wait for dropdown to open
     // waitFor removed - sync onlySelectOpen();

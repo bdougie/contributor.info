@@ -382,8 +382,8 @@ export const AlertDialogKeyboardNavigation: Story = {
     const dialog = // waitFor removed - sync onlyPortalElement("alertdialog", { timeout: 10000 });
     expect(dialog).toBeInTheDocument();
 
-    // Wait for dialog to be fully rendered and interactive
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // No waiting - synchronous testing only per bulletproof guidelines
+    // Dialog should be immediately interactive
 
     // Test Tab navigation between buttons using screen queries
     const cancelButton = screen.getByRole("button", { name: "Cancel" });
@@ -397,25 +397,25 @@ export const AlertDialogKeyboardNavigation: Story = {
       expect(okButton).toHaveFocus();
       
       userEvent.keyboard("{Tab}");
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // No waiting - synchronous only
       expect(cancelButton).toHaveFocus();
     } else {
       // Start with Tab to move to first button
       userEvent.keyboard("{Tab}");
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // No waiting - synchronous only
       
       // Check which button got focus
       if (document.activeElement === cancelButton) {
         expect(cancelButton).toHaveFocus();
         
         userEvent.keyboard("{Tab}");
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // No waiting - synchronous only
         expect(okButton).toHaveFocus();
       } else {
         expect(okButton).toHaveFocus();
         
         userEvent.keyboard("{Tab}");
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // No waiting - synchronous only
         expect(cancelButton).toHaveFocus();
       }
     }
