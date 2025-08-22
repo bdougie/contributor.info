@@ -17,22 +17,19 @@ Our CSP is configured in `/public/_headers` and defines allowed sources for vari
 #### `script-src`
 - **Allowed Sources**:
   - `'self'` - Scripts from our own domain
-  - `'unsafe-inline'` - Required for React and inline scripts
-  - `'unsafe-eval'` - Required for some build tools and libraries
-  - `https://*.posthog.com` - Analytics tracking
-  - `https://us.i.posthog.com` - PostHog US region
+  - `'unsafe-inline'` - Required for React and inline scripts (see security notes)
+  - `'unsafe-eval'` - Required for some build tools and libraries (see security notes)
+  - `https://us.i.posthog.com` - PostHog US region analytics
+  - `https://us-assets.i.posthog.com` - PostHog static assets
   - `https://vercel.live` - Vercel preview comments
 
 #### `connect-src`
 - **Allowed Sources**:
   - `'self'` - API calls to our own domain
   - `https://contributor.info` - Production domain
-  - `https://*.contributor.info` - Subdomains and preview deployments
-  - `https://*.netlify.app` - Netlify preview deployments
+  - `https://deploy-preview-*--contributor-info.netlify.app` - Netlify preview deployments (specific pattern)
   - `https://avatars.githubusercontent.com` - GitHub user avatars
-  - `https://*.supabase.co` - Supabase database API
-  - `https://*.supabase.in` - Supabase India region
-  - `https://*.posthog.com` - Analytics API
+  - `https://egcxzonpmmcirmgqdrla.supabase.co` - Our specific Supabase instance
   - `https://us.i.posthog.com` - PostHog US API
   - `https://api.github.com` - GitHub API
   - `https://raw.githubusercontent.com` - Raw GitHub content
@@ -40,23 +37,24 @@ Our CSP is configured in `/public/_headers` and defines allowed sources for vari
   - `https://contributor-info-social-cards.fly.dev` - Social card service
   - `https://vercel.live` - Vercel preview features
   - `https://ingesteer.services-prod.nsvcs.net` - RUM/monitoring service
-  - `wss://*.supabase.co` - Supabase WebSocket connections
-  - `wss://*.supabase.in` - Supabase India WebSocket
+  - `wss://egcxzonpmmcirmgqdrla.supabase.co` - Our specific Supabase WebSocket
 
 #### `img-src`
 - **Allowed Sources**:
   - `'self'` - Images from our domain
   - `data:` - Base64 encoded images
   - `blob:` - Blob URLs for dynamic images
-  - `https:` - All HTTPS images (needed for GitHub avatars)
-  - `http:` - HTTP images (fallback)
+  - `https://avatars.githubusercontent.com` - GitHub user avatars
+  - `https://github.com` - GitHub images
+  - `https://raw.githubusercontent.com` - Raw GitHub content
+  - `https://images.unsplash.com` - Stock images (if used)
+  - `https://egcxzonpmmcirmgqdrla.supabase.co` - Supabase storage
 
 #### `style-src`
 - **Allowed Sources**:
   - `'self'` - Our own stylesheets
-  - `'unsafe-inline'` - Required for styled-components and inline styles
+  - `'unsafe-inline'` - Required for styled-components and inline styles (see security notes)
   - `https://fonts.googleapis.com` - Google Fonts
-  - `https://fonts.gstatic.com` - Google Fonts static assets
 
 #### `font-src`
 - **Allowed Sources**:
@@ -234,18 +232,43 @@ Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), m
 
 ## Security Considerations
 
+### Security-First Approach
+
+Our CSP configuration follows these security principles:
+
+1. **No Wildcards for Critical Services**: We specify exact domains instead of wildcards where possible
+   - ✅ `https://egcxzonpmmcirmgqdrla.supabase.co` (specific instance)
+   - ❌ `https://*.supabase.co` (too permissive)
+
+2. **Explicit Image Sources**: Instead of allowing all HTTPS images, we list specific domains
+   - GitHub avatars and content
+   - Our Supabase storage
+   - Specific CDNs we use
+
+3. **Minimal Script Sources**: Only allow scripts from:
+   - Our own domain
+   - Specific PostHog endpoints
+   - Vercel for preview features
+
 ### Why We Use 'unsafe-inline' and 'unsafe-eval'
 
-While these directives reduce CSP security, they're necessary for:
-- **'unsafe-inline'**: React's style prop, styled-components, CSS-in-JS
-- **'unsafe-eval'**: Some bundlers and development tools
+While these directives reduce CSP security, they're currently necessary for:
+- **'unsafe-inline'**: 
+  - React's style prop for dynamic styling
+  - Styled-components and CSS-in-JS libraries
+  - Tailwind's dynamic class generation
+- **'unsafe-eval'**: 
+  - Development tools and hot module replacement
+  - Some bundler optimizations
+  - Certain library requirements
 
 ### Mitigation Strategies
 
-1. **Minimize inline scripts**: Use external scripts where possible
-2. **Use nonces**: For critical inline scripts (future improvement)
-3. **Regular audits**: Review CSP for unnecessary permissions
-4. **Monitor violations**: Set up CSP reporting (future improvement)
+1. **Principle of Least Privilege**: Only add domains that are absolutely necessary
+2. **Regular Audits**: Review CSP monthly to remove unused permissions
+3. **Specific Over Wildcards**: Use exact domains instead of wildcards where possible
+4. **Monitor Violations**: Track CSP violations to identify unnecessary permissions
+5. **Progressive Enhancement**: Start restrictive and add permissions as needed
 
 ## Future Improvements
 
