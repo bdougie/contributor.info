@@ -561,36 +561,36 @@ export const DialogInteraction: Story = {
       </DialogContent>
     </Dialog>
   ),
-  play: ({ canvasElement }) => {
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     // Find and click the dialog trigger
     const trigger = canvas.getByRole("button", { name: "Open Test Dialog" });
     expect(trigger).toBeInTheDocument();
-    userEvent.click(trigger);
+    await userEvent.click(trigger);
 
     // Wait for dialog to open (use screen for portal elements)
-    const dialog = // waitFor removed - sync onlyPortalElement("dialog");
-    expect(dialog).toBeInTheDocument();
-
-    // Check dialog contents using screen queries (since they're in portal)
-    const title = screen.getByRole("heading", { name: "Test Dialog" });
-    expect(title).toBeInTheDocument();
+    await waitFor(() => {
+      const title = screen.getByRole("heading", { name: "Test Dialog" });
+      expect(title).toBeInTheDocument();
+    });
 
     // Test form interaction within dialog
     const nameInput = screen.getByLabelText("Name");
     expect(nameInput).toHaveValue("Test User");
 
-    userEvent.clear(nameInput);
-    userEvent.type(nameInput, "Updated User");
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, "Updated User");
     expect(nameInput).toHaveValue("Updated User");
 
     // Test dialog close
     const cancelButton = screen.getByRole("button", { name: "Cancel" });
-    userEvent.click(cancelButton);
+    await userEvent.click(cancelButton);
 
     // Wait for dialog to close
-    // waitFor removed - sync onlyElementToDisappear(() => screen.queryByRole("dialog"));
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { name: "Test Dialog" })).not.toBeInTheDocument();
+    });
   },
   tags: ["interaction"],
 };

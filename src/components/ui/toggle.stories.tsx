@@ -47,16 +47,20 @@ export const Default: Story = {
     const canvas = within(canvasElement);
     const toggle = canvas.getByRole('button', { name: /toggle/i });
     
-    // Initial state should be unpressed
-    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    // Initial state should be off
+    expect(toggle).toHaveAttribute('data-state', 'off');
     
     // Click to toggle on
     await userEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() => {
+      expect(toggle).toHaveAttribute('data-state', 'on');
+    });
     
     // Click to toggle off
     await userEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await waitFor(() => {
+      expect(toggle).toHaveAttribute('data-state', 'off');
+    });
   },
 };
 

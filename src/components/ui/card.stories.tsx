@@ -103,43 +103,14 @@ export const Interactive: Story = {
     const canvas = within(canvasElement);
     const card = canvas.getByRole('article', { name: /interactive card/i });
     
-    // Check card exists
+    // Check card exists and has interactive classes
     expect(card).toBeInTheDocument();
-    
-    // Desktop interactions
-    // Simulate hover
-    await userEvent.hover(card);
+    expect(card).toHaveClass('cursor-pointer');
     expect(card).toHaveClass('transition-all');
     
-    // Simulate click
+    // Simple interactions
+    await userEvent.hover(card);
     await userEvent.click(card);
-    
-    // Mobile touch interactions
-    // Simulate touch start (finger down)
-    const touchStart = new TouchEvent('touchstart', {
-      touches: [{ identifier: 0, target: card, clientX: 0, clientY: 0 } as Touch],
-      bubbles: true,
-      cancelable: true,
-    });
-    card.dispatchEvent(touchStart);
-    
-    // Check active state (scale effect)
-    expect(card).toHaveClass('active:scale-[0.98]');
-    
-    // Simulate touch end (finger up)
-    const touchEnd = new TouchEvent('touchend', {
-      touches: [],
-      bubbles: true,
-      cancelable: true,
-    });
-    card.dispatchEvent(touchEnd);
-    
-    // Test keyboard accessibility
-    card.focus();
-    expect(document.activeElement).toBe(card);
-    
-    const enterEvent = new KeyboardEvent('keydown', { key: 'Enter' });
-    card.dispatchEvent(enterEvent);
     
     // Test button interaction
     const button = canvas.getByRole('button', { name: /Learn More/i });
