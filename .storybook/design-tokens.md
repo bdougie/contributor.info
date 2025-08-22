@@ -9,10 +9,10 @@ The design tokens system provides a single source of truth for all visual design
 ### Importing Tokens
 
 ```typescript
-import { designTokens } from '.storybook/design-tokens';
+import { designTokens } from '../.storybook/design-tokens';
 
 // Or import specific token groups
-import { colors, spacing, typography } from '.storybook/design-tokens';
+import { colors, spacing, typography } from '../.storybook/design-tokens';
 ```
 
 ### Using in Storybook Stories
