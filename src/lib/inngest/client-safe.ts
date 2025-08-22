@@ -26,36 +26,61 @@ const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY ||
 export async function sendInngestEvent<T extends { name: string; data: any }>(
   event: T
 ): Promise<{ ids?: string[] }> {
-  // In browser context, use the Supabase Edge Function endpoint
+  // In browser context, use the API endpoint
   if (typeof window !== 'undefined') {
-    try {
-      // Use Supabase Edge Function for better reliability (150s timeout vs 10s on Netlify)
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/queue-event`, {
-        method: 'POST',
+    // Try Supabase first, fallback to Netlify if it fails
+    const endpoints = [
+      {
+        url: `${SUPABASE_URL}/functions/v1/queue-event`,
         headers: {
           'Content-Type': 'application/json',
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
         },
-        body: JSON.stringify({
-          eventName: event.name,
-          data: event.data
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.message || `Failed to queue event: ${response.statusText}`
-        );
+        name: 'Supabase Edge Function'
+      },
+      {
+        url: '/api/queue-event',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        name: 'Netlify Function'
       }
-      
-      const result = await response.json();
-      return { ids: result.eventId ? [result.eventId] : result.eventIds || [] };
-    } catch (error) {
-      console.error('Failed to send event via Supabase Edge Function:', error);
-      throw error;
+    ];
+
+    let lastError: Error | null = null;
+    
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint.url, {
+          method: 'POST',
+          headers: endpoint.headers,
+          body: JSON.stringify({
+            eventName: event.name,
+            data: event.data
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            errorData.message || `Failed to queue event: ${response.statusText}`
+          );
+        }
+        
+        const result = await response.json();
+        console.log(`Event sent successfully via ${endpoint.name}`);
+        return { ids: result.eventId ? [result.eventId] : result.eventIds || [] };
+      } catch (error) {
+        console.warn(`Failed to send event via ${endpoint.name}:`, error);
+        lastError = error as Error;
+        // Continue to next endpoint
+      }
     }
+    
+    // If all endpoints failed, throw the last error
+    console.error('All endpoints failed to send event');
+    throw lastError || new Error('Failed to send event to any endpoint');
   }
   
   // Server-side: send directly to Inngest
