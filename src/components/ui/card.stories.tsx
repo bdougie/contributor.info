@@ -99,7 +99,7 @@ export const Interactive: Story = {
       </CardFooter>
     </Card>
   ),
-  play: ({ canvasElement }) => {
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const card = canvas.getByRole('article', { name: /interactive card/i });
     
@@ -108,11 +108,11 @@ export const Interactive: Story = {
     
     // Desktop interactions
     // Simulate hover
-    userEvent.hover(card);
+    await userEvent.hover(card);
     expect(card).toHaveClass('transition-all');
     
     // Simulate click
-    userEvent.click(card);
+    await userEvent.click(card);
     
     // Mobile touch interactions
     // Simulate touch start (finger down)
@@ -144,7 +144,7 @@ export const Interactive: Story = {
     // Test button interaction
     const button = canvas.getByRole('button', { name: /Learn More/i });
     expect(button).toBeInTheDocument();
-    userEvent.click(button);
+    await userEvent.click(button);
   },
   parameters: {
     docs: {
@@ -182,18 +182,18 @@ export const WithForm: Story = {
       </CardFooter>
     </Card>
   ),
-  play: ({ canvasElement }) => {
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     
     // Test form inputs
     const nameInput = canvas.getByLabelText('Name');
     expect(nameInput).toBeInTheDocument();
-    userEvent.type(nameInput, 'My Project');
+    await userEvent.type(nameInput, 'My Project');
     expect(nameInput).toHaveValue('My Project');
     
     const frameworkInput = canvas.getByLabelText('Framework');
     expect(frameworkInput).toBeInTheDocument();
-    userEvent.type(frameworkInput, 'React');
+    await userEvent.type(frameworkInput, 'React');
     expect(frameworkInput).toHaveValue('React');
     
     // Test buttons
@@ -259,22 +259,22 @@ export const Notification: Story = {
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="flex items-center space-x-4 rounded-md border p-4">
-          <Switch id="push" />
+          <Switch id="push" aria-label="Push Notifications" />
           <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium leading-none">
+            <label htmlFor="push" className="text-sm font-medium leading-none">
               Push Notifications
-            </p>
+            </label>
             <p className="text-sm text-muted-foreground">
               Send notifications to device.
             </p>
           </div>
         </div>
         <div className="flex items-center space-x-4 rounded-md border p-4">
-          <Switch id="email" defaultChecked />
+          <Switch id="email" defaultChecked aria-label="Email Notifications" />
           <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium leading-none">
+            <label htmlFor="email" className="text-sm font-medium leading-none">
               Email Notifications
-            </p>
+            </label>
             <p className="text-sm text-muted-foreground">
               Send notifications via email.
             </p>
@@ -286,7 +286,7 @@ export const Notification: Story = {
       </CardFooter>
     </Card>
   ),
-  play: ({ canvasElement }) => {
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     
     // Test switches
@@ -301,13 +301,13 @@ export const Notification: Story = {
     expect(pushSwitch).not.toBeChecked();
     
     // Toggle push notifications
-    userEvent.click(pushSwitch);
+    await userEvent.click(pushSwitch);
     expect(pushSwitch).toBeChecked();
     
     // Test save button
     const saveButton = canvas.getByRole('button', { name: /save preferences/i });
     expect(saveButton).toBeInTheDocument();
-    userEvent.click(saveButton);
+    await userEvent.click(saveButton);
   },
   parameters: {
     docs: {

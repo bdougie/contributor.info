@@ -331,7 +331,7 @@ export const Interactive: Story = {
       </Badge>
     </div>
   ),
-  play: ({ canvasElement }) => {
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     
     // Test clickable badge
@@ -340,25 +340,25 @@ export const Interactive: Story = {
     expect(clickableBadge).toHaveClass('cursor-pointer');
     
     // Simulate interaction
-    userEvent.click(clickableBadge);
+    await userEvent.click(clickableBadge);
     
     // Test hover badge
     const hoverBadge = canvas.getByRole('button', { name: /Hover me/i });
     expect(hoverBadge).toBeInTheDocument();
-    userEvent.hover(hoverBadge);
+    await userEvent.hover(hoverBadge);
     
     // Test keyboard navigation
     clickableBadge.focus();
     expect(clickableBadge).toHaveFocus();
     
     // Tab to next badge
-    userEvent.tab();
+    await userEvent.tab();
     expect(hoverBadge).toHaveFocus();
     
     // Test remove badge
     const removeBadge = canvas.getByRole('button', { name: /Remove/i });
     expect(removeBadge).toBeInTheDocument();
-    userEvent.click(removeBadge);
+    await userEvent.click(removeBadge);
   },
   parameters: {
     docs: {
