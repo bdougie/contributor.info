@@ -82,7 +82,7 @@ jobs:
           #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
           
           # Enable comprehensive tool calling for thorough code review
-          allowed_tools: "Bash(npm run build),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run test:*),Bash(npx tsc:*),Bash(node:*),Bash(git diff:*),Bash(git log:*),Bash(grep:*),Bash(rg:*),Bash(find:*),Bash(ls:*),Read,Grep,Glob,LS"
+          allowed_tools: "Bash(npm install),Bash(npm ci),Bash(npm run build),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run test:*),Bash(npm run test-storybook),Bash(npx tsc:*),Bash(node:*),Bash(git diff:*),Bash(git log:*),Bash(grep:*),Bash(rg:*),Bash(find:*),Bash(ls:*),Read,Grep,Glob,LS"
           
           # Optional: Skip review for certain conditions
           # if: |

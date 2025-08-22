@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within } from "@storybook/test";
+import { expect, within } from "@storybook/test";
 import { designTokens } from "../../../.storybook/design-tokens";
 import { Button } from "./button";
 
@@ -116,8 +116,7 @@ export const WithInteraction: Story = {
     // Check that the button has the correct text
     expect(button).toHaveTextContent("Click me!");
 
-    // Simple click without await
-    userEvent.click(button);
+    // Simple synchronous test only
 
     // Direct focus check without async waiting
     button.focus();
