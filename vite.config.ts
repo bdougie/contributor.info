@@ -144,50 +144,37 @@ export default defineConfig(() => ({
         hoistTransitiveImports: true,
         // Hybrid approach - use function-based chunking for all packages
         // to ensure proper grouping of React ecosystem libraries
-        manualChunks: (id) => {
-          // For node_modules, handle package-specific grouping below or return undefined for default chunking
-          if (id.includes('node_modules')) {
-            // Check for specific packages that need to be bundled together
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'vendor-react';
-            }
-            if (id.includes('@radix-ui')) {
-              return 'vendor-react'; // Bundle with React to avoid forwardRef issues
-            }
-            if (id.includes('@nivo')) {
-              return 'vendor-react'; // Bundle with React to avoid memo issues
-            }
-            if (id.includes('recharts')) {
-              return 'vendor-react'; // Recharts also needs React context
-            }
-            if (id.includes('d3-')) {
-              return 'vendor-react'; // D3 modules used by Recharts need to be together
-            }
-            if (id.includes('uplot')) {
-              return 'vendor-react'; // Keep all visualization libraries together
-            }
-            if (id.includes('@supabase')) {
-              return 'vendor-supabase';
-            }
-            if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
-              return 'vendor-utils';
-            }
-            if (id.includes('date-fns')) {
-              return 'vendor-utils';
-            }
-            if (id.includes('markdown') || id.includes('remark') || id.includes('rehype')) {
-              return 'vendor-markdown';
-            }
-            if (id.includes('@sentry')) {
-              return 'vendor-monitoring';
-            }
-            if (id.includes('@xenova/transformers') || id.includes('onnxruntime')) {
-              return 'embeddings-excluded';
-            }
-          }
-          
-          // Don't split app code - it all uses React components
-          // Let everything stay in the main bundle to avoid initialization issues
+        manualChunks: {
+          // Conservative approach: Bundle React ecosystem together to avoid initialization issues
+          'vendor-react': [
+            'react', 'react-dom', 'react-router-dom',
+            '@radix-ui/react-slot', '@radix-ui/react-avatar', '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-tooltip',
+            '@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', '@radix-ui/react-aspect-ratio',
+            '@radix-ui/react-checkbox', '@radix-ui/react-collapsible', '@radix-ui/react-context-menu',
+            '@radix-ui/react-hover-card', '@radix-ui/react-label', '@radix-ui/react-menubar',
+            '@radix-ui/react-navigation-menu', '@radix-ui/react-popover', '@radix-ui/react-progress',
+            '@radix-ui/react-radio-group', '@radix-ui/react-scroll-area', '@radix-ui/react-separator',
+            '@radix-ui/react-slider', '@radix-ui/react-switch', '@radix-ui/react-tabs',
+            '@radix-ui/react-toast', '@radix-ui/react-toggle', '@radix-ui/react-toggle-group',
+            'recharts', '@nivo/scatterplot', 
+            'd3-scale', 'd3-shape', 'uplot',
+            'react-helmet-async', 'react-hook-form', 'react-markdown', 'react-resizable-panels',
+            'react-day-picker', 'embla-carousel-react'
+          ],
+          // Truly independent libraries can be split
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-utils': [
+            'clsx', 'tailwind-merge', 'class-variance-authority',
+            'date-fns', 'zod', 'zustand', 'next-themes', 'sonner'
+          ],
+          'vendor-markdown': [
+            'marked', 'js-yaml'
+          ],
+          // Keep heavy dev/admin tools separate for better caching
+          'vendor-dev': [
+            'html2canvas', '@zumer/snapdom', 'playwright'
+          ]
         },
       },
     },

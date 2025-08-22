@@ -54,9 +54,11 @@ export class ErrorBoundary extends Component<Props, State> {
       localStorage.clear();
       sessionStorage.clear();
       
-      // Clear Supabase auth cache
-      const { createClient } = await import('@supabase/supabase-js');
-      const { env } = await import('@/lib/env');
+      // Clear Supabase auth cache - use static import to avoid mixed imports
+      const [{ createClient }, { env }] = await Promise.all([
+        import('@supabase/supabase-js'),
+        import('@/lib/env')
+      ]);
       const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
       await supabase.auth.signOut();
       
