@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
+import { within, userEvent, expect, waitFor } from '@storybook/test';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +31,7 @@ const meta = {
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ['autodocs', 'interaction', 'accessibility'],
   decorators: [
     (Story) => (
       <div className="flex items-center justify-center min-h-[300px]">
@@ -63,6 +64,31 @@ export const Default: Story = {
       </DropdownMenuContent>
     </DropdownMenu>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const trigger = canvas.getByRole('button', { name: /open menu/i });
+    
+    // Test opening the menu
+    await userEvent.click(trigger);
+    
+    // Wait for menu to appear
+    await waitFor(() => {
+      expect(canvas.getByRole('menuitem', { name: /profile/i })).toBeInTheDocument();
+    });
+    
+    // Test that all menu items are present
+    expect(canvas.getByRole('menuitem', { name: /settings/i })).toBeInTheDocument();
+    expect(canvas.getByRole('menuitem', { name: /logout/i })).toBeInTheDocument();
+    
+    // Test clicking a menu item
+    const settingsItem = canvas.getByRole('menuitem', { name: /settings/i });
+    await userEvent.click(settingsItem);
+    
+    // Menu should close after clicking an item
+    await waitFor(() => {
+      expect(canvas.queryByRole('menuitem', { name: /profile/i })).not.toBeInTheDocument();
+    });
+  },
 };
 
 export const WithLabels: Story = {
@@ -97,6 +123,30 @@ export const WithLabels: Story = {
       </DropdownMenuContent>
     </DropdownMenu>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const trigger = canvas.getByRole('button', { name: /account/i });
+    
+    // Open the menu
+    await userEvent.click(trigger);
+    
+    // Check that label is present
+    await waitFor(() => {
+      expect(canvas.getByText('My Account')).toBeInTheDocument();
+    });
+    
+    // Verify all menu items are present
+    const menuItems = ['Profile', 'Billing', 'Settings', 'Team', 'Subscription', 'Logout'];
+    for (const item of menuItems) {
+      expect(canvas.getByRole('menuitem', { name: new RegExp(item, 'i') })).toBeInTheDocument();
+    }
+    
+    // Close menu
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => {
+      expect(canvas.queryByText('My Account')).not.toBeInTheDocument();
+    });
+  },
 };
 
 export const WithShortcuts: Story = {

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { within, userEvent, expect } from '@storybook/test';
 import { Toggle } from './toggle';
 
 const meta = {
@@ -12,7 +13,7 @@ const meta = {
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ['autodocs', 'interaction', 'accessibility'],
   argTypes: {
     variant: {
       control: 'select',
@@ -41,6 +42,21 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     children: 'Toggle',
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const toggle = canvas.getByRole('button', { name: /toggle/i });
+    
+    // Initial state should be unpressed
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    
+    // Click to toggle on
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    
+    // Click to toggle off
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
   },
 };
 
