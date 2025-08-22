@@ -10,7 +10,7 @@ The `/api/queue-event` endpoint has been migrated from Netlify Functions to Supa
 
 1. **Timeout Limitations**: Netlify Functions have a 10-second timeout limit, which was insufficient for processing larger event queues
 2. **Stability Issues**: Frequent 404 errors in production due to Netlify cold starts and function instability
-3. **Better Performance**: Supabase Edge Functions provide 150-second timeout and better reliability
+3. **Better Performance**: Supabase Edge Functions provide 150-second timeout (paid tier) / 50-second timeout (free tier) and better reliability
 
 ## Architecture Changes
 
@@ -23,7 +23,7 @@ Client → /api/queue-event → Netlify Function → Inngest
 ### After (Supabase Edge Function)
 ```
 Client → /api/queue-event → Supabase Edge Function → Inngest
-         (150s timeout)        (with fallback)
+         (150s/50s timeout)    (with fallback)
 ```
 
 ## Implementation Details
@@ -31,7 +31,7 @@ Client → /api/queue-event → Supabase Edge Function → Inngest
 ### Supabase Edge Function
 - **Location**: Deployed to Supabase project `egcxzonpmmcirmgqdrla`
 - **Endpoint**: `https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/queue-event`
-- **Timeout**: 150 seconds
+- **Timeout**: 150 seconds (paid tier) / 50 seconds (free tier)
 - **Authentication**: Uses Supabase anon key for public access
 
 ### Client Implementation
@@ -94,7 +94,7 @@ If issues arise, the client automatically falls back to the Netlify function. To
 ## Benefits Achieved
 
 1. **Increased Reliability**: No more 404 errors from cold starts
-2. **Better Performance**: 15x longer timeout for complex operations
+2. **Better Performance**: 15x longer timeout (paid) / 5x longer timeout (free) for complex operations
 3. **Improved Monitoring**: Better observability through Supabase dashboard
 4. **Cost Efficiency**: Edge Functions are more cost-effective for high-volume events
 

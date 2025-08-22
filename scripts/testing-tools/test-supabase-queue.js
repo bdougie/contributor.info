@@ -24,11 +24,14 @@ async function testSupabaseQueueEndpoint() {
     }
   };
 
+  // Build the endpoint URL dynamically based on environment
+  const queueEventUrl = `${SUPABASE_URL}/functions/v1/queue-event`;
+
   try {
-    console.log('Sending event to:', `${SUPABASE_URL}/functions/v1/queue-event`);
+    console.log('Sending event to:', queueEventUrl);
     console.log('Event:', JSON.stringify(testEvent, null, 2));
     
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/queue-event`, {
+    const response = await fetch(queueEventUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -40,19 +43,34 @@ async function testSupabaseQueueEndpoint() {
 
     console.log('\nResponse status:', response.status, response.statusText);
     
-    const data = await response.json();
-    console.log('Response data:', JSON.stringify(data, null, 2));
-    
-    if (response.ok) {
-      console.log('\n✅ Success! Event was queued via Supabase Edge Function');
-      console.log('Event ID:', data.eventId);
-      console.log('\n📊 Check the Inngest dashboard at http://localhost:8288 to see the event');
+    // Check if response is JSON before parsing
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const data = await response.json();
+      console.log('Response data:', JSON.stringify(data, null, 2));
+      
+      if (response.ok) {
+        console.log('\n✅ Success! Event was queued via Supabase Edge Function');
+        console.log('Event ID:', data.eventId);
+        console.log('\n📊 Check the Inngest dashboard at http://localhost:8288 to see the event');
+      } else {
+        console.error('\n❌ Error:', data.error || data.message);
+      }
     } else {
-      console.error('\n❌ Error:', data.error || data.message);
+      // Handle non-JSON responses
+      const text = await response.text();
+      if (response.ok) {
+        console.log('\n✅ Success! Event was queued via Supabase Edge Function');
+        console.log('Response:', text);
+      } else {
+        console.error('\n❌ Error: Non-JSON response received');
+        console.error('Response:', text);
+      }
     }
   } catch (error) {
     console.error('\n❌ Failed to send event:', error.message);
-    console.error('Make sure the Supabase Edge Function is deployed');
+    console.error('Make sure the Supabase Edge Function is deployed and running');
+    console.error('Check the Supabase dashboard for function logs and status');
   }
 }
 
