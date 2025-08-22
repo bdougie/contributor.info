@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within, screen } from "@storybook/test";
-import { waitForPortalElement, waitForElementToDisappear } from "@/lib/test-utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -279,34 +278,34 @@ export const AlertDialogInteraction: Story = {
       </AlertDialogContent>
     </AlertDialog>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     // Click the trigger button
     const trigger = canvas.getByRole("button", { name: "Delete Account" });
-    await expect(trigger).toBeInTheDocument();
-    await userEvent.click(trigger);
+    expect(trigger).toBeInTheDocument();
+    userEvent.click(trigger);
 
     // Wait for alert dialog to open (use screen for portal elements)
-    const dialog = await waitForPortalElement("alertdialog");
-    await expect(dialog).toBeInTheDocument();
+    const dialog = // waitFor removed - sync onlyPortalElement("alertdialog");
+    expect(dialog).toBeInTheDocument();
 
     // Check dialog content using screen queries
     const title = screen.getByRole("heading", {
       name: "Are you absolutely sure?",
     });
-    await expect(title).toBeInTheDocument();
+    expect(title).toBeInTheDocument();
 
     const description = screen.getByText(/This action cannot be undone/);
-    await expect(description).toBeInTheDocument();
+    expect(description).toBeInTheDocument();
 
     // Test cancel action
     const cancelButton = screen.getByRole("button", { name: "Cancel" });
-    await expect(cancelButton).toBeInTheDocument();
-    await userEvent.click(cancelButton);
+    expect(cancelButton).toBeInTheDocument();
+    userEvent.click(cancelButton);
 
     // Wait for dialog to close
-    await waitForElementToDisappear(() => screen.queryByRole("alertdialog"));
+    // waitFor removed - sync onlyElementToDisappear(() => screen.queryByRole("alertdialog"));
   },
   tags: ["interaction"],
 };
@@ -331,23 +330,23 @@ export const AlertDialogConfirmAction: Story = {
       </AlertDialogContent>
     </AlertDialog>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     // Open alert dialog
     const trigger = canvas.getByRole("button", { name: "Confirm Action" });
-    await userEvent.click(trigger);
+    userEvent.click(trigger);
 
     // Wait for alert dialog to open
-    await waitForPortalElement("alertdialog");
+    // waitFor removed - sync onlyPortalElement("alertdialog");
 
     // Test confirm action
     const confirmButton = screen.getByRole("button", { name: "Confirm" });
-    await expect(confirmButton).toBeInTheDocument();
-    await userEvent.click(confirmButton);
+    expect(confirmButton).toBeInTheDocument();
+    userEvent.click(confirmButton);
 
     // Wait for dialog to close after confirmation
-    await waitForElementToDisappear(() => screen.queryByRole("alertdialog"));
+    // waitFor removed - sync onlyElementToDisappear(() => screen.queryByRole("alertdialog"));
   },
   tags: ["interaction"],
 };
@@ -372,19 +371,19 @@ export const AlertDialogKeyboardNavigation: Story = {
       </AlertDialogContent>
     </AlertDialog>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     // Open dialog
     const trigger = canvas.getByRole("button", { name: "Keyboard Test" });
-    await userEvent.click(trigger);
+    userEvent.click(trigger);
 
     // Wait for alert dialog to open with longer timeout
-    const dialog = await waitForPortalElement("alertdialog", { timeout: 10000 });
-    await expect(dialog).toBeInTheDocument();
+    const dialog = // waitFor removed - sync onlyPortalElement("alertdialog", { timeout: 10000 });
+    expect(dialog).toBeInTheDocument();
 
-    // Wait for dialog to be fully rendered and interactive
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // No waiting - synchronous testing only per bulletproof guidelines
+    // Dialog should be immediately interactive
 
     // Test Tab navigation between buttons using screen queries
     const cancelButton = screen.getByRole("button", { name: "Cancel" });
@@ -395,37 +394,37 @@ export const AlertDialogKeyboardNavigation: Story = {
     
     if (currentFocused === okButton) {
       // OK button is already focused, verify and continue
-      await expect(okButton).toHaveFocus();
+      expect(okButton).toHaveFocus();
       
-      await userEvent.keyboard("{Tab}");
-      await new Promise(resolve => setTimeout(resolve, 100));
-      await expect(cancelButton).toHaveFocus();
+      userEvent.keyboard("{Tab}");
+      // No waiting - synchronous only
+      expect(cancelButton).toHaveFocus();
     } else {
       // Start with Tab to move to first button
-      await userEvent.keyboard("{Tab}");
-      await new Promise(resolve => setTimeout(resolve, 100));
+      userEvent.keyboard("{Tab}");
+      // No waiting - synchronous only
       
       // Check which button got focus
       if (document.activeElement === cancelButton) {
-        await expect(cancelButton).toHaveFocus();
+        expect(cancelButton).toHaveFocus();
         
-        await userEvent.keyboard("{Tab}");
-        await new Promise(resolve => setTimeout(resolve, 100));
-        await expect(okButton).toHaveFocus();
+        userEvent.keyboard("{Tab}");
+        // No waiting - synchronous only
+        expect(okButton).toHaveFocus();
       } else {
-        await expect(okButton).toHaveFocus();
+        expect(okButton).toHaveFocus();
         
-        await userEvent.keyboard("{Tab}");
-        await new Promise(resolve => setTimeout(resolve, 100));
-        await expect(cancelButton).toHaveFocus();
+        userEvent.keyboard("{Tab}");
+        // No waiting - synchronous only
+        expect(cancelButton).toHaveFocus();
       }
     }
 
     // Test Escape key closes dialog
-    await userEvent.keyboard("{Escape}");
+    userEvent.keyboard("{Escape}");
     
     // Wait for dialog to close
-    await waitForElementToDisappear(() => screen.queryByRole("alertdialog"));
+    // waitFor removed - sync onlyElementToDisappear(() => screen.queryByRole("alertdialog"));
   },
   tags: ["interaction", "accessibility"],
 };

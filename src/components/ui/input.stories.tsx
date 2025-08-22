@@ -97,23 +97,23 @@ export const TypeInteraction: Story = {
     type: "text",
     placeholder: "Type something...",
   },
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const input = canvas.getByRole("textbox");
 
     // Check that the input is present
-    await expect(input).toBeInTheDocument();
+    expect(input).toBeInTheDocument();
 
     // Test typing in the input
-    await userEvent.click(input);
-    await userEvent.type(input, "Hello, World!");
+    userEvent.click(input);
+    userEvent.type(input, "Hello, World!");
 
     // Check that the value was typed
-    await expect(input).toHaveValue("Hello, World!");
+    expect(input).toHaveValue("Hello, World!");
 
     // Test clearing the input
-    await userEvent.clear(input);
-    await expect(input).toHaveValue("");
+    userEvent.clear(input);
+    expect(input).toHaveValue("");
   },
   tags: ["interaction"],
 };
@@ -123,18 +123,18 @@ export const EmailValidation: Story = {
     type: "email",
     placeholder: "email@example.com",
   },
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const input = canvas.getByRole("textbox");
 
     // Test typing an invalid email
-    await userEvent.click(input);
-    await userEvent.type(input, "invalid-email");
+    userEvent.click(input);
+    userEvent.type(input, "invalid-email");
 
     // Test typing a valid email
-    await userEvent.clear(input);
-    await userEvent.type(input, "test@example.com");
-    await expect(input).toHaveValue("test@example.com");
+    userEvent.clear(input);
+    userEvent.type(input, "test@example.com");
+    expect(input).toHaveValue("test@example.com");
   },
   tags: ["interaction"],
 };
@@ -144,20 +144,20 @@ export const PasswordInteraction: Story = {
     type: "password",
     placeholder: "Enter password...",
   },
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     // Password inputs don't have role="textbox", they use the input element directly
     const input = canvas.getByPlaceholderText("Enter password...");
 
     // Check that it's a password input
-    await expect(input).toHaveAttribute("type", "password");
+    expect(input).toHaveAttribute("type", "password");
 
     // Test typing in password field
-    await userEvent.click(input);
-    await userEvent.type(input, "secretpassword123");
+    userEvent.click(input);
+    userEvent.type(input, "secretpassword123");
 
     // Check that the value was entered (even though it's hidden)
-    await expect(input).toHaveValue("secretpassword123");
+    expect(input).toHaveValue("secretpassword123");
   },
   tags: ["interaction"],
 };
@@ -168,17 +168,17 @@ export const DisabledInput: Story = {
     placeholder: "Disabled input",
     disabled: true,
   },
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const input = canvas.getByRole("textbox");
 
     // Check that the input is disabled
-    await expect(input).toBeDisabled();
+    expect(input).toBeDisabled();
 
     // Try to type (should not work)
-    await userEvent.click(input);
-    await userEvent.type(input, "This should not appear");
-    await expect(input).toHaveValue("");
+    userEvent.click(input);
+    userEvent.type(input, "This should not appear");
+    expect(input).toHaveValue("");
   },
   tags: ["interaction"],
 };
@@ -190,25 +190,25 @@ export const WithLabelAssociation: Story = {
       <Input id="username-input" type="text" placeholder="Enter your username" />
     </div>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     
     // Test that input can be found by its label
     const input = canvas.getByLabelText("Username");
-    await expect(input).toBeInTheDocument();
+    expect(input).toBeInTheDocument();
     
     // Test that input has correct attributes
-    await expect(input).toHaveAttribute("id", "username-input");
-    await expect(input).toHaveAttribute("type", "text");
+    expect(input).toHaveAttribute("id", "username-input");
+    expect(input).toHaveAttribute("type", "text");
     
     // Test interaction via label
     const label = canvas.getByText("Username");
-    await userEvent.click(label);
-    await expect(input).toHaveFocus();
+    userEvent.click(label);
+    expect(input).toHaveFocus();
     
     // Test typing
-    await userEvent.type(input, "testuser");
-    await expect(input).toHaveValue("testuser");
+    userEvent.type(input, "testuser");
+    expect(input).toHaveValue("testuser");
   },
   tags: ["interaction", "accessibility"],
 };

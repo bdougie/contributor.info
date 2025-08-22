@@ -311,7 +311,7 @@ export const AccordionInteraction: Story = {
       </AccordionItem>
     </Accordion>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     // Find accordion triggers
@@ -320,28 +320,28 @@ export const AccordionInteraction: Story = {
     const trigger3 = canvas.getByRole("button", { name: "Is it animated?" });
 
     // All items should be collapsed initially
-    await expect(trigger1).toHaveAttribute("aria-expanded", "false");
-    await expect(trigger2).toHaveAttribute("aria-expanded", "false");
-    await expect(trigger3).toHaveAttribute("aria-expanded", "false");
+    expect(trigger1).toHaveAttribute("aria-expanded", "false");
+    expect(trigger2).toHaveAttribute("aria-expanded", "false");
+    expect(trigger3).toHaveAttribute("aria-expanded", "false");
 
     // Click first item to expand
-    await userEvent.click(trigger1);
-    await expect(trigger1).toHaveAttribute("aria-expanded", "true");
+    userEvent.click(trigger1);
+    expect(trigger1).toHaveAttribute("aria-expanded", "true");
 
     // Check that content is visible
     const content1 = canvas.getByText(
       "Yes. It adheres to the WAI-ARIA design pattern."
     );
-    await expect(content1).toBeVisible();
+    expect(content1).toBeVisible();
 
     // Click second item - first should collapse (single mode)
-    await userEvent.click(trigger2);
-    await expect(trigger1).toHaveAttribute("aria-expanded", "false");
-    await expect(trigger2).toHaveAttribute("aria-expanded", "true");
+    userEvent.click(trigger2);
+    expect(trigger1).toHaveAttribute("aria-expanded", "false");
+    expect(trigger2).toHaveAttribute("aria-expanded", "true");
 
     // Click same item to collapse
-    await userEvent.click(trigger2);
-    await expect(trigger2).toHaveAttribute("aria-expanded", "false");
+    userEvent.click(trigger2);
+    expect(trigger2).toHaveAttribute("aria-expanded", "false");
   },
   tags: ["interaction"],
 };
@@ -360,7 +360,7 @@ export const AccordionKeyboardNavigation: Story = {
       </AccordionItem>
     </Accordion>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     const trigger1 = canvas.getByRole("button", { name: "First Item" });
@@ -368,21 +368,21 @@ export const AccordionKeyboardNavigation: Story = {
 
     // Focus first trigger
     trigger1.focus();
-    await expect(trigger1).toHaveFocus();
+    expect(trigger1).toHaveFocus();
 
     // Test keyboard navigation
-    await userEvent.keyboard("{ArrowDown}");
-    await expect(trigger2).toHaveFocus();
+    userEvent.keyboard("{ArrowDown}");
+    expect(trigger2).toHaveFocus();
 
-    await userEvent.keyboard("{ArrowUp}");
-    await expect(trigger1).toHaveFocus();
+    userEvent.keyboard("{ArrowUp}");
+    expect(trigger1).toHaveFocus();
 
     // Test Enter/Space to expand
-    await userEvent.keyboard("{Enter}");
-    await expect(trigger1).toHaveAttribute("aria-expanded", "true");
+    userEvent.keyboard("{Enter}");
+    expect(trigger1).toHaveAttribute("aria-expanded", "true");
 
-    await userEvent.keyboard(" ");
-    await expect(trigger1).toHaveAttribute("aria-expanded", "false");
+    userEvent.keyboard(" ");
+    expect(trigger1).toHaveAttribute("aria-expanded", "false");
   },
   tags: ["interaction", "accessibility"],
 };
@@ -405,20 +405,20 @@ export const AccordionMultiple: Story = {
       </AccordionItem>
     </Accordion>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     const trigger1 = canvas.getByRole("button", { name: "Multiple Item 1" });
     const trigger2 = canvas.getByRole("button", { name: "Multiple Item 2" });
 
     // Expand first item
-    await userEvent.click(trigger1);
-    await expect(trigger1).toHaveAttribute("aria-expanded", "true");
+    userEvent.click(trigger1);
+    expect(trigger1).toHaveAttribute("aria-expanded", "true");
 
     // Expand second item - first should remain expanded (multiple mode)
-    await userEvent.click(trigger2);
-    await expect(trigger1).toHaveAttribute("aria-expanded", "true");
-    await expect(trigger2).toHaveAttribute("aria-expanded", "true");
+    userEvent.click(trigger2);
+    expect(trigger1).toHaveAttribute("aria-expanded", "true");
+    expect(trigger2).toHaveAttribute("aria-expanded", "true");
 
     // Both contents should be visible
     const content1 = canvas.getByText(
@@ -427,8 +427,8 @@ export const AccordionMultiple: Story = {
     const content2 = canvas.getByText(
       "You can expand both this and the first item."
     );
-    await expect(content1).toBeVisible();
-    await expect(content2).toBeVisible();
+    expect(content1).toBeVisible();
+    expect(content2).toBeVisible();
   },
   tags: ["interaction"],
 };
