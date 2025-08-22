@@ -1,8 +1,13 @@
 /* Font optimization with font-display: swap */
-/* Using @import for simplicity - Google Fonts handles optimization automatically */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Temporarily disabled Google Fonts due to CSP issues - using system fonts as fallback */
+/* TODO: Implement self-hosted fonts with subsetting (issue #475) */
+/* @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'); */
 
-/* Apply Inter as default font with system fallbacks */
+/* Apply system font stack with Inter as future enhancement */
+/* Using SF Pro on macOS, Segoe UI on Windows for consistent look */
 body {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Display', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-feature-settings: 'liga' 1, 'calt' 1; /* Enable ligatures and contextual alternates */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
