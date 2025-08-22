@@ -9,6 +9,66 @@ import { env } from './env';
 let posthogInstance: any = null;
 let posthogLoadPromise: Promise<any> | null = null;
 
+// Rate limiting for events
+const rateLimiter = {
+  events: new Map<string, number[]>(),
+  maxEventsPerMinute: 60,
+  maxEventsPerHour: 1000,
+  
+  canSendEvent(eventName: string): boolean {
+    const now = Date.now();
+    const oneMinuteAgo = now - 60000;
+    const oneHourAgo = now - 3600000;
+    
+    // Get or create event history
+    if (!this.events.has(eventName)) {
+      this.events.set(eventName, []);
+    }
+    
+    const eventHistory = this.events.get(eventName)!;
+    
+    // Clean old events
+    const recentEvents = eventHistory.filter(time => time > oneHourAgo);
+    this.events.set(eventName, recentEvents);
+    
+    // Check rate limits
+    const eventsInLastMinute = recentEvents.filter(time => time > oneMinuteAgo).length;
+    const eventsInLastHour = recentEvents.length;
+    
+    if (eventsInLastMinute >= this.maxEventsPerMinute) {
+      console.warn(`[PostHog] Rate limit exceeded for ${eventName}: ${eventsInLastMinute} events in last minute`);
+      return false;
+    }
+    
+    if (eventsInLastHour >= this.maxEventsPerHour) {
+      console.warn(`[PostHog] Rate limit exceeded for ${eventName}: ${eventsInLastHour} events in last hour`);
+      return false;
+    }
+    
+    // Record this event
+    recentEvents.push(now);
+    return true;
+  },
+  
+  reset() {
+    this.events.clear();
+  }
+};
+
+// Security validation
+function validateApiKey(key: string): boolean {
+  // PostHog API keys should match expected format
+  // Format: phc_[alphanumeric string]
+  const posthogKeyPattern = /^phc_[A-Za-z0-9]{32,}$/;
+  
+  if (!posthogKeyPattern.test(key)) {
+    console.error('[PostHog] Invalid API key format. PostHog keys should start with "phc_"');
+    return false;
+  }
+  
+  return true;
+}
+
 /**
  * Configuration for PostHog initialization
  */
@@ -37,6 +97,11 @@ const POSTHOG_CONFIG = {
 function shouldEnablePostHog(): boolean {
   // Only enable if we have the required configuration
   if (!env.POSTHOG_KEY) {
+    return false;
+  }
+  
+  // Validate API key format for security
+  if (!validateApiKey(env.POSTHOG_KEY)) {
     return false;
   }
 
@@ -119,6 +184,11 @@ export async function trackWebVitals(metrics: {
   if (!shouldEnablePostHog()) {
     return;
   }
+  
+  // Apply rate limiting
+  if (!rateLimiter.canSendEvent('web_vitals')) {
+    return;
+  }
 
   try {
     const posthog = await loadPostHog();
@@ -166,6 +236,11 @@ export async function trackPerformanceMetric(
   if (!shouldEnablePostHog()) {
     return;
   }
+  
+  // Apply rate limiting
+  if (!rateLimiter.canSendEvent('performance_metric')) {
+    return;
+  }
 
   try {
     const posthog = await loadPostHog();
@@ -196,6 +271,11 @@ export async function batchTrackWebVitals(
   }>
 ): Promise<void> {
   if (!shouldEnablePostHog()) {
+    return;
+  }
+  
+  // Apply rate limiting for batch events
+  if (!rateLimiter.canSendEvent('web_vitals_batch')) {
     return;
   }
 
@@ -280,4 +360,36 @@ export function getPostHogInstance(): any {
  */
 export function isPostHogEnabled(): boolean {
   return shouldEnablePostHog() && posthogInstance !== null;
+}
+
+/**
+ * Reset rate limiter (useful for testing)
+ */
+export function resetRateLimiter(): void {
+  rateLimiter.reset();
+}
+
+/**
+ * Get rate limiter stats for monitoring
+ */
+export function getRateLimiterStats(): {
+  eventCounts: Map<string, number>;
+  limits: { perMinute: number; perHour: number };
+} {
+  const eventCounts = new Map<string, number>();
+  const now = Date.now();
+  const oneMinuteAgo = now - 60000;
+  
+  rateLimiter.events.forEach((times, eventName) => {
+    const recentCount = times.filter(time => time > oneMinuteAgo).length;
+    eventCounts.set(eventName, recentCount);
+  });
+  
+  return {
+    eventCounts,
+    limits: {
+      perMinute: rateLimiter.maxEventsPerMinute,
+      perHour: rateLimiter.maxEventsPerHour
+    }
+  };
 }
