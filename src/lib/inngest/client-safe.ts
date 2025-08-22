@@ -34,8 +34,8 @@ export async function sendInngestEvent<T extends { name: string; data: any }>(
         url: `${SUPABASE_URL}/functions/v1/queue-event`,
         headers: {
           'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          ...(SUPABASE_ANON_KEY ? { 'apikey': SUPABASE_ANON_KEY } : {}),
+          ...(SUPABASE_ANON_KEY ? { 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } : {})
         },
         name: 'Supabase Edge Function'
       },
