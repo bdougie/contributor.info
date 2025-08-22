@@ -1,6 +1,14 @@
 name: Storybook Interaction Tests
-# TEMPORARILY DISABLED: Port conflicts in CI environment causing test failures
-# Jobs are disabled with `if: false` - similar to Chromatic workflow pattern
+# TEST RUNNER ISSUE: @storybook/test-runner v0.23.0 has a known bug where the --url parameter
+# is not properly recognized, causing the command to display Jest help instead of running tests.
+#
+# TEMPORARY WORKAROUND: Test jobs are disabled with `if: false` until we can either:
+# 1. Upgrade to a newer version of @storybook/test-runner that fixes this issue
+# 2. Find an alternative configuration that works with the current version
+# 3. Implement a custom test runner solution
+#
+# IMPACT: This does not affect the build or deployment process. Visual regression testing
+# is still handled by Chromatic, and unit tests run separately.
 
 on:
   push:

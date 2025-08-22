@@ -1,0 +1,697 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Documentation/Patterns/Feedback" />
+
+# Feedback Patterns
+
+Comprehensive guide for providing user feedback through toasts, alerts, modals, and other notification components.
+
+## Overview
+
+Feedback components inform users about the results of their actions, system status, and important information. Our feedback system ensures users stay informed without disrupting their workflow.
+
+## Core Feedback Components
+
+### Toast Notifications
+
+Non-blocking notifications that appear temporarily to provide feedback.
+
+```tsx
+import { useToast } from '@/hooks/use-toast';
+import { Toast, ToastProvider, ToastViewport } from '@/components/ui/toast';
+
+function App() {
+  return (
+    <ToastProvider>
+      <YourApp />
+      <ToastViewport />
+    </ToastProvider>
+  );
+}
+
+function Component() {
+  const { toast } = useToast();
+
+  const handleSuccess = () => {
+    toast({
+      title: "Success!",
+      description: "Your changes have been saved.",
+      variant: "default",
+    });
+  };
+
+  const handleError = () => {
+    toast({
+      title: "Error",
+      description: "Something went wrong. Please try again.",
+      variant: "destructive",
+    });
+  };
+
+  const handleWithAction = () => {
+    toast({
+      title: "Repository added",
+      description: "contributor-info has been added to tracking.",
+      action: (
+        <ToastAction altText="Undo" onClick={handleUndo}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+
+  return (
+    // Component content
+  );
+}
+```
+
+### Alert Messages
+
+Inline messages that provide contextual feedback within the page layout.
+
+```tsx
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { InfoIcon, CheckCircleIcon, AlertTriangleIcon, XCircleIcon } from 'lucide-react';
+
+// Information Alert
+<Alert>
+  <InfoIcon className="h-4 w-4" />
+  <AlertTitle>Information</AlertTitle>
+  <AlertDescription>
+    Your session will expire in 5 minutes. Please save your work.
+  </AlertDescription>
+</Alert>
+
+// Success Alert
+<Alert className="border-green-200 bg-green-50">
+  <CheckCircleIcon className="h-4 w-4 text-green-600" />
+  <AlertTitle className="text-green-800">Success!</AlertTitle>
+  <AlertDescription className="text-green-700">
+    Your repository has been successfully tracked.
+  </AlertDescription>
+</Alert>
+
+// Warning Alert
+<Alert className="border-yellow-200 bg-yellow-50">
+  <AlertTriangleIcon className="h-4 w-4 text-yellow-600" />
+  <AlertTitle className="text-yellow-800">Warning</AlertTitle>
+  <AlertDescription className="text-yellow-700">
+    This action cannot be undone. Please proceed with caution.
+  </AlertDescription>
+</Alert>
+
+// Error Alert
+<Alert variant="destructive">
+  <XCircleIcon className="h-4 w-4" />
+  <AlertTitle>Error</AlertTitle>
+  <AlertDescription>
+    Failed to fetch repository data. Please check your connection.
+  </AlertDescription>
+</Alert>
+```
+
+### Modal Dialogs
+
+Overlay dialogs that require user attention or action.
+
+```tsx
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+
+function ConfirmationDialog({ onConfirm, onCancel }) {
+  const [open, setOpen] = useState(false);
+
+  const handleConfirm = () => {
+    onConfirm();
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="destructive">Delete Repository</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Are you sure?</DialogTitle>
+          <DialogDescription>
+            This will permanently delete the repository and all associated data.
+            This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={handleConfirm}>
+            Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
+### Progress Indicators
+
+Visual feedback for ongoing operations.
+
+```tsx
+// Linear Progress
+function LinearProgress({ value, max = 100 }) {
+  const percentage = (value / max) * 100;
+
+  return (
+    <div className="w-full">
+      <div className="flex justify-between mb-1">
+        <span className="text-sm font-medium">Processing</span>
+        <span className="text-sm text-gray-500">{percentage.toFixed(0)}%</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div
+          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+          style={{ width: `${percentage}%` }}
+          role="progressbar"
+          aria-valuenow={value}
+          aria-valuemin={0}
+          aria-valuemax={max}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Circular Progress
+function CircularProgress({ value, size = 120 }) {
+  const circumference = 2 * Math.PI * 45;
+  const strokeDashoffset = circumference - (value / 100) * circumference;
+
+  return (
+    <div className="relative inline-flex">
+      <svg className="transform -rotate-90" width={size} height={size}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r="45"
+          stroke="currentColor"
+          strokeWidth="8"
+          fill="none"
+          className="text-gray-200"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r="45"
+          stroke="currentColor"
+          strokeWidth="8"
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          className="text-blue-600 transition-all duration-300"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-2xl font-semibold">{value}%</span>
+      </div>
+    </div>
+  );
+}
+
+// Indeterminate Progress
+function IndeterminateProgress() {
+  return (
+    <div className="w-full h-1 bg-gray-200 overflow-hidden">
+      <div className="h-full bg-blue-600 animate-progress" />
+    </div>
+  );
+}
+```
+
+### Loading States
+
+Skeleton screens and spinners for loading content.
+
+```tsx
+// Skeleton Loader
+function SkeletonCard() {
+  return (
+    <Card>
+      <CardHeader>
+        <Skeleton className="h-4 w-[250px]" />
+        <Skeleton className="h-4 w-[200px]" />
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Loading Spinner
+function LoadingSpinner({ size = 'md', className }) {
+  const sizeClasses = {
+    sm: 'h-4 w-4',
+    md: 'h-8 w-8',
+    lg: 'h-12 w-12',
+  };
+
+  return (
+    <div className="flex items-center justify-center">
+      <Loader2 
+        className={`animate-spin ${sizeClasses[size]} ${className}`}
+        aria-label="Loading"
+      />
+    </div>
+  );
+}
+
+// Full Page Loading
+function PageLoader() {
+  return (
+    <div className="fixed inset-0 bg-white bg-opacity-75 z-50 flex items-center justify-center">
+      <div className="text-center">
+        <LoadingSpinner size="lg" />
+        <p className="mt-4 text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
+}
+```
+
+## Feedback Patterns
+
+### Form Validation Feedback
+
+```tsx
+function FormWithFeedback() {
+  const [errors, setErrors] = useState({});
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrors({});
+    setSuccess(false);
+
+    try {
+      await submitForm(e.target);
+      setSuccess(true);
+      toast({
+        title: "Success!",
+        description: "Your form has been submitted.",
+      });
+    } catch (error) {
+      setErrors(error.fields);
+      toast({
+        title: "Validation Error",
+        description: "Please check the form for errors.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {success && (
+        <Alert className="mb-4 border-green-200 bg-green-50">
+          <CheckCircleIcon className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-700">
+            Form submitted successfully!
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="space-y-4">
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "email-error" : undefined}
+          />
+          {errors.email && (
+            <p id="email-error" className="text-sm text-red-500 mt-1">
+              {errors.email}
+            </p>
+          )}
+        </div>
+
+        <Button type="submit">Submit</Button>
+      </div>
+    </form>
+  );
+}
+```
+
+### Async Operation Feedback
+
+```tsx
+function AsyncOperation() {
+  const [status, setStatus] = useState('idle'); // idle, loading, success, error
+  const { toast } = useToast();
+
+  const handleOperation = async () => {
+    setStatus('loading');
+    
+    try {
+      await performOperation();
+      setStatus('success');
+      toast({
+        title: "Operation Complete",
+        description: "Your data has been processed successfully.",
+      });
+    } catch (error) {
+      setStatus('error');
+      toast({
+        title: "Operation Failed",
+        description: error.message,
+        variant: "destructive",
+        action: (
+          <ToastAction altText="Retry" onClick={handleOperation}>
+            Retry
+          </ToastAction>
+        ),
+      });
+    }
+  };
+
+  return (
+    <div>
+      {status === 'loading' && (
+        <div className="flex items-center space-x-2">
+          <LoadingSpinner size="sm" />
+          <span>Processing...</span>
+        </div>
+      )}
+      
+      {status === 'success' && (
+        <Alert className="border-green-200 bg-green-50">
+          <CheckCircleIcon className="h-4 w-4 text-green-600" />
+          <AlertDescription>Operation completed successfully!</AlertDescription>
+        </Alert>
+      )}
+      
+      {status === 'error' && (
+        <Alert variant="destructive">
+          <XCircleIcon className="h-4 w-4" />
+          <AlertDescription>Operation failed. Please try again.</AlertDescription>
+        </Alert>
+      )}
+      
+      <Button 
+        onClick={handleOperation} 
+        disabled={status === 'loading'}
+      >
+        Start Operation
+      </Button>
+    </div>
+  );
+}
+```
+
+### Real-time Updates
+
+```tsx
+function RealTimeNotifications() {
+  const [notifications, setNotifications] = useState([]);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const ws = new WebSocket('wss://api.example.com/notifications');
+
+    ws.onmessage = (event) => {
+      const notification = JSON.parse(event.data);
+      
+      // Add to notifications list
+      setNotifications(prev => [notification, ...prev]);
+      
+      // Show toast for important notifications
+      if (notification.priority === 'high') {
+        toast({
+          title: notification.title,
+          description: notification.message,
+          variant: notification.type === 'error' ? 'destructive' : 'default',
+        });
+      }
+    };
+
+    return () => ws.close();
+  }, [toast]);
+
+  return (
+    <div className="space-y-2">
+      {notifications.map((notif) => (
+        <Alert key={notif.id} className="animate-slide-in">
+          <AlertDescription>{notif.message}</AlertDescription>
+        </Alert>
+      ))}
+    </div>
+  );
+}
+```
+
+### Confirmation Patterns
+
+```tsx
+function DangerousAction() {
+  const [confirmText, setConfirmText] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+  const expectedText = 'DELETE';
+
+  const handleDelete = () => {
+    if (confirmText === expectedText) {
+      performDelete();
+      setShowConfirm(false);
+      toast({
+        title: "Deleted",
+        description: "The item has been permanently deleted.",
+      });
+    }
+  };
+
+  return (
+    <>
+      <Button 
+        variant="destructive" 
+        onClick={() => setShowConfirm(true)}
+      >
+        Delete Item
+      </Button>
+
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. Type "{expectedText}" to confirm.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Input
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder={`Type ${expectedText} to confirm`}
+          />
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirm(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={confirmText !== expectedText}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+```
+
+## Accessibility
+
+### Screen Reader Announcements
+
+```tsx
+// Live regions for dynamic updates
+<div role="status" aria-live="polite" aria-atomic="true">
+  {message && <p>{message}</p>}
+</div>
+
+// Alert role for important messages
+<div role="alert">
+  <p>Your session will expire in 2 minutes</p>
+</div>
+
+// Progress announcements
+<div
+  role="progressbar"
+  aria-valuenow={progress}
+  aria-valuemin={0}
+  aria-valuemax={100}
+  aria-label="Upload progress"
+>
+  {progress}% complete
+</div>
+```
+
+### Focus Management
+
+```tsx
+function NotificationWithFocus() {
+  const notificationRef = useRef(null);
+
+  useEffect(() => {
+    // Focus notification when it appears
+    if (notificationRef.current) {
+      notificationRef.current.focus();
+    }
+  }, []);
+
+  return (
+    <Alert ref={notificationRef} tabIndex={-1}>
+      <AlertTitle>Important Update</AlertTitle>
+      <AlertDescription>
+        Please review the changes before continuing.
+      </AlertDescription>
+    </Alert>
+  );
+}
+```
+
+## Animation and Timing
+
+### Toast Duration
+
+```tsx
+const toastDurations = {
+  short: 3000,  // Quick confirmations
+  medium: 5000, // Default duration
+  long: 7000,   // Complex messages
+  persistent: Infinity, // Requires manual dismissal
+};
+
+toast({
+  title: "Quick update",
+  duration: toastDurations.short,
+});
+
+toast({
+  title: "Important information",
+  description: "Please read this carefully before proceeding.",
+  duration: toastDurations.long,
+});
+```
+
+### Animation Classes
+
+```css
+/* Slide in animation */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+/* Fade in animation */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-in;
+}
+
+/* Progress animation */
+@keyframes progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+.animate-progress {
+  animation: progress 2s ease-in-out infinite;
+}
+```
+
+## Best Practices
+
+### Do's ✅
+
+1. **Provide immediate feedback for user actions**
+2. **Use appropriate severity levels (info, success, warning, error)**
+3. **Keep messages concise and actionable**
+4. **Include undo options where possible**
+5. **Use non-blocking notifications for non-critical feedback**
+6. **Provide progress indicators for long operations**
+7. **Group related notifications**
+8. **Test with screen readers**
+
+### Don'ts ❌
+
+1. **Don't overwhelm users with too many notifications**
+2. **Don't use blocking modals for non-critical information**
+3. **Don't auto-dismiss critical error messages**
+4. **Don't use technical jargon in user messages**
+5. **Don't forget to handle error states**
+6. **Don't show multiple similar notifications**
+7. **Don't use notifications for decorative purposes**
+8. **Don't ignore accessibility requirements**
+
+## Error Handling
+
+### User-Friendly Error Messages
+
+```tsx
+const errorMessages = {
+  network: "Connection lost. Please check your internet and try again.",
+  auth: "Your session has expired. Please sign in again.",
+  validation: "Please check the highlighted fields and try again.",
+  server: "Something went wrong on our end. Please try again later.",
+  permission: "You don't have permission to perform this action.",
+  notFound: "We couldn't find what you're looking for.",
+};
+
+function handleError(error) {
+  const message = errorMessages[error.type] || errorMessages.server;
+  
+  toast({
+    title: "Error",
+    description: message,
+    variant: "destructive",
+    action: error.canRetry ? (
+      <ToastAction altText="Try again" onClick={retry}>
+        Try Again
+      </ToastAction>
+    ) : undefined,
+  });
+}
+```
+
+## Related Documentation
+
+- [Toast Component](./Toast)
+- [Alert Component](./Alert)
+- [Dialog Component](./Dialog)
+- [Progress Component](./Progress)
+- [Loading States](./Loading)
+- [Animation Guidelines](./Animation)
+- [Accessibility Guidelines](./Accessibility)
