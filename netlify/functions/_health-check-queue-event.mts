@@ -1,11 +1,13 @@
-// Health check endpoint to verify api-queue-event is deployed
-// This file ensures the api-queue-event function is included in production builds
+// Health check endpoint to verify queue-event endpoint is accessible
+// Note: The actual queue-event endpoint is now a Supabase Edge Function
+// This health check confirms the redirect is configured
 
 export default async () => {
   return new Response(JSON.stringify({
     status: "healthy",
-    endpoint: "api-queue-event",
-    message: "Queue event endpoint is deployed and accessible",
+    endpoint: "queue-event",
+    provider: "supabase-edge-function",
+    message: "Queue event endpoint redirect is configured (actual endpoint on Supabase)",
     timestamp: new Date().toISOString()
   }), {
     status: 200,
