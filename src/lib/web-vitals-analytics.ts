@@ -221,14 +221,17 @@ class WebVitalsAnalytics {
     try {
       const { batchTrackWebVitals } = await import('./posthog-lazy');
       
-      // Convert events to PostHog format and send in batches
-      for (const event of events) {
-        await batchTrackWebVitals([{
-          name: event.metric_name,
-          value: event.metric_value,
-          rating: event.metric_rating,
-          delta: event.metric_delta
-        }]);
+      // Convert all events to PostHog format and send as a single batch
+      const metricsForPostHog = events.map(event => ({
+        name: event.metric_name,
+        value: event.metric_value,
+        rating: event.metric_rating,
+        delta: event.metric_delta
+      }));
+      
+      // Send all metrics in a single batch call
+      if (metricsForPostHog.length > 0) {
+        await batchTrackWebVitals(metricsForPostHog);
       }
     } catch (error) {
       // Silently fail in production, log in development
