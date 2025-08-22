@@ -67,10 +67,3 @@ trend-analysis-*.json
 *.pem
 # Images migrated to Supabase Storage
 public/docs/images/
-
-# Local test scripts
-test-*.js
-test-*.mjs
-test-*.ts
-!src/**/*test*
-!**/__tests__/**
