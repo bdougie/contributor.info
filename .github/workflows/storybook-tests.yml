@@ -125,7 +125,7 @@ jobs:
     - name: Run Storybook interaction tests
       run: |
         cd ${{ github.workspace }}
-        TARGET_URL=http://127.0.0.1:${{ steps.port.outputs.port }} npx test-storybook
+        npx test-storybook --url http://127.0.0.1:${{ steps.port.outputs.port }}
         
     - name: Stop Storybook server
       if: always()
@@ -210,7 +210,7 @@ jobs:
     - name: Run accessibility tests via test-runner
       run: |
         cd ${{ github.workspace }}
-        TARGET_URL=http://127.0.0.1:${{ steps.port-a11y.outputs.port }} npx test-storybook --includeTags accessibility
+        npx test-storybook --url http://127.0.0.1:${{ steps.port-a11y.outputs.port }} --includeTags accessibility
         
     - name: Stop Storybook server
       if: always()
