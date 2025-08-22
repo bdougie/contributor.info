@@ -71,21 +71,21 @@ export const Default: Story = {
     // Test opening the menu
     await userEvent.click(trigger);
     
-    // Wait for menu to appear using text content
+    // Wait for menu to appear using screen queries (portal content)
     await waitFor(() => {
-      expect(canvas.getByText('Profile')).toBeInTheDocument();
+      expect(screen.getByText('Profile')).toBeInTheDocument();
     });
     
     // Test that all menu items are present
-    expect(canvas.getByText('Settings')).toBeInTheDocument();
-    expect(canvas.getByText('Logout')).toBeInTheDocument();
+    expect(screen.getByText('Settings')).toBeInTheDocument();
+    expect(screen.getByText('Logout')).toBeInTheDocument();
     
     // Close menu by clicking outside
     await userEvent.keyboard('{Escape}');
     
     // Menu should close
     await waitFor(() => {
-      expect(canvas.queryByText('Profile')).not.toBeInTheDocument();
+      expect(screen.queryByText('Profile')).not.toBeInTheDocument();
     });
   },
 };
@@ -129,21 +129,21 @@ export const WithLabels: Story = {
     // Open the menu
     await userEvent.click(trigger);
     
-    // Check that label is present
+    // Check that label is present (use screen for portal content)
     await waitFor(() => {
-      expect(canvas.getByText('My Account')).toBeInTheDocument();
+      expect(screen.getByText('My Account')).toBeInTheDocument();
     });
     
-    // Verify all menu items are present using text
+    // Verify all menu items are present using screen queries
     const menuItems = ['Profile', 'Billing', 'Settings', 'Team', 'Subscription', 'Logout'];
     for (const item of menuItems) {
-      expect(canvas.getByText(item)).toBeInTheDocument();
+      expect(screen.getByText(item)).toBeInTheDocument();
     }
     
     // Close menu
     await userEvent.keyboard('{Escape}');
     await waitFor(() => {
-      expect(canvas.queryByText('My Account')).not.toBeInTheDocument();
+      expect(screen.queryByText('My Account')).not.toBeInTheDocument();
     });
   },
 };
