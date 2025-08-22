@@ -1,10 +1,14 @@
 /**
  * Secure environment variable access for client and server contexts
  * 
- * SECURITY RULES:
- * 1. Client code can only access VITE_* prefixed variables (public)
- * 2. Server code accesses both VITE_* and server-only variables
- * 3. Server secrets are never exposed to browser bundles
+ * CRITICAL SECURITY RULES:
+ * 1. Browser context: ONLY access VITE_* prefixed variables (public)
+ * 2. Browser context: NEVER read non-prefixed env vars (may contain secrets)
+ * 3. Server context: Can access both VITE_* and non-prefixed variables
+ * 4. Server secrets must NEVER be exposed to browser bundles
+ * 
+ * This prevents accidental exposure of server secrets like API keys,
+ * service tokens, and other sensitive configuration.
  */
 
 // Type for import.meta.env
@@ -30,6 +34,10 @@ const hasProcess = typeof process !== 'undefined' && process.env;
  * In server: Can access both VITE_* and server-only variables
  */
 function getEnvVar(viteKey: string, serverKey?: string): string {
+  // Security check: Ensure viteKey always starts with VITE_ for browser safety
+  if (!viteKey.startsWith('VITE_')) {
+    console.error(`🚨 SECURITY WARNING: Env key "${viteKey}" must start with VITE_ prefix`);
+  }
   // For tests, provide default local Supabase values
   const isTest = hasProcess && 
     (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true');
@@ -43,7 +51,9 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
   }
   
   if (isBrowser) {
-    // Browser: Try multiple sources for better production compatibility
+    // Browser: ONLY access VITE_* prefixed variables for security
+    // NEVER read non-prefixed variables as they may contain secrets
+    
     // 1. Try import.meta.env first (Vite's way)
     const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as ImportMeta).env) || {};
     const metaValue = metaEnv[viteKey];
@@ -51,44 +61,23 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
       return metaValue;
     }
     
-    // 2. Also check for non-prefixed version in import.meta.env (Netlify production)
-    if (serverKey) {
-      const metaServerValue = metaEnv[serverKey];
-      if (typeof metaServerValue === 'string' && metaServerValue) {
-        return metaServerValue;
-      }
-    }
-    
-    // 3. Try window.env (for runtime injection)
+    // 2. Try window.env (for runtime injection) - VITE_* keys only
     const windowEnv = (window as any).env || {};
     const windowValue = windowEnv[viteKey];
     if (typeof windowValue === 'string' && windowValue) {
       return windowValue;
     }
     
-    // 4. Also check for non-prefixed version in window.env
-    if (serverKey) {
-      const windowServerValue = windowEnv[serverKey];
-      if (typeof windowServerValue === 'string' && windowServerValue) {
-        return windowServerValue;
-      }
-    }
-    
-    // 5. Try process.env as fallback (some bundlers expose this)
+    // 3. Try process.env as fallback (some bundlers expose this) - VITE_* keys only
     if (hasProcess) {
       const processValue = process.env[viteKey];
       if (typeof processValue === 'string' && processValue) {
         return processValue;
       }
-      
-      // Also check non-prefixed version
-      if (serverKey) {
-        const processServerValue = process.env[serverKey];
-        if (typeof processServerValue === 'string' && processServerValue) {
-          return processServerValue;
-        }
-      }
     }
+    
+    // Do NOT check for non-prefixed variables in browser context
+    // This prevents accidental exposure of server secrets
     
     return '';
   } else {
