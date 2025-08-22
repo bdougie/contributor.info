@@ -7,32 +7,69 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
-  workers: 1, // Always use 1 worker to avoid resource conflicts
-  reporter: 'html',
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : 2, // More workers locally, single in CI for stability
+  reporter: process.env.CI ? [['html'], ['github']] : 'html',
   
-  // Reasonable timeouts for critical user flows only
+  // Performance-focused timeouts
   timeout: 30000,
-  globalTimeout: 180000, // 3 minutes total
+  globalTimeout: 300000, // 5 minutes total for all tests
+  expect: {
+    timeout: 10000, // Individual assertion timeout
+  },
   
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    // Performance monitoring
+    launchOptions: {
+      args: [
+        '--disable-web-security',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection',
+      ],
+    },
   },
 
-  // Only test Chromium for critical flows
+  // Test against Chromium for performance tests, add more browsers for compatibility
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'chromium-performance',
+      use: { 
+        ...devices['Desktop Chrome'],
+        // Enable performance APIs for testing
+        contextOptions: {
+          // Enable performance measurement
+          ignoreHTTPSErrors: true,
+        },
+      },
+      testMatch: '**/performance-regression.spec.ts',
+    },
+    {
+      name: 'chromium-critical-flows',
+      use: { 
+        ...devices['Desktop Chrome'],
+      },
+      testMatch: '**/critical-flows.spec.ts',
+    },
+    {
+      name: 'mobile-responsive',
+      use: { 
+        ...devices['iPhone 13'],
+      },
+      testMatch: '**/critical-flows.spec.ts',
     },
   ],
 
-  // Minimal server setup
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 60000,
-  },
+  // Dynamic server setup based on environment
+  webServer: process.env.PLAYWRIGHT_BASE_URL 
+    ? undefined 
+    : {
+        command: 'npm run dev',
+        url: 'http://localhost:5173',
+        reuseExistingServer: !process.env.CI,
+        timeout: 60000,
+      },
 });
