@@ -8,14 +8,14 @@
 
 import { inngest } from './client';
 
+// Import env helper for consistent environment variable access
+import { env } from '../env';
+
 // Get Supabase URL from environment
-const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || 
-                     (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_URL : '') ||
-                     '';
+const SUPABASE_URL = env.SUPABASE_URL;
 
 // Get Supabase anon key for Edge Function auth
-const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || 
-                          (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_ANON_KEY : '');
+const SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY;
 
 /**
  * Send an event to Inngest in a client-safe way
