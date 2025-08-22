@@ -67,7 +67,7 @@ export async function fetchPRData(
   const useSmartStrategy = shouldUseSmartStrategy(owner, repo);
   
   if (process.env.NODE_ENV === 'development') {
-    console.log(`🚀 Fetch strategy for ${owner}/${repo}: ${useSmartStrategy ? 'SMART (new)' : 'LEGACY (old)'}`);
+    console.log('🚀 Fetch strategy for %s/%s: %s', owner, repo, useSmartStrategy ? 'SMART (new)' : 'LEGACY (old)');
   }
   
   try {

@@ -49,7 +49,7 @@ export class GitHubActionsQueueManager {
 
       // GitHub Actions API doesn't return the run ID directly, but we can track it
       // through the job_id in our database
-      console.log(`[GitHubActions] Workflow ${job.workflow} dispatched successfully`);
+      console.log('[GitHubActions] Workflow %s dispatched successfully', job.workflow);
       
       // Record the job in our tracking table
       if (job.inputs.job_id) {

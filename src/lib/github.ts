@@ -102,7 +102,7 @@ export async function searchGitHubRepositories(query: string, limit: number = 10
         });
 
         // Simple logging without analytics
-        console.log(`Repository search completed: ${results.length} results for "${query}"`);
+        console.log('Repository search completed: %s results for "%s"', results.length, query);
 
         return results;
       } catch (error) {
@@ -415,7 +415,7 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
         });
 
         // Simple logging without analytics
-        console.log(`Successfully fetched ${detailedPRs.length} PRs for ${owner}/${repo}`);
+        console.log('Successfully fetched %s PRs for %s/%s', detailedPRs.length, owner, repo);
 
         return detailedPRs;
       } catch (error) {
@@ -687,9 +687,9 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
     
     // Debug logging (can be removed in production)
     if (NODE_ENV === 'development') {
-      console.log(`YOLO Debug - Total PRs found: ${pullRequests.length}`);
-      console.log(`YOLO Debug - Merged PRs found: ${mergedPRs.length}`);
-      console.log(`YOLO Debug - Time range: ${since.toISOString()} to ${new Date().toISOString()}`);
+      console.log('YOLO Debug - Total PRs found: %s', pullRequests.length);
+      console.log('YOLO Debug - Merged PRs found: %s', mergedPRs.length);
+      console.log('YOLO Debug - Time range: %s to %s', since.toISOString(), new Date().toISOString());
       if (mergedPRs.length > 0) {
         console.log(`YOLO Debug - Sample merged PR dates:`, mergedPRs.slice(0, 3).map(pr => pr.merged_at));
       }
@@ -710,17 +710,17 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
           if (prCommitsResponse.ok) {
             const prCommits = await prCommitsResponse.json();
             if (NODE_ENV === 'development') {
-              console.log(`YOLO Debug - PR #${pr.number} has ${prCommits.length} commits`);
+              console.log('YOLO Debug - PR #%s has %s commits', pr.number, prCommits.length);
             }
             prCommits.forEach((commit: any) => {
               prCommitShaSet.add(commit.sha);
             });
           } else if (NODE_ENV === 'development') {
-            console.log(`YOLO Debug - Failed to fetch commits for PR #${pr.number}: ${prCommitsResponse.statusText}`);
+            console.log('YOLO Debug - Failed to fetch commits for PR #%s: %s', pr.number, prCommitsResponse.statusText);
           }
         } catch (error) {
           if (NODE_ENV === 'development') {
-            console.log(`YOLO Debug - Error fetching commits for PR #${pr.number}:`, error);
+            console.log('YOLO Debug - Error fetching commits for PR #%s:', pr.number, error);
           }
           // Silently continue - error fetching commits for individual PRs shouldn't break the whole process
         }
@@ -763,21 +763,21 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
 
     // Filter commits to find direct commits (those not associated with merged PRs)
     if (NODE_ENV === 'development') {
-      console.log(`YOLO Debug - Total commits on main branch: ${allCommits.length}`);
-      console.log(`YOLO Debug - PR commit SHAs collected: ${prCommitShaSet.size}`);
+      console.log('YOLO Debug - Total commits on main branch: %s', allCommits.length);
+      console.log('YOLO Debug - PR commit SHAs collected: %s', prCommitShaSet.size);
       console.log(`YOLO Debug - Sample PR commit SHAs:`, Array.from(prCommitShaSet).slice(0, 5));
     }
     
     const directCommitData = allCommits.filter((commit: any) => {
       const isDirectCommit = !prCommitShaSet.has(commit.sha);
       if (isDirectCommit && NODE_ENV === 'development') {
-        console.log(`YOLO Debug - Direct commit found: ${commit.sha} by ${commit.author?.login || commit.committer?.login || 'unknown'}`);
+        console.log('YOLO Debug - Direct commit found: %s by %s', commit.sha, commit.author?.login || commit.committer?.login || 'unknown');
       }
       return isDirectCommit;
     });
     
     if (NODE_ENV === 'development') {
-      console.log(`YOLO Debug - Direct commits found: ${directCommitData.length}`);
+      console.log('YOLO Debug - Direct commits found: %s', directCommitData.length);
     }
 
     // Format the direct commits data

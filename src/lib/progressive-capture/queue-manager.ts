@@ -67,13 +67,13 @@ export class DataCaptureQueueManager {
 
     if (!prsNeedingUpdate || prsNeedingUpdate.length === 0) {
       if (env.DEV) {
-        console.log(`[Queue] No PRs needing file changes found for repository ${repositoryId}`);
+        console.log('[Queue] No PRs needing file changes found for repository %s', repositoryId);
       }
       return 0;
     }
 
     if (env.DEV) {
-      console.log(`[Queue] Found ${prsNeedingUpdate.length} PRs needing file changes (limit: ${limit}, priority: ${priority})`);
+      console.log('[Queue] Found %s PRs needing file changes (limit: %s, priority: %s)', prsNeedingUpdate.length, limit, priority);
     }
 
     // Queue jobs for each PR
@@ -467,13 +467,13 @@ export class DataCaptureQueueManager {
 
     if (!prsNeedingReviews || prsNeedingReviews.length === 0) {
       if (env.DEV) {
-        console.log(`[Queue] No PRs needing reviews found for repository ${repositoryId}`);
+        console.log('[Queue] No PRs needing reviews found for repository %s', repositoryId);
       }
       return 0;
     }
 
     if (env.DEV) {
-      console.log(`[Queue] Found ${prsNeedingReviews.length} PRs needing reviews (limit: ${limit}, priority: ${priority})`);
+      console.log('[Queue] Found %s PRs needing reviews (limit: %s, priority: %s)', prsNeedingReviews.length, limit, priority);
     }
 
     // Queue jobs for each PR
@@ -548,13 +548,13 @@ export class DataCaptureQueueManager {
 
     if (!prsNeedingComments || prsNeedingComments.length === 0) {
       if (env.DEV) {
-        console.log(`[Queue] No PRs needing comments found for repository ${repositoryId}`);
+        console.log('[Queue] No PRs needing comments found for repository %s', repositoryId);
       }
       return 0;
     }
 
     if (env.DEV) {
-      console.log(`[Queue] Found ${prsNeedingComments.length} PRs needing comments (limit: ${limit})`);
+      console.log('[Queue] Found %s PRs needing comments (limit: %s)', prsNeedingComments.length, limit);
     }
 
     // Queue jobs for each PR

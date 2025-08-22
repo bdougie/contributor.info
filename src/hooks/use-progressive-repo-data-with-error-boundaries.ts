@@ -437,7 +437,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
   const retryStage = useCallback(async (stage: LoadingStage) => {
     if (!owner || !repo) return;
 
-    console.log(`Retrying stage: ${stage}`);
+    console.log('Retrying stage: %s', stage);
     
     setData(prev => ({
       ...prev,

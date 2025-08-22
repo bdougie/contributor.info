@@ -50,7 +50,7 @@ export const classifyRepositorySize = inngest.createFunction(
     // Step 2: Classify each repository
     if (unclassifiedRepos.length > 0) {
       await step.run('classify-unclassified-batch', async () => {
-        console.log(`Classifying ${unclassifiedRepos.length} unclassified repositories`);
+        console.log('Classifying %s unclassified repositories', unclassifiedRepos.length);
         await classifier.classifyBatch(unclassifiedRepos);
       });
     }
@@ -112,7 +112,7 @@ export const classifyRepositorySize = inngest.createFunction(
         );
 
         if (reposToReclassify.length > 0) {
-          console.log(`Reclassifying ${reposToReclassify.length} high-priority repositories`);
+          console.log('Reclassifying %s high-priority repositories', reposToReclassify.length);
           await classifier.classifyBatch(reposToReclassify);
         }
       });

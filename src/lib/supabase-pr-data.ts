@@ -169,7 +169,7 @@ export async function fetchPRDataWithFallback(
       if (process.env.NODE_ENV === 'development') {
         const totalReviews = transformedPRs.reduce((total, pr) => total + (pr.reviews?.length || 0), 0);
         const totalComments = transformedPRs.reduce((total, pr) => total + (pr.comments?.length || 0), 0);
-        console.log(`🔍 [DB] Fetched ${transformedPRs.length} PRs with ${totalReviews} reviews and ${totalComments} comments for ${owner}/${repo}`);
+        console.log('🔍 [DB] Fetched %s PRs with %s reviews and %s comments for %s/%s', transformedPRs.length, totalReviews, totalComments, owner, repo);
         
         if (transformedPRs.length > 5 && totalReviews === 0 && totalComments === 0) {
           console.warn(`⚠️ [DB] Repository ${owner}/${repo} has ${transformedPRs.length} PRs but no reviews/comments data. Consider running progressive data capture.`);
@@ -329,7 +329,7 @@ export async function fetchPRDataWithFallback(
     // This prevents timeouts and rate limit issues
     // Instead, return a pending state and let background processing handle it
     
-    console.log(`Repository ${owner}/${repo} not in database. Checking discovery status.`);
+    console.log('Repository %s/%s not in database. Checking discovery status.', owner, repo);
     
     // Trigger repository discovery for new repositories
     // Validate that we have owner and repo before sending
@@ -346,7 +346,7 @@ export async function fetchPRDataWithFallback(
         globalWindow.__discoveryInProgress[discoveryKey] = true;
         
         try {
-          console.log(`Triggering discovery for ${owner}/${repo}`);
+          console.log('Triggering discovery for %s/%s', owner, repo);
           const { sendInngestEvent } = await import('./inngest/client-safe');
           await sendInngestEvent({
             name: 'discover/repository.new',
@@ -367,7 +367,7 @@ export async function fetchPRDataWithFallback(
           delete globalWindow.__discoveryInProgress[discoveryKey];
         }
       } else {
-        console.log(`Discovery already in progress for ${owner}/${repo}, skipping duplicate trigger`);
+        console.log('Discovery already in progress for %s/%s, skipping duplicate trigger', owner, repo);
       }
     } else {
       console.error('Cannot trigger discovery - missing owner or repo:', { owner, repo });

@@ -63,7 +63,7 @@ export const updatePrActivity = inngest.createFunction(
         throw new Error(`Failed to fetch PRs: ${error.message}`);
       }
 
-      console.log(`Found ${prs?.length || 0} PRs to check for updates in ${repository.owner}/${repository.name}`);
+      console.log('Found %s PRs to check for updates in %s/%s', prs?.length || 0, repository.owner, repository.name);
       return { prs: prs || [], repository };
     });
 
@@ -120,7 +120,7 @@ export const updatePrActivity = inngest.createFunction(
         }
       }
 
-      console.log(`Queueing ${jobs.length} PR update jobs for ${repository.owner}/${repository.name}`);
+      console.log('Queueing %s PR update jobs for %s/%s', jobs.length, repository.owner, repository.name);
       return jobs;
     });
 

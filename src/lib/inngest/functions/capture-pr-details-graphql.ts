@@ -202,7 +202,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           parseInt(prNumber)
         );
         
-        console.log(`✅ GraphQL query successful for PR #${prNumber} (cost: ${result.rateLimit?.cost || 'unknown'} points)`);
+        console.log('✅ GraphQL query successful for PR #%s (cost: %s points)', prNumber, result.rateLimit?.cost || 'unknown');
         return result;
       } catch (error) {
         // Log GraphQL-specific errors

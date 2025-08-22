@@ -79,7 +79,7 @@ export const capturePrReviews = inngest.createFunction(
       const octokit = getOctokit();
       
       try {
-        console.log(`Fetching reviews for PR #${prNumber} in ${repository.owner}/${repository.name}`);
+        console.log('Fetching reviews for PR #%s in %s/%s', prNumber, repository.owner, repository.name);
         apiCallsUsed++;
         const { data: reviewsData } = await octokit.rest.pulls.listReviews({
           owner: repository.owner,
@@ -136,7 +136,7 @@ export const capturePrReviews = inngest.createFunction(
           });
         }
 
-        console.log(`Found ${(reviewsData as GitHubReviewWithUser[]).length} reviews for PR #${prNumber}`);
+        console.log('Found %s reviews for PR #%s', (reviewsData as GitHubReviewWithUser[]).length, prNumber);
         
         await syncLogger.update({
           github_api_calls_used: apiCallsUsed,

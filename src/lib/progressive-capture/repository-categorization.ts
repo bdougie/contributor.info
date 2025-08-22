@@ -54,13 +54,13 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         return;
       }
 
-      console.log(`[RepositoryCategorization] Categorizing ${repositories.length} repositories...`);
+      console.log('[RepositoryCategorization] Categorizing %s repositories...', repositories.length);
 
       // Categorize each repository
       for (const repo of repositories) {
         try {
           const category = await this.categorizeRepository(repo.id);
-          console.log(`[RepositoryCategorization] ${repo.owner}/${repo.name} → ${category}`);
+          console.log('[RepositoryCategorization] %s/%s → %s', repo.owner, repo.name, category);
         } catch (error) {
           console.error(`[RepositoryCategorization] Error categorizing ${repo.owner}/${repo.name}:`, error);
         }
@@ -214,7 +214,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         return false;
       }
 
-      console.log(`[RepositoryCategorization] Marked repository ${repositoryId} as test repository`);
+      console.log('[RepositoryCategorization] Marked repository %s as test repository', repositoryId);
       return true;
     } catch (error) {
       console.error(`[RepositoryCategorization] Exception marking repository ${repositoryId} as test:`, error);
@@ -248,7 +248,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         return false;
       }
 
-      console.log(`[RepositoryCategorization] Unmarked repository ${repositoryId} as test repository`);
+      console.log('[RepositoryCategorization] Unmarked repository %s as test repository', repositoryId);
       return true;
     } catch (error) {
       console.error(`[RepositoryCategorization] Exception unmarking repository ${repositoryId} as test:`, error);

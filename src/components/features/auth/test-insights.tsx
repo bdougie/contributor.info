@@ -154,7 +154,7 @@ export default function TestInsights() {
     setLocalResponse(null);
 
     try {
-      console.log(`Testing local implementation with: ${owner}/${repo}`);
+      console.log('Testing local implementation with: %s/%s', owner, repo);
       const result = await analyzePullRequests(owner, repo);
       console.log("Local analysis result:", result);
       setLocalResponse(result);

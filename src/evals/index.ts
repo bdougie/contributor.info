@@ -113,7 +113,7 @@ async function main() {
   try {
     switch (command) {
       case 'run':
-        console.log(`Running evaluation with config: ${configName}`);
+        console.log('Running evaluation with config: %s', configName);
         await runEvaluation(configName);
         break;
         
@@ -125,7 +125,7 @@ async function main() {
       case 'list':
         console.log('Available configurations:');
         Object.entries(DEFAULT_CONFIGS).forEach(([name, config]) => {
-          console.log(`  ${name}: ${config.description}`);
+          console.log('  %s: %s', name, config.description);
         });
         break;
         
