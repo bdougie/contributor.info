@@ -1,0 +1,372 @@
+/**
+ * Storybook Story Template
+ * 
+ * This template provides a consistent structure for all Storybook stories
+ * in the Contributor.info project. Copy this template when creating new stories.
+ */
+
+import type { Meta, StoryObj } from '@storybook/react';
+import { expect, userEvent, within, waitFor } from '@storybook/test';
+import { designTokens } from './design-tokens';
+
+// ============================================================================
+// COMPONENT IMPORT
+// ============================================================================
+// Import your component here
+// import { YourComponent } from './your-component';
+
+// ============================================================================
+// META CONFIGURATION
+// ============================================================================
+/**
+ * Configure the story metadata
+ * 
+ * Required fields:
+ * - title: Category/ComponentName format
+ * - component: The component being documented
+ * - tags: Must include relevant tags for testing
+ * 
+ * Common tags:
+ * - autodocs: Auto-generate documentation
+ * - interaction: Has interaction tests
+ * - accessibility: Has accessibility tests
+ * - visual: Requires visual regression testing
+ * - skip-test: Skip in test runner
+ */
+const meta = {
+  title: 'Category/ComponentName', // Update this
+  component: null, // Replace with your component
+  parameters: {
+    // Layout options: centered, fullscreen, padded
+    layout: 'centered',
+    
+    // Documentation configuration
+    docs: {
+      description: {
+        component: 'A brief description of what this component does and when to use it.',
+      },
+    },
+    
+    // Design specifications
+    design: {
+      // Link to Figma, Sketch, or other design files
+      // type: 'figma',
+      // url: 'https://www.figma.com/...',
+    },
+  },
+  
+  // IMPORTANT: Add appropriate tags for test categorization
+  tags: ['autodocs', 'interaction', 'accessibility'],
+  
+  // Define component props controls
+  argTypes: {
+    // Example prop configurations
+    variant: {
+      control: 'select',
+      options: ['primary', 'secondary', 'tertiary'],
+      description: 'The visual style variant of the component',
+      table: {
+        type: { summary: 'string' },
+        defaultValue: { summary: 'primary' },
+      },
+    },
+    
+    size: {
+      control: 'radio',
+      options: ['sm', 'md', 'lg'],
+      description: 'The size of the component',
+    },
+    
+    disabled: {
+      control: 'boolean',
+      description: 'Whether the component is disabled',
+    },
+    
+    onClick: {
+      action: 'clicked',
+      description: 'Click event handler',
+    },
+  },
+  
+  // Global decorators for this component's stories
+  decorators: [
+    (Story) => (
+      <div style={{ 
+        padding: designTokens.spacing[8],
+        fontFamily: designTokens.typography.fontFamily.sans,
+      }}>
+        <Story />
+      </div>
+    ),
+  ],
+} satisfies Meta<typeof Component>; // Update Component reference
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+// ============================================================================
+// STORIES
+// ============================================================================
+
+/**
+ * Default story - Shows the component in its most common configuration
+ */
+export const Default: Story = {
+  args: {
+    // Default props
+  },
+};
+
+/**
+ * Interactive story with play function for testing
+ * Tags: interaction
+ */
+export const Interactive: Story = {
+  args: {
+    // Props for interactive story
+  },
+  
+  play: async ({ canvasElement, step }) => {
+    const canvas = within(canvasElement);
+    
+    await step('Initial state verification', async () => {
+      // Verify initial rendering
+      const element = canvas.getByRole('button'); // Update selector
+      await expect(element).toBeInTheDocument();
+      await expect(element).toHaveTextContent('Expected Text');
+    });
+    
+    await step('User interaction', async () => {
+      // Simulate user interaction
+      const element = canvas.getByRole('button');
+      await userEvent.click(element);
+      
+      // Verify state change
+      await waitFor(() => {
+        expect(element).toHaveAttribute('aria-pressed', 'true');
+      });
+    });
+    
+    await step('Keyboard navigation', async () => {
+      // Test keyboard accessibility
+      const element = canvas.getByRole('button');
+      await userEvent.tab();
+      await expect(element).toHaveFocus();
+      
+      await userEvent.keyboard('{Enter}');
+      // Verify keyboard interaction result
+    });
+  },
+  
+  parameters: {
+    docs: {
+      description: {
+        story: 'Demonstrates interactive behavior with user actions.',
+      },
+    },
+  },
+};
+
+/**
+ * Accessibility-focused story
+ * Tags: accessibility
+ */
+export const Accessible: Story = {
+  args: {
+    'aria-label': 'Accessible component',
+    role: 'button',
+  },
+  
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    
+    // Test ARIA attributes
+    const element = canvas.getByRole('button');
+    await expect(element).toHaveAttribute('aria-label', 'Accessible component');
+    
+    // Test keyboard navigation
+    await userEvent.tab();
+    await expect(element).toHaveFocus();
+    
+    // Test screen reader announcements
+    await expect(element).toHaveAccessibleName('Accessible component');
+  },
+  
+  parameters: {
+    a11y: {
+      // Accessibility test configuration
+      config: {
+        rules: [
+          {
+            id: 'color-contrast',
+            enabled: true,
+          },
+        ],
+      },
+    },
+  },
+};
+
+/**
+ * All variants showcase
+ */
+export const AllVariants: Story = {
+  render: () => (
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: designTokens.spacing[4] 
+    }}>
+      {/* Render all component variants */}
+      <div>
+        <h3>Primary Variant</h3>
+        {/* <Component variant="primary" /> */}
+      </div>
+      <div>
+        <h3>Secondary Variant</h3>
+        {/* <Component variant="secondary" /> */}
+      </div>
+      <div>
+        <h3>Tertiary Variant</h3>
+        {/* <Component variant="tertiary" /> */}
+      </div>
+    </div>
+  ),
+};
+
+/**
+ * States showcase
+ */
+export const States: Story = {
+  render: () => (
+    <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: 'repeat(4, 1fr)', 
+      gap: designTokens.spacing[4],
+      alignItems: 'center',
+    }}>
+      <div>
+        <p style={{ marginBottom: designTokens.spacing[2] }}>Default</p>
+        {/* <Component /> */}
+      </div>
+      <div>
+        <p style={{ marginBottom: designTokens.spacing[2] }}>Hover</p>
+        {/* <Component className="hover" /> */}
+      </div>
+      <div>
+        <p style={{ marginBottom: designTokens.spacing[2] }}>Active</p>
+        {/* <Component className="active" /> */}
+      </div>
+      <div>
+        <p style={{ marginBottom: designTokens.spacing[2] }}>Disabled</p>
+        {/* <Component disabled /> */}
+      </div>
+    </div>
+  ),
+};
+
+/**
+ * Responsive behavior
+ */
+export const Responsive: Story = {
+  parameters: {
+    viewport: {
+      viewports: {
+        mobile: {
+          name: 'Mobile',
+          styles: { width: '375px', height: '667px' },
+        },
+        tablet: {
+          name: 'Tablet',
+          styles: { width: '768px', height: '1024px' },
+        },
+        desktop: {
+          name: 'Desktop',
+          styles: { width: '1440px', height: '900px' },
+        },
+      },
+      defaultViewport: 'mobile',
+    },
+  },
+};
+
+/**
+ * Dark mode support
+ */
+export const DarkMode: Story = {
+  parameters: {
+    backgrounds: {
+      default: 'dark',
+    },
+  },
+  decorators: [
+    (Story) => (
+      <div className="dark" style={{ 
+        backgroundColor: designTokens.colors.neutral[900],
+        padding: designTokens.spacing[8],
+        minHeight: '200px',
+      }}>
+        <Story />
+      </div>
+    ),
+  ],
+};
+
+/**
+ * Loading state
+ */
+export const Loading: Story = {
+  args: {
+    isLoading: true,
+  },
+};
+
+/**
+ * Error state
+ */
+export const ErrorState: Story = {
+  args: {
+    error: 'Something went wrong',
+  },
+};
+
+/**
+ * Empty state
+ */
+export const EmptyState: Story = {
+  args: {
+    items: [],
+  },
+};
+
+// ============================================================================
+// STORY UTILITIES
+// ============================================================================
+
+/**
+ * Helper function for common assertions
+ */
+async function assertComponentDefaults(canvas: ReturnType<typeof within>) {
+  // Add common assertions here
+  const element = canvas.getByRole('button');
+  await expect(element).toBeInTheDocument();
+  await expect(element).toBeEnabled();
+  await expect(element).toBeVisible();
+}
+
+/**
+ * Helper function for accessibility checks
+ */
+async function assertAccessibility(canvas: ReturnType<typeof within>) {
+  const element = canvas.getByRole('button');
+  
+  // Check for required ARIA attributes
+  await expect(element).toHaveAccessibleName();
+  
+  // Check keyboard accessibility
+  await userEvent.tab();
+  await expect(element).toHaveFocus();
+  
+  // Check color contrast (manual check reminder)
+  console.log('Manual check: Verify color contrast meets WCAG AA standards');
+}

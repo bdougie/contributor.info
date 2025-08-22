@@ -158,24 +158,24 @@ export const ProductionMode: Story = {
 
 // Interactive cache management
 export const Interactive: Story = {
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     
     // Verify cache debug component is displayed
-    await expect(canvas.getByText("Cache Debug")).toBeInTheDocument();
+    expect(canvas.getByText("Cache Debug")).toBeInTheDocument();
     
     // Check hit rate is displayed
-    await expect(canvas.getByText("85.3%")).toBeInTheDocument();
+    expect(canvas.getByText("85.3%")).toBeInTheDocument();
     
     // Check total entries count
-    await expect(canvas.getByText("45")).toBeInTheDocument();
+    expect(canvas.getByText("45")).toBeInTheDocument();
     
     // Test action buttons
     const cleanupButton = canvas.getByText("Cleanup");
-    await expect(cleanupButton).toBeInTheDocument();
+    expect(cleanupButton).toBeInTheDocument();
     
     const clearButton = canvas.getByText("Clear All");
-    await expect(clearButton).toBeInTheDocument();
+    expect(clearButton).toBeInTheDocument();
   }
 };
 
