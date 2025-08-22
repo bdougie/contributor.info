@@ -319,11 +319,14 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                 }}
                 crossOrigin="anonymous"
                 onError={(e) => {
-                  // Fallback to GitHub identicon on error, but only once
+                  // Fallback to GitHub avatar API on error, but only once
                   const target = e.target as HTMLImageElement;
                   if (!target.dataset.retried) {
                     target.dataset.retried = 'true';
-                    target.src = `https://github.com/identicons/${props.node.data.contributor}.png`;
+                    // Use avatars.githubusercontent.com which provides CORS headers
+                    // Using user ID if available, otherwise a default avatar
+                    const userId = props.node.data._pr?.user?.id || 0;
+                    target.src = `https://avatars.githubusercontent.com/u/${userId}?v=4`;
                   }
                 }}
               />
