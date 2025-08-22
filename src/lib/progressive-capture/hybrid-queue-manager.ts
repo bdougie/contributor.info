@@ -332,31 +332,22 @@ export class HybridQueueManager {
       throw new Error(`Event data missing repositoryId for job ${jobId}`);
     }
 
-    // If we're in the browser, use the Netlify function endpoint
+    // If we're in the browser, use the client-safe sendInngestEvent function
     if (typeof window !== 'undefined') {
-      // In development, Netlify functions run on port 8888
-      const functionUrl = window.location.hostname === 'localhost' 
-        ? 'http://localhost:8888/.netlify/functions/api-queue-event'
-        : '/.netlify/functions/api-queue-event';
-        
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          eventName,
-          data: eventData
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }));
-        console.error('[HybridQueue] Failed to queue event via API:', errorData);
-        throw new Error(`Failed to queue event: ${errorData.error || response.statusText}`);
-      }
+      // Import dynamically to avoid server-side issues
+      const { sendInngestEvent } = await import('../inngest/client-safe');
       
-      console.log('[HybridQueue] Event queued successfully via API for', eventData.repositoryId);
+      try {
+        await sendInngestEvent({
+          name: eventName,
+          data: eventData
+        });
+        
+        console.log('[HybridQueue] Event queued successfully via client-safe API for', eventData.repositoryId);
+      } catch (error) {
+        console.error('[HybridQueue] Failed to queue event via client-safe API:', error);
+        throw new Error(`Failed to queue event: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
       return;
     }
     
