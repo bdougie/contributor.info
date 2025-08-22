@@ -1,14 +1,16 @@
 // Test script for the Supabase Edge Function queue-event endpoint
-const SUPABASE_URL = 'https://egcxzonpmmcirmgqdrla.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnY3h6b25wbW1jaXJtZ3FkcmxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxODAzNzEsImV4cCI6MjA2Nzc1NjM3MX0.SY1LMsRFyrBtHiZfgDhXD9ZlKl37-L7Uar4HnyDgw24';
+// Usage: VITE_SUPABASE_URL=your-url VITE_SUPABASE_ANON_KEY=your-key node test-supabase-queue.js
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
 async function testSupabaseQueueEndpoint() {
   console.log('Testing Supabase Edge Function queue-event endpoint...\n');
   
-  if (!SUPABASE_ANON_KEY) {
-    console.error('❌ SUPABASE_ANON_KEY environment variable is not set');
-    console.error('Please set it in your .env file or export it');
-    console.error('Looking for SUPABASE_ANON_KEY or VITE_SUPABASE_ANON_KEY');
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.error('❌ Required environment variables are not set');
+    console.error('Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
+    console.error('Usage: VITE_SUPABASE_URL=your-url VITE_SUPABASE_ANON_KEY=your-key node test-supabase-queue.js');
+    console.error('Or source your .env file first: source .env && node test-supabase-queue.js');
     return;
   }
   
