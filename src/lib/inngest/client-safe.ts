@@ -11,7 +11,7 @@ import { inngest } from './client';
 // Get Supabase URL from environment
 const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || 
                      (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_URL : '') ||
-                     'https://egcxzonpmmcirmgqdrla.supabase.co';
+                     '';
 
 // Get Supabase anon key for Edge Function auth
 const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || 
