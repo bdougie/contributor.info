@@ -45,14 +45,24 @@ jobs:
           
           # Direct prompt for automated review (no @claude mention needed)
           direct_prompt: |
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
+            Please perform a comprehensive code review of this pull request. Use the available tools to:
             
-            Be constructive and helpful in your feedback.
+            1. Build and test the code to identify any compilation or runtime issues
+            2. Run linting and type checking to catch potential problems
+            3. Analyze the code changes for:
+               - Code quality and best practices
+               - Potential bugs or logic errors
+               - Performance implications
+               - Security vulnerabilities
+               - Test coverage and quality
+               - Accessibility concerns for UI components
+               - Consistency with existing codebase patterns
+            
+            4. Search the codebase for similar patterns or potential impacts
+            5. Verify that changes align with project conventions in CLAUDE.md
+            
+            Provide specific, actionable feedback with code examples where appropriate.
+            Be constructive and educational in your suggestions.
 
           # Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
           use_sticky_comment: true
@@ -71,8 +81,8 @@ jobs:
           #   'Welcome! Please review this PR from a first-time contributor. Be encouraging and provide detailed explanations for any suggestions.' ||
           #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
           
-          # Add specific tools for running tests or linting
-          allowed_tools: "Bash(npm run build),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test)"
+          # Enable comprehensive tool calling for thorough code review
+          allowed_tools: "Bash(npm run build),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run test:*),Bash(npx tsc:*),Bash(node:*),Bash(git diff:*),Bash(git log:*),Bash(grep:*),Bash(rg:*),Bash(find:*),Bash(ls:*),Read,Grep,Glob,LS"
           
           # Optional: Skip review for certain conditions
           # if: |
