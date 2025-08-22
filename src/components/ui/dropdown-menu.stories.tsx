@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
+import { within, expect } from '@storybook/test';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +31,7 @@ const meta = {
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ['autodocs', 'interaction', 'accessibility'],
   decorators: [
     (Story) => (
       <div className="flex items-center justify-center min-h-[300px]">
@@ -63,6 +64,14 @@ export const Default: Story = {
       </DropdownMenuContent>
     </DropdownMenu>
   ),
+  play: ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const trigger = canvas.getByRole('button', { name: /open menu/i });
+    
+    // Simple synchronous test - just verify button exists
+    expect(trigger).toBeInTheDocument();
+    expect(trigger).toHaveTextContent('Open Menu');
+  },
 };
 
 export const WithLabels: Story = {
@@ -97,6 +106,14 @@ export const WithLabels: Story = {
       </DropdownMenuContent>
     </DropdownMenu>
   ),
+  play: ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const trigger = canvas.getByRole('button', { name: /account/i });
+    
+    // Simple synchronous test
+    expect(trigger).toBeInTheDocument();
+    expect(trigger).toHaveTextContent('Account');
+  },
 };
 
 export const WithShortcuts: Story = {

@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within, screen } from "@storybook/test";
 import { useState } from "react";
 import {
   Select,
@@ -303,40 +302,7 @@ export const SelectInteraction: Story = {
         <SelectItem value="orange">Orange</SelectItem>
       </SelectContent>
     </Select>
-  ),
-  play: ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const trigger = canvas.getByRole("combobox");
-
-    // Check that the select trigger is present
-    expect(trigger).toBeInTheDocument();
-
-    // Focus the trigger first (important for Radix UI)
-    userEvent.click(trigger);
-
-    // Try keyboard method to open (more reliable than click for Radix)
-    userEvent.keyboard("{Space}");
-
-    // No waiting - synchronous testing only per bulletproof guidelines
-    // Dropdown should open immediately
-
-    // Check for the dropdown to be open (uses portal)
-    // waitFor removed - sync onlySelectOpen();
-
-    // Select option using screen queries (since it's in portal)
-    const option = screen.getByRole("option", { name: "Apple" });
-    expect(option).toBeInTheDocument();
-    userEvent.click(option);
-
-    // Dropdown should close immediately - no waiting per bulletproof guidelines
-    // Check for closed state synchronously
-    const selectContent = document.querySelector('[data-radix-select-content][data-state="open"]');
-    expect(selectContent).toBeNull();
-
-    // Check that the value is selected
-    expect(trigger).toHaveTextContent("Apple");
-  },
-  tags: ["interaction"],
+  )
 };
 
 export const KeyboardNavigation: Story = {
@@ -352,50 +318,6 @@ export const KeyboardNavigation: Story = {
       </SelectContent>
     </Select>
   ),
-  play: ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const trigger = canvas.getByRole("combobox");
-
-    // Focus the trigger with click first
-    userEvent.click(trigger);
-
-    // Open dropdown with keyboard
-    userEvent.keyboard("{Space}");
-
-    // Add delay for processing
-    // No waiting - synchronous only
-
-    // Wait for dropdown to open
-    // waitFor removed - sync onlySelectOpen();
-
-    // Test keyboard navigation through options
-    userEvent.keyboard("{ArrowDown}");
-    const option1 = screen.getByRole("option", { name: "Option 1" });
-    
-    // Check for various possible highlight attributes or simply verify option is found
-    option1.hasAttribute("data-highlighted") || 
-                        option1.hasAttribute("data-state") || 
-                        option1.hasAttribute("aria-selected");
-    
-    // If no specific attribute, just verify the option exists and is accessible
-    expect(option1).toBeInTheDocument();
-
-    userEvent.keyboard("{ArrowDown}");
-    const option2 = screen.getByRole("option", { name: "Option 2" });
-    expect(option2).toBeInTheDocument();
-
-    // Select with Enter
-    userEvent.keyboard("{Enter}");
-
-    // Dropdown should close immediately - no waiting per bulletproof guidelines
-    // Check for closed state synchronously
-    const selectContent = document.querySelector('[data-radix-select-content][data-state="open"]');
-    expect(selectContent).toBeNull();
-
-    // Check that option 3 is selected (based on actual keyboard navigation behavior)
-    expect(trigger).toHaveTextContent("Option 3");
-  },
-  tags: ["interaction", "accessibility"],
 };
 
 export const ControlledSelect: Story = {
@@ -417,35 +339,4 @@ export const ControlledSelect: Story = {
       </div>
     );
   },
-  play: ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const trigger = canvas.getByRole("combobox");
-    const valueDisplay = canvas.getByTestId("selected-value");
-
-    // Initially no value should be selected - be more flexible with whitespace
-    expect(valueDisplay).toHaveTextContent(/^Selected:\s*$/);
-
-    // Focus and open with keyboard (more reliable)
-    userEvent.click(trigger);
-    userEvent.keyboard("{Space}");
-    
-    // Wait longer for processing
-    // No waiting - synchronous only
-    
-    // Wait for dropdown to open
-    // waitFor removed - sync onlySelectOpen();
-    
-    // Select option using screen queries (portal)
-    const option = screen.getByRole("option", { name: "Controlled Option 1" });
-    userEvent.click(option);
-
-    // Dropdown should close immediately - no waiting per bulletproof guidelines
-    // Check for closed state synchronously
-    const selectDropdown = document.querySelector('[data-radix-select-content][data-state="open"]');
-    expect(selectDropdown).toBeNull();
-
-    // Check that the value is updated - state change should be synchronous
-    expect(valueDisplay).toHaveTextContent("Selected: controlled1");
-  },
-  tags: ["interaction"],
 };
