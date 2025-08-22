@@ -117,25 +117,25 @@ export const SpecialCharacters: Story = {
 
 // Interactive testing
 export const Interactive: Story = {
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     
     // Verify main heading is displayed
-    await expect(canvas.getByText(/Repository Insights/)).toBeInTheDocument();
+    expect(canvas.getByText(/Repository Insights/)).toBeInTheDocument();
     
     // Check repository name is shown
-    await expect(canvas.getByText("facebook/react")).toBeInTheDocument();
+    expect(canvas.getByText("facebook/react")).toBeInTheDocument();
     
     // Verify PullRequestInsights component is rendered
-    await expect(canvas.getByText("Pull Request Insights")).toBeInTheDocument();
+    expect(canvas.getByText("Pull Request Insights")).toBeInTheDocument();
     
     // Check metrics are displayed
-    await expect(canvas.getByText("42")).toBeInTheDocument(); // Total PRs
-    await expect(canvas.getByText("38")).toBeInTheDocument(); // Merged
-    await expect(canvas.getByText("2.3")).toBeInTheDocument(); // Avg Days
+    expect(canvas.getByText("42")).toBeInTheDocument(); // Total PRs
+    expect(canvas.getByText("38")).toBeInTheDocument(); // Merged
+    expect(canvas.getByText("2.3")).toBeInTheDocument(); // Avg Days
     
     // Verify insights text is present
-    await expect(canvas.getByText(/Strong development velocity/)).toBeInTheDocument();
+    expect(canvas.getByText(/Strong development velocity/)).toBeInTheDocument();
   }
 };
 

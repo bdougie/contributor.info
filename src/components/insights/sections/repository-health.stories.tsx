@@ -247,24 +247,24 @@ export const LowConfidenceLLM: Story = {
 
 // Interactive test story
 export const Interactive: Story = {
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     
     // Wait for component to load
-    await expect(canvas.getByText("Repository Health")).toBeInTheDocument();
+    expect(canvas.getByText("Repository Health")).toBeInTheDocument();
     
     // Check health score is displayed
-    await expect(canvas.getByText("92/100")).toBeInTheDocument();
+    expect(canvas.getByText("92/100")).toBeInTheDocument();
     
     // Verify health factors are shown
-    await expect(canvas.getByText("Review Coverage")).toBeInTheDocument();
-    await expect(canvas.getByText("Response Time")).toBeInTheDocument();
+    expect(canvas.getByText("Review Coverage")).toBeInTheDocument();
+    expect(canvas.getByText("Response Time")).toBeInTheDocument();
     
     // Check AI insight is displayed
-    await expect(canvas.getByText(/Outstanding repository health/)).toBeInTheDocument();
+    expect(canvas.getByText(/Outstanding repository health/)).toBeInTheDocument();
     
     // Verify confidence badge
-    await expect(canvas.getByText("92% confident")).toBeInTheDocument();
+    expect(canvas.getByText("92% confident")).toBeInTheDocument();
   }
 };
 

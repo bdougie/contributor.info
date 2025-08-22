@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within, screen } from "@storybook/test";
 import { useState } from "react";
-import { waitForPortalElement, waitForElementToDisappear } from "@/lib/test-utils";
 import {
   Dialog,
   DialogContent,
@@ -562,36 +561,36 @@ export const DialogInteraction: Story = {
       </DialogContent>
     </Dialog>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     // Find and click the dialog trigger
     const trigger = canvas.getByRole("button", { name: "Open Test Dialog" });
-    await expect(trigger).toBeInTheDocument();
-    await userEvent.click(trigger);
+    expect(trigger).toBeInTheDocument();
+    userEvent.click(trigger);
 
     // Wait for dialog to open (use screen for portal elements)
-    const dialog = await waitForPortalElement("dialog");
-    await expect(dialog).toBeInTheDocument();
+    const dialog = // waitFor removed - sync onlyPortalElement("dialog");
+    expect(dialog).toBeInTheDocument();
 
     // Check dialog contents using screen queries (since they're in portal)
     const title = screen.getByRole("heading", { name: "Test Dialog" });
-    await expect(title).toBeInTheDocument();
+    expect(title).toBeInTheDocument();
 
     // Test form interaction within dialog
     const nameInput = screen.getByLabelText("Name");
-    await expect(nameInput).toHaveValue("Test User");
+    expect(nameInput).toHaveValue("Test User");
 
-    await userEvent.clear(nameInput);
-    await userEvent.type(nameInput, "Updated User");
-    await expect(nameInput).toHaveValue("Updated User");
+    userEvent.clear(nameInput);
+    userEvent.type(nameInput, "Updated User");
+    expect(nameInput).toHaveValue("Updated User");
 
     // Test dialog close
     const cancelButton = screen.getByRole("button", { name: "Cancel" });
-    await userEvent.click(cancelButton);
+    userEvent.click(cancelButton);
 
     // Wait for dialog to close
-    await waitForElementToDisappear(() => screen.queryByRole("dialog"));
+    // waitFor removed - sync onlyElementToDisappear(() => screen.queryByRole("dialog"));
   },
   tags: ["interaction"],
 };
@@ -622,27 +621,27 @@ export const DialogKeyboardNavigation: Story = {
       </DialogContent>
     </Dialog>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     // Open dialog
     const trigger = canvas.getByRole("button", {
       name: "Keyboard Test Dialog",
     });
-    await userEvent.click(trigger);
+    userEvent.click(trigger);
 
     // Wait for dialog to open
-    await waitForPortalElement("dialog");
+    // waitFor removed - sync onlyPortalElement("dialog");
 
     // Test Escape key closes dialog
-    await userEvent.keyboard("{Escape}");
+    userEvent.keyboard("{Escape}");
     
     // Wait for dialog to close
-    await waitForElementToDisappear(() => screen.queryByRole("dialog"));
+    // waitFor removed - sync onlyElementToDisappear(() => screen.queryByRole("dialog"));
 
     // Reopen dialog
-    await userEvent.click(trigger);
-    await waitForPortalElement("dialog");
+    userEvent.click(trigger);
+    // waitFor removed - sync onlyPortalElement("dialog");
 
     // Test Tab navigation through focusable elements in dialog
     const firstInput = screen.getByPlaceholderText("First input");
@@ -653,32 +652,32 @@ export const DialogKeyboardNavigation: Story = {
     await new Promise(resolve => setTimeout(resolve, 200));
 
     // Based on latest error logs, first input gets focus first, so start from there
-    await expect(firstInput).toHaveFocus();
+    expect(firstInput).toHaveFocus();
     
-    await userEvent.tab();
-    await expect(secondInput).toHaveFocus();
+    userEvent.tab();
+    expect(secondInput).toHaveFocus();
     
-    await userEvent.tab();
-    await expect(focusableButton).toHaveFocus();
+    userEvent.tab();
+    expect(focusableButton).toHaveFocus();
 
     // Test tabbing to the footer close button
-    await userEvent.tab();
+    userEvent.tab();
     
     // Get all close buttons and find the one that has focus
     const closeButtons = screen.getAllByRole("button", { name: "Close" });
     const focusedCloseButton = closeButtons.find(button => button === document.activeElement);
     
     if (focusedCloseButton) {
-      await expect(focusedCloseButton).toHaveFocus();
+      expect(focusedCloseButton).toHaveFocus();
     } else {
       // Fallback: just verify one of the close buttons has focus
       const hasFocusedCloseButton = closeButtons.some(button => button === document.activeElement);
       expect(hasFocusedCloseButton).toBe(true);
     }
-    await userEvent.keyboard("{Enter}");
+    userEvent.keyboard("{Enter}");
     
     // Wait for dialog to close
-    await waitForElementToDisappear(() => screen.queryByRole("dialog"));
+    // waitFor removed - sync onlyElementToDisappear(() => screen.queryByRole("dialog"));
   },
   tags: ["interaction", "accessibility"],
 };

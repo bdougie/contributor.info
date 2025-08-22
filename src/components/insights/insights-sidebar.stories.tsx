@@ -244,16 +244,16 @@ export const Interactive: Story = {
       </div>
     </div>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     
     // Verify sidebar is visible
-    await expect(canvas.getByText("Insights")).toBeInTheDocument();
+    expect(canvas.getByText("Insights")).toBeInTheDocument();
     
     // Check for insight sections
-    await expect(canvas.getByText("Repository Health")).toBeInTheDocument();
-    await expect(canvas.getByText("AI Recommendations")).toBeInTheDocument();
-    await expect(canvas.getByText("Needs Attention")).toBeInTheDocument();
+    expect(canvas.getByText("Repository Health")).toBeInTheDocument();
+    expect(canvas.getByText("AI Recommendations")).toBeInTheDocument();
+    expect(canvas.getByText("Needs Attention")).toBeInTheDocument();
   }
 };
 

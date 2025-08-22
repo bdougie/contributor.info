@@ -35,7 +35,7 @@ export const KeyboardNavigation: Story = {
       </div>
     </div>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     // Test tab navigation through focusable elements
@@ -49,26 +49,26 @@ export const KeyboardNavigation: Story = {
 
     // Start from first button
     firstButton.focus();
-    await expect(firstButton).toHaveFocus();
+    expect(firstButton).toHaveFocus();
 
     // Tab to second button
-    await userEvent.keyboard("{Tab}");
-    await expect(secondButton).toHaveFocus();
+    userEvent.keyboard("{Tab}");
+    expect(secondButton).toHaveFocus();
 
     // Tab to input
-    await userEvent.keyboard("{Tab}");
-    await expect(textInput).toHaveFocus();
+    userEvent.keyboard("{Tab}");
+    expect(textInput).toHaveFocus();
 
     // Tab should skip disabled button and go to last button
-    await userEvent.keyboard("{Tab}");
-    await expect(lastButton).toHaveFocus();
+    userEvent.keyboard("{Tab}");
+    expect(lastButton).toHaveFocus();
 
     // Shift+Tab should go back to input (skipping disabled button)
-    await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
-    await expect(textInput).toHaveFocus();
+    userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(textInput).toHaveFocus();
 
     // Verify disabled button is not focusable
-    await expect(disabledButton).toBeDisabled();
+    expect(disabledButton).toBeDisabled();
   },
   tags: ["accessibility", "keyboard"],
 };
@@ -123,35 +123,35 @@ export const ScreenReaderSupport: Story = {
       </div>
     </div>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     // Test proper labeling
     const usernameInput = canvas.getByLabelText("Username");
-    await expect(usernameInput).toBeInTheDocument();
+    expect(usernameInput).toBeInTheDocument();
 
     const emailInput = canvas.getByLabelText("Email (required)");
-    await expect(emailInput).toBeInTheDocument();
-    await expect(emailInput).toBeRequired();
+    expect(emailInput).toBeInTheDocument();
+    expect(emailInput).toBeRequired();
 
     // Test aria-describedby relationships
-    await expect(emailInput).toHaveAttribute("aria-describedby", "email-hint");
+    expect(emailInput).toHaveAttribute("aria-describedby", "email-hint");
 
     // Test fieldset/legend for radio group
     const radioGroup = canvas.getByRole("radiogroup", {
       name: "Choose your preference",
     });
-    await expect(radioGroup).toBeInTheDocument();
+    expect(radioGroup).toBeInTheDocument();
 
     // Test radio button labels
     const emailRadio = canvas.getByLabelText("Email notifications");
     const smsRadio = canvas.getByLabelText("SMS notifications");
-    await expect(emailRadio).toBeInTheDocument();
-    await expect(smsRadio).toBeInTheDocument();
+    expect(emailRadio).toBeInTheDocument();
+    expect(smsRadio).toBeInTheDocument();
 
     // Test button accessible description
     const submitButton = canvas.getByRole("button", { name: "Submit Form" });
-    await expect(submitButton).toHaveAttribute(
+    expect(submitButton).toHaveAttribute(
       "aria-describedby",
       "submit-help"
     );
@@ -190,27 +190,27 @@ export const ColorContrastAndVisualCues: Story = {
       </div>
     </div>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     // Test error state indication
     const passwordInput = canvas.getByLabelText("Password");
-    await expect(passwordInput).toHaveAttribute("aria-invalid", "true");
-    await expect(passwordInput).toHaveAttribute(
+    expect(passwordInput).toHaveAttribute("aria-invalid", "true");
+    expect(passwordInput).toHaveAttribute(
       "aria-describedby",
       "password-error"
     );
 
     // Test error message role
     const errorMessage = canvas.getByRole("alert");
-    await expect(errorMessage).toBeInTheDocument();
-    await expect(errorMessage).toHaveTextContent(
+    expect(errorMessage).toBeInTheDocument();
+    expect(errorMessage).toHaveTextContent(
       "Password must be at least 8 characters long"
     );
 
     // Test checkbox labeling
     const checkbox = canvas.getByRole("checkbox");
-    await expect(checkbox).toBeInTheDocument();
+    expect(checkbox).toBeInTheDocument();
 
     // Test button variants are distinguishable
     const primaryButton = canvas.getByRole("button", {
@@ -221,9 +221,9 @@ export const ColorContrastAndVisualCues: Story = {
     });
     const dangerButton = canvas.getByRole("button", { name: "Danger Action" });
 
-    await expect(primaryButton).toBeInTheDocument();
-    await expect(secondaryButton).toBeInTheDocument();
-    await expect(dangerButton).toBeInTheDocument();
+    expect(primaryButton).toBeInTheDocument();
+    expect(secondaryButton).toBeInTheDocument();
+    expect(dangerButton).toBeInTheDocument();
   },
   tags: ["accessibility", "visual"],
 };
@@ -241,7 +241,7 @@ export const FocusManagement: Story = {
       </div>
     );
   },
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     // Test visible focus indicators
@@ -251,21 +251,21 @@ export const FocusManagement: Story = {
 
     // Focus each button and verify it receives focus
     button1.focus();
-    await expect(button1).toHaveFocus();
+    expect(button1).toHaveFocus();
 
     button2.focus();
-    await expect(button2).toHaveFocus();
+    expect(button2).toHaveFocus();
 
     button3.focus();
-    await expect(button3).toHaveFocus();
+    expect(button3).toHaveFocus();
 
     // Test tab order
     button1.focus();
-    await userEvent.keyboard("{Tab}");
-    await expect(button2).toHaveFocus();
+    userEvent.keyboard("{Tab}");
+    expect(button2).toHaveFocus();
 
-    await userEvent.keyboard("{Tab}");
-    await expect(button3).toHaveFocus();
+    userEvent.keyboard("{Tab}");
+    expect(button3).toHaveFocus();
   },
   tags: ["accessibility", "focus"],
 };

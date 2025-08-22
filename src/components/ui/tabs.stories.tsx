@@ -338,7 +338,7 @@ export const TabsInteraction: Story = {
       </TabsContent>
     </Tabs>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     // Check that first tab is active by default
@@ -346,27 +346,27 @@ export const TabsInteraction: Story = {
     const tab2 = canvas.getByRole("tab", { name: "Tab 2" });
     const tab3 = canvas.getByRole("tab", { name: "Tab 3" });
 
-    await expect(tab1).toHaveAttribute("aria-selected", "true");
+    expect(tab1).toHaveAttribute("aria-selected", "true");
 
     // Check that first tab content is visible
     const tab1Content = canvas.getByText("This is the content for tab 1.");
-    await expect(tab1Content).toBeInTheDocument();
+    expect(tab1Content).toBeInTheDocument();
 
     // Click on second tab
-    await userEvent.click(tab2);
-    await expect(tab2).toHaveAttribute("aria-selected", "true");
-    await expect(tab1).toHaveAttribute("aria-selected", "false");
+    userEvent.click(tab2);
+    expect(tab2).toHaveAttribute("aria-selected", "true");
+    expect(tab1).toHaveAttribute("aria-selected", "false");
 
     // Check that second tab content is visible
     const tab2Content = canvas.getByText("This is the content for tab 2.");
-    await expect(tab2Content).toBeInTheDocument();
+    expect(tab2Content).toBeInTheDocument();
 
     // Click on third tab
-    await userEvent.click(tab3);
-    await expect(tab3).toHaveAttribute("aria-selected", "true");
+    userEvent.click(tab3);
+    expect(tab3).toHaveAttribute("aria-selected", "true");
 
     const tab3Content = canvas.getByText("This is the content for tab 3.");
-    await expect(tab3Content).toBeInTheDocument();
+    expect(tab3Content).toBeInTheDocument();
   },
   tags: ["interaction"],
 };
@@ -390,30 +390,30 @@ export const TabsKeyboardNavigation: Story = {
       </TabsContent>
     </Tabs>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
     // Focus first tab
     const firstTab = canvas.getByRole("tab", { name: "First" });
     firstTab.focus();
-    await expect(firstTab).toHaveFocus();
+    expect(firstTab).toHaveFocus();
 
     // Use arrow keys to navigate
-    await userEvent.keyboard("{ArrowRight}");
+    userEvent.keyboard("{ArrowRight}");
     const secondTab = canvas.getByRole("tab", { name: "Second" });
-    await expect(secondTab).toHaveFocus();
+    expect(secondTab).toHaveFocus();
 
-    await userEvent.keyboard("{ArrowRight}");
+    userEvent.keyboard("{ArrowRight}");
     const thirdTab = canvas.getByRole("tab", { name: "Third" });
-    await expect(thirdTab).toHaveFocus();
+    expect(thirdTab).toHaveFocus();
 
     // Test wrapping navigation
-    await userEvent.keyboard("{ArrowRight}");
-    await expect(firstTab).toHaveFocus();
+    userEvent.keyboard("{ArrowRight}");
+    expect(firstTab).toHaveFocus();
 
     // Test left arrow navigation
-    await userEvent.keyboard("{ArrowLeft}");
-    await expect(thirdTab).toHaveFocus();
+    userEvent.keyboard("{ArrowLeft}");
+    expect(thirdTab).toHaveFocus();
   },
   tags: ["interaction", "accessibility"],
 };

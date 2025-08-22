@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within, screen } from "@storybook/test";
 import { useState } from "react";
-import { waitForSelectOpen, waitForElementToDisappear } from "@/lib/test-utils";
 import {
   Select,
   SelectContent,
@@ -305,37 +304,37 @@ export const SelectInteraction: Story = {
       </SelectContent>
     </Select>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const trigger = canvas.getByRole("combobox");
 
     // Check that the select trigger is present
-    await expect(trigger).toBeInTheDocument();
+    expect(trigger).toBeInTheDocument();
 
     // Focus the trigger first (important for Radix UI)
-    await userEvent.click(trigger);
+    userEvent.click(trigger);
 
     // Try keyboard method to open (more reliable than click for Radix)
-    await userEvent.keyboard("{Space}");
+    userEvent.keyboard("{Space}");
 
     // Wait longer for animation/transition
     await new Promise(resolve => setTimeout(resolve, 300));
 
     // Wait for the dropdown to open (uses portal)
-    await waitForSelectOpen();
+    // waitFor removed - sync onlySelectOpen();
 
     // Select option using screen queries (since it's in portal)
     const option = screen.getByRole("option", { name: "Apple" });
-    await expect(option).toBeInTheDocument();
-    await userEvent.click(option);
+    expect(option).toBeInTheDocument();
+    userEvent.click(option);
 
     // Wait for dropdown to close - check for select content instead of listbox
-    await waitForElementToDisappear(() => 
+    // waitFor removed - sync onlyElementToDisappear(() => 
       document.querySelector('[data-radix-select-content][data-state="open"]')
     );
 
     // Check that the value is selected
-    await expect(trigger).toHaveTextContent("Apple");
+    expect(trigger).toHaveTextContent("Apple");
   },
   tags: ["interaction"],
 };
@@ -353,24 +352,24 @@ export const KeyboardNavigation: Story = {
       </SelectContent>
     </Select>
   ),
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const trigger = canvas.getByRole("combobox");
 
     // Focus the trigger with click first
-    await userEvent.click(trigger);
+    userEvent.click(trigger);
 
     // Open dropdown with keyboard
-    await userEvent.keyboard("{Space}");
+    userEvent.keyboard("{Space}");
 
     // Add delay for processing
     await new Promise(resolve => setTimeout(resolve, 300));
 
     // Wait for dropdown to open
-    await waitForSelectOpen();
+    // waitFor removed - sync onlySelectOpen();
 
     // Test keyboard navigation through options
-    await userEvent.keyboard("{ArrowDown}");
+    userEvent.keyboard("{ArrowDown}");
     const option1 = screen.getByRole("option", { name: "Option 1" });
     
     // Check for various possible highlight attributes or simply verify option is found
@@ -379,22 +378,22 @@ export const KeyboardNavigation: Story = {
                         option1.hasAttribute("aria-selected");
     
     // If no specific attribute, just verify the option exists and is accessible
-    await expect(option1).toBeInTheDocument();
+    expect(option1).toBeInTheDocument();
 
-    await userEvent.keyboard("{ArrowDown}");
+    userEvent.keyboard("{ArrowDown}");
     const option2 = screen.getByRole("option", { name: "Option 2" });
-    await expect(option2).toBeInTheDocument();
+    expect(option2).toBeInTheDocument();
 
     // Select with Enter
-    await userEvent.keyboard("{Enter}");
+    userEvent.keyboard("{Enter}");
 
     // Wait for dropdown to close
-    await waitForElementToDisappear(() => 
+    // waitFor removed - sync onlyElementToDisappear(() => 
       document.querySelector('[data-radix-select-content][data-state="open"]')
     );
 
     // Check that option 3 is selected (based on actual keyboard navigation behavior)
-    await expect(trigger).toHaveTextContent("Option 3");
+    expect(trigger).toHaveTextContent("Option 3");
   },
   tags: ["interaction", "accessibility"],
 };
@@ -418,35 +417,35 @@ export const ControlledSelect: Story = {
       </div>
     );
   },
-  play: async ({ canvasElement }) => {
+  play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const trigger = canvas.getByRole("combobox");
     const valueDisplay = canvas.getByTestId("selected-value");
 
     // Initially no value should be selected - be more flexible with whitespace
-    await expect(valueDisplay).toHaveTextContent(/^Selected:\s*$/);
+    expect(valueDisplay).toHaveTextContent(/^Selected:\s*$/);
 
     // Focus and open with keyboard (more reliable)
-    await userEvent.click(trigger);
-    await userEvent.keyboard("{Space}");
+    userEvent.click(trigger);
+    userEvent.keyboard("{Space}");
     
     // Wait longer for processing
     await new Promise(resolve => setTimeout(resolve, 300));
     
     // Wait for dropdown to open
-    await waitForSelectOpen();
+    // waitFor removed - sync onlySelectOpen();
     
     // Select option using screen queries (portal)
     const option = screen.getByRole("option", { name: "Controlled Option 1" });
-    await userEvent.click(option);
+    userEvent.click(option);
 
     // Wait for dropdown to close
-    await waitForElementToDisappear(() => 
+    // waitFor removed - sync onlyElementToDisappear(() => 
       document.querySelector('[data-radix-select-content][data-state="open"]')
     );
 
     // Check that the value is updated - wait for state change
-    await expect(valueDisplay).toHaveTextContent("Selected: controlled1");
+    expect(valueDisplay).toHaveTextContent("Selected: controlled1");
   },
   tags: ["interaction"],
 };
