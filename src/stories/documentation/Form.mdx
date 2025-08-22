@@ -1,0 +1,578 @@
+import { Meta, Story, Canvas } from '@storybook/blocks';
+import * as InputStories from '../../components/ui/input.stories';
+import * as TextareaStories from '../../components/ui/textarea.stories';
+import * as CheckboxStories from '../../components/ui/checkbox.stories';
+import * as SwitchStories from '../../components/ui/switch.stories';
+
+<Meta title="Documentation/Patterns/Forms" />
+
+# Form Patterns
+
+Comprehensive guide for building accessible, user-friendly forms using our component library. This document covers form composition, validation, error handling, and best practices.
+
+## Overview
+
+Forms are critical touchpoints for user interaction. Our form system provides:
+- Consistent field styling and behavior
+- Built-in validation and error states
+- Accessibility features (ARIA, keyboard navigation)
+- Mobile-optimized touch targets
+- Progressive enhancement patterns
+
+## Form Components
+
+### Input Fields
+
+The foundation of most forms. Supports various types and states.
+
+```tsx
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+<div className="space-y-2">
+  <Label htmlFor="email">Email Address</Label>
+  <Input 
+    id="email"
+    type="email"
+    placeholder="john@example.com"
+    required
+  />
+</div>
+```
+
+### Textarea
+
+For multi-line text input with auto-resize capabilities.
+
+```tsx
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+
+<div className="space-y-2">
+  <Label htmlFor="description">Description</Label>
+  <Textarea 
+    id="description"
+    placeholder="Describe your contribution..."
+    rows={4}
+  />
+</div>
+```
+
+### Checkbox
+
+For boolean selections and multi-select options.
+
+```tsx
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+
+<div className="flex items-center space-x-2">
+  <Checkbox id="terms" />
+  <Label htmlFor="terms">
+    I agree to the terms and conditions
+  </Label>
+</div>
+```
+
+### Switch
+
+For on/off toggles with immediate effect.
+
+```tsx
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+
+<div className="flex items-center justify-between">
+  <Label htmlFor="notifications">Email Notifications</Label>
+  <Switch id="notifications" />
+</div>
+```
+
+### Select
+
+For choosing from predefined options.
+
+```tsx
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+<Select>
+  <SelectTrigger>
+    <SelectValue placeholder="Select a repository" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="repo1">Repository 1</SelectItem>
+    <SelectItem value="repo2">Repository 2</SelectItem>
+    <SelectItem value="repo3">Repository 3</SelectItem>
+  </SelectContent>
+</Select>
+```
+
+## Common Form Patterns
+
+### Login Form
+
+```tsx
+function LoginForm() {
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          type="email"
+          required
+          aria-invalid={!!errors.email}
+          aria-describedby={errors.email ? "email-error" : undefined}
+        />
+        {errors.email && (
+          <p id="email-error" className="text-sm text-red-500 mt-1">
+            {errors.email}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <Label htmlFor="password">Password</Label>
+        <Input
+          id="password"
+          type="password"
+          required
+          aria-invalid={!!errors.password}
+        />
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Checkbox id="remember" />
+        <Label htmlFor="remember">Remember me</Label>
+      </div>
+
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? 'Signing in...' : 'Sign In'}
+      </Button>
+    </form>
+  );
+}
+```
+
+### Multi-Step Form
+
+```tsx
+function MultiStepForm() {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({});
+
+  const steps = [
+    { title: 'Basic Info', component: BasicInfoStep },
+    { title: 'Repository', component: RepositoryStep },
+    { title: 'Confirmation', component: ConfirmationStep }
+  ];
+
+  return (
+    <div>
+      {/* Progress Indicator */}
+      <div className="flex justify-between mb-8">
+        {steps.map((s, i) => (
+          <div
+            key={i}
+            className={`flex-1 h-2 bg-gray-200 ${
+              i + 1 <= step ? 'bg-blue-500' : ''
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* Current Step */}
+      <div className="mb-8">
+        {React.createElement(steps[step - 1].component, {
+          data: formData,
+          onUpdate: setFormData
+        })}
+      </div>
+
+      {/* Navigation */}
+      <div className="flex justify-between">
+        <Button
+          variant="outline"
+          onClick={() => setStep(step - 1)}
+          disabled={step === 1}
+        >
+          Previous
+        </Button>
+        <Button
+          onClick={() => setStep(step + 1)}
+          disabled={step === steps.length}
+        >
+          {step === steps.length ? 'Submit' : 'Next'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+```
+
+### Settings Form
+
+```tsx
+function SettingsForm() {
+  const [settings, setSettings] = useState({
+    emailNotifications: true,
+    pushNotifications: false,
+    weeklyDigest: true,
+    theme: 'light'
+  });
+
+  return (
+    <form className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Notifications</CardTitle>
+          <CardDescription>
+            Manage how you receive updates
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="email-notif">Email Notifications</Label>
+              <p className="text-sm text-gray-500">
+                Receive updates via email
+              </p>
+            </div>
+            <Switch
+              id="email-notif"
+              checked={settings.emailNotifications}
+              onCheckedChange={(checked) =>
+                setSettings({ ...settings, emailNotifications: checked })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="push-notif">Push Notifications</Label>
+              <p className="text-sm text-gray-500">
+                Receive browser notifications
+              </p>
+            </div>
+            <Switch
+              id="push-notif"
+              checked={settings.pushNotifications}
+              onCheckedChange={(checked) =>
+                setSettings({ ...settings, pushNotifications: checked })
+              }
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup
+            value={settings.theme}
+            onValueChange={(value) =>
+              setSettings({ ...settings, theme: value })
+            }
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="light" id="light" />
+              <Label htmlFor="light">Light</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="dark" id="dark" />
+              <Label htmlFor="dark">Dark</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="system" id="system" />
+              <Label htmlFor="system">System</Label>
+            </div>
+          </RadioGroup>
+        </CardContent>
+      </Card>
+
+      <Button type="submit" className="w-full">
+        Save Settings
+      </Button>
+    </form>
+  );
+}
+```
+
+## Validation Patterns
+
+### Client-Side Validation
+
+```tsx
+function ValidatedForm() {
+  const [errors, setErrors] = useState({});
+
+  const validate = (values) => {
+    const newErrors = {};
+
+    if (!values.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(values.email)) {
+      newErrors.email = 'Email is invalid';
+    }
+
+    if (!values.password) {
+      newErrors.password = 'Password is required';
+    } else if (values.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
+
+    return newErrors;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const values = Object.fromEntries(formData);
+    const validationErrors = validate(values);
+
+    if (Object.keys(validationErrors).length === 0) {
+      // Submit form
+    } else {
+      setErrors(validationErrors);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Form fields with error display */}
+    </form>
+  );
+}
+```
+
+### Real-Time Validation
+
+```tsx
+function RealtimeValidation() {
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
+
+  const validateEmail = (value) => {
+    if (!value) {
+      setEmailError('Email is required');
+    } else if (!/\S+@\S+\.\S+/.test(value)) {
+      setEmailError('Please enter a valid email');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  return (
+    <div>
+      <Label htmlFor="email">Email</Label>
+      <Input
+        id="email"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        onBlur={(e) => validateEmail(e.target.value)}
+        aria-invalid={!!emailError}
+        aria-describedby={emailError ? "email-error" : undefined}
+      />
+      {emailError && (
+        <p id="email-error" className="text-sm text-red-500 mt-1">
+          {emailError}
+        </p>
+      )}
+    </div>
+  );
+}
+```
+
+## Error Handling
+
+### Error Display Patterns
+
+```tsx
+// Inline errors
+<div>
+  <Input aria-invalid="true" className="border-red-500" />
+  <p className="text-sm text-red-500 mt-1">This field is required</p>
+</div>
+
+// Error summary
+<Alert variant="destructive" className="mb-4">
+  <AlertTitle>Please fix the following errors:</AlertTitle>
+  <AlertDescription>
+    <ul className="list-disc pl-4">
+      <li>Email is required</li>
+      <li>Password must be at least 8 characters</li>
+    </ul>
+  </AlertDescription>
+</Alert>
+
+// Toast notifications
+toast({
+  variant: "destructive",
+  title: "Error",
+  description: "Failed to save settings. Please try again.",
+});
+```
+
+## Accessibility
+
+### Label Association
+
+```tsx
+// Explicit label association
+<Label htmlFor="username">Username</Label>
+<Input id="username" />
+
+// Wrapped label
+<Label>
+  Username
+  <Input />
+</Label>
+
+// Hidden label for screen readers
+<Label htmlFor="search" className="sr-only">
+  Search
+</Label>
+<Input id="search" placeholder="Search..." />
+```
+
+### ARIA Attributes
+
+```tsx
+<Input
+  aria-label="Email address"
+  aria-required="true"
+  aria-invalid={hasError}
+  aria-describedby="email-hint email-error"
+/>
+<p id="email-hint" className="text-sm text-gray-500">
+  We'll never share your email
+</p>
+{hasError && (
+  <p id="email-error" className="text-sm text-red-500">
+    Please enter a valid email
+  </p>
+)}
+```
+
+### Keyboard Navigation
+
+- **Tab**: Navigate between form fields
+- **Shift+Tab**: Navigate backwards
+- **Space**: Toggle checkboxes and radio buttons
+- **Enter**: Submit form (when in text field)
+- **Arrow keys**: Navigate radio groups and selects
+- **Escape**: Close dropdowns and cancel operations
+
+## Mobile Optimization
+
+### Touch-Friendly Inputs
+
+```tsx
+// Large touch targets (minimum 44x44px)
+<Input className="h-12 text-base" />
+
+// Appropriate input types for mobile keyboards
+<Input type="email" /> {/* Shows email keyboard */}
+<Input type="tel" />   {/* Shows numeric keyboard */}
+<Input type="url" />   {/* Shows URL keyboard */}
+<Input type="number" inputMode="decimal" /> {/* Decimal keyboard */}
+
+// Disable autocorrect where appropriate
+<Input
+  type="text"
+  autoComplete="username"
+  autoCorrect="off"
+  autoCapitalize="off"
+/>
+```
+
+### Responsive Layouts
+
+```tsx
+<form className="space-y-4">
+  {/* Stack on mobile, side-by-side on desktop */}
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <Label htmlFor="first">First Name</Label>
+      <Input id="first" />
+    </div>
+    <div>
+      <Label htmlFor="last">Last Name</Label>
+      <Input id="last" />
+    </div>
+  </div>
+
+  {/* Full width on all screens */}
+  <div>
+    <Label htmlFor="email">Email</Label>
+    <Input id="email" type="email" />
+  </div>
+</form>
+```
+
+## Best Practices
+
+### Do's ✅
+
+1. **Always associate labels with inputs**
+2. **Provide clear error messages**
+3. **Show loading states during submission**
+4. **Validate on blur for better UX**
+5. **Use appropriate input types**
+6. **Group related fields**
+7. **Provide helpful placeholder text**
+8. **Save form state for long forms**
+
+### Don'ts ❌
+
+1. **Don't remove labels (use sr-only if needed)**
+2. **Don't validate on every keystroke**
+3. **Don't disable submit without explanation**
+4. **Don't use placeholder as label**
+5. **Don't reset form on error**
+6. **Don't use excessive required fields**
+7. **Don't hide important helper text**
+8. **Don't use confusing error messages**
+
+## Testing Forms
+
+```tsx
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+test('form submits with valid data', async () => {
+  const handleSubmit = jest.fn();
+  render(<ContactForm onSubmit={handleSubmit} />);
+
+  const emailInput = screen.getByLabelText(/email/i);
+  const messageInput = screen.getByLabelText(/message/i);
+  const submitButton = screen.getByRole('button', { name: /submit/i });
+
+  await userEvent.type(emailInput, 'test@example.com');
+  await userEvent.type(messageInput, 'Test message');
+  await userEvent.click(submitButton);
+
+  await waitFor(() => {
+    expect(handleSubmit).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      message: 'Test message'
+    });
+  });
+});
+```
+
+## Related Documentation
+
+- [Input Component](./Input)
+- [Textarea Component](./Textarea)
+- [Checkbox Component](./Checkbox)
+- [Switch Component](./Switch)
+- [Select Component](./Select)
+- [Validation Patterns](./Validation)
+- [Accessibility Guidelines](./Accessibility)
