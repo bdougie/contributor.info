@@ -47,7 +47,7 @@ export const Default: Story = {
 export const Interactive: Story = {
   args: {
     onSelect: (repo: string) => {
-      console.log(`Selected repository: ${repo}`);
+      console.log('Selected repository: %s', repo);
       action("repository-selected")(repo);
     }
   },
@@ -251,7 +251,7 @@ export const WithLoadingState: Story = {
     const LoadingStateExample = () => {
       const handleSelect = (repo: string) => {
         // Simulate loading state when clicking
-        console.log(`Loading repository: ${repo}...`);
+        console.log('Loading repository: %s...', repo);
         args.onSelect(repo);
       };
 

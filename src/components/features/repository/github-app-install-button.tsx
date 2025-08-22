@@ -38,11 +38,17 @@ export function GitHubAppInstallButton({
       
       // Try API endpoint first (works in production and with netlify dev)
       try {
-        // In development, use the direct Netlify function path
-        // In production, use the standard API path which is redirected via netlify.toml
-        const isDev = window.location.hostname === 'localhost';
+        // Detect development environment more robustly
+        const isDev = import.meta.env?.DEV || 
+                      window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1' ||
+                      window.location.hostname.includes('localhost') ||
+                      window.location.hostname.includes('.local');
+        
+        // Build endpoint URL based on environment
+        const baseUrl = isDev ? 'http://localhost:8888' : '';
         const endpoint = isDev 
-          ? `http://localhost:8888/.netlify/functions/github-app-installation-status?owner=${owner}&repo=${repo}`
+          ? `${baseUrl}/.netlify/functions/github-app-installation-status?owner=${owner}&repo=${repo}`
           : `/api/github-app/installation-status?owner=${owner}&repo=${repo}`;
         
         const response = await fetch(endpoint);
@@ -61,11 +67,21 @@ export function GitHubAppInstallButton({
         console.debug('GitHub app installation status API unavailable, using fallback');
       }
       
-      // Fallback: For now, just check if this is the contributor.info repo
-      // In production, this would check the actual GitHub App installations
-      // Since the app is already installed on bdougie/contributor.info, we'll hard-code this for now
-      const isContributorInfoRepo = owner === "bdougie" && repo === "contributor.info";
-      setIsInstalled(isContributorInfoRepo);
+      // Fallback: Check the database for GitHub App installation status
+      // This is a temporary fallback until the API is fully operational
+      try {
+        const { data: repoData } = await supabase
+          .from('repositories')
+          .select('github_app_installed')
+          .eq('owner', owner)
+          .eq('name', repo)
+          .single();
+        
+        setIsInstalled(repoData?.github_app_installed || false);
+      } catch (dbError) {
+        // If all else fails, assume not installed
+        setIsInstalled(false);
+      }
     } catch (error) {
       // Silently fail and assume not installed
       setIsInstalled(false);

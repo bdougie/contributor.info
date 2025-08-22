@@ -17,6 +17,83 @@ const SUPABASE_URL = env.SUPABASE_URL;
 // Get Supabase anon key for Edge Function auth
 const SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY;
 
+// Circuit breaker state for each endpoint
+interface CircuitBreakerState {
+  failures: number;
+  lastFailureTime: number;
+  state: 'closed' | 'open' | 'half-open';
+}
+
+const circuitBreakers = new Map<string, CircuitBreakerState>();
+
+// Circuit breaker configuration
+const FAILURE_THRESHOLD = 3; // Open circuit after 3 failures
+const RESET_TIMEOUT = 60000; // Try again after 60 seconds
+
+/**
+ * Check if an endpoint should be attempted based on circuit breaker state
+ */
+function shouldAttemptEndpoint(endpointName: string): boolean {
+  const breaker = circuitBreakers.get(endpointName);
+  
+  if (!breaker) {
+    // No breaker state, endpoint is available
+    return true;
+  }
+  
+  if (breaker.state === 'closed') {
+    return true;
+  }
+  
+  if (breaker.state === 'open') {
+    // Check if enough time has passed to try again
+    const timeSinceLastFailure = Date.now() - breaker.lastFailureTime;
+    if (timeSinceLastFailure >= RESET_TIMEOUT) {
+      // Move to half-open state
+      breaker.state = 'half-open';
+      breaker.failures = 0;
+      return true;
+    }
+    return false;
+  }
+  
+  // Half-open state - allow the attempt
+  return true;
+}
+
+/**
+ * Record a successful call to an endpoint
+ */
+function recordSuccess(endpointName: string): void {
+  const breaker = circuitBreakers.get(endpointName);
+  
+  if (breaker && breaker.state === 'half-open') {
+    // Reset to closed state after successful call in half-open state
+    circuitBreakers.delete(endpointName);
+  }
+}
+
+/**
+ * Record a failed call to an endpoint
+ */
+function recordFailure(endpointName: string): void {
+  const breaker = circuitBreakers.get(endpointName) || {
+    failures: 0,
+    lastFailureTime: 0,
+    state: 'closed' as const
+  };
+  
+  breaker.failures++;
+  breaker.lastFailureTime = Date.now();
+  
+  if (breaker.failures >= FAILURE_THRESHOLD) {
+    breaker.state = 'open';
+    console.warn('Circuit breaker opened for %s after %s failures', endpointName, breaker.failures);
+  }
+  
+  circuitBreakers.set(endpointName, breaker);
+}
+
 /**
  * Send an event to Inngest in a client-safe way
  * 
@@ -49,8 +126,17 @@ export async function sendInngestEvent<T extends { name: string; data: any }>(
     ];
 
     let lastError: Error | null = null;
+    let attemptedEndpoints = 0;
     
     for (const endpoint of endpoints) {
+      // Check circuit breaker before attempting
+      if (!shouldAttemptEndpoint(endpoint.name)) {
+        console.debug('Circuit breaker open for %s, skipping', endpoint.name);
+        continue;
+      }
+      
+      attemptedEndpoints++;
+      
       try {
         const response = await fetch(endpoint.url, {
           method: 'POST',
@@ -69,13 +155,27 @@ export async function sendInngestEvent<T extends { name: string; data: any }>(
         }
         
         const result = await response.json();
-        console.log(`Event sent successfully via ${endpoint.name}`);
+        console.log('Event sent successfully via %s', endpoint.name);
+        
+        // Record success for circuit breaker
+        recordSuccess(endpoint.name);
+        
         return { ids: result.eventId ? [result.eventId] : result.eventIds || [] };
       } catch (error) {
-        console.warn(`Failed to send event via ${endpoint.name}:`, error);
+        console.warn('Failed to send event via %s:', endpoint.name, error);
         lastError = error as Error;
+        
+        // Record failure for circuit breaker
+        recordFailure(endpoint.name);
+        
         // Continue to next endpoint
       }
+    }
+    
+    // Check if all endpoints were skipped due to circuit breakers
+    if (attemptedEndpoints === 0) {
+      console.error('All endpoints are unavailable due to circuit breakers');
+      throw new Error('All event endpoints are temporarily unavailable. Please try again later.');
     }
     
     // If all endpoints failed, throw the last error

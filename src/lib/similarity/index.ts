@@ -271,10 +271,10 @@ export async function withRateLimitHandling<T>(
         const resetTime = errorWithStatus.response?.headers?.['x-ratelimit-reset'];
         if (resetTime) {
           const waitTime = Math.max(0, parseInt(resetTime) * 1000 - Date.now());
-          console.log(`Rate limit hit. Waiting ${Math.ceil(waitTime / 1000)} seconds until reset...`);
+          console.log('Rate limit hit. Waiting %s seconds until reset...', Math.ceil(waitTime / 1000));
           await sleep(waitTime + 1000); // Add 1 second buffer
         } else {
-          console.log(`Rate limit hit. Waiting ${backoffMs / 1000} seconds (attempt ${attempt}/${maxAttempts})...`);
+          console.log('Rate limit hit. Waiting %s seconds (attempt %s/%s)...', backoffMs / 1000, attempt, maxAttempts);
           await sleep(backoffMs);
         }
       } else {

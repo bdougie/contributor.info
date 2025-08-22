@@ -27,8 +27,8 @@ export class EvaluationRunner {
     datasetStats: DatasetStats;
     report: string;
   }> {
-    console.log(`Starting evaluation: ${this.config.name}`);
-    console.log(`Description: ${this.config.description}`);
+    console.log('Starting evaluation: %s', this.config.name);
+    console.log('Description: %s', this.config.description);
 
     // Step 1: Extract ground truth dataset
     console.log('\n1. Extracting ground truth dataset...');
@@ -74,7 +74,7 @@ export class EvaluationRunner {
     
     for (let i = 0; i < samples.length; i += batchSize) {
       const batch = samples.slice(i, i + batchSize);
-      console.log(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(samples.length / batchSize)}`);
+      console.log('Processing batch %s/%s', Math.floor(i / batchSize) + 1, Math.ceil(samples.length / batchSize));
       
       const batchResults = await Promise.all(
         batch.map(async (sample, index) => {
@@ -87,7 +87,7 @@ export class EvaluationRunner {
       
       // Progress indicator
       const progress = ((i + batch.length) / samples.length * 100).toFixed(1);
-      console.log(`Progress: ${progress}% (${i + batch.length}/${samples.length})`);
+      console.log('Progress: %s% (%s/%s)', progress, i + batch.length, samples.length);
     }
 
     return results;
@@ -95,14 +95,14 @@ export class EvaluationRunner {
 
   private logDatasetStats(stats: DatasetStats): void {
     console.log(`📊 Dataset Statistics:`);
-    console.log(`  Total samples: ${stats.total_samples}`);
+    console.log('  Total samples: %s', stats.total_samples);
     console.log(`  Class distribution:`);
-    console.log(`    - Maintainer: ${stats.class_distribution.maintainer} (${(stats.class_distribution.maintainer / stats.total_samples * 100).toFixed(1)}%)`);
-    console.log(`    - Contributor: ${stats.class_distribution.contributor} (${(stats.class_distribution.contributor / stats.total_samples * 100).toFixed(1)}%)`);
+    console.log('    - Maintainer: %s (%s%)', stats.class_distribution.maintainer, (stats.class_distribution.maintainer / stats.total_samples * 100).toFixed(1));
+    console.log('    - Contributor: %s (%s%)', stats.class_distribution.contributor, (stats.class_distribution.contributor / stats.total_samples * 100).toFixed(1));
     console.log(`  Quality metrics:`);
-    console.log(`    - Verified samples: ${stats.quality_metrics.verified_samples}`);
-    console.log(`    - High confidence: ${stats.quality_metrics.high_confidence_samples}`);
-    console.log(`    - Edge cases: ${stats.quality_metrics.edge_cases}`);
+    console.log('    - Verified samples: %s', stats.quality_metrics.verified_samples);
+    console.log('    - High confidence: %s', stats.quality_metrics.high_confidence_samples);
+    console.log('    - Edge cases: %s', stats.quality_metrics.edge_cases);
   }
 
   private validateResults(metrics: EvaluationMetrics): void {
@@ -162,20 +162,20 @@ export class EvaluationRunner {
     fs.writeFileSync(reportPath, report);
 
     console.log(`\n📁 Results exported to:`);
-    console.log(`  - Results: ${resultsPath}`);
-    console.log(`  - Metrics: ${metricsPath}`);
-    console.log(`  - Report: ${reportPath}`);
+    console.log('  - Results: %s', resultsPath);
+    console.log('  - Metrics: %s', metricsPath);
+    console.log('  - Report: %s', reportPath);
   }
 
   async runBenchmarkComparison(
     configs: EvaluationConfig[]
   ): Promise<{ config: EvaluationConfig; metrics: EvaluationMetrics }[]> {
-    console.log(`\n🏃 Running benchmark comparison with ${configs.length} configurations...`);
+    console.log('\n🏃 Running benchmark comparison with %s configurations...', configs.length);
     
     const results = [];
     
     for (const config of configs) {
-      console.log(`\nEvaluating configuration: ${config.name}`);
+      console.log('\nEvaluating configuration: %s', config.name);
       this.config = config;
       this.classifier = new MaintainerClassifier(config);
       
@@ -183,7 +183,7 @@ export class EvaluationRunner {
         const evaluation = await this.runCompleteEvaluation();
         results.push({ config, metrics: evaluation.metrics });
         
-        console.log(`✅ ${config.name}: ${(evaluation.metrics.overall_accuracy * 100).toFixed(2)}% accuracy`);
+        console.log('✅ %s: %s% accuracy', config.name, (evaluation.metrics.overall_accuracy * 100).toFixed(2));
       } catch (error) {
         console.error(`❌ ${config.name} failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
@@ -194,7 +194,7 @@ export class EvaluationRunner {
     
     console.log('\n🏆 Benchmark Results (by accuracy):');
     results.forEach((result, index) => {
-      console.log(`${index + 1}. ${result.config.name}: ${(result.metrics.overall_accuracy * 100).toFixed(2)}%`);
+      console.log('%s. %s: %s%', index + 1, result.config.name, (result.metrics.overall_accuracy * 100).toFixed(2));
     });
 
     return results;

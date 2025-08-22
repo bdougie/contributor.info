@@ -102,7 +102,7 @@ export class BackgroundProcessor {
           ProgressiveCaptureNotifications.showQueueStatus(updatedStats);
         } else {
           // Show progress notification
-          console.log(`🔄 Background processor: ${processed} jobs completed, ${updatedStats.pending} pending`);
+          console.log('🔄 Background processor: %s jobs completed, %s pending', processed, updatedStats.pending);
         }
       }
 
@@ -152,7 +152,7 @@ export function startBackgroundProcessing(): void {
       try {
         const stats = await queueManager.getQueueStats();
         if (stats.pending > 0 && import.meta.env?.DEV) {
-          console.log(`📋 ${stats.pending} jobs pending in queue`);
+          console.log('📋 %s jobs pending in queue', stats.pending);
         }
       } catch (error) {
         // Silently handle - no need to show user

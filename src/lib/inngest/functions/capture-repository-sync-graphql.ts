@@ -152,7 +152,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         if (hoursSinceSync < effectiveThrottleHours) {
           // But still allow if it's been less than 5 minutes and we have NO data at all
           if (!hasCompleteData && hoursSinceSync < 0.083) {
-            console.log(`Repository ${data.owner}/${data.name} has no engagement data - allowing immediate sync`);
+            console.log('Repository %s/%s has no engagement data - allowing immediate sync', data.owner, data.name);
           } else {
             const timeAgo = hoursSinceSync < 1 
               ? `${Math.round(hoursSinceSync * 60)} minutes`
@@ -162,7 +162,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
           }
         }
         
-        console.log(`Repository ${data.owner}/${data.name} sync allowed - reason: ${reason}, last sync: ${hoursSinceSync.toFixed(2)}h ago, has data: ${hasCompleteData}`);
+        console.log('Repository %s/%s sync allowed - reason: %s, last sync: %sh ago, has data: %s', data.owner, data.name, reason, hoursSinceSync.toFixed(2), hasCompleteData);
       }
 
       return data;
@@ -195,12 +195,12 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
           MAX_PRS_PER_SYNC
         );
 
-        console.log(`✅ GraphQL recent PRs query successful for ${repository.owner}/${repository.name} (${prs.length} PRs found)`);
+        console.log('✅ GraphQL recent PRs query successful for %s/%s (%s PRs found)', repository.owner, repository.name, prs.length);
         
         // Log and monitor rate limit info
         const rateLimit = client.getRateLimit();
         if (rateLimit) {
-          console.log(`📊 GraphQL rate limit: ${rateLimit.remaining}/${rateLimit.limit} remaining (cost: ${rateLimit.cost} points)`);
+          console.log('📊 GraphQL rate limit: %s/%s remaining (cost: %s points)', rateLimit.remaining, rateLimit.limit, rateLimit.cost);
           
           // Track rate limit usage with telemetry
           const { queueTelemetry } = await import('../../progressive-capture/queue-telemetry');
@@ -318,7 +318,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         }
 
         if (detailJobsQueued >= MAX_DETAIL_JOBS) {
-          console.log(`Reached GraphQL job queue limit (${MAX_DETAIL_JOBS}) for ${repository.owner}/${repository.name}`);
+          console.log('Reached GraphQL job queue limit (%s) for %s/%s', MAX_DETAIL_JOBS, repository.owner, repository.name);
           break;
         }
       }

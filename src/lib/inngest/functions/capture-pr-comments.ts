@@ -99,7 +99,7 @@ export const capturePrComments = inngest.createFunction(
       const octokit = getOctokit();
       
       try {
-        console.log(`Fetching comments for PR #${prNumber} in ${repository.owner}/${repository.name}`);
+        console.log('Fetching comments for PR #%s in %s/%s', prNumber, repository.owner, repository.name);
         // Fetch PR review comments
         apiCallsUsed++;
         const { data: prCommentsData } = await octokit.rest.pulls.listComments({
@@ -219,7 +219,7 @@ export const capturePrComments = inngest.createFunction(
           });
         }
 
-        console.log(`Found ${processedPrComments.length} review comments and ${processedIssueComments.length} issue comments`);
+        console.log('Found %s review comments and %s issue comments', processedPrComments.length, processedIssueComments.length);
         
         await syncLogger.update({
           github_api_calls_used: apiCallsUsed,

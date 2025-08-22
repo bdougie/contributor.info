@@ -64,7 +64,7 @@ export class HybridQueueManager {
     // Check if this is a newly tracked repository (< 24 hours)
     const isNewlyTracked = await this.isNewlyTrackedRepository(data.repositoryId);
     if (isNewlyTracked) {
-      console.log(`[HybridQueue] Repository ${data.repositoryName} is newly tracked (<24h), applying priority boost`);
+      console.log('[HybridQueue] Repository %s is newly tracked (<24h), applying priority boost', data.repositoryName);
       // Override priority to critical for new repos
       data.metadata = {
         ...data.metadata,
@@ -100,19 +100,19 @@ export class HybridQueueManager {
       processor = routingDecision.processor;
       rolloutApplied = true;
       
-      console.log(`[HybridQueue] Repository ${data.repositoryName} eligible for hybrid routing → ${processor}`);
-      console.log(`[HybridQueue] Routing reason: ${routingDecision.reason} (confidence: ${routingDecision.confidence})`);
+      console.log('[HybridQueue] Repository %s eligible for hybrid routing → %s', data.repositoryName, processor);
+      console.log('[HybridQueue] Routing reason: %s (confidence: %s)', routingDecision.reason, routingDecision.confidence);
       
       // Check if we should initiate backfill for large repos
       const repo = await this.getRepositoryInfo(data.repositoryId);
       if (repo && await enhancedHybridRouter.shouldInitiateBackfill(repo)) {
-        console.log(`[HybridQueue] Initiating progressive backfill for ${data.repositoryName}`);
+        console.log('[HybridQueue] Initiating progressive backfill for %s', data.repositoryName);
         // The backfill will be initiated by the sync function
       }
     } else {
       // Fallback to Inngest-only for non-eligible repositories
       processor = 'inngest';
-      console.log(`[HybridQueue] Repository ${data.repositoryName} not eligible for hybrid routing → fallback to inngest`);
+      console.log('[HybridQueue] Repository %s not eligible for hybrid routing → fallback to inngest', data.repositoryName);
     }
     
     // Create job record in database
@@ -134,7 +134,7 @@ export class HybridQueueManager {
         0 // processing time not available yet
       );
       
-      console.log(`[HybridQueue] Successfully queued ${jobType} job to ${processor} (job_id: ${job.id}, rollout: ${rolloutApplied})`);
+      console.log('[HybridQueue] Successfully queued %s job to %s (job_id: %s, rollout: %s)', jobType, processor, job.id, rolloutApplied);
       
       return job;
     } catch (error) {

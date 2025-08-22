@@ -316,7 +316,7 @@ export class RepositorySizeClassifier {
         throw error;
       }
       
-      console.log(`Repository ${owner}/${repo} classified as ${size}`);
+      console.log('Repository %s/%s classified as %s', owner, repo, size);
       return size;
     } catch (error) {
       console.error(`Error classifying repository ${owner}/${repo}:`, error);
@@ -337,7 +337,7 @@ export class RepositorySizeClassifier {
     const successful = results.filter(r => r.status === 'fulfilled').length;
     const failed = results.filter(r => r.status === 'rejected').length;
 
-    console.log(`Batch classification complete: ${successful} successful, ${failed} failed`);
+    console.log('Batch classification complete: %s successful, %s failed', successful, failed);
   }
 
   /**
@@ -398,7 +398,7 @@ export class RepositorySizeClassifier {
     }
 
     if (data && data.length > 0) {
-      console.log(`Found ${data.length} repositories to reclassify`);
+      console.log('Found %s repositories to reclassify', data.length);
       
       // Cast the data to the expected shape
       const typedData = data as unknown as TrackedRepositoryWithRepo[];

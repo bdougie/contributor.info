@@ -64,7 +64,7 @@ export const discoverNewRepository = inngest.createFunction(
     }
     
     const fullName = `${owner}/${repo}`;
-    console.log(`Starting discovery for ${fullName} from ${source}`);
+    console.log('Starting discovery for %s from %s', fullName, source);
 
     // Create admin client for this function
     const supabase = createSupabaseAdmin();
@@ -82,7 +82,7 @@ export const discoverNewRepository = inngest.createFunction(
     });
 
     if (existingRepo) {
-      console.log(`Repository ${fullName} already exists with ID ${existingRepo.id}`);
+      console.log('Repository %s already exists with ID %s', fullName, existingRepo.id);
       
       // Still trigger a sync in case it needs fresh data
       await step.sendEvent("trigger-sync-existing", {
@@ -225,7 +225,7 @@ export const discoverNewRepository = inngest.createFunction(
       }
     });
 
-    console.log(`Successfully discovered and set up ${fullName} with ID ${repository.id}`);
+    console.log('Successfully discovered and set up %s with ID %s', fullName, repository.id);
 
     return {
       success: true,

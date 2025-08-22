@@ -363,11 +363,11 @@ export class SnapDOMCaptureService {
         object-fit: cover;
       `;
       
-      console.log(`Loading repository logo for ${owner}: ${avatarUrl}`);
+      console.log('Loading repository logo for %s: %s', owner, avatarUrl);
       
       // Add fallback for failed image loads
       logoImg.onerror = () => {
-        console.log(`Repository logo failed to load for ${owner}, using fallback`);
+        console.log('Repository logo failed to load for %s, using fallback', owner);
         // Replace with initials fallback in rounded square
         logoContainer.innerHTML = `
           <div style="
@@ -388,7 +388,7 @@ export class SnapDOMCaptureService {
       };
       
       logoImg.onload = () => {
-        console.log(`Repository logo loaded successfully for ${owner}`);
+        console.log('Repository logo loaded successfully for %s', owner);
       };
 
       logoContainer.appendChild(logoImg);
@@ -564,7 +564,7 @@ export class SnapDOMCaptureService {
     // Wait for images to load
     const images = container.querySelectorAll('img');
     if (images.length > 0) {
-      console.log(`Waiting for ${images.length} images to load...`);
+      console.log('Waiting for %s images to load...', images.length);
       await Promise.all(
         Array.from(images).map(img => {
           if (img.complete) return Promise.resolve();
@@ -581,14 +581,14 @@ export class SnapDOMCaptureService {
     // Wait for any canvas elements (Chart.js, etc.)
     const canvases = container.querySelectorAll('canvas');
     if (canvases.length > 0) {
-      console.log(`Found ${canvases.length} canvas elements, waiting for render...`);
+      console.log('Found %s canvas elements, waiting for render...', canvases.length);
       await new Promise(resolve => setTimeout(resolve, 500));
     }
     
     // Enhanced wait for SVG elements (D3, Nivo, Recharts)
     const svgs = container.querySelectorAll('svg');
     if (svgs.length > 0) {
-      console.log(`Found ${svgs.length} SVG elements, waiting for render...`);
+      console.log('Found %s SVG elements, waiting for render...', svgs.length);
       
       // Wait for multiple animation frames
       for (let i = 0; i < 3; i++) {
@@ -638,7 +638,7 @@ export class SnapDOMCaptureService {
     const attributionImages = wrapper.querySelectorAll('img[alt*="logo"], img[alt*="avatar"]');
     
     if (attributionImages.length > 0) {
-      console.log(`Found ${attributionImages.length} attribution images to load...`);
+      console.log('Found %s attribution images to load...', attributionImages.length);
       
       await Promise.all(
         Array.from(attributionImages).map(img => {
@@ -646,24 +646,24 @@ export class SnapDOMCaptureService {
           
           // If already loaded, return immediately
           if (imgElement.complete && imgElement.naturalWidth > 0) {
-            console.log(`Image already loaded: ${imgElement.src}`);
+            console.log('Image already loaded: %s', imgElement.src);
             return Promise.resolve();
           }
           
           return new Promise<void>((resolve) => {
             const timeout = setTimeout(() => {
-              console.log(`Image load timeout: ${imgElement.src}`);
+              console.log('Image load timeout: %s', imgElement.src);
               resolve();
             }, 3000); // 3 second timeout for external images
             
             imgElement.onload = () => {
-              console.log(`Image loaded successfully: ${imgElement.src}`);
+              console.log('Image loaded successfully: %s', imgElement.src);
               clearTimeout(timeout);
               resolve();
             };
             
             imgElement.onerror = () => {
-              console.log(`Image failed to load: ${imgElement.src}`);
+              console.log('Image failed to load: %s', imgElement.src);
               clearTimeout(timeout);
               resolve(); // Continue even if image fails
             };

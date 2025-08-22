@@ -8,7 +8,7 @@ export class SyncLogger {
   private syncLogId: string | null = null;
   
   async start(syncType: string, repositoryId: string, metadata?: SyncLogMetadata): Promise<string> {
-    console.log(`[SyncLogger] Starting sync log for ${syncType} on repository ${repositoryId}`);
+    console.log('[SyncLogger] Starting sync log for %s on repository %s', syncType, repositoryId);
     
     const { data, error } = await supabase
       .from('sync_logs')
@@ -27,7 +27,7 @@ export class SyncLogger {
       throw error || new Error('Failed to create sync log');
     }
 
-    console.log(`[SyncLogger] Created sync log with ID: ${data.id}`);
+    console.log('[SyncLogger] Created sync log with ID: %s', data.id);
     this.syncLogId = data.id;
     return data.id;
   }

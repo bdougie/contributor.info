@@ -55,7 +55,7 @@ export class GroundTruthExtractor {
       throw new Error(`Failed to extract contributor roles: ${error.message}`);
     }
 
-    console.log(`Found ${contributorRoles?.length} high-confidence contributor roles`);
+    console.log('Found %s high-confidence contributor roles', contributorRoles?.length);
 
     // Balance the dataset across role types
     const balancedSamples = this.balanceDataset(contributorRoles);
@@ -70,7 +70,7 @@ export class GroundTruthExtractor {
       })
     );
 
-    console.log(`Generated ${evaluationSamples.length} evaluation samples`);
+    console.log('Generated %s evaluation samples', evaluationSamples.length);
     return evaluationSamples.filter(sample => sample !== null) as EvaluationSample[];
   }
 
@@ -88,7 +88,7 @@ export class GroundTruthExtractor {
       const shuffled = samples.sort(() => Math.random() - 0.5);
       const selected = shuffled.slice(0, Math.min(this.targetSamplesPerRole, samples.length));
       balanced.push(...selected);
-      console.log(`Selected ${selected.length} ${role} samples`);
+      console.log('Selected %s %s samples', selected.length, role);
     });
 
     return balanced.sort(() => Math.random() - 0.5); // Final shuffle
@@ -225,6 +225,6 @@ export class GroundTruthExtractor {
     const jsonlContent = samples.map(sample => JSON.stringify(sample)).join('\n');
     
     fs.writeFileSync(outputPath, jsonlContent, 'utf-8');
-    console.log(`Exported ${samples.length} samples to ${outputPath}`);
+    console.log('Exported %s samples to %s', samples.length, outputPath);
   }
 }

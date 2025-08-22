@@ -123,7 +123,7 @@ export async function updateMainSitemapWithFAQs(): Promise<boolean> {
 
     // Read current sitemap (this would typically be done server-side)
     // For now, we'll just return the entries for manual integration
-    console.log(`Generated ${faqEntries.length} FAQ sitemap entries`);
+    console.log('Generated %s FAQ sitemap entries', faqEntries.length);
     
     return true;
   } catch (error) {

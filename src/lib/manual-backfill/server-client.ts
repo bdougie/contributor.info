@@ -54,7 +54,7 @@ class ManualBackfillServerClient {
     }
 
     const result = await response.json();
-    console.log(`[ManualBackfillServerClient] Triggered backfill job ${result.job_id} for ${request.repository}`);
+    console.log('[ManualBackfillServerClient] Triggered backfill job %s for %s', result.job_id, request.repository);
     return result;
   }
 
@@ -123,7 +123,7 @@ class ManualBackfillServerClient {
     }
 
     const result = await response.json();
-    console.log(`[ManualBackfillServerClient] Cancelled job ${jobId}`);
+    console.log('[ManualBackfillServerClient] Cancelled job %s', jobId);
     return result;
   }
 
