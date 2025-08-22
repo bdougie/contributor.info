@@ -1,0 +1,366 @@
+import { Meta, Story, Canvas, Controls } from '@storybook/blocks';
+import * as ButtonStories from '../../components/ui/button.stories';
+
+<Meta title="Documentation/Components/Button" />
+
+# Button Component
+
+The Button component is the primary interactive element for triggering actions throughout the application. It provides consistent styling, behavior, and accessibility features across all user interactions.
+
+## Overview
+
+Buttons are used to trigger actions, submit forms, navigate between pages, and provide interactive feedback. Our button system supports multiple variants, sizes, and states to accommodate different use cases while maintaining visual consistency.
+
+## Usage
+
+### When to Use
+
+- **Primary Actions**: Submit forms, save changes, confirm operations
+- **Secondary Actions**: Cancel operations, reset forms, close dialogs
+- **Navigation**: Move between pages or sections (when semantic links aren't appropriate)
+- **Toggles**: Activate features or switch states (for non-binary options)
+
+### When NOT to Use
+
+- For navigation between pages (use Link component)
+- For binary on/off states (use Switch or Checkbox)
+- For selecting from multiple options (use Radio or Select)
+- As decorative elements (use badges or chips)
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `variant` | `'default' \| 'destructive' \| 'outline' \| 'secondary' \| 'ghost' \| 'link'` | `'default'` | Visual style variant |
+| `size` | `'default' \| 'sm' \| 'lg' \| 'icon'` | `'default'` | Button size preset |
+| `disabled` | `boolean` | `false` | Disables interaction and applies disabled styling |
+| `loading` | `boolean` | `false` | Shows loading spinner and disables interaction |
+| `fullWidth` | `boolean` | `false` | Makes button span full container width |
+| `asChild` | `boolean` | `false` | Merges props onto child component |
+| `className` | `string` | `undefined` | Additional CSS classes |
+| `onClick` | `function` | `undefined` | Click event handler |
+
+## Examples
+
+### Basic Usage
+
+```tsx
+import { Button } from '@/components/ui/button';
+
+// Primary action
+<Button variant="default">
+  Submit Contribution
+</Button>
+
+// Secondary action
+<Button variant="secondary">
+  Save Draft
+</Button>
+
+// Destructive action
+<Button variant="destructive">
+  Delete Repository
+</Button>
+```
+
+### With Icons
+
+```tsx
+import { Button } from '@/components/ui/button';
+import { GitHubLogoIcon, PlusIcon } from '@radix-ui/react-icons';
+
+// Icon with text
+<Button>
+  <GitHubLogoIcon className="mr-2 h-4 w-4" />
+  Connect GitHub
+</Button>
+
+// Icon only
+<Button size="icon" aria-label="Add repository">
+  <PlusIcon className="h-4 w-4" />
+</Button>
+```
+
+### Loading States
+
+```tsx
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
+
+// Loading button
+<Button disabled>
+  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+  Processing...
+</Button>
+
+// Custom loading state
+<Button loading={isSubmitting}>
+  {isSubmitting ? 'Submitting...' : 'Submit'}
+</Button>
+```
+
+### Form Integration
+
+```tsx
+<form onSubmit={handleSubmit}>
+  <input type="text" name="repository" required />
+  
+  <div className="flex gap-2">
+    <Button type="submit" variant="default">
+      Track Repository
+    </Button>
+    <Button type="button" variant="outline" onClick={handleCancel}>
+      Cancel
+    </Button>
+  </div>
+</form>
+```
+
+### Size Variations
+
+```tsx
+// Small button for compact interfaces
+<Button size="sm">
+  Small Action
+</Button>
+
+// Default size for most use cases
+<Button size="default">
+  Default Action
+</Button>
+
+// Large button for emphasis
+<Button size="lg">
+  Important Action
+</Button>
+
+// Icon button for toolbars
+<Button size="icon" aria-label="Settings">
+  <SettingsIcon className="h-4 w-4" />
+</Button>
+```
+
+## Accessibility
+
+### Keyboard Navigation
+
+- **Tab**: Navigate to button
+- **Space/Enter**: Activate button
+- **Escape**: Cancel interaction (in dialogs)
+
+### ARIA Requirements
+
+```tsx
+// Icon-only buttons must have aria-label
+<Button size="icon" aria-label="Delete item">
+  <TrashIcon />
+</Button>
+
+// Loading states should announce to screen readers
+<Button aria-busy={isLoading} aria-live="polite">
+  {isLoading ? 'Loading...' : 'Load Data'}
+</Button>
+
+// Disabled buttons automatically receive aria-disabled
+<Button disabled>
+  Unavailable Action
+</Button>
+```
+
+### Focus Management
+
+- Buttons receive focus outline on keyboard navigation
+- Focus trap in modal contexts
+- Focus restoration after dialog dismissal
+- Skip links for keyboard users
+
+## Best Practices
+
+### Do's ✅
+
+1. **Use descriptive labels**
+   ```tsx
+   // Good - Clear action
+   <Button>Export Repository Data</Button>
+   ```
+
+2. **Provide feedback for async actions**
+   ```tsx
+   // Good - Shows loading state
+   <Button onClick={async () => {
+     setLoading(true);
+     await saveData();
+     setLoading(false);
+   }}>
+     {loading ? 'Saving...' : 'Save'}
+   </Button>
+   ```
+
+3. **Use appropriate variants for context**
+   ```tsx
+   // Good - Destructive variant for dangerous actions
+   <Button variant="destructive">
+     Delete Account
+   </Button>
+   ```
+
+4. **Include confirmation for destructive actions**
+   ```tsx
+   // Good - Confirm before delete
+   <Button 
+     variant="destructive"
+     onClick={() => setShowConfirmDialog(true)}
+   >
+     Delete
+   </Button>
+   ```
+
+### Don'ts ❌
+
+1. **Avoid vague labels**
+   ```tsx
+   // Bad - Unclear action
+   <Button>Click Here</Button>
+   ```
+
+2. **Don't use buttons for navigation**
+   ```tsx
+   // Bad - Should use Link
+   <Button onClick={() => navigate('/page')}>
+     Go to Page
+   </Button>
+   ```
+
+3. **Avoid multiple primary actions**
+   ```tsx
+   // Bad - Too many primary buttons
+   <div>
+     <Button>Save</Button>
+     <Button>Submit</Button>
+     <Button>Publish</Button>
+   </div>
+   ```
+
+4. **Don't disable without explanation**
+   ```tsx
+   // Bad - No context for disabled state
+   <Button disabled>Submit</Button>
+   
+   // Good - Provide context
+   <div>
+     <Button disabled={!isValid}>Submit</Button>
+     {!isValid && <p>Please complete all required fields</p>}
+   </div>
+   ```
+
+## Design Tokens
+
+The Button component uses the following design tokens:
+
+```css
+/* Colors */
+--primary: theme('colors.primary');
+--primary-foreground: theme('colors.primary.foreground');
+--secondary: theme('colors.secondary');
+--destructive: theme('colors.destructive');
+
+/* Spacing */
+--button-padding-sm: theme('spacing.3') theme('spacing.4');
+--button-padding-default: theme('spacing.4') theme('spacing.6');
+--button-padding-lg: theme('spacing.6') theme('spacing.8');
+
+/* Typography */
+--button-font-size-sm: theme('fontSize.sm');
+--button-font-size-default: theme('fontSize.base');
+--button-font-size-lg: theme('fontSize.lg');
+
+/* Border Radius */
+--button-radius: theme('borderRadius.md');
+```
+
+## Related Components
+
+- **[Link](./Link)** - For navigation between pages
+- **[IconButton](./IconButton)** - Specialized icon-only button variant
+- **[Switch](./Switch)** - For binary on/off states
+- **[Checkbox](./Checkbox)** - For selecting multiple options
+- **[Radio](./Radio)** - For selecting single option from group
+
+## Migration Guide
+
+If migrating from a previous button implementation:
+
+```tsx
+// Old implementation
+<button className="btn btn-primary">Submit</button>
+
+// New implementation
+<Button variant="default">Submit</Button>
+
+// Old icon button
+<button className="btn-icon">
+  <Icon />
+</button>
+
+// New icon button
+<Button size="icon" aria-label="Action">
+  <Icon className="h-4 w-4" />
+</Button>
+```
+
+## Testing
+
+When testing buttons in your components:
+
+```tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Button } from '@/components/ui/button';
+
+test('button handles click events', () => {
+  const handleClick = jest.fn();
+  render(<Button onClick={handleClick}>Click me</Button>);
+  
+  const button = screen.getByRole('button', { name: /click me/i });
+  fireEvent.click(button);
+  
+  expect(handleClick).toHaveBeenCalledTimes(1);
+});
+
+test('disabled button prevents interaction', () => {
+  const handleClick = jest.fn();
+  render(<Button disabled onClick={handleClick}>Disabled</Button>);
+  
+  const button = screen.getByRole('button', { name: /disabled/i });
+  fireEvent.click(button);
+  
+  expect(handleClick).not.toHaveBeenCalled();
+  expect(button).toHaveAttribute('aria-disabled', 'true');
+});
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Button not responding to clicks**
+   - Check if button is disabled
+   - Verify onClick handler is properly bound
+   - Ensure no overlapping elements with higher z-index
+
+2. **Styling inconsistencies**
+   - Verify variant prop is correctly set
+   - Check for conflicting className overrides
+   - Ensure design tokens are properly loaded
+
+3. **Accessibility warnings**
+   - Add aria-label for icon-only buttons
+   - Include visible text or screen reader text
+   - Verify color contrast ratios meet WCAG standards
+
+## Component Playground
+
+<Canvas>
+  <Story of={ButtonStories.Default} />
+</Canvas>
+
+<Controls of={ButtonStories.Default} />

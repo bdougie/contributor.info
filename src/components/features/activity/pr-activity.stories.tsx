@@ -1,7 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { within, userEvent, expect } from "@storybook/test";
 import PRActivity from "./pr-activity";
 import { RepoStatsContext } from "@/lib/repo-stats-context";
 import type { PullRequest } from "@/lib/types";
+import { designTokens } from "../../../../.storybook/design-tokens";
 
 // Helper function to create mock pull requests with varied activity
 const createMockPR = (
@@ -12,7 +14,9 @@ const createMockPR = (
   daysAgo: number,
   isBot: boolean = false,
   hasReviews: boolean = true,
-  hasComments: boolean = true
+  hasComments: boolean = true,
+  isDraft: boolean = false,
+  labels: string[] = []
 ): PullRequest => {
   const date = new Date();
   date.setDate(date.getDate() - daysAgo);
@@ -30,6 +34,17 @@ const createMockPR = (
           },
           submitted_at: new Date(date.getTime() + 3600000).toISOString(), // 1 hour later
         },
+        {
+          id: id * 101,
+          state: "changes_requested",
+          user: {
+            login: `reviewer${id + 1}`,
+            avatar_url: `https://avatars.githubusercontent.com/u/${
+              id + 1001
+            }?v=4`,
+          },
+          submitted_at: new Date(date.getTime() + 7200000).toISOString(), // 2 hours later
+        },
       ]
     : [];
 
@@ -45,6 +60,16 @@ const createMockPR = (
           },
           created_at: new Date(date.getTime() + 7200000).toISOString(), // 2 hours later
         },
+        {
+          id: id * 201,
+          user: {
+            login: `commenter${id + 1}`,
+            avatar_url: `https://avatars.githubusercontent.com/u/${
+              id + 2001
+            }?v=4`,
+          },
+          created_at: new Date(date.getTime() + 10800000).toISOString(), // 3 hours later
+        },
       ]
     : [];
 
@@ -56,7 +81,7 @@ const createMockPR = (
     created_at: date.toISOString(),
     updated_at: new Date(date.getTime() + 10800000).toISOString(), // 3 hours later
     merged_at:
-      state === "closed"
+      state === "closed" && !isDraft
         ? new Date(date.getTime() + 14400000).toISOString()
         : null, // 4 hours later
     additions: Math.floor(Math.random() * 200) + 10,
@@ -72,6 +97,12 @@ const createMockPR = (
     html_url: `https://github.com/test-org/test-repo/pull/${id}`,
     reviews,
     comments,
+    draft: isDraft,
+    labels: labels.map((name, i) => ({
+      id: id * 1000 + i,
+      name,
+      color: ["#0366d6", "#d73a4a", "#0e8a16", "#ffd33d"][i % 4],
+    })),
   };
 };
 
@@ -85,7 +116,9 @@ const recentActivityDataset: PullRequest[] = [
     1,
     false,
     true,
-    true
+    true,
+    false,
+    ["enhancement", "backend"]
   ),
   createMockPR(
     2,
@@ -95,7 +128,9 @@ const recentActivityDataset: PullRequest[] = [
     2,
     false,
     true,
-    false
+    false,
+    false,
+    ["bug", "mobile"]
   ),
   createMockPR(
     3,
@@ -105,7 +140,9 @@ const recentActivityDataset: PullRequest[] = [
     3,
     false,
     false,
-    true
+    true,
+    false,
+    ["documentation"]
   ),
   createMockPR(
     4,
@@ -115,7 +152,9 @@ const recentActivityDataset: PullRequest[] = [
     4,
     false,
     true,
-    true
+    true,
+    false,
+    ["enhancement", "ui"]
   ),
   createMockPR(
     5,
@@ -125,43 +164,15 @@ const recentActivityDataset: PullRequest[] = [
     5,
     false,
     true,
-    false
-  ),
-  createMockPR(
-    6,
-    "frank",
-    "Add unit tests for user service",
-    "open",
-    6,
     false,
     false,
-    true
-  ),
-  createMockPR(
-    7,
-    "grace",
-    "Optimize image loading performance",
-    "closed",
-    7,
-    false,
-    true,
-    true
-  ),
-  createMockPR(
-    8,
-    "henry",
-    "Fix memory leak in WebSocket connection",
-    "open",
-    8,
-    false,
-    true,
-    false
+    ["refactor", "performance"]
   ),
 ];
 
 // Dataset with bot activity
 const datasetWithBots: PullRequest[] = [
-  ...recentActivityDataset.slice(0, 5),
+  ...recentActivityDataset.slice(0, 3),
   createMockPR(
     9,
     "dependabot[bot]",
@@ -170,7 +181,9 @@ const datasetWithBots: PullRequest[] = [
     1,
     true,
     false,
-    false
+    false,
+    false,
+    ["dependencies", "security"]
   ),
   createMockPR(
     10,
@@ -180,7 +193,9 @@ const datasetWithBots: PullRequest[] = [
     2,
     true,
     false,
-    false
+    false,
+    false,
+    ["dependencies"]
   ),
   createMockPR(
     11,
@@ -190,7 +205,9 @@ const datasetWithBots: PullRequest[] = [
     3,
     true,
     false,
-    false
+    false,
+    false,
+    ["automated"]
   ),
 ];
 
@@ -228,6 +245,8 @@ const highActivityDataset: PullRequest[] = Array.from(
     const daysAgo = Math.floor(Math.random() * 14) + 1; // Within last 2 weeks
     const hasReviews = Math.random() > 0.2; // 80% have reviews
     const hasComments = Math.random() > 0.3; // 70% have comments
+    const labels = i % 3 === 0 ? ["bug", "high-priority"] : 
+                   i % 2 === 0 ? ["enhancement"] : [];
 
     return createMockPR(
       i + 1,
@@ -237,10 +256,35 @@ const highActivityDataset: PullRequest[] = Array.from(
       daysAgo,
       false,
       hasReviews,
-      hasComments
+      hasComments,
+      false,
+      labels
     );
   }
 );
+
+// Draft PRs dataset
+const draftPRsDataset: PullRequest[] = [
+  createMockPR(1, "alice", "[WIP] New payment integration", "open", 1, false, false, true, true, ["draft", "payment"]),
+  createMockPR(2, "bob", "[Draft] Refactor authentication", "open", 2, false, false, false, true, ["draft", "refactor"]),
+  createMockPR(3, "carol", "Ready for review: API updates", "open", 3, false, true, true, false, ["ready"]),
+  createMockPR(4, "dave", "[Draft] Experimental feature", "open", 4, false, false, true, true, ["draft", "experimental"]),
+];
+
+// Long-running PRs dataset
+const longRunningPRsDataset: PullRequest[] = [
+  createMockPR(1, "alice", "Major architectural refactor", "open", 45, false, true, true, false, ["refactor", "breaking-change"]),
+  createMockPR(2, "bob", "Legacy system migration", "open", 60, false, true, true, false, ["migration", "long-running"]),
+  createMockPR(3, "carol", "Performance optimization initiative", "open", 30, false, true, true, false, ["performance"]),
+  createMockPR(4, "dave", "Security audit implementation", "open", 25, false, true, false, false, ["security", "audit"]),
+];
+
+// Conflicted PRs dataset
+const conflictedPRsDataset: PullRequest[] = [
+  createMockPR(1, "alice", "Feature branch with conflicts", "open", 3, false, true, true, false, ["has-conflicts", "needs-rebase"]),
+  createMockPR(2, "bob", "Merge conflict in main files", "open", 5, false, false, true, false, ["has-conflicts", "blocked"]),
+  createMockPR(3, "carol", "Resolved conflicts - ready to merge", "open", 1, false, true, false, false, ["resolved"]),
+];
 
 // Minimal activity dataset
 const minimalActivityDataset: PullRequest[] = [
@@ -251,24 +295,41 @@ const minimalActivityDataset: PullRequest[] = [
 const emptyDataset: PullRequest[] = [];
 
 const meta = {
-  title: "Components/PRActivity",
+  title: "Features/Activity/PRActivity",
   component: PRActivity,
   parameters: {
     layout: "centered",
     docs: {
       description: {
         component:
-          "A component that displays a feed of pull request activities including opening, closing, merging, reviews, and comments.",
+          "A comprehensive pull request activity feed displaying PR lifecycle events including opening, closing, merging, reviews, and comments. Supports filtering, real-time updates, and various data states.",
       },
     },
   },
-  tags: ["autodocs"],
+  argTypes: {
+    includeBots: {
+      control: "boolean",
+      description: "Include bot-generated PRs in the activity feed",
+      defaultValue: false,
+    },
+    maxItems: {
+      control: { type: "number", min: 1, max: 100 },
+      description: "Maximum number of PRs to display",
+      defaultValue: 20,
+    },
+    refreshInterval: {
+      control: { type: "number", min: 0, max: 60000 },
+      description: "Auto-refresh interval in milliseconds (0 to disable)",
+      defaultValue: 0,
+    },
+  },
+  tags: ["autodocs", "activity", "real-time"],
 } satisfies Meta<typeof PRActivity>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const RecentActivity: Story = {
+export const Default: Story = {
   render: () => (
     <RepoStatsContext.Provider
       value={{
@@ -290,7 +351,48 @@ export const RecentActivity: Story = {
   ),
 };
 
-export const WithBots: Story = {
+export const WithInteractions: Story = {
+  render: () => (
+    <RepoStatsContext.Provider
+      value={{
+        stats: {
+          pullRequests: recentActivityDataset,
+          loading: false,
+          error: null,
+        },
+        includeBots: false,
+        setIncludeBots: () => {},
+        lotteryFactor: null,
+        directCommitsData: null,
+      }}
+    >
+      <div className="w-[700px] h-[600px] p-4">
+        <PRActivity />
+      </div>
+    </RepoStatsContext.Provider>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    
+    // Wait for the component to render
+    await expect(canvas.getByText(/alice/i)).toBeInTheDocument();
+    
+    // Test hovering over PR items
+    const firstPR = canvas.getByText("Add user authentication system").closest('div');
+    if (firstPR) {
+      await userEvent.hover(firstPR);
+      await userEvent.unhover(firstPR);
+    }
+    
+    // Test clicking on a PR link if available
+    const prLinks = canvas.getAllByRole('link');
+    if (prLinks.length > 0) {
+      await userEvent.hover(prLinks[0]);
+    }
+  },
+};
+
+export const WithBotActivity: Story = {
   render: () => (
     <RepoStatsContext.Provider
       value={{
@@ -306,9 +408,16 @@ export const WithBots: Story = {
       </div>
     </RepoStatsContext.Provider>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story: "Shows activity feed including bot-generated PRs from Dependabot, Renovate, and GitHub Actions.",
+      },
+    },
+  },
 };
 
-export const HighActivity: Story = {
+export const HighVolumeActivity: Story = {
   render: () => (
     <RepoStatsContext.Provider
       value={{
@@ -328,9 +437,103 @@ export const HighActivity: Story = {
       </div>
     </RepoStatsContext.Provider>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story: "Demonstrates performance with 30+ concurrent PRs from multiple contributors.",
+      },
+    },
+  },
 };
 
-export const Loading: Story = {
+export const DraftPRs: Story = {
+  render: () => (
+    <RepoStatsContext.Provider
+      value={{
+        stats: {
+          pullRequests: draftPRsDataset,
+          loading: false,
+          error: null,
+        },
+        includeBots: false,
+        setIncludeBots: () => {},
+        lotteryFactor: null,
+        directCommitsData: null,
+      }}
+    >
+      <div className="w-[700px] h-[600px] p-4">
+        <PRActivity />
+      </div>
+    </RepoStatsContext.Provider>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story: "Shows draft PRs and work-in-progress items with appropriate visual indicators.",
+      },
+    },
+  },
+};
+
+export const LongRunningPRs: Story = {
+  render: () => (
+    <RepoStatsContext.Provider
+      value={{
+        stats: {
+          pullRequests: longRunningPRsDataset,
+          loading: false,
+          error: null,
+        },
+        includeBots: false,
+        setIncludeBots: () => {},
+        lotteryFactor: null,
+        directCommitsData: null,
+      }}
+    >
+      <div className="w-[700px] h-[600px] p-4">
+        <PRActivity />
+      </div>
+    </RepoStatsContext.Provider>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story: "Displays PRs that have been open for extended periods (25-60 days).",
+      },
+    },
+  },
+};
+
+export const ConflictedPRs: Story = {
+  render: () => (
+    <RepoStatsContext.Provider
+      value={{
+        stats: {
+          pullRequests: conflictedPRsDataset,
+          loading: false,
+          error: null,
+        },
+        includeBots: false,
+        setIncludeBots: () => {},
+        lotteryFactor: null,
+        directCommitsData: null,
+      }}
+    >
+      <div className="w-[700px] h-[600px] p-4">
+        <PRActivity />
+      </div>
+    </RepoStatsContext.Provider>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story: "Shows PRs with merge conflicts and resolution status.",
+      },
+    },
+  },
+};
+
+export const LoadingState: Story = {
   render: () => (
     <RepoStatsContext.Provider
       value={{
@@ -346,16 +549,23 @@ export const Loading: Story = {
       </div>
     </RepoStatsContext.Provider>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story: "Shows loading skeleton while fetching PR data.",
+      },
+    },
+  },
 };
 
-export const Error: Story = {
+export const ErrorState: Story = {
   render: () => (
     <RepoStatsContext.Provider
       value={{
         stats: {
           pullRequests: [],
           loading: false,
-          error: "Failed to load activity data",
+          error: "Failed to load activity data. Please check your connection and try again.",
         },
         includeBots: false,
         setIncludeBots: () => {},
@@ -368,9 +578,16 @@ export const Error: Story = {
       </div>
     </RepoStatsContext.Provider>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story: "Displays error message when PR data fails to load.",
+      },
+    },
+  },
 };
 
-export const EmptyData: Story = {
+export const EmptyState: Story = {
   render: () => (
     <RepoStatsContext.Provider
       value={{
@@ -386,6 +603,13 @@ export const EmptyData: Story = {
       </div>
     </RepoStatsContext.Provider>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story: "Shows empty state when no PRs exist for the repository.",
+      },
+    },
+  },
 };
 
 export const MinimalActivity: Story = {
@@ -408,56 +632,21 @@ export const MinimalActivity: Story = {
       </div>
     </RepoStatsContext.Provider>
   ),
+  parameters: {
+    docs: {
+      description: {
+        story: "Shows activity feed with minimal PR activity.",
+      },
+    },
+  },
 };
 
-export const MixedStates: Story = {
+export const MobileView: Story = {
   render: () => (
     <RepoStatsContext.Provider
       value={{
         stats: {
-          pullRequests: [
-            createMockPR(
-              1,
-              "alice",
-              "Feature in progress",
-              "open",
-              1,
-              false,
-              false,
-              false
-            ),
-            createMockPR(
-              2,
-              "bob",
-              "Completed feature",
-              "closed",
-              2,
-              false,
-              true,
-              true
-            ),
-            createMockPR(
-              3,
-              "carol",
-              "Under review",
-              "open",
-              3,
-              false,
-              true,
-              false
-            ),
-            createMockPR(
-              4,
-              "dave",
-              "Merged fix",
-              "closed",
-              4,
-              false,
-              true,
-              true
-            ),
-            createMockPR(5, "eve", "Draft PR", "open", 5, false, false, true),
-          ],
+          pullRequests: recentActivityDataset,
           loading: false,
           error: null,
         },
@@ -467,9 +656,219 @@ export const MixedStates: Story = {
         directCommitsData: null,
       }}
     >
-      <div className="w-[700px] h-[600px] p-4">
+      <div className="w-[375px] h-[667px] p-2 touch-manipulation">
         <PRActivity />
       </div>
     </RepoStatsContext.Provider>
   ),
+  parameters: {
+    viewport: {
+      defaultViewport: "mobile1",
+    },
+    docs: {
+      description: {
+        story: "Mobile-optimized view with appropriate touch targets and responsive layout.",
+      },
+    },
+  },
 };
+
+export const TabletView: Story = {
+  render: () => (
+    <RepoStatsContext.Provider
+      value={{
+        stats: {
+          pullRequests: recentActivityDataset,
+          loading: false,
+          error: null,
+        },
+        includeBots: false,
+        setIncludeBots: () => {},
+        lotteryFactor: null,
+        directCommitsData: null,
+      }}
+    >
+      <div className="w-[768px] h-[1024px] p-4">
+        <PRActivity />
+      </div>
+    </RepoStatsContext.Provider>
+  ),
+  parameters: {
+    viewport: {
+      defaultViewport: "tablet",
+    },
+    docs: {
+      description: {
+        story: "Tablet-optimized view with medium-sized layout.",
+      },
+    },
+  },
+};
+
+export const DarkMode: Story = {
+  render: () => (
+    <div className="dark bg-gray-900 p-4">
+      <RepoStatsContext.Provider
+        value={{
+          stats: {
+            pullRequests: recentActivityDataset,
+            loading: false,
+            error: null,
+          },
+          includeBots: false,
+          setIncludeBots: () => {},
+          lotteryFactor: null,
+          directCommitsData: null,
+        }}
+      >
+        <div className="w-[700px] h-[600px]">
+          <PRActivity />
+        </div>
+      </RepoStatsContext.Provider>
+    </div>
+  ),
+  parameters: {
+    backgrounds: { default: "dark" },
+    docs: {
+      description: {
+        story: "PR activity feed in dark mode with appropriate contrast and visibility.",
+      },
+    },
+  },
+};
+
+export const RealTimeUpdates: Story = {
+  render: () => {
+    const [prs, setPrs] = React.useState(recentActivityDataset);
+    
+    React.useEffect(() => {
+      const interval = setInterval(() => {
+        // Simulate new PR arriving
+        const newPR = createMockPR(
+          Date.now(),
+          "newuser",
+          `Real-time update at ${new Date().toLocaleTimeString()}`,
+          "open",
+          0,
+          false,
+          false,
+          true,
+          false,
+          ["new", "real-time"]
+        );
+        setPrs(prev => [newPR, ...prev].slice(0, 10));
+      }, 5000);
+      
+      return () => clearInterval(interval);
+    }, []);
+    
+    return (
+      <RepoStatsContext.Provider
+        value={{
+          stats: {
+            pullRequests: prs,
+            loading: false,
+            error: null,
+          },
+          includeBots: false,
+          setIncludeBots: () => {},
+          lotteryFactor: null,
+          directCommitsData: null,
+        }}
+      >
+        <div className="w-[700px] h-[600px] p-4">
+          <PRActivity />
+        </div>
+      </RepoStatsContext.Provider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: "Simulates real-time PR updates arriving every 5 seconds.",
+      },
+    },
+  },
+};
+
+export const FilteredByLabel: Story = {
+  render: () => {
+    const bugPRs = recentActivityDataset.filter(pr => 
+      pr.labels?.some(label => label.name === "bug")
+    );
+    
+    return (
+      <RepoStatsContext.Provider
+        value={{
+          stats: {
+            pullRequests: bugPRs,
+            loading: false,
+            error: null,
+          },
+          includeBots: false,
+          setIncludeBots: () => {},
+          lotteryFactor: null,
+          directCommitsData: null,
+        }}
+      >
+        <div className="w-[700px] h-[600px] p-4">
+          <PRActivity />
+        </div>
+      </RepoStatsContext.Provider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: "Shows PRs filtered by specific labels (bug fixes in this example).",
+      },
+    },
+  },
+};
+
+export const PerformanceTest: Story = {
+  render: () => {
+    const largeDataseet = Array.from({ length: 100 }, (_, i) => 
+      createMockPR(
+        i + 1,
+        `user${i}`,
+        `Performance test PR #${i + 1}`,
+        Math.random() > 0.5 ? "open" : "closed",
+        Math.floor(Math.random() * 30),
+        i % 10 === 0, // Every 10th is a bot
+        Math.random() > 0.3,
+        Math.random() > 0.3
+      )
+    );
+    
+    return (
+      <RepoStatsContext.Provider
+        value={{
+          stats: {
+            pullRequests: largeDataseet,
+            loading: false,
+            error: null,
+          },
+          includeBots: true,
+          setIncludeBots: () => {},
+          lotteryFactor: null,
+          directCommitsData: null,
+        }}
+      >
+        <div className="w-[700px] h-[600px] p-4">
+          <PRActivity />
+        </div>
+      </RepoStatsContext.Provider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: "Performance test with 100 PRs to verify smooth scrolling and rendering.",
+      },
+    },
+  },
+};
+
+// Import React for the real-time story
+import React from 'react';

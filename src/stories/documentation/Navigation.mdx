@@ -1,0 +1,680 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Documentation/Patterns/Navigation" />
+
+# Navigation Patterns
+
+Comprehensive guide for implementing consistent, accessible navigation throughout the application.
+
+## Overview
+
+Navigation components help users move through your application efficiently. Our navigation system provides flexible patterns for different contexts while maintaining consistency and accessibility.
+
+## Core Navigation Components
+
+### Header Navigation
+
+```tsx
+function HeaderNav() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { pathname } = useLocation();
+
+  return (
+    <header className="bg-white border-b sticky top-0 z-50">
+      <nav className="container mx-auto px-4" aria-label="Main navigation">
+        <div className="flex justify-between h-16">
+          {/* Logo */}
+          <div className="flex items-center">
+            <Link to="/" className="flex items-center space-x-2">
+              <Logo className="h-8 w-8" />
+              <span className="font-bold text-xl">Contributor.info</span>
+            </Link>
+          </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-8">
+            <NavLink 
+              to="/dashboard" 
+              isActive={pathname === '/dashboard'}
+            >
+              Dashboard
+            </NavLink>
+            <NavLink 
+              to="/repositories" 
+              isActive={pathname.startsWith('/repositories')}
+            >
+              Repositories
+            </NavLink>
+            <NavLink 
+              to="/contributors" 
+              isActive={pathname.startsWith('/contributors')}
+            >
+              Contributors
+            </NavLink>
+          </div>
+
+          {/* User Menu */}
+          <div className="flex items-center space-x-4">
+            <NotificationBell />
+            <UserMenu />
+            
+            {/* Mobile Menu Button */}
+            <button
+              className="md:hidden p-2"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-expanded={mobileMenuOpen}
+              aria-label="Toggle navigation menu"
+            >
+              <MenuIcon className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ height: 0 }}
+              animate={{ height: 'auto' }}
+              exit={{ height: 0 }}
+              className="md:hidden overflow-hidden"
+            >
+              <div className="py-2 space-y-1">
+                <MobileNavLink to="/dashboard">Dashboard</MobileNavLink>
+                <MobileNavLink to="/repositories">Repositories</MobileNavLink>
+                <MobileNavLink to="/contributors">Contributors</MobileNavLink>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </nav>
+    </header>
+  );
+}
+```
+
+### Sidebar Navigation
+
+```tsx
+function SidebarNav() {
+  const location = useLocation();
+
+  const navItems = [
+    { path: '/dashboard', label: 'Dashboard', icon: HomeIcon },
+    { path: '/repositories', label: 'Repositories', icon: FolderIcon },
+    { path: '/contributors', label: 'Contributors', icon: UsersIcon },
+    { path: '/analytics', label: 'Analytics', icon: ChartIcon },
+    { path: '/settings', label: 'Settings', icon: SettingsIcon },
+  ];
+
+  return (
+    <aside className="w-64 bg-white border-r h-full">
+      <nav className="p-4" aria-label="Sidebar navigation">
+        <ul className="space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname.startsWith(item.path);
+            
+            return (
+              <li key={item.path}>
+                <Link
+                  to={item.path}
+                  className={`
+                    flex items-center space-x-3 px-3 py-2 rounded-lg
+                    transition-colors duration-150
+                    ${isActive 
+                      ? 'bg-blue-50 text-blue-700' 
+                      : 'text-gray-700 hover:bg-gray-100'
+                    }
+                  `}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                  {item.badge && (
+                    <Badge className="ml-auto">{item.badge}</Badge>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Collapsible Sections */}
+        <div className="mt-8">
+          <CollapsibleSection title="Projects" defaultOpen>
+            <ul className="space-y-1 mt-2">
+              <li>
+                <Link to="/project/1" className="block px-3 py-1 text-sm text-gray-600 hover:text-gray-900">
+                  Project Alpha
+                </Link>
+              </li>
+              <li>
+                <Link to="/project/2" className="block px-3 py-1 text-sm text-gray-600 hover:text-gray-900">
+                  Project Beta
+                </Link>
+              </li>
+            </ul>
+          </CollapsibleSection>
+        </div>
+      </nav>
+    </aside>
+  );
+}
+```
+
+### Breadcrumb Navigation
+
+```tsx
+function Breadcrumbs() {
+  const location = useLocation();
+  const paths = location.pathname.split('/').filter(Boolean);
+
+  return (
+    <nav aria-label="Breadcrumb">
+      <ol className="flex items-center space-x-2 text-sm">
+        <li>
+          <Link to="/" className="text-gray-500 hover:text-gray-700">
+            <HomeIcon className="h-4 w-4" />
+            <span className="sr-only">Home</span>
+          </Link>
+        </li>
+        
+        {paths.map((path, index) => {
+          const href = `/${paths.slice(0, index + 1).join('/')}`;
+          const isLast = index === paths.length - 1;
+          const label = path.charAt(0).toUpperCase() + path.slice(1);
+
+          return (
+            <li key={href} className="flex items-center">
+              <ChevronRightIcon className="h-4 w-4 text-gray-400" />
+              {isLast ? (
+                <span className="ml-2 text-gray-900" aria-current="page">
+                  {label}
+                </span>
+              ) : (
+                <Link
+                  to={href}
+                  className="ml-2 text-gray-500 hover:text-gray-700"
+                >
+                  {label}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+```
+
+### Tab Navigation
+
+```tsx
+function TabNav({ tabs, activeTab, onChange }) {
+  return (
+    <div>
+      {/* Desktop Tabs */}
+      <div className="hidden sm:block">
+        <nav className="flex space-x-8 border-b" aria-label="Tabs">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => onChange(tab.id)}
+              className={`
+                py-2 px-1 border-b-2 font-medium text-sm
+                ${activeTab === tab.id
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }
+              `}
+              aria-current={activeTab === tab.id ? 'page' : undefined}
+            >
+              {tab.label}
+              {tab.count && (
+                <span className="ml-2 py-0.5 px-2 rounded-full bg-gray-100 text-xs">
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Mobile Tabs (Select) */}
+      <div className="sm:hidden">
+        <select
+          value={activeTab}
+          onChange={(e) => onChange(e.target.value)}
+          className="block w-full rounded-md border-gray-300"
+          aria-label="Select tab"
+        >
+          {tabs.map((tab) => (
+            <option key={tab.id} value={tab.id}>
+              {tab.label} {tab.count && `(${tab.count})`}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+```
+
+### Pagination
+
+```tsx
+function Pagination({ 
+  currentPage, 
+  totalPages, 
+  onPageChange,
+  showFirstLast = true,
+  maxVisible = 5 
+}) {
+  const getPageNumbers = () => {
+    const pages = [];
+    const halfVisible = Math.floor(maxVisible / 2);
+    let start = Math.max(1, currentPage - halfVisible);
+    let end = Math.min(totalPages, start + maxVisible - 1);
+
+    if (end - start < maxVisible - 1) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    return pages;
+  };
+
+  return (
+    <nav aria-label="Pagination">
+      <ul className="flex items-center space-x-1">
+        {/* First Page */}
+        {showFirstLast && currentPage > 1 && (
+          <li>
+            <button
+              onClick={() => onPageChange(1)}
+              className="p-2 rounded hover:bg-gray-100"
+              aria-label="Go to first page"
+            >
+              <ChevronDoubleLeftIcon className="h-5 w-5" />
+            </button>
+          </li>
+        )}
+
+        {/* Previous Page */}
+        <li>
+          <button
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
+            aria-label="Go to previous page"
+          >
+            <ChevronLeftIcon className="h-5 w-5" />
+          </button>
+        </li>
+
+        {/* Page Numbers */}
+        {getPageNumbers().map((page) => (
+          <li key={page}>
+            <button
+              onClick={() => onPageChange(page)}
+              className={`
+                px-3 py-2 rounded
+                ${page === currentPage
+                  ? 'bg-blue-500 text-white'
+                  : 'hover:bg-gray-100'
+                }
+              `}
+              aria-label={`Go to page ${page}`}
+              aria-current={page === currentPage ? 'page' : undefined}
+            >
+              {page}
+            </button>
+          </li>
+        ))}
+
+        {/* Next Page */}
+        <li>
+          <button
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
+            aria-label="Go to next page"
+          >
+            <ChevronRightIcon className="h-5 w-5" />
+          </button>
+        </li>
+
+        {/* Last Page */}
+        {showFirstLast && currentPage < totalPages && (
+          <li>
+            <button
+              onClick={() => onPageChange(totalPages)}
+              className="p-2 rounded hover:bg-gray-100"
+              aria-label="Go to last page"
+            >
+              <ChevronDoubleRightIcon className="h-5 w-5" />
+            </button>
+          </li>
+        )}
+      </ul>
+    </nav>
+  );
+}
+```
+
+## Advanced Navigation Patterns
+
+### Command Palette
+
+```tsx
+function CommandPalette() {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  // Open with Cmd+K or Ctrl+K
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="p-0 max-w-2xl">
+        <Command>
+          <CommandInput
+            placeholder="Search for repositories, contributors, or actions..."
+            value={search}
+            onValueChange={setSearch}
+          />
+          <CommandList>
+            <CommandEmpty>No results found.</CommandEmpty>
+            
+            <CommandGroup heading="Actions">
+              <CommandItem onSelect={() => navigate('/repositories/new')}>
+                <PlusIcon className="mr-2 h-4 w-4" />
+                Add Repository
+              </CommandItem>
+              <CommandItem onSelect={() => navigate('/contributors/invite')}>
+                <UserPlusIcon className="mr-2 h-4 w-4" />
+                Invite Contributor
+              </CommandItem>
+            </CommandGroup>
+
+            <CommandGroup heading="Navigation">
+              <CommandItem onSelect={() => navigate('/dashboard')}>
+                <HomeIcon className="mr-2 h-4 w-4" />
+                Dashboard
+              </CommandItem>
+              <CommandItem onSelect={() => navigate('/settings')}>
+                <SettingsIcon className="mr-2 h-4 w-4" />
+                Settings
+              </CommandItem>
+            </CommandGroup>
+
+            <CommandGroup heading="Recent">
+              {recentItems.map((item) => (
+                <CommandItem
+                  key={item.id}
+                  onSelect={() => navigate(item.href)}
+                >
+                  <ClockIcon className="mr-2 h-4 w-4" />
+                  {item.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
+### Stepper Navigation
+
+```tsx
+function StepperNav({ steps, currentStep, onStepClick }) {
+  return (
+    <nav aria-label="Progress">
+      <ol className="flex items-center">
+        {steps.map((step, index) => {
+          const isActive = index === currentStep;
+          const isComplete = index < currentStep;
+          const isClickable = isComplete || isActive;
+
+          return (
+            <li key={step.id} className="flex items-center flex-1">
+              {index > 0 && (
+                <div className={`
+                  flex-1 h-0.5 mx-4
+                  ${isComplete ? 'bg-blue-600' : 'bg-gray-200'}
+                `} />
+              )}
+              
+              <button
+                onClick={() => isClickable && onStepClick(index)}
+                disabled={!isClickable}
+                className="relative flex items-center"
+                aria-current={isActive ? 'step' : undefined}
+              >
+                <span className={`
+                  flex items-center justify-center w-10 h-10 rounded-full
+                  ${isActive ? 'bg-blue-600 text-white' : ''}
+                  ${isComplete ? 'bg-blue-600 text-white' : ''}
+                  ${!isActive && !isComplete ? 'bg-gray-200 text-gray-500' : ''}
+                `}>
+                  {isComplete ? (
+                    <CheckIcon className="h-5 w-5" />
+                  ) : (
+                    index + 1
+                  )}
+                </span>
+                
+                <span className="ml-3 text-sm font-medium">
+                  {step.label}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+```
+
+## Mobile Navigation Patterns
+
+### Bottom Navigation
+
+```tsx
+function BottomNav() {
+  const location = useLocation();
+  
+  const navItems = [
+    { path: '/', label: 'Home', icon: HomeIcon },
+    { path: '/search', label: 'Search', icon: SearchIcon },
+    { path: '/add', label: 'Add', icon: PlusCircleIcon },
+    { path: '/notifications', label: 'Alerts', icon: BellIcon },
+    { path: '/profile', label: 'Profile', icon: UserIcon },
+  ];
+
+  return (
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t">
+      <ul className="flex justify-around">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.path;
+          
+          return (
+            <li key={item.path} className="flex-1">
+              <Link
+                to={item.path}
+                className={`
+                  flex flex-col items-center py-2 px-3
+                  ${isActive ? 'text-blue-600' : 'text-gray-500'}
+                `}
+              >
+                <Icon className="h-6 w-6" />
+                <span className="text-xs mt-1">{item.label}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+```
+
+## Accessibility
+
+### ARIA Labels and Roles
+
+```tsx
+// Proper ARIA labels
+<nav aria-label="Main navigation">
+  {/* Navigation items */}
+</nav>
+
+<nav aria-label="Breadcrumb">
+  {/* Breadcrumb items */}
+</nav>
+
+<nav aria-label="Pagination">
+  {/* Pagination controls */}
+</nav>
+
+// Current page indication
+<a href="/dashboard" aria-current="page">Dashboard</a>
+
+// Expanded state for menus
+<button
+  aria-expanded={menuOpen}
+  aria-controls="mobile-menu"
+  aria-label="Toggle navigation menu"
+>
+  <MenuIcon />
+</button>
+```
+
+### Keyboard Navigation
+
+```tsx
+function KeyboardNav({ items }) {
+  const [focusedIndex, setFocusedIndex] = useState(0);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setFocusedIndex((prev) => 
+            Math.min(prev + 1, items.length - 1)
+          );
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setFocusedIndex((prev) => Math.max(prev - 1, 0));
+          break;
+        case 'Home':
+          e.preventDefault();
+          setFocusedIndex(0);
+          break;
+        case 'End':
+          e.preventDefault();
+          setFocusedIndex(items.length - 1);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [items.length]);
+
+  return (
+    <ul role="menu">
+      {items.map((item, index) => (
+        <li key={item.id} role="none">
+          <a
+            href={item.href}
+            role="menuitem"
+            tabIndex={index === focusedIndex ? 0 : -1}
+            ref={(el) => index === focusedIndex && el?.focus()}
+          >
+            {item.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### Skip Links
+
+```tsx
+function SkipLinks() {
+  return (
+    <div className="sr-only focus-within:not-sr-only">
+      <a
+        href="#main-content"
+        className="absolute top-0 left-0 p-2 bg-blue-600 text-white focus:not-sr-only"
+      >
+        Skip to main content
+      </a>
+      <a
+        href="#main-navigation"
+        className="absolute top-0 left-0 p-2 bg-blue-600 text-white focus:not-sr-only"
+      >
+        Skip to navigation
+      </a>
+    </div>
+  );
+}
+```
+
+## Best Practices
+
+### Do's ✅
+
+1. **Use semantic HTML elements (nav, ul, li)**
+2. **Provide clear visual and screen reader feedback for current location**
+3. **Support keyboard navigation**
+4. **Include skip links for screen readers**
+5. **Make touch targets at least 44x44px on mobile**
+6. **Provide breadcrumbs for deep navigation**
+7. **Use consistent navigation patterns**
+8. **Test navigation with keyboard only**
+
+### Don'ts ❌
+
+1. **Don't rely solely on hover states**
+2. **Don't hide important navigation on mobile**
+3. **Don't use navigation for decorative purposes**
+4. **Don't create too many navigation levels**
+5. **Don't forget to indicate active states**
+6. **Don't auto-collapse menus without user action**
+7. **Don't use icons without labels (or aria-labels)**
+8. **Don't break browser back button behavior**
+
+## Related Documentation
+
+- [Link Component](./Link)
+- [Menu Component](./Menu)
+- [Tabs Component](./Tabs)
+- [Breadcrumbs Component](./Breadcrumbs)
+- [Pagination Component](./Pagination)
+- [Accessibility Guidelines](./Accessibility)

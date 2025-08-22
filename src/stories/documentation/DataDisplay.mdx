@@ -1,0 +1,762 @@
+import { Meta } from '@storybook/blocks';
+
+<Meta title="Documentation/Patterns/Data Display" />
+
+# Data Display Patterns
+
+Comprehensive guide for presenting data effectively through tables, charts, cards, and other visualization components.
+
+## Overview
+
+Data display components help users understand complex information through clear visual presentation. Our system provides flexible, accessible, and performant solutions for various data visualization needs.
+
+## Core Components
+
+### Tables
+
+Tables organize structured data in rows and columns for easy scanning and comparison.
+
+```tsx
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+function ContributorsTable({ contributors }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Contributor</TableHead>
+          <TableHead>Pull Requests</TableHead>
+          <TableHead>Reviews</TableHead>
+          <TableHead>Comments</TableHead>
+          <TableHead className="text-right">Score</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {contributors.map((contributor) => (
+          <TableRow key={contributor.id}>
+            <TableCell className="font-medium">
+              <div className="flex items-center gap-2">
+                <Avatar src={contributor.avatar} size="sm" />
+                {contributor.name}
+              </div>
+            </TableCell>
+            <TableCell>{contributor.pullRequests}</TableCell>
+            <TableCell>{contributor.reviews}</TableCell>
+            <TableCell>{contributor.comments}</TableCell>
+            <TableCell className="text-right font-bold">
+              {contributor.score}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+```
+
+### Cards
+
+Cards group related information in a contained, scannable format.
+
+```tsx
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+
+function StatCard({ title, value, change, description, icon: Icon }) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">
+          {title}
+        </CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        <p className="text-xs text-muted-foreground">
+          <span className={change > 0 ? 'text-green-600' : 'text-red-600'}>
+            {change > 0 ? '+' : ''}{change}%
+          </span>
+          {' '}from last month
+        </p>
+        {description && (
+          <p className="text-sm text-gray-600 mt-2">{description}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+### Charts
+
+Visual representations of data trends and relationships.
+
+```tsx
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+// Line Chart
+function ActivityChart({ data }) {
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="date" />
+        <YAxis />
+        <Tooltip />
+        <Line 
+          type="monotone" 
+          dataKey="commits" 
+          stroke="#8884d8" 
+          strokeWidth={2}
+        />
+        <Line 
+          type="monotone" 
+          dataKey="pullRequests" 
+          stroke="#82ca9d" 
+          strokeWidth={2}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+// Bar Chart
+function ContributionChart({ data }) {
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="month" />
+        <YAxis />
+        <Tooltip />
+        <Bar dataKey="contributions" fill="#8884d8" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+// Area Chart
+function TrendChart({ data }) {
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <AreaChart data={data}>
+        <defs>
+          <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+            <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="date" />
+        <YAxis />
+        <Tooltip />
+        <Area 
+          type="monotone" 
+          dataKey="value" 
+          stroke="#8884d8" 
+          fillOpacity={1} 
+          fill="url(#colorUv)" 
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+```
+
+### Lists
+
+Organized collections of related items.
+
+```tsx
+// Simple List
+function SimpleList({ items }) {
+  return (
+    <ul className="divide-y divide-gray-200">
+      {items.map((item) => (
+        <li key={item.id} className="py-3">
+          <div className="flex items-center space-x-4">
+            <div className="flex-shrink-0">
+              <Avatar src={item.avatar} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {item.name}
+              </p>
+              <p className="text-sm text-gray-500 truncate">
+                {item.description}
+              </p>
+            </div>
+            <div>
+              <Badge>{item.status}</Badge>
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// Activity Feed
+function ActivityFeed({ activities }) {
+  return (
+    <div className="flow-root">
+      <ul className="-mb-8">
+        {activities.map((activity, idx) => (
+          <li key={activity.id}>
+            <div className="relative pb-8">
+              {idx !== activities.length - 1 && (
+                <span
+                  className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200"
+                  aria-hidden="true"
+                />
+              )}
+              <div className="relative flex space-x-3">
+                <div>
+                  <span className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
+                    <activity.icon className="h-5 w-5 text-white" />
+                  </span>
+                </div>
+                <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+                  <div>
+                    <p className="text-sm text-gray-500">
+                      {activity.content}{' '}
+                      <a href={activity.href} className="font-medium text-gray-900">
+                        {activity.target}
+                      </a>
+                    </p>
+                  </div>
+                  <div className="whitespace-nowrap text-right text-sm text-gray-500">
+                    <time dateTime={activity.datetime}>{activity.date}</time>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+## Data Patterns
+
+### Dashboard Overview
+
+```tsx
+function DashboardOverview() {
+  return (
+    <div className="space-y-6">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Total Contributors"
+          value="1,234"
+          change={12}
+          icon={UsersIcon}
+        />
+        <StatCard
+          title="Pull Requests"
+          value="456"
+          change={-5}
+          icon={GitPullRequestIcon}
+        />
+        <StatCard
+          title="Code Reviews"
+          value="789"
+          change={23}
+          icon={CodeReviewIcon}
+        />
+        <StatCard
+          title="Active Repos"
+          value="12"
+          change={0}
+          icon={FolderIcon}
+        />
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Activity Trend</CardTitle>
+            <CardDescription>Last 30 days</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ActivityChart data={activityData} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Contributors</CardTitle>
+            <CardDescription>By contributions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ContributorsList contributors={topContributors} />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ActivityTable activities={recentActivities} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+```
+
+### Data Table with Sorting and Filtering
+
+```tsx
+function DataTable({ data, columns }) {
+  const [sorting, setSorting] = useState([]);
+  const [filtering, setFiltering] = useState('');
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  const table = useReactTable({
+    data,
+    columns,
+    state: {
+      sorting,
+      globalFilter: filtering,
+      pagination,
+    },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setFiltering,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  });
+
+  return (
+    <div>
+      {/* Search */}
+      <div className="flex items-center py-4">
+        <Input
+          placeholder="Search..."
+          value={filtering}
+          onChange={(e) => setFiltering(e.target.value)}
+          className="max-w-sm"
+        />
+      </div>
+
+      {/* Table */}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map(headerGroup => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map(header => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder ? null : (
+                      <div
+                        className={header.column.getCanSort() ? 'cursor-pointer select-none' : ''}
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                        {{
+                          asc: ' 🔼',
+                          desc: ' 🔽',
+                        }[header.column.getIsSorted()] ?? null}
+                      </div>
+                    )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map(row => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map(cell => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between space-x-2 py-4">
+        <div className="text-sm text-muted-foreground">
+          Page {table.getState().pagination.pageIndex + 1} of{' '}
+          {table.getPageCount()}
+        </div>
+        <div className="space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+### Empty States
+
+```tsx
+function EmptyState({ 
+  icon: Icon, 
+  title, 
+  description, 
+  action 
+}) {
+  return (
+    <div className="text-center py-12">
+      <Icon className="mx-auto h-12 w-12 text-gray-400" />
+      <h3 className="mt-2 text-sm font-semibold text-gray-900">
+        {title}
+      </h3>
+      <p className="mt-1 text-sm text-gray-500">
+        {description}
+      </p>
+      {action && (
+        <div className="mt-6">
+          <Button onClick={action.onClick}>
+            {action.label}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Usage
+<EmptyState
+  icon={FolderOpenIcon}
+  title="No repositories"
+  description="Get started by tracking your first repository"
+  action={{
+    label: "Add Repository",
+    onClick: handleAddRepository
+  }}
+/>
+```
+
+### Loading States
+
+```tsx
+// Skeleton Loader
+function TableSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="flex space-x-4">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <div className="space-y-2 flex-1">
+            <Skeleton className="h-4 w-[250px]" />
+            <Skeleton className="h-4 w-[200px]" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Shimmer Effect
+function CardSkeleton() {
+  return (
+    <Card>
+      <CardHeader>
+        <Skeleton className="h-4 w-[100px]" />
+        <Skeleton className="h-8 w-[200px]" />
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Loading Spinner
+function LoadingSpinner() {
+  return (
+    <div className="flex items-center justify-center p-8">
+      <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+    </div>
+  );
+}
+```
+
+## Responsive Data Display
+
+### Responsive Tables
+
+```tsx
+// Mobile-optimized table
+function ResponsiveTable({ data }) {
+  return (
+    <>
+      {/* Desktop Table */}
+      <div className="hidden md:block">
+        <Table>
+          {/* Full table markup */}
+        </Table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-4">
+        {data.map((item) => (
+          <Card key={item.id}>
+            <CardContent className="pt-6">
+              <dl className="space-y-2">
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-gray-500">Name</dt>
+                  <dd className="text-sm text-gray-900">{item.name}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-gray-500">Status</dt>
+                  <dd><Badge>{item.status}</Badge></dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-gray-500">Value</dt>
+                  <dd className="text-sm font-semibold">{item.value}</dd>
+                </div>
+              </dl>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </>
+  );
+}
+```
+
+### Responsive Charts
+
+```tsx
+function ResponsiveChart({ data }) {
+  return (
+    <div className="w-full">
+      {/* Full chart on desktop */}
+      <div className="hidden lg:block">
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart data={data}>
+            {/* Full chart configuration */}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Simplified chart on tablet */}
+      <div className="hidden md:block lg:hidden">
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={data}>
+            {/* Reduced configuration */}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Summary stats on mobile */}
+      <div className="md:hidden">
+        <div className="grid grid-cols-2 gap-4">
+          <StatCard title="Total" value={data.total} />
+          <StatCard title="Average" value={data.average} />
+          <StatCard title="Peak" value={data.peak} />
+          <StatCard title="Trend" value={data.trend} />
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+## Accessibility
+
+### Table Accessibility
+
+```tsx
+<Table role="table" aria-label="Contributors data">
+  <TableHeader role="rowgroup">
+    <TableRow role="row">
+      <TableHead role="columnheader" scope="col">
+        Name
+      </TableHead>
+      <TableHead role="columnheader" scope="col">
+        Contributions
+      </TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody role="rowgroup">
+    <TableRow role="row">
+      <TableCell role="cell">John Doe</TableCell>
+      <TableCell role="cell">42</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+```
+
+### Chart Accessibility
+
+```tsx
+// Provide text alternatives
+<div>
+  <ResponsiveContainer width="100%" height={300}>
+    <LineChart data={data} aria-label="Activity trend over time">
+      {/* Chart configuration */}
+    </LineChart>
+  </ResponsiveContainer>
+  
+  {/* Screen reader only description */}
+  <div className="sr-only">
+    <h3>Activity Trend Summary</h3>
+    <p>
+      Activity increased by 25% over the last 30 days,
+      with a peak of 150 contributions on January 15th.
+    </p>
+  </div>
+</div>
+```
+
+## Performance Optimization
+
+### Virtualization for Large Lists
+
+```tsx
+import { FixedSizeList } from 'react-window';
+
+function VirtualizedList({ items }) {
+  const Row = ({ index, style }) => (
+    <div style={style} className="flex items-center p-4 border-b">
+      <Avatar src={items[index].avatar} />
+      <span className="ml-3">{items[index].name}</span>
+    </div>
+  );
+
+  return (
+    <FixedSizeList
+      height={600}
+      itemCount={items.length}
+      itemSize={65}
+      width="100%"
+    >
+      {Row}
+    </FixedSizeList>
+  );
+}
+```
+
+### Lazy Loading Data
+
+```tsx
+function LazyDataTable() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const observer = useRef();
+
+  const lastElementRef = useCallback(node => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+    
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        loadMoreData();
+      }
+    });
+    
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore]);
+
+  return (
+    <div>
+      {data.map((item, index) => {
+        if (data.length === index + 1) {
+          return (
+            <div ref={lastElementRef} key={item.id}>
+              {/* Item content */}
+            </div>
+          );
+        } else {
+          return (
+            <div key={item.id}>
+              {/* Item content */}
+            </div>
+          );
+        }
+      })}
+      {loading && <LoadingSpinner />}
+    </div>
+  );
+}
+```
+
+## Best Practices
+
+### Do's ✅
+
+1. **Provide clear data labels and units**
+2. **Use appropriate chart types for data**
+3. **Include loading and empty states**
+4. **Make tables sortable and filterable**
+5. **Optimize for mobile viewing**
+6. **Use color meaningfully and accessibly**
+7. **Provide data export options**
+8. **Cache and paginate large datasets**
+
+### Don'ts ❌
+
+1. **Don't overload displays with too much data**
+2. **Don't use 3D charts unnecessarily**
+3. **Don't rely solely on color to convey meaning**
+4. **Don't auto-refresh without user control**
+5. **Don't hide important data on mobile**
+6. **Don't use pie charts for many categories**
+7. **Don't forget number formatting**
+8. **Don't ignore performance with large datasets**
+
+## Related Documentation
+
+- [Table Component](./Table)
+- [Card Component](./Card)
+- [Chart Components](./Charts)
+- [Loading States](./Loading)
+- [Empty States](./EmptyStates)
+- [Responsive Design](./Responsive)
+- [Performance](./Performance)
