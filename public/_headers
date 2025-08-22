@@ -7,7 +7,7 @@
   X-Frame-Options: SAMEORIGIN
   X-XSS-Protection: 1; mode=block
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), fullscreen=(self), picture-in-picture=()
+  Permissions-Policy: accelerometer=(), camera=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(self), payment=(), usb=(), fullscreen=(self), picture-in-picture=()
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us.i.posthog.com https://us-assets.i.posthog.com https://vercel.live; connect-src 'self' https://contributor.info https://*.netlify.app https://avatars.githubusercontent.com https://egcxzonpmmcirmgqdrla.supabase.co https://us.i.posthog.com https://api.github.com https://raw.githubusercontent.com https://contributor-info-webhooks.fly.dev https://contributor-info-social-cards.fly.dev https://vercel.live https://ingesteer.services-prod.nsvcs.net wss://egcxzonpmmcirmgqdrla.supabase.co; img-src 'self' data: blob: https://contributor.info https://avatars.githubusercontent.com https://github.com https://raw.githubusercontent.com https://images.unsplash.com https://egcxzonpmmcirmgqdrla.supabase.co https://contributor-info-social-cards.fly.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; frame-src 'self' https://vercel.live https://app.netlify.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; worker-src 'self' blob:;
 
 # HTML pages - Network first with must-revalidate
