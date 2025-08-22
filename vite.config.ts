@@ -142,48 +142,77 @@ export default defineConfig(() => ({
         },
         // Allow modules to be properly hoisted for correct initialization order
         hoistTransitiveImports: true,
-        // Hybrid approach - use function-based chunking for all packages
-        // to ensure proper grouping of React ecosystem libraries
+        // Optimized chunk splitting to reduce vendor-react bundle size
         manualChunks: (id) => {
-          // For node_modules, handle package-specific grouping below or return undefined for default chunking
+          // For node_modules, handle package-specific grouping
           if (id.includes('node_modules')) {
-            // Check for specific packages that need to be bundled together
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'vendor-react';
+            // Core React - keep together but separate charts/UI
+            if (id.includes('react') && !id.includes('react-router') && !id.includes('react-dom')) {
+              return 'vendor-react-core';
             }
+            if (id.includes('react-dom')) {
+              return 'vendor-react-dom';
+            }
+            if (id.includes('react-router')) {
+              return 'vendor-router';
+            }
+            
+            // Radix UI components - separate chunk since they're heavy
             if (id.includes('@radix-ui')) {
-              return 'vendor-react'; // Bundle with React to avoid forwardRef issues
+              return 'vendor-radix';
             }
-            if (id.includes('@nivo')) {
-              return 'vendor-react'; // Bundle with React to avoid memo issues
+            
+            // Chart libraries - separate from React core
+            if (id.includes('@nivo') || id.includes('recharts') || id.includes('uplot')) {
+              return 'vendor-charts';
             }
-            if (id.includes('recharts')) {
-              return 'vendor-react'; // Recharts also needs React context
-            }
+            
+            // D3 modules - separate chunk as they're large
             if (id.includes('d3-')) {
-              return 'vendor-react'; // D3 modules used by Recharts need to be together
+              return 'vendor-d3';
             }
-            if (id.includes('uplot')) {
-              return 'vendor-react'; // Keep all visualization libraries together
-            }
+            
+            // Other heavy dependencies get their own chunks
             if (id.includes('@supabase')) {
               return 'vendor-supabase';
             }
+            if (id.includes('markdown') || id.includes('remark') || id.includes('rehype') || id.includes('marked')) {
+              return 'vendor-markdown';
+            }
+            
+            // Utility libraries - lightweight
             if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
               return 'vendor-utils';
             }
             if (id.includes('date-fns')) {
               return 'vendor-utils';
             }
-            if (id.includes('markdown') || id.includes('remark') || id.includes('rehype')) {
-              return 'vendor-markdown';
+            if (id.includes('zod') || id.includes('zustand')) {
+              return 'vendor-utils';
             }
-            if (id.includes('@sentry')) {
+            
+            // Form libraries
+            if (id.includes('react-hook-form') || id.includes('@hookform')) {
+              return 'vendor-forms';
+            }
+            
+            // Monitoring/analytics - least critical
+            if (id.includes('@sentry') || id.includes('posthog')) {
               return 'vendor-monitoring';
             }
+            
+            // AI/ML libraries - exclude from main bundles
             if (id.includes('@xenova/transformers') || id.includes('onnxruntime')) {
-              return 'embeddings-excluded';
+              return 'vendor-ai';
             }
+            
+            // Octokit and GitHub-related
+            if (id.includes('@octokit')) {
+              return 'vendor-github';
+            }
+            
+            // Everything else goes to vendor-misc to avoid huge chunks
+            return 'vendor-misc';
           }
           
           // Don't split app code - it all uses React components
@@ -198,31 +227,38 @@ export default defineConfig(() => ({
     // Optimize minification and target for better compression
     minify: 'esbuild',
     target: 'es2020', // Modern target with good compatibility
-    // Optimize chunk size warnings  
-    chunkSizeWarningLimit: 1300, // Increased to accommodate 1.2MB vendor-react bundle
+    // Optimize chunk size warnings - reduced since we're splitting better
+    chunkSizeWarningLimit: 800, // More reasonable limit with better chunk splitting
     // Enable compression reporting
     reportCompressedSize: true,
-    // Module preload optimization - load minimal React first
+    // Module preload optimization - load core dependencies first
     modulePreload: {
       polyfill: true, // Enable polyfill for proper module loading
       resolveDependencies: (_, deps) => {
         // Preload only the absolute minimum for initial render
         // Note: These names must match the keys in manualChunks above
         const sorted = deps.sort((a, b) => {
-          // Prioritize vendor-react chunk (contains React, Radix UI, and Nivo)
-          if (a.includes('vendor-react')) return -1;
-          if (b.includes('vendor-react')) return 1;
-          // Then load vendor-utils for classnames
+          // Prioritize core React chunks first
+          if (a.includes('vendor-react-core')) return -1;
+          if (b.includes('vendor-react-core')) return 1;
+          if (a.includes('vendor-react-dom')) return -1;
+          if (b.includes('vendor-react-dom')) return 1;
+          // Then router for navigation
+          if (a.includes('vendor-router')) return -1;
+          if (b.includes('vendor-router')) return 1;
+          // Then utilities for styling
           if (a.includes('vendor-utils')) return -1;
           if (b.includes('vendor-utils')) return 1;
-          // Then load main app chunk
+          // Then main app chunk
           if (a.includes('index-')) return -1;
           if (b.includes('index-')) return 1;
           return 0;
         });
-        // Preload critical chunks in order
+        // Preload critical chunks in order - delay heavy UI components
         return sorted.filter(dep => 
-          dep.includes('vendor-react') || 
+          dep.includes('vendor-react-core') || 
+          dep.includes('vendor-react-dom') ||
+          dep.includes('vendor-router') ||
           dep.includes('vendor-utils') ||
           dep.includes('index-')
         );

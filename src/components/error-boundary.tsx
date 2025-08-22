@@ -1,5 +1,7 @@
 import { Component, ReactNode } from 'react'
 import { AlertCircle, RefreshCw } from '@/components/ui/icon';
+import { createClient } from '@supabase/supabase-js';
+import { env } from '@/lib/env';
 
 interface Props {
   children: ReactNode;
@@ -55,8 +57,6 @@ export class ErrorBoundary extends Component<Props, State> {
       sessionStorage.clear();
       
       // Clear Supabase auth cache
-      const { createClient } = await import('@supabase/supabase-js');
-      const { env } = await import('@/lib/env');
       const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
       await supabase.auth.signOut();
       
