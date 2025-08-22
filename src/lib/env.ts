@@ -51,18 +51,42 @@ function getEnvVar(viteKey: string, serverKey?: string): string {
       return metaValue;
     }
     
-    // 2. Try window.env (for runtime injection)
+    // 2. Also check for non-prefixed version in import.meta.env (Netlify production)
+    if (serverKey) {
+      const metaServerValue = metaEnv[serverKey];
+      if (typeof metaServerValue === 'string' && metaServerValue) {
+        return metaServerValue;
+      }
+    }
+    
+    // 3. Try window.env (for runtime injection)
     const windowEnv = (window as any).env || {};
     const windowValue = windowEnv[viteKey];
     if (typeof windowValue === 'string' && windowValue) {
       return windowValue;
     }
     
-    // 3. Try process.env as fallback (some bundlers expose this)
+    // 4. Also check for non-prefixed version in window.env
+    if (serverKey) {
+      const windowServerValue = windowEnv[serverKey];
+      if (typeof windowServerValue === 'string' && windowServerValue) {
+        return windowServerValue;
+      }
+    }
+    
+    // 5. Try process.env as fallback (some bundlers expose this)
     if (hasProcess) {
       const processValue = process.env[viteKey];
       if (typeof processValue === 'string' && processValue) {
         return processValue;
+      }
+      
+      // Also check non-prefixed version
+      if (serverKey) {
+        const processServerValue = process.env[serverKey];
+        if (typeof processServerValue === 'string' && processServerValue) {
+          return processServerValue;
+        }
       }
     }
     
@@ -262,8 +286,8 @@ export function validateEnvironment(context: 'client' | 'server') {
   const missing: string[] = [];
   
   if (context === 'client') {
-    if (!clientEnv.SUPABASE_URL) missing.push('VITE_SUPABASE_URL');
-    if (!clientEnv.SUPABASE_ANON_KEY) missing.push('VITE_SUPABASE_ANON_KEY');
+    if (!clientEnv.SUPABASE_URL) missing.push('VITE_SUPABASE_URL or SUPABASE_URL');
+    if (!clientEnv.SUPABASE_ANON_KEY) missing.push('VITE_SUPABASE_ANON_KEY or SUPABASE_ANON_KEY');
   }
   
   if (context === 'server') {
