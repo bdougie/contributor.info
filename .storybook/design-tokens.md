@@ -178,7 +178,7 @@ const cardStyles = {
   borderRadius: borderRadius.lg,
   boxShadow: shadows.sm,
   
-  '@media (min-width: ${breakpoints.md})': {
+  [`@media (min-width: ${breakpoints.md})`]: {
     padding: spacing[6],
   },
 };
