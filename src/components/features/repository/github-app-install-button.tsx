@@ -38,7 +38,14 @@ export function GitHubAppInstallButton({
       
       // Try API endpoint first (works in production and with netlify dev)
       try {
-        const response = await fetch(`/api/github-app/installation-status?owner=${owner}&repo=${repo}`);
+        // In development, use the direct Netlify function path
+        // In production, use the standard API path which is redirected via netlify.toml
+        const isDev = window.location.hostname === 'localhost';
+        const endpoint = isDev 
+          ? `http://localhost:8888/.netlify/functions/github-app-installation-status?owner=${owner}&repo=${repo}`
+          : `/api/github-app/installation-status?owner=${owner}&repo=${repo}`;
+        
+        const response = await fetch(endpoint);
         if (response.ok) {
           const data = await response.json();
           setIsInstalled(data.installed);
