@@ -63,11 +63,23 @@ export default defineConfig(() => ({
       '/api': {
         target: 'http://localhost:8888',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '/.netlify/functions')
+        secure: false,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, res) => {
+            console.log('proxy error', err);
+            if (res && typeof res.writeHead === 'function') {
+              res.writeHead(500, {
+                'Content-Type': 'text/plain',
+              });
+              res.end('Something went wrong with the proxy.');
+            }
+          });
+        }
       },
       '/.netlify/functions': {
         target: 'http://localhost:8888',
-        changeOrigin: true
+        changeOrigin: true,
+        secure: false
       }
     }
   },
