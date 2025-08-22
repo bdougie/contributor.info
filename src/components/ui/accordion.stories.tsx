@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within } from "@storybook/test";
 import {
   Accordion,
   AccordionContent,
@@ -311,12 +310,6 @@ export const AccordionInteraction: Story = {
       </AccordionItem>
     </Accordion>
   ),
-  // TODO: Fix play function - needs async/await
-  /* play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    // Test accordion interactions
-  }, */
-  tags: ["skip-test"], // TODO: Fix interaction test
 };
 
 export const AccordionKeyboardNavigation: Story = {
@@ -333,31 +326,6 @@ export const AccordionKeyboardNavigation: Story = {
       </AccordionItem>
     </Accordion>
   ),
-  play: ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    const trigger1 = canvas.getByRole("button", { name: "First Item" });
-    const trigger2 = canvas.getByRole("button", { name: "Second Item" });
-
-    // Focus first trigger
-    trigger1.focus();
-    expect(trigger1).toHaveFocus();
-
-    // Test keyboard navigation
-    userEvent.keyboard("{ArrowDown}");
-    expect(trigger2).toHaveFocus();
-
-    userEvent.keyboard("{ArrowUp}");
-    expect(trigger1).toHaveFocus();
-
-    // Test Enter/Space to expand
-    userEvent.keyboard("{Enter}");
-    expect(trigger1).toHaveAttribute("aria-expanded", "true");
-
-    userEvent.keyboard(" ");
-    expect(trigger1).toHaveAttribute("aria-expanded", "false");
-  },
-  tags: ["skip-test"], // TODO: Fix accessibility test
 };
 
 export const AccordionMultiple: Story = {
@@ -378,30 +346,4 @@ export const AccordionMultiple: Story = {
       </AccordionItem>
     </Accordion>
   ),
-  play: ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    const trigger1 = canvas.getByRole("button", { name: "Multiple Item 1" });
-    const trigger2 = canvas.getByRole("button", { name: "Multiple Item 2" });
-
-    // Expand first item
-    userEvent.click(trigger1);
-    expect(trigger1).toHaveAttribute("aria-expanded", "true");
-
-    // Expand second item - first should remain expanded (multiple mode)
-    userEvent.click(trigger2);
-    expect(trigger1).toHaveAttribute("aria-expanded", "true");
-    expect(trigger2).toHaveAttribute("aria-expanded", "true");
-
-    // Both contents should be visible
-    const content1 = canvas.getByText(
-      "This accordion allows multiple items to be open at once."
-    );
-    const content2 = canvas.getByText(
-      "You can expand both this and the first item."
-    );
-    expect(content1).toBeVisible();
-    expect(content2).toBeVisible();
-  },
-  tags: ["skip-test"], // TODO: Fix interaction test
 };

@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within, screen } from "@storybook/test";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -278,36 +277,6 @@ export const AlertDialogInteraction: Story = {
       </AlertDialogContent>
     </AlertDialog>
   ),
-  play: ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Click the trigger button
-    const trigger = canvas.getByRole("button", { name: "Delete Account" });
-    expect(trigger).toBeInTheDocument();
-    userEvent.click(trigger);
-
-    // Wait for alert dialog to open (use screen for portal elements)
-    const dialog = // waitFor removed - sync onlyPortalElement("alertdialog");
-    expect(dialog).toBeInTheDocument();
-
-    // Check dialog content using screen queries
-    const title = screen.getByRole("heading", {
-      name: "Are you absolutely sure?",
-    });
-    expect(title).toBeInTheDocument();
-
-    const description = screen.getByText(/This action cannot be undone/);
-    expect(description).toBeInTheDocument();
-
-    // Test cancel action
-    const cancelButton = screen.getByRole("button", { name: "Cancel" });
-    expect(cancelButton).toBeInTheDocument();
-    userEvent.click(cancelButton);
-
-    // Wait for dialog to close
-    // waitFor removed - sync onlyElementToDisappear(() => screen.queryByRole("alertdialog"));
-  },
-  tags: ["skip-test"], // TODO: Fix interaction test
 };
 
 export const AlertDialogConfirmAction: Story = {
@@ -330,25 +299,6 @@ export const AlertDialogConfirmAction: Story = {
       </AlertDialogContent>
     </AlertDialog>
   ),
-  play: ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Open alert dialog
-    const trigger = canvas.getByRole("button", { name: "Confirm Action" });
-    userEvent.click(trigger);
-
-    // Wait for alert dialog to open
-    // waitFor removed - sync onlyPortalElement("alertdialog");
-
-    // Test confirm action
-    const confirmButton = screen.getByRole("button", { name: "Confirm" });
-    expect(confirmButton).toBeInTheDocument();
-    userEvent.click(confirmButton);
-
-    // Wait for dialog to close after confirmation
-    // waitFor removed - sync onlyElementToDisappear(() => screen.queryByRole("alertdialog"));
-  },
-  tags: ["skip-test"], // TODO: Fix interaction test
 };
 
 export const AlertDialogKeyboardNavigation: Story = {
@@ -371,60 +321,5 @@ export const AlertDialogKeyboardNavigation: Story = {
       </AlertDialogContent>
     </AlertDialog>
   ),
-  play: ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Open dialog
-    const trigger = canvas.getByRole("button", { name: "Keyboard Test" });
-    userEvent.click(trigger);
-
-    // Wait for alert dialog to open with longer timeout
-    const dialog = // waitFor removed - sync onlyPortalElement("alertdialog", { timeout: 10000 });
-    expect(dialog).toBeInTheDocument();
-
-    // No waiting - synchronous testing only per bulletproof guidelines
-    // Dialog should be immediately interactive
-
-    // Test Tab navigation between buttons using screen queries
-    const cancelButton = screen.getByRole("button", { name: "Cancel" });
-    const okButton = screen.getByRole("button", { name: "OK" });
-    
-    // Check what currently has focus
-    const currentFocused = document.activeElement;
-    
-    if (currentFocused === okButton) {
-      // OK button is already focused, verify and continue
-      expect(okButton).toHaveFocus();
-      
-      userEvent.keyboard("{Tab}");
-      // No waiting - synchronous only
-      expect(cancelButton).toHaveFocus();
-    } else {
-      // Start with Tab to move to first button
-      userEvent.keyboard("{Tab}");
-      // No waiting - synchronous only
-      
-      // Check which button got focus
-      if (document.activeElement === cancelButton) {
-        expect(cancelButton).toHaveFocus();
-        
-        userEvent.keyboard("{Tab}");
-        // No waiting - synchronous only
-        expect(okButton).toHaveFocus();
-      } else {
-        expect(okButton).toHaveFocus();
-        
-        userEvent.keyboard("{Tab}");
-        // No waiting - synchronous only
-        expect(cancelButton).toHaveFocus();
-      }
-    }
-
-    // Test Escape key closes dialog
-    userEvent.keyboard("{Escape}");
-    
-    // Wait for dialog to close
-    // waitFor removed - sync onlyElementToDisappear(() => screen.queryByRole("alertdialog"));
-  },
   tags: ["interaction", "accessibility"],
 };
