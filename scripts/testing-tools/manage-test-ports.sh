@@ -15,18 +15,18 @@ is_port_in_use() {
 # Function to kill processes on port
 kill_port_processes() {
     local port=$1
-    echo "Checking for processes on port $port..."
+    echo "Checking for processes on port $port..." >&2
     
     # Try graceful kill first
     if lsof -ti:$port > /dev/null 2>&1; then
-        echo "Found processes on port $port, attempting graceful shutdown..."
+        echo "Found processes on port $port, attempting graceful shutdown..." >&2
         lsof -ti:$port | xargs kill 2>/dev/null || true
         sleep 2
     fi
     
     # Force kill if still running
     if lsof -ti:$port > /dev/null 2>&1; then
-        echo "Processes still running, force killing..."
+        echo "Processes still running, force killing..." >&2
         lsof -ti:$port | xargs kill -9 2>/dev/null || true
         sleep 1
     fi
@@ -53,7 +53,7 @@ find_available_port() {
 }
 
 # Main execution
-echo "=== Storybook Port Management ==="
+echo "=== Storybook Port Management ===" >&2
 
 # Clean up any existing processes
 kill_port_processes $PORT
@@ -62,10 +62,10 @@ kill_port_processes $PORT
 AVAILABLE_PORT=$(find_available_port $PORT)
 
 if [ $? -eq 0 ]; then
-    echo "✅ Port $AVAILABLE_PORT is available for use"
+    echo "✅ Port $AVAILABLE_PORT is available for use" >&2
     echo $AVAILABLE_PORT
     exit 0
 else
-    echo "❌ Failed to find available port"
+    echo "❌ Failed to find available port" >&2
     exit 1
 fi
