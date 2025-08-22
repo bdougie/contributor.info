@@ -184,12 +184,19 @@ const PageSkeleton = () => {
 };
 
 function App() {
-  // Initialize Web Vitals monitoring
+  // Initialize Web Vitals monitoring with PostHog
   useEffect(() => {
     const vitalsMonitor = initializeWebVitalsMonitoring({
       debug: process.env.NODE_ENV === 'development',
       // Optional: Set up reporting endpoint for production
       // reportingEndpoint: '/api/vitals'
+    });
+    
+    // Enable PostHog for Web Vitals tracking (lazy-loaded to minimize bundle impact)
+    import('./lib/web-vitals-analytics').then(({ getWebVitalsAnalytics }) => {
+      const analytics = getWebVitalsAnalytics();
+      // Enable both Supabase and PostHog providers
+      analytics.setProviders(['supabase', 'posthog']);
     });
 
     // Log metrics to console in development

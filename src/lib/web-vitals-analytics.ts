@@ -217,10 +217,24 @@ class WebVitalsAnalytics {
   }
 
   private async sendToPostHog(events: WebVitalsEvent[]): Promise<void> {
-    // PostHog integration would go here
-    // For now, just log
-    if (import.meta.env?.DEV) {
-      console.log('PostHog Web Vitals:', events);
+    // Lazy load PostHog to minimize bundle impact
+    try {
+      const { batchTrackWebVitals } = await import('./posthog-lazy');
+      
+      // Convert events to PostHog format and send in batches
+      for (const event of events) {
+        await batchTrackWebVitals([{
+          name: event.metric_name,
+          value: event.metric_value,
+          rating: event.metric_rating,
+          delta: event.metric_delta
+        }]);
+      }
+    } catch (error) {
+      // Silently fail in production, log in development
+      if (import.meta.env?.DEV) {
+        console.error('Failed to send Web Vitals to PostHog:', error);
+      }
     }
   }
 
