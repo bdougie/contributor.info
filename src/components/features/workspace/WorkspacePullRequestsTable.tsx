@@ -154,41 +154,16 @@ export function WorkspacePullRequestsTable({
         cell: ({ row }) => {
           const pr = row.original;
           return (
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => onPullRequestClick?.(pr)}
-                  className="font-medium hover:text-primary transition-colors text-left line-clamp-1"
-                >
-                  {pr.title}
-                </button>
-                <span className="text-muted-foreground text-sm">
-                  #{pr.number}
-                </span>
-              </div>
-              {pr.labels.length > 0 && (
-                <div className="flex gap-1 flex-wrap">
-                  {pr.labels.slice(0, 3).map((label) => (
-                    <Badge
-                      key={label.name}
-                      variant="secondary"
-                      className="text-xs"
-                      style={{
-                        backgroundColor: `#${label.color}20`,
-                        color: `#${label.color}`,
-                        borderColor: `#${label.color}40`,
-                      }}
-                    >
-                      {label.name}
-                    </Badge>
-                  ))}
-                  {pr.labels.length > 3 && (
-                    <Badge variant="secondary" className="text-xs">
-                      +{pr.labels.length - 3}
-                    </Badge>
-                  )}
-                </div>
-              )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onPullRequestClick?.(pr)}
+                className="font-medium hover:text-primary transition-colors text-left line-clamp-1"
+              >
+                {pr.title}
+              </button>
+              <span className="text-muted-foreground text-sm">
+                #{pr.number}
+              </span>
             </div>
           );
         },
