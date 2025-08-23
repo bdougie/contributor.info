@@ -1,0 +1,51 @@
+{
+  "timestamp": "2025-08-23T05:57:38.529Z",
+  "totalSizeMB": "4.13",
+  "fileCount": 80,
+  "largestFiles": [
+    {
+      "name": "vendor-react-BKJtjoaN.js",
+      "sizeKB": "1202.4"
+    },
+    {
+      "name": "index-B-d3gHEI.js",
+      "sizeKB": "851.0"
+    },
+    {
+      "name": "repo-view-Csi1NFEk.js",
+      "sizeKB": "177.2"
+    },
+    {
+      "name": "module-Bt3AS4nA.js",
+      "sizeKB": "166.7"
+    },
+    {
+      "name": "index-BlatLYTy.js",
+      "sizeKB": "165.9"
+    }
+  ],
+  "violations": [
+    "Initial bundle (index-B-d3gHEI.js) is 851.0KB (budget: 500KB)",
+    "Total bundle size is 4.13MB (budget: 2MB)",
+    "Vendor bundle vendor-react-BKJtjoaN.js is 1.17MB (should be < 0.5MB)",
+    "recharts found in main bundle (vendor-react-BKJtjoaN.js) - should be lazy loaded",
+    "markdown found in main bundle (vendor-react-BKJtjoaN.js) - should be lazy loaded",
+    "uplot found in main bundle (vendor-react-BKJtjoaN.js) - should be lazy loaded",
+    "inngest found in main bundle (index-B-d3gHEI.js) - should be lazy loaded",
+    "html2canvas found in main bundle (index-B-d3gHEI.js) - should be lazy loaded",
+    "markdown found in main bundle (index-B-d3gHEI.js) - should be lazy loaded",
+    "markdown found in main bundle (index-BlatLYTy.js) - should be lazy loaded",
+    "recharts found in main bundle (index-DqJMZ5Yw.css) - should be lazy loaded",
+    "markdown found in main bundle (vendor-supabase-DN5oGPm7.js) - should be lazy loaded",
+    "markdown found in main bundle (index-B6oXlgv9.js) - should be lazy loaded",
+    "uplot found in main bundle (vendor-react-BqTUOKJh.css) - should be lazy loaded"
+  ],
+  "budgets": {
+    "maxInitialKB": 500,
+    "maxChunkKB": 250,
+    "maxTotalMB": 2,
+    "maxCssKB": 200,
+    "maxVendorMB": 0.5
+  },
+  "passed": false
+}
