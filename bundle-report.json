@@ -1,15 +1,15 @@
 {
-  "timestamp": "2025-08-23T06:29:13.467Z",
-  "totalSizeMB": "4.12",
-  "fileCount": 67,
+  "timestamp": "2025-08-23T06:38:49.995Z",
+  "totalSizeMB": "4.22",
+  "fileCount": 64,
   "largestFiles": [
     {
-      "name": "vendor-react-CTtyR3oO.js",
-      "sizeKB": "1202.8"
+      "name": "vendor-react-DeEsx5jy.js",
+      "sizeKB": "1299.2"
     },
     {
-      "name": "index-BbA3DIKL.js",
-      "sizeKB": "1007.9"
+      "name": "index-B3BilVl6.js",
+      "sizeKB": "1038.2"
     },
     {
       "name": "html2canvas.esm-BfxBtG_O.js",
@@ -20,25 +20,25 @@
       "sizeKB": "166.7"
     },
     {
-      "name": "index-B2qUD8Rk.js",
+      "name": "index-D61PYf_T.js",
       "sizeKB": "165.9"
     }
   ],
   "violations": [
-    "Initial bundle (index-BbA3DIKL.js) is 1007.9KB (budget: 500KB)",
-    "Total bundle size is 4.12MB (budget: 2MB)",
-    "Vendor bundle vendor-react-CTtyR3oO.js is 1.17MB (should be < 0.5MB)",
-    "recharts found in main bundle (vendor-react-CTtyR3oO.js) - should be lazy loaded",
-    "markdown found in main bundle (vendor-react-CTtyR3oO.js) - should be lazy loaded",
-    "uplot found in main bundle (vendor-react-CTtyR3oO.js) - should be lazy loaded",
-    "recharts found in main bundle (index-BbA3DIKL.js) - should be lazy loaded",
-    "inngest found in main bundle (index-BbA3DIKL.js) - should be lazy loaded",
-    "html2canvas found in main bundle (index-BbA3DIKL.js) - should be lazy loaded",
-    "markdown found in main bundle (index-BbA3DIKL.js) - should be lazy loaded",
-    "markdown found in main bundle (index-B2qUD8Rk.js) - should be lazy loaded",
+    "Initial bundle (index-B3BilVl6.js) is 1038.2KB (budget: 500KB)",
+    "Total bundle size is 4.22MB (budget: 2MB)",
+    "Vendor bundle vendor-react-DeEsx5jy.js is 1.27MB (should be < 0.5MB)",
+    "recharts found in main bundle (vendor-react-DeEsx5jy.js) - should be lazy loaded",
+    "markdown found in main bundle (vendor-react-DeEsx5jy.js) - should be lazy loaded",
+    "uplot found in main bundle (vendor-react-DeEsx5jy.js) - should be lazy loaded",
+    "recharts found in main bundle (index-B3BilVl6.js) - should be lazy loaded",
+    "inngest found in main bundle (index-B3BilVl6.js) - should be lazy loaded",
+    "html2canvas found in main bundle (index-B3BilVl6.js) - should be lazy loaded",
+    "markdown found in main bundle (index-B3BilVl6.js) - should be lazy loaded",
+    "markdown found in main bundle (index-D61PYf_T.js) - should be lazy loaded",
     "recharts found in main bundle (index-DqJMZ5Yw.css) - should be lazy loaded",
     "markdown found in main bundle (vendor-supabase-DN5oGPm7.js) - should be lazy loaded",
-    "markdown found in main bundle (index-CQrUYZjm.js) - should be lazy loaded",
+    "markdown found in main bundle (index-DQMByWBN.js) - should be lazy loaded",
     "uplot found in main bundle (vendor-react-BqTUOKJh.css) - should be lazy loaded"
   ],
   "budgets": {

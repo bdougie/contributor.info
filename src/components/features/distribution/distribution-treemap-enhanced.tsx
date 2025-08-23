@@ -1,6 +1,12 @@
 import { useState, useCallback, useEffect } from "react"
 import { ChevronLeft, Users } from '@/components/ui/icon';
-import { ResponsiveContainer, Treemap, Tooltip } from "recharts";
+import { lazy, Suspense } from "react";
+import { Loader2 } from '@/components/ui/icon';
+
+// Lazy load recharts components
+const ResponsiveContainer = lazy(() => import("recharts").then(m => ({ default: m.ResponsiveContainer })));
+const Treemap = lazy(() => import("recharts").then(m => ({ default: m.Treemap })));
+const Tooltip = lazy(() => import("recharts").then(m => ({ default: m.Tooltip })));
 import { Button } from "@/components/ui/button";
 import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
 import { ProgressiveChart } from "@/components/ui/charts/ProgressiveChart";
@@ -636,21 +642,27 @@ export function DistributionTreemapEnhanced({
               />
             }
             highFidelity={
-              <ResponsiveContainer width="100%" height={420} minHeight={420}>
-                <Treemap
-                  data={getTreemapData()}
-                  dataKey="value"
-                  aspectRatio={4 / 3}
-                  content={CustomTreemapContent as any}
-                  animationBegin={0}
-                  animationDuration={300}
-                  isAnimationActive={true}
-                >
-              {(currentView === "quadrant" || currentView === "contributor") && (
-                <Tooltip content={<CustomTooltip />} />
-              )}
-            </Treemap>
-              </ResponsiveContainer>
+              <Suspense fallback={
+                <div className="flex h-[420px] w-full items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              }>
+                <ResponsiveContainer width="100%" height={420} minHeight={420}>
+                  <Treemap
+                    data={getTreemapData()}
+                    dataKey="value"
+                    aspectRatio={4 / 3}
+                    content={CustomTreemapContent as any}
+                    animationBegin={0}
+                    animationDuration={300}
+                    isAnimationActive={true}
+                  >
+                    {(currentView === "quadrant" || currentView === "contributor") && (
+                      <Tooltip content={<CustomTooltip />} />
+                    )}
+                  </Treemap>
+                </ResponsiveContainer>
+              </Suspense>
             }
             priority={false}
             highFiDelay={200}

@@ -4,16 +4,17 @@ import { Button } from '@/components/ui/button';
 import { BarChart3, Lock, Loader2, AlertCircle } from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
-import {
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell
-} from 'recharts';
+import { lazy, Suspense } from 'react';
+
+// Lazy load recharts components
+const ScatterChart = lazy(() => import('recharts').then(m => ({ default: m.ScatterChart })));
+const Scatter = lazy(() => import('recharts').then(m => ({ default: m.Scatter })));
+const XAxis = lazy(() => import('recharts').then(m => ({ default: m.XAxis })));
+const YAxis = lazy(() => import('recharts').then(m => ({ default: m.YAxis })));
+const CartesianGrid = lazy(() => import('recharts').then(m => ({ default: m.CartesianGrid })));
+const Tooltip = lazy(() => import('recharts').then(m => ({ default: m.Tooltip })));
+const ResponsiveContainer = lazy(() => import('recharts').then(m => ({ default: m.ResponsiveContainer })));
+const Cell = lazy(() => import('recharts').then(m => ({ default: m.Cell })));
 
 interface RepositoryTrackingCardProps {
   owner: string;
@@ -216,31 +217,36 @@ export function RepositoryTrackingCard({
           <div className="absolute inset-0 backdrop-blur-[1px] bg-background/10 z-10 rounded-lg" />
           
           {/* Mock chart */}
-          <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart
-              margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis 
-                dataKey="x" 
-                domain={[0, 30]}
-                ticks={[0, 7, 14, 21, 30]}
-                tickFormatter={(value) => `${value}d`}
-                className="text-xs"
-                stroke="currentColor"
-                opacity={0.5}
-              />
-              <YAxis 
-                dataKey="y"
-                domain={[0, 250]}
-                className="text-xs"
-                stroke="currentColor"
-                opacity={0.5}
-                label={{ value: 'Lines', angle: -90, position: 'insideLeft', className: 'text-xs' }}
-              />
-              <Tooltip 
-                content={() => null} // Hide tooltip for mock data
-              />
+          <Suspense fallback={
+            <div className="flex h-full w-full items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          }>
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart
+                margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="x" 
+                  domain={[0, 30]}
+                  ticks={[0, 7, 14, 21, 30]}
+                  tickFormatter={(value) => `${value}d`}
+                  className="text-xs"
+                  stroke="currentColor"
+                  opacity={0.5}
+                />
+                <YAxis 
+                  dataKey="y"
+                  domain={[0, 250]}
+                  className="text-xs"
+                  stroke="currentColor"
+                  opacity={0.5}
+                  label={{ value: 'Lines', angle: -90, position: 'insideLeft', className: 'text-xs' }}
+                />
+                <Tooltip 
+                  content={() => null} // Hide tooltip for mock data
+                />
               <Scatter 
                 data={mockData} 
                 fill="#3b82f6"
@@ -255,6 +261,7 @@ export function RepositoryTrackingCard({
               </Scatter>
             </ScatterChart>
           </ResponsiveContainer>
+          </Suspense>
         </div>
 
         {error && (
