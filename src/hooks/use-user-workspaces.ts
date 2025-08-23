@@ -136,6 +136,17 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
               .returns<UserMetadata>()
           ]);
 
+          // Check for errors in individual queries
+          if (repositoriesResult.error) {
+            console.warn(`Failed to fetch repositories for workspace ${workspace.id}:`, repositoriesResult.error.message);
+          }
+          if (membersResult.error) {
+            console.warn(`Failed to fetch members for workspace ${workspace.id}:`, membersResult.error.message);
+          }
+          if (ownerResult.error) {
+            console.warn(`Failed to fetch owner info for workspace ${workspace.id}:`, ownerResult.error.message);
+          }
+
           const repositories = repositoriesResult.data?.map(item => ({
             id: item.repositories.id,
             full_name: item.repositories.full_name,
