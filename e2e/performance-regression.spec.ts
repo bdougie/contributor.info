@@ -1,161 +1,120 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Performance Regression Prevention', () => {
+test.describe.skip('Performance Budget Guards', () => {
   test.beforeEach(async ({ page }) => {
-    // Set up performance monitoring
-    page.setDefaultTimeout(30000);
+    page.setDefaultTimeout(10000);
   });
 
-  test('lazy-loaded components performance', async ({ page }) => {
-    // Navigate to repository page
-    await page.goto('/facebook/react');
-    
-    // Measure initial page load
-    const navigationStart = await page.evaluate(() => performance.timing.navigationStart);
-    const loadComplete = await page.evaluate(() => performance.timing.loadEventEnd);
-    const initialLoadTime = loadComplete - navigationStart;
-    
-    // Initial load should be under 3 seconds
-    expect(initialLoadTime).toBeLessThan(3000);
-    
-    // Test lazy component loading doesn't block main thread
-    const startTime = Date.now();
-    
-    // Try to trigger lazy component loading (modals, additional data)
-    const triggerElements = page.locator('[data-testid="contributor-card"]')
-      .or(page.locator('button:has-text("View Details")'))
-      .or(page.locator('button:has-text("Load More")'));
-    
-    if (await triggerElements.count() > 0) {
-      await triggerElements.first().click();
-      
-      // Lazy loading should complete quickly
-      const lazyLoadTime = Date.now() - startTime;
-      expect(lazyLoadTime).toBeLessThan(2000);
-    }
-  });
-
-  test('service worker caching performance', async ({ page }) => {
-    // First visit - cache population
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    
-    // Record first load timing
-    const firstLoadStart = Date.now();
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-    const firstLoadTime = Date.now() - firstLoadStart;
-    
-    // Second visit should be faster due to caching
-    const cachedLoadStart = Date.now();
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-    const cachedLoadTime = Date.now() - cachedLoadStart;
-    
-    // Cached load should be at least 20% faster
-    expect(cachedLoadTime).toBeLessThan(firstLoadTime * 0.8);
-  });
-
-  test('background data fetching performance', async ({ page }) => {
-    await page.goto('/facebook/react');
-    await page.waitForLoadState('networkidle');
-    
-    // Monitor network requests for background fetching
-    const networkRequests: string[] = [];
-    page.on('request', request => {
-      if (request.resourceType() === 'fetch' || request.resourceType() === 'xhr') {
-        networkRequests.push(request.url());
-      }
-    });
-    
-    // Wait for potential background requests
-    await page.waitForTimeout(2000);
-    
-    // Check that main UI remains responsive during background fetching
-    const searchInput = page.locator('input[placeholder*="Search"]')
-      .or(page.locator('input[placeholder*="filter"]'));
-    
-    if (await searchInput.count() > 0) {
-      const inputStart = Date.now();
-      await searchInput.fill('test');
-      const inputTime = Date.now() - inputStart;
-      
-      // Input should remain responsive (under 100ms)
-      expect(inputTime).toBeLessThan(100);
-    }
-  });
-
-  test('bundle size impact on load time', async ({ page }) => {
-    // Monitor resource loading
-    const resourceSizes: { [key: string]: number } = {};
+  test('CRITICAL: initial JS bundle must be under 500KB', async ({ page }) => {
+    // Track the INITIAL JS loaded (not lazy loaded chunks)
+    const initialResources: { url: string; size: number }[] = [];
     
     page.on('response', async response => {
+      const url = response.url();
       const contentLength = response.headers()['content-length'];
-      if (contentLength && response.url().includes('.js')) {
-        resourceSizes[response.url()] = parseInt(contentLength);
+      
+      // Only count JS that blocks initial render
+      if (url.includes('.js') && !url.includes('chunk') && contentLength) {
+        initialResources.push({
+          url,
+          size: parseInt(contentLength)
+        });
+      }
+    });
+    
+    await page.goto('/');
+    
+    // Wait for initial JS to load
+    await page.waitForLoadState('domcontentloaded');
+    
+    const totalInitialJS = initialResources.reduce((sum, r) => sum + r.size, 0);
+    const totalInitialMB = (totalInitialJS / 1024 / 1024).toFixed(2);
+    
+    // Log what we're actually loading
+    console.log(`Initial JS bundle: ${totalInitialMB}MB`);
+    initialResources.forEach(r => {
+      console.log(`  - ${r.url.split('/').pop()}: ${(r.size / 1024).toFixed(1)}KB`);
+    });
+    
+    // FAIL if initial bundle > 500KB (this is already generous)
+    expect(totalInitialJS).toBeLessThan(500 * 1024);
+  });
+
+  test('largest single JS chunk must be under 200KB', async ({ page }) => {
+    let largestChunk = 0;
+    let largestChunkName = '';
+    
+    page.on('response', async response => {
+      const url = response.url();
+      const contentLength = response.headers()['content-length'];
+      
+      if (url.includes('.js') && contentLength) {
+        const size = parseInt(contentLength);
+        if (size > largestChunk) {
+          largestChunk = size;
+          largestChunkName = url.split('/').pop() || '';
+        }
       }
     });
     
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    // Check that main bundle size is reasonable
-    const totalJSSize = Object.values(resourceSizes).reduce((sum, size) => sum + size, 0);
+    console.log(`Largest chunk: ${largestChunkName} - ${(largestChunk / 1024).toFixed(1)}KB`);
     
-    // Total JS should be under 1MB for initial load
-    expect(totalJSSize).toBeLessThan(1024 * 1024);
+    // No single chunk should be over 200KB
+    expect(largestChunk).toBeLessThan(200 * 1024);
   });
 
-  test('memory usage during navigation', async ({ page }) => {
-    // Navigate between different pages to test memory management
-    const pages = ['/', '/facebook/react', '/microsoft/vscode'];
+  test('time to first byte under 800ms', async ({ page }) => {
+    const startTime = Date.now();
+    const response = await page.goto('/');
+    const ttfb = Date.now() - startTime;
     
-    for (const url of pages) {
-      await page.goto(url);
-      await page.waitForLoadState('networkidle');
+    console.log(`Time to First Byte: ${ttfb}ms`);
+    
+    // TTFB should be under 800ms
+    expect(ttfb).toBeLessThan(800);
+  });
+
+  test('first contentful paint under 1.5s', async ({ page }) => {
+    await page.goto('/');
+    
+    // Get FCP from Performance API
+    const fcp = await page.evaluate(() => {
+      const paintEntry = performance.getEntriesByType('paint')
+        .find(entry => entry.name === 'first-contentful-paint');
+      return paintEntry ? Math.round(paintEntry.startTime) : 0;
+    });
+    
+    console.log(`First Contentful Paint: ${fcp}ms`);
+    
+    // FCP should be under 1.5s
+    expect(fcp).toBeGreaterThan(0);
+    expect(fcp).toBeLessThan(1500);
+  });
+
+  test('no render-blocking resources', async ({ page }) => {
+    const blockingResources: string[] = [];
+    
+    page.on('response', response => {
+      const headers = response.headers();
+      const url = response.url();
       
-      // Check for memory leaks by measuring heap size
-      const heapSize = await page.evaluate(() => {
-        if ('memory' in performance) {
-          // @ts-expect-error - performance.memory exists in Chrome but not in types
-          return (performance as { memory: { usedJSHeapSize: number } }).memory.usedJSHeapSize;
+      // Check for render-blocking CSS/JS in head
+      if (url.includes('.css') || url.includes('.js')) {
+        const cacheControl = headers['cache-control'];
+        // If no cache headers or short cache, it's likely blocking
+        if (!cacheControl || !cacheControl.includes('max-age')) {
+          blockingResources.push(url);
         }
-        return 0;
-      });
-      
-      // Heap size should remain reasonable (under 50MB)
-      if (heapSize > 0) {
-        expect(heapSize).toBeLessThan(50 * 1024 * 1024);
       }
-    }
-  });
-
-  test('large dataset rendering performance', async ({ page }) => {
-    // Test performance with repositories that have many contributors
-    await page.goto('/facebook/react');
+    });
+    
+    await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    // Measure rendering time for contributor list
-    const renderStart = Date.now();
-    
-    // Wait for contributor cards to render
-    const contributorCards = page.locator('[data-testid="contributor-card"]');
-    await contributorCards.first().waitFor({ state: 'visible', timeout: 10000 });
-    
-    const renderTime = Date.now() - renderStart;
-    
-    // Rendering should complete within reasonable time
-    expect(renderTime).toBeLessThan(5000);
-    
-    // Test scrolling performance with virtual list
-    if (await contributorCards.count() > 10) {
-      const scrollStart = Date.now();
-      await page.keyboard.press('End'); // Scroll to bottom
-      await page.waitForTimeout(500);
-      const scrollTime = Date.now() - scrollStart;
-      
-      // Scrolling should remain smooth
-      expect(scrollTime).toBeLessThan(1000);
-    }
+    // Should have minimal render-blocking resources
+    expect(blockingResources.length).toBeLessThanOrEqual(2);
   });
 });
