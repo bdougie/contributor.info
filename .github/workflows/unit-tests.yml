@@ -1,0 +1,72 @@
+name: Unit Tests (Standalone)
+
+# NOTE: Unit tests are also run in ci-tests.yml
+# This workflow can be used for testing unit tests in isolation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    
+# Cancel in-progress runs for the same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5  # Strict timeout per bulletproof guidelines
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run unit tests
+      run: npx vitest run --config vitest.config.simple.ts --bail 1
+      env:
+        # Mock environment variables for tests
+        VITE_SUPABASE_URL: http://localhost:54321
+        VITE_SUPABASE_ANON_KEY: mock-anon-key
+        VITE_GITHUB_TOKEN: mock-github-token
+        # Force single thread for stability (per bulletproof guidelines)
+        VITEST_POOL: forks
+        VITEST_SINGLE_THREAD: true
+        
+    - name: Check test duration
+      if: always()
+      run: |
+        echo "Tests must complete in under 2 minutes per bulletproof guidelines"
+        echo "If tests are hanging, check for forbidden patterns:"
+        echo "- NO async/await in tests"
+        echo "- NO setTimeout/setInterval"
+        echo "- NO Promise testing"
+        echo "- NO waitFor patterns"
+        
+  test-summary:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    if: always()
+    
+    steps:
+    - name: Test Result Summary
+      run: |
+        if [ "${{ needs.unit-tests.result }}" == "success" ]; then
+          echo "✅ Unit tests passed successfully"
+          echo "Tests completed within time limits and all assertions passed"
+        else
+          echo "❌ Unit tests failed"
+          echo "Check for hanging tests or forbidden patterns in test files"
+          echo "See docs/testing/BULLETPROOF_TESTING_GUIDELINES.md"
+          exit 1
+        fi

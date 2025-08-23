@@ -59,10 +59,11 @@ Each test follows this pattern:
 ## Configuration
 
 The tests are configured via `playwright.config.ts` in the project root:
-- Base URL: `http://localhost:5174`
+- Base URL: `http://localhost:5173`
 - Automatically starts dev server before tests
-- Runs on Chromium, Firefox, and WebKit
+- Runs on Chromium only (for performance)
 - Includes trace collection on retry
+- Screenshots and video on failure
 
 ## Debugging
 
