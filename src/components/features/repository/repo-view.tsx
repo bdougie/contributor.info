@@ -34,7 +34,14 @@ import { useRepositoryTracking } from "@/hooks/use-repository-tracking";
 import { DataStateIndicator } from "@/components/ui/data-state-indicator";
 import { LastUpdated } from "@/components/ui/last-updated";
 import { useDataTimestamp } from "@/hooks/use-data-timestamp";
-import { RepositoryTrackingCard } from "./repository-tracking-card";
+import { lazy } from 'react';
+
+// Lazy load RepositoryTrackingCard which contains recharts
+const RepositoryTrackingCard = lazy(() => 
+  import("./repository-tracking-card").then(module => ({
+    default: module.RepositoryTrackingCard
+  }))
+);
 import { GitHubAppInstallButton } from "./github-app-install-button";
 import { UnifiedSyncButton } from "./unified-sync-button";
 
@@ -200,10 +207,18 @@ export default function RepoView() {
           </Card>
         </section>
         <section className="grid gap-8">
-          <RepositoryTrackingCard 
-            owner={owner || ''} 
-            repo={repo || ''} 
-          />
+          <Suspense fallback={
+            <Card>
+              <CardContent className="flex items-center justify-center h-64">
+                <div className="text-center">Loading tracking data...</div>
+              </CardContent>
+            </Card>
+          }>
+            <RepositoryTrackingCard 
+              owner={owner || ''} 
+              repo={repo || ''} 
+            />
+          </Suspense>
         </section>
       </article>
     );

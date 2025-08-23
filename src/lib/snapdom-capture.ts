@@ -8,7 +8,16 @@ function escapeHtml(unsafe: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
-import html2canvas from 'html2canvas';
+// Lazy load html2canvas for better performance
+let html2canvasModule: typeof import('html2canvas').default | null = null;
+
+async function getHtml2Canvas() {
+  if (!html2canvasModule) {
+    const module = await import('html2canvas');
+    html2canvasModule = module.default;
+  }
+  return html2canvasModule;
+}
 
 export interface CaptureOptions {
   title: string;
@@ -808,6 +817,7 @@ export class SnapDOMCaptureService {
   ): Promise<CaptureResult> {
     console.log('Starting html2canvas fallback capture...');
     
+    const html2canvas = await getHtml2Canvas();
     const canvas = await html2canvas(wrapper, {
       useCORS: true,
       allowTaint: false,

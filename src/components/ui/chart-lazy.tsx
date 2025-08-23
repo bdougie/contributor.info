@@ -1,0 +1,1 @@
+// This file is no longer needed - recharts is lazy loaded at component level
