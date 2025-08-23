@@ -7,7 +7,8 @@ import {
   Check, 
   X, 
   Search,
-  GitBranch
+  GitBranch,
+  Activity
 } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +17,8 @@ export interface RepositoryOption {
   name: string;
   owner: string;
   full_name: string;
-  stars_count?: number;
+  activity_count?: number; // Recent commits, PRs, issues
+  last_activity?: string; // ISO date string
   language?: string;
 }
 
@@ -27,6 +29,22 @@ export interface RepositoryFilterProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+}
+
+function getActivityLabel(lastActivity?: string): string {
+  if (!lastActivity) return 'No recent activity';
+  
+  const now = new Date();
+  const activityDate = new Date(lastActivity);
+  const diffInMs = now.getTime() - activityDate.getTime();
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInDays = Math.floor(diffInHours / 24);
+  
+  if (diffInHours < 1) return 'Active now';
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  if (diffInDays < 7) return `${diffInDays}d ago`;
+  if (diffInDays < 30) return `${Math.floor(diffInDays / 7)}w ago`;
+  return `${Math.floor(diffInDays / 30)}mo ago`;
 }
 
 export function RepositoryFilter({
@@ -206,10 +224,20 @@ export function RepositoryFilter({
                           )}
                         </div>
                       </div>
-                      {repo.stars_count !== undefined && (
-                        <Badge variant="secondary" className="ml-2">
-                          ⭐ {repo.stars_count.toLocaleString()}
-                        </Badge>
+                      {(repo.activity_count !== undefined || repo.last_activity) && (
+                        <div className="flex items-center gap-2">
+                          {repo.activity_count !== undefined && (
+                            <Badge variant="secondary" className="text-xs">
+                              <Activity className="h-3 w-3 mr-1" />
+                              {repo.activity_count}
+                            </Badge>
+                          )}
+                          {repo.last_activity && (
+                            <span className="text-xs text-muted-foreground">
+                              {getActivityLabel(repo.last_activity)}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </button>
                   );
@@ -357,10 +385,20 @@ export function SingleRepositoryFilter({
                           </div>
                         )}
                       </div>
-                      {repo.stars_count !== undefined && (
-                        <Badge variant="secondary" className="ml-2">
-                          ⭐ {repo.stars_count.toLocaleString()}
-                        </Badge>
+                      {(repo.activity_count !== undefined || repo.last_activity) && (
+                        <div className="flex items-center gap-2">
+                          {repo.activity_count !== undefined && (
+                            <Badge variant="secondary" className="text-xs">
+                              <Activity className="h-3 w-3 mr-1" />
+                              {repo.activity_count}
+                            </Badge>
+                          )}
+                          {repo.last_activity && (
+                            <span className="text-xs text-muted-foreground">
+                              {getActivityLabel(repo.last_activity)}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </button>
                   );

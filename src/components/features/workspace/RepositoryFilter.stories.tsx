@@ -20,18 +20,18 @@ const meta: Meta<typeof RepositoryFilter> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Generate mock repository data
+// Generate mock repository data with activity metrics
 const mockRepositories: RepositoryOption[] = [
-  { id: '1', name: 'vscode', owner: 'microsoft', full_name: 'microsoft/vscode', stars_count: 155000, language: 'TypeScript' },
-  { id: '2', name: 'react', owner: 'facebook', full_name: 'facebook/react', stars_count: 215000, language: 'JavaScript' },
-  { id: '3', name: 'next.js', owner: 'vercel', full_name: 'vercel/next.js', stars_count: 115000, language: 'TypeScript' },
-  { id: '4', name: 'vue', owner: 'vuejs', full_name: 'vuejs/vue', stars_count: 206000, language: 'TypeScript' },
-  { id: '5', name: 'angular', owner: 'angular', full_name: 'angular/angular', stars_count: 93000, language: 'TypeScript' },
-  { id: '6', name: 'svelte', owner: 'sveltejs', full_name: 'sveltejs/svelte', stars_count: 75000, language: 'JavaScript' },
-  { id: '7', name: 'pytorch', owner: 'pytorch', full_name: 'pytorch/pytorch', stars_count: 75000, language: 'Python' },
-  { id: '8', name: 'tensorflow', owner: 'tensorflow', full_name: 'tensorflow/tensorflow', stars_count: 180000, language: 'C++' },
-  { id: '9', name: 'rust', owner: 'rust-lang', full_name: 'rust-lang/rust', stars_count: 90000, language: 'Rust' },
-  { id: '10', name: 'go', owner: 'golang', full_name: 'golang/go', stars_count: 117000, language: 'Go' },
+  { id: '1', name: 'vscode', owner: 'microsoft', full_name: 'microsoft/vscode', activity_count: 342, last_activity: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), language: 'TypeScript' },
+  { id: '2', name: 'react', owner: 'facebook', full_name: 'facebook/react', activity_count: 128, last_activity: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), language: 'JavaScript' },
+  { id: '3', name: 'next.js', owner: 'vercel', full_name: 'vercel/next.js', activity_count: 256, last_activity: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), language: 'TypeScript' },
+  { id: '4', name: 'vue', owner: 'vuejs', full_name: 'vuejs/vue', activity_count: 89, last_activity: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), language: 'TypeScript' },
+  { id: '5', name: 'angular', owner: 'angular', full_name: 'angular/angular', activity_count: 167, last_activity: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(), language: 'TypeScript' },
+  { id: '6', name: 'svelte', owner: 'sveltejs', full_name: 'sveltejs/svelte', activity_count: 45, last_activity: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), language: 'JavaScript' },
+  { id: '7', name: 'pytorch', owner: 'pytorch', full_name: 'pytorch/pytorch', activity_count: 234, last_activity: new Date(Date.now() - 30 * 60 * 1000).toISOString(), language: 'Python' },
+  { id: '8', name: 'tensorflow', owner: 'tensorflow', full_name: 'tensorflow/tensorflow', activity_count: 156, last_activity: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), language: 'C++' },
+  { id: '9', name: 'rust', owner: 'rust-lang', full_name: 'rust-lang/rust', activity_count: 98, last_activity: new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString(), language: 'Rust' },
+  { id: '10', name: 'go', owner: 'golang', full_name: 'golang/go', activity_count: 201, last_activity: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), language: 'Go' },
 ];
 
 // Wrapper component for state management
@@ -131,7 +131,8 @@ export const ManyRepositories: Story = {
       name: `repository-${i}`,
       owner: `owner-${i % 10}`,
       full_name: `owner-${i % 10}/repository-${i}`,
-      stars_count: Math.floor(Math.random() * 100000),
+      activity_count: Math.floor(Math.random() * 500) + 10,
+      last_activity: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
       language: ['TypeScript', 'JavaScript', 'Python', 'Go', 'Rust'][i % 5],
     }));
     
