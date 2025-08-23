@@ -23,6 +23,7 @@ Thank you for your interest in contributing to Contributor.info! This guide will
    ```bash
    npm run dev
    ```
+For a complete guide to setting up your local development environment, please see our **[Local Development Setup Guide](./docs/setup/LOCAL_DEVELOPMENT.md)**.
 
 ## 📋 Prerequisites
 
