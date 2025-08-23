@@ -1,4 +1,7 @@
-name: Unit Tests
+name: Unit Tests (Standalone)
+
+# NOTE: Unit tests are also run in ci-tests.yml
+# This workflow can be used for testing unit tests in isolation
 
 on:
   push:
