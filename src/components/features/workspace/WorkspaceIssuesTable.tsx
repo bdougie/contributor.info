@@ -429,7 +429,7 @@ export function WorkspaceIssuesTable({
                 placeholder="Search issues..."
                 value={globalFilter ?? ''}
                 onChange={(e) => setGlobalFilter(e.target.value)}
-                className="pl-8 w-[200px]"
+                className="pl-8 w-[300px]"
               />
             </div>
           </div>
