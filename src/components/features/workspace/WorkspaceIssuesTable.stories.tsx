@@ -77,6 +77,20 @@ const generateMockIssues = (count: number): Issue[] => {
       ? new Date(updatedAt.getTime() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
       : undefined;
 
+    // Generate linked pull requests (60% chance of having linked PRs)
+    const linkedPRs = Math.random() > 0.4
+      ? Array.from({ length: Math.floor(Math.random() * 4) + 1 }, (_, prIndex) => {
+          const prStates = ['open', 'closed', 'merged'] as const;
+          const prState = prStates[Math.floor(Math.random() * prStates.length)];
+          const prNumber = 2000 + i * 10 + prIndex;
+          return {
+            number: prNumber,
+            url: `https://github.com/${repo.owner}/${repo.name}/pull/${prNumber}`,
+            state: prState,
+          };
+        })
+      : undefined;
+
     return {
       id: `issue-${i + 1}`,
       number: 1000 + i,
@@ -89,6 +103,7 @@ const generateMockIssues = (count: number): Issue[] => {
       closed_at: closedAt,
       comments_count: Math.floor(Math.random() * 20),
       labels: issueLabels,
+      linked_pull_requests: linkedPRs,
       url: `https://github.com/${repo.owner}/${repo.name}/issues/${1000 + i}`,
     };
   });
@@ -155,6 +170,42 @@ export const HighCommentCount: Story = {
     issues: generateMockIssues(10).map(issue => ({
       ...issue,
       comments_count: Math.floor(Math.random() * 50) + 20,
+    })),
+  },
+};
+
+export const WithLinkedPullRequests: Story = {
+  name: 'With Linked Pull Requests',
+  args: {
+    issues: generateMockIssues(10).map((issue, i) => ({
+      ...issue,
+      linked_pull_requests: [
+        {
+          number: 3001 + i * 3,
+          url: `https://github.com/${issue.repository.owner}/${issue.repository.name}/pull/${3001 + i * 3}`,
+          state: 'merged' as const,
+        },
+        {
+          number: 3002 + i * 3,
+          url: `https://github.com/${issue.repository.owner}/${issue.repository.name}/pull/${3002 + i * 3}`,
+          state: 'open' as const,
+        },
+        {
+          number: 3003 + i * 3,
+          url: `https://github.com/${issue.repository.owner}/${issue.repository.name}/pull/${3003 + i * 3}`,
+          state: 'closed' as const,
+        },
+      ],
+    })),
+  },
+};
+
+export const NoLinkedPullRequests: Story = {
+  name: 'No Linked Pull Requests',
+  args: {
+    issues: generateMockIssues(10).map(issue => ({
+      ...issue,
+      linked_pull_requests: undefined,
     })),
   },
 };

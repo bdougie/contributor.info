@@ -53,6 +53,11 @@ export interface Issue {
     name: string;
     color: string;
   }>;
+  linked_pull_requests?: Array<{
+    number: number;
+    url: string;
+    state: 'open' | 'closed' | 'merged';
+  }>;
   url: string;
 }
 
@@ -204,6 +209,42 @@ export function WorkspaceIssuesTable({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+          );
+        },
+      }),
+      columnHelper.accessor('linked_pull_requests', {
+        header: 'Linked PRs',
+        cell: ({ row }) => {
+          const prs = row.original.linked_pull_requests;
+          if (!prs || prs.length === 0) {
+            return <span className="text-sm text-muted-foreground">-</span>;
+          }
+          
+          return (
+            <div className="flex items-center gap-1 flex-wrap">
+              {prs.slice(0, 2).map((pr) => (
+                <a
+                  key={pr.number}
+                  href={pr.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "text-sm font-medium hover:underline",
+                    pr.state === 'merged' && "text-purple-600 dark:text-purple-400",
+                    pr.state === 'open' && "text-green-600 dark:text-green-400",
+                    pr.state === 'closed' && "text-red-600 dark:text-red-400"
+                  )}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  #{pr.number}
+                </a>
+              ))}
+              {prs.length > 2 && (
+                <span className="text-sm text-muted-foreground">
+                  +{prs.length - 2}
+                </span>
+              )}
+            </div>
           );
         },
       }),
