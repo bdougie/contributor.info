@@ -34,7 +34,7 @@ This document outlines the pricing strategy for the workspace feature. This info
 ---
 
 ### 💎 Pro Tier
-**Price:** $100/year ($12/month billed annually)
+**Price:** $12/month or $100/year (save $44 annually)
 
 **Limits:**
 - 5 public workspaces
@@ -64,7 +64,7 @@ This document outlines the pricing strategy for the workspace feature. This info
 ---
 
 ### 🔒 Private Tier
-**Price:** $500/month ($4,000/year with discount)
+**Price:** $500/month or $4,000/year (save $2,000 annually)
 
 **Limits:**
 - 10 workspaces (public or private)
@@ -132,16 +132,16 @@ This document outlines the pricing strategy for the workspace feature. This info
 ## Revenue Projections
 
 ### Conservative Estimate (Year 1)
-- 1,000 free users
-- 100 pro users: $10,000/year
-- 5 private users: $20,000/year
-- **Total:** $30,000/year
+- 1,000 free users: $0
+- 100 pro users (80% annual): $8,800/year (80 annual @ $100 + 20 monthly @ $12 × 12)
+- 5 private users (60% annual): $16,000/year (3 annual @ $4,000 + 2 monthly @ $500 × 12)
+- **Total:** $24,800/year
 
 ### Optimistic Estimate (Year 1)
-- 5,000 free users
-- 500 pro users: $50,000/year
-- 20 private users: $80,000/year
-- **Total:** $130,000/year
+- 5,000 free users: $0
+- 500 pro users (80% annual): $44,000/year (400 annual @ $100 + 100 monthly @ $12 × 12)
+- 20 private users (60% annual): $64,000/year (12 annual @ $4,000 + 8 monthly @ $500 × 12)
+- **Total:** $108,000/year
 
 ---
 
@@ -165,7 +165,9 @@ This document outlines the pricing strategy for the workspace feature. This info
 
 ### Payment Processing
 - **Provider:** Stripe
-- **Billing Cycles:** Monthly or Annual (with discount)
+- **Billing Cycles:** 
+  - Monthly: Full price, cancel anytime
+  - Annual: Significant discount (Pro: save 31%, Private: save 33%)
 - **Payment Methods:** Credit card, ACH (enterprise)
 
 ### Grace Periods
@@ -201,8 +203,8 @@ This document outlines the pricing strategy for the workspace feature. This info
 
 ### OpenSauced
 - Free tier: Limited
-- Paid tier: $12/month
-- **Our advantage:** More generous free tier, better pricing
+- Paid tier: $12/month (no annual discount)
+- **Our advantage:** More generous free tier, annual discount option
 
 ### GitHub Insights
 - Part of GitHub Enterprise

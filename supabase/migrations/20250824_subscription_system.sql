@@ -225,7 +225,7 @@ CREATE TABLE tier_limits (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Insert tier configurations
+-- Insert tier configurations (prices in cents)
 INSERT INTO tier_limits (
     tier, max_workspaces, max_repos_per_workspace, max_members_per_workspace,
     data_retention_days, allows_private_repos, priority_queue_enabled,
@@ -233,8 +233,8 @@ INSERT INTO tier_limits (
     monthly_price, yearly_price, additional_workspace_yearly
 ) VALUES
     ('free', 1, 4, 3, 30, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, 0, 0, 0),
-    ('pro', 5, 10, NULL, 90, FALSE, TRUE, TRUE, TRUE, TRUE, FALSE, 1200, 10000, 5000),
-    ('private', 10, 10, NULL, 365, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 50000, 400000, 25000);
+    ('pro', 5, 10, NULL, 90, FALSE, TRUE, TRUE, TRUE, TRUE, FALSE, 1200, 10000, 5000), -- $12/mo or $100/yr
+    ('private', 10, 10, NULL, 365, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 50000, 400000, 25000); -- $500/mo or $4000/yr
 
 -- =====================================================
 -- FUNCTIONS FOR SUBSCRIPTION MANAGEMENT
