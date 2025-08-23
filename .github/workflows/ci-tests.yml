@@ -94,7 +94,7 @@ jobs:
       
     - name: Run critical E2E tests
       # Only run critical-flows for now, other tests need updates
-      run: npx playwright test e2e/critical-flows.spec.ts --reporter=list
+      run: npx playwright test e2e/critical-flows.spec.ts
       env:
         CI: true
         

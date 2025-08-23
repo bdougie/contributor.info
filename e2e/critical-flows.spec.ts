@@ -60,6 +60,7 @@ test.describe('Critical User Flows', () => {
       const buttonVisible = await submitButton.isVisible().catch(() => false);
       
       if (buttonVisible) {
+        const initialUrl = page.url();
         await submitButton.click();
         
         // Wait for navigation or content change instead of fixed timeout
@@ -70,7 +71,8 @@ test.describe('Critical User Flows', () => {
         ]);
         
         const currentUrl = page.url();
-        expect(currentUrl).toContain('/'); // More flexible check
+        // Verify that navigation occurred or URL changed
+        expect(currentUrl).not.toBe(initialUrl);
       }
     }
     

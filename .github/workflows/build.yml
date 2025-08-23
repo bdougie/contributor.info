@@ -99,7 +99,7 @@ jobs:
       
     - name: Run Playwright tests
       # Only run critical flows - other tests need updates
-      run: npx playwright test e2e/critical-flows.spec.ts --reporter=list
+      run: npx playwright test e2e/critical-flows.spec.ts
       env:
         CI: true
       
