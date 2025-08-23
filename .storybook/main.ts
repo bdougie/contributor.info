@@ -90,6 +90,8 @@ const config: StorybookConfig = {
           // Mock hooks for Storybook to avoid dependency issues
           '@/hooks/use-on-demand-sync': new URL('./mocks/use-on-demand-sync.ts', import.meta.url).pathname,
           '@/hooks/use-github-auth': new URL('./mocks/use-github-auth.ts', import.meta.url).pathname,
+          '@/hooks/use-auth': new URL('./mocks/use-auth.ts', import.meta.url).pathname,
+          '@/hooks/use-user-workspaces': new URL('./mocks/use-user-workspaces.ts', import.meta.url).pathname,
           '@/hooks/use-cached-repo-data': new URL('./mocks/use-cached-repo-data.ts', import.meta.url).pathname,
           '@/hooks/use-repo-search': new URL('./mocks/use-repo-search.ts', import.meta.url).pathname,
           '@/hooks/use-repo-stats': new URL('./mocks/use-repo-stats.ts', import.meta.url).pathname,
