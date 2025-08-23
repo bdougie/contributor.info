@@ -335,6 +335,7 @@ export interface AddRepositoryRequest {
 export interface InviteMemberRequest {
   email: string;
   role: Exclude<WorkspaceRole, 'owner'>;
+  message?: string;
 }
 
 /**
