@@ -5,12 +5,8 @@
 
 import { supabase } from '@/lib/supabase';
 import type {
-  Workspace,
   WorkspaceWithStats,
-  WorkspaceMember,
-  WorkspaceRepository,
   WorkspaceMetrics,
-  WorkspaceInvitation,
   CreateWorkspaceRequest,
   UpdateWorkspaceRequest,
   AddRepositoryRequest,
@@ -112,23 +108,23 @@ export async function getWorkspace(idOrSlug: string): Promise<WorkspaceWithStats
     `)
     .eq('workspace_id', data.id);
 
-  const total_stars = stats?.reduce((sum, item) => 
+  const total_stars = stats?.reduce((sum, item: any) => 
     sum + (item.repository?.stargazers_count || 0), 0) || 0;
   
-  const total_contributors = stats?.reduce((sum, item) => 
+  const total_contributors = stats?.reduce((sum, item: any) => 
     sum + (item.repository?.contributors?.[0]?.count || 0), 0) || 0;
 
   return {
     ...data,
-    repository_count: data.workspace_repositories[0]?.count || 0,
-    member_count: data.workspace_members[0]?.count || 0,
+    repository_count: (data as any).workspace_repositories[0]?.count || 0,
+    member_count: (data as any).workspace_members[0]?.count || 0,
     total_stars,
     total_contributors,
     owner: {
-      id: data.owner.id,
-      email: data.owner.email,
-      avatar_url: data.owner.raw_user_meta_data?.avatar_url,
-      display_name: data.owner.raw_user_meta_data?.full_name
+      id: (data as any).owner.id,
+      email: (data as any).owner.email,
+      avatar_url: (data as any).owner.raw_user_meta_data?.avatar_url,
+      display_name: (data as any).owner.raw_user_meta_data?.full_name
     }
   } as WorkspaceWithStats;
 }

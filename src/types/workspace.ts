@@ -3,8 +3,6 @@
  * Type definitions for the workspace feature
  */
 
-import type { Database } from '@/types/supabase';
-
 // =====================================================
 // CORE WORKSPACE TYPES
 // =====================================================
@@ -408,7 +406,7 @@ export const canManageMembers = (role: WorkspaceRole): boolean => {
   return ['owner', 'admin'].includes(role);
 };
 
-export const canViewWorkspace = (role: WorkspaceRole): boolean => {
+export const canViewWorkspace = (_role: WorkspaceRole): boolean => {
   return true; // All roles can view
 };
 
