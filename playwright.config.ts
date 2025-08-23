@@ -16,8 +16,10 @@ export default defineConfig({
   globalTimeout: 180000, // 3 minutes total
   
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: process.env.CI ? 'http://localhost:4173' : 'http://localhost:5173',
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
 
   // Only test Chromium for critical flows
@@ -28,11 +30,18 @@ export default defineConfig({
     },
   ],
 
-  // Minimal server setup
-  webServer: {
+  // Server setup - different for CI vs local development
+  webServer: process.env.CI ? {
+    command: 'npm run preview',
+    port: 4173,
+    reuseExistingServer: false,
+    timeout: 120000, // Increased timeout for CI
+    stdout: 'pipe',
+    stderr: 'pipe',
+  } : {
     command: 'npm run dev',
     url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: 60000,
   },
 });
