@@ -81,7 +81,7 @@ function convertValidationErrors(errors: any[]): ValidationErrorDetail[] {
   }));
 }
 
-export default async (req: Request, context: Context) => {
+export default async (req: Request, _context: Context) => {
   const url = new URL(req.url);
   const path = url.pathname;
   

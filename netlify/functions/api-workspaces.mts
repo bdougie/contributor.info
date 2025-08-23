@@ -2,8 +2,7 @@ import type { Context } from "@netlify/functions";
 import { createClient } from '@supabase/supabase-js';
 import type { 
   CreateWorkspaceRequest, 
-  UpdateWorkspaceRequest,
-  WorkspaceFilters 
+  UpdateWorkspaceRequest
 } from '../../src/types/workspace';
 
 // Initialize Supabase client - Use server-only env vars
@@ -58,7 +57,7 @@ function validateWorkspaceData(data: any): { valid: boolean; errors?: string[] }
   };
 }
 
-export default async (req: Request, context: Context) => {
+export default async (req: Request, _context: Context) => {
   // Handle preflight
   if (req.method === 'OPTIONS') {
     return new Response('', {

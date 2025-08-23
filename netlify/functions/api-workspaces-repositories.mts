@@ -48,7 +48,7 @@ async function checkWorkspacePermission(workspaceId: string, userId: string, req
   return requiredRoles.includes(member.role);
 }
 
-export default async (req: Request, context: Context) => {
+export default async (req: Request, _context: Context) => {
   // Handle preflight
   if (req.method === 'OPTIONS') {
     return new Response('', {

@@ -2,17 +2,18 @@ import type { Context } from "@netlify/functions";
 import { createClient } from '@supabase/supabase-js';
 import type { InviteMemberRequest, WorkspaceRole } from '../../src/types/workspace';
 
-// Initialize Supabase client
-const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+// Initialize Supabase client - Use server-only env vars
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// CORS headers
+// CORS headers - Fixed: Cannot use wildcard with credentials
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || 'https://contributor.info',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Credentials': 'true'
+  'Access-Control-Allow-Credentials': 'true',
+  'Vary': 'Origin'
 };
 
 // Helper to get user from Authorization header
@@ -56,7 +57,7 @@ function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
-export default async (req: Request, context: Context) => {
+export default async (req: Request, _context: Context) => {
   // Handle preflight
   if (req.method === 'OPTIONS') {
     return new Response('', {
