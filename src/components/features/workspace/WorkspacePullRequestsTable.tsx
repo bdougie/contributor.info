@@ -14,9 +14,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { InlineCodeDiff } from "@/components/ui/code-diff";
 import { 
   GitPullRequest,
   GitBranch,
@@ -28,13 +28,9 @@ import {
   ChevronsUpDown,
   ChevronUp,
   ChevronDown,
-  ExternalLink,
-  Plus,
-  Minus,
-  FileText
+  ExternalLink
 } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
-import { humanizeNumber } from "@/lib/utils";
 
 export interface PullRequest {
   id: string;
@@ -122,7 +118,7 @@ export function WorkspacePullRequestsTable({
   const [globalFilter, setGlobalFilter] = useState('');
 
   const columns = useMemo<ColumnDef<PullRequest>[]>(
-    () => [
+    () => ([
       columnHelper.accessor('state', {
         header: ({ column }) => (
           <Button
@@ -239,26 +235,10 @@ export function WorkspacePullRequestsTable({
         cell: ({ row }) => {
           const pr = row.original;
           return (
-            <div className="flex items-center gap-3 text-sm">
-              <div className="flex items-center gap-1">
-                <Plus className="h-3 w-3 text-green-600 dark:text-green-400" />
-                <span className="text-green-600 dark:text-green-400">
-                  {humanizeNumber(pr.additions)}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Minus className="h-3 w-3 text-red-600 dark:text-red-400" />
-                <span className="text-red-600 dark:text-red-400">
-                  {humanizeNumber(pr.deletions)}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <FileText className="h-3 w-3 text-muted-foreground" />
-                <span className="text-muted-foreground">
-                  {pr.changed_files}
-                </span>
-              </div>
-            </div>
+            <InlineCodeDiff
+              additions={pr.additions}
+              deletions={pr.deletions}
+            />
           );
         },
       }),
@@ -353,7 +333,7 @@ export function WorkspacePullRequestsTable({
           </a>
         ),
       }),
-    ],
+    ] as ColumnDef<PullRequest>[]),
     [onPullRequestClick, onRepositoryClick]
   );
 

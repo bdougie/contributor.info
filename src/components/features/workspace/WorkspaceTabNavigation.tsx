@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -7,8 +7,7 @@ import {
   GitPullRequest, 
   Users, 
   Settings,
-  Activity,
-  TrendingUp
+  Activity
 } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 
@@ -204,12 +203,12 @@ export function WorkspaceTabNavigationMobile({
         >
           <div className="relative">
             {tab.icon}
-            {tab.badge !== undefined && tab.badge > 0 && (
+            {tab.badge !== undefined && (typeof tab.badge === 'number' ? tab.badge > 0 : true) && (
               <Badge 
                 variant="destructive" 
                 className="absolute -top-2 -right-2 h-4 w-4 p-0 flex items-center justify-center text-[10px]"
               >
-                {tab.badge > 9 ? '9+' : tab.badge}
+                {typeof tab.badge === 'number' && tab.badge > 9 ? '9+' : tab.badge}
               </Badge>
             )}
           </div>

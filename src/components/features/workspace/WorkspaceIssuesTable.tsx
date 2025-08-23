@@ -31,7 +31,6 @@ import {
   MessageSquare
 } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
-import { humanizeNumber } from "@/lib/utils";
 
 export interface Issue {
   id: string;
@@ -101,7 +100,7 @@ export function WorkspaceIssuesTable({
   const [globalFilter, setGlobalFilter] = useState('');
 
   const columns = useMemo<ColumnDef<Issue>[]>(
-    () => [
+    () => ([
       columnHelper.accessor('state', {
         header: ({ column }) => (
           <Button
@@ -374,7 +373,7 @@ export function WorkspaceIssuesTable({
         ),
         size: 50,
       }),
-    ],
+    ] as ColumnDef<Issue>[]),
     [onIssueClick, onRepositoryClick]
   );
 

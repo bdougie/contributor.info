@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from "@/components/ui/button";
 import { UPlotChart } from "@/components/ui/charts/UPlotChart";
 import type { AlignedData, Options } from "uplot";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 
 export interface ActivityDataPoint {
   date: string;
@@ -64,10 +64,6 @@ function createCandlestickOptions(
 ): Options {
   const textColor = isDark ? "rgb(156, 163, 175)" : COLORS.text;
   const gridColor = isDark ? "rgba(75, 85, 99, 0.3)" : COLORS.grid;
-  
-  // Split height: 70% for candlesticks, 25% for volume
-  const candleHeight = height * 0.7;
-  const volumeHeight = height * 0.25;
   
   return {
     width: 800, // Will be overridden by responsive sizing
@@ -183,7 +179,7 @@ function createCandlestickOptions(
               const barWidth = Math.max(2, Math.min(12, width / xData.length * 0.7));
               
               // Find max volume for scaling
-              const maxVolume = Math.max(...volumeData.filter(v => v != null));
+              const maxVolume = Math.max(...Array.from(volumeData).filter((v): v is number => v != null));
               
               // Clear the volume area to remove any grid lines that extend there
               const isDarkMode = document.documentElement.classList.contains('dark');
