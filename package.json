@@ -110,6 +110,7 @@
     "@radix-ui/react-tooltip": "^1.1.2",
     "@supabase/supabase-js": "^2.39.8",
     "@tailwindcss/typography": "^0.5.16",
+    "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.12",
     "@types/js-yaml": "^4.0.9",
     "@types/minimatch": "^5.1.2",

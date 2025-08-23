@@ -40,6 +40,7 @@ const config: StorybookConfig = {
     name: "@storybook/react-vite",
     options: {}
   },
+  staticDirs: ['../public'],
   features: {
     // Enable TurboSnap for Chromatic
     buildStoriesJson: true,
