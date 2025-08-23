@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   GitPullRequest,
   GitBranch,
@@ -187,14 +188,20 @@ export function WorkspacePullRequestsTable({
         cell: ({ row }) => {
           const author = row.original.author;
           return (
-            <div className="flex items-center gap-2">
-              <img
-                src={author.avatar_url}
-                alt={author.username}
-                className="h-6 w-6 rounded-full"
-              />
-              <span className="text-sm">{author.username}</span>
-            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <img
+                    src={author.avatar_url}
+                    alt={author.username}
+                    className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{author.username}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           );
         },
       }),
