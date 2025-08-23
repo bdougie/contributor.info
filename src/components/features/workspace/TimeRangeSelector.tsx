@@ -91,7 +91,18 @@ export function TimeRangeSelector({
             >
               <span className="flex items-center gap-1">
                 {timeRangeLabels[range]}
-                {!available && <Lock className="h-3 w-3 ml-1" />}
+                {!available && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Lock className="h-3 w-3 ml-1" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>This feature requires an upgrade</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </span>
             </Button>
           );
@@ -167,8 +178,19 @@ export function TimeRangeSelector({
               }}
               className="flex w-full items-center px-2 py-1.5 text-sm text-primary hover:bg-accent rounded-sm cursor-pointer"
             >
-              <Lock className="h-3 w-3 mr-2" />
-              Upgrade for more data
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex items-center">
+                      <Lock className="h-3 w-3 mr-2" />
+                      Upgrade for more data
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>This feature requires an upgrade</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </button>
           </>
         )}
