@@ -1,9 +1,9 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, ComponentType } from 'react';
 import { cn } from '@/lib/utils';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 
-// Lazy load react-markdown
-const ReactMarkdown = lazy(() => import('react-markdown'));
+// Lazy load react-markdown with proper typing
+const ReactMarkdown = lazy<ComponentType<any>>(() => import('react-markdown'));
 
 interface MarkdownProps {
   children: string;
@@ -41,22 +41,22 @@ export function Markdown({ children, className }: MarkdownProps) {
           className
         )}
         components={{
-          h1: ({ children }) => {
+          h1: ({ children }: { children?: React.ReactNode }) => {
             const text = String(children);
             const id = generateHeadingId(text);
             return <h1 id={id}>{children}</h1>;
           },
-          h2: ({ children }) => {
+          h2: ({ children }: { children?: React.ReactNode }) => {
             const text = String(children);
             const id = generateHeadingId(text);
             return <h2 id={id}>{children}</h2>;
           },
-          h3: ({ children }) => {
+          h3: ({ children }: { children?: React.ReactNode }) => {
             const text = String(children);
             const id = generateHeadingId(text);
             return <h3 id={id}>{children}</h3>;
           },
-          img: ({ src, alt }) => {
+          img: ({ src, alt }: { src?: string; alt?: string }) => {
             // Determine if image should be priority loaded (above the fold)
             const isPriority = src?.includes('hero') || src?.includes('banner');
             

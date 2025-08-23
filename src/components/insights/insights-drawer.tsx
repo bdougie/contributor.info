@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react"
+import { useState, lazy, Suspense, ComponentType } from "react"
 import { Loader2, MessageSquare, AlertCircle } from '@/components/ui/icon';
 import {
   Sheet,
@@ -12,8 +12,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { analyzePullRequests } from "@/lib/insights/pullRequests";
 import { useParams } from "react-router-dom";
 
-// Lazy load react-markdown
-const ReactMarkdown = lazy(() => import("react-markdown"));
+// Lazy load react-markdown with proper typing
+const ReactMarkdown = lazy<ComponentType<any>>(() => import("react-markdown"));
 
 export function InsightsDrawer() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
