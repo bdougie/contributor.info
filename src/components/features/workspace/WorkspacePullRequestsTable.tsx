@@ -24,9 +24,9 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
+  ChevronsUpDown,
+  ChevronUp,
+  ChevronDown,
   ExternalLink,
   Plus,
   Minus,
@@ -131,11 +131,11 @@ export function WorkspacePullRequestsTable({
           >
             State
             {column.getIsSorted() === 'asc' ? (
-              <ArrowUp className="ml-2 h-4 w-4" />
+              <ChevronUp className="ml-2 h-4 w-4" />
             ) : column.getIsSorted() === 'desc' ? (
-              <ArrowDown className="ml-2 h-4 w-4" />
+              <ChevronDown className="ml-2 h-4 w-4" />
             ) : (
-              <ArrowUpDown className="ml-2 h-4 w-4" />
+              <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
           </Button>
         ),
@@ -302,11 +302,11 @@ export function WorkspacePullRequestsTable({
           >
             Created
             {column.getIsSorted() === 'asc' ? (
-              <ArrowUp className="ml-2 h-4 w-4" />
+              <ChevronUp className="ml-2 h-4 w-4" />
             ) : column.getIsSorted() === 'desc' ? (
-              <ArrowDown className="ml-2 h-4 w-4" />
+              <ChevronDown className="ml-2 h-4 w-4" />
             ) : (
-              <ArrowUpDown className="ml-2 h-4 w-4" />
+              <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
           </Button>
         ),
@@ -326,11 +326,11 @@ export function WorkspacePullRequestsTable({
           >
             Updated
             {column.getIsSorted() === 'asc' ? (
-              <ArrowUp className="ml-2 h-4 w-4" />
+              <ChevronUp className="ml-2 h-4 w-4" />
             ) : column.getIsSorted() === 'desc' ? (
-              <ArrowDown className="ml-2 h-4 w-4" />
+              <ChevronDown className="ml-2 h-4 w-4" />
             ) : (
-              <ArrowUpDown className="ml-2 h-4 w-4" />
+              <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
           </Button>
         ),
