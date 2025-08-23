@@ -1,0 +1,477 @@
+/**
+ * Workspace Service Layer
+ * Business logic for workspace operations
+ */
+
+import { supabase } from '@/lib/supabase';
+import {
+  validateCreateWorkspace,
+  validateUpdateWorkspace,
+  formatValidationErrors
+} from '@/lib/validations/workspace';
+import type {
+  Workspace,
+  WorkspaceWithStats,
+  CreateWorkspaceRequest,
+  UpdateWorkspaceRequest,
+  WorkspaceFilters,
+  WorkspaceRole
+} from '@/types/workspace';
+
+/**
+ * Service response type
+ */
+export interface ServiceResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  statusCode?: number;
+}
+
+/**
+ * Paginated response type
+ */
+export interface PaginatedResponse<T> {
+  items: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+/**
+ * Workspace Service Class
+ */
+export class WorkspaceService {
+  /**
+   * Create a new workspace
+   */
+  static async createWorkspace(
+    userId: string,
+    data: CreateWorkspaceRequest
+  ): Promise<ServiceResponse<Workspace>> {
+    try {
+      // Validate input
+      const validation = validateCreateWorkspace(data);
+      if (!validation.valid) {
+        return {
+          success: false,
+          error: formatValidationErrors(validation.errors),
+          statusCode: 400
+        };
+      }
+
+      // Check if user has reached workspace limit (based on tier)
+      const { data: userWorkspaces, error: countError } = await supabase
+        .from('workspaces')
+        .select('id', { count: 'exact', head: true })
+        .eq('owner_id', userId);
+
+      if (countError) {
+        console.error('Error checking workspace count:', countError);
+        return {
+          success: false,
+          error: 'Failed to check workspace limit',
+          statusCode: 500
+        };
+      }
+
+      // Free tier limit: 3 workspaces
+      const workspaceLimit = 3; // TODO: Get from user's subscription tier
+      if ((userWorkspaces as any).count >= workspaceLimit) {
+        return {
+          success: false,
+          error: `You have reached the limit of ${workspaceLimit} workspaces for your current plan`,
+          statusCode: 403
+        };
+      }
+
+      // Generate slug
+      const { data: slugData, error: slugError } = await supabase
+        .rpc('generate_workspace_slug', { workspace_name: data.name });
+
+      if (slugError || !slugData) {
+        return {
+          success: false,
+          error: 'Failed to generate workspace slug',
+          statusCode: 500
+        };
+      }
+
+      // Begin transaction-like operation
+      // Create workspace
+      const { data: workspace, error: createError } = await supabase
+        .from('workspaces')
+        .insert({
+          name: data.name,
+          slug: slugData,
+          description: data.description || null,
+          owner_id: userId,
+          visibility: data.visibility || 'public',
+          settings: data.settings || {},
+          tier: 'free',
+          max_repositories: 10,
+          current_repository_count: 0,
+          data_retention_days: 30
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        if (createError.code === '23505') {
+          return {
+            success: false,
+            error: 'A workspace with this name already exists',
+            statusCode: 409
+          };
+        }
+        throw createError;
+      }
+
+      // Add creator as owner member
+      const { error: memberError } = await supabase
+        .from('workspace_members')
+        .insert({
+          workspace_id: workspace.id,
+          user_id: userId,
+          role: 'owner'
+        });
+
+      if (memberError) {
+        // Rollback workspace creation
+        await supabase.from('workspaces').delete().eq('id', workspace.id);
+        throw memberError;
+      }
+
+      return {
+        success: true,
+        data: workspace,
+        statusCode: 201
+      };
+    } catch (error) {
+      console.error('Create workspace error:', error);
+      return {
+        success: false,
+        error: 'Failed to create workspace',
+        statusCode: 500
+      };
+    }
+  }
+
+  /**
+   * Update a workspace
+   */
+  static async updateWorkspace(
+    workspaceId: string,
+    userId: string,
+    data: UpdateWorkspaceRequest
+  ): Promise<ServiceResponse<Workspace>> {
+    try {
+      // Validate input
+      const validation = validateUpdateWorkspace(data);
+      if (!validation.valid) {
+        return {
+          success: false,
+          error: formatValidationErrors(validation.errors),
+          statusCode: 400
+        };
+      }
+
+      // Check permissions
+      const { data: member } = await supabase
+        .from('workspace_members')
+        .select('role')
+        .eq('workspace_id', workspaceId)
+        .eq('user_id', userId)
+        .single();
+
+      if (!member || !['owner', 'admin'].includes(member.role)) {
+        return {
+          success: false,
+          error: 'Insufficient permissions to update workspace',
+          statusCode: 403
+        };
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        updated_at: new Date().toISOString()
+      };
+
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.description !== undefined) updateData.description = data.description;
+      if (data.visibility !== undefined) updateData.visibility = data.visibility;
+      if (data.settings !== undefined) updateData.settings = data.settings;
+
+      // Update workspace
+      const { data: workspace, error: updateError } = await supabase
+        .from('workspaces')
+        .update(updateData)
+        .eq('id', workspaceId)
+        .select()
+        .single();
+
+      if (updateError) {
+        if (updateError.code === 'PGRST116') {
+          return {
+            success: false,
+            error: 'Workspace not found',
+            statusCode: 404
+          };
+        }
+        throw updateError;
+      }
+
+      return {
+        success: true,
+        data: workspace,
+        statusCode: 200
+      };
+    } catch (error) {
+      console.error('Update workspace error:', error);
+      return {
+        success: false,
+        error: 'Failed to update workspace',
+        statusCode: 500
+      };
+    }
+  }
+
+  /**
+   * Delete a workspace
+   */
+  static async deleteWorkspace(
+    workspaceId: string,
+    userId: string
+  ): Promise<ServiceResponse<void>> {
+    try {
+      // Check if user is the owner
+      const { data: workspace } = await supabase
+        .from('workspaces')
+        .select('owner_id')
+        .eq('id', workspaceId)
+        .single();
+
+      if (!workspace) {
+        return {
+          success: false,
+          error: 'Workspace not found',
+          statusCode: 404
+        };
+      }
+
+      if (workspace.owner_id !== userId) {
+        return {
+          success: false,
+          error: 'Only workspace owner can delete workspace',
+          statusCode: 403
+        };
+      }
+
+      // Delete workspace (cascade will handle related records)
+      const { error: deleteError } = await supabase
+        .from('workspaces')
+        .delete()
+        .eq('id', workspaceId);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      return {
+        success: true,
+        statusCode: 200
+      };
+    } catch (error) {
+      console.error('Delete workspace error:', error);
+      return {
+        success: false,
+        error: 'Failed to delete workspace',
+        statusCode: 500
+      };
+    }
+  }
+
+  /**
+   * Get workspace by ID
+   */
+  static async getWorkspace(
+    workspaceId: string,
+    userId: string
+  ): Promise<ServiceResponse<WorkspaceWithStats>> {
+    try {
+      // Get workspace with member check
+      const { data: workspace, error } = await supabase
+        .from('workspaces')
+        .select(`
+          *,
+          workspace_members!inner(
+            user_id,
+            role
+          ),
+          repository_count:workspace_repositories(count),
+          member_count:workspace_members(count),
+          owner:users!workspaces_owner_id_fkey(
+            id,
+            email,
+            display_name,
+            avatar_url
+          )
+        `)
+        .eq('id', workspaceId)
+        .eq('workspace_members.user_id', userId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return {
+            success: false,
+            error: 'Workspace not found or access denied',
+            statusCode: 404
+          };
+        }
+        throw error;
+      }
+
+      // Calculate stats
+      const stats = {
+        repository_count: workspace.repository_count?.[0]?.count || 0,
+        member_count: workspace.member_count?.[0]?.count || 0,
+        total_stars: 0, // TODO: Calculate from repositories
+        total_contributors: 0 // TODO: Calculate from repositories
+      };
+
+      const workspaceWithStats: WorkspaceWithStats = {
+        ...workspace,
+        ...stats
+      };
+
+      return {
+        success: true,
+        data: workspaceWithStats,
+        statusCode: 200
+      };
+    } catch (error) {
+      console.error('Get workspace error:', error);
+      return {
+        success: false,
+        error: 'Failed to get workspace',
+        statusCode: 500
+      };
+    }
+  }
+
+  /**
+   * List user's workspaces
+   */
+  static async listWorkspaces(
+    userId: string,
+    filters: WorkspaceFilters & { page?: number; limit?: number }
+  ): Promise<ServiceResponse<PaginatedResponse<WorkspaceWithStats>>> {
+    try {
+      const page = filters.page || 1;
+      const limit = filters.limit || 10;
+      const offset = (page - 1) * limit;
+
+      let query = supabase
+        .from('workspaces')
+        .select(`
+          *,
+          workspace_members!inner(
+            user_id,
+            role
+          ),
+          repository_count:workspace_repositories(count),
+          member_count:workspace_members(count),
+          owner:users!workspaces_owner_id_fkey(
+            id,
+            email,
+            display_name,
+            avatar_url
+          )
+        `, { count: 'exact' })
+        .eq('workspace_members.user_id', userId)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      // Apply filters
+      if (filters.visibility) {
+        query = query.eq('visibility', filters.visibility);
+      }
+
+      // Note: role filtering would need to be added to WorkspaceFilters interface if needed
+
+      if (filters.search) {
+        query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      }
+
+      const { data: workspaces, error, count } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      // Transform workspaces with stats
+      const workspacesWithStats: WorkspaceWithStats[] = (workspaces || []).map(w => ({
+        ...w,
+        repository_count: w.repository_count?.[0]?.count || 0,
+        member_count: w.member_count?.[0]?.count || 0,
+        total_stars: 0, // TODO: Calculate
+        total_contributors: 0 // TODO: Calculate
+      }));
+
+      return {
+        success: true,
+        data: {
+          items: workspacesWithStats,
+          pagination: {
+            page,
+            limit,
+            total: count || 0,
+            totalPages: Math.ceil((count || 0) / limit)
+          }
+        },
+        statusCode: 200
+      };
+    } catch (error) {
+      console.error('List workspaces error:', error);
+      return {
+        success: false,
+        error: 'Failed to list workspaces',
+        statusCode: 500
+      };
+    }
+  }
+
+  /**
+   * Check user permissions for a workspace
+   */
+  static async checkPermission(
+    workspaceId: string,
+    userId: string,
+    requiredRoles: WorkspaceRole[]
+  ): Promise<{ hasPermission: boolean; role?: WorkspaceRole }> {
+    try {
+      const { data: member } = await supabase
+        .from('workspace_members')
+        .select('role')
+        .eq('workspace_id', workspaceId)
+        .eq('user_id', userId)
+        .single();
+
+      if (!member) {
+        return { hasPermission: false };
+      }
+
+      return {
+        hasPermission: requiredRoles.includes(member.role as WorkspaceRole),
+        role: member.role as WorkspaceRole
+      };
+    } catch (error) {
+      console.error('Check permission error:', error);
+      return { hasPermission: false };
+    }
+  }
+}
