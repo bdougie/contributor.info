@@ -20,11 +20,11 @@ type Story = StoryObj<typeof meta>;
 const generateMockPullRequests = (count: number): PullRequest[] => {
   const states = ['open', 'closed', 'merged', 'draft'] as const;
   const repositories = [
-    { owner: 'microsoft', name: 'vscode' },
-    { owner: 'facebook', name: 'react' },
-    { owner: 'vercel', name: 'next.js' },
-    { owner: 'vuejs', name: 'vue' },
-    { owner: 'angular', name: 'angular' },
+    { owner: 'microsoft', name: 'vscode', avatar_url: 'https://github.com/microsoft.png' },
+    { owner: 'facebook', name: 'react', avatar_url: 'https://github.com/facebook.png' },
+    { owner: 'vercel', name: 'next.js', avatar_url: 'https://github.com/vercel.png' },
+    { owner: 'vuejs', name: 'vue', avatar_url: 'https://github.com/vuejs.png' },
+    { owner: 'angular', name: 'angular', avatar_url: 'https://github.com/angular.png' },
   ];
   
   const authors = [

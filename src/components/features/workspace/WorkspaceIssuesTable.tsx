@@ -41,6 +41,7 @@ export interface Issue {
   repository: {
     name: string;
     owner: string;
+    avatar_url?: string;
   };
   author: {
     username: string;
@@ -199,16 +200,26 @@ export function WorkspaceIssuesTable({
         header: 'Repository',
         cell: ({ row }) => {
           const repo = row.original.repository;
+          const avatarUrl = repo.avatar_url || `https://github.com/${repo.owner}.png`;
+          
           return (
             <button
               onClick={() => onRepositoryClick?.(repo.owner, repo.name)}
-              className="text-sm hover:text-primary transition-colors"
+              className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
             >
-              {repo.owner}/{repo.name}
+              <img
+                src={avatarUrl}
+                alt={repo.owner}
+                className="h-5 w-5 rounded"
+                onError={(e) => {
+                  e.currentTarget.src = `https://github.com/${repo.owner}.png`;
+                }}
+              />
+              <span>{repo.owner}/{repo.name}</span>
             </button>
           );
         },
-        size: 150,
+        size: 180,
       }),
       columnHelper.accessor('author', {
         header: 'Author',
