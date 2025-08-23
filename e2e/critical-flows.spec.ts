@@ -40,7 +40,7 @@ test.describe('Critical User Flows', () => {
   test('repository search flow', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     
-    // Wait for page to be interactive
+    // Wait for page to be interactive using proper wait condition
     await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
       // NetworkIdle might not happen in CI with mocked env
     });
@@ -62,8 +62,13 @@ test.describe('Critical User Flows', () => {
       if (buttonVisible) {
         await submitButton.click();
         
-        // Verify navigation occurred (URL changed or new content loaded)
-        await page.waitForTimeout(1000);
+        // Wait for navigation or content change instead of fixed timeout
+        await Promise.race([
+          page.waitForURL('**/facebook/react**', { timeout: 5000 }).catch(() => {}),
+          page.waitForSelector('[data-testid="loading"]', { timeout: 5000 }).catch(() => {}),
+          page.waitForSelector('text=/facebook.*react/i', { timeout: 5000 }).catch(() => {})
+        ]);
+        
         const currentUrl = page.url();
         expect(currentUrl).toContain('/'); // More flexible check
       }
@@ -91,18 +96,22 @@ test.describe('Critical User Flows', () => {
       'text=/invalid/i'
     ];
     
-    let hasErrorContent = false;
-    for (const selector of errorSelectors) {
-      const isVisible = await page.locator(selector).isVisible().catch(() => false);
-      if (isVisible) {
-        hasErrorContent = true;
-        break;
-      }
-    }
+    // Use Playwright's built-in expect for better assertions
+    const errorElements = await Promise.all(
+      errorSelectors.map(selector => 
+        page.locator(selector).isVisible().catch(() => false)
+      )
+    );
     
-    // In CI, the page might just render empty or redirect to home
-    // So we just check that the page doesn't crash
-    expect(page.url()).toBeDefined();
+    const hasErrorContent = errorElements.some(isVisible => isVisible);
+    
+    // Page should either show error content or handle gracefully
+    // In CI, the page might render empty or redirect
+    if (!hasErrorContent) {
+      // If no error content, at least verify the page loaded
+      await expect(page).toHaveURL(/.+/);
+      await expect(page.locator('body')).not.toBeEmpty();
+    }
   });
 
   test('basic navigation and responsiveness', async ({ page }) => {
