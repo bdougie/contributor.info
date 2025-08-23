@@ -27,7 +27,8 @@ import {
   ChevronsUpDown,
   ChevronUp,
   ChevronDown,
-  ExternalLink
+  ExternalLink,
+  MessageSquare
 } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { humanizeNumber } from "@/lib/utils";
@@ -131,6 +132,7 @@ export function WorkspaceIssuesTable({
             </div>
           );
         },
+        size: 100,
       }),
       columnHelper.accessor('title', {
         header: 'Issue',
@@ -189,6 +191,7 @@ export function WorkspaceIssuesTable({
             </button>
           );
         },
+        size: 150,
       }),
       columnHelper.accessor('author', {
         header: 'Author',
@@ -211,6 +214,7 @@ export function WorkspaceIssuesTable({
             </TooltipProvider>
           );
         },
+        size: 60,
       }),
       columnHelper.accessor('linked_pull_requests', {
         header: 'Linked PRs',
@@ -247,6 +251,7 @@ export function WorkspaceIssuesTable({
             </div>
           );
         },
+        size: 120,
       }),
       columnHelper.accessor('comments_count', {
         header: ({ column }) => (
@@ -256,21 +261,26 @@ export function WorkspaceIssuesTable({
             className="-ml-3 h-8 data-[state=open]:bg-accent"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
-            Comments
+            <MessageSquare className="h-4 w-4" />
             {column.getIsSorted() === 'asc' ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
+              <ChevronUp className="ml-1 h-4 w-4" />
             ) : column.getIsSorted() === 'desc' ? (
-              <ChevronDown className="ml-2 h-4 w-4" />
+              <ChevronDown className="ml-1 h-4 w-4" />
             ) : (
-              <ChevronsUpDown className="ml-2 h-4 w-4" />
+              <ChevronsUpDown className="ml-1 h-4 w-4" />
             )}
           </Button>
         ),
         cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">
-            {row.original.comments_count}
-          </span>
+          <div className="text-center">
+            <span className="text-sm text-muted-foreground">
+              {row.original.comments_count}
+            </span>
+          </div>
         ),
+        size: 60,
+        minSize: 50,
+        maxSize: 80,
       }),
       columnHelper.accessor('created_at', {
         header: ({ column }) => (
@@ -295,6 +305,7 @@ export function WorkspaceIssuesTable({
             {getRelativeTime(row.original.created_at)}
           </span>
         ),
+        size: 100,
       }),
       columnHelper.accessor('updated_at', {
         header: ({ column }) => (
@@ -319,6 +330,7 @@ export function WorkspaceIssuesTable({
             {getRelativeTime(row.original.updated_at)}
           </span>
         ),
+        size: 100,
       }),
       columnHelper.display({
         id: 'actions',
@@ -332,6 +344,7 @@ export function WorkspaceIssuesTable({
             <ExternalLink className="h-4 w-4" />
           </a>
         ),
+        size: 50,
       }),
     ],
     [onIssueClick, onRepositoryClick]
@@ -414,7 +427,15 @@ export function WorkspaceIssuesTable({
                         {headerGroup.headers.map((header) => (
                           <th
                             key={header.id}
-                            className="px-4 py-3 text-left font-medium text-sm"
+                            className={cn(
+                              "px-4 py-3 font-medium text-sm",
+                              header.column.id === 'comments_count' ? "text-center" : "text-left"
+                            )}
+                            style={{
+                              width: header.column.columnDef.size,
+                              minWidth: header.column.columnDef.minSize,
+                              maxWidth: header.column.columnDef.maxSize,
+                            }}
                           >
                             {flexRender(
                               header.column.columnDef.header,
