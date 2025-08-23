@@ -1,12 +1,19 @@
-// Mock for use-auth hook in Storybook
-import { fn } from "@storybook/test";
+// Mock for useAuth hook in Storybook
+import { fn } from '@storybook/test';
 
-export const useAuth = fn(() => ({
+// Default mock state - logged out
+let mockAuthState = {
   isLoggedIn: false,
   loading: false,
-  login: fn(),
-  logout: fn(),
-  checkSession: fn(),
-  showLoginDialog: false,
-  setShowLoginDialog: fn(),
-}));
+  user: null,
+  signInWithGitHub: fn(),
+  signOut: fn(),
+};
+
+// Function to update mock state
+export const setMockAuthState = (state: typeof mockAuthState) => {
+  mockAuthState = state;
+};
+
+// Mock hook
+export const useAuth = () => mockAuthState;
