@@ -138,19 +138,36 @@ export function WorkspaceIssuesTable({
         header: 'Issue',
         cell: ({ row }) => {
           const issue = row.original;
+          const truncatedTitle = issue.title.length > 50 
+            ? issue.title.substring(0, 50) + '...' 
+            : issue.title;
+          
           return (
             <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => onIssueClick?.(issue)}
-                  className="font-medium hover:text-primary transition-colors text-left line-clamp-1"
-                >
-                  {issue.title}
-                </button>
-                <span className="text-muted-foreground text-sm">
-                  #{issue.number}
-                </span>
-              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <a
+                      href={issue.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => {
+                        if (onIssueClick) {
+                          e.preventDefault();
+                          onIssueClick(issue);
+                        }
+                      }}
+                      className="font-medium hover:text-primary transition-colors text-left inline-flex items-center gap-1"
+                    >
+                      <span className="line-clamp-1">{truncatedTitle}</span>
+                      <span className="text-muted-foreground">#{issue.number}</span>
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-md">
+                    <p>{issue.title} #{issue.number}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               {issue.labels.length > 0 && (
                 <div className="flex gap-1 flex-wrap">
                   {issue.labels.slice(0, 3).map((label) => (

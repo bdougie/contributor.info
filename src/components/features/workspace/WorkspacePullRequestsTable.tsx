@@ -154,18 +154,35 @@ export function WorkspacePullRequestsTable({
         header: 'Pull Request',
         cell: ({ row }) => {
           const pr = row.original;
+          const truncatedTitle = pr.title.length > 50 
+            ? pr.title.substring(0, 50) + '...' 
+            : pr.title;
+          
           return (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onPullRequestClick?.(pr)}
-                className="font-medium hover:text-primary transition-colors text-left line-clamp-1"
-              >
-                {pr.title}
-              </button>
-              <span className="text-muted-foreground text-sm">
-                #{pr.number}
-              </span>
-            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <a
+                    href={pr.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      if (onPullRequestClick) {
+                        e.preventDefault();
+                        onPullRequestClick(pr);
+                      }
+                    }}
+                    className="font-medium hover:text-primary transition-colors text-left inline-flex items-center gap-1"
+                  >
+                    <span className="line-clamp-1">{truncatedTitle}</span>
+                    <span className="text-muted-foreground">#{pr.number}</span>
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-md">
+                  <p>{pr.title} #{pr.number}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           );
         },
       }),
