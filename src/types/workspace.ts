@@ -11,7 +11,21 @@ import type { Database } from '@/types/supabase';
 
 export type WorkspaceVisibility = 'public' | 'private';
 export type WorkspaceRole = 'owner' | 'admin' | 'editor' | 'viewer';
+export type WorkspaceTier = 'free' | 'pro' | 'private';
 export type InvitationStatus = 'pending' | 'accepted' | 'rejected' | 'expired';
+export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
+export type BillingCycle = 'monthly' | 'yearly';
+export type EmailType = 
+  | 'workspace_invitation'
+  | 'member_added'
+  | 'member_removed'
+  | 'role_changed'
+  | 'subscription_confirmation'
+  | 'payment_receipt'
+  | 'payment_failed'
+  | 'usage_limit_warning'
+  | 'data_retention_warning'
+  | 'workspace_summary';
 
 /**
  * Workspace settings stored in JSONB
@@ -40,6 +54,10 @@ export interface Workspace {
   description: string | null;
   owner_id: string;
   visibility: WorkspaceVisibility;
+  tier: WorkspaceTier;
+  max_repositories: number;
+  current_repository_count: number;
+  data_retention_days: number;
   settings: WorkspaceSettings;
   created_at: string;
   updated_at: string;
@@ -418,4 +436,196 @@ export const getRoleDescription = (role: WorkspaceRole): string => {
     viewer: 'Can view workspace content'
   };
   return descriptions[role];
+};
+
+// =====================================================
+// SUBSCRIPTION TYPES
+// =====================================================
+
+/**
+ * User subscription entity
+ */
+export interface Subscription {
+  id: string;
+  user_id: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  stripe_price_id: string | null;
+  tier: WorkspaceTier;
+  status: SubscriptionStatus;
+  billing_cycle: BillingCycle | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  canceled_at: string | null;
+  trial_start: string | null;
+  trial_end: string | null;
+  max_workspaces: number;
+  max_repos_per_workspace: number;
+  data_retention_days: number;
+  allows_private_repos: boolean;
+  features: {
+    priority_queue: boolean;
+    advanced_analytics: boolean;
+    api_access: boolean;
+    export_data: boolean;
+    team_collaboration: boolean;
+    custom_branding: boolean;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Usage tracking entity
+ */
+export interface UsageTracking {
+  id: string;
+  user_id: string;
+  workspace_id: string | null;
+  metric_type: 'workspace_count' | 'repository_count' | 'member_count' | 'api_calls' | 'data_queries' | 'export_count';
+  value: number;
+  period_start: string;
+  period_end: string;
+  recorded_at: string;
+}
+
+/**
+ * Billing history entity
+ */
+export interface BillingHistory {
+  id: string;
+  user_id: string;
+  subscription_id: string | null;
+  stripe_invoice_id: string | null;
+  stripe_payment_intent_id: string | null;
+  amount: number; // in cents
+  currency: string;
+  status: 'pending' | 'paid' | 'failed' | 'refunded';
+  description: string | null;
+  invoice_url: string | null;
+  receipt_url: string | null;
+  billing_date: string;
+  paid_at: string | null;
+  failed_at: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
+/**
+ * Priority queue entity
+ */
+export interface PriorityQueue {
+  id: string;
+  workspace_id: string;
+  repository_id: string;
+  priority: number; // 1-1000, lower is higher priority
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  queued_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  failed_at: string | null;
+  retry_count: number;
+  error_message: string | null;
+  capture_window_hours: number;
+  last_captured_at: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
+/**
+ * Email notification entity
+ */
+export interface EmailNotification {
+  id: string;
+  user_id: string | null;
+  workspace_id: string | null;
+  recipient_email: string;
+  email_type: EmailType;
+  resend_email_id: string | null;
+  status: 'pending' | 'sent' | 'delivered' | 'bounced' | 'failed';
+  subject: string;
+  template_data: Record<string, unknown> | null;
+  sent_at: string | null;
+  delivered_at: string | null;
+  opened_at: string | null;
+  clicked_at: string | null;
+  bounced_at: string | null;
+  created_at: string;
+}
+
+/**
+ * Tier limits configuration
+ */
+export interface TierLimits {
+  tier: WorkspaceTier;
+  max_workspaces: number;
+  max_repos_per_workspace: number;
+  max_members_per_workspace: number | null;
+  data_retention_days: number;
+  allows_private_repos: boolean;
+  priority_queue_enabled: boolean;
+  advanced_analytics: boolean;
+  api_access: boolean;
+  export_enabled: boolean;
+  custom_branding: boolean;
+  monthly_price: number | null; // in cents
+  yearly_price: number | null; // in cents
+  additional_workspace_yearly: number | null; // in cents
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Subscription upgrade request
+ */
+export interface UpgradeSubscriptionRequest {
+  tier: WorkspaceTier;
+  billing_cycle: BillingCycle;
+  payment_method_id?: string;
+}
+
+/**
+ * Check if user can create more workspaces
+ */
+export const canCreateMoreWorkspaces = (
+  subscription: Subscription | null,
+  currentWorkspaceCount: number
+): boolean => {
+  const maxWorkspaces = subscription?.max_workspaces ?? 1;
+  return currentWorkspaceCount < maxWorkspaces;
+};
+
+/**
+ * Check if workspace can add more repositories
+ */
+export const canAddMoreRepositories = (workspace: Workspace): boolean => {
+  return workspace.current_repository_count < workspace.max_repositories;
+};
+
+/**
+ * Get tier display information
+ */
+export const getTierInfo = (tier: WorkspaceTier): {
+  name: string;
+  badge: string;
+  color: string;
+} => {
+  const tierInfo = {
+    free: {
+      name: 'Free',
+      badge: '🆓',
+      color: 'gray'
+    },
+    pro: {
+      name: 'Pro',
+      badge: '💎',
+      color: 'blue'
+    },
+    private: {
+      name: 'Private',
+      badge: '🔒',
+      color: 'purple'
+    }
+  };
+  return tierInfo[tier];
 };

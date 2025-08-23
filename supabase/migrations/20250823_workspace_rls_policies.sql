@@ -69,10 +69,11 @@ CREATE POLICY "Owners can delete their workspaces"
 -- WORKSPACE_REPOSITORIES TABLE POLICIES
 -- =====================================================
 
--- View repositories in public workspaces
-CREATE POLICY "Anyone can view repositories in public workspaces"
+-- View repositories in public workspaces (requires login)
+CREATE POLICY "Logged in users can view repositories in public workspaces"
     ON workspace_repositories FOR SELECT
     USING (
+        auth.uid() IS NOT NULL AND
         EXISTS (
             SELECT 1 FROM workspaces
             WHERE workspaces.id = workspace_repositories.workspace_id

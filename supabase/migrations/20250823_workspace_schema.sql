@@ -15,6 +15,12 @@ CREATE TABLE workspaces (
     owner_id UUID NOT NULL, -- References auth.users(id) from Supabase Auth
     visibility TEXT NOT NULL DEFAULT 'public' CHECK (visibility IN ('public', 'private')),
     
+    -- Subscription and limits
+    tier TEXT NOT NULL DEFAULT 'free' CHECK (tier IN ('free', 'pro', 'private')),
+    max_repositories INTEGER NOT NULL DEFAULT 4,
+    current_repository_count INTEGER NOT NULL DEFAULT 0,
+    data_retention_days INTEGER NOT NULL DEFAULT 30,
+    
     -- Settings stored as JSONB for flexibility
     settings JSONB DEFAULT '{
         "theme": "default",
@@ -35,7 +41,8 @@ CREATE TABLE workspaces (
     -- Constraints
     CONSTRAINT workspace_slug_format CHECK (slug ~ '^[a-z0-9-]+$'),
     CONSTRAINT workspace_name_length CHECK (char_length(name) BETWEEN 3 AND 100),
-    CONSTRAINT workspace_slug_length CHECK (char_length(slug) BETWEEN 3 AND 50)
+    CONSTRAINT workspace_slug_length CHECK (char_length(slug) BETWEEN 3 AND 50),
+    CONSTRAINT workspace_repo_limit CHECK (current_repository_count <= max_repositories)
 );
 
 -- 2. Workspace repositories junction table - many-to-many relationship
