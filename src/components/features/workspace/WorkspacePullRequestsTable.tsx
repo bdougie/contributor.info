@@ -239,37 +239,27 @@ export function WorkspacePullRequestsTable({
         cell: ({ row }) => {
           const reviewers = row.original.reviewers;
           if (reviewers.length === 0) {
-            return <span className="text-sm text-muted-foreground">No reviews</span>;
+            return <span className="text-sm text-muted-foreground">-</span>;
           }
           
           const approved = reviewers.filter(r => r.approved).length;
           const pending = reviewers.length - approved;
           
           return (
-            <div className="flex items-center gap-2">
-              <div className="flex -space-x-2">
-                {reviewers.slice(0, 3).map((reviewer) => (
-                  <img
-                    key={reviewer.username}
-                    src={reviewer.avatar_url}
-                    alt={reviewer.username}
-                    className={cn(
-                      "h-6 w-6 rounded-full border-2 border-background",
-                      reviewer.approved && "ring-2 ring-green-500"
-                    )}
-                  />
-                ))}
-                {reviewers.length > 3 && (
-                  <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center">
-                    <span className="text-xs">+{reviewers.length - 3}</span>
-                  </div>
-                )}
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {approved > 0 && `${approved} approved`}
-                {approved > 0 && pending > 0 && ', '}
-                {pending > 0 && `${pending} pending`}
-              </span>
+            <div className="text-sm">
+              {approved > 0 && (
+                <span className="text-green-600 dark:text-green-400">
+                  {approved} approved
+                </span>
+              )}
+              {approved > 0 && pending > 0 && (
+                <span className="text-muted-foreground"> / </span>
+              )}
+              {pending > 0 && (
+                <span className="text-muted-foreground">
+                  {pending} pending
+                </span>
+              )}
             </div>
           );
         },
