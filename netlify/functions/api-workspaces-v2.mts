@@ -23,6 +23,7 @@ import {
   getRateLimitKey, 
   applyRateLimitHeaders 
 } from './lib/rate-limiter';
+import { sanitizeSearchInput, sanitizePaginationParams } from './lib/sanitization';
 
 // Initialize configuration
 let config: ReturnType<typeof getApiConfig>;
@@ -253,8 +254,7 @@ async function handleListWorkspaces(req: Request, user: any, path: string) {
     }
 
     if (search) {
-      // Sanitize search input to prevent injection
-      const sanitizedSearch = search.replace(/[%_]/g, '\\$&');
+      const sanitizedSearch = sanitizeSearchInput(search);
       query = query.or(`name.ilike.%${sanitizedSearch}%,description.ilike.%${sanitizedSearch}%`);
     }
 

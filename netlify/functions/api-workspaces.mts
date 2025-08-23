@@ -4,6 +4,7 @@ import type {
   CreateWorkspaceRequest, 
   UpdateWorkspaceRequest
 } from '../../src/types/workspace';
+import { sanitizeSearchInput, sanitizePaginationParams } from './lib/sanitization';
 
 // Initialize Supabase client - Use server-only env vars
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
@@ -117,14 +118,12 @@ export default async (req: Request, _context: Context) => {
           });
         } else {
           // GET /api/workspaces - List user's workspaces
-          const pageParam = url.searchParams.get('page') || '1';
-          const limitParam = url.searchParams.get('limit') || '10';
-          const page = Math.max(1, parseInt(pageParam) || 1);
-          const limit = Math.min(100, Math.max(1, parseInt(limitParam) || 10));
+          const { page, limit, offset } = sanitizePaginationParams(
+            url.searchParams.get('page'),
+            url.searchParams.get('limit')
+          );
           const visibility = url.searchParams.get('visibility') as 'public' | 'private' | null;
           const search = url.searchParams.get('search');
-          
-          const offset = (page - 1) * limit;
           
           let query = supabase
             .from('workspaces')
@@ -146,7 +145,7 @@ export default async (req: Request, _context: Context) => {
 
           if (search) {
             // Sanitize search input to prevent query manipulation
-            const sanitizedSearch = search.replace(/[%_,]/g, '\\$&');
+            const sanitizedSearch = sanitizeSearchInput(search);
             query = query.or(`name.ilike.%${sanitizedSearch}%,description.ilike.%${sanitizedSearch}%`);
           }
 
