@@ -26,6 +26,7 @@ The application now uses a **manual, user-initiated repository tracking system**
 
 ## Design
 All components should match the existing design language.
+Storybook should be leverage to build and validate ui first
 
 ## Project Planning with PRDs
 
@@ -83,7 +84,6 @@ The project uses Supabase for data persistence. Key environment variables:
 ```bash
 VITE_SUPABASE_URL=https://egcxzonpmmcirmgqdrla.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_TOKEN=your-service-role-key  # For admin operations
 ```
 
 ### Key Files for Supabase
@@ -117,7 +117,7 @@ npx supabase status
 ## Development Memories
 
 - Replaced all require() calls with proper ES module patterns in storybook
-- remember to mock external dependencies in tests
+- remember to use bulletproof testing practices, only when absolutely need in e2e tests
 - never use jest. only vitest
 - jest is leveraged in the storybook only
 - use the /docs folder for postmortems and /tasks for plans. remove plans when feature is implemented, but write docs when plans are completed

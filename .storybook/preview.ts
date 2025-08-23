@@ -1,6 +1,8 @@
 import type { Preview } from '@storybook/react-vite'
+import React from 'react'
 import '../src/index.css'
 import { theme } from './theme'
+import { SVGSpriteInliner } from '../src/components/ui/svg-sprite-loader'
 
 // Mock environment variables for Storybook
 if (!import.meta.env.VITE_SUPABASE_URL) {
@@ -169,6 +171,15 @@ const preview: Preview = {
         }
       }
       
+      // Apply dark mode based on background selection
+      const isDarkBackground = context.globals?.backgrounds?.value === '#0a0a0a' || 
+                              context.parameters?.backgrounds?.default === 'dark';
+      if (isDarkBackground) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      
       // Setup window mock for Zustand stores and other window-dependent code
       if (typeof window !== 'undefined') {
         // Ensure window.innerWidth is available for responsive Zustand stores
@@ -191,7 +202,10 @@ const preview: Preview = {
         };
       }
       
-      return Story();
+      return React.createElement(React.Fragment, {}, 
+        React.createElement(SVGSpriteInliner, {}),
+        React.createElement(Story, {})
+      );
     },
   ],
 };
