@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { 
-  LayoutDashboard, 
-  CircleDot, 
+  Layout as LayoutDashboard, 
+  Circle as CircleDot, 
   GitPullRequest, 
   Users, 
   Settings,

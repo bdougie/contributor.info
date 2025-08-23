@@ -17,9 +17,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
-  CircleDot, 
+  Circle, 
   CheckCircle2, 
-  CircleX,
+  XCircle,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -117,7 +117,7 @@ export function WorkspaceIssuesTable({
           return (
             <div className="flex items-center">
               {state === 'open' ? (
-                <CircleDot className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <Circle className="h-4 w-4 text-green-600 dark:text-green-400" />
               ) : (
                 <CheckCircle2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               )}
@@ -349,7 +349,7 @@ export function WorkspaceIssuesTable({
       <CardContent>
         {issues.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <CircleX className="h-12 w-12 text-muted-foreground mb-4" />
+            <XCircle className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground">No issues found</p>
             <p className="text-sm text-muted-foreground mt-1">
               Issues from your tracked repositories will appear here

@@ -18,9 +18,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   GitPullRequest,
-  GitMerge,
-  GitPullRequestClosed,
-  GitPullRequestDraft,
+  GitBranch,
+  XCircle,
+  FileText as GitPullRequestDraft,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -98,9 +98,9 @@ function getPRIcon(state: PullRequest['state']) {
     case 'open':
       return <GitPullRequest className="h-4 w-4 text-green-600 dark:text-green-400" />;
     case 'merged':
-      return <GitMerge className="h-4 w-4 text-purple-600 dark:text-purple-400" />;
+      return <GitBranch className="h-4 w-4 text-purple-600 dark:text-purple-400" />;
     case 'closed':
-      return <GitPullRequestClosed className="h-4 w-4 text-red-600 dark:text-red-400" />;
+      return <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />;
     case 'draft':
       return <GitPullRequestDraft className="h-4 w-4 text-gray-600 dark:text-gray-400" />;
   }
