@@ -3,8 +3,8 @@ import { fn } from '@storybook/test';
 import { BrowserRouter } from 'react-router-dom';
 import Home from './home';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
-import { useAuth } from '@/hooks/use-auth';
-import { usePrimaryWorkspace } from '@/hooks/use-user-workspaces';
+import * as useAuthMock from '../../../../.storybook/mocks/use-auth';
+import * as useUserWorkspacesMock from '../../../../.storybook/mocks/use-user-workspaces';
 
 const mockWorkspaceData: WorkspacePreviewData = {
   id: '811b5a77-ba90-4057-bc5c-18bc323d0482',
@@ -94,7 +94,7 @@ export const LoggedOut: Story = {
   },
   render: () => {
     // Mock logged out state
-    (useAuth as any).mockReturnValue({
+    useAuthMock.useAuth.mockReturnValue({
       isLoggedIn: false,
       loading: false,
       login: fn(),
@@ -105,7 +105,7 @@ export const LoggedOut: Story = {
     });
     
     // Mock no workspace state  
-    (usePrimaryWorkspace as any).mockReturnValue({
+    useUserWorkspacesMock.usePrimaryWorkspace.mockReturnValue({
       workspace: null,
       hasWorkspace: false,
       loading: false,
@@ -127,7 +127,7 @@ export const LoggedInNoWorkspace: Story = {
   },
   render: () => {
     // Mock logged in state
-    mockUseAuth.mockReturnValue({
+    useAuthMock.useAuth.mockReturnValue({
       isLoggedIn: true,
       loading: false,
       login: fn(),
@@ -138,7 +138,7 @@ export const LoggedInNoWorkspace: Story = {
     });
     
     // Mock no workspace state  
-    mockUsePrimaryWorkspace.mockReturnValue({
+    useUserWorkspacesMock.usePrimaryWorkspace.mockReturnValue({
       workspace: null,
       hasWorkspace: false,
       loading: false,
@@ -160,7 +160,7 @@ export const LoggedInWithWorkspace: Story = {
   },
   render: () => {
     // Mock logged in state
-    mockUseAuth.mockReturnValue({
+    useAuthMock.useAuth.mockReturnValue({
       isLoggedIn: true,
       loading: false,
       login: fn(),
@@ -171,7 +171,7 @@ export const LoggedInWithWorkspace: Story = {
     });
     
     // Mock workspace state  
-    mockUsePrimaryWorkspace.mockReturnValue({
+    useUserWorkspacesMock.usePrimaryWorkspace.mockReturnValue({
       workspace: mockWorkspaceData,
       hasWorkspace: true,
       loading: false,
@@ -193,7 +193,7 @@ export const WorkspaceLoading: Story = {
   },
   render: () => {
     // Mock logged in state
-    mockUseAuth.mockReturnValue({
+    useAuthMock.useAuth.mockReturnValue({
       isLoggedIn: true,
       loading: false,
       login: fn(),
@@ -204,7 +204,7 @@ export const WorkspaceLoading: Story = {
     });
     
     // Mock loading workspace state  
-    mockUsePrimaryWorkspace.mockReturnValue({
+    useUserWorkspacesMock.usePrimaryWorkspace.mockReturnValue({
       workspace: null,
       hasWorkspace: false,
       loading: true,
@@ -226,7 +226,7 @@ export const WorkspaceError: Story = {
   },
   render: () => {
     // Mock logged in state
-    mockUseAuth.mockReturnValue({
+    useAuthMock.useAuth.mockReturnValue({
       isLoggedIn: true,
       loading: false,
       login: fn(),
@@ -237,7 +237,7 @@ export const WorkspaceError: Story = {
     });
     
     // Mock error workspace state  
-    mockUsePrimaryWorkspace.mockReturnValue({
+    useUserWorkspacesMock.usePrimaryWorkspace.mockReturnValue({
       workspace: null,
       hasWorkspace: false,
       loading: false,
@@ -259,7 +259,7 @@ export const AuthLoading: Story = {
   },
   render: () => {
     // Mock auth loading state
-    mockUseAuth.mockReturnValue({
+    useAuthMock.useAuth.mockReturnValue({
       isLoggedIn: false,
       loading: true,
       login: fn(),
@@ -270,7 +270,7 @@ export const AuthLoading: Story = {
     });
     
     // Mock default workspace state  
-    mockUsePrimaryWorkspace.mockReturnValue({
+    useUserWorkspacesMock.usePrimaryWorkspace.mockReturnValue({
       workspace: null,
       hasWorkspace: false,
       loading: false,
@@ -296,7 +296,7 @@ export const LoggedInWithWorkspaceMobile: Story = {
   },
   render: () => {
     // Mock logged in state
-    mockUseAuth.mockReturnValue({
+    useAuthMock.useAuth.mockReturnValue({
       isLoggedIn: true,
       loading: false,
       login: fn(),
@@ -307,7 +307,7 @@ export const LoggedInWithWorkspaceMobile: Story = {
     });
     
     // Mock workspace state  
-    mockUsePrimaryWorkspace.mockReturnValue({
+    useUserWorkspacesMock.usePrimaryWorkspace.mockReturnValue({
       workspace: mockWorkspaceData,
       hasWorkspace: true,
       loading: false,
@@ -340,7 +340,7 @@ export const LoggedOutMobile: Story = {
   },
   render: () => {
     // Mock logged out state
-    mockUseAuth.mockReturnValue({
+    useAuthMock.useAuth.mockReturnValue({
       isLoggedIn: false,
       loading: false,
       login: fn(),
@@ -351,7 +351,7 @@ export const LoggedOutMobile: Story = {
     });
     
     // Mock no workspace state  
-    mockUsePrimaryWorkspace.mockReturnValue({
+    useUserWorkspacesMock.usePrimaryWorkspace.mockReturnValue({
       workspace: null,
       hasWorkspace: false,
       loading: false,
