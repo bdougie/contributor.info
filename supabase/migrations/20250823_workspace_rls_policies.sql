@@ -47,11 +47,22 @@ CREATE POLICY "Owners can update their workspaces"
     USING (owner_id = auth.uid())
     WITH CHECK (owner_id = auth.uid()); -- Prevent ownership transfer via UPDATE
 
--- Admins can also update workspaces
+-- Admins can also update workspaces (but cannot change ownership)
 CREATE POLICY "Admins can update workspaces"
     ON workspaces FOR UPDATE
     USING (
         EXISTS (
+            SELECT 1 FROM workspace_members
+            WHERE workspace_members.workspace_id = workspaces.id
+            AND workspace_members.user_id = auth.uid()
+            AND workspace_members.role IN ('admin', 'owner')
+            AND workspace_members.accepted_at IS NOT NULL
+        )
+    )
+    WITH CHECK (
+        -- Prevent admins from changing owner_id
+        owner_id = (SELECT owner_id FROM workspaces WHERE id = workspaces.id)
+        AND EXISTS (
             SELECT 1 FROM workspace_members
             WHERE workspace_members.workspace_id = workspaces.id
             AND workspace_members.user_id = auth.uid()
@@ -195,16 +206,16 @@ CREATE POLICY "Admins can add members"
     WITH CHECK (
         invited_by = auth.uid() AND (
             EXISTS (
-                SELECT 1 FROM workspace_members
-                WHERE workspace_members.workspace_id = workspace_members.workspace_id
-                AND workspace_members.user_id = auth.uid()
-                AND workspace_members.role IN ('admin', 'owner')
-                AND workspace_members.accepted_at IS NOT NULL
+                SELECT 1 FROM workspace_members wm
+                WHERE wm.workspace_id = workspace_members.workspace_id
+                AND wm.user_id = auth.uid()
+                AND wm.role IN ('admin', 'owner')
+                AND wm.accepted_at IS NOT NULL
             ) OR
             EXISTS (
-                SELECT 1 FROM workspaces
-                WHERE workspaces.id = workspace_members.workspace_id
-                AND workspaces.owner_id = auth.uid()
+                SELECT 1 FROM workspaces w
+                WHERE w.id = workspace_members.workspace_id
+                AND w.owner_id = auth.uid()
             )
         )
     );
@@ -215,11 +226,12 @@ CREATE POLICY "Members can update their own settings"
     USING (user_id = auth.uid())
     WITH CHECK (user_id = auth.uid());
 
--- Admins can update member roles (except owner role)
+-- Admins can update member roles (but not owner roles)
 CREATE POLICY "Admins can update member roles"
     ON workspace_members FOR UPDATE
     USING (
-        EXISTS (
+        -- Can only update if you're an admin/owner
+        (EXISTS (
             SELECT 1 FROM workspace_members wm
             WHERE wm.workspace_id = workspace_members.workspace_id
             AND wm.user_id = auth.uid()
@@ -230,9 +242,18 @@ CREATE POLICY "Admins can update member roles"
             SELECT 1 FROM workspaces
             WHERE workspaces.id = workspace_members.workspace_id
             AND workspaces.owner_id = auth.uid()
-        )
+        ))
+        -- AND the target member is not an owner (prevent demoting owners)
+        AND workspace_members.role != 'owner'
     )
-    WITH CHECK (role != 'owner'); -- Prevent non-owners from assigning owner role
+    WITH CHECK (
+        -- Prevent assigning owner role unless you're the workspace owner
+        (role != 'owner' OR EXISTS (
+            SELECT 1 FROM workspaces
+            WHERE workspaces.id = workspace_members.workspace_id
+            AND workspaces.owner_id = auth.uid()
+        ))
+    );
 
 -- Members can remove themselves
 CREATE POLICY "Members can remove themselves"

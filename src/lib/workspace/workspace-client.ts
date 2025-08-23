@@ -56,7 +56,7 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
   }
 
   // Automatically add owner as a member
-  await supabase
+  const { error: memberError } = await supabase
     .from('workspace_members')
     .insert({
       workspace_id: workspace.id,
@@ -64,6 +64,16 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
       role: 'owner',
       accepted_at: new Date().toISOString()
     });
+
+  if (memberError) {
+    // Clean up the workspace if membership creation fails
+    await supabase
+      .from('workspaces')
+      .delete()
+      .eq('id', workspace.id);
+    
+    throw new Error(`Failed to create workspace membership: ${memberError.message}`);
+  }
 
   return workspace;
 }
@@ -295,10 +305,11 @@ export async function listWorkspaceRepositories(
   }
 
   if (filters.search) {
-    query = query.or(`
-      repository.name.ilike.%${filters.search}%,
-      repository.description.ilike.%${filters.search}%
-    `);
+    // Escape special characters to prevent PostgREST injection
+    const escapedSearch = filters.search.replace(/[%_\\]/g, '\\$&');
+    query = query.or(
+      `repository.name.ilike.%${escapedSearch}%,repository.description.ilike.%${escapedSearch}%`
+    );
   }
 
   if (filters.language) {

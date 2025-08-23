@@ -63,7 +63,7 @@ This document outlines the pricing strategy for the workspace feature. This info
 
 ---
 
-### 🔒 Private Tier
+### 🔒 Enterprise Tier
 **Price:** $500/month or $4,000/year (save $2,000 annually)
 
 **Limits:**

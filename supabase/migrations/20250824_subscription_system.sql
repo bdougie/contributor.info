@@ -16,7 +16,7 @@ CREATE TABLE subscriptions (
     stripe_price_id TEXT,
     
     -- Subscription details
-    tier TEXT NOT NULL DEFAULT 'free' CHECK (tier IN ('free', 'pro', 'private')),
+    tier TEXT NOT NULL DEFAULT 'free' CHECK (tier IN ('free', 'pro', 'enterprise')),
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'canceled', 'past_due', 'trialing', 'incomplete')),
     
     -- Billing cycle
@@ -139,10 +139,7 @@ CREATE TABLE priority_queue (
     last_captured_at TIMESTAMPTZ,
     
     -- Metadata
-    metadata JSONB,
-    
-    -- Ensure unique pending item per repository
-    CONSTRAINT unique_pending_queue_item UNIQUE (repository_id, status) WHERE status = 'pending'
+    metadata JSONB
 );
 
 -- 5. Email notification tracking (for Resend integration)
@@ -184,13 +181,7 @@ CREATE TABLE email_notifications (
     bounced_at TIMESTAMPTZ,
     
     -- Metadata
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
-    -- Indexes for common queries
-    INDEX idx_email_user ON email_notifications(user_id),
-    INDEX idx_email_workspace ON email_notifications(workspace_id),
-    INDEX idx_email_type ON email_notifications(email_type),
-    INDEX idx_email_status ON email_notifications(status)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- =====================================================
@@ -198,7 +189,7 @@ CREATE TABLE email_notifications (
 -- =====================================================
 
 CREATE TABLE tier_limits (
-    tier TEXT PRIMARY KEY CHECK (tier IN ('free', 'pro', 'private')),
+    tier TEXT PRIMARY KEY CHECK (tier IN ('free', 'pro', 'enterprise')),
     
     -- Limits
     max_workspaces INTEGER NOT NULL,
@@ -234,7 +225,7 @@ INSERT INTO tier_limits (
 ) VALUES
     ('free', 1, 4, 3, 30, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, 0, 0, 0),
     ('pro', 5, 10, NULL, 90, FALSE, TRUE, TRUE, TRUE, TRUE, FALSE, 1200, 10000, 5000), -- $12/mo or $100/yr
-    ('private', 10, 10, NULL, 365, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 50000, 400000, 25000); -- $500/mo or $4000/yr
+    ('enterprise', 10, 10, NULL, 365, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 50000, 400000, 25000); -- $500/mo or $4000/yr
 
 -- =====================================================
 -- FUNCTIONS FOR SUBSCRIPTION MANAGEMENT
@@ -281,7 +272,8 @@ BEGIN
         RETURN FALSE;
     END IF;
     
-    RETURN workspace_record.current_repository_count < workspace_record.max_repositories;
+    -- Use <= to allow reaching the limit, not just approaching it
+    RETURN workspace_record.current_repository_count <= workspace_record.max_repositories;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -351,6 +343,14 @@ CREATE INDEX idx_billing_history_date ON billing_history(billing_date DESC);
 CREATE INDEX idx_priority_queue_workspace ON priority_queue(workspace_id);
 CREATE INDEX idx_priority_queue_status ON priority_queue(status, priority);
 CREATE INDEX idx_priority_queue_pending ON priority_queue(priority) WHERE status = 'pending';
+-- Ensure unique pending item per repository
+CREATE UNIQUE INDEX unique_pending_queue_item ON priority_queue(repository_id) WHERE status = 'pending';
+
+-- Email notification indexes
+CREATE INDEX idx_email_user ON email_notifications(user_id);
+CREATE INDEX idx_email_workspace ON email_notifications(workspace_id);
+CREATE INDEX idx_email_type ON email_notifications(email_type);
+CREATE INDEX idx_email_status ON email_notifications(status);
 
 -- =====================================================
 -- ROW LEVEL SECURITY POLICIES
@@ -386,6 +386,11 @@ CREATE POLICY "Service role can manage usage tracking"
 CREATE POLICY "Users can view own billing history"
     ON billing_history FOR SELECT
     USING (user_id = auth.uid());
+
+CREATE POLICY "Service role can manage billing history"
+    ON billing_history FOR ALL
+    USING (auth.role() = 'service_role')
+    WITH CHECK (auth.role() = 'service_role');
 
 -- Priority queue policies (service role only)
 CREATE POLICY "Service role manages priority queue"

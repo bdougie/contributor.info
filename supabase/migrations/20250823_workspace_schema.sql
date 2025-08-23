@@ -158,10 +158,7 @@ CREATE TABLE workspace_invitations (
     rejected_at TIMESTAMPTZ,
     
     -- Status
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected', 'expired')),
-    
-    -- Ensure unique pending invitation per email and workspace
-    CONSTRAINT unique_pending_invitation UNIQUE (workspace_id, email)
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected', 'expired'))
 );
 
 -- =====================================================
@@ -195,6 +192,8 @@ CREATE INDEX idx_invitations_workspace ON workspace_invitations(workspace_id);
 CREATE INDEX idx_invitations_email ON workspace_invitations(email) WHERE status = 'pending';
 CREATE INDEX idx_invitations_token ON workspace_invitations(invitation_token) WHERE status = 'pending';
 CREATE INDEX idx_invitations_expires ON workspace_invitations(expires_at) WHERE status = 'pending';
+-- Ensure unique pending invitation per email and workspace (partial unique index)
+CREATE UNIQUE INDEX unique_pending_invitation ON workspace_invitations(workspace_id, email) WHERE status = 'pending';
 
 -- =====================================================
 -- FUNCTIONS FOR WORKSPACE MANAGEMENT
@@ -236,8 +235,8 @@ RETURNS TRIGGER AS $$
 BEGIN
     UPDATE workspaces 
     SET last_activity_at = NOW()
-    WHERE id = NEW.workspace_id;
-    RETURN NEW;
+    WHERE id = COALESCE(NEW.workspace_id, OLD.workspace_id);
+    RETURN COALESCE(NEW, OLD);
 END;
 $$ LANGUAGE plpgsql;
 

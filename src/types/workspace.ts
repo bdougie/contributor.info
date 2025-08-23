@@ -9,7 +9,7 @@
 
 export type WorkspaceVisibility = 'public' | 'private';
 export type WorkspaceRole = 'owner' | 'admin' | 'editor' | 'viewer';
-export type WorkspaceTier = 'free' | 'pro' | 'private';
+export type WorkspaceTier = 'free' | 'pro' | 'enterprise';
 export type InvitationStatus = 'pending' | 'accepted' | 'rejected' | 'expired';
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
 export type BillingCycle = 'monthly' | 'yearly';
@@ -619,8 +619,8 @@ export const getTierInfo = (tier: WorkspaceTier): {
       badge: '💎',
       color: 'blue'
     },
-    private: {
-      name: 'Private',
+    enterprise: {
+      name: 'Enterprise',
       badge: '🔒',
       color: 'purple'
     }
