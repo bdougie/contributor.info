@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, lazy, Suspense } from "react"
 import { Loader2, MessageSquare, AlertCircle } from '@/components/ui/icon';
 import {
   Sheet,
@@ -9,9 +9,11 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import ReactMarkdown from "react-markdown";
 import { analyzePullRequests } from "@/lib/insights/pullRequests";
 import { useParams } from "react-router-dom";
+
+// Lazy load react-markdown
+const ReactMarkdown = lazy(() => import("react-markdown"));
 
 export function InsightsDrawer() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -237,7 +239,13 @@ ${
             </div>
           ) : insights ? (
             <div className="prose dark:prose-invert max-w-none">
-              <ReactMarkdown>{insights}</ReactMarkdown>
+              <Suspense fallback={
+                <div className="flex items-center justify-center h-20">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              }>
+                <ReactMarkdown>{insights}</ReactMarkdown>
+              </Suspense>
             </div>
           ) : (
             <div className="text-muted-foreground">
