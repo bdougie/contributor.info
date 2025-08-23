@@ -17,6 +17,7 @@ export interface RepositoryOption {
   name: string;
   owner: string;
   full_name: string;
+  avatar_url?: string;
   activity_count?: number; // Recent commits, PRs, issues
   last_activity?: string; // ISO date string
   language?: string;
@@ -103,18 +104,34 @@ export function RepositoryFilter({
     onSelectionChange(repositories.map(r => r.id));
   };
 
-  const getButtonLabel = () => {
+  const getButtonContent = () => {
     if (selectedRepositories.length === 0) {
-      return placeholder;
+      return <span className="truncate">{placeholder}</span>;
     }
     if (selectedRepositories.length === repositories.length) {
-      return "All Repositories";
+      return <span className="truncate">All Repositories</span>;
     }
     if (selectedRepositories.length === 1) {
       const repo = repositories.find(r => r.id === selectedRepositories[0]);
-      return repo ? repo.full_name : placeholder;
+      if (repo) {
+        const avatarUrl = repo.avatar_url || `https://github.com/${repo.owner}.png`;
+        return (
+          <div className="flex items-center gap-2">
+            <img
+              src={avatarUrl}
+              alt={repo.owner}
+              className="h-4 w-4 rounded flex-shrink-0"
+              onError={(e) => {
+                e.currentTarget.src = `https://github.com/${repo.owner}.png`;
+              }}
+            />
+            <span className="truncate">{repo.full_name}</span>
+          </div>
+        );
+      }
+      return <span className="truncate">{placeholder}</span>;
     }
-    return `${selectedRepositories.length} repositories`;
+    return <span className="truncate">{selectedRepositories.length} repositories</span>;
   };
 
   return (
@@ -128,9 +145,9 @@ export function RepositoryFilter({
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled}
       >
-        <div className="flex items-center gap-2">
-          <GitBranch className="h-4 w-4" />
-          <span className="truncate">{getButtonLabel()}</span>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <GitBranch className="h-4 w-4 flex-shrink-0" />
+          {getButtonContent()}
         </div>
         <div className="flex items-center gap-1">
           {selectedRepositories.length > 0 && (
@@ -193,6 +210,7 @@ export function RepositoryFilter({
               <div className="space-y-1">
                 {filteredRepositories.map((repo) => {
                   const isSelected = selectedRepositories.includes(repo.id);
+                  const avatarUrl = repo.avatar_url || `https://github.com/${repo.owner}.png`;
                   return (
                     <button
                       key={repo.id}
@@ -204,7 +222,7 @@ export function RepositoryFilter({
                     >
                       <div className="flex items-center gap-2 flex-1 text-left">
                         <div className={cn(
-                          "h-4 w-4 rounded border flex items-center justify-center",
+                          "h-4 w-4 rounded border flex items-center justify-center flex-shrink-0",
                           isSelected 
                             ? "bg-primary border-primary" 
                             : "border-input"
@@ -213,6 +231,14 @@ export function RepositoryFilter({
                             <Check className="h-3 w-3 text-primary-foreground" />
                           )}
                         </div>
+                        <img
+                          src={avatarUrl}
+                          alt={repo.owner}
+                          className="h-5 w-5 rounded flex-shrink-0"
+                          onError={(e) => {
+                            e.currentTarget.src = `https://github.com/${repo.owner}.png`;
+                          }}
+                        />
                         <div className="flex-1 min-w-0">
                           <div className="truncate font-medium">
                             {repo.full_name}
@@ -313,11 +339,23 @@ export function SingleRepositoryFilter({
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled}
       >
-        <div className="flex items-center gap-2">
-          <GitBranch className="h-4 w-4" />
-          <span className="truncate">
-            {selectedRepo ? selectedRepo.full_name : placeholder}
-          </span>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <GitBranch className="h-4 w-4 flex-shrink-0" />
+          {selectedRepo ? (
+            <>
+              <img
+                src={selectedRepo.avatar_url || `https://github.com/${selectedRepo.owner}.png`}
+                alt={selectedRepo.owner}
+                className="h-4 w-4 rounded flex-shrink-0"
+                onError={(e) => {
+                  e.currentTarget.src = `https://github.com/${selectedRepo.owner}.png`;
+                }}
+              />
+              <span className="truncate">{selectedRepo.full_name}</span>
+            </>
+          ) : (
+            <span className="truncate">{placeholder}</span>
+          )}
         </div>
         <div className="flex items-center gap-1">
           {selectedRepository && (
@@ -363,6 +401,7 @@ export function SingleRepositoryFilter({
               <div className="space-y-1">
                 {filteredRepositories.map((repo) => {
                   const isSelected = repo.id === selectedRepository;
+                  const avatarUrl = repo.avatar_url || `https://github.com/${repo.owner}.png`;
                   return (
                     <button
                       key={repo.id}
@@ -375,15 +414,25 @@ export function SingleRepositoryFilter({
                         isSelected && "bg-accent"
                       )}
                     >
-                      <div className="flex-1 text-left">
-                        <div className="truncate font-medium">
-                          {repo.full_name}
-                        </div>
-                        {repo.language && (
-                          <div className="text-xs text-muted-foreground">
-                            {repo.language}
+                      <div className="flex items-center gap-2 flex-1 text-left">
+                        <img
+                          src={avatarUrl}
+                          alt={repo.owner}
+                          className="h-5 w-5 rounded flex-shrink-0"
+                          onError={(e) => {
+                            e.currentTarget.src = `https://github.com/${repo.owner}.png`;
+                          }}
+                        />
+                        <div className="flex-1">
+                          <div className="truncate font-medium">
+                            {repo.full_name}
                           </div>
-                        )}
+                          {repo.language && (
+                            <div className="text-xs text-muted-foreground">
+                              {repo.language}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       {(repo.activity_count !== undefined || repo.last_activity) && (
                         <div className="flex items-center gap-2">
