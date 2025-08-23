@@ -33,8 +33,8 @@ npx playwright test critical-flows.spec.ts
 # Performance regression tests only  
 npx playwright test performance-regression.spec.ts
 
-# Mobile responsiveness
-npx playwright test --project=mobile-responsive
+# Mobile responsiveness (currently disabled - webkit not installed)
+# npx playwright test --project=mobile-responsive
 ```
 
 ## 📋 Test Files

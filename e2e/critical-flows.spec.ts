@@ -75,11 +75,19 @@ test.describe.skip('Critical User Flows', () => {
     if (await searchFilter.count() > 0) {
       await searchFilter.fill('dan');
       
-      // Results should filter without full page reload
-      await page.waitForTimeout(500); // Allow for debounced search
+      // Wait for results to update instead of fixed timeout
+      const results = page.locator('[data-testid="contributor-card"]');
+      
+      // Wait for the DOM to update with filtered results
+      await page.waitForFunction(
+        () => {
+          const cards = document.querySelectorAll('[data-testid="contributor-card"]');
+          return cards.length > 0 || document.querySelector('[data-testid="no-results"]');
+        },
+        { timeout: 2000 }
+      );
       
       // Check that results are filtered
-      const results = page.locator('[data-testid="contributor-card"]');
       if (await results.count() > 0) {
         // At least one result should be visible
         await expect(results.first()).toBeVisible();

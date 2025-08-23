@@ -70,6 +70,8 @@ test('homepage loads with performance metrics', async ({ page }) => {
 ```typescript
 test('lazy-loaded components performance', async ({ page }) => {
   // Test that lazy components don't block main thread
+  const startTime = Date.now();
+  // ... trigger lazy component loading ...
   const lazyLoadTime = Date.now() - startTime;
   expect(lazyLoadTime).toBeLessThan(2000);
 });

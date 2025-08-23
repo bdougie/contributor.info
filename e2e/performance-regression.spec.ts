@@ -1,5 +1,15 @@
 import { test, expect } from '@playwright/test';
 
+// IMPORTANT: These tests are currently skipped because the app bundle size 
+// exceeds reasonable limits (3.43MB initial JS, should be <500KB).
+// Major issues identified:
+// - Recharts: 934KB (should be lazy loaded)
+// - Inngest: 577KB (should be lazy loaded) 
+// - html2canvas: 342KB (should be lazy loaded)
+// - react-markdown: 330KB (should be lazy loaded)
+// 
+// Re-enable these tests after implementing proper code splitting.
+// The tests themselves are valuable for catching performance regressions.
 test.describe.skip('Performance Budget Guards', () => {
   test.beforeEach(async ({ page }) => {
     page.setDefaultTimeout(10000);
