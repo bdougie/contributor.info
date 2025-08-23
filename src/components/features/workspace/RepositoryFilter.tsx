@@ -168,14 +168,14 @@ export function RepositoryFilter({
         <div className="absolute z-50 mt-2 w-full rounded-md border bg-popover p-2 shadow-md">
           {/* Search Input */}
           <div className="relative mb-2">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               ref={inputRef}
               type="text"
               placeholder="Search repositories..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 h-9"
+              className="pl-10 h-9"
             />
           </div>
 
@@ -381,13 +381,13 @@ export function SingleRepositoryFilter({
       {isOpen && (
         <div className="absolute z-50 mt-2 w-full rounded-md border bg-popover p-2 shadow-md">
           <div className="relative mb-2">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Search repositories..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 h-9"
+              className="pl-10 h-9"
               autoFocus
             />
           </div>
