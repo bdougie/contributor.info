@@ -102,26 +102,26 @@ export function validateWorkspaceSettings(settings?: WorkspaceSettings): Validat
     }
 
     // Validate theme
-    if (settings.theme && !['default', 'dark', 'light'].includes(settings.theme)) {
+    if (settings.theme !== undefined && !['default', 'dark', 'light'].includes(settings.theme)) {
       errors.push({ field: 'settings.theme', message: 'Invalid theme value' });
     }
 
     // Validate dashboard layout
-    if (settings.dashboard_layout && !['grid', 'list', 'compact'].includes(settings.dashboard_layout)) {
+    if (settings.dashboard_layout !== undefined && !['grid', 'list', 'compact'].includes(settings.dashboard_layout)) {
       errors.push({ field: 'settings.dashboard_layout', message: 'Invalid dashboard layout' });
     }
 
     // Validate default time range
-    if (settings.default_time_range && !['7d', '30d', '90d', '1y'].includes(settings.default_time_range)) {
+    if (settings.default_time_range !== undefined && !['7d', '30d', '90d', '1y'].includes(settings.default_time_range)) {
       errors.push({ field: 'settings.default_time_range', message: 'Invalid default time range' });
     }
 
     // Validate custom branding
     if (settings.custom_branding) {
-      if (settings.custom_branding.logo_url && typeof settings.custom_branding.logo_url !== 'string') {
+      if (settings.custom_branding.logo_url !== undefined && typeof settings.custom_branding.logo_url !== 'string') {
         errors.push({ field: 'settings.custom_branding.logo_url', message: 'Logo URL must be a string' });
       }
-      if (settings.custom_branding.primary_color) {
+      if (settings.custom_branding.primary_color !== undefined) {
         const colorRegex = /^#[0-9A-Fa-f]{6}$/;
         if (!colorRegex.test(settings.custom_branding.primary_color)) {
           errors.push({ field: 'settings.custom_branding.primary_color', message: 'Primary color must be a valid hex color' });

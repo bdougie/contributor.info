@@ -2,17 +2,18 @@ import type { Context } from "@netlify/functions";
 import { createClient } from '@supabase/supabase-js';
 import type { AddRepositoryRequest } from '../../src/types/workspace';
 
-// Initialize Supabase client
-const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+// Initialize Supabase client - Use server-only env vars
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// CORS headers
+// CORS headers - Fixed: Cannot use wildcard with credentials
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || 'https://contributor.info',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-  'Access-Control-Allow-Credentials': 'true'
+  'Access-Control-Allow-Credentials': 'true',
+  'Vary': 'Origin'
 };
 
 // Helper to get user from Authorization header
@@ -345,10 +346,11 @@ export default async (req: Request, context: Context) => {
       }
     }
   } catch (error) {
+    // Log full error for debugging but don't expose to client
     console.error('Workspace repositories API error:', error);
     return new Response(JSON.stringify({ 
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'An unexpected error occurred. Please try again later.'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
