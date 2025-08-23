@@ -17,7 +17,7 @@ export function useGitHubAuth() {
       setLoading(true);
       // Check URL for auth tokens first and handle them manually
       // This prevents 401 errors that occur when Supabase's automatic detection fails
-      if (window.location.hash.includes('access_token')) {
+      if (typeof window !== 'undefined' && window.location?.hash?.includes('access_token')) {
         try {
           // Manually parse the hash parameters
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -40,7 +40,9 @@ export function useGitHubAuth() {
         }
         
         // Clear the URL hash after processing
-        window.history.replaceState({}, document.title, window.location.pathname);
+        if (typeof window !== 'undefined' && window.history) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
       }
       
       const { data: { session } } = await supabase.auth.getSession();
