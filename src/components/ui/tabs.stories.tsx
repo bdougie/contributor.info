@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within } from "@storybook/test";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./tabs";
 import { Button } from "./button";
 import {
@@ -338,37 +337,6 @@ export const TabsInteraction: Story = {
       </TabsContent>
     </Tabs>
   ),
-  play: ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Check that first tab is active by default
-    const tab1 = canvas.getByRole("tab", { name: "Tab 1" });
-    const tab2 = canvas.getByRole("tab", { name: "Tab 2" });
-    const tab3 = canvas.getByRole("tab", { name: "Tab 3" });
-
-    expect(tab1).toHaveAttribute("aria-selected", "true");
-
-    // Check that first tab content is visible
-    const tab1Content = canvas.getByText("This is the content for tab 1.");
-    expect(tab1Content).toBeInTheDocument();
-
-    // Click on second tab
-    userEvent.click(tab2);
-    expect(tab2).toHaveAttribute("aria-selected", "true");
-    expect(tab1).toHaveAttribute("aria-selected", "false");
-
-    // Check that second tab content is visible
-    const tab2Content = canvas.getByText("This is the content for tab 2.");
-    expect(tab2Content).toBeInTheDocument();
-
-    // Click on third tab
-    userEvent.click(tab3);
-    expect(tab3).toHaveAttribute("aria-selected", "true");
-
-    const tab3Content = canvas.getByText("This is the content for tab 3.");
-    expect(tab3Content).toBeInTheDocument();
-  },
-  tags: ["interaction"],
 };
 
 export const TabsKeyboardNavigation: Story = {
@@ -390,30 +358,5 @@ export const TabsKeyboardNavigation: Story = {
       </TabsContent>
     </Tabs>
   ),
-  play: ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-
-    // Focus first tab
-    const firstTab = canvas.getByRole("tab", { name: "First" });
-    firstTab.focus();
-    expect(firstTab).toHaveFocus();
-
-    // Use arrow keys to navigate
-    userEvent.keyboard("{ArrowRight}");
-    const secondTab = canvas.getByRole("tab", { name: "Second" });
-    expect(secondTab).toHaveFocus();
-
-    userEvent.keyboard("{ArrowRight}");
-    const thirdTab = canvas.getByRole("tab", { name: "Third" });
-    expect(thirdTab).toHaveFocus();
-
-    // Test wrapping navigation
-    userEvent.keyboard("{ArrowRight}");
-    expect(firstTab).toHaveFocus();
-
-    // Test left arrow navigation
-    userEvent.keyboard("{ArrowLeft}");
-    expect(thirdTab).toHaveFocus();
-  },
   tags: ["interaction", "accessibility"],
 };

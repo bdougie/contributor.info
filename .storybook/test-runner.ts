@@ -9,6 +9,9 @@ const config: TestRunnerConfig = {
   
   // Configure test timeouts
   testTimeout: 30000,
+  
+  // Log level for debugging
+  logLevel: 'verbose',
 };
 
 export default config;
