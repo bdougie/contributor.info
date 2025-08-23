@@ -203,4 +203,14 @@
     "vitest": "^3.1.1",
     "wait-on": "^8.0.3"
   }
+  {
+  "scripts": {
+    "setup": "npm install && supabase start && npm run db:migrate && npm run setup:verify",
+    "setup:verify": "node scripts/verify-setup.js",
+    "db:migrate": "supabase db push",
+    "db:seed": "supabase db seed",
+    "dev:all": "concurrently \"npm run dev\" \"npm run inngest:dev\"",
+    "inngest:dev": "npx inngest-cli@latest dev -u http://localhost:8888/.netlify/functions/inngest-local"
+  }
+}
 }
