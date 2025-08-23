@@ -6,7 +6,32 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from "@/components/ui/button";
 import { UPlotChart } from "@/components/ui/charts/UPlotChart";
 import type { AlignedData, Options } from "uplot";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+
+// Custom hook to detect dark mode
+function useIsDarkMode() {
+  const [isDark, setIsDark] = useState(false);
+  
+  useEffect(() => {
+    // Check initial state
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    
+    checkDarkMode();
+    
+    // Set up observer for class changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    return () => observer.disconnect();
+  }, []);
+  
+  return isDark;
+}
 
 export interface ActivityDataPoint {
   date: string;
@@ -182,8 +207,8 @@ function createCandlestickOptions(
               const maxVolume = Math.max(...Array.from(volumeData).filter((v): v is number => v != null));
               
               // Clear the volume area to remove any grid lines that extend there
-              const isDarkMode = document.documentElement.classList.contains('dark');
-              ctx.fillStyle = isDarkMode ? '#0a0a0a' : '#ffffff';
+              // Use the isDark parameter passed to createCandlestickOptions
+              ctx.fillStyle = isDark ? '#0a0a0a' : '#ffffff';
               ctx.fillRect(left, volumeTop - 2, width, volumeHeight + 4);
               
               // Draw volume bars first (behind candlesticks)
@@ -303,6 +328,7 @@ export function ActivityChart({
   onExpandToggle,
 }: ActivityChartProps) {
   const hasData = data && data.length > 0;
+  const isDarkMode = useIsDarkMode();
   const [tooltipData, setTooltipData] = useState<{
     x: number;
     y: number;
@@ -316,7 +342,7 @@ export function ActivityChart({
   
   const chartOptions = useMemo(() => {
     if (!hasData) return null;
-    const options = createCandlestickOptions(data, height, false);
+    const options = createCandlestickOptions(data, height, isDarkMode);
     
     // Add setCursor hook for tooltips
     options.hooks = {
@@ -339,7 +365,7 @@ export function ActivityChart({
     };
     
     return options;
-  }, [data, height, hasData]);
+  }, [data, height, hasData, isDarkMode]);
 
   if (loading) {
     return (

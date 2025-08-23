@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { action } from '@storybook/addon-actions';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton, type WorkspaceMetrics, type WorkspaceTrendData } from './WorkspaceDashboard';
 import type { Repository } from './RepositoryList';
 import type { ActivityDataPoint } from './ActivityChart';
@@ -225,7 +226,7 @@ export const Default: Story = {
     onAddRepository: () => toast.info('Add repository clicked'),
     onRepositoryClick: (repo) => {
       toast.info(`Navigate to /${repo.owner}/${repo.name}`);
-      console.log(`Would navigate to: /${repo.owner}/${repo.name}`);
+      action('onRepositoryClick')(`/${repo.owner}/${repo.name}`);
     },
     onSettingsClick: () => toast.info('Settings clicked'),
     onUpgradeClick: () => toast.info('Upgrade to Pro clicked'),
@@ -254,7 +255,7 @@ export const ProTier: Story = {
     onAddRepository: () => toast.info('Add repository clicked'),
     onRepositoryClick: (repo) => {
       toast.info(`Navigate to /${repo.owner}/${repo.name}`);
-      console.log(`Would navigate to: /${repo.owner}/${repo.name}`);
+      action('onRepositoryClick')(`/${repo.owner}/${repo.name}`);
     },
     onSettingsClick: () => toast.info('Settings clicked'),
   },
@@ -297,7 +298,7 @@ export const EnterpriseTier: Story = {
     onAddRepository: () => toast.info('Add repository clicked'),
     onRepositoryClick: (repo) => {
       toast.info(`Navigate to /${repo.owner}/${repo.name}`);
-      console.log(`Would navigate to: /${repo.owner}/${repo.name}`);
+      action('onRepositoryClick')(`/${repo.owner}/${repo.name}`);
     },
     onSettingsClick: () => toast.info('Settings clicked'),
   },
@@ -373,7 +374,7 @@ export const SmallWorkspace: Story = {
     onAddRepository: () => toast.info('Add repository clicked'),
     onRepositoryClick: (repo) => {
       toast.info(`Navigate to /${repo.owner}/${repo.name}`);
-      console.log(`Would navigate to: /${repo.owner}/${repo.name}`);
+      action('onRepositoryClick')(`/${repo.owner}/${repo.name}`);
     },
     onSettingsClick: () => toast.info('Settings clicked'),
     onUpgradeClick: () => toast.info('Upgrade to Pro clicked'),
@@ -407,7 +408,7 @@ export const NegativeTrends: Story = {
     onAddRepository: () => toast.info('Add repository clicked'),
     onRepositoryClick: (repo) => {
       toast.info(`Navigate to /${repo.owner}/${repo.name}`);
-      console.log(`Would navigate to: /${repo.owner}/${repo.name}`);
+      action('onRepositoryClick')(`/${repo.owner}/${repo.name}`);
     },
     onSettingsClick: () => toast.info('Settings clicked'),
   },
@@ -442,7 +443,7 @@ export const Mobile: Story = {
     onAddRepository: () => toast.info('Add repository clicked'),
     onRepositoryClick: (repo) => {
       toast.info(`Navigate to /${repo.owner}/${repo.name}`);
-      console.log(`Would navigate to: /${repo.owner}/${repo.name}`);
+      action('onRepositoryClick')(`/${repo.owner}/${repo.name}`);
     },
     onSettingsClick: () => toast.info('Settings clicked'),
     onUpgradeClick: () => toast.info('Upgrade to Pro clicked'),
@@ -470,7 +471,7 @@ export const Tablet: Story = {
     onAddRepository: () => toast.info('Add repository clicked'),
     onRepositoryClick: (repo) => {
       toast.info(`Navigate to /${repo.owner}/${repo.name}`);
-      console.log(`Would navigate to: /${repo.owner}/${repo.name}`);
+      action('onRepositoryClick')(`/${repo.owner}/${repo.name}`);
     },
     onSettingsClick: () => toast.info('Settings clicked'),
   },

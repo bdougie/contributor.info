@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { action } from '@storybook/addon-actions';
 import { RepositoryList, RepositoryListSkeleton, type Repository } from './RepositoryList';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -98,7 +99,7 @@ const InteractiveWrapper = ({
   
   const handleClick = (repo: Repository) => {
     toast.info(`Navigating to /${repo.owner}/${repo.name}`);
-    console.log(`Would navigate to: /${repo.owner}/${repo.name}`);
+    action('onRepositoryClick')(`/${repo.owner}/${repo.name}`);
   };
   
   return (
