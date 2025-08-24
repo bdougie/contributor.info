@@ -28,6 +28,7 @@ export default function Layout() {
   const { workspace, hasWorkspace, loading: workspaceLoading, refetch: refetchWorkspace } = usePrimaryWorkspace();
   
   // Prefetch handlers for navigation links
+  const trendingPrefetch = usePrefetchOnIntent('/trending');
   const changelogPrefetch = usePrefetchOnIntent('/changelog');
   const docsPrefetch = usePrefetchOnIntent('/docs');
   
@@ -86,6 +87,14 @@ export default function Layout() {
                   >
                     Home
                   </button>
+                  <Link
+                    to="/trending"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="text-base hover:text-primary transition-colors"
+                    {...trendingPrefetch}
+                  >
+                    🔥 Trending
+                  </Link>
                   <Link
                     to="/changelog"
                     onClick={() => setIsMenuOpen(false)}
