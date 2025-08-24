@@ -129,9 +129,9 @@ export function TrendingRepositoryCard({
             </Badge>
           </div>
           
-          {/* Second row: Description (mobile and desktop) */}
+          {/* Second row: Description (desktop only) */}
           {repository.description && !compact && (
-            <p className="text-sm text-muted-foreground line-clamp-2">
+            <p className="text-sm text-muted-foreground line-clamp-2 hidden sm:block">
               {repository.description}
             </p>
           )}
@@ -140,8 +140,8 @@ export function TrendingRepositoryCard({
 
       <CardContent className={cn('pt-0', compact && 'pt-0')}>
         {/* Metric Changes with Language Badge */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <MetricChange
               label="stars"
               value={repository.star_change}
