@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
-import { ExternalLink, Star, GitFork, Users, Clock, Eye } from '@/components/ui/icon';
+import { ExternalLink, Star, GitFork, User, Clock, Eye } from '@/components/ui/icon';
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Card,
@@ -18,10 +18,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
-import { useOrgRepos } from "@/hooks/use-org-repos";
+import { useUserRepos } from "@/hooks/use-user-repos";
 import { humanizeNumber } from "@/lib/utils";
-import { OrganizationAvatar } from "@/components/ui/organization-avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Breadcrumbs } from "@/components/common/layout/breadcrumbs";
 import { avatarCache } from "@/lib/avatar-cache";
 
@@ -169,29 +168,32 @@ const RepositoryRow = ({ repo }: { repo: RepositoryWithTracking }) => {
   );
 };
 
-const RequestMoreReposCTA = ({ org }: { org: string }) => {
-  const handleRequestMoreRepos = () => {
-    const discussionUrl = `https://github.com/bdougie/contributor.info/discussions/new?category=request-a-repo&title=Request%20more%20repositories%20for%20${encodeURIComponent(org)}&body=I'd%20like%20to%20request%20additional%20repositories%20from%20the%20${encodeURIComponent(org)}%20organization%20to%20be%20tracked%3A%0A%0A%5BList%20specific%20repositories%20or%20describe%20the%20type%20of%20repositories%20you're%20interested%20in%5D`;
-    window.open(discussionUrl, '_blank', 'noopener,noreferrer');
-    
-    toast.success("Request submitted!", {
-      description: "Let us know which specific repositories you'd like to see tracked."
-    });
-  };
-
+const CollaborationNotice = ({ username }: { username: string }) => {
   return (
-    <Card className="mt-6">
+    <Card className="mt-6 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/50">
       <CardContent className="pt-6">
         <div className="text-center space-y-4">
           <div>
-            <h3 className="text-lg font-semibold">Looking for specific repositories?</h3>
-            <p className="text-muted-foreground">
-              We're showing the most active repositories for {org}. Request specific repos to be tracked.
+            <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">
+              Optimized for Collaboration
+            </h3>
+            <p className="text-blue-700 dark:text-blue-300">
+              This product focuses on collaborative projects. We only show repositories from {username} that have stars, forks, or active pull request activity, as these indicate collaborative development.
             </p>
           </div>
-          <Button onClick={handleRequestMoreRepos} className="gap-2">
-            <ExternalLink className="w-4 h-4" />
-            Request Specific Repositories
+          <Button 
+            variant="outline" 
+            className="gap-2 border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/30"
+            asChild
+          >
+            <a
+              href={`https://github.com/${username}?tab=repositories`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink className="w-4 h-4" />
+              View All Repositories on GitHub
+            </a>
           </Button>
         </div>
       </CardContent>
@@ -199,33 +201,33 @@ const RequestMoreReposCTA = ({ org }: { org: string }) => {
   );
 };
 
-export default function OrgView() {
-  const { username: org } = useParams<{ username: string }>();
+export default function UserView() {
+  const { username } = useParams<{ username: string }>();
   const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
   const [cachedAvatarUrl, setCachedAvatarUrl] = useState<string | null>(null);
   
-  const { repositories, orgData, isLoading, error } = useOrgRepos(org);
+  const { repositories, userData, isLoading, error } = useUserRepos(username);
 
   // Check for cached avatar URL on mount
   useEffect(() => {
-    if (org) {
-      const cached = avatarCache.get(org);
+    if (username) {
+      const cached = avatarCache.get(username);
       if (cached) {
         setCachedAvatarUrl(cached);
         // Preload the image to browser cache
         avatarCache.preload(cached);
       }
     }
-  }, [org]);
+  }, [username]);
 
-  // Cache the avatar URL when we get org data
+  // Cache the avatar URL when we get user data
   useEffect(() => {
-    if (orgData?.avatar_url && org) {
-      avatarCache.set(org, orgData.avatar_url);
+    if (userData?.avatar_url && username) {
+      avatarCache.set(username, userData.avatar_url);
       // Preload for next visit
-      avatarCache.preload(orgData.avatar_url);
+      avatarCache.preload(userData.avatar_url);
     }
-  }, [orgData, org]);
+  }, [userData, username]);
   
   const displayedRepos = useMemo(() => {
     return repositories.slice(0, displayCount);
@@ -244,9 +246,9 @@ export default function OrgView() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
-              <h2 className="text-xl font-semibold text-destructive">Error Loading Organization</h2>
+              <h2 className="text-xl font-semibold text-destructive">Error Loading User</h2>
               <p className="text-muted-foreground">
-                {error.message || `Unable to load repositories for ${org}. Please check if the organization exists.`}
+                {error.message || `Unable to load repositories for ${username}. Please check if the user exists.`}
               </p>
               <Button asChild>
                 <Link to="/">Return to Home</Link>
@@ -264,28 +266,28 @@ export default function OrgView() {
       <Breadcrumbs />
       
       {/* Header */}
-      <div className="space-y-4 org-header">
+      <div className="space-y-4 user-header">
         <div className="flex items-center gap-3">
-          <div className="org-avatar-container">
-            {/* Use cached avatar URL immediately if available, fall back to orgData */}
-            {(cachedAvatarUrl || orgData?.avatar_url) ? (
-              <OrganizationAvatar
-                src={cachedAvatarUrl || orgData?.avatar_url || ''}
-                alt={orgData?.name || org || ''}
+          <div className="user-avatar-container">
+            {/* Use cached avatar URL immediately if available, fall back to userData */}
+            {(cachedAvatarUrl || userData?.avatar_url) ? (
+              <UserAvatar
+                src={cachedAvatarUrl || userData?.avatar_url || ''}
+                alt={userData?.name || username || ''}
                 size={48}
                 priority={true}
-                lazy={false} // Always load immediately for org avatar
+                lazy={false} // Always load immediately for user avatar
               />
             ) : (
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md flex items-center justify-center text-white font-bold text-lg">
-                {org?.charAt(0)?.toUpperCase() || '?'}
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                {username?.charAt(0)?.toUpperCase() || '?'}
               </div>
             )}
           </div>
           <div>
-            <h1 className="text-3xl font-bold">{orgData?.name || org}</h1>
+            <h1 className="text-3xl font-bold">{userData?.name || username}</h1>
             <p className="text-muted-foreground">
-              Most active repositories from this GitHub organization
+              {userData?.bio || "Collaborative projects from this GitHub user"}
             </p>
           </div>
         </div>
@@ -295,12 +297,12 @@ export default function OrgView() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Repositories
+            <User className="w-5 h-5" />
+            Collaborative Repositories
             <div className="ml-auto repo-count-badge">
               {!isLoading ? (
                 <Badge variant="secondary">
-                  {repositories.length} total
+                  {repositories.length} collaborative
                 </Badge>
               ) : (
                 <div className="h-6 w-16 skeleton-loading rounded" />
@@ -308,7 +310,7 @@ export default function OrgView() {
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="org-repos-table">
+        <CardContent className="user-repos-table">
           {isLoading ? (
             <div className="space-y-4">
               <Table>
@@ -389,22 +391,22 @@ export default function OrgView() {
               
               {hasMoreRepos && displayCount >= MAX_DISPLAY_COUNT && (
                 <div className="mt-4 text-center text-sm text-muted-foreground">
-                  Showing most active repositories. Use the request form below for specific repositories.
+                  Showing most collaborative repositories. View GitHub profile for all repositories.
                 </div>
               )}
             </>
           ) : (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">No repositories found for this organization.</p>
+              <p className="text-muted-foreground">No collaborative repositories found for this user.</p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Request More Repositories CTA */}
-      <div className="org-cta-section">
-        {!isLoading && repositories.length > 0 && (
-          <RequestMoreReposCTA org={org || ""} />
+      {/* Collaboration Notice */}
+      <div className="user-cta-section">
+        {!isLoading && (
+          <CollaborationNotice username={username || ""} />
         )}
       </div>
     </div>
