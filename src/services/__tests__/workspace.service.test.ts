@@ -1,0 +1,610 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { WorkspaceService } from '../workspace.service';
+import { supabase } from '@/lib/supabase';
+import type {
+  CreateWorkspaceRequest,
+  UpdateWorkspaceRequest,
+  AddRepositoryRequest,
+  Workspace
+} from '@/types/workspace';
+
+// Mock Supabase
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    from: vi.fn(),
+    rpc: vi.fn()
+  }
+}));
+
+describe('WorkspaceService', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  describe('createWorkspace', () => {
+    const mockUserId = 'user-123';
+    const mockWorkspaceData: CreateWorkspaceRequest = {
+      name: 'Test Workspace',
+      description: 'Test Description',
+      visibility: 'public'
+    };
+
+    it('should create a workspace successfully with free tier limits', async () => {
+      // Mock workspace count check
+      const fromMock = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            count: 0,
+            error: null
+          })
+        })
+      });
+
+      // Mock subscription check (no subscription = free tier)
+      const subscriptionMock = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: null,
+                error: null
+              })
+            })
+          })
+        })
+      });
+
+      // Mock slug generation
+      const rpcMock = vi.fn().mockResolvedValue({
+        data: 'test-workspace',
+        error: null
+      });
+
+      // Mock workspace creation
+      const createMock = vi.fn().mockReturnValue({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: {
+                id: 'workspace-123',
+                name: 'Test Workspace',
+                tier: 'free',
+                max_repositories: 4,
+                current_repository_count: 0
+              },
+              error: null
+            })
+          })
+        })
+      });
+
+      // Mock member creation
+      const memberMock = vi.fn().mockReturnValue({
+        insert: vi.fn().mockResolvedValue({
+          error: null
+        })
+      });
+
+      // Setup mocks
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
+        if (table === 'workspaces' && !createMock.mock.calls.length) {
+          return fromMock() as any;
+        }
+        if (table === 'subscriptions') {
+          return subscriptionMock() as any;
+        }
+        if (table === 'workspaces' && createMock.mock.calls.length === 0) {
+          createMock();
+          return createMock() as any;
+        }
+        if (table === 'workspace_members') {
+          return memberMock() as any;
+        }
+        return fromMock() as any;
+      });
+
+      vi.mocked(supabase.rpc).mockImplementation(rpcMock as any);
+
+      // Execute
+      const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(result.data?.tier).toBe('free');
+      expect(result.data?.max_repositories).toBe(4);
+      expect(result.data?.current_repository_count).toBe(0);
+      expect(result.statusCode).toBe(201);
+    });
+
+    it('should create workspace with pro tier limits for pro users', async () => {
+      // Mock workspace count check
+      const fromMock = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            count: 0,
+            error: null
+          })
+        })
+      });
+
+      // Mock pro subscription
+      const subscriptionMock = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: {
+                  tier: 'pro',
+                  max_workspaces: 5,
+                  max_repos_per_workspace: 10
+                },
+                error: null
+              })
+            })
+          })
+        })
+      });
+
+      // Mock slug generation
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: 'test-workspace',
+        error: null
+      } as any);
+
+      // Mock workspace creation with pro tier
+      const createMock = vi.fn().mockReturnValue({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: {
+                id: 'workspace-123',
+                name: 'Test Workspace',
+                tier: 'pro',
+                max_repositories: 10,
+                current_repository_count: 0,
+                data_retention_days: 90
+              },
+              error: null
+            })
+          })
+        })
+      });
+
+      // Setup mocks
+      let callCount = 0;
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
+        if (table === 'workspaces' && callCount === 0) {
+          callCount++;
+          return fromMock() as any;
+        }
+        if (table === 'subscriptions') {
+          return subscriptionMock() as any;
+        }
+        if (table === 'workspaces') {
+          return createMock() as any;
+        }
+        if (table === 'workspace_members') {
+          return {
+            insert: vi.fn().mockResolvedValue({ error: null })
+          } as any;
+        }
+        return {} as any;
+      });
+
+      // Execute
+      const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(result.data?.tier).toBe('pro');
+      expect(result.data?.max_repositories).toBe(10);
+      expect(result.data?.data_retention_days).toBe(90);
+    });
+
+    it('should reject workspace creation when limit is reached', async () => {
+      // Mock workspace count at limit
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            count: 1, // At free tier limit
+            error: null
+          })
+        })
+      } as any);
+
+      // Mock no subscription (free tier)
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: null,
+                error: null
+              })
+            })
+          })
+        })
+      } as any);
+
+      // Execute
+      const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+
+      // Assert
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('reached the limit');
+      expect(result.statusCode).toBe(403);
+    });
+
+    it('should handle validation errors', async () => {
+      const invalidData: CreateWorkspaceRequest = {
+        name: '', // Invalid: empty name
+        description: 'Test',
+        visibility: 'public'
+      };
+
+      // Execute
+      const result = await WorkspaceService.createWorkspace(mockUserId, invalidData);
+
+      // Assert
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Name is required');
+      expect(result.statusCode).toBe(400);
+    });
+  });
+
+  describe('addRepositoryToWorkspace', () => {
+    const mockWorkspaceId = 'workspace-123';
+    const mockUserId = 'user-123';
+    const mockRepoData: AddRepositoryRequest = {
+      repository_id: 'repo-123',
+      notes: 'Test repository',
+      tags: ['test'],
+      is_pinned: false
+    };
+
+    it('should add repository when under limit', async () => {
+      // Mock permission check
+      const permissionCheckSpy = vi.spyOn(WorkspaceService, 'checkPermission');
+      permissionCheckSpy.mockResolvedValue({
+        hasPermission: true,
+        role: 'owner'
+      });
+
+      // Mock existing repo check
+      const existingRepoMock = {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: null, // No existing repo
+                error: null
+              })
+            })
+          })
+        })
+      };
+
+      // Mock workspace limit check
+      const workspaceMock = {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: {
+                max_repositories: 4,
+                current_repository_count: 2 // Under limit
+              },
+              error: null
+            })
+          })
+        })
+      };
+
+      // Mock add repository
+      const addRepoMock = {
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: {
+                id: 'workspace-repo-123',
+                workspace_id: mockWorkspaceId,
+                repository_id: mockRepoData.repository_id
+              },
+              error: null
+            })
+          })
+        })
+      };
+
+      // Mock update workspace count
+      const updateMock = {
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            error: null
+          })
+        })
+      };
+
+      // Setup mocks
+      let callCount = 0;
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
+        if (table === 'workspace_repositories' && callCount === 0) {
+          callCount++;
+          return existingRepoMock as any;
+        }
+        if (table === 'workspaces' && callCount === 1) {
+          callCount++;
+          return workspaceMock as any;
+        }
+        if (table === 'workspace_repositories') {
+          return addRepoMock as any;
+        }
+        if (table === 'workspaces') {
+          return updateMock as any;
+        }
+        return {} as any;
+      });
+
+      // Execute
+      const result = await WorkspaceService.addRepositoryToWorkspace(
+        mockWorkspaceId,
+        mockUserId,
+        mockRepoData
+      );
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(result.data?.repository_id).toBe(mockRepoData.repository_id);
+      expect(result.statusCode).toBe(201);
+    });
+
+    it('should reject when repository limit is reached', async () => {
+      // Mock permission check
+      const permissionCheckSpy = vi.spyOn(WorkspaceService, 'checkPermission');
+      permissionCheckSpy.mockResolvedValue({
+        hasPermission: true,
+        role: 'owner'
+      });
+
+      // Mock existing repo check
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: null,
+                error: null
+              })
+            })
+          })
+        })
+      } as any);
+
+      // Mock workspace at limit
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: {
+                max_repositories: 4,
+                current_repository_count: 4 // At limit
+              },
+              error: null
+            })
+          })
+        })
+      } as any);
+
+      // Execute
+      const result = await WorkspaceService.addRepositoryToWorkspace(
+        mockWorkspaceId,
+        mockUserId,
+        mockRepoData
+      );
+
+      // Assert
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Repository limit reached');
+      expect(result.statusCode).toBe(403);
+    });
+
+    it('should reject duplicate repository', async () => {
+      // Mock permission check
+      const permissionCheckSpy = vi.spyOn(WorkspaceService, 'checkPermission');
+      permissionCheckSpy.mockResolvedValue({
+        hasPermission: true,
+        role: 'owner'
+      });
+
+      // Mock existing repo found
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: 'existing-repo' }, // Repository exists
+                error: null
+              })
+            })
+          })
+        })
+      } as any);
+
+      // Execute
+      const result = await WorkspaceService.addRepositoryToWorkspace(
+        mockWorkspaceId,
+        mockUserId,
+        mockRepoData
+      );
+
+      // Assert
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('already exists');
+      expect(result.statusCode).toBe(409);
+    });
+
+    it('should reject when user lacks permissions', async () => {
+      // Mock permission check - no permission
+      const permissionCheckSpy = vi.spyOn(WorkspaceService, 'checkPermission');
+      permissionCheckSpy.mockResolvedValue({
+        hasPermission: false
+      });
+
+      // Execute
+      const result = await WorkspaceService.addRepositoryToWorkspace(
+        mockWorkspaceId,
+        mockUserId,
+        mockRepoData
+      );
+
+      // Assert
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Insufficient permissions');
+      expect(result.statusCode).toBe(403);
+    });
+  });
+
+  describe('updateWorkspace', () => {
+    const mockWorkspaceId = 'workspace-123';
+    const mockUserId = 'user-123';
+    const updateData: UpdateWorkspaceRequest = {
+      name: 'Updated Name',
+      description: 'Updated Description'
+    };
+
+    it('should update workspace successfully', async () => {
+      // Mock permission check
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { role: 'owner' },
+                error: null
+              })
+            })
+          })
+        })
+      } as any);
+
+      // Mock update
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: {
+                  id: mockWorkspaceId,
+                  name: 'Updated Name',
+                  description: 'Updated Description'
+                },
+                error: null
+              })
+            })
+          })
+        })
+      } as any);
+
+      // Execute
+      const result = await WorkspaceService.updateWorkspace(
+        mockWorkspaceId,
+        mockUserId,
+        updateData
+      );
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(result.data?.name).toBe('Updated Name');
+      expect(result.statusCode).toBe(200);
+    });
+
+    it('should reject update without proper permissions', async () => {
+      // Mock permission check - viewer role
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { role: 'viewer' },
+                error: null
+              })
+            })
+          })
+        })
+      } as any);
+
+      // Execute
+      const result = await WorkspaceService.updateWorkspace(
+        mockWorkspaceId,
+        mockUserId,
+        updateData
+      );
+
+      // Assert
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Insufficient permissions');
+      expect(result.statusCode).toBe(403);
+    });
+  });
+
+  describe('removeRepositoryFromWorkspace', () => {
+    const mockWorkspaceId = 'workspace-123';
+    const mockRepositoryId = 'repo-123';
+    const mockUserId = 'user-123';
+
+    it('should remove repository and update count', async () => {
+      // Mock permission check
+      const permissionCheckSpy = vi.spyOn(WorkspaceService, 'checkPermission');
+      permissionCheckSpy.mockResolvedValue({
+        hasPermission: true,
+        role: 'owner'
+      });
+
+      // Mock delete repository
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        delete: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({
+              error: null
+            })
+          })
+        })
+      } as any);
+
+      // Mock get current count
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { current_repository_count: 3 },
+              error: null
+            })
+          })
+        })
+      } as any);
+
+      // Mock update count
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            error: null
+          })
+        })
+      } as any);
+
+      // Execute
+      const result = await WorkspaceService.removeRepositoryFromWorkspace(
+        mockWorkspaceId,
+        mockRepositoryId,
+        mockUserId
+      );
+
+      // Assert
+      expect(result.success).toBe(true);
+      expect(result.statusCode).toBe(200);
+    });
+  });
+});
