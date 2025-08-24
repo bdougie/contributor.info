@@ -59,7 +59,7 @@ const ConfidenceAnalyticsDashboard = lazy(() => import("@/components/features/ad
 const AdminAnalyticsDashboard = lazy(() => import("@/components/features/admin").then(m => ({ default: m.AdminAnalyticsDashboard })));
 const LLMCitationDashboard = lazy(() => import("@/components/features/analytics/llm-citation-dashboard").then(m => ({ default: m.LLMCitationDashboard })));
 const CaptureHealthMonitor = lazy(() => import("@/components/CaptureHealthMonitor").then(m => ({ default: m.CaptureHealthMonitor })));
-const OrgView = lazy(() => import("@/pages/org-view"));
+const ProfileRouter = lazy(() => import("@/components/features/profiles/profile-router"));
 const WidgetsPage = lazy(() => import("@/pages/widgets"));
 
 // Loading fallback component matching actual app structure
@@ -471,8 +471,9 @@ function App() {
                 } />
               </Route>
               
-              {/* Organization view - after repo routes to prevent intercepting repo patterns */}
-              <Route path="/:org" element={<OrgView />} />
+              {/* Profile view - after repo routes to prevent intercepting repo patterns */}
+              {/* Automatically detects if profile is user or organization */}
+              <Route path="/:profile" element={<ProfileRouter />} />
               
               <Route path="*" element={<NotFound />} />
             </Route>
