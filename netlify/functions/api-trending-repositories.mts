@@ -53,7 +53,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       limit: Math.min(parseInt(params.get('limit') || '50'), 100), // Cap at 100
       language: params.get('language') || undefined,
       minStars: parseInt(params.get('minStars') || '0'),
-      sort: (params.get('sort') as any) || 'trending_score',
+      sort: (params.get('sort') as 'trending_score' | 'star_change' | 'pr_change' | 'contributor_change') || 'trending_score',
     };
 
     // Convert period to interval
@@ -129,7 +129,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       generated_at: new Date().toISOString(),
     };
 
-    console.log(`Returning ${response.repositories.length} trending repositories`);
+    console.log('Returning %d trending repositories', response.repositories.length);
 
     return {
       statusCode: 200,
