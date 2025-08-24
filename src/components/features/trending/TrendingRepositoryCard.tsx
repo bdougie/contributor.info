@@ -130,9 +130,9 @@ export function TrendingRepositoryCard({
       </CardHeader>
 
       <CardContent className={cn('pt-0', compact && 'pt-0')}>
-        {/* Metric Changes with Language Badge */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <div className="flex flex-col gap-2">
+          {/* Mobile: Metrics on top row */}
+          <div className="flex items-center gap-2 sm:hidden">
             <MetricChange
               label="stars"
               value={repository.star_change}
@@ -152,8 +152,9 @@ export function TrendingRepositoryCard({
               formatValue={formatPercentage}
             />
           </div>
-          {/* Trending score and Language badges */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          
+          {/* Mobile: Badges on bottom row */}
+          <div className="flex items-center justify-between sm:hidden">
             <Badge variant="secondary" className="flex items-center gap-1 text-xs">
               <TrendingUp className="w-3 h-3" />
               <span>{Math.round(repository.trending_score)}</span>
@@ -163,6 +164,42 @@ export function TrendingRepositoryCard({
                 {repository.language}
               </Badge>
             )}
+          </div>
+
+          {/* Desktop: Original layout */}
+          <div className="hidden sm:flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3">
+              <MetricChange
+                label="stars"
+                value={repository.star_change}
+                icon={Star}
+                formatValue={formatPercentage}
+              />
+              <MetricChange
+                label="PRs"
+                value={repository.pr_change}
+                icon={GitPullRequest}
+                formatValue={formatPercentage}
+              />
+              <MetricChange
+                label="contributors"
+                value={repository.contributor_change}
+                icon={Users}
+                formatValue={formatPercentage}
+              />
+            </div>
+            {/* Desktop badges */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                <TrendingUp className="w-3 h-3" />
+                <span>{Math.round(repository.trending_score)}</span>
+              </Badge>
+              {repository.language && (
+                <Badge variant="outline" className="text-xs">
+                  {repository.language}
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>
