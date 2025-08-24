@@ -110,24 +110,27 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
     <div className={className}>
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
-              <Zap className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+        <div className="mb-6 sm:mb-8">
+          <div className="flex items-start sm:items-center gap-3 mb-4">
+            <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex-shrink-0">
+              <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 dark:text-orange-400" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Trending Repositories</h1>
-              <p className="text-muted-foreground">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Trending Repositories</h1>
+              <p className="text-sm sm:text-base text-muted-foreground hidden sm:block">
                 Discover repositories with significant recent activity and growth
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Calendar className="w-4 h-4" />
-            <span>Showing trends for {getTimePeriodLabel(timePeriod).toLowerCase()}</span>
-            <Badge variant="secondary" className="ml-2">
-              {filteredRepos.length} repositories
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              <span className="hidden sm:inline">Showing trends for {getTimePeriodLabel(timePeriod).toLowerCase()}</span>
+              <span className="sm:hidden">{getTimePeriodLabel(timePeriod)}</span>
+            </div>
+            <Badge variant="secondary">
+              {filteredRepos.length} {filteredRepos.length === 1 ? 'repo' : 'repos'}
             </Badge>
           </div>
         </div>
@@ -135,22 +138,22 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
         {/* Controls */}
         <div className="mb-6">
           <Tabs value={timePeriod} onValueChange={(value) => setTimePeriod(value as TimePeriod)}>
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <TabsList className="w-fit">
-                <TabsTrigger value="24h" className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
-                  24h
+            <div className="flex flex-col gap-4 mb-6">
+              <TabsList className="w-full sm:w-fit">
+                <TabsTrigger value="24h" className="flex-1 sm:flex-none flex items-center gap-1 sm:gap-2">
+                  <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span>24h</span>
                 </TabsTrigger>
-                <TabsTrigger value="7d" className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />
-                  7d
+                <TabsTrigger value="7d" className="flex-1 sm:flex-none flex items-center gap-1 sm:gap-2">
+                  <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span>7d</span>
                 </TabsTrigger>
-                <TabsTrigger value="30d">30d</TabsTrigger>
+                <TabsTrigger value="30d" className="flex-1 sm:flex-none">30d</TabsTrigger>
               </TabsList>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-full sm:w-[180px]">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
@@ -162,7 +165,7 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
                 </Select>
 
                 <Select value={languageFilter} onValueChange={setLanguageFilter}>
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="w-full sm:w-[140px]">
                     <SelectValue placeholder="Language" />
                   </SelectTrigger>
                   <SelectContent>

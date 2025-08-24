@@ -53,7 +53,7 @@ function MetricChange({ label, value, icon: Icon, formatValue }: MetricChangePro
       )}
       <Icon className="w-3 h-3" />
       <span>{isPositive ? '+' : '-'}{displayValue}</span>
-      <span className="text-muted-foreground">{label}</span>
+      <span className="text-muted-foreground hidden sm:inline">{label}</span>
     </div>
   );
 }
@@ -80,8 +80,9 @@ export function TrendingRepositoryCard({
   return (
     <Card className={cn('hover:shadow-md transition-shadow', className)}>
       <CardHeader className={cn('pb-3', compact && 'pb-2')}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="space-y-3">
+          {/* First row: Avatar, repo name, and badges */}
+          <div className="flex items-start gap-3">
             <OptimizedAvatar
               src={repository.avatar_url}
               alt={repository.owner}
@@ -90,77 +91,85 @@ export function TrendingRepositoryCard({
               className="flex-shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <a
-                href={repository.html_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:underline"
-              >
-                <h3 className={cn(
-                  'font-semibold truncate',
-                  compact ? 'text-sm' : 'text-base'
-                )}>
-                  {repository.owner}/{repository.name}
-                </h3>
-              </a>
-              {repository.description && !compact && (
-                <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                  {repository.description}
-                </p>
-              )}
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                <a
+                  href={repository.html_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline min-w-0"
+                >
+                  <h3 className={cn(
+                    'font-semibold truncate',
+                    compact ? 'text-sm' : 'text-base'
+                  )}>
+                    {repository.owner}/{repository.name}
+                  </h3>
+                </a>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                    <TrendingUp className="w-3 h-3" />
+                    <span className="hidden sm:inline">{Math.round(repository.trending_score)}</span>
+                    <span className="sm:hidden">{Math.round(repository.trending_score)}</span>
+                  </Badge>
+                  {repository.language && (
+                    <Badge variant="outline" className="text-xs hidden sm:inline-flex">
+                      {repository.language}
+                    </Badge>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              {Math.round(repository.trending_score)}
-            </Badge>
-            {repository.language && (
-              <Badge variant="outline" className="text-xs">
-                {repository.language}
-              </Badge>
-            )}
-          </div>
+          
+          {/* Second row: Description (mobile and desktop) */}
+          {repository.description && !compact && (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {repository.description}
+            </p>
+          )}
         </div>
       </CardHeader>
 
       <CardContent className={cn('pt-0', compact && 'pt-0')}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Star className="w-4 h-4" />
-              <span>{repository.stars.toLocaleString()}</span>
-            </div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Star className="w-4 h-4" />
+            <span>{repository.stars.toLocaleString()}</span>
           </div>
           
           {showDataFreshness && (
             <DataFreshnessIndicator 
               freshness={calculateFreshness(repository.last_activity)}
               lastUpdate={repository.last_activity}
+              className="hidden sm:flex"
             />
           )}
         </div>
 
-        {/* Metric Changes */}
-        <div className="flex flex-wrap gap-3 mt-3">
+        {/* Metric Changes - More compact on mobile */}
+        <div className="flex items-center gap-2 sm:gap-3">
           <MetricChange
             label="stars"
             value={repository.star_change}
             icon={Star}
             formatValue={formatPercentage}
           />
-          <MetricChange
-            label="PRs"
-            value={repository.pr_change}
-            icon={GitPullRequest}
-            formatValue={formatPercentage}
-          />
-          <MetricChange
-            label="contributors"
-            value={repository.contributor_change}
-            icon={Users}
-            formatValue={formatPercentage}
-          />
+          {repository.pr_change > 0 && (
+            <MetricChange
+              label="PRs"
+              value={repository.pr_change}
+              icon={GitPullRequest}
+              formatValue={formatPercentage}
+            />
+          )}
+          {repository.contributor_change > 0 && (
+            <MetricChange
+              label="contributors"
+              value={repository.contributor_change}
+              icon={Users}
+              formatValue={formatPercentage}
+            />
+          )}
         </div>
       </CardContent>
     </Card>
