@@ -56,7 +56,7 @@ export function WorkspaceDashboard({
   repositories,
   loading = false,
   tier: _tier = 'free',
-  onAddRepository: _onAddRepository,
+  onAddRepository,
   onRepositoryClick,
   onSettingsClick: _onSettingsClick,
   onUpgradeClick: _onUpgradeClick,
@@ -198,6 +198,7 @@ export function WorkspaceDashboard({
         loading={loading}
         onRepositoryClick={onRepositoryClick}
         onPinToggle={handlePinToggle}
+        onAddRepository={onAddRepository}
         emptyMessage={
           repositories.length === 0 
             ? "No repositories in this workspace yet. Add your first repository to start tracking activity."

@@ -35,6 +35,9 @@ interface WorkspaceData {
   owner_id: string;
   created_at: string;
   visibility: string;
+  tier: 'free' | 'pro' | 'enterprise';
+  max_repositories: number;
+  current_repository_count: number;
   settings: any;
 }
 
@@ -1320,7 +1323,7 @@ export default function WorkspacePage() {
               <TimeRangeSelector
                 value={timeRange}
                 onChange={setTimeRange}
-                tier="free"
+                tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
                 onUpgradeClick={handleUpgradeClick}
                 variant="select"
               />
@@ -1399,7 +1402,7 @@ export default function WorkspacePage() {
             trendData={trendData}
             activityData={activityData}
             repositories={repositories}
-            tier="free"
+            tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
             onAddRepository={handleAddRepository}
             onRepositoryClick={handleRepositoryClick}
             onSettingsClick={handleSettingsClick}
@@ -1435,29 +1438,31 @@ export default function WorkspacePage() {
       </div>
 
       {/* Upgrade Prompt for Free Tier */}
-      <div className="container max-w-7xl mx-auto px-6 pb-6 mt-6">
-        <div className="rounded-lg border bg-muted/50 p-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold">Unlock Advanced Analytics</h3>
-            <div className="rounded-full bg-primary/10 p-1">
-              <TrendingUp className="h-3.5 w-3.5 text-primary" />
+      {workspace.tier === 'free' && (
+        <div className="container max-w-7xl mx-auto px-6 pb-6 mt-6">
+          <div className="rounded-lg border bg-muted/50 p-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold">Unlock Advanced Analytics</h3>
+              <div className="rounded-full bg-primary/10 p-1">
+                <TrendingUp className="h-3.5 w-3.5 text-primary" />
+              </div>
             </div>
+            <p className="text-sm text-muted-foreground">
+              Upgrade to Pro to access historical data beyond 30 days, advanced metrics, and priority support. Pro users can track up to 10 repositories per workspace.
+            </p>
+            <Button 
+              onClick={handleUpgradeClick} 
+              variant="default" 
+              size="sm"
+              className="mt-3"
+            >
+              Upgrade to Pro
+            </Button>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Upgrade to Pro to access historical data beyond 30 days, advanced metrics, and priority support.
-          </p>
-          <Button 
-            onClick={handleUpgradeClick} 
-            variant="default" 
-            size="sm"
-            className="mt-3"
-          >
-            Upgrade to Pro
-          </Button>
         </div>
-      </div>
-      </div>
+        </div>
+      )}
       
       {/* Add Repository Modal */}
       {workspaceId && (
