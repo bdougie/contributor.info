@@ -13,13 +13,23 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { GitHubSearchInput } from '@/components/ui/github-search-input';
-import { WorkspaceService } from '@/services/workspace.service';
-import { supabase } from '@/lib/supabase';
+import { WorkspaceService as DefaultWorkspaceService } from '@/services/workspace.service';
+import { supabase as defaultSupabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Package, X, AlertCircle, CheckCircle2, Loader2, Star } from '@/components/ui/icon';
 import type { Workspace } from '@/types/workspace';
 import type { GitHubRepository } from '@/lib/github';
 import type { User } from '@supabase/supabase-js';
+
+// Use mock supabase in Storybook if available
+const supabase = (typeof window !== 'undefined' && (window as any).__mockSupabase) 
+  ? (window as any).__mockSupabase 
+  : defaultSupabase;
+
+// Use mock WorkspaceService in Storybook if available
+const WorkspaceService = (typeof window !== 'undefined' && (window as any).__mockWorkspaceService)
+  ? (window as any).__mockWorkspaceService
+  : DefaultWorkspaceService;
 
 interface StagedRepository extends GitHubRepository {
   notes?: string;
