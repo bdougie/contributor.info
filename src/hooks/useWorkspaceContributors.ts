@@ -101,21 +101,21 @@ export function useWorkspaceContributors({
       });
 
       // Batch fetch additional stats for all contributors
-      const contributorIds = Array.from(contributorMap.keys());
+      const contributorIdsForStats = Array.from(contributorMap.keys());
       
       const [issuesResult, reviewsResult] = await Promise.all([
         // Get issue counts
         supabase
           .from('issues')
           .select('author_id')
-          .in('author_id', contributorIds)
+          .in('author_id', contributorIdsForStats)
           .in('repository_id', repoIds),
         
         // Get review counts 
         supabase
           .from('reviews')
           .select('author_id, pull_request_id')
-          .in('author_id', contributorIds)
+          .in('author_id', contributorIdsForStats)
       ]);
 
       // Count issues per contributor
