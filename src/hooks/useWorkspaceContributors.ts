@@ -125,8 +125,7 @@ export function useWorkspaceContributors({
         issueCounts.set(issue.author_id, count + 1);
       });
 
-      // Count reviews per contributor (filter to PRs in our repos)
-      const prIds = pullRequests.map(pr => pr.id).filter(Boolean);
+      // Count reviews per contributor
       const reviewCounts = new Map<string, number>();
       reviewsResult.data?.forEach(review => {
         // Only count if it's a review on a PR in our repositories

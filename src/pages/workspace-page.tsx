@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { GitPullRequest, AlertCircle, Users, Layout, Plus, Settings, TrendingUp, TrendingDown, Activity, Search, Menu, Package, GitCommit, GitFork } from '@/components/ui/icon';
+import { GitPullRequest, AlertCircle, Users, Layout, Plus, Settings, TrendingUp, TrendingDown, Activity, Search, Menu, Package } from '@/components/ui/icon';
 import {
   useReactTable,
   getCoreRowModel,
@@ -522,12 +522,9 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
         
         // Get repository data from the contributor
         const repoCount = row.original.stats.repositories_contributed;
-        const contributorRepos = row.original.repositories || [];
         
-        // Extract unique repository owners from the contributor's data
-        const repoOwners = contributorRepos.length > 0
-          ? [...new Set(contributorRepos.map(r => r.owner || r))] // Get unique owners
-          : [];
+        // For now, we'll use empty array since repositories aren't directly attached to contributors
+        const repoOwners: string[] = [];
         
         // Show up to 4 repos, or however many are available
         const maxDisplay = 4;
@@ -551,7 +548,7 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
                 <div className="flex -space-x-1.5">
                   {displayOwners.map((owner, i) => (
                     <img
-                      key={owner + i}
+                      key={`${owner}_${i}`}
                       src={`https://github.com/${owner}.png?size=40`}
                       alt={`${owner} organization`}
                       className="h-5 w-5 rounded-sm border border-border object-cover"
@@ -620,12 +617,9 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
         
         // Get repository data from the contributor
         const repoCount = row.original.stats.repositories_contributed;
-        const contributorRepos = row.original.repositories || [];
         
-        // Extract unique repository owners from the contributor's data
-        const repoOwners = contributorRepos.length > 0
-          ? [...new Set(contributorRepos.map(r => r.owner || r))] // Get unique owners
-          : [];
+        // For now, we'll use empty array since repositories aren't directly attached to contributors
+        const repoOwners: string[] = [];
         
         // Show up to 4 repos, or however many are available
         const maxDisplay = 4;
@@ -649,7 +643,7 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
                 <div className="flex -space-x-1.5">
                   {displayOwners.map((owner, i) => (
                     <img
-                      key={owner + i}
+                      key={`${owner}_${i}`}
                       src={`https://github.com/${owner}.png?size=40`}
                       alt={`${owner} organization`}
                       className="h-5 w-5 rounded-sm border border-border object-cover"
