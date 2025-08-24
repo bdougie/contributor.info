@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -8,6 +9,8 @@ import { useNavigate } from "react-router-dom";
 import { SocialMetaTags } from "./meta-tags-provider";
 import { GitHubSearchInput } from "@/components/ui/github-search-input";
 import { WorkspacePreviewCard } from "@/components/features/workspace/WorkspacePreviewCard";
+import { WorkspaceOnboarding } from "@/components/features/workspace/WorkspaceOnboarding";
+import { WorkspaceCreateModal } from "@/components/features/workspace/WorkspaceCreateModal";
 import { useAuth } from "@/hooks/use-auth";
 import { usePrimaryWorkspace } from "@/hooks/use-user-workspaces";
 import type { GitHubRepository } from "@/lib/github";
@@ -15,7 +18,8 @@ import type { GitHubRepository } from "@/lib/github";
 export default function Home() {
   const navigate = useNavigate();
   const { isLoggedIn, loading: authLoading } = useAuth();
-  const { workspace, hasWorkspace, loading: workspaceLoading } = usePrimaryWorkspace();
+  const { workspace, hasWorkspace, loading: workspaceLoading, refetch: refetchWorkspace } = usePrimaryWorkspace();
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const handleSearch = (repositoryPath: string) => {
     const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
@@ -31,6 +35,11 @@ export default function Home() {
 
   const handleSelectExample = (repo: string) => {
     handleSearch(repo);
+  };
+
+  const handleCreateWorkspaceSuccess = async () => {
+    // Refetch workspace data after creation
+    await refetchWorkspace();
   };
 
   return (
@@ -85,10 +94,19 @@ export default function Home() {
               />
             ) : hasWorkspace && workspace ? (
               <WorkspacePreviewCard workspace={workspace} />
-            ) : null}
+            ) : (
+              <WorkspaceOnboarding onCreateClick={() => setCreateModalOpen(true)} />
+            )}
           </>
         )}
       </div>
+
+      {/* Workspace Creation Modal */}
+      <WorkspaceCreateModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        onSuccess={handleCreateWorkspaceSuccess}
+      />
     </article>
   );
 }
