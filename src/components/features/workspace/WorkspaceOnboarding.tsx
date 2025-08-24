@@ -82,6 +82,7 @@ export function WorkspaceOnboarding({ onCreateClick, className }: WorkspaceOnboa
 
         <div className="border-t pt-4">
           <Button 
+            type="button"
             onClick={onCreateClick}
             className="w-full"
             size="lg"
@@ -115,7 +116,7 @@ export function WorkspaceOnboardingCompact({ onCreateClick }: WorkspaceOnboardin
               </p>
             </div>
           </div>
-          <Button onClick={onCreateClick} variant="outline" className="flex-shrink-0">
+          <Button type="button" onClick={onCreateClick} variant="outline" className="flex-shrink-0">
             <Plus className="mr-2 h-4 w-4" />
             New Workspace
           </Button>

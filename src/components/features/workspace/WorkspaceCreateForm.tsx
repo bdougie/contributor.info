@@ -49,11 +49,11 @@ export function WorkspaceCreateForm({
     } else if (formData.name.length < 3) {
       errors.name = 'Workspace name must be at least 3 characters';
     } else if (formData.name.length > 50) {
-      errors.name = 'Workspace name must be less than 50 characters';
+      errors.name = 'Workspace name must be at most 50 characters';
     }
 
     if (formData.description && formData.description.length > 500) {
-      errors.description = 'Description must be less than 500 characters';
+      errors.description = 'Description must be at most 500 characters';
     }
 
     setValidationErrors(errors);

@@ -68,7 +68,7 @@ export class WorkspaceService {
       }
 
       // Check if user has reached workspace limit (based on tier)
-      const { data: userWorkspaces, error: countError } = await supabase
+      const { count, error: countError } = await supabase
         .from('workspaces')
         .select('id', { count: 'exact', head: true })
         .eq('owner_id', userId);
@@ -84,7 +84,7 @@ export class WorkspaceService {
 
       // Free tier limit: 3 workspaces
       const workspaceLimit = 3; // TODO: Get from user's subscription tier
-      if ((userWorkspaces as any).count >= workspaceLimit) {
+      if (count !== null && count >= workspaceLimit) {
         return {
           success: false,
           error: `You have reached the limit of ${workspaceLimit} workspaces for your current plan`,
@@ -189,7 +189,7 @@ export class WorkspaceService {
         .select('role')
         .eq('workspace_id', workspaceId)
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (!member || !['owner', 'admin'].includes(member.role)) {
         return {
@@ -256,7 +256,7 @@ export class WorkspaceService {
         .from('workspaces')
         .select('owner_id')
         .eq('id', workspaceId)
-        .single();
+        .maybeSingle();
 
       if (!workspace) {
         return {
@@ -326,7 +326,7 @@ export class WorkspaceService {
         `)
         .eq('id', workspaceId)
         .eq('workspace_members.user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -463,7 +463,7 @@ export class WorkspaceService {
         .select('role')
         .eq('workspace_id', workspaceId)
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (!member) {
         return { hasPermission: false };
@@ -504,7 +504,7 @@ export class WorkspaceService {
         .select('id')
         .eq('workspace_id', workspaceId)
         .eq('repository_id', data.repository_id)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         return {
@@ -519,7 +519,7 @@ export class WorkspaceService {
         .from('workspaces')
         .select('max_repositories, current_repository_count')
         .eq('id', workspaceId)
-        .single();
+        .maybeSingle();
 
       if (!workspace) {
         return {
@@ -614,7 +614,7 @@ export class WorkspaceService {
         .from('workspaces')
         .select('current_repository_count')
         .eq('id', workspaceId)
-        .single();
+        .maybeSingle();
 
       if (workspace && workspace.current_repository_count > 0) {
         await supabase
