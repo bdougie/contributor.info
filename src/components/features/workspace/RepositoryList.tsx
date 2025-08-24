@@ -23,6 +23,7 @@ import {
   ExternalLink,
   Target,
   MoreHorizontal,
+  Plus,
 } from "@/components/ui/icon";
 import {
   DropdownMenu,
@@ -67,6 +68,7 @@ export interface RepositoryListProps {
   onRepositoryClick?: (repo: Repository) => void;
   onPinToggle?: (repo: Repository) => void;
   onRemove?: (repo: Repository) => void;
+  onAddRepository?: () => void;
   showActions?: boolean;
   className?: string;
   emptyMessage?: string;
@@ -94,6 +96,7 @@ export function RepositoryList({
   onRepositoryClick,
   onPinToggle,
   onRemove,
+  onAddRepository,
   showActions = true,
   className,
   emptyMessage = "No repositories in this workspace yet",
@@ -378,7 +381,19 @@ export function RepositoryList({
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Repositories</CardTitle>
-          <Badge variant="secondary">{repositories.length} total</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">{repositories.length} total</Badge>
+            {onAddRepository && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onAddRepository}
+                className="h-7"
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
