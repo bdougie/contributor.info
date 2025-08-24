@@ -35,28 +35,28 @@ interface MetricChangeProps {
   formatValue?: (value: number) => string;
 }
 
-function MetricChange({ label, value, icon: Icon, formatValue }: MetricChangeProps) {
-  if (value === 0) return null;
-  
+function MetricChange({ label: _label, value, icon: Icon, formatValue }: MetricChangeProps) {
+  // Show metric even if value is 0 for consistent display
   const isPositive = value > 0;
+  const isNeutral = value === 0;
   const displayValue = formatValue ? formatValue(Math.abs(value)) : `${Math.abs(value)}`;
   
   return (
     <div className={cn(
       'flex items-center gap-1 text-xs',
-      isPositive ? 'text-green-600' : 'text-red-600'
+      isPositive ? 'text-green-600' : isNeutral ? 'text-muted-foreground' : 'text-red-600'
     )}>
-      {isPositive ? (
-        <ChevronUp className="w-3 h-3" />
-      ) : (
-        <ChevronDown className="w-3 h-3" />
+      {!isNeutral && (
+        isPositive ? (
+          <ChevronUp className="w-3 h-3" />
+        ) : (
+          <ChevronDown className="w-3 h-3" />
+        )
       )}
       <Icon className="w-3 h-3" />
-      <span>{isPositive ? '+' : '-'}{displayValue}</span>
-      {/* Only show label for non-star metrics */}
-      {label !== 'stars' && (
-        <span className="text-muted-foreground hidden sm:inline">{label}</span>
-      )}
+      <span>
+        {isNeutral ? '0%' : `${isPositive ? '+' : '-'}${displayValue}`}
+      </span>
     </div>
   );
 }
@@ -139,22 +139,18 @@ export function TrendingRepositoryCard({
               icon={Star}
               formatValue={formatPercentage}
             />
-            {repository.pr_change > 0 && (
-              <MetricChange
-                label="PRs"
-                value={repository.pr_change}
-                icon={GitPullRequest}
-                formatValue={formatPercentage}
-              />
-            )}
-            {repository.contributor_change > 0 && (
-              <MetricChange
-                label="contributors"
-                value={repository.contributor_change}
-                icon={Users}
-                formatValue={formatPercentage}
-              />
-            )}
+            <MetricChange
+              label="PRs"
+              value={repository.pr_change}
+              icon={GitPullRequest}
+              formatValue={formatPercentage}
+            />
+            <MetricChange
+              label="contributors"
+              value={repository.contributor_change}
+              icon={Users}
+              formatValue={formatPercentage}
+            />
           </div>
           {/* Trending score and Language badges */}
           <div className="flex items-center gap-2 flex-shrink-0">
