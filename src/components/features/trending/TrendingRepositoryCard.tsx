@@ -114,19 +114,7 @@ export function TrendingRepositoryCard({
                   />
                 )}
               </div>
-              {/* Mobile: Trending score */}
-              <div className="flex items-center justify-end mt-2 sm:hidden">
-                <Badge variant="secondary" className="flex items-center gap-1 text-xs">
-                  <TrendingUp className="w-3 h-3" />
-                  <span>{Math.round(repository.trending_score)}</span>
-                </Badge>
-              </div>
             </div>
-            {/* Desktop: Badge on the right */}
-            <Badge variant="secondary" className="hidden sm:flex items-center gap-1 text-xs flex-shrink-0">
-              <TrendingUp className="w-3 h-3" />
-              <span>{Math.round(repository.trending_score)}</span>
-            </Badge>
           </div>
           
           {/* Second row: Description (desktop only) */}
@@ -165,12 +153,18 @@ export function TrendingRepositoryCard({
               />
             )}
           </div>
-          {/* Language badge at the end */}
-          {repository.language && (
-            <Badge variant="outline" className="text-xs flex-shrink-0">
-              {repository.language}
+          {/* Trending score and Language badges */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+              <TrendingUp className="w-3 h-3" />
+              <span>{Math.round(repository.trending_score)}</span>
             </Badge>
-          )}
+            {repository.language && (
+              <Badge variant="outline" className="text-xs">
+                {repository.language}
+              </Badge>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
