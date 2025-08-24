@@ -27,19 +27,7 @@ import {
 } from "@tanstack/react-table";
 import { TimeRangeSelector, type TimeRange } from '@/components/features/workspace/TimeRangeSelector';
 import type { WorkspaceMetrics, WorkspaceTrendData, Repository, ActivityDataPoint } from '@/components/features/workspace';
-
-interface WorkspaceData {
-  id: string;
-  name: string;
-  description: string | null;
-  owner_id: string;
-  created_at: string;
-  visibility: string;
-  tier: 'free' | 'pro' | 'enterprise';
-  max_repositories: number;
-  current_repository_count: number;
-  settings: any;
-}
+import type { Workspace } from '@/types/workspace';
 
 interface WorkspaceRepository {
   id: string;
@@ -1048,7 +1036,7 @@ function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
   );
 }
 
-function WorkspaceSettings({ workspace }: { workspace: WorkspaceData }) {
+function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
   return (
     <div className="space-y-4">
       <Card>
@@ -1070,7 +1058,7 @@ export default function WorkspacePage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const [workspace, setWorkspace] = useState<WorkspaceData | null>(null);
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(null);
   const [trendData, setTrendData] = useState<WorkspaceTrendData | null>(null);

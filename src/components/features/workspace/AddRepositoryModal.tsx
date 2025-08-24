@@ -279,7 +279,7 @@ export function AddRepositoryModal({
           </DialogTitle>
           <DialogDescription>
             Search for repositories on GitHub and add them to your workspace. 
-            {isFreeTier && ' Free tier is limited to 10 repositories.'}
+            {isFreeTier && ` Free tier is limited to ${maxRepos} repositories.`}
           </DialogDescription>
         </DialogHeader>
 

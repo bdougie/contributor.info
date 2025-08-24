@@ -88,13 +88,20 @@ export class WorkspaceService {
         .select('tier, max_workspaces, max_repos_per_workspace')
         .eq('user_id', userId)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
       // Determine workspace limit and repository limit based on subscription
       const workspaceLimit = subscription?.max_workspaces || 1; // Default to free tier
       const maxRepositories = subscription?.max_repos_per_workspace || 4; // Default to free tier (4 repos)
       const tier = subscription?.tier || 'free';
-      const dataRetentionDays = tier === 'enterprise' ? 365 : (tier === 'pro' ? 90 : 30);
+      
+      // Define tier limits mapping for clarity
+      const tierRetentionDays = {
+        enterprise: 365,
+        pro: 90,
+        free: 30
+      };
+      const dataRetentionDays = tierRetentionDays[tier as keyof typeof tierRetentionDays] || 30;
 
       if (count !== null && count >= workspaceLimit) {
         return {
@@ -133,7 +140,7 @@ export class WorkspaceService {
           data_retention_days: dataRetentionDays
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (createError) {
         if (createError.code === '23505') {
@@ -212,7 +219,7 @@ export class WorkspaceService {
       }
 
       // Prepare update data
-      const updateData: any = {
+      const updateData: Partial<Pick<Workspace, 'name' | 'description' | 'visibility' | 'settings' | 'updated_at'>> = {
         updated_at: new Date().toISOString()
       };
 
@@ -227,7 +234,7 @@ export class WorkspaceService {
         .update(updateData)
         .eq('id', workspaceId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (updateError) {
         if (updateError.code === 'PGRST116') {
@@ -561,7 +568,7 @@ export class WorkspaceService {
           is_pinned: data.is_pinned || false
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (addError) {
         throw addError;
