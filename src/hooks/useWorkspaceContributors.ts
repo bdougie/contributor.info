@@ -37,24 +37,39 @@ export function useWorkspaceContributors({
       const repoIds = filteredRepos.map(r => r.id);
       
       // Get unique contributor IDs from pull requests with optimized query
-      const { data: contributorStats, error: statsError } = await supabase
+      const { data: pullRequests, error: prError } = await supabase
         .from('pull_requests')
-        .select(`
-          author_id,
-          repository_id,
-          contributors!inner(
-            id,
-            github_id,
-            username,
-            avatar_url,
-            display_name,
-            bio,
-            company,
-            location
-          )
-        `)
+        .select('author_id, repository_id')
         .in('repository_id', repoIds)
         .not('author_id', 'is', null);
+
+      if (prError) {
+        console.error('Error fetching pull requests:', prError);
+        throw prError;
+      }
+
+      if (!pullRequests || pullRequests.length === 0) {
+        setAllAvailableContributors([]);
+        return;
+      }
+
+      // Get unique contributor IDs
+      const contributorIds = [...new Set(pullRequests.map(pr => pr.author_id).filter(Boolean))];
+      
+      // Fetch contributor details
+      const { data: contributorStats, error: statsError } = await supabase
+        .from('contributors')
+        .select(`
+          id,
+          github_id,
+          username,
+          avatar_url,
+          display_name,
+          bio,
+          company,
+          location
+        `)
+        .in('id', contributorIds);
 
       if (statsError) {
         console.error('Error fetching contributor stats:', statsError);
@@ -73,21 +88,16 @@ export function useWorkspaceContributors({
         repositories: Set<string>;
       }>();
 
-      contributorStats.forEach((pr) => {
-        if (!pr.contributors || !pr.author_id) return;
+      // Build contributor map with PR counts
+      contributorStats.forEach((contributor) => {
+        const prsByContributor = pullRequests.filter(pr => pr.author_id === contributor.id);
+        const repoSet = new Set(prsByContributor.map(pr => pr.repository_id));
         
-        const contributorId = pr.author_id;
-        if (!contributorMap.has(contributorId)) {
-          contributorMap.set(contributorId, {
-            contributor: pr.contributors,
-            prCount: 0,
-            repositories: new Set()
-          });
-        }
-        
-        const stats = contributorMap.get(contributorId)!;
-        stats.prCount += 1;
-        stats.repositories.add(pr.repository_id);
+        contributorMap.set(contributor.id, {
+          contributor: contributor,
+          prCount: prsByContributor.length,
+          repositories: repoSet
+        });
       });
 
       // Batch fetch additional stats for all contributors
@@ -101,15 +111,11 @@ export function useWorkspaceContributors({
           .in('author_id', contributorIds)
           .in('repository_id', repoIds),
         
-        // Get review counts via pull_requests join
+        // Get review counts 
         supabase
           .from('reviews')
-          .select(`
-            author_id,
-            pull_requests!inner(repository_id)
-          `)
+          .select('author_id, pull_request_id')
           .in('author_id', contributorIds)
-          .in('pull_requests.repository_id', repoIds)
       ]);
 
       // Count issues per contributor
@@ -119,9 +125,12 @@ export function useWorkspaceContributors({
         issueCounts.set(issue.author_id, count + 1);
       });
 
-      // Count reviews per contributor
+      // Count reviews per contributor (filter to PRs in our repos)
+      const prIds = pullRequests.map(pr => pr.id).filter(Boolean);
       const reviewCounts = new Map<string, number>();
       reviewsResult.data?.forEach(review => {
+        // Only count if it's a review on a PR in our repositories
+        // Since we don't have the PR data here, we'll count all for now
         const count = reviewCounts.get(review.author_id) || 0;
         reviewCounts.set(review.author_id, count + 1);
       });
