@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 import { getRepoOwnerAvatarUrl } from '@/lib/utils/avatar';
@@ -53,7 +53,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchUserWorkspaces = async () => {
+  const fetchUserWorkspaces = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -61,11 +61,9 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       // Check if user is authenticated
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
-        console.log('[Workspace Hook] No authenticated user found');
         setWorkspaces([]);
         return;
       }
-      console.log('[Workspace Hook] Authenticated user:', user.id, user.email);
 
       // Fetch workspaces where user is owner or member
       // First, get workspace IDs where user is a member
@@ -75,18 +73,15 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         .eq('user_id', user.id);
       
       if (memberError) {
-        console.error('[Workspace Hook] Member query error:', memberError);
         throw new Error(`Failed to fetch workspace memberships: ${memberError.message}`);
       }
       
       if (!memberData || memberData.length === 0) {
-        console.log('[Workspace Hook] User is not a member of any workspaces');
         setWorkspaces([]);
         return;
       }
       
       const workspaceIds = memberData.map(m => m.workspace_id);
-      console.log('[Workspace Hook] User is member of workspaces:', workspaceIds);
       
       // Now fetch the workspace details
       const { data: workspaceData, error: workspaceError } = await supabase
@@ -105,14 +100,10 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         .returns<WorkspaceWithMember[]>();
 
       if (workspaceError) {
-        console.error('[Workspace Hook] Query error:', workspaceError);
         throw new Error(`Failed to fetch workspaces: ${workspaceError.message}`);
       }
-
-      console.log('[Workspace Hook] Found workspaces:', workspaceData?.length || 0);
       
       if (!workspaceData || workspaceData.length === 0) {
-        console.log('[Workspace Hook] No workspaces found for user:', user.id);
         setWorkspaces([]);
         return;
       }
@@ -227,7 +218,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchUserWorkspaces();
@@ -242,7 +233,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchUserWorkspaces]);
 
   return {
     workspaces,
