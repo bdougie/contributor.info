@@ -1,23 +1,10 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Users, GitFork, Calendar } from '@/components/ui/icon';
-import { getRepoOwnerAvatarUrl } from '@/lib/utils/avatar';
-
-interface WorkspaceRepository {
-  id: string;
-  full_name: string;
-  name: string;
-  owner: string;
-  description: string | null;
-  language: string | null;
-  stargazers_count: number;
-  forks_count: number;
-  open_issues_count: number;
-}
+import { toast } from 'sonner';
+import type { WorkspaceMetrics, WorkspaceTrendData, Repository, ActivityDataPoint } from '@/components/features/workspace';
 
 interface WorkspaceData {
   id: string;
@@ -25,13 +12,153 @@ interface WorkspaceData {
   description: string | null;
   owner_id: string;
   created_at: string;
-  repositories: WorkspaceRepository[];
-  member_count: number;
+  visibility: string;
+  settings: any;
 }
+
+interface WorkspaceRepository {
+  id: string;
+  is_pinned: boolean;
+  repositories: {
+    id: string;
+    full_name: string;
+    name: string;
+    owner: string;
+    description: string | null;
+    language: string | null;
+    stargazers_count: number;
+    forks_count: number;
+    open_issues_count: number;
+  };
+}
+
+interface MergedPR {
+  merged_at: string;
+  additions: number;
+  deletions: number;
+  changed_files: number;
+  commits: number;
+}
+
+// Generate mock metrics for now
+const generateMockMetrics = (repos: Repository[]): WorkspaceMetrics => {
+  const totalStars = repos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
+  const totalContributors = repos.reduce((sum, repo) => sum + (repo.contributors || 0), 0);
+  
+  return {
+    totalStars,
+    totalPRs: Math.floor(Math.random() * 500) + 100,
+    totalContributors,
+    totalCommits: Math.floor(Math.random() * 10000) + 1000,
+    starsTrend: (Math.random() - 0.5) * 20,
+    prsTrend: (Math.random() - 0.5) * 15,
+    contributorsTrend: (Math.random() - 0.5) * 10,
+    commitsTrend: (Math.random() - 0.5) * 25,
+  };
+};
+
+// Generate mock trend data for now
+const generateMockTrendData = (days: number): WorkspaceTrendData => {
+  const labels = [];
+  const prs = [];
+  const issues = [];
+  const commits = [];
+  
+  const today = new Date();
+  
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    
+    prs.push(Math.floor(Math.random() * 30) + 10);
+    issues.push(Math.floor(Math.random() * 20) + 5);
+    commits.push(Math.floor(Math.random() * 60) + 20);
+  }
+  
+  return {
+    labels,
+    datasets: [
+      {
+        label: 'Pull Requests',
+        data: prs,
+        color: '#10b981',
+      },
+      {
+        label: 'Issues',
+        data: issues,
+        color: '#f97316',
+      },
+      {
+        label: 'Commits',
+        data: commits,
+        color: '#8b5cf6',
+      },
+    ],
+  };
+};
+
+// Generate activity data from merged PRs
+const generateActivityDataFromPRs = (mergedPRs: MergedPR[]): ActivityDataPoint[] => {
+  // Group PRs by date
+  const prsByDate = new Map<string, MergedPR[]>();
+  
+  mergedPRs.forEach(pr => {
+    const date = new Date(pr.merged_at).toISOString().split('T')[0];
+    if (!prsByDate.has(date)) {
+      prsByDate.set(date, []);
+    }
+    prsByDate.get(date)!.push(pr);
+  });
+  
+  // Calculate daily statistics for candlestick chart
+  const activityData: ActivityDataPoint[] = [];
+  
+  prsByDate.forEach((prs, date) => {
+    const totalAdditions = prs.reduce((sum, pr) => sum + pr.additions, 0);
+    const totalDeletions = prs.reduce((sum, pr) => sum + pr.deletions, 0);
+    const totalCommits = prs.reduce((sum, pr) => sum + pr.commits, 0);
+    const totalFilesChanged = prs.reduce((sum, pr) => sum + pr.changed_files, 0);
+    
+    activityData.push({
+      date,
+      additions: totalAdditions,
+      deletions: totalDeletions,
+      commits: totalCommits,
+      files_changed: totalFilesChanged,
+    });
+  });
+  
+  // Sort by date
+  activityData.sort((a, b) => a.date.localeCompare(b.date));
+  
+  // If no real data, generate mock data for last 30 days
+  if (activityData.length === 0) {
+    const today = new Date();
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      activityData.push({
+        date: date.toISOString().split('T')[0],
+        additions: Math.floor(Math.random() * 500) + 50,
+        deletions: Math.floor(Math.random() * 300) + 30,
+        commits: Math.floor(Math.random() * 20) + 1,
+        files_changed: Math.floor(Math.random() * 30) + 1,
+      });
+    }
+  }
+  
+  return activityData;
+};
 
 export default function WorkspacePage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
+  const navigate = useNavigate();
   const [workspace, setWorkspace] = useState<WorkspaceData | null>(null);
+  const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(null);
+  const [trendData, setTrendData] = useState<WorkspaceTrendData | null>(null);
+  const [activityData, setActivityData] = useState<ActivityDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,10 +185,11 @@ export default function WorkspacePage() {
           return;
         }
 
-        // Fetch repositories
+        // Fetch repositories with their details
         const { data: repoData, error: repoError } = await supabase
           .from('workspace_repositories')
           .select(`
+            *,
             repositories (
               id,
               full_name,
@@ -80,17 +208,55 @@ export default function WorkspacePage() {
           console.error('Error fetching repositories:', repoError);
         }
 
-        // Fetch member count
-        const { count: memberCount } = await supabase
-          .from('workspace_members')
-          .select('id', { count: 'exact', head: true })
-          .eq('workspace_id', workspaceId);
+        // Transform repository data to match the Repository interface
+        const transformedRepos: Repository[] = (repoData || [])
+          .filter(r => r.repositories)
+          .map((r: WorkspaceRepository) => ({
+            id: r.repositories.id,
+            full_name: r.repositories.full_name,
+            owner: r.repositories.owner,
+            name: r.repositories.name,
+            description: r.repositories.description,
+            language: r.repositories.language,
+            stars: r.repositories.stargazers_count,
+            forks: r.repositories.forks_count,
+            open_prs: Math.floor(Math.random() * 50) + 5, // Mock for now
+            open_issues: r.repositories.open_issues_count,
+            contributors: Math.floor(Math.random() * 100) + 10, // Mock for now
+            last_activity: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+            is_pinned: r.is_pinned,
+            avatar_url: `https://github.com/${r.repositories.owner}.png`,
+            html_url: `https://github.com/${r.repositories.full_name}`,
+          }));
 
-        setWorkspace({
-          ...workspaceData,
-          repositories: repoData?.map(r => r.repositories).filter(Boolean) || [],
-          member_count: memberCount || 0
-        });
+        // Fetch merged PRs for activity data
+        let mergedPRs: MergedPR[] = [];
+        if (transformedRepos.length > 0) {
+          const repoIds = transformedRepos.map(r => r.id);
+          const { data: prData } = await supabase
+            .from('pull_requests')
+            .select('merged_at, additions, deletions, changed_files, commits')
+            .in('repository_id', repoIds)
+            .eq('merged', true)
+            .not('merged_at', 'is', null)
+            .gte('merged_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+          
+          if (prData) {
+            mergedPRs = prData as MergedPR[];
+          }
+        }
+
+        setWorkspace(workspaceData);
+        setRepositories(transformedRepos);
+        
+        // Generate metrics, trend data, and activity data
+        const mockMetrics = generateMockMetrics(transformedRepos);
+        const mockTrendData = generateMockTrendData(30);
+        const activityDataPoints = generateActivityDataFromPRs(mergedPRs);
+        
+        setMetrics(mockMetrics);
+        setTrendData(mockTrendData);
+        setActivityData(activityDataPoints);
       } catch (err) {
         setError('Failed to load workspace');
         console.error('Error:', err);
@@ -105,18 +271,12 @@ export default function WorkspacePage() {
   if (loading) {
     return (
       <div className="container max-w-7xl mx-auto p-6">
-        <Skeleton className="h-12 w-64 mb-4" />
-        <Skeleton className="h-24 w-full mb-6" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-48 w-full" />
-          ))}
-        </div>
+        <WorkspaceDashboardSkeleton />
       </div>
     );
   }
 
-  if (error || !workspace) {
+  if (error || !workspace || !metrics || !trendData) {
     return (
       <div className="container max-w-7xl mx-auto p-6">
         <Card className="border-destructive">
@@ -131,88 +291,37 @@ export default function WorkspacePage() {
     );
   }
 
+  const handleAddRepository = () => {
+    toast.info('Add repository feature coming soon!');
+  };
+
+  const handleRepositoryClick = (repo: Repository) => {
+    navigate(`/${repo.full_name}`);
+  };
+
+  const handleSettingsClick = () => {
+    toast.info('Workspace settings coming soon!');
+  };
+
+  const handleUpgradeClick = () => {
+    toast.info('Upgrade to Pro coming soon!');
+  };
+
   return (
     <div className="container max-w-7xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">{workspace.name}</h1>
-        {workspace.description && (
-          <p className="text-lg text-muted-foreground">{workspace.description}</p>
-        )}
-        
-        <div className="flex items-center gap-4 mt-4">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">{workspace.member_count} members</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <GitFork className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">{workspace.repositories.length} repositories</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">Created {new Date(workspace.created_at).toLocaleDateString()}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-6">
-        <h2 className="text-2xl font-semibold">Repositories</h2>
-        
-        {workspace.repositories.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              No repositories added to this workspace yet
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {workspace.repositories.map(repo => (
-              <Card key={repo.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <img 
-                        src={getRepoOwnerAvatarUrl(repo.owner)}
-                        alt={`${repo.owner} avatar`}
-                        className="w-10 h-10 rounded-full"
-                      />
-                      <div>
-                        <CardTitle className="text-base">
-                          <a 
-                            href={`/${repo.full_name}`}
-                            className="hover:underline"
-                          >
-                            {repo.name}
-                          </a>
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">{repo.owner}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {repo.description && (
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                      {repo.description}
-                    </p>
-                  )}
-                  
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {repo.language && (
-                      <Badge variant="secondary">{repo.language}</Badge>
-                    )}
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>⭐ {repo.stargazers_count || 0}</span>
-                      <span>🍴 {repo.forks_count || 0}</span>
-                      <span>🐛 {repo.open_issues_count || 0}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
+      <WorkspaceDashboard
+        workspaceId={workspace.id}
+        workspaceName={workspace.name}
+        metrics={metrics}
+        trendData={trendData}
+        activityData={activityData}
+        repositories={repositories}
+        tier="free"
+        onAddRepository={handleAddRepository}
+        onRepositoryClick={handleRepositoryClick}
+        onSettingsClick={handleSettingsClick}
+        onUpgradeClick={handleUpgradeClick}
+      />
     </div>
   );
 }

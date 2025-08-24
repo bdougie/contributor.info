@@ -126,7 +126,10 @@ export function MetricCard({
               <div className={cn("flex items-center gap-1", getTrendColor())}>
                 {getTrendIcon()}
                 <span className="text-sm font-medium">
-                  {Math.abs(trend.value)}%
+                  {Math.abs(trend.value) < 1 
+                    ? `${Math.abs(trend.value).toFixed(2)}%`
+                    : `${Math.round(Math.abs(trend.value))}%`
+                  }
                 </span>
                 {trend.label && (
                   <span className="text-xs text-muted-foreground">
