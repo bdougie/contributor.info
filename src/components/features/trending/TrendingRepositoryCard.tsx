@@ -131,8 +131,8 @@ export function TrendingRepositoryCard({
 
       <CardContent className={cn('pt-0', compact && 'pt-0')}>
         <div className="flex flex-col gap-2">
-          {/* Mobile: Metrics on top row - aligned right */}
-          <div className="flex items-center justify-end gap-2 sm:hidden">
+          {/* Mobile: Metrics on top row - aligned left */}
+          <div className="flex items-center justify-start gap-2 sm:hidden">
             <MetricChange
               label="stars"
               value={repository.star_change}
@@ -153,8 +153,8 @@ export function TrendingRepositoryCard({
             />
           </div>
           
-          {/* Mobile: Badges on bottom row - aligned right */}
-          <div className="flex items-center justify-end gap-2 sm:hidden">
+          {/* Mobile: Badges on bottom row - aligned left */}
+          <div className="flex items-center justify-start gap-2 sm:hidden">
             <Badge variant="secondary" className="flex items-center gap-1 text-xs">
               <TrendingUp className="w-3 h-3" />
               <span>{Math.round(repository.trending_score)}</span>
