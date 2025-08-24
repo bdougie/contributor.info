@@ -60,7 +60,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
 
       // Fetch workspaces where user is owner or member
       // First try to get workspaces where user is the owner
-      const { data: ownedWorkspaces, error: ownedError } = await supabase
+      const { data: ownedWorkspaces } = await supabase
         .from('workspaces')
         .select('id')
         .eq('owner_id', user.id)
@@ -122,7 +122,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       const enrichedWorkspaces = await Promise.all(
         workspaceData.map(async (workspace) => {
           // Get repository count and member count
-          const [repositoriesResult, repoCountResult, membersResult, ownerResult] = await Promise.all([
+          const [repositoriesResult, repoCountResult, membersResult] = await Promise.all([
             supabase
               .from('workspace_repositories')
               .select(`
@@ -154,10 +154,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
             supabase
               .from('workspace_members')
               .select('id')
-              .eq('workspace_id', workspace.id),
-              
-            // For now, return null - we'll use fallback data
-            Promise.resolve({ data: null, error: null })
+              .eq('workspace_id', workspace.id)
           ]);
 
           // Check for errors in individual queries and fail fast for critical data
@@ -170,7 +167,6 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
             console.warn(`Failed to fetch members for workspace ${workspace.id}:`, membersResult.error.message);
             // Members count is less critical, can continue with fallback
           }
-          // ownerResult is not used since we're using fallback data
 
           // Sort repositories by pinned status first, then by github_pushed_at
           const sortedRepositories = repositoriesResult.data?.sort((a, b) => {

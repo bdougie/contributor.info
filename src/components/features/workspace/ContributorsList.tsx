@@ -291,24 +291,34 @@ export function ContributorsList({
     <Card className={cn("w-full", className)}>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Contributors</CardTitle>
+          <div>
+            <CardTitle>Contributors</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              {showOnlyTracked 
+                ? `${trackedContributors.length} contributors in workspace`
+                : `${contributors.length} contributors from selected repositories`
+              }
+            </p>
+          </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant={showOnlyTracked ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowOnlyTracked(!showOnlyTracked)}
-            >
-              {showOnlyTracked ? 'Show All' : 'Show Tracked'}
-              {showOnlyTracked && (
-                <Badge variant="secondary" className="ml-2">
-                  {trackedContributors.length}
-                </Badge>
-              )}
-            </Button>
+            {trackedContributors.length > 0 && (
+              <Button
+                variant={showOnlyTracked ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowOnlyTracked(!showOnlyTracked)}
+              >
+                {showOnlyTracked ? 'Show All Available' : 'Show Workspace Only'}
+                {showOnlyTracked && (
+                  <Badge variant="secondary" className="ml-2">
+                    {trackedContributors.length}
+                  </Badge>
+                )}
+              </Button>
+            )}
             {onAddContributor && (
               <Button onClick={onAddContributor} size="sm">
                 <Plus className="h-4 w-4 mr-1" />
-                Add Contributor
+                Add Contributors
               </Button>
             )}
           </div>
@@ -330,13 +340,22 @@ export function ContributorsList({
         {filteredContributors.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">
-              {searchTerm ? 'No contributors match your search' : 'No contributors found'}
+            <p className="text-muted-foreground mb-2">
+              {searchTerm 
+                ? 'No contributors match your search' 
+                : showOnlyTracked && trackedContributors.length === 0
+                ? 'No contributors added to workspace yet'
+                : 'No contributors found in selected repositories'}
             </p>
-            {onAddContributor && (
+            {searchTerm && (
+              <p className="text-sm text-muted-foreground mb-4">
+                Try adjusting your search terms or clear the search to see all contributors
+              </p>
+            )}
+            {showOnlyTracked && trackedContributors.length === 0 && onAddContributor && (
               <Button onClick={onAddContributor} className="mt-4">
                 <Plus className="h-4 w-4 mr-2" />
-                Add Your First Contributor
+                Add Contributors from Repositories
               </Button>
             )}
           </div>

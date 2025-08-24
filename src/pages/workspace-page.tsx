@@ -1,10 +1,12 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import { WorkspacePullRequestsTable, type PullRequest } from '@/components/features/workspace/WorkspacePullRequestsTable';
 import { WorkspaceIssuesTable, type Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
-import { RepositoryFilter, type RepositoryOption } from '@/components/features/workspace/RepositoryFilter';
+import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
+import { ContributorsList, type Contributor } from '@/components/features/workspace/ContributorsList';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -223,13 +225,13 @@ function WorkspacePRs({ repositories, selectedRepositories }: { repositories: Re
             title: pr.title,
             state: pr.merged_at ? 'merged' : pr.state === 'closed' ? 'closed' : 'open',
             repository: {
-              name: pr.repositories.name,
-              owner: pr.repositories.owner,
-              avatar_url: `https://github.com/${pr.repositories.owner}.png`,
+              name: (pr.repositories as any)?.name || 'unknown',
+              owner: (pr.repositories as any)?.owner || 'unknown',
+              avatar_url: `https://github.com/${(pr.repositories as any)?.owner || 'unknown'}.png`,
             },
             author: {
-              username: pr.contributors?.username || 'unknown',
-              avatar_url: pr.contributors?.avatar_url || '',
+              username: (pr.contributors as any)?.username || 'unknown',
+              avatar_url: (pr.contributors as any)?.avatar_url || '',
             },
             created_at: pr.created_at,
             updated_at: pr.updated_at,
@@ -335,13 +337,13 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
             title: issue.title,
             state: issue.state as 'open' | 'closed',
             repository: {
-              name: issue.repositories.name,
-              owner: issue.repositories.owner,
-              avatar_url: `https://github.com/${issue.repositories.owner}.png`,
+              name: (issue.repositories as any)?.name || 'unknown',
+              owner: (issue.repositories as any)?.owner || 'unknown',
+              avatar_url: `https://github.com/${(issue.repositories as any)?.owner || 'unknown'}.png`,
             },
             author: {
-              username: issue.contributors?.username || 'unknown',
-              avatar_url: issue.contributors?.avatar_url || '',
+              username: (issue.contributors as any)?.username || 'unknown',
+              avatar_url: (issue.contributors as any)?.avatar_url || '',
             },
             created_at: issue.created_at,
             updated_at: issue.updated_at,
@@ -381,20 +383,135 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
   );
 }
 
-function WorkspaceContributors({ repositories }: { repositories: Repository[] }) {
+function WorkspaceContributors({ repositories, selectedRepositories }: { repositories: Repository[]; selectedRepositories: string[] }) {
+  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const navigate = useNavigate();
+  const [showAddContributors, setShowAddContributors] = useState(false);
+  const [selectedContributorsToAdd, setSelectedContributorsToAdd] = useState<string[]>([]);
+
+  const {
+    contributors,
+    allAvailableContributors,
+    workspaceContributorIds,
+    loading,
+    error,
+    addContributorsToWorkspace,
+    removeContributorFromWorkspace,
+  } = useWorkspaceContributors({
+    workspaceId: workspaceId!,
+    repositories,
+    selectedRepositories,
+  });
+
+  const handleContributorClick = (contributor: Contributor) => {
+    navigate(`/${contributor.username}`);
+  };
+
+  const handleTrackContributor = (contributorId: string) => {
+    if (showAddContributors) {
+      // In add mode, toggle selection
+      setSelectedContributorsToAdd(prev => 
+        prev.includes(contributorId) 
+          ? prev.filter(id => id !== contributorId)
+          : [...prev, contributorId]
+      );
+    }
+  };
+
+  const handleUntrackContributor = async (contributorId: string) => {
+    await removeContributorFromWorkspace(contributorId);
+  };
+
+  const handleAddContributor = () => {
+    setShowAddContributors(true);
+    setSelectedContributorsToAdd([]);
+  };
+
+  const handleSubmitContributors = async () => {
+    if (selectedContributorsToAdd.length > 0) {
+      await addContributorsToWorkspace(selectedContributorsToAdd);
+      setShowAddContributors(false);
+      setSelectedContributorsToAdd([]);
+    } else {
+      toast.warning('Please select at least one contributor to add');
+    }
+  };
+
+  const handleCancelAdd = () => {
+    setShowAddContributors(false);
+    setSelectedContributorsToAdd([]);
+  };
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <div className="container max-w-7xl mx-auto">
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Error Loading Contributors</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>{error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Contributors</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Contributors view coming soon...</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            This will show all contributors across {repositories.length} repositories in this workspace.
-          </p>
-        </CardContent>
-      </Card>
+    <div className="container max-w-7xl mx-auto">
+      {showAddContributors ? (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Add Contributors to Workspace</CardTitle>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {selectedContributorsToAdd.length} selected
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelAdd}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSubmitContributors}
+                  disabled={selectedContributorsToAdd.length === 0}
+                >
+                  Add Selected
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ContributorsList
+              contributors={allAvailableContributors}
+              trackedContributors={selectedContributorsToAdd}
+              onTrackContributor={handleTrackContributor}
+              onUntrackContributor={(id) => {
+                setSelectedContributorsToAdd(prev => prev.filter(cId => cId !== id));
+              }}
+              onContributorClick={handleContributorClick}
+              loading={loading}
+              view="list"
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <ContributorsList
+          contributors={contributors}
+          trackedContributors={workspaceContributorIds}
+          onTrackContributor={handleTrackContributor}
+          onUntrackContributor={handleUntrackContributor}
+          onContributorClick={handleContributorClick}
+          onAddContributor={handleAddContributor}
+          loading={loading}
+          view="grid"
+        />
+      )}
     </div>
   );
 }
@@ -508,8 +625,8 @@ export default function WorkspacePage() {
             full_name: r.repositories.full_name,
             owner: r.repositories.owner,
             name: r.repositories.name,
-            description: r.repositories.description,
-            language: r.repositories.language,
+            description: r.repositories.description ?? undefined,
+            language: r.repositories.language ?? undefined,
             stars: r.repositories.stargazers_count,
             forks: r.repositories.forks_count,
             open_prs: Math.floor(Math.random() * 50) + 5, // Mock for now
@@ -689,7 +806,7 @@ export default function WorkspacePage() {
             <AlertCircle className="h-4 w-4" />
             <span className="hidden sm:inline">Issues</span>
           </TabsTrigger>
-          <TabsTrigger value="contributors" className="flex items-center gap-2" disabled>
+          <TabsTrigger value="contributors" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Contributors</span>
           </TabsTrigger>
@@ -731,9 +848,7 @@ export default function WorkspacePage() {
         </TabsContent>
 
         <TabsContent value="contributors" className="mt-6">
-          <div className="container max-w-7xl mx-auto">
-            <WorkspaceContributors repositories={repositories} />
-          </div>
+          <WorkspaceContributors repositories={repositories} selectedRepositories={selectedRepositories} />
         </TabsContent>
 
         <TabsContent value="activity" className="mt-6">
