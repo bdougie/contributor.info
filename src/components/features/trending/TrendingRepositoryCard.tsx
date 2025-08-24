@@ -53,7 +53,10 @@ function MetricChange({ label, value, icon: Icon, formatValue }: MetricChangePro
       )}
       <Icon className="w-3 h-3" />
       <span>{isPositive ? '+' : '-'}{displayValue}</span>
-      <span className="text-muted-foreground hidden sm:inline">{label}</span>
+      {/* Only show label for non-star metrics */}
+      {label !== 'stars' && (
+        <span className="text-muted-foreground hidden sm:inline">{label}</span>
+      )}
     </div>
   );
 }
