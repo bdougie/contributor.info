@@ -18,7 +18,6 @@ export default function Home() {
   const { workspace, hasWorkspace, loading: workspaceLoading } = usePrimaryWorkspace();
 
   const handleSearch = (repositoryPath: string) => {
-    // Extract owner and repo from the path
     const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
     if (match) {
       const [, owner, repo] = match;
@@ -68,7 +67,6 @@ export default function Home() {
           </CardContent>
         </Card>
 
-        {/* Workspace Preview - Only show for authenticated users */}
         {isLoggedIn && !authLoading && (
           <>
             {workspaceLoading ? (

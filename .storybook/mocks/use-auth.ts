@@ -1,19 +1,6 @@
-// Mock for useAuth hook in Storybook
-import { fn } from '@storybook/test';
+// Re-export the GitHub auth hook with a simpler name for consistency
+// This matches the real implementation structure
+export { useGitHubAuth as useAuth } from './use-github-auth';
 
-// Default mock state - logged out
-let mockAuthState = {
-  isLoggedIn: false,
-  loading: false,
-  user: null,
-  signInWithGitHub: fn(),
-  signOut: fn(),
-};
-
-// Function to update mock state
-export const setMockAuthState = (state: typeof mockAuthState) => {
-  mockAuthState = state;
-};
-
-// Mock hook
-export const useAuth = () => mockAuthState;
+// Also export the user type if needed
+export type { User } from '@supabase/supabase-js';

@@ -102,6 +102,9 @@ const config: StorybookConfig = {
           '@/lib/insights/health-metrics': new URL('./mocks/health-metrics.ts', import.meta.url).pathname,
           '@/lib/contribution-analyzer': new URL('./mocks/contribution-analyzer.ts', import.meta.url).pathname,
           '@/lib/dub': new URL('./mocks/dub.ts', import.meta.url).pathname,
+          '@/lib/progressive-capture/manual-trigger': new URL('./mocks/manual-trigger.ts', import.meta.url).pathname,
+          '@/lib/progressive-capture/smart-notifications': new URL('./mocks/smart-notifications.ts', import.meta.url).pathname,
+          '@/lib/progressive-capture/background-processor': new URL('./mocks/background-processor.ts', import.meta.url).pathname,
           // Mock components
           '@/components/common/cards': new URL('./mocks/cards.ts', import.meta.url).pathname,
           '@/components/features/sharing/shareable-card': new URL('./mocks/shareable-card.ts', import.meta.url).pathname,
