@@ -2,6 +2,8 @@
  * Centralized avatar utility for consistent avatar handling across the app
  */
 
+import { DEFAULT_AVATAR_DATA_URL } from './default-avatar-data';
+
 /**
  * Get a properly formatted avatar URL with fallback support
  * @param username - GitHub username or identifier
@@ -39,10 +41,10 @@ export function getAvatarUrl(username?: string, originalUrl?: string): string {
 
 /**
  * Get a fallback avatar URL
- * @returns Local fallback avatar URL
+ * @returns Base64 encoded fallback avatar data URL
  */
 export function getFallbackAvatar(): string {
-  return '/avatar.png';
+  return DEFAULT_AVATAR_DATA_URL;
 }
 
 /**
