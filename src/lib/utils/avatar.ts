@@ -9,30 +9,39 @@
  * @returns Formatted avatar URL with fallback
  */
 export function getAvatarUrl(username?: string, originalUrl?: string): string {
-  // If we have an original URL and it's not a GitHub URL, use it
-  if (originalUrl && !originalUrl.includes('github.com')) {
-    return originalUrl;
+  // If we have a valid original URL, use it
+  if (originalUrl) {
+    try {
+      const url = new URL(originalUrl);
+      // Return GitHub avatar URLs as-is since they're already optimized
+      if (url.hostname.endsWith('githubusercontent.com')) {
+        return originalUrl;
+      }
+      // For non-GitHub URLs, return as-is
+      return originalUrl;
+    } catch {
+      // Invalid URL, treat as relative path
+      if (originalUrl && !originalUrl.startsWith('http')) {
+        return originalUrl;
+      }
+    }
   }
 
-  // If no username, return fallback directly
-  if (!username) {
-    return getFallbackAvatar('unknown');
+  // If we have a username but no URL, try to construct GitHub avatar URL
+  if (username) {
+    return `https://avatars.githubusercontent.com/u/${username}`;
   }
 
-  // Use unavatar.io service with GitHub provider and boring avatars fallback
-  const fallbackUrl = getFallbackAvatar(username);
-  return `https://unavatar.io/github/${username}?fallback=${encodeURIComponent(fallbackUrl)}`;
+  // Return local fallback avatar
+  return getFallbackAvatar();
 }
 
 /**
- * Get a fallback avatar URL using boring avatars
- * @param identifier - Unique identifier for consistent avatar generation
- * @returns Boring avatars URL
+ * Get a fallback avatar URL
+ * @returns Local fallback avatar URL
  */
-export function getFallbackAvatar(identifier: string): string {
-  // Use boring avatars with marble style and a nice color palette
-  const colors = '264653,2a9d8f,e9c46a,f4a261,e76f51';
-  return `https://source.boringavatars.com/marble/120/${encodeURIComponent(identifier)}?colors=${colors}`;
+export function getFallbackAvatar(): string {
+  return '/avatar.png';
 }
 
 /**
@@ -42,11 +51,11 @@ export function getFallbackAvatar(identifier: string): string {
  */
 export function getOrgAvatarUrl(orgName?: string): string {
   if (!orgName) {
-    return getFallbackAvatar('organization');
+    return getFallbackAvatar();
   }
   
-  const fallbackUrl = getFallbackAvatar(orgName);
-  return `https://unavatar.io/github/${orgName}?fallback=${encodeURIComponent(fallbackUrl)}`;
+  // Try GitHub org avatar first
+  return `https://github.com/${orgName}.png`;
 }
 
 /**
@@ -55,5 +64,10 @@ export function getOrgAvatarUrl(orgName?: string): string {
  * @returns Owner avatar URL with fallback
  */
 export function getRepoOwnerAvatarUrl(owner?: string): string {
-  return getAvatarUrl(owner);
+  if (!owner) {
+    return getFallbackAvatar();
+  }
+  
+  // Use GitHub avatar URL for repo owners
+  return `https://github.com/${owner}.png`;
 }
