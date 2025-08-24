@@ -11,10 +11,6 @@ type WorkspaceWithMember = {
   description: string | null;
   owner_id: string;
   created_at: string;
-  workspace_members: Array<{
-    user_id: string;
-    role: string;
-  }>;
 };
 
 type RepositoryWithWorkspace = {
@@ -72,6 +68,27 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       console.log('[Workspace Hook] Authenticated user:', user.id, user.email);
 
       // Fetch workspaces where user is owner or member
+      // First, get workspace IDs where user is a member
+      const { data: memberData, error: memberError } = await supabase
+        .from('workspace_members')
+        .select('workspace_id, role')
+        .eq('user_id', user.id);
+      
+      if (memberError) {
+        console.error('[Workspace Hook] Member query error:', memberError);
+        throw new Error(`Failed to fetch workspace memberships: ${memberError.message}`);
+      }
+      
+      if (!memberData || memberData.length === 0) {
+        console.log('[Workspace Hook] User is not a member of any workspaces');
+        setWorkspaces([]);
+        return;
+      }
+      
+      const workspaceIds = memberData.map(m => m.workspace_id);
+      console.log('[Workspace Hook] User is member of workspaces:', workspaceIds);
+      
+      // Now fetch the workspace details
       const { data: workspaceData, error: workspaceError } = await supabase
         .from('workspaces')
         .select(`
@@ -80,13 +97,9 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
           slug,
           description,
           owner_id,
-          created_at,
-          workspace_members!inner(
-            user_id,
-            role
-          )
+          created_at
         `)
-        .eq('workspace_members.user_id', user.id)
+        .in('id', workspaceIds)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .returns<WorkspaceWithMember[]>();
