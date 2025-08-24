@@ -174,7 +174,7 @@ SELECT * FROM get_trending_repositories(INTERVAL '30 days');
 -- Create index for faster trending queries
 CREATE INDEX IF NOT EXISTS idx_metrics_history_trending_composite_enhanced 
 ON repository_metrics_history (repository_id, metric_type, captured_at DESC, is_significant) 
-WHERE captured_at > NOW() - INTERVAL '30 days' AND is_significant = TRUE;
+WHERE is_significant = TRUE;
 
 -- Create a trigger to update repository last_activity when metrics change
 CREATE OR REPLACE FUNCTION update_repository_last_activity() 
