@@ -420,15 +420,15 @@ export function WorkspaceIssuesTable({
     <Card className={cn("w-full", className)}>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Issues</CardTitle>
-          <div className="flex items-center gap-2">
-            <div className="relative">
+          <CardTitle className="hidden sm:block">Issues</CardTitle>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-initial">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search issues..."
                 value={globalFilter ?? ''}
                 onChange={(e) => setGlobalFilter(e.target.value)}
-                className="pl-10 w-[300px]"
+                className="pl-10 w-full sm:w-[300px]"
               />
             </div>
           </div>
