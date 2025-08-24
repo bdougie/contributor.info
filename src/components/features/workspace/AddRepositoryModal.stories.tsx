@@ -117,21 +117,83 @@ if (typeof window !== 'undefined' && window.location.href.includes('storybook'))
 // Override supabase for specific story scenarios
 const setupMockSupabase = (authenticated = true, options: any = {}) => {
   if (typeof window !== 'undefined') {
+    // Ensure mock exists
+    if (!(window as any).__mockSupabase) {
+      // Initialize mock if not present
+      (window as any).__mockSupabase = {
+        auth: {
+          getUser: () => Promise.resolve({ data: { user: authenticated ? mockUser : null }, error: null }),
+          onAuthStateChange: (callback: any) => {
+            setTimeout(() => callback(authenticated ? 'SIGNED_IN' : 'SIGNED_OUT', { user: authenticated ? mockUser : null }), 0);
+            return { data: { subscription: { unsubscribe: () => {} } } };
+          },
+        },
+        from: (table: string) => ({
+          select: (columns?: string) => ({
+            eq: (column: string, value: any) => ({
+              single: () => {
+                if (table === 'workspaces' && authenticated) {
+                  return Promise.resolve({ data: mockWorkspace, error: null });
+                }
+                return Promise.resolve({ data: null, error: null });
+              },
+              maybeSingle: () => {
+                if (table === 'workspace_members' && authenticated) {
+                  return Promise.resolve({ 
+                    data: { role: 'owner', user_id: mockUser.id }, 
+                    error: null 
+                  });
+                }
+                return Promise.resolve({ data: null, error: null });
+              },
+            }),
+            in: (column: string, values: any[]) => {
+              if (!authenticated) return Promise.resolve({ data: [], error: null });
+              if (table === 'repositories') {
+                return Promise.resolve({ data: mockRepositories, error: null });
+              }
+              if (table === 'workspace_repositories') {
+                return Promise.resolve({ data: [
+                  { repository_id: 'repo-1' },
+                  { repository_id: 'repo-2' }
+                ], error: null });
+              }
+              return Promise.resolve({ data: [], error: null });
+            },
+          }),
+          insert: (data: any) => ({
+            select: () => ({
+              single: () => authenticated 
+                ? Promise.resolve({ data: { id: 'new-repo-link', ...data }, error: null })
+                : Promise.resolve({ data: null, error: { message: 'Authentication required' } }),
+            }),
+          }),
+          update: (data: any) => ({
+            eq: () => ({
+              select: () => Promise.resolve({ data: null, error: null }),
+            }),
+          }),
+        }),
+      };
+    }
+    
     const currentMock = (window as any).__mockSupabase;
     
-    if (!authenticated) {
+    if (!authenticated && currentMock?.auth) {
       // Update to unauthenticated state
       currentMock.auth.getUser = () => Promise.resolve({ data: { user: null }, error: null });
       currentMock.auth.onAuthStateChange = (callback: any) => {
         setTimeout(() => callback('SIGNED_OUT', { user: null }), 0);
         return { data: { subscription: { unsubscribe: () => {} } } };
       };
-      (window as any).__mockWorkspaceService.checkPermissions = () => 
-        Promise.resolve({ hasPermission: false });
+      if ((window as any).__mockWorkspaceService) {
+        (window as any).__mockWorkspaceService.checkPermissions = () => 
+          Promise.resolve({ hasPermission: false });
+      }
     }
     
     // Apply any custom options (like workspace at limit)
-    if (options.workspaceAtLimit) {
+    if (options.workspaceAtLimit && currentMock?.from) {
       const originalFrom = currentMock.from;
       currentMock.from = (table: string) => {
         const result = originalFrom(table);
