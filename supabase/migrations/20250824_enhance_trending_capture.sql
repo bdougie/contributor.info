@@ -96,8 +96,23 @@ BEGIN
       repository_id,
       -- Enhanced scoring algorithm that weighs different metrics appropriately
       SUM(CASE 
-        WHEN metric_type = 'stars' AND change_percentage > 0 THEN 
-          LEAST(change_percentage * 2.0, 100.0) * (1 + LOG(GREATEST(current_value, 1)) / 10.0)
+        WHEN metric_type = 'stars' THEN
+          CASE
+            -- If gained 100+ stars in the last day, give massive boost
+            WHEN p_time_period <= INTERVAL '24 hours' AND change_amount >= 100 THEN
+              1000.0 + (change_amount * 2.0)
+            -- If gained 100+ stars recently (scaled by time period)
+            WHEN change_amount >= 100 THEN
+              500.0 + (change_amount * 1.5) + (change_percentage * 10.0)
+            -- High percentage changes get boosted (for smaller repos growing fast)
+            WHEN change_percentage >= 50 THEN
+              200.0 + (change_percentage * 5.0)
+            WHEN change_percentage >= 20 THEN
+              100.0 + (change_percentage * 3.0)
+            WHEN change_percentage > 0 THEN
+              LEAST(change_percentage * 2.0, 100.0) * (1 + LOG(GREATEST(current_value, 1)) / 10.0)
+            ELSE 0
+          END
         WHEN metric_type = 'pull_requests' AND change_percentage > 0 THEN 
           LEAST(change_percentage * 1.5, 75.0) * 1.2
         WHEN metric_type = 'contributors' AND change_percentage > 0 THEN 
