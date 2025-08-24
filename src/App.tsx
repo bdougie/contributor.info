@@ -280,6 +280,7 @@ function App() {
             <Route path="/" element={<Layout />}>
               <Route index element={<Home />} />
               <Route path="/i/:workspaceId" element={<WorkspacePage />} />
+              <Route path="/i/:workspaceId/:tab" element={<WorkspacePage />} />
               <Route path="/changelog" element={<ChangelogPage />} />
               <Route path="/docs" element={<DocsList />} />
               <Route path="/docs/:slug" element={<DocDetail />} />

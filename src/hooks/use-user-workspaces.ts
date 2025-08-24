@@ -29,14 +29,6 @@ type RepositoryWithWorkspace = {
   };
 };
 
-type UserMetadata = {
-  raw_user_meta_data: {
-    avatar_url?: string;
-    full_name?: string;
-    name?: string;
-  } | null;
-};
-
 export interface UseUserWorkspacesReturn {
   workspaces: WorkspacePreviewData[];
   loading: boolean;
@@ -62,26 +54,44 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
         setWorkspaces([]);
+        setLoading(false);
         return;
       }
 
       // Fetch workspaces where user is owner or member
-      // First, get workspace IDs where user is a member
+      // First try to get workspaces where user is the owner
+      const { data: ownedWorkspaces, error: ownedError } = await supabase
+        .from('workspaces')
+        .select('id')
+        .eq('owner_id', user.id)
+        .eq('is_active', true);
+
+      // Then get workspace IDs where user is a member
       const { data: memberData, error: memberError } = await supabase
         .from('workspace_members')
         .select('workspace_id, role')
         .eq('user_id', user.id);
       
-      if (memberError) {
+      if (memberError && !ownedWorkspaces) {
         throw new Error(`Failed to fetch workspace memberships: ${memberError.message}`);
       }
       
-      if (!memberData || memberData.length === 0) {
+      // Combine owned and member workspace IDs
+      const workspaceIds = new Set<string>();
+      if (ownedWorkspaces) {
+        ownedWorkspaces.forEach(w => workspaceIds.add(w.id));
+      }
+      if (memberData) {
+        memberData.forEach(m => workspaceIds.add(m.workspace_id));
+      }
+      
+      if (workspaceIds.size === 0) {
         setWorkspaces([]);
+        setLoading(false);
         return;
       }
       
-      const workspaceIds = memberData.map(m => m.workspace_id);
+      const workspaceIdsArray = Array.from(workspaceIds);
       
       // Now fetch the workspace details
       const { data: workspaceData, error: workspaceError } = await supabase
@@ -94,7 +104,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
           owner_id,
           created_at
         `)
-        .in('id', workspaceIds)
+        .in('id', workspaceIdsArray)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .returns<WorkspaceWithMember[]>();
@@ -132,8 +142,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
               `)
               .eq('workspace_id', workspace.id)
               .order('is_pinned', { ascending: false })
-              .order('repositories.github_pushed_at', { ascending: false })
-              .limit(3)
+              .limit(10)  // Fetch more to sort client-side
               .returns<RepositoryWithWorkspace[]>(),
             
             // Get actual total count of repositories (not just the displayed 3)
@@ -147,12 +156,8 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
               .select('id')
               .eq('workspace_id', workspace.id),
               
-            supabase
-              .from('auth.users')
-              .select('raw_user_meta_data')
-              .eq('id', workspace.owner_id)
-              .single()
-              .returns<UserMetadata>()
+            // For now, return null - we'll use fallback data
+            Promise.resolve({ data: null, error: null })
           ]);
 
           // Check for errors in individual queries and fail fast for critical data
@@ -165,12 +170,21 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
             console.warn(`Failed to fetch members for workspace ${workspace.id}:`, membersResult.error.message);
             // Members count is less critical, can continue with fallback
           }
-          if (ownerResult.error) {
-            console.warn(`Failed to fetch owner info for workspace ${workspace.id}:`, ownerResult.error.message);
-            // Owner info is supplementary, can continue with fallback
-          }
+          // ownerResult is not used since we're using fallback data
 
-          const repositories = repositoriesResult.data?.map(item => {
+          // Sort repositories by pinned status first, then by github_pushed_at
+          const sortedRepositories = repositoriesResult.data?.sort((a, b) => {
+            // First sort by pinned status
+            if (a.is_pinned !== b.is_pinned) {
+              return a.is_pinned ? -1 : 1;
+            }
+            // Then sort by pushed_at date
+            const dateA = new Date(a.repositories.github_pushed_at || 0).getTime();
+            const dateB = new Date(b.repositories.github_pushed_at || 0).getTime();
+            return dateB - dateA;
+          });
+
+          const repositories = sortedRepositories?.slice(0, 3).map(item => {
             // Calculate activity score: weight issues 2x higher than PRs
             const issueScore = (item.repositories.open_issues_count || 0) * 2;
             const prScore = item.repositories.pull_request_count || 0;
@@ -190,7 +204,10 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
             };
           }) || [];
 
-          const ownerMetadata = ownerResult.data?.raw_user_meta_data;
+          // Use current user's metadata if they're the owner
+          const ownerMetadata = workspace.owner_id === user.id 
+            ? user.user_metadata 
+            : null;
 
           return {
             id: workspace.id,

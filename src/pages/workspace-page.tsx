@@ -1,9 +1,16 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
+import { WorkspacePullRequestsTable, type PullRequest } from '@/components/features/workspace/WorkspacePullRequestsTable';
+import { WorkspaceIssuesTable, type Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
+import { RepositoryFilter, type RepositoryOption } from '@/components/features/workspace/RepositoryFilter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { GitPullRequest, AlertCircle, Users, Layout, Plus, Settings, TrendingUp, Activity } from '@/components/ui/icon';
+import { TimeRangeSelector, type TimeRange } from '@/components/features/workspace/TimeRangeSelector';
 import type { WorkspaceMetrics, WorkspaceTrendData, Repository, ActivityDataPoint } from '@/components/features/workspace';
 
 interface WorkspaceData {
@@ -151,9 +158,288 @@ const generateActivityDataFromPRs = (mergedPRs: MergedPR[]): ActivityDataPoint[]
   return activityData;
 };
 
+// Pull Requests tab component
+function WorkspacePRs({ repositories, selectedRepositories }: { repositories: Repository[], selectedRepositories: string[] }) {
+  const [pullRequests, setPullRequests] = useState<PullRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetchPullRequests() {
+      if (repositories.length === 0) {
+        setPullRequests([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Filter repositories if specific ones are selected
+        const filteredRepos = selectedRepositories.length > 0 
+          ? repositories.filter(r => selectedRepositories.includes(r.id))
+          : repositories;
+        
+        const repoIds = filteredRepos.map(r => r.id);
+        const { data, error } = await supabase
+          .from('pull_requests')
+          .select(`
+            id,
+            github_id,
+            number,
+            title,
+            state,
+            created_at,
+            updated_at,
+            closed_at,
+            merged_at,
+            additions,
+            deletions,
+            changed_files,
+            commits,
+            html_url,
+            repository_id,
+            repositories!inner(
+              id,
+              name,
+              owner,
+              full_name
+            ),
+            contributors:author_id(
+              username,
+              avatar_url
+            )
+          `)
+          .in('repository_id', repoIds)
+          .order('updated_at', { ascending: false })
+          .limit(100);
+
+        if (error) {
+          console.error('Error fetching pull requests:', error);
+          setPullRequests([]);
+        } else {
+          // Transform data to match PullRequest interface
+          const transformedPRs: PullRequest[] = (data || []).map(pr => ({
+            id: pr.id,
+            number: pr.number,
+            title: pr.title,
+            state: pr.merged_at ? 'merged' : pr.state === 'closed' ? 'closed' : 'open',
+            repository: {
+              name: pr.repositories.name,
+              owner: pr.repositories.owner,
+              avatar_url: `https://github.com/${pr.repositories.owner}.png`,
+            },
+            author: {
+              username: pr.contributors?.username || 'unknown',
+              avatar_url: pr.contributors?.avatar_url || '',
+            },
+            created_at: pr.created_at,
+            updated_at: pr.updated_at,
+            closed_at: pr.closed_at,
+            merged_at: pr.merged_at,
+            comments_count: 0, // We don't have this data yet
+            commits_count: pr.commits || 0,
+            additions: pr.additions || 0,
+            deletions: pr.deletions || 0,
+            changed_files: pr.changed_files || 0,
+            labels: [], // We don't have this data yet
+            reviewers: [], // We don't have this data yet
+            url: pr.html_url,
+          }));
+          setPullRequests(transformedPRs);
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        setPullRequests([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchPullRequests();
+  }, [repositories, selectedRepositories]);
+
+  const handlePullRequestClick = (pr: PullRequest) => {
+    window.open(pr.url, '_blank');
+  };
+
+  const handleRepositoryClick = (owner: string, name: string) => {
+    navigate(`/${owner}/${name}`);
+  };
+
+  return (
+    <WorkspacePullRequestsTable
+      pullRequests={pullRequests}
+      loading={loading}
+      onPullRequestClick={handlePullRequestClick}
+      onRepositoryClick={handleRepositoryClick}
+    />
+  );
+}
+
+// Issues tab component
+function WorkspaceIssues({ repositories, selectedRepositories }: { repositories: Repository[], selectedRepositories: string[] }) {
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetchIssues() {
+      if (repositories.length === 0) {
+        setIssues([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Filter repositories if specific ones are selected
+        const filteredRepos = selectedRepositories.length > 0 
+          ? repositories.filter(r => selectedRepositories.includes(r.id))
+          : repositories;
+        
+        const repoIds = filteredRepos.map(r => r.id);
+        const { data, error } = await supabase
+          .from('issues')
+          .select(`
+            id,
+            github_id,
+            number,
+            title,
+            state,
+            created_at,
+            updated_at,
+            closed_at,
+            html_url,
+            repository_id,
+            repositories!inner(
+              id,
+              name,
+              owner,
+              full_name
+            ),
+            contributors:author_id(
+              username,
+              avatar_url
+            )
+          `)
+          .in('repository_id', repoIds)
+          .order('updated_at', { ascending: false })
+          .limit(100);
+
+        if (error) {
+          console.error('Error fetching issues:', error);
+          setIssues([]);
+        } else {
+          // Transform data to match Issue interface
+          const transformedIssues: Issue[] = (data || []).map(issue => ({
+            id: issue.id,
+            number: issue.number,
+            title: issue.title,
+            state: issue.state as 'open' | 'closed',
+            repository: {
+              name: issue.repositories.name,
+              owner: issue.repositories.owner,
+              avatar_url: `https://github.com/${issue.repositories.owner}.png`,
+            },
+            author: {
+              username: issue.contributors?.username || 'unknown',
+              avatar_url: issue.contributors?.avatar_url || '',
+            },
+            created_at: issue.created_at,
+            updated_at: issue.updated_at,
+            closed_at: issue.closed_at,
+            comments_count: 0, // We don't have this data yet
+            labels: [], // We don't have this data yet
+            url: issue.html_url,
+          }));
+          setIssues(transformedIssues);
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        setIssues([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchIssues();
+  }, [repositories, selectedRepositories]);
+
+  const handleIssueClick = (issue: Issue) => {
+    window.open(issue.url, '_blank');
+  };
+
+  const handleRepositoryClick = (owner: string, name: string) => {
+    navigate(`/${owner}/${name}`);
+  };
+
+  return (
+    <WorkspaceIssuesTable
+      issues={issues}
+      loading={loading}
+      onIssueClick={handleIssueClick}
+      onRepositoryClick={handleRepositoryClick}
+    />
+  );
+}
+
+function WorkspaceContributors({ repositories }: { repositories: Repository[] }) {
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Contributors</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">Contributors view coming soon...</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            This will show all contributors across {repositories.length} repositories in this workspace.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Activity Timeline</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">Activity timeline coming soon...</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            This will show a detailed timeline of all activity across {repositories.length} repositories in this workspace,
+            including commits, pull requests, issues, and releases.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function WorkspaceSettings({ workspace }: { workspace: WorkspaceData }) {
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Workspace Settings</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">Workspace settings coming soon...</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Manage workspace "{workspace.name}" settings, members, repositories, and permissions here.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function WorkspacePage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [workspace, setWorkspace] = useState<WorkspaceData | null>(null);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(null);
@@ -161,6 +447,12 @@ export default function WorkspacePage() {
   const [activityData, setActivityData] = useState<ActivityDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<TimeRange>('30d');
+  const [selectedRepositories, setSelectedRepositories] = useState<string[]>([]);
+
+  // Determine active tab from URL
+  const pathSegments = location.pathname.split('/');
+  const activeTab = pathSegments[3] || 'overview';
 
   useEffect(() => {
     async function fetchWorkspace() {
@@ -250,8 +542,15 @@ export default function WorkspacePage() {
         setRepositories(transformedRepos);
         
         // Generate metrics, trend data, and activity data
+        const timeRangeDays = {
+          '7d': 7,
+          '30d': 30,
+          '90d': 90,
+          '1y': 365,
+          'all': 730
+        };
         const mockMetrics = generateMockMetrics(transformedRepos);
-        const mockTrendData = generateMockTrendData(30);
+        const mockTrendData = generateMockTrendData(timeRangeDays[timeRange]);
         const activityDataPoints = generateActivityDataFromPRs(mergedPRs);
         
         setMetrics(mockMetrics);
@@ -266,7 +565,15 @@ export default function WorkspacePage() {
     }
 
     fetchWorkspace();
-  }, [workspaceId]);
+  }, [workspaceId, timeRange]);
+
+  const handleTabChange = (value: string) => {
+    if (value === 'overview') {
+      navigate(`/i/${workspaceId}`);
+    } else {
+      navigate(`/i/${workspaceId}/${value}`);
+    }
+  };
 
   if (loading) {
     return (
@@ -308,20 +615,165 @@ export default function WorkspacePage() {
   };
 
   return (
-    <div className="container max-w-7xl mx-auto p-6">
-      <WorkspaceDashboard
-        workspaceId={workspace.id}
-        workspaceName={workspace.name}
-        metrics={metrics}
-        trendData={trendData}
-        activityData={activityData}
-        repositories={repositories}
-        tier="free"
-        onAddRepository={handleAddRepository}
-        onRepositoryClick={handleRepositoryClick}
-        onSettingsClick={handleSettingsClick}
-        onUpgradeClick={handleUpgradeClick}
-      />
+    <div className="min-h-screen">
+      {/* Workspace Header */}
+      <div className="container max-w-7xl mx-auto p-6 pb-0">
+        <div className="space-y-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">
+                {workspace.name}
+              </h1>
+              {workspace.description && (
+                <p className="text-muted-foreground mt-1">
+                  {workspace.description}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <TimeRangeSelector
+                value={timeRange}
+                onChange={setTimeRange}
+                tier="free"
+                onUpgradeClick={handleUpgradeClick}
+                variant="select"
+              />
+              <RepositoryFilter
+                repositories={repositories.map(repo => ({
+                  id: repo.id,
+                  name: repo.name,
+                  owner: repo.owner,
+                  full_name: repo.full_name,
+                  avatar_url: repo.avatar_url,
+                  language: repo.language,
+                  last_activity: repo.last_activity,
+                }))}
+                selectedRepositories={selectedRepositories}
+                onSelectionChange={setSelectedRepositories}
+                className="w-[200px]"
+              />
+              <Button
+                onClick={handleAddRepository}
+                size="sm"
+                variant="outline"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Repository
+              </Button>
+              <Button
+                onClick={handleSettingsClick}
+                size="sm"
+                variant="outline"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="px-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+          <div className="container max-w-7xl mx-auto">
+            <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Layout className="h-4 w-4" />
+            <span className="hidden sm:inline">Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="prs" className="flex items-center gap-2">
+            <GitPullRequest className="h-4 w-4" />
+            <span className="hidden sm:inline">PRs</span>
+          </TabsTrigger>
+          <TabsTrigger value="issues" className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <span className="hidden sm:inline">Issues</span>
+          </TabsTrigger>
+          <TabsTrigger value="contributors" className="flex items-center gap-2" disabled>
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Contributors</span>
+          </TabsTrigger>
+          <TabsTrigger value="activity" className="flex items-center gap-2" disabled>
+            <Activity className="h-4 w-4" />
+            <span className="hidden sm:inline">Activity</span>
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2" disabled>
+            <Settings className="h-4 w-4" />
+            <span className="hidden sm:inline">Settings</span>
+          </TabsTrigger>
+        </TabsList>
+          </div>
+
+        <TabsContent value="overview" className="mt-6 space-y-4">
+          <div className="container max-w-7xl mx-auto">
+          <WorkspaceDashboard
+            workspaceId={workspace.id}
+            workspaceName=""
+            metrics={metrics}
+            trendData={trendData}
+            activityData={activityData}
+            repositories={repositories}
+            tier="free"
+            onAddRepository={handleAddRepository}
+            onRepositoryClick={handleRepositoryClick}
+            onSettingsClick={handleSettingsClick}
+            onUpgradeClick={handleUpgradeClick}
+          />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="prs" className="mt-6">
+          <WorkspacePRs repositories={repositories} selectedRepositories={selectedRepositories} />
+        </TabsContent>
+
+        <TabsContent value="issues" className="mt-6">
+          <WorkspaceIssues repositories={repositories} selectedRepositories={selectedRepositories} />
+        </TabsContent>
+
+        <TabsContent value="contributors" className="mt-6">
+          <div className="container max-w-7xl mx-auto">
+            <WorkspaceContributors repositories={repositories} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="activity" className="mt-6">
+          <div className="container max-w-7xl mx-auto">
+            <WorkspaceActivity repositories={repositories} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="settings" className="mt-6">
+          <div className="container max-w-7xl mx-auto">
+            <WorkspaceSettings workspace={workspace} />
+          </div>
+        </TabsContent>
+      </Tabs>
+      </div>
+
+      {/* Upgrade Prompt for Free Tier */}
+      <div className="container max-w-7xl mx-auto px-6 pb-6 mt-6">
+        <div className="rounded-lg border bg-muted/50 p-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold">Unlock Advanced Analytics</h3>
+            <div className="rounded-full bg-primary/10 p-1">
+              <TrendingUp className="h-3.5 w-3.5 text-primary" />
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Upgrade to Pro to access historical data beyond 30 days, advanced metrics, and priority support.
+          </p>
+          <Button 
+            onClick={handleUpgradeClick} 
+            variant="default" 
+            size="sm"
+            className="mt-3"
+          >
+            Upgrade to Pro
+          </Button>
+        </div>
+      </div>
+      </div>
     </div>
   );
 }

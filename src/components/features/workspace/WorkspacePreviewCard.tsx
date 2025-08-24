@@ -203,7 +203,7 @@ export function WorkspacePreviewCard({
         )}
 
         <Button asChild className="w-full">
-          <Link to={`/workspaces/${workspace.slug}`}>
+          <Link to={`/i/${workspace.id}`}>
             View Full Workspace
             <ExternalLink className="ml-2 h-4 w-4" />
           </Link>
