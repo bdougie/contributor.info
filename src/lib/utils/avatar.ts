@@ -14,7 +14,8 @@ export function getAvatarUrl(username?: string, originalUrl?: string): string {
     try {
       const url = new URL(originalUrl);
       // Return GitHub avatar URLs as-is since they're already optimized
-      if (url.hostname.endsWith('githubusercontent.com')) {
+      const allowedGitHubAvatarHosts = ['avatars.githubusercontent.com'];
+      if (allowedGitHubAvatarHosts.includes(url.hostname)) {
         return originalUrl;
       }
       // For non-GitHub URLs, return as-is
