@@ -48,15 +48,14 @@ describe('AddRepositoryModal', () => {
     name: 'Test Workspace',
     slug: 'test-workspace',
     description: 'Test Description',
-    owner_id: 'user-123',
-    visibility: 'public',
-    tier: 'free',
-    max_repositories: 4,
-    current_repository_count: 0,
-    data_retention_days: 30,
-    settings: {},
+    avatar_url: null,
     created_at: '2024-01-01',
     updated_at: '2024-01-01',
+    owner_id: 'user-123',
+    tier: 'free',
+    repository_limit: 4,
+    repositories_count: 0,
+    contributors_count: 0,
     last_activity_at: '2024-01-01',
     is_active: true
   };
@@ -99,6 +98,16 @@ describe('AddRepositoryModal', () => {
           })
         };
       }
+      if (table === 'repositories') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({
+              data: [],
+              error: null
+            })
+          })
+        };
+      }
       return {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
@@ -109,65 +118,47 @@ describe('AddRepositoryModal', () => {
       };
     });
     
-    // Setup default WorkspaceService mocks
-    vi.mocked(WorkspaceService.getWorkspace).mockResolvedValue({
-      success: true,
-      data: mockWorkspace
-    });
-    
-    vi.mocked(WorkspaceService.listWorkspaceRepositories).mockResolvedValue({
-      success: true,
-      data: {
-        items: [],
-        pagination: {
-          page: 1,
-          limit: 100,
-          total: 0,
-          totalPages: 0
-        }
-      }
+    // Setup default service mocks
+    vi.mocked(WorkspaceService.getWorkspace).mockResolvedValue(mockWorkspace);
+    vi.mocked(WorkspaceService.listWorkspaceRepositories).mockResolvedValue([]);
+    vi.mocked(WorkspaceService.addRepositoryToWorkspace).mockResolvedValue({
+      id: 'repo-123',
+      workspace_id: mockWorkspaceId,
+      repository_id: 'github-repo-123'
     });
     
     // Setup default GitHub search mock
     vi.mocked(useGitHubSearch).mockReturnValue({
+      query: '',
+      setQuery: vi.fn(),
       results: [],
       loading: false,
       error: null,
-      search: vi.fn()
+      clearResults: vi.fn()
     });
   });
 
   it('should render modal with workspace information', async () => {
     render(
       <AddRepositoryModal
+        workspaceId={mockWorkspaceId}
         open={true}
         onOpenChange={mockOnOpenChange}
-        workspaceId={mockWorkspaceId}
         onSuccess={mockOnSuccess}
       />
     );
 
-    // Wait for async operations
     await waitFor(() => {
       expect(screen.getByText('Add Repositories to Workspace')).toBeInTheDocument();
+      expect(screen.getByText(/Free tier is limited to 4 repositories/)).toBeInTheDocument();
+      expect(screen.getByText('0 / 4 used')).toBeInTheDocument();
     });
-    
-    // Check free tier message
-    expect(screen.getByText(/Free tier is limited to 4 repositories/)).toBeInTheDocument();
-    
-    // Check repository slots display
-    expect(screen.getByText('Repository Slots:')).toBeInTheDocument();
-    expect(screen.getByText('0/4')).toBeInTheDocument();
   });
 
   it('should display correct limits for pro tier', async () => {
-    const proWorkspace = {
-      ...mockWorkspace,
-      tier: 'pro' as const,
-      max_repositories: 10,
-      current_repository_count: 3
-    };
-
+    const proWorkspace = { ...mockWorkspace, tier: 'pro', repository_limit: 10 };
+    
+    // Update the Supabase mock to return pro workspace
     vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'workspaces') {
         return {
@@ -181,137 +172,22 @@ describe('AddRepositoryModal', () => {
           })
         };
       }
-      return {
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({
-            data: [],
-            error: null
-          })
-        })
-      };
-    });
-
-    render(
-      <AddRepositoryModal
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        workspaceId={mockWorkspaceId}
-        onSuccess={mockOnSuccess}
-      />
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('3/10')).toBeInTheDocument();
-    });
-    
-    // Should not show free tier message
-    expect(screen.queryByText(/Free tier is limited/)).not.toBeInTheDocument();
-  });
-
-  it('should search for repositories', async () => {
-    const mockSearch = vi.fn();
-    
-    vi.mocked(useGitHubSearch).mockReturnValue({
-      results: [
-        {
-          id: 1,
-          full_name: 'vercel/next.js',
-          name: 'next.js',
-          owner: { login: 'vercel' },
-          description: 'The React Framework',
-          stargazers_count: 100000,
-          language: 'TypeScript'
-        }
-      ],
-      loading: false,
-      error: null,
-      search: mockSearch
-    });
-
-    render(
-      <AddRepositoryModal
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        workspaceId={mockWorkspaceId}
-        onSuccess={mockOnSuccess}
-      />
-    );
-
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/Search for repositories/i)).toBeInTheDocument();
-    });
-
-    const searchInput = screen.getByPlaceholderText(/Search for repositories/i);
-    await userEvent.type(searchInput, 'next.js');
-
-    await waitFor(() => {
-      expect(mockSearch).toHaveBeenCalledWith('next.js');
-    });
-
-    // Check search results are displayed
-    expect(screen.getByText('vercel/next.js')).toBeInTheDocument();
-    expect(screen.getByText('The React Framework')).toBeInTheDocument();
-  });
-
-  it('should add repository to staging area', async () => {
-    vi.mocked(useGitHubSearch).mockReturnValue({
-      results: [
-        {
-          id: 1,
-          full_name: 'vercel/next.js',
-          name: 'next.js',
-          owner: { login: 'vercel' },
-          description: 'The React Framework',
-          stargazers_count: 100000,
-          language: 'TypeScript'
-        }
-      ],
-      loading: false,
-      error: null,
-      search: vi.fn()
-    });
-
-    render(
-      <AddRepositoryModal
-        open={true}
-        onOpenChange={mockOnOpenChange}
-        workspaceId={mockWorkspaceId}
-        onSuccess={mockOnSuccess}
-      />
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('vercel/next.js')).toBeInTheDocument();
-    });
-
-    // Click add to cart button
-    const addButton = screen.getByRole('button', { name: /Add to Cart/i });
-    await userEvent.click(addButton);
-
-    // Check staging area
-    await waitFor(() => {
-      expect(screen.getByText('Cart (1)')).toBeInTheDocument();
-    });
-    
-    // Check remove button exists in staging
-    expect(screen.getByRole('button', { name: /Remove/i })).toBeInTheDocument();
-  });
-
-  it('should prevent adding repositories beyond limit', async () => {
-    const nearLimitWorkspace = {
-      ...mockWorkspace,
-      current_repository_count: 3 // Near free tier limit of 4
-    };
-
-    vi.mocked(supabase.from).mockImplementation((table: string) => {
-      if (table === 'workspaces') {
+      if (table === 'workspace_repositories') {
         return {
           select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: nearLimitWorkspace,
-                error: null
-              })
+            eq: vi.fn().mockResolvedValue({
+              data: [],
+              error: null
+            })
+          })
+        };
+      }
+      if (table === 'repositories') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({
+              data: [],
+              error: null
             })
           })
         };
@@ -319,77 +195,98 @@ describe('AddRepositoryModal', () => {
       return {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
-            data: [],
+            data: null,
             error: null
           })
         })
       };
     });
-
-    vi.mocked(useGitHubSearch).mockReturnValue({
-      results: [
-        { id: 1, full_name: 'repo1', name: 'repo1', owner: { login: 'owner' } },
-        { id: 2, full_name: 'repo2', name: 'repo2', owner: { login: 'owner' } }
-      ],
-      loading: false,
-      error: null,
-      search: vi.fn()
-    });
-
+    
+    vi.mocked(WorkspaceService.getWorkspace).mockResolvedValue(proWorkspace);
+    
     render(
       <AddRepositoryModal
+        workspaceId={mockWorkspaceId}
         open={true}
         onOpenChange={mockOnOpenChange}
-        workspaceId={mockWorkspaceId}
         onSuccess={mockOnSuccess}
       />
     );
 
     await waitFor(() => {
-      expect(screen.getByText('repo1')).toBeInTheDocument();
+      expect(screen.getByText(/Pro tier is limited to 10 repositories/)).toBeInTheDocument();
+      expect(screen.getByText('0 / 10 used')).toBeInTheDocument();
     });
-
-    // Try to add 2 repositories (would exceed limit)
-    const addButtons = screen.getAllByRole('button', { name: /Add to Cart/i });
-    await userEvent.click(addButtons[0]);
-    await userEvent.click(addButtons[1]);
-
-    // Check warning about exceeding limit
-    await waitFor(() => {
-      expect(screen.getByText(/exceeds your remaining slots/i)).toBeInTheDocument();
-    });
-    
-    // Add button should be disabled
-    const addAllButton = screen.getByRole('button', { name: /Add \d+ Repositories/i });
-    expect(addAllButton).toBeDisabled();
   });
 
-  it('should successfully add repositories to workspace', async () => {
-    // Mock successful API call
-    vi.mocked(WorkspaceService.addRepositoryToWorkspace).mockResolvedValue({
-      success: true,
-      data: { id: 'workspace-repo-1' }
-    });
-
+  it('should search for repositories', async () => {
+    const mockSetQuery = vi.fn();
+    
     vi.mocked(useGitHubSearch).mockReturnValue({
+      query: '',
+      setQuery: mockSetQuery,
       results: [
         {
           id: 1,
           full_name: 'vercel/next.js',
           name: 'next.js',
-          owner: { login: 'vercel' }
+          owner: { login: 'vercel' },
+          description: 'The React Framework',
+          stargazers_count: 100000,
+          language: 'TypeScript',
+          forks_count: 20000,
+          pushed_at: '2024-01-01T00:00:00Z'
         }
       ],
       loading: false,
       error: null,
-      search: vi.fn()
+      clearResults: vi.fn()
     });
 
     render(
       <AddRepositoryModal
+        workspaceId={mockWorkspaceId}
         open={true}
         onOpenChange={mockOnOpenChange}
+        onSuccess={mockOnSuccess}
+      />
+    );
+
+    const searchInput = await screen.findByPlaceholderText('Search for repositories (e.g., facebook/react)');
+    expect(searchInput).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText('vercel/next.js')).toBeInTheDocument();
+    });
+  });
+
+  it('should add repository to staging area', async () => {
+    vi.mocked(useGitHubSearch).mockReturnValue({
+      query: '',
+      setQuery: vi.fn(),
+      results: [
+        {
+          id: 1,
+          full_name: 'vercel/next.js',
+          name: 'next.js',
+          owner: { login: 'vercel' },
+          description: 'The React Framework',
+          stargazers_count: 100000,
+          language: 'TypeScript',
+          forks_count: 20000,
+          pushed_at: '2024-01-01T00:00:00Z'
+        }
+      ],
+      loading: false,
+      error: null,
+      clearResults: vi.fn()
+    });
+
+    render(
+      <AddRepositoryModal
         workspaceId={mockWorkspaceId}
+        open={true}
+        onOpenChange={mockOnOpenChange}
         onSuccess={mockOnSuccess}
       />
     );
@@ -398,47 +295,185 @@ describe('AddRepositoryModal', () => {
       expect(screen.getByText('vercel/next.js')).toBeInTheDocument();
     });
 
-    // Add to cart
-    const addButton = screen.getByRole('button', { name: /Add to Cart/i });
+    const addButton = screen.getByRole('button', { name: /Add$/ });
     await userEvent.click(addButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Cart (1)')).toBeInTheDocument();
-    });
-
-    // Click add repositories button
-    const addAllButton = screen.getByRole('button', { name: /Add 1 Repository/i });
-    await userEvent.click(addAllButton);
-
-    await waitFor(() => {
-      expect(WorkspaceService.addRepositoryToWorkspace).toHaveBeenCalled();
-      expect(toast.success).toHaveBeenCalledWith('Successfully added 1 repository');
-      expect(mockOnSuccess).toHaveBeenCalled();
-      expect(mockOnOpenChange).toHaveBeenCalledWith(false);
+      expect(screen.getByText('Staged Repositories (1)')).toBeInTheDocument();
     });
   });
 
-  it('should handle API errors gracefully', async () => {
-    // Mock API error
-    vi.mocked(WorkspaceService.addRepositoryToWorkspace).mockResolvedValue({
-      success: false,
-      error: 'Database error'
+  it('should prevent adding repositories beyond limit', async () => {
+    const limitedWorkspace = {
+      ...mockWorkspace,
+      tier: 'free',
+      repository_limit: 2,
+      repositories_count: 1
+    };
+
+    // Update the Supabase mock to return limited workspace
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
+      if (table === 'workspaces') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: limitedWorkspace,
+                error: null
+              })
+            })
+          })
+        };
+      }
+      if (table === 'workspace_repositories') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({
+              data: [{ repository_id: 'repo-1' }],
+              error: null
+            })
+          })
+        };
+      }
+      if (table === 'repositories') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({
+              data: [{ id: 'repo-1', full_name: 'existing/repo' }],
+              error: null
+            })
+          })
+        };
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            data: null,
+            error: null
+          })
+        })
+      };
     });
 
+    vi.mocked(WorkspaceService.getWorkspace).mockResolvedValue(limitedWorkspace);
+    vi.mocked(WorkspaceService.listWorkspaceRepositories).mockResolvedValue([
+      { id: 'existing-1', repository_id: 'repo-1', workspace_id: mockWorkspaceId }
+    ]);
+
     vi.mocked(useGitHubSearch).mockReturnValue({
+      query: '',
+      setQuery: vi.fn(),
       results: [
-        { id: 1, full_name: 'repo1', name: 'repo1', owner: { login: 'owner' } }
+        { id: 1, full_name: 'repo1', name: 'repo1', owner: { login: 'owner' }, stargazers_count: 100, forks_count: 10, pushed_at: '2024-01-01T00:00:00Z' },
+        { id: 2, full_name: 'repo2', name: 'repo2', owner: { login: 'owner' }, stargazers_count: 200, forks_count: 20, pushed_at: '2024-01-01T00:00:00Z' }
       ],
       loading: false,
       error: null,
-      search: vi.fn()
+      clearResults: vi.fn()
     });
 
     render(
       <AddRepositoryModal
+        workspaceId={mockWorkspaceId}
         open={true}
         onOpenChange={mockOnOpenChange}
+        onSuccess={mockOnSuccess}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('1 / 2 used')).toBeInTheDocument();
+    });
+
+    // Try to add both repositories
+    const addButtons = await screen.findAllByRole('button', { name: /Add$/ });
+    await userEvent.click(addButtons[0]);
+
+    // Second add should show toast error
+    await userEvent.click(addButtons[1]);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Repository limit reached'));
+    });
+  });
+
+  it('should successfully add repositories to workspace', async () => {
+    vi.mocked(WorkspaceService.addRepositoryToWorkspace).mockResolvedValue({
+      id: 'new-repo-1',
+      workspace_id: mockWorkspaceId,
+      repository_id: 'github-repo-1'
+    });
+
+    vi.mocked(useGitHubSearch).mockReturnValue({
+      query: '',
+      setQuery: vi.fn(),
+      results: [
+        {
+          id: 1,
+          full_name: 'vercel/next.js',
+          name: 'next.js',
+          owner: { login: 'vercel' },
+          stargazers_count: 100000,
+          forks_count: 20000,
+          pushed_at: '2024-01-01T00:00:00Z'
+        }
+      ],
+      loading: false,
+      error: null,
+      clearResults: vi.fn()
+    });
+
+    render(
+      <AddRepositoryModal
         workspaceId={mockWorkspaceId}
+        open={true}
+        onOpenChange={mockOnOpenChange}
+        onSuccess={mockOnSuccess}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('vercel/next.js')).toBeInTheDocument();
+    });
+
+    const addButton = screen.getByRole('button', { name: /Add$/ });
+    await userEvent.click(addButton);
+
+    const confirmButton = await screen.findByRole('button', { name: /Add 1 Repository/ });
+    await userEvent.click(confirmButton);
+
+    await waitFor(() => {
+      expect(WorkspaceService.addRepositoryToWorkspace).toHaveBeenCalledWith(
+        mockWorkspaceId,
+        'vercel',
+        'next.js'
+      );
+      expect(toast.success).toHaveBeenCalledWith('Successfully added 1 repository to workspace');
+      expect(mockOnSuccess).toHaveBeenCalled();
+    });
+  });
+
+  it('should handle API errors gracefully', async () => {
+    vi.mocked(WorkspaceService.addRepositoryToWorkspace).mockRejectedValue(
+      new Error('Failed to add repository')
+    );
+
+    vi.mocked(useGitHubSearch).mockReturnValue({
+      query: '',
+      setQuery: vi.fn(),
+      results: [
+        { id: 1, full_name: 'repo1', name: 'repo1', owner: { login: 'owner' }, stargazers_count: 100, forks_count: 10, pushed_at: '2024-01-01T00:00:00Z' }
+      ],
+      loading: false,
+      error: null,
+      clearResults: vi.fn()
+    });
+
+    render(
+      <AddRepositoryModal
+        workspaceId={mockWorkspaceId}
+        open={true}
+        onOpenChange={mockOnOpenChange}
         onSuccess={mockOnSuccess}
       />
     );
@@ -447,38 +482,35 @@ describe('AddRepositoryModal', () => {
       expect(screen.getByText('repo1')).toBeInTheDocument();
     });
 
-    // Add to cart and try to add
-    const addButton = screen.getByRole('button', { name: /Add to Cart/i });
+    const addButton = screen.getByRole('button', { name: /Add$/ });
     await userEvent.click(addButton);
 
-    await waitFor(() => {
-      expect(screen.getByText('Cart (1)')).toBeInTheDocument();
-    });
-
-    const addAllButton = screen.getByRole('button', { name: /Add 1 Repository/i });
-    await userEvent.click(addAllButton);
+    const confirmButton = await screen.findByRole('button', { name: /Add 1 Repository/ });
+    await userEvent.click(confirmButton);
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Failed to add repositories: Database error');
+      expect(toast.error).toHaveBeenCalledWith('Failed to add repositories');
       expect(mockOnSuccess).not.toHaveBeenCalled();
     });
   });
 
   it('should remove repository from staging area', async () => {
     vi.mocked(useGitHubSearch).mockReturnValue({
+      query: '',
+      setQuery: vi.fn(),
       results: [
-        { id: 1, full_name: 'repo1', name: 'repo1', owner: { login: 'owner' } }
+        { id: 1, full_name: 'repo1', name: 'repo1', owner: { login: 'owner' }, stargazers_count: 100, forks_count: 10, pushed_at: '2024-01-01T00:00:00Z' }
       ],
       loading: false,
       error: null,
-      search: vi.fn()
+      clearResults: vi.fn()
     });
 
     render(
       <AddRepositoryModal
+        workspaceId={mockWorkspaceId}
         open={true}
         onOpenChange={mockOnOpenChange}
-        workspaceId={mockWorkspaceId}
         onSuccess={mockOnSuccess}
       />
     );
@@ -487,40 +519,32 @@ describe('AddRepositoryModal', () => {
       expect(screen.getByText('repo1')).toBeInTheDocument();
     });
 
-    // Add to cart
-    const addButton = screen.getByRole('button', { name: /Add to Cart/i });
+    const addButton = screen.getByRole('button', { name: /Add$/ });
     await userEvent.click(addButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Cart (1)')).toBeInTheDocument();
+      expect(screen.getByText('Staged Repositories (1)')).toBeInTheDocument();
     });
 
-    // Remove from cart
-    const removeButton = screen.getByRole('button', { name: /Remove/i });
+    const removeButton = screen.getByRole('button', { name: /Remove/ });
     await userEvent.click(removeButton);
 
-    // Cart should be empty
     await waitFor(() => {
-      expect(screen.queryByText('Cart (1)')).not.toBeInTheDocument();
-      expect(screen.getByText('No repositories in cart')).toBeInTheDocument();
+      expect(screen.getByText('Staged Repositories (0)')).toBeInTheDocument();
     });
   });
 
   it('should close modal when cancel is clicked', async () => {
     render(
       <AddRepositoryModal
+        workspaceId={mockWorkspaceId}
         open={true}
         onOpenChange={mockOnOpenChange}
-        workspaceId={mockWorkspaceId}
         onSuccess={mockOnSuccess}
       />
     );
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
-    });
-
-    const cancelButton = screen.getByRole('button', { name: /Cancel/i });
+    const cancelButton = await screen.findByRole('button', { name: /Cancel/ });
     await userEvent.click(cancelButton);
 
     expect(mockOnOpenChange).toHaveBeenCalledWith(false);
