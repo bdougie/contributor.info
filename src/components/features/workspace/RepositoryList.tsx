@@ -415,78 +415,80 @@ export function RepositoryList({
           </div>
         ) : (
           <div className="rounded-lg border overflow-hidden">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      // Skip the hidden is_pinned column
-                      if (header.column.id === "is_pinned") return null;
-                      
-                      return (
-                        <TableHead 
-                          key={header.id}
-                          className={cn(
-                            header.column.id === "full_name" && "w-[40%] min-w-[250px]",
-                            header.column.id === "stars" && "w-[15%] min-w-[100px] text-right",
-                            header.column.id === "open_prs" && "w-[10%] min-w-[80px] text-right",
-                            header.column.id === "contributors" && "w-[15%] min-w-[120px] text-right",
-                            header.column.id === "last_activity" && "w-[15%] min-w-[120px]",
-                            header.column.id === "actions" && "w-[5%] min-w-[50px]"
-                          )}
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className={cn(
-                      "cursor-pointer hover:bg-muted/50",
-                      row.original.is_pinned && "bg-muted/30"
-                    )}
-                    onClick={(e) => {
-                      // Don't trigger row click if clicking on action buttons
-                      if (!(e.target as HTMLElement).closest('[role="button"]')) {
-                        onRepositoryClick?.(row.original);
-                      }
-                    }}
-                  >
-                    {row.getVisibleCells().map((cell) => {
-                      // Skip the hidden is_pinned column
-                      if (cell.column.id === "is_pinned") return null;
-                      
-                      return (
-                        <TableCell 
-                          key={cell.id}
-                          onClick={(e) => {
-                            // Prevent row click for action column
-                            if (cell.column.id === "actions") {
-                              e.stopPropagation();
-                            }
-                          }}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table className="min-w-[800px]">
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => {
+                        // Skip the hidden is_pinned column
+                        if (header.column.id === "is_pinned") return null;
+                        
+                        return (
+                          <TableHead 
+                            key={header.id}
+                            className={cn(
+                              header.column.id === "full_name" && "w-[40%] min-w-[250px]",
+                              header.column.id === "stars" && "w-[15%] min-w-[100px] text-right",
+                              header.column.id === "open_prs" && "w-[10%] min-w-[80px] text-right",
+                              header.column.id === "contributors" && "w-[15%] min-w-[120px] text-right",
+                              header.column.id === "last_activity" && "w-[15%] min-w-[120px]",
+                              header.column.id === "actions" && "w-[5%] min-w-[50px]"
+                            )}
+                          >
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                          </TableHead>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      className={cn(
+                        "cursor-pointer hover:bg-muted/50",
+                        row.original.is_pinned && "bg-muted/30"
+                      )}
+                      onClick={(e) => {
+                        // Don't trigger row click if clicking on action buttons
+                        if (!(e.target as HTMLElement).closest('[role="button"]')) {
+                          onRepositoryClick?.(row.original);
+                        }
+                      }}
+                    >
+                      {row.getVisibleCells().map((cell) => {
+                        // Skip the hidden is_pinned column
+                        if (cell.column.id === "is_pinned") return null;
+                        
+                        return (
+                          <TableCell 
+                            key={cell.id}
+                            onClick={(e) => {
+                              // Prevent row click for action column
+                              if (cell.column.id === "actions") {
+                                e.stopPropagation();
+                              }
+                            }}
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </CardContent>
