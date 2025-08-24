@@ -85,7 +85,7 @@ export function TrendingRepositoryCard({
             <OptimizedAvatar
               src={repository.avatar_url}
               alt={repository.owner}
-              fallback={repository.owner[0].toUpperCase()}
+              fallback={repository.owner?.[0]?.toUpperCase() || '?'}
               size={compact ? 32 : 40}
               className="flex-shrink-0"
             />
