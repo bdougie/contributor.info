@@ -65,9 +65,11 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       // Check if user is authenticated
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
+        console.log('[Workspace Hook] No authenticated user found');
         setWorkspaces([]);
         return;
       }
+      console.log('[Workspace Hook] Authenticated user:', user.id, user.email);
 
       // Fetch workspaces where user is owner or member
       const { data: workspaceData, error: workspaceError } = await supabase
@@ -90,10 +92,14 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         .returns<WorkspaceWithMember[]>();
 
       if (workspaceError) {
+        console.error('[Workspace Hook] Query error:', workspaceError);
         throw new Error(`Failed to fetch workspaces: ${workspaceError.message}`);
       }
 
+      console.log('[Workspace Hook] Found workspaces:', workspaceData?.length || 0);
+      
       if (!workspaceData || workspaceData.length === 0) {
+        console.log('[Workspace Hook] No workspaces found for user:', user.id);
         setWorkspaces([]);
         return;
       }
