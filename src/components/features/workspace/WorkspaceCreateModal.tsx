@@ -54,6 +54,12 @@ export function WorkspaceCreateModal({
       return;
     }
 
+    // Check for workspaceId when in edit mode
+    if (mode === 'edit' && !workspaceId) {
+      setError('Workspace ID is required for editing');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -63,6 +69,7 @@ export function WorkspaceCreateModal({
       if (mode === 'create') {
         response = await WorkspaceService.createWorkspace(user.id, data);
       } else {
+        // workspaceId is guaranteed to be defined here due to the check above
         response = await WorkspaceService.updateWorkspace(workspaceId!, user.id, data);
       }
       

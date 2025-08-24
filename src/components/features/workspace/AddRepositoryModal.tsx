@@ -106,10 +106,10 @@ export function AddRepositoryModal({
           const { data: repoData } = await supabase
             .from('repositories')
             .select('id, full_name')
-            .in('id', existingRepos.map(r => r.repository_id));
+            .in('id', existingRepos.map((r: { repository_id: string }) => r.repository_id));
 
           if (repoData) {
-            setExistingRepoIds(new Set(repoData.map(r => r.full_name)));
+            setExistingRepoIds(new Set(repoData.map((r: { full_name: string }) => r.full_name)));
           }
         }
       } catch (err) {
