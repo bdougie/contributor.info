@@ -34,80 +34,73 @@ describe('WorkspaceService', () => {
     };
 
     it('should create a workspace successfully with free tier limits', async () => {
-      // Mock workspace count check
-      const fromMock = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({
-            count: 0,
-            error: null
-          })
-        })
-      });
-
-      // Mock subscription check (no subscription = free tier)
-      const subscriptionMock = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: null,
+      let callCount = 0;
+      
+      // Setup mocks
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
+        if (table === 'workspaces' && callCount === 0) {
+          callCount++;
+          // Mock workspace count check
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                count: 0,
                 error: null
               })
             })
-          })
-        })
+          } as any;
+        }
+        if (table === 'subscriptions') {
+          // Mock subscription check (no subscription = free tier)
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: null
+                  })
+                })
+              })
+            })
+          } as any;
+        }
+        if (table === 'workspaces' && callCount === 1) {
+          callCount++;
+          // Mock workspace creation
+          return {
+            insert: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: 'workspace-123',
+                    name: 'Test Workspace',
+                    tier: 'free',
+                    max_repositories: 4,
+                    current_repository_count: 0
+                  },
+                  error: null
+                })
+              })
+            })
+          } as any;
+        }
+        if (table === 'workspace_members') {
+          // Mock member creation
+          return {
+            insert: vi.fn().mockResolvedValue({
+              error: null
+            })
+          } as any;
+        }
+        return {} as any;
       });
 
       // Mock slug generation
-      const rpcMock = vi.fn().mockResolvedValue({
+      vi.mocked(supabase.rpc).mockResolvedValue({
         data: 'test-workspace',
         error: null
-      });
-
-      // Mock workspace creation
-      const createMock = vi.fn().mockReturnValue({
-        insert: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: {
-                id: 'workspace-123',
-                name: 'Test Workspace',
-                tier: 'free',
-                max_repositories: 4,
-                current_repository_count: 0
-              },
-              error: null
-            })
-          })
-        })
-      });
-
-      // Mock member creation
-      const memberMock = vi.fn().mockReturnValue({
-        insert: vi.fn().mockResolvedValue({
-          error: null
-        })
-      });
-
-      // Setup mocks
-      vi.mocked(supabase.from).mockImplementation((table: string) => {
-        if (table === 'workspaces' && !createMock.mock.calls.length) {
-          return fromMock() as any;
-        }
-        if (table === 'subscriptions') {
-          return subscriptionMock() as any;
-        }
-        if (table === 'workspaces' && createMock.mock.calls.length === 0) {
-          createMock();
-          return createMock() as any;
-        }
-        if (table === 'workspace_members') {
-          return memberMock() as any;
-        }
-        return fromMock() as any;
-      });
-
-      vi.mocked(supabase.rpc).mockImplementation(rpcMock as any);
+      } as any);
 
       // Execute
       const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
@@ -206,29 +199,39 @@ describe('WorkspaceService', () => {
     });
 
     it('should reject workspace creation when limit is reached', async () => {
-      // Mock workspace count at limit
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({
-            count: 1, // At free tier limit
-            error: null
-          })
-        })
-      } as any);
-
-      // Mock no subscription (free tier)
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: null,
+      let callCount = 0;
+      
+      // Setup mocks
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
+        if (table === 'workspaces' && callCount === 0) {
+          callCount++;
+          // Mock workspace count at limit
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                count: 1, // At free tier limit
                 error: null
               })
             })
-          })
-        })
-      } as any);
+          } as any;
+        }
+        if (table === 'subscriptions') {
+          // Mock no subscription (free tier)
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: null
+                  })
+                })
+              })
+            })
+          } as any;
+        }
+        return {} as any;
+      });
 
       // Execute
       const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
