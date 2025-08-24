@@ -43,10 +43,10 @@ const mockRepositories = [
 ];
 
 // Override supabase for stories
-const setupMockSupabase = () => {
+const setupMockSupabase = (authenticated = true) => {
   if (typeof window !== 'undefined') {
     // Create a mock for the supabase client
-    (window as any).__mockSupabase = {
+    (window as any).__mockSupabase = authenticated ? {
       auth: {
         getUser: () => Promise.resolve({ data: { user: mockUser }, error: null }),
         onAuthStateChange: (callback: any) => {
@@ -94,6 +94,42 @@ const setupMockSupabase = () => {
           }),
         }),
       }),
+    } : {
+      auth: {
+        getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+        onAuthStateChange: (callback: any) => {
+          callback('SIGNED_OUT', { user: null });
+          return { data: { subscription: { unsubscribe: () => {} } } };
+        },
+      },
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            single: () => Promise.resolve({ data: null, error: null }),
+            maybeSingle: () => Promise.resolve({ data: null, error: null }),
+          }),
+          in: () => Promise.resolve({ data: [], error: null }),
+        }),
+        insert: () => ({
+          select: () => ({
+            single: () => Promise.resolve({ 
+              data: null, 
+              error: { message: 'Authentication required' } 
+            }),
+          }),
+        }),
+      }),
+    };
+    
+    // Mock the WorkspaceService
+    (window as any).__mockWorkspaceService = {
+      addRepositoryToWorkspace: () => Promise.resolve({
+        success: true,
+        data: { id: 'new-link', repository_id: 'repo-123' },
+      }),
+      checkPermissions: () => Promise.resolve({ 
+        hasPermission: authenticated 
+      }),
     };
   }
 };
@@ -108,21 +144,7 @@ const meta: Meta<typeof AddRepositoryModal> = {
   decorators: [
     (Story) => {
       useEffect(() => {
-        setupMockSupabase();
-        
-        // Mock the WorkspaceService
-        const mockWorkspaceService = {
-          addRepositoryToWorkspace: () => Promise.resolve({
-            success: true,
-            data: { id: 'new-link', repository_id: 'repo-123' },
-          }),
-          checkPermissions: () => Promise.resolve({ hasPermission: true }),
-        };
-        
-        // Override the import
-        if (typeof window !== 'undefined') {
-          (window as any).__mockWorkspaceService = mockWorkspaceService;
-        }
+        setupMockSupabase(true);
       }, []);
       
       return <Story />;
@@ -157,8 +179,8 @@ export const Default: Story = {
   render: () => <AddRepositoryModalDemo />,
 };
 
-// Story showing the modal open by default with auth
-export const OpenModalAuthenticated: Story = {
+// Story showing the modal open by default (keeping original name for compatibility)
+export const OpenModal: Story = {
   args: {
     open: true,
     workspaceId: 'test-workspace-id',
@@ -167,15 +189,23 @@ export const OpenModalAuthenticated: Story = {
     const [open, setOpen] = useState(args.open);
     
     return (
-      <AddRepositoryModal
-        {...args}
-        open={open}
-        onOpenChange={setOpen}
-        onSuccess={() => {
-          console.log('Repository added successfully');
-          setOpen(false);
-        }}
-      />
+      <>
+        <div className="text-sm text-muted-foreground mb-4 p-4 bg-muted rounded-lg max-w-md">
+          <p className="font-semibold mb-2">Mock Authentication Active</p>
+          <p>User: test@example.com</p>
+          <p>Workspace: Test Workspace (3/10 repositories)</p>
+          <p>Role: Owner</p>
+        </div>
+        <AddRepositoryModal
+          {...args}
+          open={open}
+          onOpenChange={setOpen}
+          onSuccess={() => {
+            console.log('Repository added successfully');
+            setOpen(false);
+          }}
+        />
+      </>
     );
   },
 };
@@ -230,7 +260,7 @@ export const WithSearchResults: Story = {
     
     return (
       <>
-        <div className="text-sm text-muted-foreground mb-4 p-4 bg-muted rounded-lg">
+        <div className="text-sm text-muted-foreground mb-4 p-4 bg-muted rounded-lg max-w-md">
           <p className="font-semibold mb-2">Authenticated as: test@example.com</p>
           <p>Workspace: Test Workspace (3/10 repositories)</p>
           <p>Tier: Free</p>
@@ -286,16 +316,15 @@ export const RepositoryLimitError: Story = {
   decorators: [
     (Story) => {
       useEffect(() => {
-        setupMockSupabase();
         // Override workspace to show at limit
         if (typeof window !== 'undefined') {
+          setupMockSupabase(true);
           const supabase = (window as any).__mockSupabase;
           const originalFrom = supabase.from;
           supabase.from = (table: string) => {
             const result = originalFrom(table);
             if (table === 'workspaces') {
               return {
-                ...result,
                 select: () => ({
                   eq: () => ({
                     single: () => Promise.resolve({ 
@@ -304,6 +333,8 @@ export const RepositoryLimitError: Story = {
                     }),
                   }),
                 }),
+                insert: result.insert,
+                update: result.update,
               };
             }
             return result;
@@ -319,7 +350,7 @@ export const RepositoryLimitError: Story = {
     
     return (
       <>
-        <div className="text-sm text-destructive mb-4 p-4 bg-destructive/10 rounded-lg">
+        <div className="text-sm text-destructive mb-4 p-4 bg-destructive/10 rounded-lg max-w-md">
           <p className="font-semibold">Repository Limit Reached!</p>
           <p>You have reached the maximum of 10 repositories for the free tier.</p>
         </div>
@@ -343,25 +374,7 @@ export const UnauthenticatedError: Story = {
     (Story) => {
       useEffect(() => {
         // Mock unauthenticated state
-        if (typeof window !== 'undefined') {
-          (window as any).__mockSupabase = {
-            auth: {
-              getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-              onAuthStateChange: (callback: any) => {
-                callback('SIGNED_OUT', { user: null });
-                return { data: { subscription: { unsubscribe: () => {} } } };
-              },
-            },
-            from: () => ({
-              select: () => ({
-                eq: () => ({
-                  single: () => Promise.resolve({ data: null, error: null }),
-                  maybeSingle: () => Promise.resolve({ data: null, error: null }),
-                }),
-              }),
-            }),
-          };
-        }
+        setupMockSupabase(false);
       }, []);
       
       return <Story />;
@@ -372,7 +385,7 @@ export const UnauthenticatedError: Story = {
     
     return (
       <>
-        <div className="text-sm text-destructive mb-4 p-4 bg-destructive/10 rounded-lg">
+        <div className="text-sm text-destructive mb-4 p-4 bg-destructive/10 rounded-lg max-w-md">
           <p className="font-semibold">Authentication Required</p>
           <p>You must be logged in to add repositories to a workspace.</p>
         </div>
