@@ -81,7 +81,7 @@ export function TrendingRepositoryCard({
     <Card className={cn('hover:shadow-md transition-shadow', className)}>
       <CardHeader className={cn('pb-3', compact && 'pb-2')}>
         <div className="space-y-3">
-          {/* First row: Avatar, repo name, and badges */}
+          {/* First row: Avatar and repo name */}
           <div className="flex items-start gap-3">
             <OptimizedAvatar
               src={repository.avatar_url}
@@ -91,7 +91,7 @@ export function TrendingRepositoryCard({
               className="flex-shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+              <div className="flex items-start gap-2">
                 <a
                   href={repository.html_url}
                   target="_blank"
@@ -105,19 +105,33 @@ export function TrendingRepositoryCard({
                     {repository.owner}/{repository.name}
                   </h3>
                 </a>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Badge variant="secondary" className="flex items-center gap-1 text-xs">
-                    <TrendingUp className="w-3 h-3" />
-                    <span className="hidden sm:inline">{Math.round(repository.trending_score)}</span>
-                    <span className="sm:hidden">{Math.round(repository.trending_score)}</span>
-                  </Badge>
-                  {repository.language && (
-                    <Badge variant="outline" className="text-xs hidden sm:inline-flex">
-                      {repository.language}
-                    </Badge>
-                  )}
-                </div>
+                {/* Freshness indicator next to repo name */}
+                {showDataFreshness && (
+                  <DataFreshnessIndicator 
+                    freshness={calculateFreshness(repository.last_activity)}
+                    lastUpdate={repository.last_activity}
+                    className="flex-shrink-0"
+                  />
+                )}
               </div>
+              {/* Mobile: Stars and Trending on same line */}
+              <div className="flex items-center justify-between mt-2 sm:hidden">
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Star className="w-4 h-4" />
+                  <span>{repository.stars.toLocaleString()}</span>
+                </div>
+                <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                  <TrendingUp className="w-3 h-3" />
+                  <span>{Math.round(repository.trending_score)}</span>
+                </Badge>
+              </div>
+            </div>
+            {/* Desktop: Badges on the right */}
+            <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+              <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                <TrendingUp className="w-3 h-3" />
+                <span>{Math.round(repository.trending_score)}</span>
+              </Badge>
             </div>
           </div>
           
@@ -131,44 +145,45 @@ export function TrendingRepositoryCard({
       </CardHeader>
 
       <CardContent className={cn('pt-0', compact && 'pt-0')}>
-        <div className="flex items-center justify-between mb-2">
+        {/* Desktop: Show stars */}
+        <div className="hidden sm:flex items-center justify-between mb-2">
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <Star className="w-4 h-4" />
             <span>{repository.stars.toLocaleString()}</span>
           </div>
-          
-          {showDataFreshness && (
-            <DataFreshnessIndicator 
-              freshness={calculateFreshness(repository.last_activity)}
-              lastUpdate={repository.last_activity}
-              className="hidden sm:flex"
-            />
-          )}
         </div>
 
-        {/* Metric Changes - More compact on mobile */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <MetricChange
-            label="stars"
-            value={repository.star_change}
-            icon={Star}
-            formatValue={formatPercentage}
-          />
-          {repository.pr_change > 0 && (
+        {/* Metric Changes with Language Badge */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
             <MetricChange
-              label="PRs"
-              value={repository.pr_change}
-              icon={GitPullRequest}
+              label="stars"
+              value={repository.star_change}
+              icon={Star}
               formatValue={formatPercentage}
             />
-          )}
-          {repository.contributor_change > 0 && (
-            <MetricChange
-              label="contributors"
-              value={repository.contributor_change}
-              icon={Users}
-              formatValue={formatPercentage}
-            />
+            {repository.pr_change > 0 && (
+              <MetricChange
+                label="PRs"
+                value={repository.pr_change}
+                icon={GitPullRequest}
+                formatValue={formatPercentage}
+              />
+            )}
+            {repository.contributor_change > 0 && (
+              <MetricChange
+                label="contributors"
+                value={repository.contributor_change}
+                icon={Users}
+                formatValue={formatPercentage}
+              />
+            )}
+          </div>
+          {/* Language badge at the end */}
+          {repository.language && (
+            <Badge variant="outline" className="text-xs flex-shrink-0">
+              {repository.language}
+            </Badge>
           )}
         </div>
       </CardContent>
