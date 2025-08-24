@@ -120,6 +120,8 @@ export function WorkspacePullRequestsTable({
   const columns = useMemo<ColumnDef<PullRequest>[]>(
     () => ([
       columnHelper.accessor('state', {
+        size: 120,
+        minSize: 100,
         header: ({ column }) => (
           <Button
             variant="ghost"
@@ -148,6 +150,8 @@ export function WorkspacePullRequestsTable({
         },
       }),
       columnHelper.accessor('title', {
+        size: 350,
+        minSize: 250,
         header: 'Pull Request',
         cell: ({ row }) => {
           const pr = row.original;
@@ -184,6 +188,8 @@ export function WorkspacePullRequestsTable({
         },
       }),
       columnHelper.accessor('repository', {
+        size: 200,
+        minSize: 150,
         header: 'Repository',
         cell: ({ row }) => {
           const repo = row.original.repository;
@@ -192,45 +198,43 @@ export function WorkspacePullRequestsTable({
           return (
             <button
               onClick={() => onRepositoryClick?.(repo.owner, repo.name)}
-              className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
+              className="flex items-center gap-2 text-sm hover:text-primary transition-colors min-w-0"
             >
               <img
                 src={avatarUrl}
                 alt={repo.owner}
-                className="h-5 w-5 rounded"
+                className="h-5 w-5 rounded flex-shrink-0"
                 onError={(e) => {
                   e.currentTarget.src = `https://github.com/${repo.owner}.png`;
                 }}
               />
-              <span>{repo.owner}/{repo.name}</span>
+              <span className="truncate">{repo.name}</span>
             </button>
           );
         },
       }),
       columnHelper.accessor('author', {
+        size: 150,
+        minSize: 120,
         header: 'Author',
         cell: ({ row }) => {
           const author = row.original.author;
           return (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <img
-                    src={author.avatar_url}
-                    alt={author.username}
-                    className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{author.username}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <div className="flex items-center gap-2">
+              <img
+                src={author.avatar_url}
+                alt={author.username}
+                className="h-6 w-6 rounded-full"
+              />
+              <span className="text-sm truncate">{author.username}</span>
+            </div>
           );
         },
       }),
       columnHelper.display({
         id: 'changes',
+        size: 120,
+        minSize: 100,
         header: 'Changes',
         cell: ({ row }) => {
           const pr = row.original;
@@ -243,11 +247,17 @@ export function WorkspacePullRequestsTable({
         },
       }),
       columnHelper.accessor('reviewers', {
+        size: 130,
+        minSize: 100,
         header: 'Reviews',
         cell: ({ row }) => {
           const reviewers = row.original.reviewers;
-          if (reviewers.length === 0) {
-            return <span className="text-sm text-muted-foreground">-</span>;
+          if (!reviewers || reviewers.length === 0) {
+            return (
+              <div className="text-sm text-muted-foreground">
+                <span>-</span>
+              </div>
+            );
           }
           
           const approved = reviewers.filter(r => r.approved).length;
@@ -273,6 +283,8 @@ export function WorkspacePullRequestsTable({
         },
       }),
       columnHelper.accessor('created_at', {
+        size: 120,
+        minSize: 100,
         header: ({ column }) => (
           <Button
             variant="ghost"
@@ -297,6 +309,8 @@ export function WorkspacePullRequestsTable({
         ),
       }),
       columnHelper.accessor('updated_at', {
+        size: 120,
+        minSize: 100,
         header: ({ column }) => (
           <Button
             variant="ghost"
@@ -407,14 +421,18 @@ export function WorkspacePullRequestsTable({
           <>
             <div className="rounded-md border">
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[1400px]">
                   <thead>
                     {table.getHeaderGroups().map((headerGroup) => (
                       <tr key={headerGroup.id} className="border-b">
                         {headerGroup.headers.map((header) => (
                           <th
                             key={header.id}
-                            className="px-4 py-3 text-left font-medium text-sm"
+                            className="px-4 py-3 text-left font-medium text-sm whitespace-nowrap"
+                            style={{
+                              width: header.column.columnDef.size,
+                              minWidth: header.column.columnDef.minSize,
+                            }}
                           >
                             {flexRender(
                               header.column.columnDef.header,
@@ -432,7 +450,14 @@ export function WorkspacePullRequestsTable({
                         className="border-b hover:bg-muted/50 transition-colors"
                       >
                         {row.getVisibleCells().map((cell) => (
-                          <td key={cell.id} className="px-4 py-3">
+                          <td 
+                            key={cell.id} 
+                            className="px-4 py-4"
+                            style={{
+                              width: cell.column.columnDef.size,
+                              minWidth: cell.column.columnDef.minSize,
+                            }}
+                          >
                             {flexRender(
                               cell.column.columnDef.cell,
                               cell.getContext()

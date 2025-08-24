@@ -125,7 +125,7 @@ export function RepositoryFilter({
                 e.currentTarget.src = `https://github.com/${repo.owner}.png`;
               }}
             />
-            <span className="truncate">{repo.full_name}</span>
+            <span className="truncate">{repo.name}</span>
           </div>
         );
       }
@@ -241,7 +241,7 @@ export function RepositoryFilter({
                         />
                         <div className="flex-1 min-w-0">
                           <div className="truncate font-medium">
-                            {repo.full_name}
+                            {repo.name}
                           </div>
                           {repo.language && (
                             <div className="text-xs text-muted-foreground">
@@ -351,7 +351,7 @@ export function SingleRepositoryFilter({
                   e.currentTarget.src = `https://github.com/${selectedRepo.owner}.png`;
                 }}
               />
-              <span className="truncate">{selectedRepo.full_name}</span>
+              <span className="truncate">{selectedRepo.name}</span>
             </>
           ) : (
             <span className="truncate">{placeholder}</span>
@@ -425,7 +425,7 @@ export function SingleRepositoryFilter({
                         />
                         <div className="flex-1">
                           <div className="truncate font-medium">
-                            {repo.full_name}
+                            {repo.name}
                           </div>
                           {repo.language && (
                             <div className="text-xs text-muted-foreground">

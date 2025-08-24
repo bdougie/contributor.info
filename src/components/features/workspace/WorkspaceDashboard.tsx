@@ -2,17 +2,12 @@ import { useState } from "react";
 import { MetricCard } from "./MetricCard";
 import { TrendChart } from "./TrendChart";
 import { ActivityChart, type ActivityDataPoint } from "./ActivityChart";
-import { TimeRangeSelector, type TimeRange } from "./TimeRangeSelector";
 import { RepositoryList, type Repository } from "./RepositoryList";
-import { Button } from "@/components/ui/button";
 import { 
   Star, 
   GitPullRequest, 
   Users, 
-  GitCommit,
-  Plus,
-  Settings,
-  TrendingUp
+  GitCommit
 } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 
@@ -54,20 +49,19 @@ export interface WorkspaceDashboardProps {
 
 export function WorkspaceDashboard({
   workspaceId: _workspaceId,
-  workspaceName,
+  workspaceName: _workspaceName,
   metrics,
   trendData,
   activityData = [],
   repositories,
   loading = false,
-  tier = 'free',
-  onAddRepository,
+  tier: _tier = 'free',
+  onAddRepository: _onAddRepository,
   onRepositoryClick,
-  onSettingsClick,
-  onUpgradeClick,
+  onSettingsClick: _onSettingsClick,
+  onUpgradeClick: _onUpgradeClick,
   className,
 }: WorkspaceDashboardProps) {
-  const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [pinnedRepos, setPinnedRepos] = useState<Set<string>>(
     new Set(repositories.filter(r => r.is_pinned).map(r => r.id))
   );
@@ -92,41 +86,6 @@ export function WorkspaceDashboard({
 
   return (
     <div className={cn("space-y-6", className)}>
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {workspaceName}
-          </h1>
-          <p className="text-muted-foreground">
-            Monitor and analyze activity across your repositories
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <TimeRangeSelector
-            value={timeRange}
-            onChange={setTimeRange}
-            tier={tier}
-            onUpgradeClick={onUpgradeClick}
-            variant="buttons"
-          />
-          
-          {onAddRepository && (
-            <Button onClick={onAddRepository} size="sm">
-              <Plus className="h-4 w-4 mr-1" />
-              Add Repository
-            </Button>
-          )}
-          
-          {onSettingsClick && (
-            <Button onClick={onSettingsClick} variant="outline" size="icon">
-              <Settings className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </div>
-
       {/* Metrics Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
@@ -203,7 +162,7 @@ export function WorkspaceDashboard({
           {(!expandedChart || expandedChart === 'trends') && (
             <TrendChart
               title="Activity Trends"
-              description={`Repository activity for ${timeRange === '7d' ? 'the last week' : timeRange === '30d' ? 'the last month' : timeRange === '90d' ? 'the last quarter' : timeRange === '1y' ? 'the last year' : 'all time'}`}
+              description="Repository activity over time"
               data={trendData}
               loading={loading}
               height={expandedChart === 'trends' ? 400 : 300}
@@ -246,30 +205,6 @@ export function WorkspaceDashboard({
         }
       />
 
-      {/* Upgrade Prompt for Free Tier */}
-      {tier === 'free' && onUpgradeClick && (
-        <div className="rounded-lg border bg-muted/50 p-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold">Unlock Advanced Analytics</h3>
-              <div className="rounded-full bg-primary/10 p-1">
-                <TrendingUp className="h-3.5 w-3.5 text-primary" />
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Upgrade to Pro to access historical data beyond 30 days, advanced metrics, and priority support.
-            </p>
-            <Button 
-              onClick={onUpgradeClick} 
-              variant="default" 
-              size="sm"
-              className="mt-3"
-            >
-              Upgrade to Pro
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

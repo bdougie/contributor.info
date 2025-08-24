@@ -214,7 +214,7 @@ export function WorkspaceIssuesTable({
                   e.currentTarget.src = `https://github.com/${repo.owner}.png`;
                 }}
               />
-              <span>{repo.owner}/{repo.name}</span>
+              <span>{repo.name}</span>
             </button>
           );
         },
@@ -447,7 +447,7 @@ export function WorkspaceIssuesTable({
           <>
             <div className="rounded-md border">
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[800px]">
                   <thead>
                     {table.getHeaderGroups().map((headerGroup) => (
                       <tr key={headerGroup.id} className="border-b">
@@ -455,7 +455,7 @@ export function WorkspaceIssuesTable({
                           <th
                             key={header.id}
                             className={cn(
-                              "px-4 py-3 font-medium text-sm",
+                              "px-4 py-3 font-medium text-sm whitespace-nowrap",
                               header.column.id === 'comments_count' ? "text-center" : "text-left"
                             )}
                             style={{
@@ -480,7 +480,7 @@ export function WorkspaceIssuesTable({
                         className="border-b hover:bg-muted/50 transition-colors"
                       >
                         {row.getVisibleCells().map((cell) => (
-                          <td key={cell.id} className="px-4 py-3">
+                          <td key={cell.id} className="px-4 py-4">
                             {flexRender(
                               cell.column.columnDef.cell,
                               cell.getContext()
