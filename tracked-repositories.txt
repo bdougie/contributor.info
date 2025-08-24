@@ -45,6 +45,7 @@ terraform-providers/terraform-provider-aws
 test-org/test-repo
 testuser/spam-test-repo
 topoteretes/cognee
+vercel/ai
 vercel/next.js
 vitejs/vite
 vue/vue
