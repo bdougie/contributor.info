@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { GitPullRequest, AlertCircle, Users, Layout, Plus, Settings, TrendingUp, Activity, Search } from '@/components/ui/icon';
+import { GitPullRequest, AlertCircle, Users, Layout, Plus, Settings, TrendingUp, TrendingDown, Activity, Search, Menu, Package, GitCommit, GitFork } from '@/components/ui/icon';
 import {
   useReactTable,
   getCoreRowModel,
@@ -402,6 +402,7 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
   const [selectedContributorsToAdd, setSelectedContributorsToAdd] = useState<string[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const {
     contributors,
@@ -418,7 +419,7 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
   });
 
   const handleContributorClick = (contributor: Contributor) => {
-    navigate(`/${contributor.username}`);
+    navigate(`/contributor/${contributor.username}`);
   };
 
   const handleTrackContributor = (contributorId: string) => {
@@ -457,28 +458,33 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
   };
 
   // Define columns for the add contributors table
-  const columns: ColumnDef<Contributor>[] = [
+  const addColumns: ColumnDef<Contributor>[] = [
     {
       id: "select",
+      size: 40,
       header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
+        <div className="ml-2">
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected()}
+            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            aria-label="Select all"
+          />
+        </div>
       ),
       cell: ({ row }) => (
-        <Checkbox
-          checked={selectedContributorsToAdd.includes(row.original.id)}
-          onCheckedChange={(value) => {
-            if (value) {
-              setSelectedContributorsToAdd(prev => [...prev, row.original.id]);
-            } else {
-              setSelectedContributorsToAdd(prev => prev.filter(id => id !== row.original.id));
-            }
-          }}
-          aria-label="Select row"
-        />
+        <div className="ml-2">
+          <Checkbox
+            checked={selectedContributorsToAdd.includes(row.original.id)}
+            onCheckedChange={(value) => {
+              if (value) {
+                setSelectedContributorsToAdd(prev => [...prev, row.original.id]);
+              } else {
+                setSelectedContributorsToAdd(prev => prev.filter(id => id !== row.original.id));
+              }
+            }}
+            aria-label="Select row"
+          />
+        </div>
       ),
       enableSorting: false,
       enableHiding: false,
@@ -486,6 +492,7 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
     {
       accessorKey: "username",
       header: "Contributor",
+      size: 350,
       cell: ({ row }) => {
         const contributor = row.original;
         return (
@@ -504,45 +511,201 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
       },
     },
     {
-      accessorKey: "stats.total_contributions",
-      header: "Contributions",
+      id: "stats",
+      header: () => <div className="text-right">Data</div>,
+      size: 450,
       cell: ({ row }) => {
         const stats = row.original.contributions;
-        return (
-          <div className="text-sm">
-            <span className="font-medium">{row.original.stats.total_contributions}</span>
-            <span className="text-muted-foreground ml-2">
-              ({stats.pull_requests} PRs, {stats.issues} issues)
-            </span>
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "stats.repositories_contributed",
-      header: "Repositories",
-      cell: ({ row }) => (
-        <span className="text-sm">{row.original.stats.repositories_contributed}</span>
-      ),
-    },
-    {
-      accessorKey: "stats.contribution_trend",
-      header: "Trend",
-      cell: ({ row }) => {
         const trend = row.original.stats.contribution_trend;
-        const color = trend > 0 ? "text-green-600" : trend < 0 ? "text-red-600" : "text-muted-foreground";
+        const trendColor = trend > 0 ? "text-green-600" : trend < 0 ? "text-red-600" : "text-muted-foreground";
+        const TrendIcon = trend > 0 ? TrendingUp : TrendingDown;
+        
+        // Get repository data from the contributor
+        const repoCount = row.original.stats.repositories_contributed;
+        const contributorRepos = row.original.repositories || [];
+        
+        // Extract unique repository owners from the contributor's data
+        const repoOwners = contributorRepos.length > 0
+          ? [...new Set(contributorRepos.map(r => r.owner || r))] // Get unique owners
+          : [];
+        
+        // Show up to 4 repos, or however many are available
+        const maxDisplay = 4;
+        const displayOwners = repoOwners.slice(0, maxDisplay);
+        const remainingCount = Math.max(0, repoCount - maxDisplay);
+        
         return (
-          <span className={`text-sm font-medium ${color}`}>
-            {trend > 0 ? "+" : ""}{trend}%
-          </span>
+          <div className="flex items-center justify-end gap-6 text-sm">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <GitPullRequest className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{stats.pull_requests}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{stats.issues}</span>
+              </div>
+            </div>
+            {displayOwners.length > 0 ? (
+              <div className="flex items-center gap-1.5">
+                <div className="flex -space-x-1.5">
+                  {displayOwners.map((owner, i) => (
+                    <img
+                      key={owner + i}
+                      src={`https://github.com/${owner}.png?size=40`}
+                      alt={`${owner} organization`}
+                      className="h-5 w-5 rounded-sm border border-border object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        // Hide on error instead of showing fallback
+                        const target = e.currentTarget as HTMLImageElement;
+                        target.style.display = 'none';
+                      }}
+                    />
+                  ))}
+                </div>
+                {remainingCount > 0 && (
+                  <span className="text-xs text-muted-foreground font-medium">+{remainingCount}</span>
+                )}
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                {repoCount} {repoCount === 1 ? 'repo' : 'repos'}
+              </span>
+            )}
+            <div className="flex items-center gap-1.5 min-w-[70px] justify-end">
+              <TrendIcon className={`h-4 w-4 ${trendColor}`} />
+              <span className={`font-medium ${trendColor}`}>
+                {trend > 0 ? "+" : ""}{trend}%
+              </span>
+            </div>
+          </div>
         );
       },
     },
   ];
 
-  const table = useReactTable({
+  // Define columns for the view list (without checkbox)
+  const viewColumns: ColumnDef<Contributor>[] = [
+    {
+      accessorKey: "username",
+      header: "Contributor",
+      size: 400,
+      cell: ({ row }) => {
+        const contributor = row.original;
+        return (
+          <div className="flex items-center gap-3">
+            <img
+              src={contributor.avatar_url}
+              alt={contributor.username}
+              className="h-8 w-8 rounded-full"
+            />
+            <div>
+              <p className="font-medium">{contributor.name || contributor.username}</p>
+              <p className="text-sm text-muted-foreground">@{contributor.username}</p>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "stats",
+      header: () => <div className="text-right">Data</div>,
+      size: 500,
+      cell: ({ row }) => {
+        const stats = row.original.contributions;
+        const trend = row.original.stats.contribution_trend;
+        const trendColor = trend > 0 ? "text-green-600" : trend < 0 ? "text-red-600" : "text-muted-foreground";
+        const TrendIcon = trend > 0 ? TrendingUp : TrendingDown;
+        
+        // Get repository data from the contributor
+        const repoCount = row.original.stats.repositories_contributed;
+        const contributorRepos = row.original.repositories || [];
+        
+        // Extract unique repository owners from the contributor's data
+        const repoOwners = contributorRepos.length > 0
+          ? [...new Set(contributorRepos.map(r => r.owner || r))] // Get unique owners
+          : [];
+        
+        // Show up to 4 repos, or however many are available
+        const maxDisplay = 4;
+        const displayOwners = repoOwners.slice(0, maxDisplay);
+        const remainingCount = Math.max(0, repoCount - maxDisplay);
+        
+        return (
+          <div className="flex items-center justify-end gap-6 text-sm">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <GitPullRequest className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{stats.pull_requests}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{stats.issues}</span>
+              </div>
+            </div>
+            {displayOwners.length > 0 ? (
+              <div className="flex items-center gap-1.5">
+                <div className="flex -space-x-1.5">
+                  {displayOwners.map((owner, i) => (
+                    <img
+                      key={owner + i}
+                      src={`https://github.com/${owner}.png?size=40`}
+                      alt={`${owner} organization`}
+                      className="h-5 w-5 rounded-sm border border-border object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        // Hide on error instead of showing fallback
+                        const target = e.currentTarget as HTMLImageElement;
+                        target.style.display = 'none';
+                      }}
+                    />
+                  ))}
+                </div>
+                {remainingCount > 0 && (
+                  <span className="text-xs text-muted-foreground font-medium">+{remainingCount}</span>
+                )}
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                {repoCount} {repoCount === 1 ? 'repo' : 'repos'}
+              </span>
+            )}
+            <div className="flex items-center gap-1.5 min-w-[70px] justify-end">
+              <TrendIcon className={`h-4 w-4 ${trendColor}`} />
+              <span className={`font-medium ${trendColor}`}>
+                {trend > 0 ? "+" : ""}{trend}%
+              </span>
+            </div>
+          </div>
+        );
+      },
+    },
+  ];
+
+  const addTable = useReactTable({
     data: allAvailableContributors,
-    columns,
+    columns: addColumns,
+    state: {
+      sorting,
+      globalFilter,
+    },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 10,
+      },
+    },
+  });
+
+  const viewTable = useReactTable({
+    data: contributors,
+    columns: viewColumns,
     state: {
       sorting,
       globalFilter,
@@ -622,12 +785,16 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
             <div className="rounded-md border">
               <table className="w-full">
                 <thead>
-                  {table.getHeaderGroups().map((headerGroup) => (
+                  {addTable.getHeaderGroups().map((headerGroup) => (
                     <tr key={headerGroup.id} className="border-b">
                       {headerGroup.headers.map((header) => (
                         <th
                           key={header.id}
                           className="px-4 py-3 text-left font-medium text-sm"
+                          style={{
+                            width: header.column.columnDef.size,
+                            minWidth: header.column.columnDef.size,
+                          }}
                         >
                           {flexRender(
                             header.column.columnDef.header,
@@ -639,14 +806,21 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
                   ))}
                 </thead>
                 <tbody>
-                  {table.getRowModel().rows.length > 0 ? (
-                    table.getRowModel().rows.map((row) => (
+                  {addTable.getRowModel().rows.length > 0 ? (
+                    addTable.getRowModel().rows.map((row) => (
                       <tr
                         key={row.id}
                         className="border-b hover:bg-muted/50 transition-colors"
                       >
                         {row.getVisibleCells().map((cell) => (
-                          <td key={cell.id} className="px-4 py-3">
+                          <td 
+                            key={cell.id} 
+                            className="px-4 py-3"
+                            style={{
+                              width: cell.column.columnDef.size,
+                              minWidth: cell.column.columnDef.size,
+                            }}
+                          >
                             {flexRender(
                               cell.column.columnDef.cell,
                               cell.getContext()
@@ -657,7 +831,7 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">
+                      <td colSpan={addColumns.length} className="px-4 py-8 text-center text-muted-foreground">
                         No contributors found
                       </td>
                     </tr>
@@ -669,9 +843,9 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
             {/* Pagination */}
             <div className="flex items-center justify-between mt-4">
               <div className="text-sm text-muted-foreground">
-                Showing {table.getState().pagination.pageIndex * 10 + 1} to{" "}
+                Showing {addTable.getState().pagination.pageIndex * 10 + 1} to{" "}
                 {Math.min(
-                  (table.getState().pagination.pageIndex + 1) * 10,
+                  (addTable.getState().pagination.pageIndex + 1) * 10,
                   allAvailableContributors.length
                 )}{" "}
                 of {allAvailableContributors.length} contributors
@@ -680,16 +854,16 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
+                  onClick={() => addTable.previousPage()}
+                  disabled={!addTable.getCanPreviousPage()}
                 >
                   Previous
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
+                  onClick={() => addTable.nextPage()}
+                  disabled={!addTable.getCanNextPage()}
                 >
                   Next
                 </Button>
@@ -698,16 +872,160 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
           </CardContent>
         </Card>
       ) : (
-        <ContributorsList
-          contributors={contributors}
-          trackedContributors={workspaceContributorIds}
-          onTrackContributor={handleTrackContributor}
-          onUntrackContributor={handleUntrackContributor}
-          onContributorClick={handleContributorClick}
-          onAddContributor={handleAddContributor}
-          loading={loading}
-          view="grid"
-        />
+        <div className="space-y-4">
+          {/* View Toggle */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Contributors</h2>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center rounded-lg border bg-muted/50 p-1">
+                <Button
+                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="px-3"
+                  title="Grid view"
+                >
+                  <Package className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="px-3"
+                  title="List view"
+                >
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button
+                onClick={handleAddContributor}
+                size="sm"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Contributors
+              </Button>
+            </div>
+          </div>
+          
+          {viewMode === 'grid' ? (
+            <ContributorsList
+              contributors={contributors}
+              trackedContributors={workspaceContributorIds}
+              onTrackContributor={handleTrackContributor}
+              onUntrackContributor={handleUntrackContributor}
+              onContributorClick={handleContributorClick}
+              loading={loading}
+              view="grid"
+            />
+          ) : (
+            <Card>
+              <CardContent className="p-6">
+                {/* Search Input for List View */}
+                <div className="mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search contributors..."
+                      value={globalFilter ?? ""}
+                      onChange={(e) => setGlobalFilter(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="rounded-md border">
+                  <table className="w-full">
+                    <thead>
+                      {viewTable.getHeaderGroups().map((headerGroup) => (
+                        <tr key={headerGroup.id} className="border-b">
+                          {headerGroup.headers.map((header) => (
+                            <th
+                              key={header.id}
+                              className="px-4 py-3 text-left font-medium text-sm"
+                              style={{
+                                width: header.column.columnDef.size,
+                                minWidth: header.column.columnDef.size,
+                              }}
+                            >
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                            </th>
+                          ))}
+                        </tr>
+                      ))}
+                    </thead>
+                    <tbody>
+                      {viewTable.getRowModel().rows.length > 0 ? (
+                        viewTable.getRowModel().rows.map((row) => (
+                          <tr
+                            key={row.id}
+                            className="border-b hover:bg-muted/50 transition-colors cursor-pointer"
+                            onClick={() => handleContributorClick(row.original)}
+                          >
+                            {row.getVisibleCells().map((cell) => (
+                              <td 
+                                key={cell.id} 
+                                className="px-4 py-3"
+                                style={{
+                                  width: cell.column.columnDef.size,
+                                  minWidth: cell.column.columnDef.size,
+                                }}
+                              >
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </td>
+                            ))}
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={viewColumns.length} className="px-4 py-8 text-center text-muted-foreground">
+                            No contributors found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                <div className="flex items-center justify-between mt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {viewTable.getState().pagination.pageIndex * 10 + 1} to{" "}
+                    {Math.min(
+                      (viewTable.getState().pagination.pageIndex + 1) * 10,
+                      contributors.length
+                    )}{" "}
+                    of {contributors.length} contributors
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => viewTable.previousPage()}
+                      disabled={!viewTable.getCanPreviousPage()}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => viewTable.nextPage()}
+                      disabled={!viewTable.getCanNextPage()}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
     </div>
   );
@@ -987,10 +1305,10 @@ export default function WorkspacePage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="px-6">
+      <div className="px-6 mt-6">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <div className="container max-w-7xl mx-auto">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-6 mb-6">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Layout className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
