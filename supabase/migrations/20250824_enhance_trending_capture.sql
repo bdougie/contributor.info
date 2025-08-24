@@ -87,8 +87,8 @@ BEGIN
     COALESCE(metrics.star_change, 0) as star_change,
     COALESCE(metrics.pr_change, 0) as pr_change,
     COALESCE(metrics.contributor_change, 0) as contributor_change,
-    GREATEST(r.last_updated_at, COALESCE(metrics.last_update, r.created_at)) as last_activity,
-    r.avatar_url,
+    GREATEST(r.last_updated_at, COALESCE(metrics.last_update, r.first_tracked_at)) as last_activity,
+    '' as avatar_url,  -- Avatar URL not available in repositories table
     CONCAT('https://github.com/', r.owner, '/', r.name) as html_url
   FROM repositories r
   LEFT JOIN LATERAL (
@@ -123,7 +123,7 @@ BEGIN
     r.stargazers_count >= p_min_stars
     AND (p_language IS NULL OR r.language = p_language)
     AND metrics.total_change_score > 0
-    AND r.visibility = 'public'
+    AND r.is_private = FALSE  -- Use is_private column instead of visibility
   ORDER BY metrics.total_change_score DESC, r.stargazers_count DESC
   LIMIT p_limit;
 END;

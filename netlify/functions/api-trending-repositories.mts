@@ -65,8 +65,8 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
 
     console.log('Fetching trending repositories with params:', query);
 
-    // Call the trending repositories function
-    const { data: trendingRepos, error } = await supabase.rpc('get_trending_repositories', {
+    // Call the trending repositories function with fallback
+    const { data: trendingRepos, error } = await supabase.rpc('get_trending_repositories_with_fallback', {
       p_time_period: intervalMap[query.period],
       p_limit: query.limit,
       p_language: query.language,
