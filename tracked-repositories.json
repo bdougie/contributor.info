@@ -189,6 +189,10 @@
   },
   {
     "owner": "vercel",
+    "name": "ai"
+  },
+  {
+    "owner": "vercel",
     "name": "next.js"
   },
   {
