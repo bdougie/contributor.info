@@ -65,8 +65,11 @@ export function OptimizedAvatarSimple({
   const [error, setError] = useState(false);
   const imgRef = useRef<HTMLDivElement>(null);
 
-  // Optimize the avatar URL
-  const optimizedSrc = optimizeAvatarUrl(src, size);
+  // Extract username from alt text (often in format "username avatar" or just "username")
+  const username = alt.split(' ')[0].replace('@', '');
+  
+  // Optimize the avatar URL with username for better fallback
+  const optimizedSrc = optimizeAvatarUrl(src, size, username);
 
   // Get size configuration
   const sizeConfig = getAvatarSizeConfig(size);

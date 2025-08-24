@@ -11,22 +11,51 @@ export interface AvatarConfig {
 }
 
 /**
- * Optimize GitHub avatar URLs with size parameters
+ * Optimize GitHub avatar URLs with size parameters and fallback support
  * @param src - Original avatar URL
  * @param size - Desired avatar size
- * @returns Optimized URL or original if not a GitHub avatar
+ * @param username - Optional GitHub username for better fallback
+ * @returns Optimized URL with fallback support
  */
-export function optimizeAvatarUrl(src: string | undefined, size: number): string | undefined {
-  if (!src) return src; // Return empty string as-is, undefined as undefined
+export function optimizeAvatarUrl(src: string | undefined, size: number, username?: string): string | undefined {
+  if (!src && !username) return undefined;
   
-  try {
-    const url = new URL(src);
-    if (url.hostname === 'avatars.githubusercontent.com') {
-      // GitHub avatars support size parameter for optimization
-      return `${url.origin}${url.pathname}?s=${size}&v=4`;
+  // Extract username from GitHub avatar URL if not provided
+  let githubUsername = username;
+  if (!githubUsername && src) {
+    try {
+      const url = new URL(src);
+      if (url.hostname === 'avatars.githubusercontent.com') {
+        // Extract user ID from URL path like /u/12345
+        const match = url.pathname.match(/\/u\/(\d+)/);
+        if (match) {
+          githubUsername = match[1];
+        }
+      }
+    } catch {
+      // Invalid URL, continue
     }
-  } catch {
-    // Invalid URL or relative path, return as-is
+  }
+  
+  // If we have a username, use unavatar.io service with fallback
+  if (githubUsername || username) {
+    const user = githubUsername || username || 'unknown';
+    const colors = '264653,2a9d8f,e9c46a,f4a261,e76f51';
+    const fallbackUrl = `https://source.boringavatars.com/marble/${size}/${encodeURIComponent(user)}?colors=${colors}`;
+    return `https://unavatar.io/github/${user}?s=${size}&fallback=${encodeURIComponent(fallbackUrl)}`;
+  }
+  
+  // For non-GitHub URLs or when we can't determine username, optimize if possible
+  if (src) {
+    try {
+      const url = new URL(src);
+      if (url.hostname === 'avatars.githubusercontent.com') {
+        // GitHub avatars support size parameter for optimization
+        return `${url.origin}${url.pathname}?s=${size}&v=4`;
+      }
+    } catch {
+      // Invalid URL or relative path, return as-is
+    }
   }
   
   return src;

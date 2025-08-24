@@ -6,6 +6,7 @@ import { animated } from "@react-spring/web";
 import { supabaseAvatarCache } from "@/lib/supabase-avatar-cache";
 import { ProgressiveChart } from "@/components/ui/charts/ProgressiveChart";
 import { SkeletonChart } from "@/components/skeletons/base/skeleton-chart";
+import { getAvatarUrl } from "@/lib/utils/avatar";
 
 // Lazy load the heavy visualization component
 const ResponsiveScatterPlot = lazy(() => 
@@ -233,7 +234,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
 
         const linesTouched = pr.additions + pr.deletions;
         // Use cached avatar URL with fallback to original
-        const avatarUrl = cachedAvatars.get(pr.user.id) || pr.user.avatar_url;
+        const cachedUrl = cachedAvatars.get(pr.user.id) || pr.user.avatar_url;
+        // Import will be added at the top of the file
+        const avatarUrl = getAvatarUrl(pr.user.login, cachedUrl);
         return {
           x: daysAgo,
           y: Math.max(linesTouched, 1), // Ensure minimum visibility of 1 line

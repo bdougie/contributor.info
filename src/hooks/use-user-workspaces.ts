@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
+import { getRepoOwnerAvatarUrl } from '@/lib/utils/avatar';
 
 // Types for Supabase query results
 type WorkspaceWithMember = {
@@ -28,6 +29,7 @@ type RepositoryWithWorkspace = {
     language: string | null;
     github_pushed_at: string | null;
     pull_request_count: number | null;
+    open_issues_count: number | null;
   };
 };
 
@@ -173,9 +175,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
               language: item.repositories.language,
               activity_score: activityScore,
               last_activity: item.repositories.github_pushed_at || new Date().toISOString(),
-              avatar_url: item.repositories.owner 
-                ? `https://github.com/${item.repositories.owner}.png`
-                : '/images/default-avatar.png',
+              avatar_url: getRepoOwnerAvatarUrl(item.repositories.owner),
               html_url: `https://github.com/${item.repositories.full_name}`,
             };
           }) || [];
