@@ -18,7 +18,7 @@ const mockWorkspace = {
   name: 'Test Workspace',
   owner_id: 'test-user-123',
   tier: 'free',
-  max_repositories: 10,
+  max_repositories: 4, // Free tier limit
   current_repository_count: 3,
   visibility: 'public',
   settings: {},
@@ -384,6 +384,124 @@ export const LoadingState: Story = {
   },
 };
 
+// Story for Pro tier workspace with 10 repo limit
+export const ProTierWorkspace: Story = {
+  decorators: [
+    (Story) => {
+      useEffect(() => {
+        // Override the workspace to be Pro tier
+        const proWorkspace = {
+          ...mockWorkspace,
+          tier: 'pro',
+          max_repositories: 10, // Pro tier limit
+          current_repository_count: 5,
+        };
+        
+        if ((window as any).__mockSupabase) {
+          const originalFrom = (window as any).__mockSupabase.from;
+          (window as any).__mockSupabase.from = (table: string) => {
+            const result = originalFrom(table);
+            if (table === 'workspaces') {
+              return {
+                ...result,
+                select: () => ({
+                  ...result.select(),
+                  eq: () => ({
+                    single: () => Promise.resolve({ data: proWorkspace, error: null }),
+                  }),
+                }),
+              };
+            }
+            return result;
+          };
+        }
+      }, []);
+      
+      return <Story />;
+    },
+  ],
+  render: () => {
+    const [open, setOpen] = useState(true);
+    
+    return (
+      <>
+        <div className="text-sm text-muted-foreground mb-4 p-4 bg-muted/10 rounded-lg max-w-md">
+          <p className="font-semibold">Pro Tier Workspace</p>
+          <p>You can add up to 10 repositories (currently using 5/10).</p>
+        </div>
+        <AddRepositoryModal
+          open={open}
+          onOpenChange={setOpen}
+          workspaceId="test-workspace-id"
+          onSuccess={() => {
+            console.log('Repository added successfully');
+            setOpen(false);
+          }}
+        />
+      </>
+    );
+  },
+};
+
+// Story for Enterprise tier workspace with 10 repo limit
+export const EnterpriseTierWorkspace: Story = {
+  decorators: [
+    (Story) => {
+      useEffect(() => {
+        // Override the workspace to be Enterprise tier
+        const enterpriseWorkspace = {
+          ...mockWorkspace,
+          tier: 'enterprise',
+          max_repositories: 10, // Enterprise tier limit (same as Pro to save on costs)
+          current_repository_count: 8,
+        };
+        
+        if ((window as any).__mockSupabase) {
+          const originalFrom = (window as any).__mockSupabase.from;
+          (window as any).__mockSupabase.from = (table: string) => {
+            const result = originalFrom(table);
+            if (table === 'workspaces') {
+              return {
+                ...result,
+                select: () => ({
+                  ...result.select(),
+                  eq: () => ({
+                    single: () => Promise.resolve({ data: enterpriseWorkspace, error: null }),
+                  }),
+                }),
+              };
+            }
+            return result;
+          };
+        }
+      }, []);
+      
+      return <Story />;
+    },
+  ],
+  render: () => {
+    const [open, setOpen] = useState(true);
+    
+    return (
+      <>
+        <div className="text-sm text-muted-foreground mb-4 p-4 bg-muted/10 rounded-lg max-w-md">
+          <p className="font-semibold">Enterprise Tier Workspace</p>
+          <p>You can add up to 10 repositories (currently using 8/10).</p>
+        </div>
+        <AddRepositoryModal
+          open={open}
+          onOpenChange={setOpen}
+          workspaceId="test-workspace-id"
+          onSuccess={() => {
+            console.log('Repository added successfully');
+            setOpen(false);
+          }}
+        />
+      </>
+    );
+  },
+};
+
 // Story showing error state (repository limit reached)
 export const RepositoryLimitError: Story = {
   decorators: [
@@ -402,7 +520,7 @@ export const RepositoryLimitError: Story = {
       <>
         <div className="text-sm text-destructive mb-4 p-4 bg-destructive/10 rounded-lg max-w-md">
           <p className="font-semibold">Repository Limit Reached!</p>
-          <p>You have reached the maximum of 10 repositories for the free tier.</p>
+          <p>You have reached the maximum of 4 repositories for the free tier.</p>
         </div>
         <AddRepositoryModal
           open={open}

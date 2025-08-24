@@ -82,8 +82,20 @@ export class WorkspaceService {
         };
       }
 
-      // Free tier limit: 3 workspaces
-      const workspaceLimit = 3; // TODO: Get from user's subscription tier
+      // Get user's subscription to determine tier and limits
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('tier, max_workspaces, max_repos_per_workspace')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .single();
+
+      // Determine workspace limit and repository limit based on subscription
+      const workspaceLimit = subscription?.max_workspaces || 1; // Default to free tier
+      const maxRepositories = subscription?.max_repos_per_workspace || 4; // Default to free tier (4 repos)
+      const tier = subscription?.tier || 'free';
+      const dataRetentionDays = tier === 'enterprise' ? 365 : (tier === 'pro' ? 90 : 30);
+
       if (count !== null && count >= workspaceLimit) {
         return {
           success: false,
@@ -115,10 +127,10 @@ export class WorkspaceService {
           owner_id: userId,
           visibility: data.visibility || 'public',
           settings: data.settings || {},
-          tier: 'free',
-          max_repositories: 10,
+          tier: tier,
+          max_repositories: maxRepositories,
           current_repository_count: 0,
-          data_retention_days: 30
+          data_retention_days: dataRetentionDays
         })
         .select()
         .single();
