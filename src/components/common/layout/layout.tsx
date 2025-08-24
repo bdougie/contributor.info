@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Outlet, useNavigate, Link, useLocation } from "react-router-dom";
 import { ModeToggle } from "../theming";
 import { AuthButton } from "../../features/auth";
+import { Button } from "@/components/ui/button";
+import { Plus, Eye } from "@/components/ui/icon";
 import {
   Select,
   SelectContent,
@@ -10,16 +12,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LazyNavigationSheet } from "./lazy-navigation-sheet";
+import { WorkspaceCreateModal } from "@/components/features/workspace/WorkspaceCreateModal";
 import { supabase } from "@/lib/supabase";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { usePrefetchOnIntent, prefetchCriticalRoutes } from "@/lib/route-prefetch";
+import { usePrimaryWorkspace } from "@/hooks/use-user-workspaces";
 
 export default function Layout() {
   const { timeRange, setTimeRange } = useTimeRangeStore();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { workspace, hasWorkspace, loading: workspaceLoading, refetch: refetchWorkspace } = usePrimaryWorkspace();
   
   // Prefetch handlers for navigation links
   const changelogPrefetch = usePrefetchOnIntent('/changelog');
@@ -50,6 +56,18 @@ export default function Layout() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const handleWorkspaceClick = () => {
+    if (hasWorkspace && workspace) {
+      navigate(`/i/${workspace.id}`);
+    } else {
+      setCreateModalOpen(true);
+    }
+  };
+
+  const handleCreateWorkspaceSuccess = async () => {
+    await refetchWorkspace();
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -138,8 +156,27 @@ export default function Layout() {
             </button>
           </div>
           
-          {/* Auth Button - Always visible in header */}
-          <div className="ml-auto">
+          {/* Workspace and Auth Buttons */}
+          <div className="ml-auto flex items-center gap-2">
+            {isLoggedIn && !workspaceLoading && (
+              <Button
+                variant={hasWorkspace ? "outline" : "default"}
+                size="sm"
+                onClick={handleWorkspaceClick}
+              >
+                {hasWorkspace ? (
+                  <>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Workspace
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Workspace
+                  </>
+                )}
+              </Button>
+            )}
             <AuthButton />
           </div>
         </div>
@@ -163,6 +200,13 @@ export default function Layout() {
           </a>
         </div>
       </footer>
+
+      {/* Workspace Creation Modal */}
+      <WorkspaceCreateModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        onSuccess={handleCreateWorkspaceSuccess}
+      />
     </div>
   );
 }
