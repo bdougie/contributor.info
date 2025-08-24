@@ -394,7 +394,7 @@ export function WorkspacePullRequestsTable({
     <Card className={cn("w-full", className)}>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="hidden sm:block">Pull Requests</CardTitle>
+          <CardTitle className="sr-only sm:not-sr-only">Pull Requests</CardTitle>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-1 sm:flex-initial">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
