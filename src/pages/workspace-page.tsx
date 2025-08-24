@@ -10,8 +10,20 @@ import { ContributorsList, type Contributor } from '@/components/features/worksp
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { GitPullRequest, AlertCircle, Users, Layout, Plus, Settings, TrendingUp, Activity } from '@/components/ui/icon';
+import { GitPullRequest, AlertCircle, Users, Layout, Plus, Settings, TrendingUp, Activity, Search } from '@/components/ui/icon';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  flexRender,
+  type ColumnDef,
+  type SortingState,
+} from "@tanstack/react-table";
 import { TimeRangeSelector, type TimeRange } from '@/components/features/workspace/TimeRangeSelector';
 import type { WorkspaceMetrics, WorkspaceTrendData, Repository, ActivityDataPoint } from '@/components/features/workspace';
 
@@ -388,6 +400,8 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
   const navigate = useNavigate();
   const [showAddContributors, setShowAddContributors] = useState(false);
   const [selectedContributorsToAdd, setSelectedContributorsToAdd] = useState<string[]>([]);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
 
   const {
     contributors,
@@ -442,6 +456,110 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
     setSelectedContributorsToAdd([]);
   };
 
+  // Define columns for the add contributors table
+  const columns: ColumnDef<Contributor>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={selectedContributorsToAdd.includes(row.original.id)}
+          onCheckedChange={(value) => {
+            if (value) {
+              setSelectedContributorsToAdd(prev => [...prev, row.original.id]);
+            } else {
+              setSelectedContributorsToAdd(prev => prev.filter(id => id !== row.original.id));
+            }
+          }}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "username",
+      header: "Contributor",
+      cell: ({ row }) => {
+        const contributor = row.original;
+        return (
+          <div className="flex items-center gap-3">
+            <img
+              src={contributor.avatar_url}
+              alt={contributor.username}
+              className="h-8 w-8 rounded-full"
+            />
+            <div>
+              <p className="font-medium">{contributor.name || contributor.username}</p>
+              <p className="text-sm text-muted-foreground">@{contributor.username}</p>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "stats.total_contributions",
+      header: "Contributions",
+      cell: ({ row }) => {
+        const stats = row.original.contributions;
+        return (
+          <div className="text-sm">
+            <span className="font-medium">{row.original.stats.total_contributions}</span>
+            <span className="text-muted-foreground ml-2">
+              ({stats.pull_requests} PRs, {stats.issues} issues)
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "stats.repositories_contributed",
+      header: "Repositories",
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.stats.repositories_contributed}</span>
+      ),
+    },
+    {
+      accessorKey: "stats.contribution_trend",
+      header: "Trend",
+      cell: ({ row }) => {
+        const trend = row.original.stats.contribution_trend;
+        const color = trend > 0 ? "text-green-600" : trend < 0 ? "text-red-600" : "text-muted-foreground";
+        return (
+          <span className={`text-sm font-medium ${color}`}>
+            {trend > 0 ? "+" : ""}{trend}%
+          </span>
+        );
+      },
+    },
+  ];
+
+  const table = useReactTable({
+    data: allAvailableContributors,
+    columns,
+    state: {
+      sorting,
+      globalFilter,
+    },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 10,
+      },
+    },
+  });
+
   // Show error state if there's an error
   if (error) {
     return (
@@ -487,17 +605,96 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
             </div>
           </CardHeader>
           <CardContent>
-            <ContributorsList
-              contributors={allAvailableContributors}
-              trackedContributors={selectedContributorsToAdd}
-              onTrackContributor={handleTrackContributor}
-              onUntrackContributor={(id) => {
-                setSelectedContributorsToAdd(prev => prev.filter(cId => cId !== id));
-              }}
-              onContributorClick={handleContributorClick}
-              loading={loading}
-              view="list"
-            />
+            {/* Search Input */}
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search contributors..."
+                  value={globalFilter ?? ""}
+                  onChange={(e) => setGlobalFilter(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="rounded-md border">
+              <table className="w-full">
+                <thead>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id} className="border-b">
+                      {headerGroup.headers.map((header) => (
+                        <th
+                          key={header.id}
+                          className="px-4 py-3 text-left font-medium text-sm"
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                <tbody>
+                  {table.getRowModel().rows.length > 0 ? (
+                    table.getRowModel().rows.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="border-b hover:bg-muted/50 transition-colors"
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <td key={cell.id} className="px-4 py-3">
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">
+                        No contributors found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {table.getState().pagination.pageIndex * 10 + 1} to{" "}
+                {Math.min(
+                  (table.getState().pagination.pageIndex + 1) * 10,
+                  allAvailableContributors.length
+                )}{" "}
+                of {allAvailableContributors.length} contributors
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => table.previousPage()}
+                  disabled={!table.getCanPreviousPage()}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => table.nextPage()}
+                  disabled={!table.getCanNextPage()}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       ) : (
