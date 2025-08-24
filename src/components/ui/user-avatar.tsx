@@ -23,6 +23,8 @@ export function UserAvatar({
       loading={lazy && !priority ? "lazy" : "eager"}
       onError={(e) => {
         const target = e.target as HTMLImageElement;
+        // Clear the onError handler to prevent infinite loops if fallback also fails
+        target.onerror = null;
         target.src = `https://github.com/identicons/${encodeURIComponent(alt)}.png`;
       }}
     />

@@ -70,9 +70,9 @@ export function ProfileRouter() {
             error: null,
           });
           return;
-        } catch (userError) {
+        } catch (userError: any) {
           // If user API fails with 404, try org API
-          if (userError instanceof Error && userError.message.includes('404')) {
+          if (userError?.status === 404 || (userError instanceof Error && userError.message.includes('404'))) {
             try {
               await octokit.rest.orgs.get({ org: username });
               
@@ -98,14 +98,12 @@ export function ProfileRouter() {
             throw userError;
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         let errorMessage = 'Failed to determine profile type';
-        if (error instanceof Error) {
-          if (error.message.includes('403')) {
-            errorMessage = 'Rate limit exceeded. Please try again later.';
-          } else {
-            errorMessage = error.message;
-          }
+        if (error?.status === 403 || (error instanceof Error && error.message.includes('403'))) {
+          errorMessage = 'Rate limit exceeded. Please try again later.';
+        } else if (error instanceof Error) {
+          errorMessage = error.message;
         }
         
         setState({

@@ -139,13 +139,14 @@ export function useUserRepos(username?: string): UseUserReposState {
         
         // Fetch user data and repositories
         const [userResponse, reposResponse] = await Promise.all([
-          octokit.rest.users.getByUsername({ username }),
+          octokit.rest.users.getByUsername({ username, request: { signal } }),
           octokit.rest.repos.listForUser({
             username,
             sort: 'pushed',
             direction: 'desc',
             per_page: 30,
             type: 'owner', // Only repos owned by user, not forks
+            request: { signal }
           })
         ]);
 
@@ -228,14 +229,12 @@ export function useUserRepos(username?: string): UseUserReposState {
         if (signal.aborted) return;
         
         let errorMessage = 'Failed to fetch repositories';
-        if (error instanceof Error) {
-          if (error.message.includes('404')) {
-            errorMessage = `User "${username}" not found`;
-          } else if (error.message.includes('403')) {
-            errorMessage = 'Rate limit exceeded. Please try again later.';
-          } else {
-            errorMessage = error.message;
-          }
+        if ((error as any)?.status === 404 || (error instanceof Error && error.message.includes('404'))) {
+          errorMessage = `User "${username}" not found`;
+        } else if ((error as any)?.status === 403 || (error instanceof Error && error.message.includes('403'))) {
+          errorMessage = 'Rate limit exceeded. Please try again later.';
+        } else if (error instanceof Error) {
+          errorMessage = error.message;
         }
         
         setState({
