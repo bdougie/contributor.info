@@ -1,27 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AddRepositoryModal } from '../AddRepositoryModal';
-import type { Workspace } from '@/types/workspace';
 
-// Mock GitHub search hook
-vi.mock('@/hooks/use-github-search', () => ({
-  useGitHubSearch: vi.fn(() => ({
-    results: [],
-    loading: false,
-    error: null,
-    search: vi.fn()
-  }))
-}));
-
-// Mock Supabase
+// Mock modules with proper hoisting
 vi.mock('@/lib/supabase', () => ({
   supabase: {
-    from: vi.fn()
+    from: vi.fn(),
+    auth: {
+      getUser: vi.fn()
+    }
   }
 }));
 
-// Mock toast
+vi.mock('@/services/workspace.service', () => ({
+  WorkspaceService: {
+    getWorkspace: vi.fn(),
+    addRepositoryToWorkspace: vi.fn(),
+    listWorkspaceRepositories: vi.fn()
+  }
+}));
+
+vi.mock('@/hooks/use-github-search', () => ({
+  useGitHubSearch: vi.fn()
+}));
+
 vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
@@ -29,8 +32,18 @@ vi.mock('sonner', () => ({
   }
 }));
 
+// Import mocked modules
+import { supabase } from '@/lib/supabase';
+import { WorkspaceService } from '@/services/workspace.service';
+import { useGitHubSearch } from '@/hooks/use-github-search';
+import { toast } from 'sonner';
+
 describe('AddRepositoryModal', () => {
-  const mockWorkspace: Workspace = {
+  const mockWorkspaceId = 'workspace-123';
+  const mockOnOpenChange = vi.fn();
+  const mockOnSuccess = vi.fn();
+
+  const mockWorkspace = {
     id: 'workspace-123',
     name: 'Test Workspace',
     slug: 'test-workspace',
@@ -48,25 +61,96 @@ describe('AddRepositoryModal', () => {
     is_active: true
   };
 
-  const mockOnClose = vi.fn();
-  const mockOnSuccess = vi.fn();
+  const mockUser = {
+    id: 'user-123',
+    email: 'test@example.com'
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Setup default auth mock
+    vi.mocked(supabase.auth.getUser).mockResolvedValue({
+      data: { user: mockUser },
+      error: null
+    });
+    
+    // Setup default workspace fetch mock
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
+      if (table === 'workspaces') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: mockWorkspace,
+                error: null
+              })
+            })
+          })
+        };
+      }
+      if (table === 'workspace_repositories') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({
+              data: [],
+              error: null
+            })
+          })
+        };
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            data: null,
+            error: null
+          })
+        })
+      };
+    });
+    
+    // Setup default WorkspaceService mocks
+    vi.mocked(WorkspaceService.getWorkspace).mockResolvedValue({
+      success: true,
+      data: mockWorkspace
+    });
+    
+    vi.mocked(WorkspaceService.listWorkspaceRepositories).mockResolvedValue({
+      success: true,
+      data: {
+        items: [],
+        pagination: {
+          page: 1,
+          limit: 100,
+          total: 0,
+          totalPages: 0
+        }
+      }
+    });
+    
+    // Setup default GitHub search mock
+    vi.mocked(useGitHubSearch).mockReturnValue({
+      results: [],
+      loading: false,
+      error: null,
+      search: vi.fn()
+    });
   });
 
-  it('should render modal with workspace information', () => {
+  it('should render modal with workspace information', async () => {
     render(
       <AddRepositoryModal
-        isOpen={true}
-        onClose={mockOnClose}
-        workspace={mockWorkspace}
+        open={true}
+        onOpenChange={mockOnOpenChange}
+        workspaceId={mockWorkspaceId}
         onSuccess={mockOnSuccess}
       />
     );
 
-    // Check modal title
-    expect(screen.getByText('Add Repositories to Workspace')).toBeInTheDocument();
+    // Wait for async operations
+    await waitFor(() => {
+      expect(screen.getByText('Add Repositories to Workspace')).toBeInTheDocument();
+    });
     
     // Check free tier message
     expect(screen.getByText(/Free tier is limited to 4 repositories/)).toBeInTheDocument();
@@ -76,7 +160,7 @@ describe('AddRepositoryModal', () => {
     expect(screen.getByText('0/4')).toBeInTheDocument();
   });
 
-  it('should display correct limits for pro tier', () => {
+  it('should display correct limits for pro tier', async () => {
     const proWorkspace = {
       ...mockWorkspace,
       tier: 'pro' as const,
@@ -84,24 +168,47 @@ describe('AddRepositoryModal', () => {
       current_repository_count: 3
     };
 
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
+      if (table === 'workspaces') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: proWorkspace,
+                error: null
+              })
+            })
+          })
+        };
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            data: [],
+            error: null
+          })
+        })
+      };
+    });
+
     render(
       <AddRepositoryModal
-        isOpen={true}
-        onClose={mockOnClose}
-        workspace={proWorkspace}
+        open={true}
+        onOpenChange={mockOnOpenChange}
+        workspaceId={mockWorkspaceId}
         onSuccess={mockOnSuccess}
       />
     );
 
+    await waitFor(() => {
+      expect(screen.getByText('3/10')).toBeInTheDocument();
+    });
+    
     // Should not show free tier message
     expect(screen.queryByText(/Free tier is limited/)).not.toBeInTheDocument();
-    
-    // Check repository slots for pro tier
-    expect(screen.getByText('3/10')).toBeInTheDocument();
   });
 
   it('should search for repositories', async () => {
-    const { useGitHubSearch } = await import('@/hooks/use-github-search');
     const mockSearch = vi.fn();
     
     vi.mocked(useGitHubSearch).mockReturnValue({
@@ -119,16 +226,20 @@ describe('AddRepositoryModal', () => {
       loading: false,
       error: null,
       search: mockSearch
-    } as any);
+    });
 
     render(
       <AddRepositoryModal
-        isOpen={true}
-        onClose={mockOnClose}
-        workspace={mockWorkspace}
+        open={true}
+        onOpenChange={mockOnOpenChange}
+        workspaceId={mockWorkspaceId}
         onSuccess={mockOnSuccess}
       />
     );
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Search for repositories/i)).toBeInTheDocument();
+    });
 
     const searchInput = screen.getByPlaceholderText(/Search for repositories/i);
     await userEvent.type(searchInput, 'next.js');
@@ -143,8 +254,6 @@ describe('AddRepositoryModal', () => {
   });
 
   it('should add repository to staging area', async () => {
-    const { useGitHubSearch } = await import('@/hooks/use-github-search');
-    
     vi.mocked(useGitHubSearch).mockReturnValue({
       results: [
         {
@@ -160,23 +269,29 @@ describe('AddRepositoryModal', () => {
       loading: false,
       error: null,
       search: vi.fn()
-    } as any);
+    });
 
     render(
       <AddRepositoryModal
-        isOpen={true}
-        onClose={mockOnClose}
-        workspace={mockWorkspace}
+        open={true}
+        onOpenChange={mockOnOpenChange}
+        workspaceId={mockWorkspaceId}
         onSuccess={mockOnSuccess}
       />
     );
+
+    await waitFor(() => {
+      expect(screen.getByText('vercel/next.js')).toBeInTheDocument();
+    });
 
     // Click add to cart button
     const addButton = screen.getByRole('button', { name: /Add to Cart/i });
     await userEvent.click(addButton);
 
     // Check staging area
-    expect(screen.getByText('Cart (1)')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Cart (1)')).toBeInTheDocument();
+    });
     
     // Check remove button exists in staging
     expect(screen.getByRole('button', { name: /Remove/i })).toBeInTheDocument();
@@ -188,8 +303,29 @@ describe('AddRepositoryModal', () => {
       current_repository_count: 3 // Near free tier limit of 4
     };
 
-    const { useGitHubSearch } = await import('@/hooks/use-github-search');
-    
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
+      if (table === 'workspaces') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: nearLimitWorkspace,
+                error: null
+              })
+            })
+          })
+        };
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            data: [],
+            error: null
+          })
+        })
+      };
+    });
+
     vi.mocked(useGitHubSearch).mockReturnValue({
       results: [
         { id: 1, full_name: 'repo1', name: 'repo1', owner: { login: 'owner' } },
@@ -198,16 +334,20 @@ describe('AddRepositoryModal', () => {
       loading: false,
       error: null,
       search: vi.fn()
-    } as any);
+    });
 
     render(
       <AddRepositoryModal
-        isOpen={true}
-        onClose={mockOnClose}
-        workspace={nearLimitWorkspace}
+        open={true}
+        onOpenChange={mockOnOpenChange}
+        workspaceId={mockWorkspaceId}
         onSuccess={mockOnSuccess}
       />
     );
+
+    await waitFor(() => {
+      expect(screen.getByText('repo1')).toBeInTheDocument();
+    });
 
     // Try to add 2 repositories (would exceed limit)
     const addButtons = screen.getAllByRole('button', { name: /Add to Cart/i });
@@ -215,7 +355,9 @@ describe('AddRepositoryModal', () => {
     await userEvent.click(addButtons[1]);
 
     // Check warning about exceeding limit
-    expect(screen.getByText(/exceeds your remaining slots/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/exceeds your remaining slots/i)).toBeInTheDocument();
+    });
     
     // Add button should be disabled
     const addAllButton = screen.getByRole('button', { name: /Add \d+ Repositories/i });
@@ -223,26 +365,12 @@ describe('AddRepositoryModal', () => {
   });
 
   it('should successfully add repositories to workspace', async () => {
-    const { supabase } = await import('@/lib/supabase');
-    const { toast } = await import('sonner');
-    
     // Mock successful API call
-    vi.mocked(supabase.from).mockReturnValue({
-      insert: vi.fn().mockReturnValue({
-        select: vi.fn().mockResolvedValue({
-          data: [{ id: 'workspace-repo-1' }],
-          error: null
-        })
-      }),
-      update: vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({
-          error: null
-        })
-      })
-    } as any);
+    vi.mocked(WorkspaceService.addRepositoryToWorkspace).mockResolvedValue({
+      success: true,
+      data: { id: 'workspace-repo-1' }
+    });
 
-    const { useGitHubSearch } = await import('@/hooks/use-github-search');
-    
     vi.mocked(useGitHubSearch).mockReturnValue({
       results: [
         {
@@ -255,48 +383,48 @@ describe('AddRepositoryModal', () => {
       loading: false,
       error: null,
       search: vi.fn()
-    } as any);
+    });
 
     render(
       <AddRepositoryModal
-        isOpen={true}
-        onClose={mockOnClose}
-        workspace={mockWorkspace}
+        open={true}
+        onOpenChange={mockOnOpenChange}
+        workspaceId={mockWorkspaceId}
         onSuccess={mockOnSuccess}
       />
     );
 
+    await waitFor(() => {
+      expect(screen.getByText('vercel/next.js')).toBeInTheDocument();
+    });
+
     // Add to cart
     const addButton = screen.getByRole('button', { name: /Add to Cart/i });
     await userEvent.click(addButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Cart (1)')).toBeInTheDocument();
+    });
 
     // Click add repositories button
     const addAllButton = screen.getByRole('button', { name: /Add 1 Repository/i });
     await userEvent.click(addAllButton);
 
     await waitFor(() => {
+      expect(WorkspaceService.addRepositoryToWorkspace).toHaveBeenCalled();
       expect(toast.success).toHaveBeenCalledWith('Successfully added 1 repository');
       expect(mockOnSuccess).toHaveBeenCalled();
-      expect(mockOnClose).toHaveBeenCalled();
+      expect(mockOnOpenChange).toHaveBeenCalledWith(false);
     });
   });
 
   it('should handle API errors gracefully', async () => {
-    const { supabase } = await import('@/lib/supabase');
-    const { toast } = await import('sonner');
-    
     // Mock API error
-    vi.mocked(supabase.from).mockReturnValue({
-      insert: vi.fn().mockReturnValue({
-        select: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Database error' }
-        })
-      })
-    } as any);
+    vi.mocked(WorkspaceService.addRepositoryToWorkspace).mockResolvedValue({
+      success: false,
+      error: 'Database error'
+    });
 
-    const { useGitHubSearch } = await import('@/hooks/use-github-search');
-    
     vi.mocked(useGitHubSearch).mockReturnValue({
       results: [
         { id: 1, full_name: 'repo1', name: 'repo1', owner: { login: 'owner' } }
@@ -304,20 +432,28 @@ describe('AddRepositoryModal', () => {
       loading: false,
       error: null,
       search: vi.fn()
-    } as any);
+    });
 
     render(
       <AddRepositoryModal
-        isOpen={true}
-        onClose={mockOnClose}
-        workspace={mockWorkspace}
+        open={true}
+        onOpenChange={mockOnOpenChange}
+        workspaceId={mockWorkspaceId}
         onSuccess={mockOnSuccess}
       />
     );
 
+    await waitFor(() => {
+      expect(screen.getByText('repo1')).toBeInTheDocument();
+    });
+
     // Add to cart and try to add
     const addButton = screen.getByRole('button', { name: /Add to Cart/i });
     await userEvent.click(addButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Cart (1)')).toBeInTheDocument();
+    });
 
     const addAllButton = screen.getByRole('button', { name: /Add 1 Repository/i });
     await userEvent.click(addAllButton);
@@ -329,8 +465,6 @@ describe('AddRepositoryModal', () => {
   });
 
   it('should remove repository from staging area', async () => {
-    const { useGitHubSearch } = await import('@/hooks/use-github-search');
-    
     vi.mocked(useGitHubSearch).mockReturnValue({
       results: [
         { id: 1, full_name: 'repo1', name: 'repo1', owner: { login: 'owner' } }
@@ -338,45 +472,57 @@ describe('AddRepositoryModal', () => {
       loading: false,
       error: null,
       search: vi.fn()
-    } as any);
+    });
 
     render(
       <AddRepositoryModal
-        isOpen={true}
-        onClose={mockOnClose}
-        workspace={mockWorkspace}
+        open={true}
+        onOpenChange={mockOnOpenChange}
+        workspaceId={mockWorkspaceId}
         onSuccess={mockOnSuccess}
       />
     );
+
+    await waitFor(() => {
+      expect(screen.getByText('repo1')).toBeInTheDocument();
+    });
 
     // Add to cart
     const addButton = screen.getByRole('button', { name: /Add to Cart/i });
     await userEvent.click(addButton);
 
-    expect(screen.getByText('Cart (1)')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Cart (1)')).toBeInTheDocument();
+    });
 
     // Remove from cart
     const removeButton = screen.getByRole('button', { name: /Remove/i });
     await userEvent.click(removeButton);
 
     // Cart should be empty
-    expect(screen.queryByText('Cart (1)')).not.toBeInTheDocument();
-    expect(screen.getByText('No repositories in cart')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('Cart (1)')).not.toBeInTheDocument();
+      expect(screen.getByText('No repositories in cart')).toBeInTheDocument();
+    });
   });
 
   it('should close modal when cancel is clicked', async () => {
     render(
       <AddRepositoryModal
-        isOpen={true}
-        onClose={mockOnClose}
-        workspace={mockWorkspace}
+        open={true}
+        onOpenChange={mockOnOpenChange}
+        workspaceId={mockWorkspaceId}
         onSuccess={mockOnSuccess}
       />
     );
 
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
+    });
+
     const cancelButton = screen.getByRole('button', { name: /Cancel/i });
     await userEvent.click(cancelButton);
 
-    expect(mockOnClose).toHaveBeenCalled();
+    expect(mockOnOpenChange).toHaveBeenCalledWith(false);
   });
 });
