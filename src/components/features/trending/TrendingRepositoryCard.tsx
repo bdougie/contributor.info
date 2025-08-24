@@ -114,12 +114,8 @@ export function TrendingRepositoryCard({
                   />
                 )}
               </div>
-              {/* Mobile: Stars and Trending on same line */}
-              <div className="flex items-center justify-between mt-2 sm:hidden">
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Star className="w-4 h-4" />
-                  <span>{repository.stars.toLocaleString()}</span>
-                </div>
+              {/* Mobile: Trending score */}
+              <div className="flex items-center justify-end mt-2 sm:hidden">
                 <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                   <TrendingUp className="w-3 h-3" />
                   <span>{Math.round(repository.trending_score)}</span>
@@ -143,14 +139,6 @@ export function TrendingRepositoryCard({
       </CardHeader>
 
       <CardContent className={cn('pt-0', compact && 'pt-0')}>
-        {/* Desktop: Show stars */}
-        <div className="hidden sm:flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Star className="w-4 h-4" />
-            <span>{repository.stars.toLocaleString()}</span>
-          </div>
-        </div>
-
         {/* Metric Changes with Language Badge */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
