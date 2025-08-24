@@ -90,6 +90,8 @@ const config: StorybookConfig = {
           // Mock hooks for Storybook to avoid dependency issues
           '@/hooks/use-on-demand-sync': new URL('./mocks/use-on-demand-sync.ts', import.meta.url).pathname,
           '@/hooks/use-github-auth': new URL('./mocks/use-github-auth.ts', import.meta.url).pathname,
+          '@/hooks/use-auth': new URL('./mocks/use-auth.ts', import.meta.url).pathname,
+          '@/hooks/use-user-workspaces': new URL('./mocks/use-user-workspaces.ts', import.meta.url).pathname,
           '@/hooks/use-cached-repo-data': new URL('./mocks/use-cached-repo-data.ts', import.meta.url).pathname,
           '@/hooks/use-repo-search': new URL('./mocks/use-repo-search.ts', import.meta.url).pathname,
           '@/hooks/use-repo-stats': new URL('./mocks/use-repo-stats.ts', import.meta.url).pathname,
@@ -100,6 +102,9 @@ const config: StorybookConfig = {
           '@/lib/insights/health-metrics': new URL('./mocks/health-metrics.ts', import.meta.url).pathname,
           '@/lib/contribution-analyzer': new URL('./mocks/contribution-analyzer.ts', import.meta.url).pathname,
           '@/lib/dub': new URL('./mocks/dub.ts', import.meta.url).pathname,
+          '@/lib/progressive-capture/manual-trigger': new URL('./mocks/manual-trigger.ts', import.meta.url).pathname,
+          '@/lib/progressive-capture/smart-notifications': new URL('./mocks/smart-notifications.ts', import.meta.url).pathname,
+          '@/lib/progressive-capture/background-processor': new URL('./mocks/background-processor.ts', import.meta.url).pathname,
           // Mock components
           '@/components/common/cards': new URL('./mocks/cards.ts', import.meta.url).pathname,
           '@/components/features/sharing/shareable-card': new URL('./mocks/shareable-card.ts', import.meta.url).pathname,
