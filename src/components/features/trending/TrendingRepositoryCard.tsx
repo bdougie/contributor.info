@@ -82,7 +82,7 @@ export function TrendingRepositoryCard({
       <CardHeader className={cn('pb-3', compact && 'pb-2')}>
         <div className="space-y-3">
           {/* First row: Avatar and repo name */}
-          <div className="flex items-start gap-3">
+          <div className="flex items-center gap-3">
             <OptimizedAvatar
               src={repository.avatar_url}
               alt={repository.owner}
@@ -91,7 +91,7 @@ export function TrendingRepositoryCard({
               className="flex-shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <div className="flex items-start gap-2">
+              <div className="flex items-center gap-2">
                 <a
                   href={repository.html_url}
                   target="_blank"
@@ -126,13 +126,11 @@ export function TrendingRepositoryCard({
                 </Badge>
               </div>
             </div>
-            {/* Desktop: Badges on the right */}
-            <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-              <Badge variant="secondary" className="flex items-center gap-1 text-xs">
-                <TrendingUp className="w-3 h-3" />
-                <span>{Math.round(repository.trending_score)}</span>
-              </Badge>
-            </div>
+            {/* Desktop: Badge on the right */}
+            <Badge variant="secondary" className="hidden sm:flex items-center gap-1 text-xs flex-shrink-0">
+              <TrendingUp className="w-3 h-3" />
+              <span>{Math.round(repository.trending_score)}</span>
+            </Badge>
           </div>
           
           {/* Second row: Description (mobile and desktop) */}
