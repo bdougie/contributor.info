@@ -45,6 +45,9 @@ const PrivacyPolicyPage = lazy(() => import("@/components/features/privacy/priva
 const DataRequestPage = lazy(() => import("@/components/features/privacy/data-request-page").then(m => ({ default: m.DataRequestPage })));
 const TermsPage = lazy(() => import("@/components/features/privacy/terms-page").then(m => ({ default: m.TermsPage })));
 
+// Workspace components
+const WorkspacePage = lazy(() => import("@/pages/workspace-page"));
+
 // Admin components
 const AdminMenu = lazy(() => import("@/components/features/admin").then(m => ({ default: m.AdminMenu })));
 const UserManagement = lazy(() => import("@/components/features/admin").then(m => ({ default: m.UserManagement })));
@@ -276,6 +279,7 @@ function App() {
 
             <Route path="/" element={<Layout />}>
               <Route index element={<Home />} />
+              <Route path="/i/:workspaceId" element={<WorkspacePage />} />
               <Route path="/changelog" element={<ChangelogPage />} />
               <Route path="/docs" element={<DocsList />} />
               <Route path="/docs/:slug" element={<DocDetail />} />
