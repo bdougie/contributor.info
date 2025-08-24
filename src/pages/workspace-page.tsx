@@ -27,16 +27,7 @@ import {
 } from "@tanstack/react-table";
 import { TimeRangeSelector, type TimeRange } from '@/components/features/workspace/TimeRangeSelector';
 import type { WorkspaceMetrics, WorkspaceTrendData, Repository, ActivityDataPoint } from '@/components/features/workspace';
-
-interface WorkspaceData {
-  id: string;
-  name: string;
-  description: string | null;
-  owner_id: string;
-  created_at: string;
-  visibility: string;
-  settings: any;
-}
+import type { Workspace } from '@/types/workspace';
 
 interface WorkspaceRepository {
   id: string;
@@ -1045,7 +1036,7 @@ function WorkspaceActivity({ repositories }: { repositories: Repository[] }) {
   );
 }
 
-function WorkspaceSettings({ workspace }: { workspace: WorkspaceData }) {
+function WorkspaceSettings({ workspace }: { workspace: Workspace }) {
   return (
     <div className="space-y-4">
       <Card>
@@ -1067,7 +1058,7 @@ export default function WorkspacePage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const [workspace, setWorkspace] = useState<WorkspaceData | null>(null);
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(null);
   const [trendData, setTrendData] = useState<WorkspaceTrendData | null>(null);
@@ -1320,7 +1311,7 @@ export default function WorkspacePage() {
               <TimeRangeSelector
                 value={timeRange}
                 onChange={setTimeRange}
-                tier="free"
+                tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
                 onUpgradeClick={handleUpgradeClick}
                 variant="select"
               />
@@ -1399,7 +1390,7 @@ export default function WorkspacePage() {
             trendData={trendData}
             activityData={activityData}
             repositories={repositories}
-            tier="free"
+            tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
             onAddRepository={handleAddRepository}
             onRepositoryClick={handleRepositoryClick}
             onSettingsClick={handleSettingsClick}
@@ -1435,29 +1426,31 @@ export default function WorkspacePage() {
       </div>
 
       {/* Upgrade Prompt for Free Tier */}
-      <div className="container max-w-7xl mx-auto px-6 pb-6 mt-6">
-        <div className="rounded-lg border bg-muted/50 p-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold">Unlock Advanced Analytics</h3>
-            <div className="rounded-full bg-primary/10 p-1">
-              <TrendingUp className="h-3.5 w-3.5 text-primary" />
+      {workspace.tier === 'free' && (
+        <div className="container max-w-7xl mx-auto px-6 pb-6 mt-6">
+          <div className="rounded-lg border bg-muted/50 p-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold">Unlock Advanced Analytics</h3>
+              <div className="rounded-full bg-primary/10 p-1">
+                <TrendingUp className="h-3.5 w-3.5 text-primary" />
+              </div>
             </div>
+            <p className="text-sm text-muted-foreground">
+              Upgrade to Pro to access historical data beyond 30 days, advanced metrics, and priority support. Pro users can track up to 10 repositories per workspace.
+            </p>
+            <Button 
+              onClick={handleUpgradeClick} 
+              variant="default" 
+              size="sm"
+              className="mt-3"
+            >
+              Upgrade to Pro
+            </Button>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Upgrade to Pro to access historical data beyond 30 days, advanced metrics, and priority support.
-          </p>
-          <Button 
-            onClick={handleUpgradeClick} 
-            variant="default" 
-            size="sm"
-            className="mt-3"
-          >
-            Upgrade to Pro
-          </Button>
         </div>
-      </div>
-      </div>
+        </div>
+      )}
       
       {/* Add Repository Modal */}
       {workspaceId && (

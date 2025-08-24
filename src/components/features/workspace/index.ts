@@ -19,3 +19,15 @@ export type { WorkspaceDashboardProps, WorkspaceMetrics, WorkspaceTrendData } fr
 
 export { WorkspacePreviewCard } from './WorkspacePreviewCard';
 export type { WorkspacePreviewCardProps, WorkspacePreviewData } from './WorkspacePreviewCard';
+
+export { WorkspaceCreateModal } from './WorkspaceCreateModal';
+export type { WorkspaceCreateModalProps } from './WorkspaceCreateModal';
+
+export { WorkspaceOnboarding } from './WorkspaceOnboarding';
+export type { WorkspaceOnboardingProps } from './WorkspaceOnboarding';
+
+export { WorkspaceCreateForm } from './WorkspaceCreateForm';
+export type { WorkspaceCreateFormProps } from './WorkspaceCreateForm';
+
+export { AddRepositoryModal } from './AddRepositoryModal';
+export type { AddRepositoryModalProps } from './AddRepositoryModal';

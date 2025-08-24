@@ -60,7 +60,7 @@ export function AddRepositoryModal({
 
   // Calculate limits
   const isFreeTier = workspace?.tier === 'free';
-  const maxRepos = workspace?.max_repositories || 10;
+  const maxRepos = workspace?.max_repositories || 4; // Default to free tier limit
   const currentRepoCount = workspace?.current_repository_count || 0;
   const remainingSlots = maxRepos - currentRepoCount;
   const canAddMore = stagedRepos.length < remainingSlots;
@@ -279,7 +279,7 @@ export function AddRepositoryModal({
           </DialogTitle>
           <DialogDescription>
             Search for repositories on GitHub and add them to your workspace. 
-            {isFreeTier && ' Free tier is limited to 10 repositories.'}
+            {isFreeTier && ` Free tier is limited to ${maxRepos} repositories.`}
           </DialogDescription>
         </DialogHeader>
 
