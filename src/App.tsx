@@ -48,6 +48,9 @@ const TermsPage = lazy(() => import("@/components/features/privacy/terms-page").
 // Workspace components
 const WorkspacePage = lazy(() => import("@/pages/workspace-page"));
 
+// Trending components
+const TrendingPageRoute = lazy(() => import("@/pages/trending").then(m => ({ default: m.TrendingPageRoute })));
+
 // Admin components
 const AdminMenu = lazy(() => import("@/components/features/admin").then(m => ({ default: m.AdminMenu })));
 const UserManagement = lazy(() => import("@/components/features/admin").then(m => ({ default: m.UserManagement })));
@@ -279,6 +282,7 @@ function App() {
 
             <Route path="/" element={<Layout />}>
               <Route index element={<Home />} />
+              <Route path="/trending" element={<TrendingPageRoute />} />
               <Route path="/i/:workspaceId" element={<WorkspacePage />} />
               <Route path="/i/:workspaceId/:tab" element={<WorkspacePage />} />
               <Route path="/changelog" element={<ChangelogPage />} />
