@@ -100,7 +100,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       const enrichedWorkspaces = await Promise.all(
         workspaceData.map(async (workspace) => {
           // Get repository count and member count
-          const [repositoriesResult, membersResult, ownerResult] = await Promise.all([
+          const [repositoriesResult, repoCountResult, membersResult, ownerResult] = await Promise.all([
             supabase
               .from('workspace_repositories')
               .select(`
@@ -114,7 +114,8 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
                   description,
                   language,
                   github_pushed_at,
-                  pull_request_count
+                  pull_request_count,
+                  open_issues_count
                 )
               `)
               .eq('workspace_id', workspace.id)
@@ -122,6 +123,12 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
               .order('repositories.github_pushed_at', { ascending: false })
               .limit(3)
               .returns<RepositoryWithWorkspace[]>(),
+            
+            // Get actual total count of repositories (not just the displayed 3)
+            supabase
+              .from('workspace_repositories')
+              .select('id', { count: 'exact', head: true })
+              .eq('workspace_id', workspace.id),
             
             supabase
               .from('workspace_members')
@@ -136,29 +143,42 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
               .returns<UserMetadata>()
           ]);
 
-          // Check for errors in individual queries
+          // Check for errors in individual queries and fail fast for critical data
           if (repositoriesResult.error) {
-            console.warn(`Failed to fetch repositories for workspace ${workspace.id}:`, repositoriesResult.error.message);
+            console.error(`Failed to fetch repositories for workspace ${workspace.id}:`, repositoriesResult.error.message);
+            // For critical data failures, throw to trigger error state
+            throw new Error(`Unable to load workspace repositories: ${repositoriesResult.error.message}`);
           }
           if (membersResult.error) {
             console.warn(`Failed to fetch members for workspace ${workspace.id}:`, membersResult.error.message);
+            // Members count is less critical, can continue with fallback
           }
           if (ownerResult.error) {
             console.warn(`Failed to fetch owner info for workspace ${workspace.id}:`, ownerResult.error.message);
+            // Owner info is supplementary, can continue with fallback
           }
 
-          const repositories = repositoriesResult.data?.map(item => ({
-            id: item.repositories.id,
-            full_name: item.repositories.full_name,
-            name: item.repositories.name,
-            owner: item.repositories.owner,
-            description: item.repositories.description,
-            language: item.repositories.language,
-            activity_score: item.repositories.pull_request_count || 0,
-            last_activity: item.repositories.github_pushed_at || new Date().toISOString(),
-            avatar_url: `https://github.com/${item.repositories.owner}.png`,
-            html_url: `https://github.com/${item.repositories.full_name}`,
-          })) || [];
+          const repositories = repositoriesResult.data?.map(item => {
+            // Calculate activity score: weight issues 2x higher than PRs
+            const issueScore = (item.repositories.open_issues_count || 0) * 2;
+            const prScore = item.repositories.pull_request_count || 0;
+            const activityScore = issueScore + prScore;
+            
+            return {
+              id: item.repositories.id,
+              full_name: item.repositories.full_name,
+              name: item.repositories.name,
+              owner: item.repositories.owner,
+              description: item.repositories.description,
+              language: item.repositories.language,
+              activity_score: activityScore,
+              last_activity: item.repositories.github_pushed_at || new Date().toISOString(),
+              avatar_url: item.repositories.owner 
+                ? `https://github.com/${item.repositories.owner}.png`
+                : '/images/default-avatar.png',
+              html_url: `https://github.com/${item.repositories.full_name}`,
+            };
+          }) || [];
 
           const ownerMetadata = ownerResult.data?.raw_user_meta_data;
 
@@ -172,7 +192,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
               avatar_url: ownerMetadata?.avatar_url,
               display_name: ownerMetadata?.full_name || ownerMetadata?.name,
             },
-            repository_count: repositoriesResult.data?.length || 0,
+            repository_count: repoCountResult.count || 0,
             member_count: membersResult.data?.length || 0,
             repositories,
             created_at: workspace.created_at,
