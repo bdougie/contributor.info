@@ -7,6 +7,7 @@ import { WorkspacePullRequestsTable, type PullRequest } from '@/components/featu
 import { WorkspaceIssuesTable, type Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
 import { RepositoryFilter } from '@/components/features/workspace/RepositoryFilter';
 import { ContributorsList, type Contributor } from '@/components/features/workspace/ContributorsList';
+import { AddRepositoryModal } from '@/components/features/workspace/AddRepositoryModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -1075,6 +1076,7 @@ export default function WorkspacePage() {
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [selectedRepositories, setSelectedRepositories] = useState<string[]>([]);
+  const [addRepositoryModalOpen, setAddRepositoryModalOpen] = useState(false);
 
   // Determine active tab from URL
   const pathSegments = location.pathname.split('/');
@@ -1225,7 +1227,65 @@ export default function WorkspacePage() {
   }
 
   const handleAddRepository = () => {
-    toast.info('Add repository feature coming soon!');
+    setAddRepositoryModalOpen(true);
+  };
+
+  const handleAddRepositorySuccess = async () => {
+    // Refresh the repositories list after adding
+    if (!workspaceId) return;
+
+    try {
+      // Fetch repositories with their details
+      const { data: repoData, error: repoError } = await supabase
+        .from('workspace_repositories')
+        .select(`
+          *,
+          repositories (
+            id,
+            full_name,
+            name,
+            owner,
+            description,
+            language,
+            stargazers_count,
+            forks_count,
+            open_issues_count
+          )
+        `)
+        .eq('workspace_id', workspaceId);
+
+      if (!repoError && repoData) {
+        const formattedRepos: Repository[] = repoData
+          .filter((item: WorkspaceRepository) => item.repositories)
+          .map((item: WorkspaceRepository) => ({
+            id: item.repositories.id,
+            full_name: item.repositories.full_name,
+            name: item.repositories.name,
+            owner: item.repositories.owner,
+            description: item.repositories.description || '',
+            language: item.repositories.language || '',
+            stars: item.repositories.stargazers_count || 0,
+            forks: item.repositories.forks_count || 0,
+            open_prs: 0, // Mock for now
+            open_issues: item.repositories.open_issues_count || 0,
+            contributors: Math.floor(Math.random() * 50) + 10, // Mock for now
+            avatar_url: `https://github.com/${item.repositories.owner}.png`,
+            last_activity: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            is_pinned: item.is_pinned || false,
+            html_url: `https://github.com/${item.repositories.full_name}`,
+          }));
+
+        setRepositories(formattedRepos);
+        setSelectedRepositories(formattedRepos.map(r => r.id));
+        
+        // Update metrics with new repository data
+        const newMetrics = generateMockMetrics(formattedRepos);
+        setMetrics(newMetrics);
+      }
+    } catch (error) {
+      console.error('Error refreshing repositories:', error);
+      toast.error('Failed to refresh repositories');
+    }
   };
 
   const handleRepositoryClick = (repo: Repository) => {
@@ -1398,6 +1458,16 @@ export default function WorkspacePage() {
         </div>
       </div>
       </div>
+      
+      {/* Add Repository Modal */}
+      {workspaceId && (
+        <AddRepositoryModal
+          open={addRepositoryModalOpen}
+          onOpenChange={setAddRepositoryModalOpen}
+          workspaceId={workspaceId}
+          onSuccess={handleAddRepositorySuccess}
+        />
+      )}
     </div>
   );
 }

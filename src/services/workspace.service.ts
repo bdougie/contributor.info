@@ -15,7 +15,11 @@ import type {
   CreateWorkspaceRequest,
   UpdateWorkspaceRequest,
   WorkspaceFilters,
-  WorkspaceRole
+  WorkspaceRole,
+  AddRepositoryRequest,
+  WorkspaceRepository,
+  WorkspaceRepositoryWithDetails,
+  WorkspaceRepositoryFilters
 } from '@/types/workspace';
 
 /**
@@ -472,6 +476,272 @@ export class WorkspaceService {
     } catch (error) {
       console.error('Check permission error:', error);
       return { hasPermission: false };
+    }
+  }
+
+  /**
+   * Add a repository to a workspace
+   */
+  static async addRepositoryToWorkspace(
+    workspaceId: string,
+    userId: string,
+    data: AddRepositoryRequest
+  ): Promise<ServiceResponse<WorkspaceRepository>> {
+    try {
+      // Check permissions
+      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'admin', 'editor']);
+      if (!permission.hasPermission) {
+        return {
+          success: false,
+          error: 'Insufficient permissions to add repositories',
+          statusCode: 403
+        };
+      }
+
+      // Check if repository already exists in workspace
+      const { data: existing } = await supabase
+        .from('workspace_repositories')
+        .select('id')
+        .eq('workspace_id', workspaceId)
+        .eq('repository_id', data.repository_id)
+        .single();
+
+      if (existing) {
+        return {
+          success: false,
+          error: 'Repository already exists in this workspace',
+          statusCode: 409
+        };
+      }
+
+      // Check workspace repository limit
+      const { data: workspace } = await supabase
+        .from('workspaces')
+        .select('max_repositories, current_repository_count')
+        .eq('id', workspaceId)
+        .single();
+
+      if (!workspace) {
+        return {
+          success: false,
+          error: 'Workspace not found',
+          statusCode: 404
+        };
+      }
+
+      if (workspace.current_repository_count >= workspace.max_repositories) {
+        return {
+          success: false,
+          error: `Repository limit reached. Maximum ${workspace.max_repositories} repositories allowed.`,
+          statusCode: 403
+        };
+      }
+
+      // Add repository to workspace
+      const { data: workspaceRepo, error: addError } = await supabase
+        .from('workspace_repositories')
+        .insert({
+          workspace_id: workspaceId,
+          repository_id: data.repository_id,
+          added_by: userId,
+          notes: data.notes || null,
+          tags: data.tags || [],
+          is_pinned: data.is_pinned || false
+        })
+        .select()
+        .single();
+
+      if (addError) {
+        throw addError;
+      }
+
+      // Update workspace repository count
+      await supabase
+        .from('workspaces')
+        .update({
+          current_repository_count: workspace.current_repository_count + 1,
+          last_activity_at: new Date().toISOString()
+        })
+        .eq('id', workspaceId);
+
+      return {
+        success: true,
+        data: workspaceRepo,
+        statusCode: 201
+      };
+    } catch (error) {
+      console.error('Add repository to workspace error:', error);
+      return {
+        success: false,
+        error: 'Failed to add repository to workspace',
+        statusCode: 500
+      };
+    }
+  }
+
+  /**
+   * Remove a repository from a workspace
+   */
+  static async removeRepositoryFromWorkspace(
+    workspaceId: string,
+    repositoryId: string,
+    userId: string
+  ): Promise<ServiceResponse<void>> {
+    try {
+      // Check permissions
+      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'admin', 'editor']);
+      if (!permission.hasPermission) {
+        return {
+          success: false,
+          error: 'Insufficient permissions to remove repositories',
+          statusCode: 403
+        };
+      }
+
+      // Remove repository from workspace
+      const { error: removeError } = await supabase
+        .from('workspace_repositories')
+        .delete()
+        .eq('workspace_id', workspaceId)
+        .eq('repository_id', repositoryId);
+
+      if (removeError) {
+        throw removeError;
+      }
+
+      // Update workspace repository count
+      const { data: workspace } = await supabase
+        .from('workspaces')
+        .select('current_repository_count')
+        .eq('id', workspaceId)
+        .single();
+
+      if (workspace && workspace.current_repository_count > 0) {
+        await supabase
+          .from('workspaces')
+          .update({
+            current_repository_count: workspace.current_repository_count - 1,
+            last_activity_at: new Date().toISOString()
+          })
+          .eq('id', workspaceId);
+      }
+
+      return {
+        success: true,
+        statusCode: 200
+      };
+    } catch (error) {
+      console.error('Remove repository from workspace error:', error);
+      return {
+        success: false,
+        error: 'Failed to remove repository from workspace',
+        statusCode: 500
+      };
+    }
+  }
+
+  /**
+   * List repositories in a workspace
+   */
+  static async listWorkspaceRepositories(
+    workspaceId: string,
+    userId: string,
+    filters?: WorkspaceRepositoryFilters & { page?: number; limit?: number }
+  ): Promise<ServiceResponse<PaginatedResponse<WorkspaceRepositoryWithDetails>>> {
+    try {
+      // Check permissions
+      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'admin', 'editor', 'viewer']);
+      if (!permission.hasPermission) {
+        return {
+          success: false,
+          error: 'Insufficient permissions to view repositories',
+          statusCode: 403
+        };
+      }
+
+      const page = filters?.page || 1;
+      const limit = filters?.limit || 20;
+      const offset = (page - 1) * limit;
+
+      let query = supabase
+        .from('workspace_repositories')
+        .select(`
+          *,
+          repository:repositories!workspace_repositories_repository_id_fkey(
+            id,
+            full_name,
+            owner,
+            name,
+            description,
+            language,
+            stargazers_count,
+            forks_count,
+            open_issues_count,
+            topics,
+            is_private,
+            is_archived
+          ),
+          added_by_user:users!workspace_repositories_added_by_fkey(
+            id,
+            email,
+            display_name
+          )
+        `, { count: 'exact' })
+        .eq('workspace_id', workspaceId);
+
+      // Apply filters
+      if (filters?.is_pinned !== undefined) {
+        query = query.eq('is_pinned', filters.is_pinned);
+      }
+
+      if (filters?.tags && filters.tags.length > 0) {
+        query = query.contains('tags', filters.tags);
+      }
+
+      if (filters?.search) {
+        // Note: This searches in the joined repository data
+        query = query.or(`repository.full_name.ilike.%${filters.search}%,repository.description.ilike.%${filters.search}%`);
+      }
+
+      // Apply sorting
+      const sortBy = filters?.sort_by || 'added_at';
+      const sortOrder = filters?.sort_order || 'desc';
+      
+      if (sortBy === 'added_at') {
+        query = query.order('added_at', { ascending: sortOrder === 'asc' });
+      } else if (sortBy === 'name') {
+        query = query.order('repository(name)', { ascending: sortOrder === 'asc' });
+      }
+      // Note: For stars and activity sorting, we'd need to handle this differently
+
+      query = query.range(offset, offset + limit - 1);
+
+      const { data: repositories, error, count } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      return {
+        success: true,
+        data: {
+          items: repositories as WorkspaceRepositoryWithDetails[],
+          pagination: {
+            page,
+            limit,
+            total: count || 0,
+            totalPages: Math.ceil((count || 0) / limit)
+          }
+        },
+        statusCode: 200
+      };
+    } catch (error) {
+      console.error('List workspace repositories error:', error);
+      return {
+        success: false,
+        error: 'Failed to list workspace repositories',
+        statusCode: 500
+      };
     }
   }
 }
