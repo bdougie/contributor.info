@@ -209,24 +209,20 @@ runs:
                             previous_reviews.append(line)
             
             # Post initial progress comment
-            progress_body = f"""{COMMENT_MARKER}
-## 🤖 Continue Agent Review
-
-🔄 **Review in progress...** 
-
-I'm analyzing the changes in this pull request. This may take a moment.
-
-### What I'm checking:
-- 📝 Code quality and best practices
-- 🐛 Potential bugs or logic errors  
-- 🔒 Security vulnerabilities
-- ⚡ Performance implications
-- 📚 Compliance with project rules
-
-{review_history if review_history else ""}
-
----
-*This comment will be updated with the review results shortly...*"""
+            progress_body = COMMENT_MARKER + "\n"
+            progress_body += "## 🤖 Continue Agent Review\n\n"
+            progress_body += "🔄 **Review in progress...** \n\n"
+            progress_body += "I'm analyzing the changes in this pull request. This may take a moment.\n\n"
+            progress_body += "### What I'm checking:\n"
+            progress_body += "- 📝 Code quality and best practices\n"
+            progress_body += "- 🐛 Potential bugs or logic errors\n"
+            progress_body += "- 🔒 Security vulnerabilities\n"
+            progress_body += "- ⚡ Performance implications\n"
+            progress_body += "- 📚 Compliance with project rules\n\n"
+            if review_history:
+                progress_body += review_history + "\n\n"
+            progress_body += "---\n"
+            progress_body += "*This comment will be updated with the review results shortly...*"
             
             if existing_comment:
                 existing_comment.edit(progress_body)
@@ -458,25 +454,30 @@ I'm analyzing the changes in this pull request. This may take a moment.
                 current_feedback.append("- ✅ Good practices identified")
             
             # Build final comment with proper markdown formatting
-            comment_body = f"""{COMMENT_MARKER}
-## 🤖 Continue Agent Review
-
-{"**✅ Review Complete**" if not command else f"**Responding to:** `@continue-agent {command}`"}
-
-{progress_summary if progress_summary else ""}
-
-### Current Review
-
-{review_text}
-
-{"### Previous Feedback" if previous_reviews else ""}
-{chr(10).join(previous_reviews) if previous_reviews else ""}
-
-{"### Current Feedback Summary" if current_feedback else ""}
-{chr(10).join(current_feedback) if current_feedback else ""}
-
----
-*Last updated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")} | Powered by [Continue](https://continue.dev)*"""
+            comment_body = COMMENT_MARKER + "\n"
+            comment_body += "## 🤖 Continue Agent Review\n\n"
+            
+            if command:
+                comment_body += f"**Responding to:** `@continue-agent {command}`\n\n"
+            else:
+                comment_body += "**✅ Review Complete**\n\n"
+            
+            if progress_summary:
+                comment_body += progress_summary + "\n\n"
+            
+            comment_body += "### Current Review\n\n"
+            comment_body += review_text + "\n\n"
+            
+            if previous_reviews:
+                comment_body += "### Previous Feedback\n"
+                comment_body += "\n".join(previous_reviews) + "\n\n"
+            
+            if current_feedback:
+                comment_body += "### Current Feedback Summary\n"
+                comment_body += "\n".join(current_feedback) + "\n\n"
+            
+            comment_body += "---\n"
+            comment_body += f"*Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')} | Powered by [Continue](https://continue.dev)*"
             
             # Update the existing comment
             print("Updating comment with review...")
@@ -495,21 +496,18 @@ I'm analyzing the changes in this pull request. This may take a moment.
             
             # Try to update comment with error
             try:
-                error_body = f"""{COMMENT_MARKER}
-## ❌ Continue Review Error
-
-Failed to complete review:
-```
-{str(e)}
-```
-
-### Please check:
-1. CONTINUE_API_KEY is set correctly
-2. Continue CLI is installed  
-3. Workflow logs for details
-
----
-*Error occurred at: {datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")}*"""
+                error_body = COMMENT_MARKER + "\n"
+                error_body += "## ❌ Continue Review Error\n\n"
+                error_body += "Failed to complete review:\n"
+                error_body += "```\n"
+                error_body += str(e) + "\n"
+                error_body += "```\n\n"
+                error_body += "### Please check:\n"
+                error_body += "1. CONTINUE_API_KEY is set correctly\n"
+                error_body += "2. Continue CLI is installed\n"
+                error_body += "3. Workflow logs for details\n\n"
+                error_body += "---\n"
+                error_body += f"*Error occurred at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}*"
                 
                 if 'existing_comment' in locals() and existing_comment:
                     existing_comment.edit(error_body)
