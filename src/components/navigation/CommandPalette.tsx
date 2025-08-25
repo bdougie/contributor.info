@@ -299,6 +299,23 @@ export function CommandPalette({
         return;
       }
 
+      // Direct navigation for repo paths
+      if (e.key === 'Enter' && filter === 'repository' && query) {
+        e.preventDefault();
+        // Check if the query looks like a full repo path (owner/name)
+        if (query.includes('/')) {
+          // Navigate directly to the repository
+          navigate(`/${query}`);
+          onOpenChange(false);
+          return;
+        }
+        // If there's exactly one match, navigate to it
+        if (filteredCommands.length === 1 && filteredCommands[0].category === 'repository') {
+          filteredCommands[0].action();
+          return;
+        }
+      }
+
       // Quick filters
       if (e.key === 'w' && e.metaKey) {
         e.preventDefault();
@@ -311,7 +328,7 @@ export function CommandPalette({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, onOpenChange]);
+  }, [open, onOpenChange, filter, query, filteredCommands, navigate]);
 
   // Reset search when dialog opens/closes
   useEffect(() => {
@@ -320,16 +337,38 @@ export function CommandPalette({
     }
   }, [open, defaultSearchQuery]);
 
+  // Handle direct submission from input
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && filter === 'repository' && query) {
+      e.preventDefault();
+      // Check if the query looks like a full repo path (owner/name)
+      if (query.includes('/')) {
+        // Navigate directly to the repository
+        navigate(`/${query}`);
+        onOpenChange(false);
+        return;
+      }
+    }
+  };
+
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
       <CommandInput
         placeholder="Search workspaces, repositories, or actions..."
         value={search}
         onValueChange={setSearch}
+        onKeyDown={handleInputKeyDown}
       />
       <CommandList>
         <CommandEmpty>
-          No results found for "{search}"
+          {filter === 'repository' && query.includes('/') ? (
+            <div className="text-center py-6">
+              <p className="text-sm text-muted-foreground mb-2">Repository not in your workspaces</p>
+              <p className="text-xs">Press <kbd className="rounded bg-muted px-1">↵</kbd> to navigate to <strong>{query}</strong></p>
+            </div>
+          ) : (
+            `No results found for "${search}"`
+          )}
         </CommandEmpty>
 
         {/* Recent Items */}
