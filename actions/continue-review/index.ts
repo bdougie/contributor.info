@@ -248,14 +248,21 @@ Please address the user's specific request while reviewing the code changes belo
     // Clean up the response
     let review = stdout.trim();
     
+    core.info(`Raw Continue CLI output length: ${stdout.length} characters`);
+    core.info(`First 500 chars of output: ${stdout.substring(0, 500)}`);
+    
     // Remove ANSI codes
     // eslint-disable-next-line no-control-regex
     review = review.replace(/\x1b\[[0-9;]*m/g, '');
+    
+    core.info(`Cleaned review length: ${review.length} characters`);
 
     if (!review) {
+      core.warning('Continue CLI returned an empty response');
       return 'Continue CLI returned an empty response. Please check the configuration.';
     }
 
+    core.info(`Review content preview: ${review.substring(0, 200)}...`);
     return review;
   } catch (error) {
     // Clean up temp file
@@ -290,6 +297,9 @@ async function postReview(
   const marker = '<!-- continue-agent-review -->';
   const timestamp = new Date().toISOString();
   
+  core.info(`Posting review comment to PR #${prNumber} (isProgress: ${isProgress})`);
+  core.info(`Review length: ${review.length} characters`);
+  
   let body = `## 🤖 Continue Agent Review\n\n`;
   
   if (isProgress) {
@@ -301,25 +311,31 @@ async function postReview(
   }
   
   body = `${marker}\n${body}`;
+  core.info(`Comment body length: ${body.length} characters`);
 
   try {
     if (updateCommentId) {
       // Update existing comment
+      core.info(`Updating existing comment ${updateCommentId}`);
       await octokit.rest.issues.updateComment({
         owner,
         repo,
         comment_id: updateCommentId,
         body,
       });
+      core.info(`Successfully updated comment ${updateCommentId}`);
       return updateCommentId;
     } else {
       // Try to find existing comment
+      core.info(`Looking for existing comment with marker`);
       const { data: comments } = await octokit.rest.issues.listComments({
         owner,
         repo,
         issue_number: prNumber,
         per_page: 100,
       });
+      
+      core.info(`Found ${comments.length} existing comments`);
 
       const existingComment = comments.find(c => 
         c.body?.includes(marker)
@@ -327,26 +343,34 @@ async function postReview(
 
       if (existingComment) {
         // Update existing comment
+        core.info(`Updating existing comment ${existingComment.id}`);
         await octokit.rest.issues.updateComment({
           owner,
           repo,
           comment_id: existingComment.id,
           body,
         });
+        core.info(`Successfully updated comment ${existingComment.id}`);
         return existingComment.id;
       } else {
         // Create new comment
+        core.info(`Creating new comment on PR #${prNumber}`);
         const { data: newComment } = await octokit.rest.issues.createComment({
           owner,
           repo,
           issue_number: prNumber,
           body,
         });
+        core.info(`Successfully created comment ${newComment.id}`);
         return newComment.id;
       }
     }
   } catch (error) {
     core.error(`Failed to post review: ${error}`);
+    if (error instanceof Error) {
+      core.error(`Error message: ${error.message}`);
+      core.error(`Error stack: ${error.stack}`);
+    }
     throw error;
   }
 }
@@ -502,6 +526,7 @@ async function run(): Promise<void> {
     };
 
     // Post initial progress comment
+    core.info('Posting initial progress comment...');
     const progressCommentId = await postReview(
       octokit,
       owner,
@@ -510,15 +535,19 @@ async function run(): Promise<void> {
       '🔄 **Review in progress...**\n\nI\'m analyzing the changes in this pull request. This may take a moment.',
       true, // isProgress
     );
+    core.info(`Progress comment ID: ${progressCommentId}`);
 
     // Generate review using Continue
+    core.info('Generating review with Continue CLI...');
     const review = await generateReview(
       reviewContext,
       continueConfig,
       continueApiKey,
     );
+    core.info(`Generated review length: ${review.length} characters`);
 
     // Post final review
+    core.info('Posting final review comment...');
     await postReview(
       octokit,
       owner,
