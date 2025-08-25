@@ -112,7 +112,6 @@
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.12",
-    "@types/js-yaml": "^4.0.9",
     "@types/minimatch": "^5.1.2",
     "@vitejs/plugin-react": "^4.3.1",
     "@vitejs/plugin-react-swc": "^3.11.0",
@@ -155,6 +154,8 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.1",
     "@eslint/js": "^9.11.1",
     "@iconify/json": "^2.2.367",
     "@mdx-js/react": "^2.3.0",
@@ -171,6 +172,7 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/html2canvas": "^0.5.35",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.7.3",
     "@types/react": "^18.3.9",
     "@types/react-dom": "^18.3.0",
