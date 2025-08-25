@@ -4,6 +4,7 @@ import {
   CardContent,
   CardHeader,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ExampleRepos } from "../../features/repository";
 import { useNavigate } from "react-router-dom";
 import { SocialMetaTags } from "./meta-tags-provider";
@@ -18,7 +19,7 @@ import type { GitHubRepository } from "@/lib/github";
 export default function Home() {
   const navigate = useNavigate();
   const { isLoggedIn, loading: authLoading } = useAuth();
-  const { workspace, hasWorkspace, loading: workspaceLoading, refetch: refetchWorkspace } = usePrimaryWorkspace();
+  const { workspace, hasWorkspace, loading: workspaceLoading, error: workspaceError, refetch: refetchWorkspace } = usePrimaryWorkspace();
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const handleSearch = (repositoryPath: string) => {
@@ -92,6 +93,15 @@ export default function Home() {
                 }}
                 loading={true}
               />
+            ) : workspaceError ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-8 space-y-4">
+                  <p className="text-sm text-muted-foreground">Failed to load workspace</p>
+                  <Button onClick={refetchWorkspace} variant="outline" size="sm">
+                    Retry
+                  </Button>
+                </CardContent>
+              </Card>
             ) : hasWorkspace && workspace ? (
               <WorkspacePreviewCard workspace={workspace} />
             ) : (

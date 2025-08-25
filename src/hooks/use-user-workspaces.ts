@@ -50,9 +50,27 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       setLoading(true);
       setError(null);
 
-      // Check if user is authenticated
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
+      // Check if user is authenticated - with retry on auth error
+      let user = null;
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      
+      // If auth error, try to refresh session
+      if (authError) {
+        console.warn('Auth error when fetching workspaces, attempting session refresh:', authError.message);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setWorkspaces([]);
+          setLoading(false);
+          return;
+        }
+        // Retry getting user after session refresh
+        const { data: { user: refreshedUser } } = await supabase.auth.getUser();
+        user = refreshedUser;
+      } else {
+        user = authData?.user;
+      }
+      
+      if (!user) {
         setWorkspaces([]);
         setLoading(false);
         return;
@@ -234,18 +252,32 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
   }, []);
 
   useEffect(() => {
-    fetchUserWorkspaces();
+    // Add a timeout to prevent infinite loading state
+    const loadingTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn('Workspace loading timed out after 15 seconds');
+        setLoading(false);
+        setError(new Error('Workspace loading timed out. Please refresh the page.'));
+      }
+    }, 15000);
+
+    fetchUserWorkspaces().finally(() => {
+      clearTimeout(loadingTimeout);
+    });
 
     // Listen for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
         await fetchUserWorkspaces();
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(loadingTimeout);
+    };
   }, [fetchUserWorkspaces]);
 
   return {
