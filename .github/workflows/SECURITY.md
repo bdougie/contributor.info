@@ -15,7 +15,8 @@
 
 #### Token Management
 - Generated tokens expire in 1 hour
-- Tokens are scoped to minimum required permissions:
+- Tokens inherit permissions from the GitHub App installation
+- Job-level permissions restrict what the workflow can access:
   - `contents: read` - Read code for review
   - `pull_requests: write` - Post review comments
   - `issues: write` - Update issue comments

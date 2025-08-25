@@ -37,15 +37,8 @@ jobs:
         uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # v2.0.0
         id: app-token
         with:
-          app-id: ${{ vars.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          # Limit token permissions to only what's needed
-          permissions: >-
-            {
-              "contents": "read",
-              "pull_requests": "write",
-              "issues": "write"
-            }
+          app-id: ${{ secrets.CONTINUE_APP_ID }}
+          private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY }}
       
       # Use local action until Continue merges GitHub App token support
       - name: Run Continue Review
