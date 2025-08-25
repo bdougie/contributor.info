@@ -2,38 +2,39 @@
 
 ## Architecture
 
-The Continue Review action uses a **centralized App authentication** approach:
+The Continue Review action uses **embedded App authentication**:
 
-1. **App Credentials**: Stored as secrets in `contributor.info` repository
-   - `CONTINUE_APP_ID`: The GitHub App ID
-   - `CONTINUE_APP_PRIVATE_KEY`: The App's private key (.pem file)
+1. **App Credentials**: Encrypted and embedded in the action code
+   - Credentials are encrypted using AES-256 for obfuscation
+   - Built into `app-config-encrypted.ts` during build process
 
-2. **Token Generation**: Happens in the workflow, not in the action
-   - The workflow generates an App installation token
-   - Passes it to the action as `github-token`
+2. **Token Generation**: Happens automatically in the action
+   - Action checks if Continue Agent App is installed on the repo
+   - Generates installation token if App is found
+   - Falls back to provided GitHub token if not
 
 3. **Cross-Repository Usage**: Works on any repo where the App is installed
    - No credentials needed in target repositories
-   - Just reference the action from contributor.info
+   - Comments appear from Continue Agent App automatically
 
 ## Setup Process
 
 ### In contributor.info (this repo):
 
-1. Create the Continue Review GitHub App
-2. Add secrets to the repository:
+1. Create the Continue Agent GitHub App
+2. Build the embedded credentials into the action:
+   ```bash
+   CONTINUE_APP_ID=123456 \
+   CONTINUE_APP_PRIVATE_KEY="$(cat private-key.pem)" \
+   npx tsx build-embedded-auth.ts
    ```
-   CONTINUE_APP_ID=123456
-   CONTINUE_APP_PRIVATE_KEY=<contents of .pem file>
-   CONTINUE_API_KEY=<your Continue API key>
-   ```
-
-3. The workflow automatically generates App tokens when available
+3. Commit the updated `app-config-encrypted.ts` file
+4. Add `CONTINUE_API_KEY` secret to the repository
 
 ### In pull2press (or any other repo):
 
-1. Install the Continue Review App on the repository
-2. Use the action in workflow:
+1. Install the Continue Agent App on the repository
+2. Use the action in workflow (no changes needed):
    ```yaml
    - uses: bdougie/contributor.info/actions/continue-review@main
      with:
@@ -42,20 +43,16 @@ The Continue Review action uses a **centralized App authentication** approach:
        continue-config: 'your-org/your-bot'
        continue-org: 'your-org'
    ```
+3. Comments automatically appear from Continue Agent App!
 
 ## How Authentication Flows
 
-### When used from contributor.info:
-1. Workflow checks for `CONTINUE_APP_ID` and `CONTINUE_APP_PRIVATE_KEY` secrets
-2. If present, generates an App installation token
-3. Passes App token to the action
-4. Comments appear from the Continue Review App
-
-### When used from other repos (like pull2press):
-1. They pass `GITHUB_TOKEN` to the action
-2. Action uses that token for API calls
-3. Comments appear from github-actions[bot]
-4. (Unless they also set up their own App credentials)
+### When used from any repository:
+1. Action checks if Continue Agent App is installed on the repo
+2. If installed, uses embedded credentials to generate App token
+3. Comments appear from Continue Agent App
+4. If not installed, falls back to provided GitHub token
+5. Fallback comments appear from github-actions[bot]
 
 ## Benefits
 

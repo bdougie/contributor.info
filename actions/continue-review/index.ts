@@ -5,6 +5,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { glob } from 'glob';
+import { getAuthenticatedOctokit } from './github-app-auth';
 
 interface Rule {
   file: string;
@@ -472,7 +473,7 @@ async function run(): Promise<void> {
       core.info('Workflow dispatch event - searching for associated PR');
       
       // Initialize GitHub client early to search for PR
-      const octokit = github.getOctokit(githubToken);
+      const octokit = await getAuthenticatedOctokit(githubToken, owner, repo);
       
       // Get the current branch name
       const branch = context.ref.replace('refs/heads/', '');
@@ -507,8 +508,8 @@ async function run(): Promise<void> {
 
     core.info(`Processing PR #${prNumber}`);
 
-    // Initialize GitHub client (token already has App auth if available from workflow)
-    const octokit = github.getOctokit(githubToken);
+    // Initialize GitHub client with embedded App auth if available
+    const octokit = await getAuthenticatedOctokit(githubToken, owner, repo);
 
     // Get PR details
     const { data: pr } = await octokit.rest.pulls.get({
