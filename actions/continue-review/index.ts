@@ -195,11 +195,28 @@ Please address the user's specific request while reviewing the code changes belo
     // Call Continue CLI
     core.info('Calling Continue CLI for review...');
     core.info(`Using Continue config: ${continueConfig}`);
+    core.info(`Prompt length: ${prompt.length} characters`);
+
+    // First check if Continue CLI is available
+    await new Promise<void>((resolve, reject) => {
+      exec('which cn', (error, stdout) => {
+        if (error) {
+          core.error('Continue CLI not found. Make sure @continuedev/cli is installed.');
+          reject(new Error('Continue CLI not found'));
+        } else {
+          core.info(`Continue CLI found at: ${stdout.trim()}`);
+          resolve();
+        }
+      });
+    });
 
     // Use stdin to pass the prompt
+    const command = `cn --config ${continueConfig}`;
+    core.info(`Executing command: ${command}`);
+    
     const { stdout, stderr } = await new Promise<{stdout: string; stderr: string}>((resolve, reject) => {
       const child = exec(
-        `cn --config ${continueConfig}`,
+        command,
         {
           env: {
             ...process.env,
@@ -209,8 +226,10 @@ Please address the user's specific request while reviewing the code changes belo
         },
         (error, stdout, stderr) => {
           if (error) {
+            core.error(`Continue CLI error: ${error.message}`);
             reject(error);
           } else {
+            core.info(`Continue CLI completed successfully`);
             resolve({ stdout, stderr });
           }
         }
@@ -220,6 +239,8 @@ Please address the user's specific request while reviewing the code changes belo
       if (child.stdin) {
         child.stdin.write(prompt);
         child.stdin.end();
+      } else {
+        core.error('Could not write to Continue CLI stdin');
       }
     });
 
@@ -378,10 +399,14 @@ async function run(): Promise<void> {
     // Determine PR number
     let prNumber: number | undefined;
     
+    core.info(`Context payload: ${JSON.stringify(context.payload, null, 2).substring(0, 1000)}`);
+    
     if (context.eventName === 'pull_request') {
       prNumber = context.payload.pull_request?.number;
+      core.info(`Pull request event, PR number: ${prNumber}`);
     } else if (context.eventName === 'issue_comment') {
       prNumber = context.payload.issue?.number;
+      core.info(`Issue comment event, issue number: ${prNumber}`);
       
       // Only process if it's a PR comment with @continue-agent
       if (!context.payload.issue?.pull_request) {
@@ -394,9 +419,41 @@ async function run(): Promise<void> {
         core.info('Comment does not mention @continue-agent, skipping');
         return;
       }
+    } else if (context.eventName === 'workflow_dispatch') {
+      // For manual workflow dispatch, need to find the PR for this branch
+      core.info('Workflow dispatch event - searching for associated PR');
+      
+      // Initialize GitHub client early to search for PR
+      const octokit = github.getOctokit(githubToken);
+      
+      // Get the current branch name
+      const branch = context.ref.replace('refs/heads/', '');
+      core.info(`Current branch: ${branch}`);
+      
+      try {
+        // Search for open PRs from this branch
+        const { data: prs } = await octokit.rest.pulls.list({
+          owner,
+          repo,
+          head: `${owner}:${branch}`,
+          state: 'open',
+        });
+        
+        if (prs.length > 0) {
+          prNumber = prs[0].number;
+          core.info(`Found PR #${prNumber} for branch ${branch}`);
+        } else {
+          core.warning(`No open PR found for branch ${branch}`);
+        }
+      } catch (error) {
+        core.error(`Failed to search for PRs: ${error}`);
+      }
     }
 
     if (!prNumber) {
+      core.error('Could not determine pull request number from context');
+      core.error(`Event name: ${context.eventName}`);
+      core.error(`Has PR in payload: ${!!context.payload.pull_request}`);
       throw new Error('Could not determine pull request number');
     }
 
