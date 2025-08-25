@@ -33,6 +33,7 @@ Enhances the `repositories` table with:
 - `homepage_url` - Repository website
 - `topics` - GitHub topics array
 - `is_template`, `is_fork` - Repository type flags
+- `parent_repository_id` - Reference to parent if fork
 - `has_issues`, `has_projects`, `has_wiki`, `has_discussions` - Feature flags
 
 ### 3. Creates Helper Functions
