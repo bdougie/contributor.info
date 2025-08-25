@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense, useCallback } from "react";
 import { Outlet, useNavigate, Link, useLocation } from "react-router-dom";
 import { ModeToggle } from "../theming";
 import { AuthButton } from "../../features/auth";
@@ -19,12 +19,14 @@ import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
 
 // Lazy load the command palette
 const CommandPalette = lazy(() => import("@/components/navigation/CommandPalette").then(m => ({ default: m.CommandPalette })));
+const CommandPaletteErrorBoundary = lazy(() => import("@/components/navigation/CommandPaletteErrorBoundary").then(m => ({ default: m.CommandPaletteErrorBoundary })));
 
 export default function Layout() {
   const { timeRange, setTimeRange } = useTimeRangeStore();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [commandPalettePreloaded, setCommandPalettePreloaded] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { workspaces, switchWorkspace } = useWorkspaceContext();
@@ -40,6 +42,16 @@ export default function Layout() {
     // Show on home page and repository pages
     return path === '/' || /^\/[^/]+\/[^/]+/.test(path);
   };
+
+  // Preload command palette on hover
+  const handlePreloadCommandPalette = useCallback(() => {
+    if (!commandPalettePreloaded && !commandPaletteOpen) {
+      setCommandPalettePreloaded(true);
+      // Trigger the lazy loading
+      import("@/components/navigation/CommandPalette");
+      import("@/components/navigation/CommandPaletteErrorBoundary");
+    }
+  }, [commandPalettePreloaded, commandPaletteOpen]);
 
   // Set up keyboard shortcuts
   useKeyboardShortcuts([
@@ -175,10 +187,12 @@ export default function Layout() {
           {/* Workspace and Auth Buttons */}
           <div className="ml-auto flex items-center gap-2">
             {isLoggedIn && (
-              <WorkspaceSwitcher 
-                className="min-w-[150px]" 
-                onOpenCommandPalette={() => setCommandPaletteOpen(true)}
-              />
+              <div onMouseEnter={handlePreloadCommandPalette}>
+                <WorkspaceSwitcher 
+                  className="min-w-[150px]" 
+                  onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+                />
+              </div>
             )}
             <AuthButton />
           </div>
@@ -206,13 +220,15 @@ export default function Layout() {
       
       {/* Command Palette */}
       <Suspense fallback={null}>
-        <CommandPalette
-          open={commandPaletteOpen}
-          onOpenChange={setCommandPaletteOpen}
-          workspaces={workspaces}
-          repositories={[]} // TODO: Populate with user's recent repositories
-          recentItems={[]} // TODO: Track recent items
-        />
+        <CommandPaletteErrorBoundary onReset={() => setCommandPaletteOpen(false)}>
+          <CommandPalette
+            open={commandPaletteOpen}
+            onOpenChange={setCommandPaletteOpen}
+            workspaces={workspaces}
+            repositories={[]} // TODO: Populate with user's recent repositories
+            recentItems={[]} // TODO: Track recent items
+          />
+        </CommandPaletteErrorBoundary>
       </Suspense>
     </div>
   );

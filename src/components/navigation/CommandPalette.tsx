@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CommandDialog,
@@ -81,6 +81,7 @@ export function CommandPalette({
 }: CommandPaletteProps) {
   const navigate = useNavigate();
   const [search, setSearch] = useState(defaultSearchQuery);
+  const announcementRef = useRef<HTMLDivElement>(null);
 
   // Parse search query for filters
   const { query, filter } = useMemo(() => {
@@ -337,6 +338,17 @@ export function CommandPalette({
     }
   }, [open, defaultSearchQuery]);
 
+  // Announce search results to screen readers
+  useEffect(() => {
+    if (open && announcementRef.current) {
+      const totalResults = filteredCommands.length;
+      const message = totalResults === 0 
+        ? 'No results found' 
+        : `${totalResults} result${totalResults === 1 ? '' : 's'} found`;
+      announcementRef.current.textContent = message;
+    }
+  }, [filteredCommands.length, open]);
+
   // Handle direct submission from input
   const handleInputKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && filter === 'repository' && query) {
@@ -352,14 +364,28 @@ export function CommandPalette({
   };
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
+    <CommandDialog 
+      open={open} 
+      onOpenChange={onOpenChange}
+      aria-label="Command palette"
+    >
+      {/* Screen reader announcements */}
+      <div 
+        ref={announcementRef}
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      />
       <CommandInput
         placeholder="Search workspaces, repositories, or actions..."
         value={search}
         onValueChange={setSearch}
         onKeyDown={handleInputKeyDown}
+        aria-label="Search command palette"
+        aria-describedby="command-palette-help"
       />
-      <CommandList>
+      <CommandList aria-label="Search results">
         <CommandEmpty>
           {filter === 'repository' && query.includes('/') ? (
             <div className="text-center py-6">
@@ -496,10 +522,14 @@ export function CommandPalette({
         )}
 
         {/* Help text */}
-        <div className="px-2 py-2 text-xs text-muted-foreground border-t">
+        <div id="command-palette-help" className="px-2 py-2 text-xs text-muted-foreground border-t">
           <div className="flex items-center justify-between">
-            <span>Type <kbd className="rounded bg-muted px-1">workspace:</kbd> or <kbd className="rounded bg-muted px-1">repo:</kbd> to filter</span>
-            <span><kbd className="rounded bg-muted px-1">↑↓</kbd> to navigate <kbd className="rounded bg-muted px-1">↵</kbd> to select <kbd className="rounded bg-muted px-1">esc</kbd> to close</span>
+            <span>Type <kbd className="rounded bg-muted px-1" aria-label="workspace colon">workspace:</kbd> or <kbd className="rounded bg-muted px-1" aria-label="repo colon">repo:</kbd> to filter</span>
+            <span>
+              <kbd className="rounded bg-muted px-1" aria-label="arrow keys">↑↓</kbd> to navigate{' '}
+              <kbd className="rounded bg-muted px-1" aria-label="enter key">↵</kbd> to select{' '}
+              <kbd className="rounded bg-muted px-1" aria-label="escape key">esc</kbd> to close
+            </span>
           </div>
         </div>
       </CommandList>
