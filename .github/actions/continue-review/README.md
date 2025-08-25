@@ -20,10 +20,10 @@ This GitHub Action integrates Continue AI's code review capabilities directly in
 
 ### Prerequisites
 
-1. **Continue API Key** - Obtain from [Continue](https://continue.dev)
-2. **GitHub Token** - Repository token with PR comment permissions
-3. **Continue Organization** - Your Continue org name (default: `continuedev`)
-4. **Continue Config** - Your config path (default: `continuedev/review-bot`)
+1. **Continue Hub Account** - Sign up at [hub.continue.dev](https://hub.continue.dev)
+2. **Continue Assistant** - Create following [this guide](https://docs.continue.dev/hub/assistants/create-an-assistant)
+3. **Continue API Key** - Get from your Hub account settings
+4. **GitHub Token** - Automatically provided by GitHub Actions
 
 ### GitHub Secrets Required
 
@@ -61,8 +61,8 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           continue-api-key: ${{ secrets.CONTINUE_API_KEY }}
-          continue-org: 'continuedev'  # Optional, defaults to 'continuedev'
-          continue-config: 'continuedev/review-bot'  # Optional
+          continue-org: 'your-username'  # Required: Your Continue Hub username
+          continue-config: 'your-username/assistant-name'  # Required: Your assistant path
 ```
 
 ## How It Works
@@ -139,8 +139,8 @@ The action will respond with targeted feedback based on the request.
 |-----------|----------|---------|-------------|
 | `github-token` | ✅ | - | GitHub token for API access |
 | `continue-api-key` | ✅ | - | Continue API key |
-| `continue-org` | ❌ | `continuedev` | Continue organization name |
-| `continue-config` | ❌ | `continuedev/review-bot` | Continue configuration path |
+| `continue-org` | ✅ | - | Continue organization/username (from Continue Hub) |
+| `continue-config` | ✅ | - | Continue assistant path (format: `username/assistant-name`) |
 
 ## Comment Format
 
@@ -306,6 +306,8 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           continue-api-key: ${{ secrets.CONTINUE_API_KEY }}
+          continue-org: 'your-username'  # Required
+          continue-config: 'your-username/assistant-name'  # Required
 ```
 
 ### Review Only TypeScript Files

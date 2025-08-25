@@ -10,13 +10,11 @@ inputs:
     description: 'GitHub token for API access'
     required: true
   continue-org:
-    description: 'Continue organization name'
-    required: false
-    default: 'continuedev'
+    description: 'Continue organization/username from Continue Hub'
+    required: true
   continue-config:
-    description: 'Continue configuration path'
-    required: false
-    default: 'continuedev/review-bot'
+    description: 'Continue assistant path (format: username/assistant-name)'
+    required: true
 
 runs:
   using: 'composite'
@@ -69,12 +67,26 @@ runs:
         # Get environment variables
         github_token = os.environ.get('GITHUB_TOKEN')
         continue_api_key = os.environ.get('CONTINUE_API_KEY')
-        continue_org = os.environ.get('CONTINUE_ORG', 'continuedev')
-        continue_config = os.environ.get('CONTINUE_CONFIG', 'continuedev/review-bot')
+        continue_org = os.environ.get('CONTINUE_ORG')
+        continue_config = os.environ.get('CONTINUE_CONFIG')
 
         print(f"Continue Org: {continue_org}")
         print(f"Continue Config: {continue_config}")
         print(f"API Key present: {bool(continue_api_key)}")
+
+        # Validate required parameters
+        if not continue_api_key:
+            print("ERROR: CONTINUE_API_KEY is required but not set")
+            sys.exit(1)
+        if not continue_org:
+            print("ERROR: continue-org parameter is required but not set")
+            sys.exit(1)
+        if not continue_config:
+            print("ERROR: continue-config parameter is required but not set")
+            sys.exit(1)
+        if not github_token:
+            print("ERROR: GITHUB_TOKEN is required but not set")
+            sys.exit(1)
 
         # Get GitHub context
         github_context = json.loads(os.environ.get('GITHUB_CONTEXT', '{}'))
