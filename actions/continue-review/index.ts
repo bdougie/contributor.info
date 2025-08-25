@@ -187,7 +187,7 @@ Please address the user's specific request while reviewing the code changes belo
   prompt += '\n\nYour Review\n';
   prompt += 'Please provide your code review feedback below:';
 
-  // Write prompt to temp file
+  // Write prompt to temp file for headless mode
   const tempFile = path.join('/tmp', `continue-review-${Date.now()}.txt`);
   await fs.writeFile(tempFile, prompt);
 
@@ -196,6 +196,7 @@ Please address the user's specific request while reviewing the code changes belo
     core.info('Calling Continue CLI for review...');
     core.info(`Using Continue config: ${continueConfig}`);
     core.info(`Prompt length: ${prompt.length} characters`);
+    core.info(`Prompt file: ${tempFile}`);
 
     // First check if Continue CLI is available
     await new Promise<void>((resolve, reject) => {
@@ -210,12 +211,12 @@ Please address the user's specific request while reviewing the code changes belo
       });
     });
 
-    // Use stdin to pass the prompt
-    const command = `cn --config ${continueConfig}`;
-    core.info(`Executing command: ${command}`);
+    // Use headless mode with -p flag and file input
+    const command = `cn --config ${continueConfig} -p @${tempFile}`;
+    core.info(`Executing command: cn --config ${continueConfig} -p @${tempFile}`);
     
     const { stdout, stderr } = await new Promise<{stdout: string; stderr: string}>((resolve, reject) => {
-      const child = exec(
+      exec(
         command,
         {
           env: {
@@ -223,6 +224,7 @@ Please address the user's specific request while reviewing the code changes belo
             CONTINUE_API_KEY: continueApiKey,
           },
           timeout: 120000, // 2 minutes
+          maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large responses
         },
         (error, stdout, stderr) => {
           if (error) {
@@ -234,14 +236,6 @@ Please address the user's specific request while reviewing the code changes belo
           }
         }
       );
-      
-      // Write prompt to stdin
-      if (child.stdin) {
-        child.stdin.write(prompt);
-        child.stdin.end();
-      } else {
-        core.error('Could not write to Continue CLI stdin');
-      }
     });
 
     if (stderr) {
