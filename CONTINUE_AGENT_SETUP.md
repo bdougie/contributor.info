@@ -6,29 +6,29 @@ Get intelligent, context-aware code reviews powered by Continue AI on your pull 
 
 After installing the Continue Agent GitHub App, follow these steps to enable AI reviews:
 
-### 1. Get Your Continue API Key
+### 1. Create Your Continue Account & Assistant
 
-1. **Sign up for Continue** at [continue.dev](https://continue.dev)
-2. Navigate to your [API Keys page](https://continue.dev/api-keys)
-3. Click **"Create New API Key"** and copy the generated key
-4. Save this key securely - you'll need it for the GitHub Secret
-
-### 2. Create Your Review Assistant
-
-1. Go to the [Continue Hub](https://hub.continue.dev)
-2. Click **"Create Assistant"** or **"New Configuration"**
-3. Choose a base model (recommended: GPT-4 or Claude for best results)
-4. Name your assistant (e.g., `review-bot`)
-5. Configure the assistant settings:
-   ```yaml
-   name: review-bot
-   model: gpt-4  # or claude-3-opus
-   temperature: 0.3  # Lower for more consistent reviews
-   system_prompt: |
+1. **Sign up** at [Continue Hub](https://hub.continue.dev)
+2. **Create an Assistant** following the [official guide](https://docs.continue.dev/hub/assistants/create-an-assistant)
+3. Configure your assistant:
+   - **Name**: `review-bot` (or your preference)
+   - **Model**: GPT-4 or Claude (recommended for code reviews)
+   - **System Prompt**: 
+     ```
      You are a senior software engineer providing constructive code reviews.
      Focus on bugs, security issues, performance, and maintainability.
-   ```
-6. Save and note your configuration path (format: `your-org/review-bot`)
+     Be specific and actionable in your feedback.
+     ```
+   - **Temperature**: 0.3 (for consistent reviews)
+4. Save and note your assistant path (format: `your-username/review-bot`)
+
+### 2. Get Your API Key
+
+1. In [Continue Hub](https://hub.continue.dev), go to your account settings
+2. Navigate to **API Keys** section
+3. Click **"Create New API Key"**
+4. Name it (e.g., "GitHub Reviews") and copy the generated key
+5. Save this key securely - you'll need it for GitHub Secrets
 
 ### 3. Add Repository Secrets
 
@@ -69,8 +69,8 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           continue-api-key: ${{ secrets.CONTINUE_API_KEY }}
-          continue-org: 'your-org'  # Your Continue organization
-          continue-config: 'your-org/review-bot'  # Your assistant path
+          continue-org: 'your-username'  # Your Continue Hub username
+          continue-config: 'your-username/review-bot'  # Your assistant path from Step 1
 ```
 
 ### 5. (Optional) Add Project-Specific Rules
@@ -103,37 +103,31 @@ Comment on any PR with:
 
 ## 🔧 Advanced Configuration
 
-### Custom Models
-
-For different AI models, update your Continue Hub configuration:
-
-- **GPT-4 Turbo**: Best for comprehensive reviews
-- **Claude 3 Opus**: Excellent for code understanding
-- **Llama 3**: Open-source alternative
-- **Custom models**: Deploy your fine-tuned models
-
 ### Rate Limits & Pricing
 
-- Check your [Continue Dashboard](https://continue.dev/dashboard) for usage
-- Free tier: 100 reviews/month
-- Pro tier: Unlimited reviews - [View Pricing](https://continue.dev/pricing)
+- Check your usage in [Continue Hub](https://hub.continue.dev) dashboard
+- Monitor API key usage in your account settings
+- Free tier includes limited API calls
+- Pro tier for higher limits - check current pricing in Hub
 
-### Self-Hosted Option
+### Using Different Models
 
-Deploy your own Continue instance:
+Update your assistant configuration in [Continue Hub](https://hub.continue.dev):
 
-1. Clone the [Continue Server repo](https://github.com/continuedev/continue-server)
-2. Follow the [self-hosting guide](https://continue.dev/docs/self-hosting)
-3. Update your workflow to use your custom endpoint:
-   ```yaml
-   continue-endpoint: 'https://your-continue-instance.com'
-   ```
+1. Navigate to your assistant settings
+2. Change the model selection:
+   - **GPT-4 Turbo**: Best for comprehensive reviews
+   - **Claude 3 Opus**: Excellent for code understanding
+   - **Llama 3**: Open-source alternative
+   - **Mistral**: Fast and efficient
+3. Save changes - they apply immediately
 
 ## 🔗 Resources
 
-- **Continue Documentation**: [continue.dev/docs](https://continue.dev/docs)
-- **API Reference**: [continue.dev/api](https://continue.dev/api)
 - **Continue Hub**: [hub.continue.dev](https://hub.continue.dev)
+- **Create Assistant Guide**: [docs.continue.dev/hub/assistants/create-an-assistant](https://docs.continue.dev/hub/assistants/create-an-assistant)
+- **Continue Documentation**: [docs.continue.dev](https://docs.continue.dev)
+- **API Reference**: [docs.continue.dev/api](https://docs.continue.dev/api)
 - **Support**: [Discord](https://discord.gg/continue) | [GitHub Issues](https://github.com/continuedev/continue/issues)
 
 ## 💡 Tips
@@ -142,7 +136,7 @@ Deploy your own Continue instance:
 2. **Iterate on your prompt** - Refine your assistant's system prompt based on the reviews you receive
 3. **Use rules for standards** - Codify your team's standards in `.continue/rules/`
 4. **Monitor usage** - Check your dashboard regularly to avoid hitting limits
-5. **Test locally first** - Use [Continue CLI](https://continue.dev/docs/cli) to test your configuration
+5. **Test locally first** - Use [Continue CLI](https://docs.continue.dev/cli) to test your configuration
 
 ## 🆘 Troubleshooting
 
@@ -157,8 +151,8 @@ Deploy your own Continue instance:
 - Refine your assistant's system prompt
 
 ### Rate limit errors?
-- Check your usage at [continue.dev/dashboard](https://continue.dev/dashboard)
-- Consider upgrading to Pro tier
+- Check your usage in [Continue Hub](https://hub.continue.dev) account settings
+- Consider upgrading your plan
 - Implement review filtering (only critical files)
 
 ---
