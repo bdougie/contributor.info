@@ -24,10 +24,17 @@ jobs:
       pull-requests: write
     
     steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # v2.0.0
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -64,9 +71,11 @@ jobs:
         if: steps.update.outputs.changed == 'true' && (github.event_name == 'schedule' || github.event.inputs.commit_changes == 'true')
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           commit-message: 'chore: update tracked repositories list'
           title: 'chore: update tracked repositories list'
+          author: 'contributor-info[bot] <contributor-info[bot]@users.noreply.github.com>'
+          committer: 'contributor-info[bot] <contributor-info[bot]@users.noreply.github.com>'
           body: |
             ## 📊 Tracked Repositories Update
             

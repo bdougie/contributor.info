@@ -77,34 +77,47 @@ jobs:
             const emoji = oversized ? '⚠️' : '✅';
             const status = oversized ? 'Some chunks exceed size limits' : 'All chunks within limits';
             
-            // Delete previous Bundle Size Analysis comments from github-actions bot
+            // Create the comment body with a unique identifier for sticky behavior
+            const commentBody = `<!-- bundle-size-analysis -->
+            ## ${emoji} Bundle Size Analysis
+            
+            ${status}
+            
+            **Last Updated:** ${new Date().toISOString()}
+            **Commit:** ${context.sha.substring(0, 7)}
+            
+            See the [workflow summary](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for detailed bundle sizes.`;
+            
+            // Find existing bundle size comment using the HTML comment identifier
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
             
-            const bundleSizeComments = comments.filter(comment => 
-              comment.user.login === 'github-actions[bot]' && 
-              comment.body.includes('Bundle Size Analysis')
+            const existingComment = comments.find(comment => 
+              comment.body.includes('<!-- bundle-size-analysis -->')
             );
             
-            // Delete all previous bundle size comments
-            for (const comment of bundleSizeComments) {
-              await github.rest.issues.deleteComment({
+            if (existingComment) {
+              // Update existing comment (sticky behavior)
+              await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                comment_id: comment.id
+                comment_id: existingComment.id,
+                body: commentBody
               });
+              console.log(`Updated existing bundle size comment #${existingComment.id}`);
+            } else {
+              // Create new comment if none exists
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: commentBody
+              });
+              console.log('Created new bundle size comment');
             }
-            
-            // Create new comment
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## ${emoji} Bundle Size Analysis\n\n${status}\n\nSee the [workflow summary](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for detailed bundle sizes.`
-            });
       
       - name: Fail if chunks are oversized
         if: steps.bundle.outputs.oversized == 'true'
@@ -309,7 +322,8 @@ jobs:
           script: |
             const url = '${{ env.DEPLOY_URL }}';
             
-            const comment = `## 🚀 Performance Report
+            const comment = `<!-- performance-report -->
+            ## 🚀 Performance Report
             
             ### 📊 Lighthouse Audit
             ✅ Lighthouse tests completed for:
@@ -331,32 +345,38 @@ jobs:
             - Check the workflow summary for detailed metrics
             - Address any performance warnings or errors
             
+            **Last Updated:** ${new Date().toISOString()}
+            **Commit:** ${context.sha.substring(0, 7)}
+            
             [View Full Workflow Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
             
-            // Find and update existing comment or create new one
+            // Find existing performance report comment using the HTML comment identifier
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
             
-            const botComment = comments.find(comment => 
-              comment.user.type === 'Bot' && 
-              comment.body.includes('🚀 Performance Report')
+            const existingComment = comments.find(comment => 
+              comment.body.includes('<!-- performance-report -->')
             );
             
-            if (botComment) {
+            if (existingComment) {
+              // Update existing comment (sticky behavior)
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                comment_id: botComment.id,
+                comment_id: existingComment.id,
                 body: comment
               });
+              console.log(`Updated existing performance report comment #${existingComment.id}`);
             } else {
+              // Create new comment if none exists
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
                 body: comment
               });
+              console.log('Created new performance report comment');
             }
