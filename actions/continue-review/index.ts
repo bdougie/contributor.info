@@ -227,7 +227,7 @@ Please address the user's specific request while reviewing the code changes belo
             GITHUB_TOKEN: githubToken, // Provide GitHub token for gh CLI
             GH_TOKEN: githubToken, // gh CLI also looks for GH_TOKEN
           },
-          timeout: 120000, // 2 minutes
+          timeout: 360000, // 6 minutes
           maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large responses
         },
         (error, stdout, stderr) => {

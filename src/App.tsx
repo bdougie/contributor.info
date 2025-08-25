@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { PWAInstallPrompt } from "@/components/ui/pwa-install-prompt";
 import { OfflineNotification } from "@/components/common/OfflineNotification";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 // Lazy load core components to reduce initial bundle
 const Layout = lazy(() => import("@/components/common/layout").then(m => ({ default: m.Layout })));
 const Home = lazy(() => import("@/components/common/layout").then(m => ({ default: m.Home })));
@@ -271,8 +272,9 @@ function App() {
       <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
         <SVGSpriteInliner />
         <Router>
-          <OfflineNotification />
-          <Suspense fallback={<PageSkeleton />}>
+          <WorkspaceProvider>
+            <OfflineNotification />
+            <Suspense fallback={<PageSkeleton />}>
             <Routes>
             <Route path="/login" element={<LoginPage />} />
             
@@ -482,12 +484,13 @@ function App() {
             </Route>
           </Routes>
         </Suspense>
+        <Toaster />
+        <PWAInstallPrompt 
+          onInstall={() => console.log('PWA installed successfully!')}
+          onDismiss={() => console.log('PWA install prompt dismissed')}
+        />
+        </WorkspaceProvider>
       </Router>
-      <Toaster />
-      <PWAInstallPrompt 
-        onInstall={() => console.log('PWA installed successfully!')}
-        onDismiss={() => console.log('PWA install prompt dismissed')}
-      />
     </ThemeProvider>
     </ErrorBoundary>
   );
