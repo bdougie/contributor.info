@@ -134,6 +134,7 @@ async function generateReview(
   context: ReviewContext,
   continueConfig: string,
   continueApiKey: string,
+  githubToken: string,
 ): Promise<string> {
   // Build the review prompt
   let prompt = `You are reviewing a pull request. Please provide constructive feedback.
@@ -212,9 +213,9 @@ Please address the user's specific request while reviewing the code changes belo
     });
 
     // Use headless mode with -p flag and file input
-    // Exclude Bash tool for security - we don't want the bot running arbitrary commands
-    const command = `cn --config ${continueConfig} -p @${tempFile} --exclude Bash`;
-    core.info(`Executing command: cn --config ${continueConfig} -p @${tempFile} --exclude Bash`);
+    // Allow Bash tool since the review bot needs it to access PR information via gh CLI
+    const command = `cn --config ${continueConfig} -p @${tempFile} --allow Bash`;
+    core.info(`Executing command: cn --config ${continueConfig} -p @${tempFile} --allow Bash`);
     
     const { stdout, stderr } = await new Promise<{stdout: string; stderr: string}>((resolve, reject) => {
       exec(
@@ -223,6 +224,8 @@ Please address the user's specific request while reviewing the code changes belo
           env: {
             ...process.env,
             CONTINUE_API_KEY: continueApiKey,
+            GITHUB_TOKEN: githubToken, // Provide GitHub token for gh CLI
+            GH_TOKEN: githubToken, // gh CLI also looks for GH_TOKEN
           },
           timeout: 120000, // 2 minutes
           maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large responses
@@ -544,6 +547,7 @@ async function run(): Promise<void> {
       reviewContext,
       continueConfig,
       continueApiKey,
+      githubToken,
     );
     core.info(`Generated review length: ${review.length} characters`);
 
