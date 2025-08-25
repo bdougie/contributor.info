@@ -33,7 +33,9 @@ jobs:
       
       # Use local action until Continue merges GitHub App token support
       - name: Run Continue Review
-        uses: ./.github/actions/continue-review
+        uses: ./actions/continue-review
         with:
           continue-api-key: ${{ secrets.CONTINUE_API_KEY }}
           github-token: ${{ steps.app-token.outputs.token }}
+          continue-org: 'bdougie'  # Your Continue Hub username
+          continue-config: 'bdougie/assistant'  # Your assistant path

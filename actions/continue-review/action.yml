@@ -1,0 +1,25 @@
+name: 'Continue Agent Review'
+description: 'Perform code review using Continue Agent on pull requests'
+author: 'Continue'
+
+inputs:
+  continue-api-key:
+    description: 'API key for Continue service'
+    required: true
+  github-token:
+    description: 'GitHub token for API access'
+    required: true
+  continue-org:
+    description: 'Continue organization/username from Continue Hub'
+    required: true
+  continue-config:
+    description: 'Continue assistant path (format: username/assistant-name)'
+    required: true
+
+runs:
+  using: 'node20'
+  main: 'index.js'
+
+branding:
+  icon: 'code'
+  color: 'blue'
