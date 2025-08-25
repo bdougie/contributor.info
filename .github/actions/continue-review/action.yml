@@ -135,19 +135,15 @@ runs:
             # Simple comment for now - Continue API integration can be added later
             print("Posting review comment...")
             
-            comment_body = f"""## 🤖 Continue AI Review
-
-This is a test comment to verify the Continue review action is working.
-
-**PR Summary:**
-- Title: {pr.title}
-- Files changed: {file_count}
-- Diff size: {diff_size} characters
-
-The full AI review functionality will be enabled once the Continue API integration is configured.
-
----
-*Powered by [Continue](https://continue.dev)*"""
+            comment_body = "## 🤖 Continue AI Review\\n\\n"
+            comment_body += "This is a test comment to verify the Continue review action is working.\\n\\n"
+            comment_body += "**PR Summary:**\\n"
+            comment_body += f"- Title: {pr.title}\\n"
+            comment_body += f"- Files changed: {file_count}\\n"
+            comment_body += f"- Diff size: {diff_size} characters\\n\\n"
+            comment_body += "The full AI review functionality will be enabled once the Continue API integration is configured.\\n\\n"
+            comment_body += "---\\n"
+            comment_body += "*Powered by [Continue](https://continue.dev)*"
 
             # Post comment
             comment = pr.create_issue_comment(comment_body)
@@ -159,14 +155,10 @@ The full AI review functionality will be enabled once the Continue API integrati
             
             # Try to post error as comment
             try:
-                error_comment = f"""## ❌ Continue Review Error
-
-Failed to complete review due to an error:
-```
-{str(e)}
-```
-
-Please check the workflow logs for more details."""
+                error_comment = "## ❌ Continue Review Error\\n\\n"
+                error_comment += "Failed to complete review due to an error:\\n"
+                error_comment += f"```\\n{str(e)}\\n```\\n\\n"
+                error_comment += "Please check the workflow logs for more details."
                 pr.create_issue_comment(error_comment)
                 print("Error comment posted")
             except Exception as e2:
