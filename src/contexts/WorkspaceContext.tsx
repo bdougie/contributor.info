@@ -2,17 +2,20 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 import { useNavigate } from 'react-router-dom';
 import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
+import { generateWorkspaceSlug, getWorkspaceUrl } from '@/lib/workspace-utils';
 
 // Extend WorkspacePreviewData to include additional fields that might be needed
-interface Workspace extends WorkspacePreviewData {
+interface Workspace extends Omit<WorkspacePreviewData, 'slug'> {
   tier?: string | null;
   updated_at?: string | null;
+  slug: string; // Make slug required
 }
 
 interface WorkspaceContextValue {
   activeWorkspace: Workspace | null;
   workspaces: Workspace[];
-  switchWorkspace: (id: string) => Promise<void>;
+  switchWorkspace: (idOrSlug: string) => Promise<void>;
+  findWorkspace: (idOrSlug: string) => Workspace | undefined;
   isLoading: boolean;
   recentWorkspaces: string[];
   addToRecent: (id: string) => void;
@@ -31,7 +34,14 @@ interface WorkspaceProviderProps {
 
 export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const navigate = useNavigate();
-  const { workspaces, loading: workspacesLoading } = useUserWorkspaces();
+  const { workspaces: rawWorkspaces, loading: workspacesLoading } = useUserWorkspaces();
+  
+  // Add slugs to workspaces
+  const workspaces = rawWorkspaces.map(ws => ({
+    ...ws,
+    slug: ws.slug || generateWorkspaceSlug(ws.name),
+  }));
+  
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(() => {
     // Initialize from localStorage
     if (typeof window !== 'undefined') {
@@ -56,8 +66,10 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Find active workspace from the list (cast to Workspace type)
-  const activeWorkspace = workspaces.find((w: Workspace) => w.id === activeWorkspaceId) || null;
+  // Find active workspace from the list (support both ID and slug)
+  const activeWorkspace = workspaces.find((w: Workspace) => 
+    w.id === activeWorkspaceId || w.slug === activeWorkspaceId
+  ) || null;
 
   // Persist active workspace to localStorage
   useEffect(() => {
@@ -107,24 +119,37 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     });
   }, []);
 
-  const switchWorkspace = useCallback(async (id: string): Promise<void> => {
-    if (id === activeWorkspaceId) return;
+  const findWorkspace = useCallback((idOrSlug: string): Workspace | undefined => {
+    return workspaces.find(w => w.id === idOrSlug || w.slug === idOrSlug);
+  }, [workspaces]);
+
+  const switchWorkspace = useCallback(async (idOrSlug: string): Promise<void> => {
+    // Find the workspace by ID or slug
+    const workspace = findWorkspace(idOrSlug);
+    if (!workspace) {
+      console.error(`Workspace not found: ${idOrSlug}`);
+      setError(`Workspace not found: ${idOrSlug}`);
+      return;
+    }
+    
+    if (workspace.id === activeWorkspaceId) return;
     
     setIsLoading(true);
     setError(null);
     
     try {
-      // Add to recent workspaces
-      addToRecent(id);
+      // Add to recent workspaces (use ID for storage)
+      addToRecent(workspace.id);
       
-      // Update active workspace
-      setActiveWorkspaceId(id);
+      // Update active workspace (store ID)
+      setActiveWorkspaceId(workspace.id);
       
-      // Navigate to the workspace page
-      navigate(`/i/${id}`);
+      // Navigate to the workspace page using slug if available
+      const url = getWorkspaceUrl(workspace);
+      navigate(url);
       
       // Broadcast change to other tabs via storage event
-      localStorage.setItem(ACTIVE_WORKSPACE_KEY, id);
+      localStorage.setItem(ACTIVE_WORKSPACE_KEY, workspace.id);
       
       // Preload workspace data if needed (the hooks will handle this)
       // In the future, we could add preloading logic here
@@ -137,12 +162,13 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [activeWorkspaceId, navigate, addToRecent]);
+  }, [activeWorkspaceId, navigate, addToRecent, findWorkspace]);
 
   const value: WorkspaceContextValue = {
     activeWorkspace,
     workspaces: workspaces as Workspace[],
     switchWorkspace,
+    findWorkspace,
     isLoading: isLoading || workspacesLoading,
     recentWorkspaces,
     addToRecent,

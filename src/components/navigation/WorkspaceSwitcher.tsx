@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ChevronDown, Plus, Package, Clock, GitBranch } from '@/components/ui/icon';
+import { ChevronDown, Plus, Package, Clock, GitBranch, Search } from '@/components/ui/icon';
 import { useWorkspaceContext, type Workspace } from '@/contexts/WorkspaceContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuGroup,
+  DropdownMenuShortcut,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -22,9 +23,10 @@ type WorkspaceTier = 'free' | 'pro' | 'enterprise';
 interface WorkspaceSwitcherProps {
   className?: string;
   showFullName?: boolean;
+  onOpenCommandPalette?: () => void;
 }
 
-export function WorkspaceSwitcher({ className, showFullName = true }: WorkspaceSwitcherProps) {
+export function WorkspaceSwitcher({ className, showFullName = true, onOpenCommandPalette }: WorkspaceSwitcherProps) {
   const navigate = useNavigate();
   const { activeWorkspace, workspaces, switchWorkspace, isLoading, recentWorkspaces } = useWorkspaceContext();
   const [open, setOpen] = useState(false);
@@ -225,6 +227,21 @@ export function WorkspaceSwitcher({ className, showFullName = true }: WorkspaceS
         )}
 
         <DropdownMenuSeparator />
+        
+        {onOpenCommandPalette && (
+          <DropdownMenuItem 
+            onClick={() => {
+              setOpen(false);
+              onOpenCommandPalette();
+            }} 
+            className="cursor-pointer"
+          >
+            <Search className="h-4 w-4 mr-2" />
+            Search Everything...
+            <DropdownMenuShortcut>⌘K</DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+        
         <DropdownMenuItem onClick={handleCreateWorkspace} className="cursor-pointer">
           <Plus className="h-4 w-4 mr-2" />
           Create New Workspace
