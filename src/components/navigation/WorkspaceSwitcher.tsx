@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { ChevronDown, Plus, Package, Clock, GitBranch } from '@/components/ui/icon';
-import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
+import { useWorkspaceContext, type Workspace } from '@/contexts/WorkspaceContext';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,6 +16,9 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
+// Define proper types for workspace tiers
+type WorkspaceTier = 'free' | 'pro' | 'enterprise';
+
 interface WorkspaceSwitcherProps {
   className?: string;
   showFullName?: boolean;
@@ -30,7 +33,7 @@ export function WorkspaceSwitcher({ className, showFullName = true }: WorkspaceS
   const { recentWorkspacesList, otherWorkspaces } = useMemo(() => {
     const recent = recentWorkspaces
       .map(id => workspaces.find(w => w.id === id))
-      .filter((w): w is NonNullable<typeof w> => w !== undefined)
+      .filter((w): w is Workspace => w !== undefined && w !== null)
       .slice(0, 5);
     
     const recentIds = new Set(recent.map(w => w.id));
@@ -42,41 +45,46 @@ export function WorkspaceSwitcher({ className, showFullName = true }: WorkspaceS
     };
   }, [workspaces, recentWorkspaces]);
 
-  const handleWorkspaceSelect = async (workspaceId: string) => {
+  const handleWorkspaceSelect = async (workspaceId: string): Promise<void> => {
     setOpen(false);
     await switchWorkspace(workspaceId);
   };
 
-  const handleCreateWorkspace = () => {
+  const handleCreateWorkspace = (): void => {
     setOpen(false);
     navigate('/workspaces/new');
   };
 
-  const getTierBadge = (tier?: string | null) => {
+  const getTierBadge = (tier?: string | null): JSX.Element | null => {
     if (!tier) return null;
     
-    const tierColors = {
+    const tierColors: Record<WorkspaceTier, string> = {
       free: 'bg-gray-100 text-gray-700',
       pro: 'bg-blue-100 text-blue-700',
       enterprise: 'bg-purple-100 text-purple-700',
     };
     
+    // Type-safe tier validation
+    const validTier = tier as WorkspaceTier;
+    const isValidTier = tier in tierColors;
+    
     return (
       <Badge 
         variant="secondary" 
-        className={cn('ml-2 text-xs', tierColors[tier as keyof typeof tierColors] || tierColors.free)}
+        className={cn('ml-2 text-xs', isValidTier ? tierColors[validTier] : tierColors.free)}
       >
         {tier}
       </Badge>
     );
   };
 
-  const getRepositoryCount = (workspace: typeof activeWorkspace) => {
+  const getRepositoryCount = (workspace: typeof activeWorkspace): number => {
     if (!workspace) return 0;
-    return workspace.repository_count || workspace.repositories?.length || 0;
+    // Type-safe repository count getter
+    return workspace.repository_count ?? workspace.repositories?.length ?? 0;
   };
 
-  const formatLastAccessed = (date: string | null | undefined) => {
+  const formatLastAccessed = (date: string | null | undefined): string => {
     if (!date) return 'Never';
     try {
       return formatDistanceToNow(new Date(date), { addSuffix: true });

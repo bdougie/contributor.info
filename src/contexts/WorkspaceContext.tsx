@@ -4,10 +4,10 @@ import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 
 // Extend WorkspacePreviewData to include additional fields that might be needed
-type Workspace = WorkspacePreviewData & {
+interface Workspace extends WorkspacePreviewData {
   tier?: string | null;
   updated_at?: string | null;
-};
+}
 
 interface WorkspaceContextValue {
   activeWorkspace: Workspace | null;
@@ -16,6 +16,7 @@ interface WorkspaceContextValue {
   isLoading: boolean;
   recentWorkspaces: string[];
   addToRecent: (id: string) => void;
+  error: string | null;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined);
@@ -53,6 +54,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     return [];
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Find active workspace from the list (cast to Workspace type)
   const activeWorkspace = workspaces.find((w: Workspace) => w.id === activeWorkspaceId) || null;
@@ -96,7 +98,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     }
   }, [activeWorkspaceId, workspaces, workspacesLoading]);
 
-  const addToRecent = useCallback((id: string) => {
+  const addToRecent = useCallback((id: string): void => {
     setRecentWorkspaces(prev => {
       // Remove if already exists, then add to front
       const filtered = prev.filter(wId => wId !== id);
@@ -105,10 +107,12 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     });
   }, []);
 
-  const switchWorkspace = useCallback(async (id: string) => {
+  const switchWorkspace = useCallback(async (id: string): Promise<void> => {
     if (id === activeWorkspaceId) return;
     
     setIsLoading(true);
+    setError(null);
+    
     try {
       // Add to recent workspaces
       addToRecent(id);
@@ -126,8 +130,10 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       // In the future, we could add preloading logic here
       
     } catch (error) {
-      console.error('Failed to switch workspace:', error);
-      throw error;
+      const errorMessage = error instanceof Error ? error.message : 'Failed to switch workspace';
+      console.error('Failed to switch workspace:', errorMessage);
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -140,6 +146,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     isLoading: isLoading || workspacesLoading,
     recentWorkspaces,
     addToRecent,
+    error,
   };
 
   return (
@@ -157,5 +164,5 @@ export function useWorkspaceContext() {
   return context;
 }
 
-// Export type for external use
+// Export types for external use
 export type { Workspace, WorkspaceContextValue };
