@@ -12,11 +12,11 @@ inputs:
   continue-org:
     description: 'Continue organization name'
     required: false
-    default: 'contributor-info'
+    default: 'continuedev'
   continue-config:
     description: 'Continue configuration path'
     required: false
-    default: 'contributor-info/review-bot'
+    default: 'continuedev/review-bot'
 
 runs:
   using: 'composite'
@@ -65,8 +65,8 @@ runs:
         # Get environment variables
         github_token = os.environ.get('GITHUB_TOKEN')
         continue_api_key = os.environ.get('CONTINUE_API_KEY')
-        continue_org = os.environ.get('CONTINUE_ORG', 'contributor-info')
-        continue_config = os.environ.get('CONTINUE_CONFIG', 'contributor-info/review-bot')
+        continue_org = os.environ.get('CONTINUE_ORG', 'continuedev')
+        continue_config = os.environ.get('CONTINUE_CONFIG', 'continuedev/review-bot')
 
         print(f"Continue Org: {continue_org}")
         print(f"Continue Config: {continue_config}")
