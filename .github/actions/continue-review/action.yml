@@ -4,7 +4,7 @@ author: 'Continue'
 
 inputs:
   continue-api-key:
-    description: 'API key for Continue service'
+    description: 'API key for AI service (Anthropic or OpenAI)'
     required: true
   github-token:
     description: 'GitHub token for API access'
@@ -14,13 +14,9 @@ inputs:
     required: false
     default: 'claude-3-5-sonnet-20241022'
   provider:
-    description: 'Provider for the model'
+    description: 'Provider for the model (anthropic or openai)'
     required: false
     default: 'anthropic'
-  api-base:
-    description: 'API base URL for Continue service'
-    required: false
-    default: 'https://api.continue.dev'
 
 runs:
   using: 'composite'
@@ -32,7 +28,7 @@ runs:
 
     - name: Install dependencies
       run: |
-        pip install requests PyGithub
+        pip install requests PyGithub anthropic openai
       shell: bash
 
     - name: Run Continue Review
@@ -41,29 +37,25 @@ runs:
         CONTINUE_API_KEY: ${{ inputs.continue-api-key }}
         CONTINUE_MODEL: ${{ inputs.model }}
         CONTINUE_PROVIDER: ${{ inputs.provider }}
-        CONTINUE_API_BASE: ${{ inputs.api-base }}
       run: |
         cat > /tmp/continue_review.py << 'EOF'
         import os
         import json
-        import requests
-        from github import Github
         import sys
         import traceback
+        from github import Github
 
         print("=== Continue Review Agent Starting ===")
 
         # Get environment variables
         github_token = os.environ.get('GITHUB_TOKEN')
-        continue_api_key = os.environ.get('CONTINUE_API_KEY')
+        api_key = os.environ.get('CONTINUE_API_KEY')
         model = os.environ.get('CONTINUE_MODEL', 'claude-3-5-sonnet-20241022')
-        provider = os.environ.get('CONTINUE_PROVIDER', 'anthropic')
-        api_base = os.environ.get('CONTINUE_API_BASE', 'https://api.continue.dev')
+        provider = os.environ.get('CONTINUE_PROVIDER', 'anthropic').lower()
 
         print(f"Model: {model}")
         print(f"Provider: {provider}")
-        print(f"API Base: {api_base}")
-        print(f"API Key present: {bool(continue_api_key)}")
+        print(f"API Key present: {bool(api_key)}")
 
         # Get GitHub context
         github_context = json.loads(os.environ.get('GITHUB_CONTEXT', '{}'))
@@ -81,7 +73,6 @@ runs:
         elif event_name == 'issue_comment':
             pr_number = github_context.get('event', {}).get('issue', {}).get('number')
         elif event_name == 'workflow_dispatch':
-            # For manual runs, try to get PR from the context
             pr_number = github_context.get('event', {}).get('inputs', {}).get('pr_number')
             if not pr_number:
                 print("Workflow dispatch without PR number, exiting")
@@ -92,7 +83,6 @@ runs:
 
         if not pr_number:
             print("No PR number found")
-            print(f"Event data: {json.dumps(github_context.get('event', {}), indent=2)}")
             sys.exit(0)
 
         print(f"PR Number: {pr_number}")
@@ -127,115 +117,94 @@ runs:
             print(f"Diff size: {diff_size} characters")
 
             # Truncate diff if too large
-            max_diff_size = 8000
+            max_diff_size = 10000
             if diff_size > max_diff_size:
                 full_diff = full_diff[:max_diff_size] + "\n\n... (diff truncated)"
                 print(f"Diff truncated to {max_diff_size} characters")
 
-            # Check if Continue API key is available
-            if not continue_api_key:
-                print("No Continue API key found, posting test comment")
+            # Check if API key is available
+            if not api_key:
+                print("No API key found, posting informational comment")
                 comment_body = "## 🤖 Continue AI Review\n\n"
-                comment_body += "⚠️ **Test Mode**: Continue API key not configured.\n\n"
+                comment_body += "⚠️ **Configuration Required**: API key not set.\n\n"
                 comment_body += "**PR Summary:**\n"
                 comment_body += f"- Title: {pr.title}\n"
                 comment_body += f"- Files changed: {file_count}\n"
                 comment_body += f"- Diff size: {diff_size} characters\n\n"
-                comment_body += "To enable AI reviews, set the `CONTINUE_API_KEY` secret in repository settings.\n\n"
+                comment_body += "To enable AI reviews:\n"
+                comment_body += "1. Add `CONTINUE_API_KEY` secret with your Anthropic or OpenAI API key\n"
+                comment_body += "2. The review will automatically generate on PR events\n\n"
                 comment_body += "---\n"
                 comment_body += "*Powered by [Continue](https://continue.dev)*"
             else:
-                print("Continue API key found, generating AI review...")
+                print(f"Generating AI review using {provider}...")
                 
-                # Prepare the prompt for the AI
-                prompt = f"Review this pull request and provide constructive feedback:\n\n"
-                prompt += f"PR Title: {pr.title}\n"
-                prompt += f"Files changed: {file_count}\n\n"
-                prompt += f"Changes:\n{full_diff}"
+                review_prompt = f"""Review this pull request and provide constructive feedback.
+
+PR Title: {pr.title}
+Files changed: {file_count}
+
+Focus on:
+1. Code quality and best practices
+2. Potential bugs or issues  
+3. Security concerns
+4. Performance implications
+5. Suggestions for improvement
+
+Be specific and actionable in your feedback. If the code looks good, acknowledge that too.
+
+Changes:
+{full_diff}"""
+
+                review_text = None
                 
-                # Call Continue API or use a standard AI API
-                # For now, we'll use a simple format that could work with various APIs
-                review_request = {
-                    "model": model,
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": "You are a helpful code reviewer. Review the pull request changes and provide constructive feedback. Focus on: 1) Code quality and best practices, 2) Potential bugs or issues, 3) Security concerns, 4) Performance implications, 5) Suggestions for improvement."
-                        },
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
-                    "temperature": 0.3,
-                    "max_tokens": 2000
-                }
-                
-                # Try different API endpoints based on provider
-                api_url = api_base
-                if provider == "anthropic":
-                    api_url = "https://api.anthropic.com/v1/messages"
-                    headers = {
-                        "x-api-key": continue_api_key,
-                        "anthropic-version": "2023-06-01",
-                        "content-type": "application/json"
-                    }
-                elif provider == "openai":
-                    api_url = "https://api.openai.com/v1/chat/completions"
-                    headers = {
-                        "Authorization": f"Bearer {continue_api_key}",
-                        "Content-Type": "application/json"
-                    }
+                if provider == 'anthropic':
+                    try:
+                        import anthropic
+                        client = anthropic.Anthropic(api_key=api_key)
+                        
+                        message = client.messages.create(
+                            model=model,
+                            max_tokens=2000,
+                            temperature=0.3,
+                            system="You are an expert code reviewer. Provide clear, constructive feedback on pull requests. Be concise but thorough.",
+                            messages=[
+                                {"role": "user", "content": review_prompt}
+                            ]
+                        )
+                        review_text = message.content[0].text
+                        print("Successfully generated review with Anthropic")
+                    except Exception as e:
+                        print(f"Anthropic API error: {str(e)}")
+                        review_text = f"Failed to generate review: {str(e)}"
+                        
+                elif provider == 'openai':
+                    try:
+                        import openai
+                        client = openai.OpenAI(api_key=api_key)
+                        
+                        response = client.chat.completions.create(
+                            model=model if 'gpt' in model else 'gpt-4-turbo-preview',
+                            messages=[
+                                {"role": "system", "content": "You are an expert code reviewer. Provide clear, constructive feedback on pull requests. Be concise but thorough."},
+                                {"role": "user", "content": review_prompt}
+                            ],
+                            temperature=0.3,
+                            max_tokens=2000
+                        )
+                        review_text = response.choices[0].message.content
+                        print("Successfully generated review with OpenAI")
+                    except Exception as e:
+                        print(f"OpenAI API error: {str(e)}")
+                        review_text = f"Failed to generate review: {str(e)}"
                 else:
-                    # Default Continue API
-                    api_url = f"{api_base}/v1/chat/completions"
-                    headers = {
-                        "Authorization": f"Bearer {continue_api_key}",
-                        "Content-Type": "application/json"
-                    }
+                    review_text = f"Unsupported provider: {provider}. Please use 'anthropic' or 'openai'."
                 
-                print(f"Calling API: {api_url}")
-                
-                try:
-                    response = requests.post(api_url, json=review_request, headers=headers, timeout=30)
-                    print(f"API Response Status: {response.status_code}")
-                    
-                    if response.status_code == 200:
-                        result = response.json()
-                        
-                        # Extract review text based on provider format
-                        if provider == "anthropic":
-                            review_text = result.get("content", [{}])[0].get("text", "No review generated")
-                        else:
-                            # OpenAI/Continue format
-                            review_text = result.get("choices", [{}])[0].get("message", {}).get("content", "No review generated")
-                        
-                        comment_body = "## 🤖 Continue AI Review\n\n"
-                        comment_body += review_text
-                        comment_body += "\n\n---\n"
-                        comment_body += "*Powered by [Continue](https://continue.dev)*"
-                    else:
-                        print(f"API Error: {response.text}")
-                        comment_body = "## 🤖 Continue AI Review\n\n"
-                        comment_body += f"⚠️ Failed to generate AI review (API returned {response.status_code})\n\n"
-                        comment_body += "**PR Summary:**\n"
-                        comment_body += f"- Title: {pr.title}\n"
-                        comment_body += f"- Files changed: {file_count}\n"
-                        comment_body += f"- Diff size: {diff_size} characters\n\n"
-                        comment_body += "Please check the Continue API configuration.\n\n"
-                        comment_body += "---\n"
-                        comment_body += "*Powered by [Continue](https://continue.dev)*"
-                        
-                except requests.exceptions.RequestException as req_err:
-                    print(f"Request failed: {str(req_err)}")
-                    comment_body = "## 🤖 Continue AI Review\n\n"
-                    comment_body += f"⚠️ Failed to connect to API: {str(req_err)}\n\n"
-                    comment_body += "**PR Summary:**\n"
-                    comment_body += f"- Title: {pr.title}\n"
-                    comment_body += f"- Files changed: {file_count}\n"
-                    comment_body += f"- Diff size: {diff_size} characters\n\n"
-                    comment_body += "---\n"
-                    comment_body += "*Powered by [Continue](https://continue.dev)*"
+                # Build the comment
+                comment_body = "## 🤖 Continue AI Review\n\n"
+                comment_body += review_text
+                comment_body += "\n\n---\n"
+                comment_body += f"*Model: {model} | Powered by [Continue](https://continue.dev)*"
 
             # Post comment
             print("Posting review comment...")
