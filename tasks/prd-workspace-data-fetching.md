@@ -293,11 +293,91 @@ class WorkspaceMetricsCache {
 - **Week 2**: Phase 2.2 (GitHub Action) + Phase 3 (Metrics)
 - **Week 3**: Phase 4 (Refactoring) + Testing + Deployment
 
-## Open Questions
+## Design Decisions & Review Feedback
 
-1. Should we implement historical backfill for issues or only forward-looking?
-2. What's the maximum number of repositories per workspace we should support?
-3. Should workspace owners be able to configure sync frequency?
+### Key Architecture Decisions (Post-Review)
+
+1. **No Foreign Key to auth.users**
+   - Decision: Use UUID type without FK constraint for `added_by` fields
+   - Rationale: Supabase Auth tables are in separate schema (auth.*), cross-schema FKs complicate migrations and RLS
+   - Integrity handled at application layer (common Supabase pattern)
+
+2. **JSONB Default Values**
+   - Decision: Use `{}` for objects, `[]` for arrays
+   - Rationale: Follows PostgreSQL best practices for type consistency
+   - Not inconsistent, intentionally different based on data type
+
+3. **Business Rules in Migration**
+   - Decision: Keep tier-based values (6/12/24 hours, 30/90/365 days) in migration
+   - Rationale: These are business rules, not magic numbers
+   - Config table would over-engineer and slow queries
+
+4. **RLS Strategy**
+   - Decision: Handle at application layer via Supabase client auth
+   - Rationale: Avoid duplicate security logic and performance impact
+   - Table-level RLS not needed when app-level auth is properly implemented
+
+### Performance Considerations Validated
+
+1. **Priority Calculation Performance**
+   - Analysis: Function is lightweight (3 SELECTs + arithmetic)
+   - Only called during sync scheduling, not on every query
+   - Can handle 10k+ workspaces with current indexes
+   - Monitor and revisit if becomes bottleneck
+
+2. **Cache Table Partitioning**
+   - Decision: No partitioning needed
+   - Rationale: Only beneficial at >1M rows
+   - Current design handles 100k+ entries efficiently
+   - Avoid premature optimization
+
+### Repository Limits by Tier (Phase 2)
+Based on review feedback, implement in Phase 2:
+- **Free**: 10 repositories max
+- **Pro**: 50 repositories max
+- **Enterprise**: Unlimited
+
+### Rate Limiting Strategy
+For popular repositories tracked by multiple workspaces:
+1. Priority scoring naturally spreads sync times
+2. Add global rate limiter in Phase 2
+3. Implement exponential backoff for failures
+4. Consider shared cache for popular repos
+
+### Historical Backfill Strategy (Phase 3)
+- Opt-in per workspace to avoid API hammering
+- Start with last 30 days of data
+- Use background jobs during low-traffic hours
+- Progress tracking in UI
+
+## Open Questions (Resolved)
+
+1. **Should we implement historical backfill for issues or only forward-looking?**
+   - Answer: Phase 3, opt-in per workspace, last 30 days initially
+
+2. **What's the maximum number of repositories per workspace we should support?**
+   - Answer: Free (10), Pro (50), Enterprise (Unlimited)
+
+3. **Should workspace owners be able to configure sync frequency?**
+   - Answer: No, tier-based defaults are sufficient. Advanced users can request changes.
+
+## Review Process & Lessons Learned
+
+### Continue Agent Review (2025-08-25)
+The PR received an automated review from Continue Agent, raising several points:
+
+**Valid Concerns Addressed:**
+- Rate limiting for popular repositories → Added to Phase 2 strategy
+- Repository limits per tier → Defined clear limits (10/50/Unlimited)
+- Historical backfill strategy → Documented for Phase 3
+
+**Incorrect Assumptions Clarified:**
+- Foreign key to auth.users → Intentionally avoided (cross-schema complexity)
+- JSONB inconsistency → Actually following PostgreSQL best practices
+- Need for partitioning → Premature optimization at current scale
+- RLS policies → Already handled at application layer
+
+**Key Takeaway:** The review validated our pragmatic approach - avoiding over-engineering while maintaining flexibility for future scaling.
 
 ## Appendix: Why Not Redis?
 
