@@ -16,7 +16,6 @@ import { useTimeRangeStore } from "@/lib/time-range-store";
 import { usePrefetchOnIntent, prefetchCriticalRoutes } from "@/lib/route-prefetch";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
-import { useUserWorkspaces } from "@/hooks/use-user-workspaces";
 
 // Lazy load the command palette
 const CommandPalette = lazy(() => import("@/components/navigation/CommandPalette").then(m => ({ default: m.CommandPalette })));
@@ -29,7 +28,6 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { workspaces, switchWorkspace } = useWorkspaceContext();
-  const { data: userWorkspaces } = useUserWorkspaces();
   
   // Prefetch handlers for navigation links
   const trendingPrefetch = usePrefetchOnIntent('/trending');

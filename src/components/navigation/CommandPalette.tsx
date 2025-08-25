@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CommandDialog,
@@ -12,7 +12,6 @@ import {
 import { 
   Package, 
   GitBranch, 
-  Search,
   Plus,
   Settings,
   TrendingUp,
@@ -20,12 +19,13 @@ import {
   Star,
   Code,
   FileText,
-  User,
   Layout,
 } from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { getWorkspaceUrl } from '@/lib/workspace-utils';
+import type { Workspace } from '@/contexts/WorkspaceContext';
 
 // Types
 interface CommandPaletteProps {
@@ -35,16 +35,6 @@ interface CommandPaletteProps {
   repositories?: Repository[];
   recentItems?: RecentItem[];
   defaultSearchQuery?: string;
-}
-
-interface Workspace {
-  id: string;
-  name: string;
-  description?: string;
-  repositories?: string[];
-  repository_count?: number;
-  tier?: string;
-  updated_at?: string;
 }
 
 interface Repository {
@@ -63,6 +53,13 @@ interface RecentItem {
   icon?: string;
 }
 
+interface CommandItemMetadata {
+  tier?: string | null;
+  updated_at?: string | null;
+  stars?: number;
+  language?: string | null;
+}
+
 interface CommandItem {
   id: string;
   name: string;
@@ -71,7 +68,7 @@ interface CommandItem {
   shortcut?: string;
   action: () => void;
   category: 'workspace' | 'repository' | 'action' | 'navigation' | 'recent';
-  metadata?: Record<string, unknown>;
+  metadata?: CommandItemMetadata;
 }
 
 export function CommandPalette({
@@ -84,35 +81,36 @@ export function CommandPalette({
 }: CommandPaletteProps) {
   const navigate = useNavigate();
   const [search, setSearch] = useState(defaultSearchQuery);
-  const [selectedIndex, setSelectedIndex] = useState(0);
 
   // Parse search query for filters
   const { query, filter } = useMemo(() => {
-    const lowerSearch = search.toLowerCase().trim();
+    const trimmedSearch = search.trim();
     
-    // Check for filter prefixes
-    if (lowerSearch.startsWith('workspace:') || lowerSearch.startsWith('w:')) {
+    // Check for filter prefixes (case-insensitive for prefix, preserve case for query)
+    if (trimmedSearch.toLowerCase().startsWith('workspace:') || trimmedSearch.toLowerCase().startsWith('w:')) {
+      const prefix = trimmedSearch.match(/^(workspace:|w:)/i)?.[0] || '';
       return { 
-        query: lowerSearch.replace(/^(workspace:|w:)/, '').trim(),
+        query: trimmedSearch.slice(prefix.length).trim().toLowerCase(),
         filter: 'workspace' 
       };
     }
     
-    if (lowerSearch.startsWith('repo:') || lowerSearch.startsWith('r:')) {
+    if (trimmedSearch.toLowerCase().startsWith('repo:') || trimmedSearch.toLowerCase().startsWith('r:')) {
+      const prefix = trimmedSearch.match(/^(repo:|r:)/i)?.[0] || '';
       return { 
-        query: lowerSearch.replace(/^(repo:|r:)/, '').trim(),
+        query: trimmedSearch.slice(prefix.length).trim().toLowerCase(),
         filter: 'repository' 
       };
     }
     
-    if (lowerSearch.startsWith('>')) {
+    if (trimmedSearch.startsWith('>')) {
       return { 
-        query: lowerSearch.replace(/^>/, '').trim(),
+        query: trimmedSearch.slice(1).trim().toLowerCase(),
         filter: 'action' 
       };
     }
     
-    return { query: lowerSearch, filter: null };
+    return { query: trimmedSearch.toLowerCase(), filter: null };
   }, [search]);
 
   // Build command items
@@ -120,57 +118,53 @@ export function CommandPalette({
     const items: CommandItem[] = [];
 
     // Add workspace commands
-    if (!filter || filter === 'workspace') {
-      workspaces.forEach(workspace => {
-        items.push({
-          id: `workspace-${workspace.id}`,
-          name: workspace.name,
-          description: workspace.description || `${workspace.repository_count || 0} repositories`,
-          icon: <Package className="h-4 w-4" />,
-          action: () => {
-            navigate(`/i/${workspace.id}`);
-            onOpenChange(false);
-          },
-          category: 'workspace',
-          metadata: { tier: workspace.tier, updated_at: workspace.updated_at },
-        });
+    workspaces.forEach(workspace => {
+      items.push({
+        id: `workspace-${workspace.id}`,
+        name: workspace.name,
+        description: workspace.description || `${workspace.repositories?.length || 0} repositories`,
+        icon: <Package className="h-4 w-4" />,
+        action: () => {
+          const url = getWorkspaceUrl(workspace);
+          navigate(url);
+          onOpenChange(false);
+        },
+        category: 'workspace',
+        metadata: { tier: workspace.tier, updated_at: workspace.updated_at },
       });
-    }
+    });
 
     // Add repository commands
-    if (!filter || filter === 'repository') {
-      repositories.forEach(repo => {
-        items.push({
-          id: `repo-${repo.full_name}`,
-          name: repo.full_name,
-          description: repo.description || `${repo.language || 'Unknown'} • ${formatStars(repo.stars || 0)} stars`,
-          icon: <GitBranch className="h-4 w-4" />,
-          action: () => {
-            navigate(`/${repo.full_name}`);
-            onOpenChange(false);
-          },
-          category: 'repository',
-          metadata: { stars: repo.stars, language: repo.language },
-        });
+    repositories.forEach(repo => {
+      items.push({
+        id: `repo-${repo.full_name}`,
+        name: repo.full_name,
+        description: repo.description || `${repo.language || 'Unknown'} • ${formatStars(repo.stars || 0)} stars`,
+        icon: <GitBranch className="h-4 w-4" />,
+        action: () => {
+          navigate(`/${repo.full_name}`);
+          onOpenChange(false);
+        },
+        category: 'repository',
+        metadata: { stars: repo.stars, language: repo.language },
       });
-    }
+    });
 
     // Add action commands
-    if (!filter || filter === 'action') {
-      items.push(
-        {
-          id: 'action-create-workspace',
-          name: 'Create New Workspace',
-          description: 'Set up a new workspace',
-          icon: <Plus className="h-4 w-4" />,
-          shortcut: '⌘⇧W',
-          action: () => {
-            navigate('/');
-            // TODO: Open create workspace modal
-            onOpenChange(false);
-          },
-          category: 'action',
+    items.push(
+      {
+        id: 'action-create-workspace',
+        name: 'Create New Workspace',
+        description: 'Set up a new workspace',
+        icon: <Plus className="h-4 w-4" />,
+        shortcut: '⌘⇧W',
+        action: () => {
+          navigate('/');
+          // TODO: Open create workspace modal
+          onOpenChange(false);
         },
+        category: 'action',
+      },
         {
           id: 'action-trending',
           name: 'View Trending Repositories',
@@ -216,21 +210,30 @@ export function CommandPalette({
           },
           category: 'action',
         }
-      );
-    }
+    );
 
     return items;
-  }, [workspaces, repositories, filter, navigate, onOpenChange]);
+  }, [workspaces, repositories, navigate, onOpenChange]);
 
-  // Filter commands based on search query
+  // Filter commands based on search query and category filter
   const filteredCommands = useMemo(() => {
-    if (!query) return commands;
-
-    return commands.filter(cmd => {
-      const searchableText = `${cmd.name} ${cmd.description || ''}`.toLowerCase();
-      return searchableText.includes(query);
-    });
-  }, [commands, query]);
+    let filtered = commands;
+    
+    // First filter by category if a filter is active
+    if (filter) {
+      filtered = commands.filter(cmd => cmd.category === filter);
+    }
+    
+    // Then filter by search query if present
+    if (query) {
+      filtered = filtered.filter(cmd => {
+        const searchableText = `${cmd.name} ${cmd.description || ''}`.toLowerCase();
+        return searchableText.includes(query);
+      });
+    }
+    
+    return filtered;
+  }, [commands, query, filter]);
 
   // Group commands by category
   const groupedCommands = useMemo(() => {
@@ -314,7 +317,6 @@ export function CommandPalette({
   useEffect(() => {
     if (!open) {
       setSearch(defaultSearchQuery);
-      setSelectedIndex(0);
     }
   }, [open, defaultSearchQuery]);
 
@@ -369,8 +371,8 @@ export function CommandPalette({
                   <div className="flex items-center gap-2">
                     <span>{cmd.name}</span>
                     {cmd.metadata?.tier && (
-                      <Badge variant="secondary" className={cn('text-xs', getTierColor(cmd.metadata.tier as string))}>
-                        {cmd.metadata.tier as string}
+                      <Badge variant="secondary" className={cn('text-xs', getTierColor(cmd.metadata.tier || ''))}>
+                        {cmd.metadata.tier}
                       </Badge>
                     )}
                   </div>
@@ -380,7 +382,7 @@ export function CommandPalette({
                 </div>
                 {cmd.metadata?.updated_at && (
                   <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(cmd.metadata.updated_at as string), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(cmd.metadata.updated_at), { addSuffix: true })}
                   </span>
                 )}
               </CommandItem>
@@ -407,13 +409,13 @@ export function CommandPalette({
                         {cmd.metadata?.language && (
                           <>
                             <Code className="h-3 w-3" />
-                            <span>{cmd.metadata.language as string}</span>
+                            <span>{cmd.metadata.language}</span>
                           </>
                         )}
-                        {cmd.metadata?.stars && (
+                        {cmd.metadata?.stars !== undefined && (
                           <>
                             <Star className="h-3 w-3" />
-                            <span>{formatStars(cmd.metadata.stars as number)}</span>
+                            <span>{formatStars(cmd.metadata.stars)}</span>
                           </>
                         )}
                       </div>
