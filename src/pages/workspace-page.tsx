@@ -231,7 +231,7 @@ function WorkspacePRs({ repositories, selectedRepositories }: { repositories: Re
             repository: {
               name: (pr.repositories as any)?.name || 'unknown',
               owner: (pr.repositories as any)?.owner || 'unknown',
-              avatar_url: `https://github.com/${(pr.repositories as any)?.owner || 'unknown'}.png`,
+              avatar_url: `https://avatars.githubusercontent.com/${(pr.repositories as any)?.owner || 'unknown'}`,
             },
             author: {
               username: (pr.contributors as any)?.username || 'unknown',
@@ -343,7 +343,7 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
             repository: {
               name: (issue.repositories as any)?.name || 'unknown',
               owner: (issue.repositories as any)?.owner || 'unknown',
-              avatar_url: `https://github.com/${(issue.repositories as any)?.owner || 'unknown'}.png`,
+              avatar_url: `https://avatars.githubusercontent.com/${(issue.repositories as any)?.owner || 'unknown'}`,
             },
             author: {
               username: (issue.contributors as any)?.username || 'unknown',
@@ -541,7 +541,7 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
                   {displayOwners.map((owner, i) => (
                     <img
                       key={`${owner}_${i}`}
-                      src={`https://github.com/${owner}.png?size=40`}
+                      src={`https://avatars.githubusercontent.com/${owner}?size=40`}
                       alt={`${owner} organization`}
                       className="h-5 w-5 rounded-sm border border-border object-cover"
                       loading="lazy"
@@ -636,7 +636,7 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
                   {displayOwners.map((owner, i) => (
                     <img
                       key={`${owner}_${i}`}
-                      src={`https://github.com/${owner}.png?size=40`}
+                      src={`https://avatars.githubusercontent.com/${owner}?size=40`}
                       alt={`${owner} organization`}
                       className="h-5 w-5 rounded-sm border border-border object-cover"
                       loading="lazy"
@@ -1136,7 +1136,7 @@ export default function WorkspacePage() {
             contributors: Math.floor(Math.random() * 100) + 10, // Mock for now
             last_activity: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
             is_pinned: r.is_pinned,
-            avatar_url: `https://github.com/${r.repositories.owner}.png`,
+            avatar_url: `https://avatars.githubusercontent.com/${r.repositories.owner}`,
             html_url: `https://github.com/${r.repositories.full_name}`,
           }));
 
@@ -1260,7 +1260,7 @@ export default function WorkspacePage() {
             open_prs: 0, // Mock for now
             open_issues: item.repositories.open_issues_count || 0,
             contributors: Math.floor(Math.random() * 50) + 10, // Mock for now
-            avatar_url: `https://github.com/${item.repositories.owner}.png`,
+            avatar_url: `https://avatars.githubusercontent.com/${item.repositories.owner}`,
             last_activity: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             is_pinned: item.is_pinned || false,
             html_url: `https://github.com/${item.repositories.full_name}`,

@@ -27,6 +27,59 @@ export interface GitHubRepository {
   language?: string | null;
 }
 
+// GitHub API interfaces for better type safety
+interface GitHubOrganization {
+  login: string;
+  avatar_url: string;
+}
+
+interface GitHubReview {
+  id: number;
+  user: {
+    login: string;
+    avatar_url: string;
+  };
+  state: string;
+  body: string;
+  submitted_at: string;
+}
+
+interface GitHubComment {
+  id: number;
+  user: {
+    login: string;
+    avatar_url: string;
+  };
+  body: string;
+  created_at: string;
+}
+
+interface GitHubStargazer {
+  login: string;
+  avatar_url: string;
+  starred_at: string;
+  user?: {
+    login: string;
+    avatar_url: string;
+  };
+}
+
+interface GitHubCommit {
+  sha: string;
+  commit: {
+    author: {
+      name: string;
+      email: string;
+      date: string;
+    };
+    message: string;
+  };
+  author?: {
+    login: string;
+    avatar_url: string;
+  };
+}
+
 export async function searchGitHubRepositories(query: string, limit: number = 10): Promise<GitHubRepository[]> {
   if (!query.trim()) {
     return [];
@@ -134,7 +187,7 @@ export async function fetchUserOrganizations(username: string, headers: HeadersI
     }
 
     const orgs = await response.json();
-    return orgs.slice(0, 3).map((org: any) => ({
+    return orgs.slice(0, 3).map((org: GitHubOrganization) => ({
       login: org.login,
       avatar_url: org.avatar_url,
     }));
@@ -155,7 +208,7 @@ async function fetchPRReviews(owner: string, repo: string, prNumber: number, hea
     }
 
     const reviews = await response.json();
-    return reviews.map((review: any) => ({
+    return reviews.map((review: GitHubReview) => ({
       id: review.id,
       state: review.state,
       user: {
@@ -181,7 +234,7 @@ async function fetchPRComments(owner: string, repo: string, prNumber: number, he
     }
 
     const comments = await response.json();
-    return comments.map((comment: any) => ({
+    return comments.map((comment: GitHubComment) => ({
       id: comment.id,
       user: {
         login: comment.user.login,
@@ -228,7 +281,7 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
     since.setDate(since.getDate() - parseInt(timeRange));
     
     // Fetch multiple pages of PRs to ensure we get all recent ones
-    let allPRs: any[] = [];
+    let allPRs: PullRequest[] = [];
     let page = 1;
     const perPage = 100;
     
@@ -533,7 +586,7 @@ export async function fetchRepositoryStargazers(owner: string, repo: string, lim
     }
 
     const stargazers = await response.json();
-    return stargazers.map((star: any) => ({
+    return stargazers.map((star: GitHubStargazer) => ({
       login: star.user?.login || star.login,
       avatar_url: star.user?.avatar_url || star.avatar_url,
       starred_at: star.starred_at || new Date().toISOString(), // Fallback if no timestamp
@@ -729,7 +782,7 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
 
     // Fetch commits directly from the default branch using commits API
     // This is more reliable than the events API for longer time ranges
-    let allCommits: any[] = [];
+    let allCommits: GitHubCommit[] = [];
     let page = 1;
     const perPage = 100;
     

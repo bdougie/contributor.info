@@ -57,8 +57,10 @@ export function getOrgAvatarUrl(orgName?: string): string {
     return getFallbackAvatar();
   }
   
-  // Try GitHub org avatar first
-  return `https://github.com/${orgName}.png`;
+  // GitHub organizations don't have .png endpoints
+  // Use avatars.githubusercontent.com instead
+  // This will redirect to the correct avatar
+  return `https://avatars.githubusercontent.com/${orgName}`;
 }
 
 /**
@@ -71,6 +73,7 @@ export function getRepoOwnerAvatarUrl(owner?: string): string {
     return getFallbackAvatar();
   }
   
-  // Use GitHub avatar URL for repo owners
-  return `https://github.com/${owner}.png`;
+  // Use avatars.githubusercontent.com for repo owners too
+  // GitHub's .png endpoints are deprecated/unreliable
+  return `https://avatars.githubusercontent.com/${owner}`;
 }
