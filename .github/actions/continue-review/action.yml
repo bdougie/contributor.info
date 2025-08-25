@@ -58,8 +58,12 @@ runs:
           exit 1
         }
         
-        # Export GitHub context as base64 to avoid shell escaping issues
-        export GITHUB_CONTEXT_B64=$(echo '${{ toJson(github) }}' | base64)
+        # Write GitHub context to a file to avoid shell escaping issues
+        cat > github_context.json << 'GITHUB_CONTEXT_EOF'
+        ${{ toJson(github) }}
+        GITHUB_CONTEXT_EOF
+        
+        # Run the review script
         python3 ./continue_review.py
 
 branding:

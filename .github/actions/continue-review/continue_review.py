@@ -41,19 +41,18 @@ if not github_token:
     print("ERROR: GITHUB_TOKEN is required but not set")
     sys.exit(1)
 
-# Get GitHub context (handles base64 encoding to avoid shell escaping issues)
-import base64
-
+# Get GitHub context from file (avoids shell escaping issues)
 github_context = {}
-context_b64 = os.environ.get('GITHUB_CONTEXT_B64')
-if context_b64:
+if os.path.exists('github_context.json'):
     try:
-        context_json = base64.b64decode(context_b64).decode('utf-8')
-        github_context = json.loads(context_json)
+        with open('github_context.json', 'r') as f:
+            github_context = json.load(f)
     except Exception as e:
-        print("Warning: Could not decode base64 GitHub context: %s" % str(e))
+        print("Warning: Could not read GitHub context from file: %s" % str(e))
+        # Fallback to environment variable
         github_context = json.loads(os.environ.get('GITHUB_CONTEXT', '{}'))
 else:
+    # Fallback to environment variable
     github_context = json.loads(os.environ.get('GITHUB_CONTEXT', '{}'))
 
 repo_name = github_context.get('repository', '')
