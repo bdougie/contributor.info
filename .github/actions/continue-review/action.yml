@@ -197,7 +197,6 @@ runs:
             cmd = [
                 'cn',
                 '--readonly',
-                '--format', 'json',
                 '--org', continue_org,
                 '--config', continue_config,
                 '-p', f'@{prompt_file}'  # Use @ to read from file
@@ -221,13 +220,27 @@ runs:
                 print(f"Continue CLI exit code: {result.returncode}")
                 
                 if result.returncode == 0:
-                    # Parse the response
+                    # Get the plain text response
+                    review_text = result.stdout.strip()
+                    
+                    # Try to parse as JSON and extract content if it's JSON
                     try:
-                        response = json.loads(result.stdout)
-                        review_text = response.get('response', response.get('content', result.stdout))
-                    except json.JSONDecodeError:
-                        # If not JSON, use raw output
-                        review_text = result.stdout
+                        response = json.loads(review_text)
+                        # Extract the actual review content from JSON structure
+                        if isinstance(response, dict):
+                            review_text = response.get('response', response.get('content', response.get('message', str(response))))
+                    except (json.JSONDecodeError, ValueError):
+                        # It's already plain text, use as-is
+                        pass
+                    
+                    # Clean up any remaining JSON artifacts
+                    if review_text.startswith('{') and review_text.endswith('}'):
+                        try:
+                            parsed = json.loads(review_text)
+                            if isinstance(parsed, dict) and len(parsed) == 1:
+                                review_text = str(list(parsed.values())[0])
+                        except:
+                            pass
                     
                     if not review_text or review_text.strip() == '':
                         review_text = "The Continue service returned an empty response. Please check the configuration."
@@ -255,13 +268,18 @@ runs:
                 except:
                     pass
             
-            # Build comment
+            # Build comment with proper markdown formatting
             comment_body = "## 🤖 Continue Agent Review\n\n"
             if command:
                 comment_body += f"**Responding to:** `@continue-agent {command}`\n\n"
+                comment_body += "---\n\n"
+            
+            # Ensure the review text is properly formatted
             comment_body += review_text
+            
+            # Add footer
             comment_body += "\n\n---\n"
-            comment_body += f"*Powered by [Continue](https://continue.dev) | Config: {continue_config}*"
+            comment_body += "*Powered by [Continue](https://continue.dev)*"
             
             # Post comment
             print("Posting review comment...")
