@@ -60,6 +60,7 @@ runs:
         import tempfile
         import re
         import glob
+        from datetime import datetime
         from pathlib import Path
         from github import Github
 
@@ -107,6 +108,17 @@ runs:
             sys.exit(0)
 
         print(f"PR Number: {pr_number}")
+
+        # Constants for comment management
+        COMMENT_MARKER = "<!-- continue-agent-review -->"
+        PROGRESS_MARKER = "<!-- continue-agent-in-progress -->"
+
+        # Function to find existing comment
+        def find_existing_comment(pr, marker):
+            for comment in pr.get_issue_comments():
+                if marker in comment.body:
+                    return comment
+            return None
 
         # Function to load Continue rules
         def load_continue_rules():
@@ -174,6 +186,54 @@ runs:
             
             print(f"PR Title: {pr.title}")
             print(f"PR State: {pr.state}")
+            
+            # Check for existing review comment
+            existing_comment = find_existing_comment(pr, COMMENT_MARKER)
+            
+            # Find previous reviews to track progress
+            previous_reviews = []
+            review_history = ""
+            if existing_comment:
+                # Extract previous review points from existing comment
+                if "### Previous Feedback" in existing_comment.body:
+                    # Parse previous feedback section
+                    lines = existing_comment.body.split('\n')
+                    in_feedback = False
+                    for line in lines:
+                        if line.startswith("### Previous Feedback"):
+                            in_feedback = True
+                            review_history = "### Previous Feedback\n"
+                        elif in_feedback and line.startswith("###"):
+                            break
+                        elif in_feedback and (line.startswith("- ✅") or line.startswith("- ⚠️") or line.startswith("- ❌")):
+                            previous_reviews.append(line)
+            
+            # Post initial progress comment
+            progress_body = f"""{COMMENT_MARKER}
+## 🤖 Continue Agent Review
+
+🔄 **Review in progress...** 
+
+I'm analyzing the changes in this pull request. This may take a moment.
+
+### What I'm checking:
+- 📝 Code quality and best practices
+- 🐛 Potential bugs or logic errors  
+- 🔒 Security vulnerabilities
+- ⚡ Performance implications
+- 📚 Compliance with project rules
+
+{review_history if review_history else ""}
+
+---
+*This comment will be updated with the review results shortly...*"""
+            
+            if existing_comment:
+                existing_comment.edit(progress_body)
+                print(f"Updated existing comment with progress indicator")
+            else:
+                existing_comment = pr.create_issue_comment(progress_body)
+                print(f"Created progress comment ID: {existing_comment.id}")
             
             # Load Continue rules
             rules = load_continue_rules()
@@ -364,43 +424,102 @@ runs:
                 except:
                     pass
             
-            # Build comment with proper markdown formatting
-            comment_body = "## 🤖 Continue Agent Review\n\n"
-            if command:
-                comment_body += f"**Responding to:** `@continue-agent {command}`\n\n"
-                comment_body += "---\n\n"
+            # Analyze review for tracking points
+            review_points = []
+            if "✅" in review_text or "looks good" in review_text.lower() or "well done" in review_text.lower():
+                has_positive = True
+            else:
+                has_positive = False
             
-            # Ensure the review text is properly formatted
-            comment_body += review_text
+            # Check if previous issues were addressed
+            progress_summary = ""
+            if previous_reviews:
+                resolved_count = 0
+                pending_count = 0
+                for prev_item in previous_reviews:
+                    # Simple heuristic - if review is positive, mark previous items as likely resolved
+                    if has_positive and "❌" in prev_item:
+                        resolved_count += 1
+                    elif "⚠️" in prev_item or "❌" in prev_item:
+                        pending_count += 1
+                
+                if resolved_count > 0:
+                    progress_summary = f"\n\n### Progress Update\n✅ **{resolved_count} previous issue(s) appear to be resolved!**"
+                if pending_count > 0:
+                    progress_summary += f"\n⚠️ {pending_count} item(s) may still need attention"
             
-            # Add footer
-            comment_body += "\n\n---\n"
-            comment_body += "*Powered by [Continue](https://continue.dev)*"
+            # Extract key points from current review for future tracking
+            current_feedback = []
+            if "error" in review_text.lower() or "issue" in review_text.lower() or "problem" in review_text.lower():
+                current_feedback.append("- ❌ Issues identified that need addressing")
+            if "warning" in review_text.lower() or "consider" in review_text.lower() or "suggest" in review_text.lower():
+                current_feedback.append("- ⚠️ Suggestions for improvement")
+            if "good" in review_text.lower() or "excellent" in review_text.lower() or "well" in review_text.lower():
+                current_feedback.append("- ✅ Good practices identified")
             
-            # Post comment
-            print("Posting review comment...")
-            comment = pr.create_issue_comment(comment_body)
-            print(f"Comment posted successfully! ID: {comment.id}")
+            # Build final comment with proper markdown formatting
+            comment_body = f"""{COMMENT_MARKER}
+## 🤖 Continue Agent Review
+
+{"**✅ Review Complete**" if not command else f"**Responding to:** `@continue-agent {command}`"}
+
+{progress_summary if progress_summary else ""}
+
+### Current Review
+
+{review_text}
+
+{"### Previous Feedback" if previous_reviews else ""}
+{chr(10).join(previous_reviews) if previous_reviews else ""}
+
+{"### Current Feedback Summary" if current_feedback else ""}
+{chr(10).join(current_feedback) if current_feedback else ""}
+
+---
+*Last updated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")} | Powered by [Continue](https://continue.dev)*"""
+            
+            # Update the existing comment
+            print("Updating comment with review...")
+            if existing_comment:
+                existing_comment.edit(comment_body)
+                print(f"Updated comment ID: {existing_comment.id}")
+            else:
+                # Fallback if somehow the comment was deleted
+                comment = pr.create_issue_comment(comment_body)
+                print(f"Created new comment ID: {comment.id}")
             
         except Exception as e:
             print(f"Error during review: {str(e)}")
             import traceback
             print(f"Traceback: {traceback.format_exc()}")
             
-            # Try to post error comment
+            # Try to update comment with error
             try:
-                error_comment = "## ❌ Continue Review Error\n\n"
-                error_comment += f"Failed to complete review:\n```\n{str(e)}\n```\n\n"
-                error_comment += "Please check:\n"
-                error_comment += "1. CONTINUE_API_KEY is set correctly\n"
-                error_comment += "2. Continue CLI is installed\n"
-                error_comment += "3. Workflow logs for details"
+                error_body = f"""{COMMENT_MARKER}
+## ❌ Continue Review Error
+
+Failed to complete review:
+```
+{str(e)}
+```
+
+### Please check:
+1. CONTINUE_API_KEY is set correctly
+2. Continue CLI is installed  
+3. Workflow logs for details
+
+---
+*Error occurred at: {datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")}*"""
                 
-                g = Github(github_token)
-                repo = g.get_repo(repo_name)
-                pr = repo.get_pull(pr_number)
-                pr.create_issue_comment(error_comment)
-                print("Error comment posted")
+                if 'existing_comment' in locals() and existing_comment:
+                    existing_comment.edit(error_body)
+                    print("Updated comment with error")
+                else:
+                    g = Github(github_token)
+                    repo = g.get_repo(repo_name)
+                    pr = repo.get_pull(pr_number)
+                    pr.create_issue_comment(error_body)
+                    print("Error comment posted")
             except:
                 print("Failed to post error comment")
             

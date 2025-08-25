@@ -13,6 +13,8 @@ This GitHub Action integrates Continue AI's code review capabilities directly in
 - 💬 **Interactive Commands** - Trigger reviews with `@continue-agent` comments
 - 🎯 **Context-Aware** - Applies only relevant rules based on changed files
 - 📊 **Smart Formatting** - Clean, markdown-formatted review comments
+- 🔄 **Sticky Comments** - Single comment that updates with progress and results
+- 📈 **Progress Tracking** - Acknowledges resolved issues from previous reviews
 
 ## Setup
 
@@ -142,31 +144,62 @@ The action will respond with targeted feedback based on the request.
 
 ## Comment Format
 
-Reviews are posted as formatted markdown comments:
+The action uses **sticky comments** - a single comment that updates throughout the review process:
 
+### Initial Progress Comment
 ```markdown
 ## 🤖 Continue Agent Review
 
-[Review content with specific feedback, suggestions, and code examples]
+🔄 **Review in progress...** 
+
+I'm analyzing the changes in this pull request. This may take a moment.
+
+### What I'm checking:
+- 📝 Code quality and best practices
+- 🐛 Potential bugs or logic errors  
+- 🔒 Security vulnerabilities
+- ⚡ Performance implications
+- 📚 Compliance with project rules
 
 ---
-*Powered by [Continue](https://continue.dev)*
+*This comment will be updated with the review results shortly...*
 ```
 
-When responding to commands:
-
+### Final Review Comment
 ```markdown
 ## 🤖 Continue Agent Review
 
-**Responding to:** `@continue-agent check for security issues`
+**✅ Review Complete**
+
+### Progress Update
+✅ **2 previous issue(s) appear to be resolved!**
+⚠️ 1 item(s) may still need attention
+
+### Current Review
+
+[Detailed review content with specific feedback and suggestions]
+
+### Previous Feedback
+- ✅ Good practices identified
+- ⚠️ Suggestions for improvement
+- ❌ Issues identified that need addressing
+
+### Current Feedback Summary
+- ✅ Good practices identified
+- ⚠️ Suggestions for improvement
 
 ---
-
-[Targeted review based on the request]
-
----
-*Powered by [Continue](https://continue.dev)*
+*Last updated: 2024-01-25 14:30:45 UTC | Powered by [Continue](https://continue.dev)*
 ```
+
+### Progress Tracking
+
+The action tracks feedback across reviews:
+- **Resolved items** - Previously flagged issues that appear fixed
+- **Pending items** - Issues that may still need attention
+- **New feedback** - Fresh observations from the current review
+
+This helps maintain continuity and acknowledge developer progress.
 
 ## Creating Custom Rules
 
