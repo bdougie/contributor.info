@@ -15,6 +15,16 @@ inputs:
   continue-config:
     description: 'Continue assistant path (format: username/assistant-name)'
     required: true
+  prefer-app-auth:
+    description: 'Prefer GitHub App authentication if available'
+    required: false
+    default: 'true'
+  app-id:
+    description: 'GitHub App ID (optional, for custom App authentication)'
+    required: false
+  app-private-key:
+    description: 'GitHub App private key (optional, for custom App authentication)'
+    required: false
 
 runs:
   using: 'composite'
@@ -38,7 +48,7 @@ runs:
       run: |
         echo "Installing action dependencies..."
         npm init -y
-        npm install @actions/core @actions/github @actions/exec js-yaml glob
+        npm install @actions/core @actions/github @actions/exec js-yaml glob @octokit/auth-app @octokit/rest
         npm install --save-dev @types/js-yaml @types/node typescript tsx
 
     - name: Run Continue Review
@@ -53,6 +63,9 @@ runs:
         INPUT_CONTINUE_API_KEY: ${{ inputs.continue-api-key }}
         INPUT_CONTINUE_ORG: ${{ inputs.continue-org }}
         INPUT_CONTINUE_CONFIG: ${{ inputs.continue-config }}
+        INPUT_PREFER_APP_AUTH: ${{ inputs.prefer-app-auth }}
+        INPUT_APP_ID: ${{ inputs.app-id }}
+        INPUT_APP_PRIVATE_KEY: ${{ inputs.app-private-key }}
       run: |
         echo "Running Continue Review..."
         npx tsx index.ts
