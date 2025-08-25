@@ -5,6 +5,67 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0](https://github.com/bdougie/contributor.info/compare/v2.0.0...v2.1.0) (2025-08-25)
+
+
+### 🚀 Features
+
+* Add Continue Agent for code reviews ([#459](https://github.com/bdougie/contributor.info/issues/459)) ([ef6dc05](https://github.com/bdougie/contributor.info/commit/ef6dc05f59a1e9149e5de2c967019b2891b4d0fd)), closes [#458](https://github.com/bdougie/contributor.info/issues/458) [continuedev/continue#7228](https://github.com/continuedev/continue/issues/7228)
+* Add Continue AI review action with local rules support and sticky comments ([#517](https://github.com/bdougie/contributor.info/issues/517)) ([e016192](https://github.com/bdougie/contributor.info/commit/e0161928104be5ba24a9426404b719f18763346e)), closes [#511](https://github.com/bdougie/contributor.info/issues/511)
+* Add Supabase avatar caching for PR Contributions chart performance ([#461](https://github.com/bdougie/contributor.info/issues/461)) ([e65cec4](https://github.com/bdougie/contributor.info/commit/e65cec44eac9afff8bfa06a92ccc30fb1083b312))
+* Add workspace creation and edit UI stories ([#509](https://github.com/bdougie/contributor.info/issues/509)) ([bbf2729](https://github.com/bdougie/contributor.info/commit/bbf2729e3e0ccc1843eda203bdbbccbc5b7ce1f1))
+* add workspace preview card to homepage ([#506](https://github.com/bdougie/contributor.info/issues/506)) ([8c470d3](https://github.com/bdougie/contributor.info/commit/8c470d34fa36a9c8154feebdff61f0e7ae74f3bb)), closes [/github.com/bdougie/contributor.info/pull/506#issuecomment-3217500518](https://github.com/bdougie//github.com/bdougie/contributor.info/pull/506/issues/issuecomment-3217500518)
+* comprehensive social elements testing and optimization ([#439](https://github.com/bdougie/contributor.info/issues/439)) ([aa4654d](https://github.com/bdougie/contributor.info/commit/aa4654d65671d2a52f8472cc29d6280d6a179d32))
+* Enhance E2E testing infrastructure ([#500](https://github.com/bdougie/contributor.info/issues/500)) ([7ceaa04](https://github.com/bdougie/contributor.info/commit/7ceaa044cde39eeb4820ed602f2314c10768b878)), closes [#497](https://github.com/bdougie/contributor.info/issues/497) [#502](https://github.com/bdougie/contributor.info/issues/502)
+* implement trending repositories page and discovery features ([#516](https://github.com/bdougie/contributor.info/issues/516)) ([7e6e7c9](https://github.com/bdougie/contributor.info/commit/7e6e7c99cdeb915fd2831410bcc8df3993cacf2d))
+* implement workspace issues capture (Phase 2) ([#519](https://github.com/bdougie/contributor.info/issues/519)) ([cf9e0ff](https://github.com/bdougie/contributor.info/commit/cf9e0ff0840a5d8e52781f05c0e7e5fc10649cf0)), closes [#457](https://github.com/bdougie/contributor.info/issues/457) [#508](https://github.com/bdougie/contributor.info/issues/508)
+* Manual backfill integration with gh-datapipe API ([#456](https://github.com/bdougie/contributor.info/issues/456)) ([a2ca9f3](https://github.com/bdougie/contributor.info/commit/a2ca9f3eeec006eec13db84aad38d9e4e9c75e48))
+* Migrate long-running functions to Supabase Edge Functions ([#467](https://github.com/bdougie/contributor.info/issues/467)) ([3d41905](https://github.com/bdougie/contributor.info/commit/3d41905e6acf4815d85a181e76a1c421028d50db)), closes [#457](https://github.com/bdougie/contributor.info/issues/457)
+* Phase 3 - Aggressive caching & service worker enhancements ([#477](https://github.com/bdougie/contributor.info/issues/477)) ([ca3cb13](https://github.com/bdougie/contributor.info/commit/ca3cb135a4cb7f32c2aedf950555be3c85373dd5)), closes [#466](https://github.com/bdougie/contributor.info/issues/466)
+* Phase 3 - Testing & Quality Infrastructure for Design System ([#496](https://github.com/bdougie/contributor.info/issues/496)) ([8eb3056](https://github.com/bdougie/contributor.info/commit/8eb30565e750e4d134faa5536ac7437ed2a9aad8)), closes [#493](https://github.com/bdougie/contributor.info/issues/493) [#493](https://github.com/bdougie/contributor.info/issues/493)
+* Replace PageSpeed Insights with lazy-loaded PostHog for Web Vitals ([#490](https://github.com/bdougie/contributor.info/issues/490)) ([e8dd602](https://github.com/bdougie/contributor.info/commit/e8dd60260329d14900420287226e3190a0088056)), closes [#311](https://github.com/bdougie/contributor.info/issues/311)
+* Smart Throttling System for Improved First-Visit Experience ([#452](https://github.com/bdougie/contributor.info/issues/452)) ([0121de7](https://github.com/bdougie/contributor.info/commit/0121de7d27395fc7630d60d9ab006d1ef5e00813))
+* Workspace Dashboard UI Components (Storybook Implementation) ([#504](https://github.com/bdougie/contributor.info/issues/504)) ([739b8a0](https://github.com/bdougie/contributor.info/commit/739b8a038278f1ed1e6d14019be54453e5cae926)), closes [#394](https://github.com/bdougie/contributor.info/issues/394) [Title...#123](https://github.com/bdougie/Title.../issues/123)
+* workspace data fetching infrastructure (Phase 1) ([#518](https://github.com/bdougie/contributor.info/issues/518)) ([15a8c0b](https://github.com/bdougie/contributor.info/commit/15a8c0bc33703f8b80659cf13eaf1def1b4ce9b8)), closes [#508](https://github.com/bdougie/contributor.info/issues/508)
+* Workspace UI and repository management with tier limits ([#510](https://github.com/bdougie/contributor.info/issues/510)) ([8112d54](https://github.com/bdougie/contributor.info/commit/8112d54643cf0f0614f45332eaeaab0f75149a64)), closes [#509](https://github.com/bdougie/contributor.info/issues/509)
+
+
+### 🐛 Bug Fixes
+
+* Add triage workflow for issue assignment ([31f2413](https://github.com/bdougie/contributor.info/commit/31f2413f07acbaff92b82d7ec1f34f801876c4a2))
+* add validation for undefined repositoryId in Inngest functions ([#430](https://github.com/bdougie/contributor.info/issues/430)) ([ba36f39](https://github.com/bdougie/contributor.info/commit/ba36f39b0489a86f6fed07cc8faba964419f8148))
+* comment continue-review.yml ([b09466b](https://github.com/bdougie/contributor.info/commit/b09466b14fd0672b8a44adb08935009fc6b07821))
+* Enable reviewer suggestions in webhook comments ([#441](https://github.com/bdougie/contributor.info/issues/441)) ([af24f9f](https://github.com/bdougie/contributor.info/commit/af24f9fb5c09499e81427d7b89fb200fc818132d)), closes [#221](https://github.com/bdougie/contributor.info/issues/221)
+* exclude Netlify functions from TypeScript build compilation ([a83320a](https://github.com/bdougie/contributor.info/commit/a83320a9b021101f9dc5aa699ddafdde543f4182))
+* implement user profile support with circular avatars ([#514](https://github.com/bdougie/contributor.info/issues/514)) ([2c754e3](https://github.com/bdougie/contributor.info/commit/2c754e380c97a494848f1a91a4da490c8d65f756))
+* make request boxes mobile-friendly ([#433](https://github.com/bdougie/contributor.info/issues/433)) ([#435](https://github.com/bdougie/contributor.info/issues/435)) ([88752a1](https://github.com/bdougie/contributor.info/commit/88752a1695a03c91478871aa5fd9c0c1a14243b8))
+* mobile responsiveness issues for distribution charts ([#434](https://github.com/bdougie/contributor.info/issues/434)) ([08ff6e6](https://github.com/bdougie/contributor.info/commit/08ff6e6deef4f7f9a391d1c03e2c7743f4d50f0d)), closes [#431](https://github.com/bdougie/contributor.info/issues/431) [#431](https://github.com/bdougie/contributor.info/issues/431)
+* **mobile:** improve workspace table mobile responsiveness ([#515](https://github.com/bdougie/contributor.info/issues/515)) ([4dc1c1d](https://github.com/bdougie/contributor.info/commit/4dc1c1de0495fc3f337a76dcb3edb9787e571ba4))
+* Production CSP violations and environment errors ([#491](https://github.com/bdougie/contributor.info/issues/491)) ([56ef2ab](https://github.com/bdougie/contributor.info/commit/56ef2ab9b3674e278cb0a7fc32c354f595b63a29)), closes [#475](https://github.com/bdougie/contributor.info/issues/475)
+* reduce repository sync cooldown to 1 hour for timely data updates ([#432](https://github.com/bdougie/contributor.info/issues/432)) ([457afe8](https://github.com/bdougie/contributor.info/commit/457afe854968e610c93e9dbf3d861b56f419798b))
+* Replace GitHub identicons with Avatar API to resolve CORS errors ([#480](https://github.com/bdougie/contributor.info/issues/480)) ([94c9242](https://github.com/bdougie/contributor.info/commit/94c92429eaf2a9f6c0cf90fa21f89f8ac9fefc49)), closes [#470](https://github.com/bdougie/contributor.info/issues/470)
+* resolve top 404 errors with webhook redirects and route fixes ([#460](https://github.com/bdougie/contributor.info/issues/460)) ([07e3c6f](https://github.com/bdougie/contributor.info/commit/07e3c6fdbeacd23fd8147bf072304a2a6a578bf9)), closes [#454](https://github.com/bdougie/contributor.info/issues/454)
+* uncomment continue-review.yml ([c20936f](https://github.com/bdougie/contributor.info/commit/c20936fed2a76cd5bfd58b0d947a2957e988026b))
+* update package-lock.json dependency versions ([#438](https://github.com/bdougie/contributor.info/issues/438)) ([cc657f7](https://github.com/bdougie/contributor.info/commit/cc657f7f7760b6bf7b60eefd19be066db8ccbaf3))
+
+
+### ♻️ Code Refactoring
+
+* extract repository sync cooldown into shared constant ([6fa9c29](https://github.com/bdougie/contributor.info/commit/6fa9c29e2522d8266d2d4eea198128dfd97385e4))
+
+
+### 📚 Documentation
+
+* add safe FCP/LCP optimization strategies ([f50a2e0](https://github.com/bdougie/contributor.info/commit/f50a2e02a9f5592f4366d70b47a24129d6725736))
+* reorganize documentation and scripts into structured folders ([#440](https://github.com/bdougie/contributor.info/issues/440)) ([4e539aa](https://github.com/bdougie/contributor.info/commit/4e539aa19b9d1f1d17a7c5225e88119651035c59))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list ([#450](https://github.com/bdougie/contributor.info/issues/450)) ([62f2c17](https://github.com/bdougie/contributor.info/commit/62f2c17cbf2b1a726fb0b0b15b36e3e46b81015f))
+* update tracked repositories list ([#507](https://github.com/bdougie/contributor.info/issues/507)) ([8957383](https://github.com/bdougie/contributor.info/commit/895738365176e8ab83a8186ec4ce9b031b963d4d))
+* update tracked repositories list [skip ci] ([c7a27e8](https://github.com/bdougie/contributor.info/commit/c7a27e8b9553caa77e4a6e08426514f7df2df812))
+
 ## [2.0.0](https://github.com/bdougie/contributor.info/compare/v1.11.0...v2.0.0) (2025-08-12)
 
 
