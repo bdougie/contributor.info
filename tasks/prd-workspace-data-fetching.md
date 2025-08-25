@@ -224,6 +224,40 @@ class WorkspaceMetricsCache {
 
 ### Phase 1: Database Infrastructure ✅ COMPLETED
 
+### Phase 2: Issues Data Capture 🚧 IN PROGRESS
+
+**Implementation Completed:**
+1. ✅ Created `workspace-issues-sync` Supabase Edge Function
+   - Fetches issues for workspace repositories only
+   - Configurable time window (default 24 hours)
+   - Supports dry-run mode for testing
+   - Updates sync status and metrics
+
+2. ✅ Updated Queue Manager
+   - Added `workspace_issues` job type
+   - Integrated with progressive capture system
+   - Priority-based processing
+
+3. ✅ Created GitHub Action Workflow
+   - `capture-workspace-issues.yml`
+   - Scheduled runs every 6 hours
+   - Manual trigger with parameters
+   - Automatic failure notifications
+
+4. ✅ Test Infrastructure
+   - Local test script for validation
+   - Dry-run mode for safe testing
+   - Clear status reporting
+
+**Architecture Note:** Following issue #457, long-running functions have been migrated from Netlify/Inngest to Supabase Edge Functions to avoid timeout issues (50s free tier, 150s paid).
+
+**Next Steps:**
+- Deploy edge function: `supabase functions deploy workspace-issues-sync`
+- Test with production data
+- Monitor for rate limit issues
+
+### Phase 1: Database Infrastructure ✅ COMPLETED
+
 **Migration Created**: `20250125000000_workspace_data_fetching.sql`
 
 **Tables Created:**
@@ -260,7 +294,11 @@ class WorkspaceMetricsCache {
 - [ ] Migration runs successfully in production
 
 ### Phase 2 ✅ Criteria
-- [ ] Issues fetched for all workspace repositories
+- [x] Issues job type added to DataCaptureJob
+- [x] Supabase Edge Function created for workspace issues sync
+- [x] GitHub Action workflow for scheduled and manual sync
+- [x] Test script for local validation
+- [ ] Deploy edge function to production
 - [ ] Issues appear in workspace UI Issues tab
 - [ ] Last 24 hours of issues captured daily
 - [ ] Rate limits respected (no 429 errors)

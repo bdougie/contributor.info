@@ -4,10 +4,10 @@ import { env } from '../env';
 
 export interface DataCaptureJob {
   id: string;
-  type: 'pr_details' | 'reviews' | 'comments' | 'commits' | 'recent_prs' | 'commit_pr_check' | 'ai_summary';
+  type: 'pr_details' | 'reviews' | 'comments' | 'commits' | 'recent_prs' | 'commit_pr_check' | 'ai_summary' | 'issues' | 'workspace_issues';
   priority: 'critical' | 'high' | 'medium' | 'low';
   repository_id: string;
-  resource_id?: string; // PR number, commit SHA, etc.
+  resource_id?: string; // PR number, commit SHA, issue number, etc.
   estimated_api_calls: number;
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'skipped';
   attempts: number;
@@ -588,6 +588,132 @@ export class DataCaptureQueueManager {
       ProgressiveCaptureNotifications.showJobsQueued(queuedCount, 'comments');
     }
     
+    return queuedCount;
+  }
+
+  /**
+   * Queue jobs to fetch issues for workspace repositories
+   * Only fetches issues for repositories that belong to workspaces
+   */
+  async queueWorkspaceIssues(workspaceId?: string, hoursBack: number = 24): Promise<number> {
+    // Get workspace repositories that need issue syncing
+    const query = workspaceId 
+      ? supabase
+          .from('workspace_tracked_repositories')
+          .select(`
+            workspace_id,
+            tracked_repository_id,
+            priority_score,
+            tracked_repositories!inner(
+              repository_id,
+              repositories!inner(
+                id,
+                full_name,
+                owner,
+                name
+              )
+            )
+          `)
+          .eq('workspace_id', workspaceId)
+          .eq('is_active', true)
+          .eq('fetch_issues', true)
+          .lte('next_sync_at', new Date().toISOString())
+      : supabase
+          .from('workspace_tracked_repositories')
+          .select(`
+            workspace_id,
+            tracked_repository_id,
+            priority_score,
+            tracked_repositories!inner(
+              repository_id,
+              repositories!inner(
+                id,
+                full_name,
+                owner,
+                name
+              )
+            )
+          `)
+          .eq('is_active', true)
+          .eq('fetch_issues', true)
+          .lte('next_sync_at', new Date().toISOString())
+          .order('priority_score', { ascending: false })
+          .limit(10);
+
+    const { data: workspaceRepos, error } = await query;
+
+    if (error) {
+      console.error('[Queue] Error finding workspace repos needing issues:', error);
+      return 0;
+    }
+
+    if (!workspaceRepos || workspaceRepos.length === 0) {
+      if (env.DEV) {
+        console.log('[Queue] No workspace repos needing issues sync');
+      }
+      return 0;
+    }
+
+    if (env.DEV) {
+      console.log('[Queue] Found %s workspace repos needing issues sync', workspaceRepos.length);
+    }
+
+    // Queue jobs for each repository
+    let queuedCount = 0;
+    for (const repo of workspaceRepos) {
+      try {
+        // Access nested data - handle both object and array cases
+        const trackedRepo = (repo as Record<string, unknown>).tracked_repositories;
+        if (!trackedRepo) continue;
+        
+        // Get the repositories data (handle both array and object)
+        const repositories = Array.isArray(trackedRepo) 
+          ? trackedRepo[0]?.repositories 
+          : (trackedRepo as Record<string, unknown>).repositories;
+          
+        const repoData = Array.isArray(repositories) ? repositories[0] : repositories;
+        
+        if (!repoData || typeof repoData !== 'object') continue;
+        
+        // Extract repository fields
+        const repoInfo = repoData as Record<string, unknown>;
+        const repositoryId = repoInfo.id as string;
+        const fullName = repoInfo.full_name as string;
+        
+        if (!repositoryId || !fullName) continue;
+
+        const { error: insertError } = await supabase
+          .from('data_capture_queue')
+          .insert({
+            type: 'workspace_issues',
+            priority: repo.priority_score >= 70 ? 'high' : repo.priority_score >= 50 ? 'medium' : 'low',
+            repository_id: repositoryId,
+            resource_id: `${hoursBack}h`,
+            estimated_api_calls: 5, // Estimate for issues in time window
+            metadata: { 
+              workspace_id: repo.workspace_id,
+              tracked_repository_id: repo.tracked_repository_id,
+              repository_name: fullName,
+              hours_back: hoursBack,
+              reason: 'workspace_sync'
+            }
+          });
+
+        if (!insertError) {
+          queuedCount++;
+        } else if (insertError.code !== '23505') { // Ignore duplicate key errors
+          console.warn(`[Queue] Failed to queue issues for ${fullName}:`, insertError);
+        }
+      } catch (err) {
+        console.warn('[Queue] Error queuing workspace issues:', err);
+      }
+    }
+
+    // Show UI notification
+    if (queuedCount > 0) {
+      ProgressiveCaptureNotifications.showJobsQueued(queuedCount, 'workspace issues');
+    }
+
     return queuedCount;
   }
 }
