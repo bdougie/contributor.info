@@ -88,24 +88,37 @@ runs:
         pr_number = None
         command = None
         
-        if event_name == 'pull_request':
-            pr_number = github_context.get('event', {}).get('pull_request', {}).get('number')
-        elif event_name == 'issue_comment':
-            pr_number = github_context.get('event', {}).get('issue', {}).get('number')
-            # Extract command if present
-            comment_body = github_context.get('event', {}).get('comment', {}).get('body', '')
-            if '@continue-agent' in comment_body:
-                # Extract everything after @continue-agent as the command
-                parts = comment_body.split('@continue-agent', 1)
-                if len(parts) > 1:
-                    command = parts[1].strip()
-                    print(f"Command detected: {command}")
-        elif event_name == 'workflow_dispatch':
-            pr_number = github_context.get('event', {}).get('inputs', {}).get('pr_number')
+        try:
+            if event_name == 'pull_request':
+                pr_number = github_context.get('event', {}).get('pull_request', {}).get('number')
+            elif event_name == 'issue_comment':
+                pr_number = github_context.get('event', {}).get('issue', {}).get('number')
+                # Extract command if present
+                comment_body = github_context.get('event', {}).get('comment', {}).get('body', '')
+                if '@continue-agent' in comment_body:
+                    # Extract everything after @continue-agent as the command
+                    parts = comment_body.split('@continue-agent', 1)
+                    if len(parts) > 1:
+                        command = parts[1].strip()
+                        print(f"Command detected: {command}")
+            elif event_name == 'workflow_dispatch':
+                pr_number = github_context.get('event', {}).get('inputs', {}).get('pr_number')
+                if pr_number:
+                    pr_number = int(pr_number)  # Ensure it's an integer
+        except (ValueError, TypeError) as e:
+            print(f"Error parsing PR number: {e}")
+            sys.exit(1)
         
         if not pr_number:
-            print("No PR number found, exiting")
+            print("ERROR: No valid PR number found in context")
+            print(f"Event name: {event_name}")
+            print(f"Context keys: {github_context.keys()}")
             sys.exit(0)
+        
+        # Validate PR number
+        if not isinstance(pr_number, int) or pr_number <= 0:
+            print(f"ERROR: Invalid PR number: {pr_number}")
+            sys.exit(1)
 
         print(f"PR Number: {pr_number}")
 
@@ -125,67 +138,110 @@ runs:
             rules = []
             rules_dir = Path('.continue/rules')
             if not rules_dir.exists():
-                print("No .continue/rules directory found")
+                print("INFO: No .continue/rules directory found")
                 return rules
             
-            for rule_file in rules_dir.glob('*.md'):
+            print(f"INFO: Loading rules from {rules_dir}")
+            rule_files = list(rules_dir.glob('*.md'))
+            print(f"INFO: Found {len(rule_files)} rule files")
+            
+            for rule_file in rule_files:
                 try:
-                    with open(rule_file, 'r') as f:
+                    print(f"DEBUG: Processing rule file: {rule_file.name}")
+                    with open(rule_file, 'r', encoding='utf-8') as f:
                         content = f.read()
+                    
+                    if not content.strip():
+                        print(f"WARNING: Empty rule file: {rule_file.name}")
+                        continue
                         
                     # Parse frontmatter
                     frontmatter = {}
+                    rule_content = content
+                    
                     if content.startswith('---'):
                         parts = content.split('---', 2)
                         if len(parts) >= 3:
                             frontmatter_text = parts[1].strip()
                             rule_content = parts[2].strip()
                             
-                            # Parse YAML-like frontmatter
+                            # Parse YAML-like frontmatter more robustly
                             for line in frontmatter_text.split('\n'):
-                                if ':' in line:
+                                if ':' in line and not line.strip().startswith('#'):
                                     key, value = line.split(':', 1)
-                                    frontmatter[key.strip()] = value.strip().strip('"')
-                        else:
-                            rule_content = content
-                    else:
-                        rule_content = content
+                                    key = key.strip()
+                                    value = value.strip().strip('"').strip("'")
+                                    frontmatter[key] = value
+                                    print(f"DEBUG: Parsed {key}: {value[:50]}..." if len(value) > 50 else f"DEBUG: Parsed {key}: {value}")
                     
-                    rules.append({
+                    rule_data = {
                         'file': rule_file.name,
                         'globs': frontmatter.get('globs', ''),
-                        'description': frontmatter.get('description', ''),
+                        'description': frontmatter.get('description', rule_file.stem.replace('-', ' ').title()),
                         'alwaysApply': frontmatter.get('alwaysApply', 'true').lower() != 'false',
-                        'content': rule_content
-                    })
-                    print(f"Loaded rule: {rule_file.name}")
+                        'content': rule_content  # Keep full content for accurate reviews
+                    }
+                    rules.append(rule_data)
+                    print(f"SUCCESS: Loaded rule: {rule_file.name} (alwaysApply={rule_data['alwaysApply']}, globs={rule_data['globs'][:30]}...)" if rule_data['globs'] else f"SUCCESS: Loaded rule: {rule_file.name} (alwaysApply={rule_data['alwaysApply']})")
+                    
                 except Exception as e:
-                    print(f"Error loading rule {rule_file}: {e}")
+                    print(f"ERROR: Failed to load rule {rule_file.name}: {str(e)}")
+                    import traceback
+                    print(f"DEBUG: Traceback: {traceback.format_exc()}")
             
+            print(f"INFO: Successfully loaded {len(rules)} rules")
             return rules
 
         # Function to match file patterns
         def matches_pattern(filename, pattern):
-            if not pattern:
+            if not pattern or not filename:
                 return False
-            # Convert glob pattern to regex
-            pattern = pattern.replace('**/', '.*/')
-            pattern = pattern.replace('*', '[^/]*')
-            pattern = pattern.replace('.', r'\.')
-            pattern = pattern.replace('{', '(')
-            pattern = pattern.replace('}', ')')
-            pattern = pattern.replace(',', '|')
-            pattern = '^' + pattern + '$'
-            return bool(re.match(pattern, filename))
+            
+            try:
+                # Use fnmatch for simpler patterns
+                import fnmatch
+                
+                # Handle brace expansion patterns like {tsx,jsx}
+                if '{' in pattern and '}' in pattern:
+                    # Extract the brace content
+                    import re as regex
+                    brace_match = regex.search(r'\{([^}]+)\}', pattern)
+                    if brace_match:
+                        options = brace_match.group(1).split(',')
+                        base_pattern = pattern[:brace_match.start()] + '{}' + pattern[brace_match.end():]
+                        for option in options:
+                            test_pattern = base_pattern.format(option.strip())
+                            if fnmatch.fnmatch(filename, test_pattern):
+                                return True
+                        return False
+                
+                # Standard glob matching
+                return fnmatch.fnmatch(filename, pattern)
+                
+            except Exception as e:
+                print(f"Warning: Pattern matching error for '{pattern}': {e}")
+                # Fallback to simple string matching
+                return pattern in filename
 
         try:
-            # Initialize GitHub client
-            g = Github(github_token)
-            repo = g.get_repo(repo_name)
-            pr = repo.get_pull(pr_number)
+            # Initialize GitHub client with retry
+            print(f"INFO: Connecting to GitHub API for {repo_name}")
+            try:
+                g = Github(github_token, retry=3, timeout=30)
+                repo = g.get_repo(repo_name)
+                pr = repo.get_pull(pr_number)
+            except Exception as api_error:
+                print(f"ERROR: Failed to connect to GitHub API: {api_error}")
+                print(f"DEBUG: Repository: {repo_name}, PR: {pr_number}")
+                raise
             
-            print(f"PR Title: {pr.title}")
-            print(f"PR State: {pr.state}")
+            print(f"SUCCESS: Connected to PR #{pr_number}")
+            print(f"INFO: PR Title: {pr.title}")
+            print(f"INFO: PR State: {pr.state}")
+            
+            # Validate PR state
+            if pr.state == 'closed':
+                print(f"WARNING: PR #{pr_number} is closed, but continuing review...")
             
             # Check for existing review comment
             existing_comment = find_existing_comment(pr, COMMENT_MARKER)
@@ -361,15 +417,21 @@ runs:
             env['CONTINUE_API_KEY'] = continue_api_key
             
             try:
+                print("INFO: Starting Continue CLI subprocess...")
                 result = subprocess.run(
                     cmd,
                     capture_output=True,
                     text=True,
                     env=env,
-                    timeout=60
+                    timeout=120  # Increased timeout for larger reviews
                 )
                 
-                print(f"Continue CLI exit code: {result.returncode}")
+                print(f"INFO: Continue CLI exit code: {result.returncode}")
+                
+                if result.stdout:
+                    print(f"DEBUG: CLI stdout length: {len(result.stdout)} chars")
+                if result.stderr:
+                    print(f"WARNING: CLI stderr: {result.stderr[:500]}")
                 
                 if result.returncode == 0:
                     # Get the plain text response
@@ -429,20 +491,31 @@ runs:
             
             # Check if previous issues were addressed
             progress_summary = ""
-            if previous_reviews:
+            if previous_reviews and len(previous_reviews) > 0:
                 resolved_count = 0
                 pending_count = 0
                 for prev_item in previous_reviews:
-                    # Simple heuristic - if review is positive, mark previous items as likely resolved
-                    if has_positive and "❌" in prev_item:
-                        resolved_count += 1
-                    elif "⚠️" in prev_item or "❌" in prev_item:
-                        pending_count += 1
+                    # More sophisticated heuristic for tracking progress
+                    if "❌" in prev_item:
+                        # Check if the issue keywords are still present in new review
+                        issue_keywords = ["error", "issue", "problem", "fail", "incorrect", "wrong"]
+                        if has_positive or not any(kw in review_text.lower() for kw in issue_keywords):
+                            resolved_count += 1
+                        else:
+                            pending_count += 1
+                    elif "⚠️" in prev_item:
+                        # Warnings might still be relevant
+                        if "warning" not in review_text.lower() and "consider" not in review_text.lower():
+                            resolved_count += 1
+                        else:
+                            pending_count += 1
                 
-                if resolved_count > 0:
-                    progress_summary = f"\n\n### Progress Update\n✅ **{resolved_count} previous issue(s) appear to be resolved!**"
-                if pending_count > 0:
-                    progress_summary += f"\n⚠️ {pending_count} item(s) may still need attention"
+                if resolved_count > 0 or pending_count > 0:
+                    progress_summary = "### Progress Update\n"
+                    if resolved_count > 0:
+                        progress_summary += f"✅ **{resolved_count} previous issue(s) appear to be resolved!**\n"
+                    if pending_count > 0:
+                        progress_summary += f"⚠️ {pending_count} item(s) may still need attention\n"
             
             # Extract key points from current review for future tracking
             current_feedback = []
