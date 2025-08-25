@@ -349,10 +349,22 @@ function extractCommand(comment: string): string | undefined {
  */
 async function run(): Promise<void> {
   try {
-    // Get inputs
-    const githubToken = core.getInput('github-token', { required: true });
-    const continueApiKey = core.getInput('continue-api-key', { required: true });
-    const continueConfig = core.getInput('continue-config', { required: true });
+    // Get inputs - in composite actions, inputs are passed as INPUT_ env vars
+    const githubToken = process.env.INPUT_GITHUB_TOKEN || core.getInput('github-token', { required: true });
+    const continueApiKey = process.env.INPUT_CONTINUE_API_KEY || core.getInput('continue-api-key', { required: true });
+    const continueConfig = process.env.INPUT_CONTINUE_CONFIG || core.getInput('continue-config', { required: true });
+    const continueOrg = process.env.INPUT_CONTINUE_ORG || core.getInput('continue-org', { required: true });
+
+    // Validate inputs
+    if (!githubToken) {
+      throw new Error('github-token is required');
+    }
+    if (!continueApiKey) {
+      throw new Error('continue-api-key is required');
+    }
+    if (!continueConfig) {
+      throw new Error('continue-config is required');
+    }
 
     // Get context
     const context = github.context;
@@ -360,6 +372,8 @@ async function run(): Promise<void> {
     
     core.info(`Repository: ${owner}/${repo}`);
     core.info(`Event: ${context.eventName}`);
+    core.info(`Continue Config: ${continueConfig}`);
+    core.info(`Continue Org: ${continueOrg || 'not specified'}`);
 
     // Determine PR number
     let prNumber: number | undefined;
