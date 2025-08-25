@@ -1,0 +1,167 @@
+name: Capture Workspace Issues
+
+on:
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: 'Workspace ID (optional - leave empty to sync all workspaces)'
+        required: false
+        type: string
+      hours_back:
+        description: 'Hours to look back for issues'
+        required: false
+        type: number
+        default: 24
+      limit:
+        description: 'Maximum number of repositories to process'
+        required: false
+        type: number
+        default: 10
+      dry_run:
+        description: 'Dry run mode (fetch but do not save)'
+        required: false
+        type: boolean
+        default: false
+  
+  schedule:
+    # Run every 6 hours to capture recent issues for all workspaces
+    - cron: '0 */6 * * *'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  capture-issues:
+    name: Capture Workspace Issues
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Trigger Supabase Edge Function
+        id: sync
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          # Prepare the request body
+          if [ "${{ github.event_name }}" == "schedule" ]; then
+            # Scheduled run - sync all workspaces
+            REQUEST_BODY='{
+              "hoursBack": 24,
+              "limit": 20,
+              "dryRun": false
+            }'
+          else
+            # Manual run - use provided inputs
+            REQUEST_BODY=$(cat <<EOF
+          {
+            "workspaceId": "${{ github.event.inputs.workspace_id }}",
+            "hoursBack": ${{ github.event.inputs.hours_back || 24 }},
+            "limit": ${{ github.event.inputs.limit || 10 }},
+            "dryRun": ${{ github.event.inputs.dry_run || false }}
+          }
+          EOF
+            )
+          fi
+          
+          echo "Request body: $REQUEST_BODY"
+          
+          # Call the Supabase Edge Function with timeout
+          RESPONSE=$(curl -X POST \
+            "${SUPABASE_URL}/functions/v1/workspace-issues-sync" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$REQUEST_BODY" \
+            -m 180 \
+            -w "\n%{http_code}")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          
+          echo "Response: $BODY"
+          echo "HTTP Code: $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ Issues sync failed with HTTP code: $HTTP_CODE"
+            exit 1
+          fi
+          
+          # Parse and display results
+          echo "$BODY" | jq -r '.message' || echo "Issues sync completed"
+          echo "$BODY" | jq -r '.results[] | "\(.repository): \(.issuesSynced) issues synced"' || true
+          
+      - name: Log sync results
+        if: success()
+        run: |
+          echo "✅ Workspace issues sync completed successfully"
+          echo "Run type: ${{ github.event_name }}"
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "Manual run parameters:"
+            echo "  Workspace ID: ${{ github.event.inputs.workspace_id || 'All workspaces' }}"
+            echo "  Hours back: ${{ github.event.inputs.hours_back || 24 }}"
+            echo "  Limit: ${{ github.event.inputs.limit || 10 }}"
+            echo "  Dry run: ${{ github.event.inputs.dry_run || false }}"
+          fi
+          
+      - name: Handle failure
+        if: failure()
+        run: |
+          echo "❌ Workspace issues sync failed"
+          echo "Check the logs above for error details"
+          
+      - name: Notify on repeated failures
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Check for existing open issues first
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'bug,automation',
+              creator: 'github-actions[bot]'
+            });
+            
+            const recentIssue = existingIssues.data.find(issue => 
+              issue.title.includes('Workspace Issues Sync Failed') &&
+              new Date(issue.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+            );
+            
+            if (recentIssue) {
+              // Add comment to existing issue instead of creating new one
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: recentIssue.number,
+                body: `Sync failed again at ${new Date().toISOString()}\n\n[View Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+              });
+              console.log(`Updated existing issue #${recentIssue.number}`);
+            } else {
+              // Create new issue only if no recent one exists
+              const issue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '🚨 Workspace Issues Sync Failed',
+                body: `The scheduled workspace issues sync workflow failed.
+                
+                **Workflow Run:** [View Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+                **Time:** ${new Date().toISOString()}
+                
+                Please investigate the failure and ensure the sync is working properly.`,
+                labels: ['bug', 'automation']
+              });
+              console.log(`Created issue #${issue.data.number}`);
+            }
