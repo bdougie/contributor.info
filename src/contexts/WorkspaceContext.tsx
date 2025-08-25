@@ -34,7 +34,7 @@ interface WorkspaceProviderProps {
 
 export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const navigate = useNavigate();
-  const { workspaces: rawWorkspaces, loading: workspacesLoading, error: workspacesError } = useUserWorkspaces();
+  const { workspaces: rawWorkspaces, loading: workspacesLoading } = useUserWorkspaces();
   
   // Add slugs to workspaces
   const workspaces = rawWorkspaces.map(ws => ({

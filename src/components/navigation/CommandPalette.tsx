@@ -22,7 +22,7 @@ import {
   Layout,
 } from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, validateRepositoryPath } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { getWorkspaceUrl } from '@/lib/workspace-utils';
 import type { Workspace } from '@/contexts/WorkspaceContext';
@@ -305,9 +305,12 @@ export function CommandPalette({
         e.preventDefault();
         // Check if the query looks like a full repo path (owner/name)
         if (query.includes('/')) {
-          // Navigate directly to the repository
-          navigate(`/${query}`);
-          onOpenChange(false);
+          // Validate the repository path for security
+          const validatedPath = validateRepositoryPath(query);
+          if (validatedPath) {
+            navigate(`/${validatedPath}`);
+            onOpenChange(false);
+          }
           return;
         }
         // If there's exactly one match, navigate to it
@@ -355,9 +358,12 @@ export function CommandPalette({
       e.preventDefault();
       // Check if the query looks like a full repo path (owner/name)
       if (query.includes('/')) {
-        // Navigate directly to the repository
-        navigate(`/${query}`);
-        onOpenChange(false);
+        // Validate the repository path for security
+        const validatedPath = validateRepositoryPath(query);
+        if (validatedPath) {
+          navigate(`/${validatedPath}`);
+          onOpenChange(false);
+        }
         return;
       }
     }

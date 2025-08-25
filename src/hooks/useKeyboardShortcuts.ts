@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 
 interface ShortcutHandler {
   key: string;
@@ -19,10 +19,10 @@ export function useKeyboardShortcuts(
   shortcuts: ShortcutHandler[],
   enabled = true
 ) {
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent) => {
-      if (!enabled) return;
+  useEffect(() => {
+    if (!enabled) return;
 
+    const handleKeyDown = (event: KeyboardEvent) => {
       // Don't trigger shortcuts when typing in inputs (unless explicitly allowed)
       const target = event.target as HTMLElement;
       const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
@@ -55,16 +55,11 @@ export function useKeyboardShortcuts(
           shortcut.handler();
         }
       });
-    },
-    [shortcuts, enabled]
-  );
-
-  useEffect(() => {
-    if (!enabled) return;
+    };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown, enabled]);
+  }, [shortcuts, enabled]);
 }
 
 /**

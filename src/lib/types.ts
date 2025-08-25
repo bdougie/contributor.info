@@ -151,7 +151,13 @@ export interface PullRequestActivity {
     // Spam detection fields
     spamScore?: number | null;
     isSpam?: boolean;
-    spamFlags?: any;
+    spamFlags?: {
+      suspicious_title?: boolean;
+      suspicious_body?: boolean;
+      suspicious_user?: boolean;
+      unusual_activity?: boolean;
+      [key: string]: boolean | undefined;
+    };
   };
   repository: Repository & {
     fullName?: string;

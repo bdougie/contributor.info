@@ -26,6 +26,68 @@ export function humanizeNumber(num: number): string {
   return value + unitname;
 }
 
+/**
+ * Validates and sanitizes repository paths to prevent XSS and invalid navigation
+ * @param path - The repository path to validate (e.g., "owner/repo")
+ * @returns The sanitized path or null if invalid
+ */
+export function validateRepositoryPath(path: string): string | null {
+  if (!path || typeof path !== 'string') {
+    return null;
+  }
+
+  // Remove any leading/trailing whitespace and slashes
+  const trimmedPath = path.trim().replace(/^\/+|\/+$/g, '');
+  
+  // Repository path should be in format "owner/repo"
+  // Allow alphanumeric characters, hyphens, underscores, and dots
+  const repoPathRegex = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
+  
+  if (!repoPathRegex.test(trimmedPath)) {
+    return null;
+  }
+
+  // Additional security checks
+  const parts = trimmedPath.split('/');
+  if (parts.length !== 2) {
+    return null;
+  }
+
+  const [owner, repo] = parts;
+  
+  // Check for potential XSS patterns or malicious content
+  const dangerousPatterns = [
+    /<script/i,
+    /javascript:/i,
+    /data:/i,
+    /vbscript:/i,
+    /on\w+\s*=/i, // onclick, onload, etc.
+    /[<>'"]/,     // HTML/XML characters
+    /[{}[\]]/,    // Template injection patterns
+    /\.\./,       // Path traversal
+    /^[.-]/,      // Leading dots or hyphens (invalid usernames)
+  ];
+
+  const pathToCheck = `${owner}/${repo}`;
+  for (const pattern of dangerousPatterns) {
+    if (pattern.test(pathToCheck)) {
+      return null;
+    }
+  }
+
+  // Length limits (GitHub has reasonable limits)
+  if (owner.length > 39 || repo.length > 100) {
+    return null;
+  }
+
+  // Empty parts
+  if (!owner || !repo) {
+    return null;
+  }
+
+  return `${owner}/${repo}`;
+}
+
 export function calculateLotteryFactor(
   prs: PullRequest[], 
   timeRange: string = '30', 
