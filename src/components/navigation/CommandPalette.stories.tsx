@@ -82,10 +82,10 @@ function CommandPaletteWrapper() {
       <div className="text-center">
         <button
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          className="inline-flex items-center gap-2 rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-black/80"
         >
           Open Command Palette
-          <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+          <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-white/20 px-1.5 font-mono text-[10px] font-medium text-white/80">
             <span className="text-xs">⌘</span>K
           </kbd>
         </button>

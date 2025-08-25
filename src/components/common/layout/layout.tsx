@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Outlet, useNavigate, Link, useLocation } from "react-router-dom";
 import { ModeToggle } from "../theming";
 import { AuthButton } from "../../features/auth";
@@ -14,13 +14,22 @@ import { WorkspaceSwitcher } from "@/components/navigation/WorkspaceSwitcher";
 import { supabase } from "@/lib/supabase";
 import { useTimeRangeStore } from "@/lib/time-range-store";
 import { usePrefetchOnIntent, prefetchCriticalRoutes } from "@/lib/route-prefetch";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useWorkspaceContext } from "@/contexts/WorkspaceContext";
+import { useUserWorkspaces } from "@/hooks/use-user-workspaces";
+
+// Lazy load the command palette
+const CommandPalette = lazy(() => import("@/components/navigation/CommandPalette").then(m => ({ default: m.CommandPalette })));
 
 export default function Layout() {
   const { timeRange, setTimeRange } = useTimeRangeStore();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { workspaces, switchWorkspace } = useWorkspaceContext();
+  const { data: userWorkspaces } = useUserWorkspaces();
   
   // Prefetch handlers for navigation links
   const trendingPrefetch = usePrefetchOnIntent('/trending');
@@ -33,6 +42,23 @@ export default function Layout() {
     // Show on home page and repository pages
     return path === '/' || /^\/[^/]+\/[^/]+/.test(path);
   };
+
+  // Set up keyboard shortcuts
+  useKeyboardShortcuts([
+    {
+      key: 'k',
+      metaKey: true,
+      handler: () => setCommandPaletteOpen(true),
+      preventDefault: true,
+    },
+    // Quick workspace switching (Cmd+1 through Cmd+9)
+    ...workspaces.slice(0, 9).map((workspace, index) => ({
+      key: String(index + 1),
+      metaKey: true,
+      handler: () => switchWorkspace(workspace.id),
+      preventDefault: true,
+    })),
+  ]);
 
   useEffect(() => {
     // Check login status
@@ -151,7 +177,10 @@ export default function Layout() {
           {/* Workspace and Auth Buttons */}
           <div className="ml-auto flex items-center gap-2">
             {isLoggedIn && (
-              <WorkspaceSwitcher className="min-w-[150px]" />
+              <WorkspaceSwitcher 
+                className="min-w-[150px]" 
+                onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+              />
             )}
             <AuthButton />
           </div>
@@ -176,6 +205,17 @@ export default function Layout() {
           </a>
         </div>
       </footer>
+      
+      {/* Command Palette */}
+      <Suspense fallback={null}>
+        <CommandPalette
+          open={commandPaletteOpen}
+          onOpenChange={setCommandPaletteOpen}
+          workspaces={workspaces}
+          repositories={[]} // TODO: Populate with user's recent repositories
+          recentItems={[]} // TODO: Track recent items
+        />
+      </Suspense>
     </div>
   );
 }
