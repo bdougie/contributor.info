@@ -81,6 +81,8 @@ serve(async (req) => {
         tracked_repository_id,
         priority_score,
         last_sync_at,
+        sync_frequency_hours,
+        sync_attempts,
         workspaces!inner(
           name,
           tier
@@ -96,7 +98,6 @@ serve(async (req) => {
           )
         )
       `)
-      .eq('is_active', true)
       .eq('fetch_issues', true)
       .lte('next_sync_at', new Date().toISOString())
       .order('priority_score', { ascending: false })
@@ -151,33 +152,64 @@ serve(async (req) => {
       console.log(`Syncing issues for ${owner}/${name} (workspace: ${workspaceName}, tier: ${tier})`)
 
       try {
-        // Fetch issues from GitHub API
-        const issuesUrl = `https://api.github.com/repos/${owner}/${name}/issues?state=all&since=${since}&per_page=100&sort=updated&direction=desc`
+        // Fetch issues from GitHub API with pagination support
+        let allIssues: GitHubIssue[] = []
+        let page = 1
+        const maxPages = 5 // Limit to 5 pages (500 issues) to avoid timeout
         
-        const response = await fetch(issuesUrl, {
-          headers: {
-            'Authorization': `Bearer ${githubToken}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'contributor-info-workspace-sync'
-          }
-        })
-
-        totalApiCalls++
-
-        if (!response.ok) {
-          console.error(`GitHub API error for ${owner}/${name}: ${response.status}`)
-          results.push({
-            repository: `${owner}/${name}`,
-            success: false,
-            error: `GitHub API returned ${response.status}`
+        while (page <= maxPages) {
+          const issuesUrl = `https://api.github.com/repos/${owner}/${name}/issues?state=all&since=${since}&per_page=100&sort=updated&direction=desc&page=${page}`
+          
+          const response = await fetch(issuesUrl, {
+            headers: {
+              'Authorization': `Bearer ${githubToken}`,
+              'Accept': 'application/vnd.github.v3+json',
+              'User-Agent': 'contributor-info-workspace-sync'
+            }
           })
-          continue
-        }
 
-        const issues = await response.json() as GitHubIssue[]
+          totalApiCalls++
+
+          if (!response.ok) {
+            console.error(`GitHub API error for ${owner}/${name}: ${response.status}`)
+            if (page === 1) {
+              // Only fail completely if first page fails
+              results.push({
+                repository: `${owner}/${name}`,
+                success: false,
+                error: `GitHub API returned ${response.status}`
+              })
+              break
+            } else {
+              // If subsequent pages fail, continue with what we have
+              console.warn(`Failed to fetch page ${page}, continuing with ${allIssues.length} issues`)
+              break
+            }
+          }
+
+          const pageIssues = await response.json() as GitHubIssue[]
+          
+          if (pageIssues.length === 0) {
+            break // No more issues
+          }
+          
+          allIssues = allIssues.concat(pageIssues)
+          
+          // Check if we've reached the last page
+          const linkHeader = response.headers.get('link')
+          if (!linkHeader || !linkHeader.includes('rel="next"')) {
+            break
+          }
+          
+          page++
+        }
+        
+        if (allIssues.length === 0 && page === 1) {
+          continue // Skip if we couldn't fetch any issues
+        }
         
         // Filter out pull requests (they have a pull_request field)
-        const actualIssues = issues.filter(issue => !issue.pull_request)
+        const actualIssues = allIssues.filter(issue => !issue.pull_request)
         
         console.log(`Found ${actualIssues.length} issues for ${owner}/${name}`)
 
@@ -249,11 +281,12 @@ serve(async (req) => {
         totalIssuesSynced += syncedCount
 
         // Update sync status for this repository
+        const syncFrequencyHours = repo.sync_frequency_hours || 24 // Default to 24 hours if not set
         const { error: updateError } = await supabase
           .from('workspace_tracked_repositories')
           .update({
             last_sync_at: new Date().toISOString(),
-            next_sync_at: new Date(Date.now() + repo.sync_frequency_hours * 60 * 60 * 1000).toISOString(),
+            next_sync_at: new Date(Date.now() + syncFrequencyHours * 60 * 60 * 1000).toISOString(),
             last_sync_status: 'success',
             total_issues_fetched: syncedCount
           })
@@ -277,13 +310,14 @@ serve(async (req) => {
         console.error(`Error syncing issues for ${owner}/${name}:`, error)
         
         // Update sync status with error
+        const currentAttempts = repo.sync_attempts || 0
         await supabase
           .from('workspace_tracked_repositories')
           .update({
             last_sync_at: new Date().toISOString(),
             last_sync_status: 'failed',
             last_sync_error: error.message,
-            sync_attempts: repo.sync_attempts + 1
+            sync_attempts: currentAttempts + 1
           })
           .eq('workspace_id', repo.workspace_id)
           .eq('tracked_repository_id', repo.tracked_repository_id)

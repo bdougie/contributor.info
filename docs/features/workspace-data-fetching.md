@@ -284,7 +284,7 @@ Monitor these metrics for system health:
      workspace_id,
      AVG(EXTRACT(EPOCH FROM (NOW() - next_sync_at))) as avg_latency_seconds
    FROM workspace_tracked_repositories
-   WHERE is_active = TRUE
+   WHERE fetch_issues = TRUE
    GROUP BY workspace_id;
    ```
 
@@ -316,7 +316,7 @@ The system includes automatic error recovery:
 
 1. **Sync Not Running**
    - Check `next_sync_at` is in the past
-   - Verify `is_active = true` and `fetch_issues = true`
+   - Verify `fetch_issues = true`
    - Ensure workspace has active tier
 
 2. **Rate Limit Errors**
@@ -337,7 +337,6 @@ SELECT
   r.full_name,
   wtr.last_sync_at,
   wtr.last_sync_status,
-  wtr.last_sync_error,
   wtr.sync_attempts
 FROM workspace_tracked_repositories wtr
 JOIN tracked_repositories tr ON tr.id = wtr.tracked_repository_id
@@ -355,7 +354,7 @@ FROM workspace_tracked_repositories wtr
 JOIN workspaces w ON w.id = wtr.workspace_id
 JOIN tracked_repositories tr ON tr.id = wtr.tracked_repository_id
 JOIN repositories r ON r.id = tr.repository_id
-WHERE wtr.is_active = TRUE
+WHERE wtr.fetch_issues = TRUE
 ORDER BY wtr.next_sync_at ASC
 LIMIT 10;
 ```

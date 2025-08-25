@@ -145,9 +145,9 @@ async function testWorkspaceIssuesSync() {
       console.log('   Or call the edge function directly with curl');
     }
 
-    // Calculate time window
+    // Calculate time window (use setTime to avoid DST issues)
     const sinceDate = new Date();
-    sinceDate.setHours(sinceDate.getHours() - options.hoursBack);
+    sinceDate.setTime(sinceDate.getTime() - (options.hoursBack * 60 * 60 * 1000));
     console.log(`\n📅 Would fetch issues since: ${sinceDate.toISOString()}`);
 
     // If not dry run and specific workspace, show sample API call
