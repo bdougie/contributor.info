@@ -373,24 +373,28 @@ Please provide a comprehensive code review for this pull request."""
     
     # Call Continue CLI
     print("Calling Continue CLI for review...")
-    cmd = [
-        'cn',
-        '--readonly',
-        '--org', continue_org,
-        '--config', continue_config,
-        '-p', '@%s' % prompt_file  # Use @ to read from file
-    ]
+    print("Using Continue config: %s" % continue_config)
     
-    print("Command: %s" % ' '.join(cmd))
+    # Read the prompt content for direct passing
+    with open(prompt_file, 'r') as f:
+        prompt_content = f.read()
     
     # Set up environment for Continue CLI
     env = os.environ.copy()
     env['CONTINUE_API_KEY'] = continue_api_key
     
+    # Build the command - try the simplest format first
+    cmd = ['cn', '--config', continue_config]
+    
     try:
         print("INFO: Starting Continue CLI subprocess...")
+        print("INFO: Prompt length: %d characters" % len(prompt_content))
+        print("INFO: Command: %s" % ' '.join(cmd))
+        
+        # Pass the prompt via stdin
         result = subprocess.run(
             cmd,
+            input=prompt_content,
             capture_output=True,
             text=True,
             env=env,
@@ -432,9 +436,19 @@ Please provide a comprehensive code review for this pull request."""
             
             print("Review generated successfully")
         else:
+            print("ERROR: Continue CLI failed with exit code %d" % result.returncode)
             error_msg = result.stderr or result.stdout or 'Unknown error'
-            print("Continue CLI error: %s" % error_msg)
-            review_text = "Failed to generate review. Continue CLI error:\n```\n%s\n```" % error_msg
+            print("Error output: %s" % error_msg[:1000])
+            
+            # Try to provide more helpful error messages
+            if "not found" in error_msg.lower() or result.returncode == 127:
+                review_text = "Continue CLI is not properly installed. Please ensure @continuedev/cli is installed globally."
+            elif "config" in error_msg.lower() or "assistant" in error_msg.lower():
+                review_text = "Continue configuration error. Please verify that the assistant '%s' exists in Continue Hub." % continue_config
+            elif "api" in error_msg.lower() or "auth" in error_msg.lower():
+                review_text = "Continue API authentication failed. Please check your CONTINUE_API_KEY."
+            else:
+                review_text = "Failed to generate review. Continue CLI error:\n```\n%s\n```" % error_msg
             
     except subprocess.TimeoutExpired:
         print("Continue CLI timed out")
