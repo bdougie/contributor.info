@@ -58,6 +58,9 @@ runs:
         import sys
         import subprocess
         import tempfile
+        import re
+        import glob
+        from pathlib import Path
         from github import Github
 
         print("=== Continue Review Agent Starting ===")
@@ -105,6 +108,64 @@ runs:
 
         print(f"PR Number: {pr_number}")
 
+        # Function to load Continue rules
+        def load_continue_rules():
+            rules = []
+            rules_dir = Path('.continue/rules')
+            if not rules_dir.exists():
+                print("No .continue/rules directory found")
+                return rules
+            
+            for rule_file in rules_dir.glob('*.md'):
+                try:
+                    with open(rule_file, 'r') as f:
+                        content = f.read()
+                        
+                    # Parse frontmatter
+                    frontmatter = {}
+                    if content.startswith('---'):
+                        parts = content.split('---', 2)
+                        if len(parts) >= 3:
+                            frontmatter_text = parts[1].strip()
+                            rule_content = parts[2].strip()
+                            
+                            # Parse YAML-like frontmatter
+                            for line in frontmatter_text.split('\n'):
+                                if ':' in line:
+                                    key, value = line.split(':', 1)
+                                    frontmatter[key.strip()] = value.strip().strip('"')
+                        else:
+                            rule_content = content
+                    else:
+                        rule_content = content
+                    
+                    rules.append({
+                        'file': rule_file.name,
+                        'globs': frontmatter.get('globs', ''),
+                        'description': frontmatter.get('description', ''),
+                        'alwaysApply': frontmatter.get('alwaysApply', 'true').lower() != 'false',
+                        'content': rule_content
+                    })
+                    print(f"Loaded rule: {rule_file.name}")
+                except Exception as e:
+                    print(f"Error loading rule {rule_file}: {e}")
+            
+            return rules
+
+        # Function to match file patterns
+        def matches_pattern(filename, pattern):
+            if not pattern:
+                return False
+            # Convert glob pattern to regex
+            pattern = pattern.replace('**/', '.*/')
+            pattern = pattern.replace('*', '[^/]*')
+            pattern = pattern.replace('.', r'\.')
+            pattern = pattern.replace('{', '(')
+            pattern = pattern.replace('}', ')')
+            pattern = pattern.replace(',', '|')
+            pattern = '^' + pattern + '$'
+            return bool(re.match(pattern, filename))
+
         try:
             # Initialize GitHub client
             g = Github(github_token)
@@ -114,17 +175,43 @@ runs:
             print(f"PR Title: {pr.title}")
             print(f"PR State: {pr.state}")
             
-            # Get PR diff
+            # Load Continue rules
+            rules = load_continue_rules()
+            print(f"Loaded {len(rules)} rules")
+            
+            # Get PR diff and track filenames
             files = pr.get_files()
             diff_content = []
             file_count = 0
+            changed_files = []
             
             for file in files:
                 file_count += 1
+                changed_files.append(file.filename)
                 if file.patch:
                     diff_content.append(f"=== File: {file.filename} ===\n{file.patch}")
             
             print(f"Files changed: {file_count}")
+            
+            # Find applicable rules
+            applicable_rules = []
+            for rule in rules:
+                # Check if rule always applies
+                if rule['alwaysApply']:
+                    # Skip rules that are marked as alwaysApply: false
+                    if rule['description'] not in ['Generate the PRD spec', 'Generate tasks for the agent to complete.', 'Instructions on how to complete tasks']:
+                        applicable_rules.append(rule)
+                        print(f"Rule '{rule['file']}' always applies")
+                # Check if rule matches any changed files
+                elif rule['globs']:
+                    for filename in changed_files:
+                        if matches_pattern(filename, rule['globs']):
+                            if rule not in applicable_rules:
+                                applicable_rules.append(rule)
+                                print(f"Rule '{rule['file']}' applies to {filename}")
+                            break
+            
+            print(f"Found {len(applicable_rules)} applicable rules")
             
             if not diff_content:
                 print("No changes to review")
@@ -138,6 +225,15 @@ runs:
             max_diff_size = 12000
             if diff_size > max_diff_size:
                 full_diff = full_diff[:max_diff_size] + "\n\n... (diff truncated)"
+            
+            # Build rules section for the prompt
+            rules_section = ""
+            if applicable_rules:
+                rules_section = "\n\n## Project-Specific Rules to Apply\n\n"
+                rules_section += "The following project-specific rules should be considered in this review:\n\n"
+                for rule in applicable_rules:
+                    rules_section += f"### {rule['description'] or rule['file']}\n"
+                    rules_section += f"{rule['content']}\n\n"
             
             # Create review prompt with optional command
             if command:
@@ -153,7 +249,7 @@ runs:
         {command}
 
         Please address the user's specific request while reviewing the code changes below.
-
+        {rules_section}
         Code Changes
         {full_diff}
 
@@ -178,7 +274,7 @@ runs:
         6. Missing edge cases or error handling
 
         If the code looks good, acknowledge that as well. Be specific and actionable in your feedback.
-
+        {rules_section}
         Code Changes
         {full_diff}
 
