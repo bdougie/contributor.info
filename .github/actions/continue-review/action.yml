@@ -49,18 +49,17 @@ runs:
         CONTINUE_ORG: ${{ inputs.continue-org }}
         CONTINUE_CONFIG: ${{ inputs.continue-config }}
       run: |
-        # Copy the review script to current directory if it doesn't exist
+        # Copy the review script to current directory
         SCRIPT_DIR="${{ github.action_path }}"
-        if [ -f "$SCRIPT_DIR/continue_review.py" ]; then
-          cp "$SCRIPT_DIR/continue_review.py" ./continue_review.py
-        else
+        cp "$SCRIPT_DIR/continue_review.py" ./continue_review.py || {
           echo "ERROR: continue_review.py not found in action directory"
+          echo "Looking in: $SCRIPT_DIR"
+          ls -la "$SCRIPT_DIR" || true
           exit 1
-        fi
+        }
         
-        # Export GitHub context and run the script
-        export GITHUB_CONTEXT='${{ toJson(github) }}'
-        python3 ./continue_review.py
+        # Run the review script with GitHub context as environment variable
+        GITHUB_CONTEXT='${{ toJson(github) }}' python3 ./continue_review.py
 
 branding:
   icon: 'code'
