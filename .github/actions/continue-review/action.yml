@@ -1,0 +1,166 @@
+name: 'Continue Base Review'
+description: 'Perform code review using Continue AI on pull requests'
+author: 'Continue'
+
+inputs:
+  continue-api-key:
+    description: 'API key for Continue service'
+    required: true
+  github-token:
+    description: 'GitHub token for API access'
+    required: true
+  model:
+    description: 'Model to use for code review'
+    required: false
+    default: 'claude-3-5-sonnet-20241022'
+  provider:
+    description: 'Provider for the model'
+    required: false
+    default: 'anthropic'
+  api-base:
+    description: 'API base URL for Continue service'
+    required: false
+    default: 'https://api.continue.dev'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+      shell: bash
+
+    - name: Install dependencies
+      run: |
+        pip install requests PyGithub
+      shell: bash
+
+    - name: Run Continue Review
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        CONTINUE_API_KEY: ${{ inputs.continue-api-key }}
+        CONTINUE_MODEL: ${{ inputs.model }}
+        CONTINUE_PROVIDER: ${{ inputs.provider }}
+        CONTINUE_API_BASE: ${{ inputs.api-base }}
+      run: |
+        cat > /tmp/continue_review.py << 'EOF'
+        import os
+        import json
+        import requests
+        from github import Github
+        import sys
+
+        # Get environment variables
+        github_token = os.environ.get('GITHUB_TOKEN')
+        continue_api_key = os.environ.get('CONTINUE_API_KEY')
+        model = os.environ.get('CONTINUE_MODEL', 'claude-3-5-sonnet-20241022')
+        provider = os.environ.get('CONTINUE_PROVIDER', 'anthropic')
+        api_base = os.environ.get('CONTINUE_API_BASE', 'https://api.continue.dev')
+
+        # Get GitHub context
+        github_context = json.loads(os.environ.get('GITHUB_CONTEXT', '{}'))
+        repo_name = github_context.get('repository', '')
+        
+        # Handle different event types
+        event_name = github_context.get('event_name', '')
+        
+        if event_name == 'pull_request':
+            pr_number = github_context.get('event', {}).get('pull_request', {}).get('number')
+        elif event_name == 'issue_comment':
+            pr_number = github_context.get('event', {}).get('issue', {}).get('number')
+        else:
+            print(f"Unsupported event type: {event_name}")
+            sys.exit(0)
+
+        if not pr_number:
+            print("No PR number found")
+            sys.exit(0)
+
+        # Initialize GitHub client
+        g = Github(github_token)
+        repo = g.get_repo(repo_name)
+        pr = repo.get_pull(pr_number)
+
+        # Get PR diff
+        files = pr.get_files()
+        
+        diff_content = []
+        for file in files:
+            if file.patch:
+                diff_content.append(f"File: {file.filename}\n{file.patch}")
+        
+        if not diff_content:
+            print("No changes to review")
+            sys.exit(0)
+
+        full_diff = "\n\n".join(diff_content)
+
+        # Prepare review request
+        review_request = {
+            "model": model,
+            "provider": provider,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a helpful code reviewer. Review the following pull request changes and provide constructive feedback. Focus on code quality, potential bugs, security issues, and best practices."
+                },
+                {
+                    "role": "user",
+                    "content": f"Please review the following pull request changes:\n\n{full_diff[:10000]}"  # Limit diff size
+                }
+            ]
+        }
+
+        # Call Continue API
+        headers = {
+            "Authorization": f"Bearer {continue_api_key}",
+            "Content-Type": "application/json"
+        }
+
+        try:
+            response = requests.post(
+                f"{api_base}/v1/review",
+                json=review_request,
+                headers=headers,
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                review_result = response.json()
+                review_text = review_result.get('content', 'No review generated')
+                
+                # Post review as PR comment
+                comment_body = f"## 🤖 Continue AI Review\n\n{review_text}\n\n---\n*Powered by [Continue](https://continue.dev)*"
+                
+                # Check if this is triggered by a comment
+                if event_name == 'issue_comment':
+                    # Reply to the comment
+                    pr.create_issue_comment(comment_body)
+                else:
+                    # Create a review comment
+                    pr.create_review(body=comment_body, event='COMMENT')
+                
+                print("Review posted successfully")
+            else:
+                print(f"API request failed with status {response.status_code}")
+                print(response.text)
+                
+        except Exception as e:
+            print(f"Error during review: {str(e)}")
+            # Post error message as comment
+            error_comment = f"## ❌ Continue Review Error\n\nFailed to generate review: {str(e)}"
+            pr.create_issue_comment(error_comment)
+
+        EOF
+
+        # Set GitHub context
+        export GITHUB_CONTEXT='${{ toJson(github) }}'
+        
+        # Run the review script
+        python /tmp/continue_review.py
+      shell: bash
+
+branding:
+  icon: 'code'
+  color: 'blue'
