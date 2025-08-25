@@ -212,8 +212,9 @@ Please address the user's specific request while reviewing the code changes belo
     });
 
     // Use headless mode with -p flag and file input
-    const command = `cn --config ${continueConfig} -p @${tempFile}`;
-    core.info(`Executing command: cn --config ${continueConfig} -p @${tempFile}`);
+    // Exclude Bash tool for security - we don't want the bot running arbitrary commands
+    const command = `cn --config ${continueConfig} -p @${tempFile} --exclude Bash`;
+    core.info(`Executing command: cn --config ${continueConfig} -p @${tempFile} --exclude Bash`);
     
     const { stdout, stderr } = await new Promise<{stdout: string; stderr: string}>((resolve, reject) => {
       exec(
