@@ -33,18 +33,23 @@ jobs:
         with:
           fetch-depth: 0  # Full history for better context
       
-      # The action handles GitHub App authentication in multiple ways:
-      # 1. If the action has embedded credentials (built-in), it uses those
-      # 2. If app-id and app-private-key are provided, it uses those
-      # 3. Otherwise, falls back to github-token (comments as github-actions[bot])
+      # Generate GitHub App token if credentials are available
+      # This allows the action to comment as the Continue Review App
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        if: ${{ secrets.CONTINUE_APP_ID && secrets.CONTINUE_APP_PRIVATE_KEY }}
+        with:
+          app-id: ${{ secrets.CONTINUE_APP_ID }}
+          private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY }}
+      
+      # Run the Continue Review action
+      # Uses App token if available, otherwise falls back to GITHUB_TOKEN
       - name: Run Continue Review
         uses: ./actions/continue-review
         with:
           continue-api-key: ${{ secrets.CONTINUE_API_KEY }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}  # Fallback token
+          # Use App token if it was generated, otherwise use GITHUB_TOKEN
+          github-token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           continue-org: 'continuedev'  # Continue's organization
           continue-config: 'continuedev/review-bot'  # Continue's review bot assistant
-          # Only needed if action doesn't have embedded credentials
-          # When properly published, these won't be needed
-          app-id: ${{ secrets.CONTINUE_APP_ID || '' }}
-          app-private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY || '' }}

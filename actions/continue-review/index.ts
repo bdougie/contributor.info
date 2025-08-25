@@ -5,7 +5,6 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { glob } from 'glob';
-import { getAuthenticatedOctokit } from './github-app-auth';
 
 interface Rule {
   file: string;
@@ -424,9 +423,6 @@ async function run(): Promise<void> {
     const continueApiKey = process.env.INPUT_CONTINUE_API_KEY || core.getInput('continue-api-key', { required: true });
     const continueConfig = process.env.INPUT_CONTINUE_CONFIG || core.getInput('continue-config', { required: true });
     const continueOrg = process.env.INPUT_CONTINUE_ORG || core.getInput('continue-org', { required: true });
-    const preferAppAuth = (process.env.INPUT_PREFER_APP_AUTH || core.getInput('prefer-app-auth') || 'true') === 'true';
-    const appId = process.env.INPUT_APP_ID || core.getInput('app-id') || '';
-    const appPrivateKey = process.env.INPUT_APP_PRIVATE_KEY || core.getInput('app-private-key') || '';
 
     // Validate inputs
     if (!githubToken) {
@@ -437,12 +433,6 @@ async function run(): Promise<void> {
     }
     if (!continueConfig) {
       throw new Error('continue-config is required');
-    }
-
-    // Set custom App credentials if provided
-    if (appId && appPrivateKey) {
-      process.env.CONTINUE_APP_ID = appId;
-      process.env.CONTINUE_APP_PRIVATE_KEY = appPrivateKey;
     }
 
     // Get context
@@ -482,7 +472,7 @@ async function run(): Promise<void> {
       core.info('Workflow dispatch event - searching for associated PR');
       
       // Initialize GitHub client early to search for PR
-      const octokit = await getAuthenticatedOctokit(githubToken, owner, repo, preferAppAuth);
+      const octokit = github.getOctokit(githubToken);
       
       // Get the current branch name
       const branch = context.ref.replace('refs/heads/', '');
@@ -517,8 +507,8 @@ async function run(): Promise<void> {
 
     core.info(`Processing PR #${prNumber}`);
 
-    // Initialize GitHub client with App auth if available
-    const octokit = await getAuthenticatedOctokit(githubToken, owner, repo, preferAppAuth);
+    // Initialize GitHub client (token already has App auth if available from workflow)
+    const octokit = github.getOctokit(githubToken);
 
     // Get PR details
     const { data: pr } = await octokit.rest.pulls.get({
