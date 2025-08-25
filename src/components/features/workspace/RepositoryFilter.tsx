@@ -114,7 +114,7 @@ export function RepositoryFilter({
     if (selectedRepositories.length === 1) {
       const repo = repositories.find(r => r.id === selectedRepositories[0]);
       if (repo) {
-        const avatarUrl = repo.avatar_url || `https://github.com/${repo.owner}.png`;
+        const avatarUrl = repo.avatar_url || `https://avatars.githubusercontent.com/${repo.owner}`;
         return (
           <div className="flex items-center gap-2">
             <img
@@ -122,7 +122,7 @@ export function RepositoryFilter({
               alt={repo.owner}
               className="h-4 w-4 rounded flex-shrink-0"
               onError={(e) => {
-                e.currentTarget.src = `https://github.com/${repo.owner}.png`;
+                e.currentTarget.src = `https://avatars.githubusercontent.com/${repo.owner}`;
               }}
             />
             <span className="truncate">{repo.name}</span>
@@ -210,7 +210,7 @@ export function RepositoryFilter({
               <div className="space-y-1">
                 {filteredRepositories.map((repo) => {
                   const isSelected = selectedRepositories.includes(repo.id);
-                  const avatarUrl = repo.avatar_url || `https://github.com/${repo.owner}.png`;
+                  const avatarUrl = repo.avatar_url || `https://avatars.githubusercontent.com/${repo.owner}`;
                   return (
                     <button
                       key={repo.id}
@@ -236,7 +236,7 @@ export function RepositoryFilter({
                           alt={repo.owner}
                           className="h-5 w-5 rounded flex-shrink-0"
                           onError={(e) => {
-                            e.currentTarget.src = `https://github.com/${repo.owner}.png`;
+                            e.currentTarget.src = `https://avatars.githubusercontent.com/${repo.owner}`;
                           }}
                         />
                         <div className="flex-1 min-w-0">
@@ -344,11 +344,11 @@ export function SingleRepositoryFilter({
           {selectedRepo ? (
             <>
               <img
-                src={selectedRepo.avatar_url || `https://github.com/${selectedRepo.owner}.png`}
+                src={selectedRepo.avatar_url || `https://avatars.githubusercontent.com/${selectedRepo.owner}`}
                 alt={selectedRepo.owner}
                 className="h-4 w-4 rounded flex-shrink-0"
                 onError={(e) => {
-                  e.currentTarget.src = `https://github.com/${selectedRepo.owner}.png`;
+                  e.currentTarget.src = `https://avatars.githubusercontent.com/${selectedRepo.owner}`;
                 }}
               />
               <span className="truncate">{selectedRepo.name}</span>
@@ -401,7 +401,7 @@ export function SingleRepositoryFilter({
               <div className="space-y-1">
                 {filteredRepositories.map((repo) => {
                   const isSelected = repo.id === selectedRepository;
-                  const avatarUrl = repo.avatar_url || `https://github.com/${repo.owner}.png`;
+                  const avatarUrl = repo.avatar_url || `https://avatars.githubusercontent.com/${repo.owner}`;
                   return (
                     <button
                       key={repo.id}
@@ -420,7 +420,7 @@ export function SingleRepositoryFilter({
                           alt={repo.owner}
                           className="h-5 w-5 rounded flex-shrink-0"
                           onError={(e) => {
-                            e.currentTarget.src = `https://github.com/${repo.owner}.png`;
+                            e.currentTarget.src = `https://avatars.githubusercontent.com/${repo.owner}`;
                           }}
                         />
                         <div className="flex-1">

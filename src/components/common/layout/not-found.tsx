@@ -221,7 +221,7 @@ export default function NotFound() {
     >
       <div className="flex items-center space-x-3">
         <OrganizationAvatar
-          src={`https://github.com/${repo.owner}.png`}
+          src={`https://avatars.githubusercontent.com/${repo.owner}`}
           alt={repo.owner}
           size={24}
         />

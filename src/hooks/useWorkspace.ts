@@ -103,7 +103,7 @@ const generateMockRepositories = (): Repository[] => {
     contributors: Math.floor(Math.random() * 1000) + 100,
     last_activity: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
     is_pinned: i < 2,
-    avatar_url: `https://github.com/${repo.owner}.png`,
+    avatar_url: `https://avatars.githubusercontent.com/${repo.owner}`,
     html_url: `https://github.com/${repo.owner}/${repo.name}`,
   }));
 };
