@@ -49,6 +49,9 @@ runs:
         import requests
         from github import Github
         import sys
+        import traceback
+
+        print("=== Continue Review Agent Starting ===")
 
         # Get environment variables
         github_token = os.environ.get('GITHUB_TOKEN')
@@ -57,100 +60,121 @@ runs:
         provider = os.environ.get('CONTINUE_PROVIDER', 'anthropic')
         api_base = os.environ.get('CONTINUE_API_BASE', 'https://api.continue.dev')
 
+        print(f"Model: {model}")
+        print(f"Provider: {provider}")
+        print(f"API Base: {api_base}")
+        print(f"API Key present: {bool(continue_api_key)}")
+
         # Get GitHub context
         github_context = json.loads(os.environ.get('GITHUB_CONTEXT', '{}'))
         repo_name = github_context.get('repository', '')
         
+        print(f"Repository: {repo_name}")
+        
         # Handle different event types
         event_name = github_context.get('event_name', '')
+        print(f"Event type: {event_name}")
         
+        pr_number = None
         if event_name == 'pull_request':
             pr_number = github_context.get('event', {}).get('pull_request', {}).get('number')
         elif event_name == 'issue_comment':
             pr_number = github_context.get('event', {}).get('issue', {}).get('number')
+        elif event_name == 'workflow_dispatch':
+            # For manual runs, try to get PR from the context
+            pr_number = github_context.get('event', {}).get('inputs', {}).get('pr_number')
+            if not pr_number:
+                print("Workflow dispatch without PR number, exiting")
+                sys.exit(0)
         else:
             print(f"Unsupported event type: {event_name}")
             sys.exit(0)
 
         if not pr_number:
             print("No PR number found")
+            print(f"Event data: {json.dumps(github_context.get('event', {}), indent=2)}")
             sys.exit(0)
 
-        # Initialize GitHub client
-        g = Github(github_token)
-        repo = g.get_repo(repo_name)
-        pr = repo.get_pull(pr_number)
-
-        # Get PR diff
-        files = pr.get_files()
-        
-        diff_content = []
-        for file in files:
-            if file.patch:
-                diff_content.append(f"File: {file.filename}\n{file.patch}")
-        
-        if not diff_content:
-            print("No changes to review")
-            sys.exit(0)
-
-        full_diff = "\n\n".join(diff_content)
-
-        # Prepare review request
-        review_request = {
-            "model": model,
-            "provider": provider,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are a helpful code reviewer. Review the following pull request changes and provide constructive feedback. Focus on code quality, potential bugs, security issues, and best practices."
-                },
-                {
-                    "role": "user",
-                    "content": f"Please review the following pull request changes:\n\n{full_diff[:10000]}"  # Limit diff size
-                }
-            ]
-        }
-
-        # Call Continue API
-        headers = {
-            "Authorization": f"Bearer {continue_api_key}",
-            "Content-Type": "application/json"
-        }
+        print(f"PR Number: {pr_number}")
 
         try:
-            response = requests.post(
-                f"{api_base}/v1/review",
-                json=review_request,
-                headers=headers,
-                timeout=60
-            )
+            # Initialize GitHub client
+            g = Github(github_token)
+            repo = g.get_repo(repo_name)
+            pr = repo.get_pull(pr_number)
             
-            if response.status_code == 200:
-                review_result = response.json()
-                review_text = review_result.get('content', 'No review generated')
-                
-                # Post review as PR comment
-                comment_body = f"## 🤖 Continue AI Review\n\n{review_text}\n\n---\n*Powered by [Continue](https://continue.dev)*"
-                
-                # Check if this is triggered by a comment
-                if event_name == 'issue_comment':
-                    # Reply to the comment
-                    pr.create_issue_comment(comment_body)
-                else:
-                    # Create a review comment
-                    pr.create_review(body=comment_body, event='COMMENT')
-                
-                print("Review posted successfully")
-            else:
-                print(f"API request failed with status {response.status_code}")
-                print(response.text)
-                
+            print(f"PR Title: {pr.title}")
+            print(f"PR State: {pr.state}")
+
+            # Get PR diff
+            files = pr.get_files()
+            
+            diff_content = []
+            file_count = 0
+            for file in files:
+                file_count += 1
+                if file.patch:
+                    diff_content.append(f"File: {file.filename}\n{file.patch}")
+            
+            print(f"Files changed: {file_count}")
+            
+            if not diff_content:
+                print("No changes to review")
+                sys.exit(0)
+
+            full_diff = "\n\n".join(diff_content)
+            diff_size = len(full_diff)
+            print(f"Diff size: {diff_size} characters")
+
+            # Truncate diff if too large
+            max_diff_size = 8000
+            if diff_size > max_diff_size:
+                full_diff = full_diff[:max_diff_size] + "\n\n... (diff truncated)"
+                print(f"Diff truncated to {max_diff_size} characters")
+
+            # Simple comment for now - Continue API integration can be added later
+            print("Posting review comment...")
+            
+            comment_body = f"""## 🤖 Continue AI Review
+
+This is a test comment to verify the Continue review action is working.
+
+**PR Summary:**
+- Title: {pr.title}
+- Files changed: {file_count}
+- Diff size: {diff_size} characters
+
+The full AI review functionality will be enabled once the Continue API integration is configured.
+
+---
+*Powered by [Continue](https://continue.dev)*"""
+
+            # Post comment
+            comment = pr.create_issue_comment(comment_body)
+            print(f"Comment posted successfully! ID: {comment.id}")
+            
         except Exception as e:
             print(f"Error during review: {str(e)}")
-            # Post error message as comment
-            error_comment = f"## ❌ Continue Review Error\n\nFailed to generate review: {str(e)}"
-            pr.create_issue_comment(error_comment)
+            print(f"Traceback: {traceback.format_exc()}")
+            
+            # Try to post error as comment
+            try:
+                error_comment = f"""## ❌ Continue Review Error
 
+Failed to complete review due to an error:
+```
+{str(e)}
+```
+
+Please check the workflow logs for more details."""
+                pr.create_issue_comment(error_comment)
+                print("Error comment posted")
+            except Exception as e2:
+                print(f"Failed to post error comment: {str(e2)}")
+            
+            sys.exit(1)
+
+        print("=== Continue Review Agent Completed ===")
         EOF
 
         # Set GitHub context
