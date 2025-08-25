@@ -309,9 +309,15 @@ async function postReview(
   if (isProgress) {
     body += review;
   } else {
-    body += '**✅ Review Complete**\n\n';
+    // Check if this is a follow-up review (new comment after 1 hour)
+    const isFollowUp = updateCommentId === undefined && review.includes('Follow-up Review');
+    if (isFollowUp) {
+      body += '**📝 Follow-up Review**\n\n';
+    } else {
+      body += '**✅ Review Complete**\n\n';
+    }
     body += review;
-    body += `\n\n---\n*Last updated: ${timestamp} | Powered by [Continue](https://continue.dev)*`;
+    body += `\n\n---\n*${timestamp} | Powered by [Continue](https://continue.dev)*`;
   }
   
   body = `${marker}\n${body}`;
@@ -341,21 +347,41 @@ async function postReview(
       
       core.info(`Found ${comments.length} existing comments`);
 
-      const existingComment = comments.find(c => 
-        c.body?.includes(marker)
-      );
+      // Find the most recent comment with our marker
+      const continueComments = comments
+        .filter(c => c.body?.includes(marker))
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      
+      const existingComment = continueComments[0]; // Most recent Continue review comment
 
       if (existingComment) {
-        // Update existing comment
-        core.info(`Updating existing comment ${existingComment.id}`);
-        await octokit.rest.issues.updateComment({
-          owner,
-          repo,
-          comment_id: existingComment.id,
-          body,
-        });
-        core.info(`Successfully updated comment ${existingComment.id}`);
-        return existingComment.id;
+        // Check if the comment is less than 1 hour old
+        const commentAge = Date.now() - new Date(existingComment.created_at).getTime();
+        const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
+        
+        if (commentAge < oneHour) {
+          // Update existing comment if it's less than 1 hour old
+          core.info(`Updating existing comment ${existingComment.id} (${Math.round(commentAge / 1000 / 60)} minutes old)`);
+          await octokit.rest.issues.updateComment({
+            owner,
+            repo,
+            comment_id: existingComment.id,
+            body,
+          });
+          core.info(`Successfully updated comment ${existingComment.id}`);
+          return existingComment.id;
+        } else {
+          // Create new comment if the existing one is older than 1 hour
+          core.info(`Existing comment ${existingComment.id} is ${Math.round(commentAge / 1000 / 60)} minutes old, creating new comment for history`);
+          const { data: newComment } = await octokit.rest.issues.createComment({
+            owner,
+            repo,
+            issue_number: prNumber,
+            body,
+          });
+          core.info(`Successfully created new comment ${newComment.id} (preserving history)`);
+          return newComment.id;
+        }
       } else {
         // Create new comment
         core.info(`Creating new comment on PR #${prNumber}`);
