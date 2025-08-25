@@ -61,7 +61,7 @@ export function useMonthlyContributorRankings(owner: string, repo: string) {
             id: item.contributors.id,
             username: item.contributors.username,
             displayName: item.contributors.display_name || item.contributors.username,
-            avatarUrl: item.contributors.avatar_url || `https://github.com/${item.contributors.username}.png`,
+            avatarUrl: item.contributors.avatar_url || `https://avatars.githubusercontent.com/${item.contributors.username}`,
             profileUrl: `https://github.com/${item.contributors.username}`,
             pullRequestsCount: item.pull_requests_count || 0,
             reviewsCount: item.reviews_count || 0,

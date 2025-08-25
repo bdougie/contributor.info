@@ -199,7 +199,7 @@ export function WorkspaceIssuesTable({
         header: 'Repository',
         cell: ({ row }) => {
           const repo = row.original.repository;
-          const avatarUrl = repo.avatar_url || `https://github.com/${repo.owner}.png`;
+          const avatarUrl = repo.avatar_url || `https://avatars.githubusercontent.com/${repo.owner}`;
           
           return (
             <button
@@ -211,7 +211,7 @@ export function WorkspaceIssuesTable({
                 alt={repo.owner}
                 className="h-5 w-5 rounded"
                 onError={(e) => {
-                  e.currentTarget.src = `https://github.com/${repo.owner}.png`;
+                  e.currentTarget.src = `https://avatars.githubusercontent.com/${repo.owner}`;
                 }}
               />
               <span>{repo.name}</span>

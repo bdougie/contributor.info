@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 import { getRepoOwnerAvatarUrl } from '@/lib/utils/avatar';
@@ -44,15 +44,62 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
   const [workspaces, setWorkspaces] = useState<WorkspacePreviewData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const isFetchingRef = useRef(false);
 
   const fetchUserWorkspaces = useCallback(async () => {
+    // Prevent concurrent fetches
+    if (isFetchingRef.current) {
+      return;
+    }
+    
+    isFetchingRef.current = true;
     try {
       setLoading(true);
       setError(null);
 
-      // Check if user is authenticated
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
+      // Check if user is authenticated - with timeout and retry on auth error
+      let user = null;
+      
+      // Add timeout to auth check to prevent hanging
+      const authTimeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Auth check timeout')), 5000)
+      );
+      
+      try {
+        const authResult = await Promise.race([
+          supabase.auth.getUser(),
+          authTimeout
+        ]) as { data: { user: any } | null; error: any };
+        
+        const { data: authData, error: authError } = authResult;
+        
+        // If auth error, try to refresh session
+        if (authError) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            setWorkspaces([]);
+            setLoading(false);
+            return;
+          }
+          // Retry getting user after session refresh
+          const { data: { user: refreshedUser } } = await supabase.auth.getUser();
+          user = refreshedUser;
+        } else {
+          user = authData?.user;
+        }
+      } catch (timeoutError) {
+        // Try to get session directly as fallback
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          user = session.user;
+        } else {
+          setWorkspaces([]);
+          setLoading(false);
+          return;
+        }
+      }
+      
+      if (!user) {
         setWorkspaces([]);
         setLoading(false);
         return;
@@ -230,23 +277,48 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       setWorkspaces([]);
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   }, []);
 
   useEffect(() => {
-    fetchUserWorkspaces();
+    let mounted = true;
+    let loadingTimeout: NodeJS.Timeout;
+    
+    const initFetch = async () => {
+      if (!mounted) return;
+      
+      // Add a timeout to prevent infinite loading state
+      loadingTimeout = setTimeout(() => {
+        if (loading && mounted) {
+          setLoading(false);
+          setError(new Error('Workspace loading timed out. Please refresh the page.'));
+        }
+      }, 15000);
+
+      await fetchUserWorkspaces();
+      clearTimeout(loadingTimeout);
+    };
+    
+    initFetch();
 
     // Listen for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event) => {
+      if (!mounted) return;
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        // Only refetch on actual sign in/out, not token refresh
         await fetchUserWorkspaces();
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [fetchUserWorkspaces]);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      if (loadingTimeout) clearTimeout(loadingTimeout);
+    };
+  }, []); // Empty dependency array - only run once on mount
 
   return {
     workspaces,
