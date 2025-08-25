@@ -70,9 +70,9 @@ runs:
         continue_org = os.environ.get('CONTINUE_ORG')
         continue_config = os.environ.get('CONTINUE_CONFIG')
 
-        print(f"Continue Org: {continue_org}")
-        print(f"Continue Config: {continue_config}")
-        print(f"API Key present: {bool(continue_api_key)}")
+        print("Continue Org: %s" % continue_org)
+        print("Continue Config: %s" % continue_config)
+        print("API Key present: %s" % bool(continue_api_key))
 
         # Validate required parameters
         if not continue_api_key:
@@ -93,8 +93,8 @@ runs:
         repo_name = github_context.get('repository', '')
         event_name = github_context.get('event_name', '')
         
-        print(f"Repository: {repo_name}")
-        print(f"Event type: {event_name}")
+        print("Repository: %s" % repo_name)
+        print("Event type: %s" % event_name)
         
         # Get PR number and check for command
         pr_number = None
@@ -112,27 +112,27 @@ runs:
                     parts = comment_body.split('@continue-agent', 1)
                     if len(parts) > 1:
                         command = parts[1].strip()
-                        print(f"Command detected: {command}")
+                        print("Command detected: %s" % command)
             elif event_name == 'workflow_dispatch':
                 pr_number = github_context.get('event', {}).get('inputs', {}).get('pr_number')
                 if pr_number:
                     pr_number = int(pr_number)  # Ensure it's an integer
         except (ValueError, TypeError) as e:
-            print(f"Error parsing PR number: {e}")
+            print("Error parsing PR number: %s" % str(e))
             sys.exit(1)
         
         if not pr_number:
             print("ERROR: No valid PR number found in context")
-            print(f"Event name: {event_name}")
-            print(f"Context keys: {github_context.keys()}")
+            print("Event name: %s" % event_name)
+            print("Context keys: %s" % str(github_context.keys()))
             sys.exit(0)
         
         # Validate PR number
         if not isinstance(pr_number, int) or pr_number <= 0:
-            print(f"ERROR: Invalid PR number: {pr_number}")
+            print("ERROR: Invalid PR number: %s" % pr_number)
             sys.exit(1)
 
-        print(f"PR Number: {pr_number}")
+        print("PR Number: %s" % pr_number)
 
         # Constants for comment management
         COMMENT_MARKER = "<!-- continue-agent-review -->"
@@ -153,18 +153,18 @@ runs:
                 print("INFO: No .continue/rules directory found")
                 return rules
             
-            print(f"INFO: Loading rules from {rules_dir}")
+            print("INFO: Loading rules from %s" % rules_dir)
             rule_files = list(rules_dir.glob('*.md'))
-            print(f"INFO: Found {len(rule_files)} rule files")
+            print("INFO: Found %d rule files" % len(rule_files))
             
             for rule_file in rule_files:
                 try:
-                    print(f"DEBUG: Processing rule file: {rule_file.name}")
+                    print("DEBUG: Processing rule file: %s" % rule_file.name)
                     with open(rule_file, 'r', encoding='utf-8') as f:
                         content = f.read()
                     
                     if not content.strip():
-                        print(f"WARNING: Empty rule file: {rule_file.name}")
+                        print("WARNING: Empty rule file: %s" % rule_file.name)
                         continue
                         
                     # Parse frontmatter
@@ -184,7 +184,10 @@ runs:
                                     key = key.strip()
                                     value = value.strip().strip('"').strip("'")
                                     frontmatter[key] = value
-                                    print(f"DEBUG: Parsed {key}: {value[:50]}..." if len(value) > 50 else f"DEBUG: Parsed {key}: {value}")
+                                    if len(value) > 50:
+                                        print("DEBUG: Parsed %s: %s..." % (key, value[:50]))
+                                    else:
+                                        print("DEBUG: Parsed %s: %s" % (key, value))
                     
                     rule_data = {
                         'file': rule_file.name,
@@ -194,14 +197,17 @@ runs:
                         'content': rule_content  # Keep full content for accurate reviews
                     }
                     rules.append(rule_data)
-                    print(f"SUCCESS: Loaded rule: {rule_file.name} (alwaysApply={rule_data['alwaysApply']}, globs={rule_data['globs'][:30]}...)" if rule_data['globs'] else f"SUCCESS: Loaded rule: {rule_file.name} (alwaysApply={rule_data['alwaysApply']})")
+                    if rule_data['globs']:
+                        print("SUCCESS: Loaded rule: %s (alwaysApply=%s, globs=%s...)" % (rule_file.name, rule_data['alwaysApply'], rule_data['globs'][:30]))
+                    else:
+                        print("SUCCESS: Loaded rule: %s (alwaysApply=%s)" % (rule_file.name, rule_data['alwaysApply']))
                     
                 except Exception as e:
-                    print(f"ERROR: Failed to load rule {rule_file.name}: {str(e)}")
+                    print("ERROR: Failed to load rule %s: %s" % (rule_file.name, str(e)))
                     import traceback
-                    print(f"DEBUG: Traceback: {traceback.format_exc()}")
+                    print("DEBUG: Traceback: %s" % traceback.format_exc())
             
-            print(f"INFO: Successfully loaded {len(rules)} rules")
+            print("INFO: Successfully loaded %d rules" % len(rules))
             return rules
 
         # Function to match file patterns
@@ -231,29 +237,29 @@ runs:
                 return fnmatch.fnmatch(filename, pattern)
                 
             except Exception as e:
-                print(f"Warning: Pattern matching error for '{pattern}': {e}")
+                print("Warning: Pattern matching error for '%s': %s" % (pattern, str(e)))
                 # Fallback to simple string matching
                 return pattern in filename
 
         try:
             # Initialize GitHub client with retry
-            print(f"INFO: Connecting to GitHub API for {repo_name}")
+            print("INFO: Connecting to GitHub API for %s" % repo_name)
             try:
                 g = Github(github_token, retry=3, timeout=30)
                 repo = g.get_repo(repo_name)
                 pr = repo.get_pull(pr_number)
             except Exception as api_error:
-                print(f"ERROR: Failed to connect to GitHub API: {api_error}")
-                print(f"DEBUG: Repository: {repo_name}, PR: {pr_number}")
+                print("ERROR: Failed to connect to GitHub API: %s" % str(api_error))
+                print("DEBUG: Repository: %s, PR: %s" % (repo_name, pr_number))
                 raise
             
-            print(f"SUCCESS: Connected to PR #{pr_number}")
-            print(f"INFO: PR Title: {pr.title}")
-            print(f"INFO: PR State: {pr.state}")
+            print("SUCCESS: Connected to PR #%s" % pr_number)
+            print("INFO: PR Title: %s" % pr.title)
+            print("INFO: PR State: %s" % pr.state)
             
             # Validate PR state
             if pr.state == 'closed':
-                print(f"WARNING: PR #{pr_number} is closed, but continuing review...")
+                print("WARNING: PR #%s is closed, but continuing review..." % pr_number)
             
             # Check for existing review comment
             existing_comment = find_existing_comment(pr, COMMENT_MARKER)
@@ -294,14 +300,14 @@ runs:
             
             if existing_comment:
                 existing_comment.edit(progress_body)
-                print(f"Updated existing comment with progress indicator")
+                print("Updated existing comment with progress indicator")
             else:
                 existing_comment = pr.create_issue_comment(progress_body)
-                print(f"Created progress comment ID: {existing_comment.id}")
+                print("Created progress comment ID: %s" % existing_comment.id)
             
             # Load Continue rules
             rules = load_continue_rules()
-            print(f"Loaded {len(rules)} rules")
+            print("Loaded %d rules" % len(rules))
             
             # Get PR diff and track filenames
             files = pr.get_files()
@@ -315,7 +321,7 @@ runs:
                 if file.patch:
                     diff_content.append(f"=== File: {file.filename} ===\n{file.patch}")
             
-            print(f"Files changed: {file_count}")
+            print("Files changed: %d" % file_count)
             
             # Find applicable rules
             applicable_rules = []
@@ -325,17 +331,17 @@ runs:
                     # Skip rules that are marked as alwaysApply: false
                     if rule['description'] not in ['Generate the PRD spec', 'Generate tasks for the agent to complete.', 'Instructions on how to complete tasks']:
                         applicable_rules.append(rule)
-                        print(f"Rule '{rule['file']}' always applies")
+                        print("Rule '%s' always applies" % rule['file'])
                 # Check if rule matches any changed files
                 elif rule['globs']:
                     for filename in changed_files:
                         if matches_pattern(filename, rule['globs']):
                             if rule not in applicable_rules:
                                 applicable_rules.append(rule)
-                                print(f"Rule '{rule['file']}' applies to {filename}")
+                                print("Rule '%s' applies to %s" % (rule['file'], filename))
                             break
             
-            print(f"Found {len(applicable_rules)} applicable rules")
+            print("Found %d applicable rules" % len(applicable_rules))
             
             if not diff_content:
                 print("No changes to review")
@@ -343,7 +349,7 @@ runs:
             
             full_diff = "\n\n".join(diff_content)
             diff_size = len(full_diff)
-            print(f"Diff size: {diff_size} characters")
+            print("Diff size: %d characters" % diff_size)
             
             # Truncate if too large
             max_diff_size = 12000
@@ -410,7 +416,7 @@ runs:
                 f.write(review_prompt)
                 prompt_file = f.name
             
-            print(f"Prompt written to: {prompt_file}")
+            print("Prompt written to: %s" % prompt_file)
             
             # Call Continue CLI
             print("Calling Continue CLI for review...")
@@ -422,7 +428,7 @@ runs:
                 '-p', f'@{prompt_file}'  # Use @ to read from file
             ]
             
-            print(f"Command: {' '.join(cmd)}")
+            print("Command: %s" % ' '.join(cmd))
             
             # Set up environment for Continue CLI
             env = os.environ.copy()
@@ -438,12 +444,12 @@ runs:
                     timeout=120  # Increased timeout for larger reviews
                 )
                 
-                print(f"INFO: Continue CLI exit code: {result.returncode}")
+                print("INFO: Continue CLI exit code: %d" % result.returncode)
                 
                 if result.stdout:
-                    print(f"DEBUG: CLI stdout length: {len(result.stdout)} chars")
+                    print("DEBUG: CLI stdout length: %d chars" % len(result.stdout))
                 if result.stderr:
-                    print(f"WARNING: CLI stderr: {result.stderr[:500]}")
+                    print("WARNING: CLI stderr: %s" % result.stderr[:500])
                 
                 if result.returncode == 0:
                     # Get the plain text response
@@ -474,7 +480,7 @@ runs:
                     print("Review generated successfully")
                 else:
                     error_msg = result.stderr or result.stdout or 'Unknown error'
-                    print(f"Continue CLI error: {error_msg}")
+                    print("Continue CLI error: %s" % error_msg)
                     review_text = f"Failed to generate review. Continue CLI error:\n```\n{error_msg}\n```"
                     
             except subprocess.TimeoutExpired:
@@ -484,7 +490,7 @@ runs:
                 print("Continue CLI not found")
                 review_text = "Continue CLI is not installed or not in PATH. Please ensure @continuedev/cli is installed."
             except Exception as e:
-                print(f"Error calling Continue CLI: {str(e)}")
+                print("Error calling Continue CLI: %s" % str(e))
                 review_text = f"Error calling Continue service: {str(e)}"
             
             finally:
@@ -543,7 +549,7 @@ runs:
             comment_body += "## 🤖 Continue Agent Review\n\n"
             
             if command:
-                comment_body += f"**Responding to:** `@continue-agent {command}`\n\n"
+                comment_body += "**Responding to:** `@continue-agent %s`\n\n" % command
             else:
                 comment_body += "**✅ Review Complete**\n\n"
             
@@ -562,22 +568,22 @@ runs:
                 comment_body += "\n".join(current_feedback) + "\n\n"
             
             comment_body += "---\n"
-            comment_body += f"*Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')} | Powered by [Continue](https://continue.dev)*"
+            comment_body += "*Last updated: %s | Powered by [Continue](https://continue.dev)*" % datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
             
             # Update the existing comment
             print("Updating comment with review...")
             if existing_comment:
                 existing_comment.edit(comment_body)
-                print(f"Updated comment ID: {existing_comment.id}")
+                print("Updated comment ID: %s" % existing_comment.id)
             else:
                 # Fallback if somehow the comment was deleted
                 comment = pr.create_issue_comment(comment_body)
-                print(f"Created new comment ID: {comment.id}")
+                print("Created new comment ID: %s" % comment.id)
             
         except Exception as e:
-            print(f"Error during review: {str(e)}")
+            print("Error during review: %s" % str(e))
             import traceback
-            print(f"Traceback: {traceback.format_exc()}")
+            print("Traceback: %s" % traceback.format_exc())
             
             # Try to update comment with error
             try:
@@ -592,7 +598,7 @@ runs:
                 error_body += "2. Continue CLI is installed\n"
                 error_body += "3. Workflow logs for details\n\n"
                 error_body += "---\n"
-                error_body += f"*Error occurred at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}*"
+                error_body += "*Error occurred at: %s*" % datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
                 
                 if 'existing_comment' in locals() and existing_comment:
                     existing_comment.edit(error_body)
