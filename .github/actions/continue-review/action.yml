@@ -132,20 +132,113 @@ runs:
                 full_diff = full_diff[:max_diff_size] + "\n\n... (diff truncated)"
                 print(f"Diff truncated to {max_diff_size} characters")
 
-            # Simple comment for now - Continue API integration can be added later
-            print("Posting review comment...")
-            
-            comment_body = "## 🤖 Continue AI Review\n\n"
-            comment_body += "This is a test comment to verify the Continue review action is working.\n\n"
-            comment_body += "**PR Summary:**\n"
-            comment_body += f"- Title: {pr.title}\n"
-            comment_body += f"- Files changed: {file_count}\n"
-            comment_body += f"- Diff size: {diff_size} characters\n\n"
-            comment_body += "The full AI review functionality will be enabled once the Continue API integration is configured.\n\n"
-            comment_body += "---\n"
-            comment_body += "*Powered by [Continue](https://continue.dev)*"
+            # Check if Continue API key is available
+            if not continue_api_key:
+                print("No Continue API key found, posting test comment")
+                comment_body = "## 🤖 Continue AI Review\n\n"
+                comment_body += "⚠️ **Test Mode**: Continue API key not configured.\n\n"
+                comment_body += "**PR Summary:**\n"
+                comment_body += f"- Title: {pr.title}\n"
+                comment_body += f"- Files changed: {file_count}\n"
+                comment_body += f"- Diff size: {diff_size} characters\n\n"
+                comment_body += "To enable AI reviews, set the `CONTINUE_API_KEY` secret in repository settings.\n\n"
+                comment_body += "---\n"
+                comment_body += "*Powered by [Continue](https://continue.dev)*"
+            else:
+                print("Continue API key found, generating AI review...")
+                
+                # Prepare the prompt for the AI
+                prompt = f"Review this pull request and provide constructive feedback:\n\n"
+                prompt += f"PR Title: {pr.title}\n"
+                prompt += f"Files changed: {file_count}\n\n"
+                prompt += f"Changes:\n{full_diff}"
+                
+                # Call Continue API or use a standard AI API
+                # For now, we'll use a simple format that could work with various APIs
+                review_request = {
+                    "model": model,
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": "You are a helpful code reviewer. Review the pull request changes and provide constructive feedback. Focus on: 1) Code quality and best practices, 2) Potential bugs or issues, 3) Security concerns, 4) Performance implications, 5) Suggestions for improvement."
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    "temperature": 0.3,
+                    "max_tokens": 2000
+                }
+                
+                # Try different API endpoints based on provider
+                api_url = api_base
+                if provider == "anthropic":
+                    api_url = "https://api.anthropic.com/v1/messages"
+                    headers = {
+                        "x-api-key": continue_api_key,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json"
+                    }
+                elif provider == "openai":
+                    api_url = "https://api.openai.com/v1/chat/completions"
+                    headers = {
+                        "Authorization": f"Bearer {continue_api_key}",
+                        "Content-Type": "application/json"
+                    }
+                else:
+                    # Default Continue API
+                    api_url = f"{api_base}/v1/chat/completions"
+                    headers = {
+                        "Authorization": f"Bearer {continue_api_key}",
+                        "Content-Type": "application/json"
+                    }
+                
+                print(f"Calling API: {api_url}")
+                
+                try:
+                    response = requests.post(api_url, json=review_request, headers=headers, timeout=30)
+                    print(f"API Response Status: {response.status_code}")
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        
+                        # Extract review text based on provider format
+                        if provider == "anthropic":
+                            review_text = result.get("content", [{}])[0].get("text", "No review generated")
+                        else:
+                            # OpenAI/Continue format
+                            review_text = result.get("choices", [{}])[0].get("message", {}).get("content", "No review generated")
+                        
+                        comment_body = "## 🤖 Continue AI Review\n\n"
+                        comment_body += review_text
+                        comment_body += "\n\n---\n"
+                        comment_body += "*Powered by [Continue](https://continue.dev)*"
+                    else:
+                        print(f"API Error: {response.text}")
+                        comment_body = "## 🤖 Continue AI Review\n\n"
+                        comment_body += f"⚠️ Failed to generate AI review (API returned {response.status_code})\n\n"
+                        comment_body += "**PR Summary:**\n"
+                        comment_body += f"- Title: {pr.title}\n"
+                        comment_body += f"- Files changed: {file_count}\n"
+                        comment_body += f"- Diff size: {diff_size} characters\n\n"
+                        comment_body += "Please check the Continue API configuration.\n\n"
+                        comment_body += "---\n"
+                        comment_body += "*Powered by [Continue](https://continue.dev)*"
+                        
+                except requests.exceptions.RequestException as req_err:
+                    print(f"Request failed: {str(req_err)}")
+                    comment_body = "## 🤖 Continue AI Review\n\n"
+                    comment_body += f"⚠️ Failed to connect to API: {str(req_err)}\n\n"
+                    comment_body += "**PR Summary:**\n"
+                    comment_body += f"- Title: {pr.title}\n"
+                    comment_body += f"- Files changed: {file_count}\n"
+                    comment_body += f"- Diff size: {diff_size} characters\n\n"
+                    comment_body += "---\n"
+                    comment_body += "*Powered by [Continue](https://continue.dev)*"
 
             # Post comment
+            print("Posting review comment...")
             comment = pr.create_issue_comment(comment_body)
             print(f"Comment posted successfully! ID: {comment.id}")
             
