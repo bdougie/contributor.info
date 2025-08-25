@@ -21,8 +21,17 @@ jobs:
        github.event.issue.pull_request && 
        contains(github.event.comment.body, '@continue-agent')) ||
       github.event_name == 'workflow_dispatch'
+    
+    permissions:
+      contents: read        # Read code for review
+      pull-requests: write  # Post review comments
+      issues: write        # Update issue comments
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0  # Full history for better context
       
       - name: Generate GitHub App Token
         uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # v2.0.0
@@ -30,6 +39,13 @@ jobs:
         with:
           app-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          # Limit token permissions to only what's needed
+          permissions: >-
+            {
+              "contents": "read",
+              "pull_requests": "write",
+              "issues": "write"
+            }
       
       # Use local action until Continue merges GitHub App token support
       - name: Run Continue Review
