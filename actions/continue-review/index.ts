@@ -304,17 +304,17 @@ async function postReview(
   core.info(`Posting review comment to PR #${prNumber} (isProgress: ${isProgress})`);
   core.info(`Review length: ${review.length} characters`);
   
-  let body = `## 🤖 Continue Agent Review\n\n`;
+  let body = '';
   
   if (isProgress) {
-    body += review;
+    body = review;
   } else {
     // Check if this is a follow-up review (new comment after 1 hour)
     const isFollowUp = updateCommentId === undefined && review.includes('Follow-up Review');
     if (isFollowUp) {
-      body += '**📝 Follow-up Review**\n\n';
+      body = '**📝 Follow-up Review**\n\n';
     } else {
-      body += '**✅ Review Complete**\n\n';
+      body = '**✅ Review Complete**\n\n';
     }
     body += review;
     body += `\n\n---\n*${timestamp} | Powered by [Continue](https://continue.dev)*`;
