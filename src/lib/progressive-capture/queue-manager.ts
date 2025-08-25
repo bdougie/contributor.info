@@ -662,21 +662,38 @@ export class DataCaptureQueueManager {
     let queuedCount = 0;
     for (const repo of workspaceRepos) {
       try {
-        const repoData = repo.tracked_repositories?.repositories;
-        if (!repoData) continue;
+        // Access nested data - handle both object and array cases
+        const trackedRepo = (repo as Record<string, unknown>).tracked_repositories;
+        if (!trackedRepo) continue;
+        
+        // Get the repositories data (handle both array and object)
+        const repositories = Array.isArray(trackedRepo) 
+          ? trackedRepo[0]?.repositories 
+          : (trackedRepo as Record<string, unknown>).repositories;
+          
+        const repoData = Array.isArray(repositories) ? repositories[0] : repositories;
+        
+        if (!repoData || typeof repoData !== 'object') continue;
+        
+        // Extract repository fields
+        const repoInfo = repoData as Record<string, unknown>;
+        const repositoryId = repoInfo.id as string;
+        const fullName = repoInfo.full_name as string;
+        
+        if (!repositoryId || !fullName) continue;
 
         const { error: insertError } = await supabase
           .from('data_capture_queue')
           .insert({
             type: 'workspace_issues',
             priority: repo.priority_score >= 70 ? 'high' : repo.priority_score >= 50 ? 'medium' : 'low',
-            repository_id: repoData.id,
+            repository_id: repositoryId,
             resource_id: `${hoursBack}h`,
             estimated_api_calls: 5, // Estimate for issues in time window
             metadata: { 
               workspace_id: repo.workspace_id,
               tracked_repository_id: repo.tracked_repository_id,
-              repository_name: repoData.full_name,
+              repository_name: fullName,
               hours_back: hoursBack,
               reason: 'workspace_sync'
             }
@@ -685,7 +702,7 @@ export class DataCaptureQueueManager {
         if (!insertError) {
           queuedCount++;
         } else if (insertError.code !== '23505') { // Ignore duplicate key errors
-          console.warn(`[Queue] Failed to queue issues for ${repoData.full_name}:`, insertError);
+          console.warn(`[Queue] Failed to queue issues for ${fullName}:`, insertError);
         }
       } catch (err) {
         console.warn('[Queue] Error queuing workspace issues:', err);
