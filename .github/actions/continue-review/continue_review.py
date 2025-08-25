@@ -272,7 +272,7 @@ try:
         file_count += 1
         changed_files.append(file.filename)
         if file.patch:
-            diff_content.append(f"=== File: {file.filename} ===\n{file.patch}")
+            diff_content.append("=== File: %s ===\n%s" % (file.filename, file.patch))
     
     print("Files changed: %d" % file_count)
     
@@ -315,12 +315,12 @@ try:
         rules_section = "\n\n## Project-Specific Rules to Apply\n\n"
         rules_section += "The following project-specific rules should be considered in this review:\n\n"
         for rule in applicable_rules:
-            rules_section += f"### {rule['description'] or rule['file']}\n"
-            rules_section += f"{rule['content']}\n\n"
+            rules_section += "### %s\n" % (rule['description'] or rule['file'])
+            rules_section += "%s\n\n" % rule['content']
     
     # Create review prompt with optional command
     if command:
-        review_prompt = f"""You are reviewing a pull request. The user has provided a specific request: "{command}"
+        review_prompt = """You are reviewing a pull request. The user has provided a specific request: "%s""" % command
 
 Pull Request Information
 - Title: {pr.title}
@@ -339,7 +339,7 @@ Code Changes
 Your Review
 Please provide a review that addresses the user's request: {command}"""
     else:
-        review_prompt = f"""You are reviewing a pull request. Please provide constructive feedback.
+        review_prompt = """You are reviewing a pull request. Please provide constructive feedback.
 
 Pull Request Information
 - Title: {pr.title}
@@ -378,7 +378,7 @@ Please provide a comprehensive code review for this pull request."""
         '--readonly',
         '--org', continue_org,
         '--config', continue_config,
-        '-p', f'@{prompt_file}'  # Use @ to read from file
+        '-p', '@%s' % prompt_file  # Use @ to read from file
     ]
     
     print("Command: %s" % ' '.join(cmd))
@@ -434,7 +434,7 @@ Please provide a comprehensive code review for this pull request."""
         else:
             error_msg = result.stderr or result.stdout or 'Unknown error'
             print("Continue CLI error: %s" % error_msg)
-            review_text = f"Failed to generate review. Continue CLI error:\n```\n{error_msg}\n```"
+            review_text = "Failed to generate review. Continue CLI error:\n```\n%s\n```" % error_msg
             
     except subprocess.TimeoutExpired:
         print("Continue CLI timed out")
@@ -444,7 +444,7 @@ Please provide a comprehensive code review for this pull request."""
         review_text = "Continue CLI is not installed or not in PATH. Please ensure @continuedev/cli is installed."
     except Exception as e:
         print("Error calling Continue CLI: %s" % str(e))
-        review_text = f"Error calling Continue service: {str(e)}"
+        review_text = "Error calling Continue service: %s" % str(e)
     
     finally:
         # Clean up temp file
@@ -484,9 +484,9 @@ Please provide a comprehensive code review for this pull request."""
         if resolved_count > 0 or pending_count > 0:
             progress_summary = "### Progress Update\n"
             if resolved_count > 0:
-                progress_summary += f"✅ **{resolved_count} previous issue(s) appear to be resolved!**\n"
+                progress_summary += "✅ **%d previous issue(s) appear to be resolved!**\n" % resolved_count
             if pending_count > 0:
-                progress_summary += f"⚠️ {pending_count} item(s) may still need attention\n"
+                progress_summary += "⚠️ %d item(s) may still need attention\n" % pending_count
     
     # Extract key points from current review for future tracking
     current_feedback = []
