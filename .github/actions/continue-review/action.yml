@@ -1,72 +1,85 @@
-name: 'Continue Base Review'
-description: 'Perform code review using Continue AI on pull requests'
+name: 'Continue Agent Review'
+description: 'Perform code review using Continue Agent on pull requests'
 author: 'Continue'
 
 inputs:
   continue-api-key:
-    description: 'API key for AI service (Anthropic or OpenAI)'
+    description: 'API key for Continue service'
     required: true
   github-token:
     description: 'GitHub token for API access'
     required: true
-  model:
-    description: 'Model to use for code review'
+  continue-org:
+    description: 'Continue organization name'
     required: false
-    default: 'claude-3-5-sonnet-20241022'
-  provider:
-    description: 'Provider for the model (anthropic or openai)'
+    default: 'contributor-info'
+  continue-config:
+    description: 'Continue configuration path'
     required: false
-    default: 'anthropic'
+    default: 'contributor-info/review-bot'
 
 runs:
   using: 'composite'
   steps:
-    - name: Setup Python
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Continue CLI
+      run: |
+        npm install -g @continuedev/cli@latest
+        echo "Continue CLI installed successfully"
+        cn --version || echo "Continue CLI version check failed"
+      shell: bash
+
+    - name: Setup Python for GitHub interaction
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
 
-    - name: Install dependencies
+    - name: Install Python dependencies
       run: |
-        pip install requests PyGithub anthropic openai
+        pip install PyGithub
       shell: bash
 
-    - name: Run Continue Review
+    - name: Generate and Run Review
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
         CONTINUE_API_KEY: ${{ inputs.continue-api-key }}
-        CONTINUE_MODEL: ${{ inputs.model }}
-        CONTINUE_PROVIDER: ${{ inputs.provider }}
+        CONTINUE_ORG: ${{ inputs.continue-org }}
+        CONTINUE_CONFIG: ${{ inputs.continue-config }}
       run: |
+        # Python script to prepare review and post results
         cat > /tmp/continue_review.py << 'EOF'
         import os
         import json
         import sys
-        import traceback
+        import subprocess
+        import tempfile
         from github import Github
 
         print("=== Continue Review Agent Starting ===")
 
         # Get environment variables
         github_token = os.environ.get('GITHUB_TOKEN')
-        api_key = os.environ.get('CONTINUE_API_KEY')
-        model = os.environ.get('CONTINUE_MODEL', 'claude-3-5-sonnet-20241022')
-        provider = os.environ.get('CONTINUE_PROVIDER', 'anthropic').lower()
+        continue_api_key = os.environ.get('CONTINUE_API_KEY')
+        continue_org = os.environ.get('CONTINUE_ORG', 'contributor-info')
+        continue_config = os.environ.get('CONTINUE_CONFIG', 'contributor-info/review-bot')
 
-        print(f"Model: {model}")
-        print(f"Provider: {provider}")
-        print(f"API Key present: {bool(api_key)}")
+        print(f"Continue Org: {continue_org}")
+        print(f"Continue Config: {continue_config}")
+        print(f"API Key present: {bool(continue_api_key)}")
 
         # Get GitHub context
         github_context = json.loads(os.environ.get('GITHUB_CONTEXT', '{}'))
         repo_name = github_context.get('repository', '')
+        event_name = github_context.get('event_name', '')
         
         print(f"Repository: {repo_name}")
-        
-        # Handle different event types
-        event_name = github_context.get('event_name', '')
         print(f"Event type: {event_name}")
         
+        # Get PR number
         pr_number = None
         if event_name == 'pull_request':
             pr_number = github_context.get('event', {}).get('pull_request', {}).get('number')
@@ -74,15 +87,9 @@ runs:
             pr_number = github_context.get('event', {}).get('issue', {}).get('number')
         elif event_name == 'workflow_dispatch':
             pr_number = github_context.get('event', {}).get('inputs', {}).get('pr_number')
-            if not pr_number:
-                print("Workflow dispatch without PR number, exiting")
-                sys.exit(0)
-        else:
-            print(f"Unsupported event type: {event_name}")
-            sys.exit(0)
-
+        
         if not pr_number:
-            print("No PR number found")
+            print("No PR number found, exiting")
             sys.exit(0)
 
         print(f"PR Number: {pr_number}")
@@ -95,117 +102,134 @@ runs:
             
             print(f"PR Title: {pr.title}")
             print(f"PR State: {pr.state}")
-
+            
             # Get PR diff
             files = pr.get_files()
-            
             diff_content = []
             file_count = 0
+            
             for file in files:
                 file_count += 1
                 if file.patch:
-                    diff_content.append(f"File: {file.filename}\n{file.patch}")
+                    diff_content.append(f"=== File: {file.filename} ===\n{file.patch}")
             
             print(f"Files changed: {file_count}")
             
             if not diff_content:
                 print("No changes to review")
                 sys.exit(0)
-
+            
             full_diff = "\n\n".join(diff_content)
             diff_size = len(full_diff)
             print(f"Diff size: {diff_size} characters")
-
-            # Truncate diff if too large
-            max_diff_size = 10000
+            
+            # Truncate if too large
+            max_diff_size = 12000
             if diff_size > max_diff_size:
                 full_diff = full_diff[:max_diff_size] + "\n\n... (diff truncated)"
-                print(f"Diff truncated to {max_diff_size} characters")
+            
+            # Create review prompt
+            review_prompt = f"""You are reviewing a pull request. Please provide constructive feedback.
 
-            # Check if API key is available
-            if not api_key:
-                print("No API key found, posting informational comment")
-                comment_body = "## 🤖 Continue AI Review\n\n"
-                comment_body += "⚠️ **Configuration Required**: API key not set.\n\n"
-                comment_body += "**PR Summary:**\n"
-                comment_body += f"- Title: {pr.title}\n"
-                comment_body += f"- Files changed: {file_count}\n"
-                comment_body += f"- Diff size: {diff_size} characters\n\n"
-                comment_body += "To enable AI reviews:\n"
-                comment_body += "1. Add `CONTINUE_API_KEY` secret with your Anthropic or OpenAI API key\n"
-                comment_body += "2. The review will automatically generate on PR events\n\n"
-                comment_body += "---\n"
-                comment_body += "*Powered by [Continue](https://continue.dev)*"
-            else:
-                print(f"Generating AI review using {provider}...")
-                
-                review_prompt = f"""Review this pull request and provide constructive feedback.
+## Pull Request Information
+- **Title**: {pr.title}
+- **Description**: {pr.body or 'No description provided'}
+- **Files changed**: {file_count}
+- **Repository**: {repo_name}
 
-PR Title: {pr.title}
-Files changed: {file_count}
-
-Focus on:
+## Review Guidelines
+Please focus on:
 1. Code quality and best practices
-2. Potential bugs or issues  
-3. Security concerns
+2. Potential bugs or logic errors
+3. Security vulnerabilities
 4. Performance implications
-5. Suggestions for improvement
+5. Code clarity and maintainability
+6. Missing edge cases or error handling
 
-Be specific and actionable in your feedback. If the code looks good, acknowledge that too.
+If the code looks good, acknowledge that as well. Be specific and actionable in your feedback.
 
-Changes:
-{full_diff}"""
+## Code Changes
+{full_diff}
 
-                review_text = None
+## Your Review
+Please provide a comprehensive code review for this pull request."""
+
+            # Write prompt to file for Continue CLI
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+                f.write(review_prompt)
+                prompt_file = f.name
+            
+            print(f"Prompt written to: {prompt_file}")
+            
+            # Call Continue CLI
+            print("Calling Continue CLI for review...")
+            cmd = [
+                'cn',
+                '--readonly',
+                '--format', 'json',
+                '--org', continue_org,
+                '--config', continue_config,
+                '-p', f'@{prompt_file}'  # Use @ to read from file
+            ]
+            
+            print(f"Command: {' '.join(cmd)}")
+            
+            # Set up environment for Continue CLI
+            env = os.environ.copy()
+            env['CONTINUE_API_KEY'] = continue_api_key
+            
+            try:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    env=env,
+                    timeout=60
+                )
                 
-                if provider == 'anthropic':
+                print(f"Continue CLI exit code: {result.returncode}")
+                
+                if result.returncode == 0:
+                    # Parse the response
                     try:
-                        import anthropic
-                        client = anthropic.Anthropic(api_key=api_key)
-                        
-                        message = client.messages.create(
-                            model=model,
-                            max_tokens=2000,
-                            temperature=0.3,
-                            system="You are an expert code reviewer. Provide clear, constructive feedback on pull requests. Be concise but thorough.",
-                            messages=[
-                                {"role": "user", "content": review_prompt}
-                            ]
-                        )
-                        review_text = message.content[0].text
-                        print("Successfully generated review with Anthropic")
-                    except Exception as e:
-                        print(f"Anthropic API error: {str(e)}")
-                        review_text = f"Failed to generate review: {str(e)}"
-                        
-                elif provider == 'openai':
-                    try:
-                        import openai
-                        client = openai.OpenAI(api_key=api_key)
-                        
-                        response = client.chat.completions.create(
-                            model=model if 'gpt' in model else 'gpt-4-turbo-preview',
-                            messages=[
-                                {"role": "system", "content": "You are an expert code reviewer. Provide clear, constructive feedback on pull requests. Be concise but thorough."},
-                                {"role": "user", "content": review_prompt}
-                            ],
-                            temperature=0.3,
-                            max_tokens=2000
-                        )
-                        review_text = response.choices[0].message.content
-                        print("Successfully generated review with OpenAI")
-                    except Exception as e:
-                        print(f"OpenAI API error: {str(e)}")
-                        review_text = f"Failed to generate review: {str(e)}"
+                        response = json.loads(result.stdout)
+                        review_text = response.get('response', response.get('content', result.stdout))
+                    except json.JSONDecodeError:
+                        # If not JSON, use raw output
+                        review_text = result.stdout
+                    
+                    if not review_text or review_text.strip() == '':
+                        review_text = "The Continue service returned an empty response. Please check the configuration."
+                    
+                    print("Review generated successfully")
                 else:
-                    review_text = f"Unsupported provider: {provider}. Please use 'anthropic' or 'openai'."
-                
-                # Build the comment
-                comment_body = "## 🤖 Continue AI Review\n\n"
-                comment_body += review_text
-                comment_body += "\n\n---\n"
-                comment_body += f"*Model: {model} | Powered by [Continue](https://continue.dev)*"
-
+                    error_msg = result.stderr or result.stdout or 'Unknown error'
+                    print(f"Continue CLI error: {error_msg}")
+                    review_text = f"Failed to generate review. Continue CLI error:\n```\n{error_msg}\n```"
+                    
+            except subprocess.TimeoutExpired:
+                print("Continue CLI timed out")
+                review_text = "Review generation timed out. The diff may be too large or the service may be slow."
+            except FileNotFoundError:
+                print("Continue CLI not found")
+                review_text = "Continue CLI is not installed or not in PATH. Please ensure @continuedev/cli is installed."
+            except Exception as e:
+                print(f"Error calling Continue CLI: {str(e)}")
+                review_text = f"Error calling Continue service: {str(e)}"
+            
+            finally:
+                # Clean up temp file
+                try:
+                    os.unlink(prompt_file)
+                except:
+                    pass
+            
+            # Build comment
+            comment_body = "## 🤖 Continue Agent Review\n\n"
+            comment_body += review_text
+            comment_body += "\n\n---\n"
+            comment_body += f"*Powered by [Continue](https://continue.dev) | Config: {continue_config}*"
+            
             # Post comment
             print("Posting review comment...")
             comment = pr.create_issue_comment(comment_body)
@@ -213,28 +237,33 @@ Changes:
             
         except Exception as e:
             print(f"Error during review: {str(e)}")
+            import traceback
             print(f"Traceback: {traceback.format_exc()}")
             
-            # Try to post error as comment
+            # Try to post error comment
             try:
                 error_comment = "## ❌ Continue Review Error\n\n"
-                error_comment += "Failed to complete review due to an error:\n"
-                error_comment += f"```\n{str(e)}\n```\n\n"
-                error_comment += "Please check the workflow logs for more details."
+                error_comment += f"Failed to complete review:\n```\n{str(e)}\n```\n\n"
+                error_comment += "Please check:\n"
+                error_comment += "1. CONTINUE_API_KEY is set correctly\n"
+                error_comment += "2. Continue CLI is installed\n"
+                error_comment += "3. Workflow logs for details"
+                
+                g = Github(github_token)
+                repo = g.get_repo(repo_name)
+                pr = repo.get_pull(pr_number)
                 pr.create_issue_comment(error_comment)
                 print("Error comment posted")
-            except Exception as e2:
-                print(f"Failed to post error comment: {str(e2)}")
+            except:
+                print("Failed to post error comment")
             
             sys.exit(1)
-
+        
         print("=== Continue Review Agent Completed ===")
         EOF
-
-        # Set GitHub context
-        export GITHUB_CONTEXT='${{ toJson(github) }}'
         
-        # Run the review script
+        # Export GitHub context and run the script
+        export GITHUB_CONTEXT='${{ toJson(github) }}'
         python /tmp/continue_review.py
       shell: bash
 
