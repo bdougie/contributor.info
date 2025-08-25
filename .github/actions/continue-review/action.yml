@@ -58,8 +58,9 @@ runs:
           exit 1
         }
         
-        # Run the review script with GitHub context as environment variable
-        GITHUB_CONTEXT='${{ toJson(github) }}' python3 ./continue_review.py
+        # Export GitHub context as base64 to avoid shell escaping issues
+        export GITHUB_CONTEXT_B64=$(echo '${{ toJson(github) }}' | base64)
+        python3 ./continue_review.py
 
 branding:
   icon: 'code'
