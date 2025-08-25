@@ -14,10 +14,12 @@ permissions:
 jobs:
   review:
     runs-on: ubuntu-latest
-    # Only run on PRs and PR comments (not issue comments)
+    # Run on PRs automatically, or when triggered by @continue-agent in comments
     if: |
       github.event_name == 'pull_request' || 
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request) ||
+      (github.event_name == 'issue_comment' && 
+       github.event.issue.pull_request && 
+       contains(github.event.comment.body, '@continue-agent')) ||
       github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4

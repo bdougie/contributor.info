@@ -79,12 +79,22 @@ runs:
         print(f"Repository: {repo_name}")
         print(f"Event type: {event_name}")
         
-        # Get PR number
+        # Get PR number and check for command
         pr_number = None
+        command = None
+        
         if event_name == 'pull_request':
             pr_number = github_context.get('event', {}).get('pull_request', {}).get('number')
         elif event_name == 'issue_comment':
             pr_number = github_context.get('event', {}).get('issue', {}).get('number')
+            # Extract command if present
+            comment_body = github_context.get('event', {}).get('comment', {}).get('body', '')
+            if '@continue-agent' in comment_body:
+                # Extract everything after @continue-agent as the command
+                parts = comment_body.split('@continue-agent', 1)
+                if len(parts) > 1:
+                    command = parts[1].strip()
+                    print(f"Command detected: {command}")
         elif event_name == 'workflow_dispatch':
             pr_number = github_context.get('event', {}).get('inputs', {}).get('pr_number')
         
@@ -128,8 +138,28 @@ runs:
             if diff_size > max_diff_size:
                 full_diff = full_diff[:max_diff_size] + "\n\n... (diff truncated)"
             
-            # Create review prompt
-            review_prompt = f"""You are reviewing a pull request. Please provide constructive feedback.
+            # Create review prompt with optional command
+            if command:
+                review_prompt = f"""You are reviewing a pull request. The user has provided a specific request: "{command}"
+
+## Pull Request Information
+- **Title**: {pr.title}
+- **Description**: {pr.body or 'No description provided'}
+- **Files changed**: {file_count}
+- **Repository**: {repo_name}
+
+## User Request
+{command}
+
+Please address the user's specific request while reviewing the code changes below.
+
+## Code Changes
+{full_diff}
+
+## Your Review
+Please provide a review that addresses the user's request: {command}"""
+            else:
+                review_prompt = f"""You are reviewing a pull request. Please provide constructive feedback.
 
 ## Pull Request Information
 - **Title**: {pr.title}
@@ -226,6 +256,8 @@ Please provide a comprehensive code review for this pull request."""
             
             # Build comment
             comment_body = "## 🤖 Continue Agent Review\n\n"
+            if command:
+                comment_body += f"**Responding to:** `@continue-agent {command}`\n\n"
             comment_body += review_text
             comment_body += "\n\n---\n"
             comment_body += f"*Powered by [Continue](https://continue.dev) | Config: {continue_config}*"
