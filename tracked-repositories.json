@@ -176,14 +176,6 @@
     "name": "terraform-provider-aws"
   },
   {
-    "owner": "test-org",
-    "name": "test-repo"
-  },
-  {
-    "owner": "testuser",
-    "name": "spam-test-repo"
-  },
-  {
     "owner": "topoteretes",
     "name": "cognee"
   },
