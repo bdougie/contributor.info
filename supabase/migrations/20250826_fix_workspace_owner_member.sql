@@ -2,28 +2,52 @@
 -- This migration ensures workspace owners are automatically added as members
 -- and fixes the RLS policy for workspace_repositories
 
+-- ROLLBACK COMMANDS (if needed):
+-- DROP TRIGGER IF EXISTS add_workspace_owner_as_member ON workspaces;
+-- DROP FUNCTION IF EXISTS add_owner_as_workspace_member() CASCADE;
+-- DROP FUNCTION IF EXISTS has_workspace_edit_permission(UUID) CASCADE;
+-- DELETE FROM workspace_members WHERE role = 'owner' AND user_id IN (SELECT owner_id FROM workspaces WHERE id = workspace_members.workspace_id);
+-- Recreate original policies if they exist
+
+-- Ensure proper index exists for ON CONFLICT clause performance
+-- This index should already exist from the initial schema, but verify:
+-- CREATE UNIQUE INDEX IF NOT EXISTS workspace_members_workspace_user_idx ON workspace_members(workspace_id, user_id);
+
 -- Create a function to automatically add owner as a member when workspace is created
 CREATE OR REPLACE FUNCTION add_owner_as_workspace_member()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Insert the owner as a member with 'owner' role
-    INSERT INTO workspace_members (
-        workspace_id,
-        user_id,
-        role,
-        invited_by,
-        invited_at,
-        accepted_at,
-        notifications_enabled
-    ) VALUES (
-        NEW.id,
-        NEW.owner_id,
-        'owner',
-        NEW.owner_id,
-        NOW(),
-        NOW(),
-        TRUE
-    ) ON CONFLICT (workspace_id, user_id) DO NOTHING;
+    -- Use exception handling to prevent workspace creation failure
+    BEGIN
+        -- Insert the owner as a member with 'owner' role
+        INSERT INTO workspace_members (
+            workspace_id,
+            user_id,
+            role,
+            invited_by,
+            invited_at,
+            accepted_at,
+            notifications_enabled
+        ) VALUES (
+            NEW.id,
+            NEW.owner_id,
+            'owner',
+            NEW.owner_id,
+            NOW(),
+            NOW(),
+            TRUE
+        ) ON CONFLICT (workspace_id, user_id) DO NOTHING;
+        
+        -- Log when conflict occurs (member already exists)
+        IF NOT FOUND THEN
+            RAISE NOTICE 'Owner member already exists for workspace %', NEW.id;
+        END IF;
+    EXCEPTION
+        WHEN OTHERS THEN
+            -- Log error but don't fail workspace creation
+            RAISE WARNING 'Failed to add owner as member for workspace %: %', NEW.id, SQLERRM;
+            -- Still return NEW to allow workspace creation to succeed
+    END;
     
     RETURN NEW;
 END;
@@ -63,7 +87,8 @@ WHERE wm.id IS NULL;
 -- The policies now only check workspace_members table since owners are always members
 
 -- Create a helper function to check workspace membership without recursion
-CREATE OR REPLACE FUNCTION check_workspace_edit_permission(workspace_uuid UUID)
+-- Using has_workspace_edit_permission for clearer boolean intent
+CREATE OR REPLACE FUNCTION has_workspace_edit_permission(workspace_uuid UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
     user_uuid UUID;
@@ -88,7 +113,7 @@ CREATE POLICY "Editors can add repositories to workspaces"
     ON workspace_repositories FOR INSERT
     WITH CHECK (
         added_by = auth.uid() AND
-        check_workspace_edit_permission(workspace_id)
+        has_workspace_edit_permission(workspace_id)
     );
 
 -- Fix UPDATE policy
