@@ -1326,7 +1326,13 @@ export default function WorkspacePage() {
     );
   }
 
-  const handleAddRepository = () => {
+  const handleAddRepository = async () => {
+    // Check if user is logged in first
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Please sign in to add repositories to this workspace');
+      return;
+    }
     setAddRepositoryModalOpen(true);
   };
 
