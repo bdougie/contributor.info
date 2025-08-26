@@ -39,11 +39,13 @@ Display repository statistics directly in your README with our embeddable widget
 ### Live Examples
 
 #### Contributor Badge
+
 [![Contributors](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=contributors&style=flat)](https://contributor.info/bdougie/contributor.info)
 [![Pull Requests](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=pull-requests&style=flat)](https://contributor.info/bdougie/contributor.info)
 [![Merge Rate](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=merge-rate&style=flat)](https://contributor.info/bdougie/contributor.info)
 
 #### Stat Card
+
 [![Contributor Stats](https://contributor.info/api/widgets/stat-card?owner=bdougie&repo=contributor.info&theme=light&size=medium)](https://contributor.info/bdougie/contributor.info)
 
 ### How to Use
@@ -58,6 +60,7 @@ Display repository statistics directly in your README with our embeddable widget
    - `size`: Card size (small, medium, large)
 
 3. **Embed in your README**:
+
 ```markdown
 [![Contributors](https://contributor.info/api/widgets/badge?owner=YOUR_ORG&repo=YOUR_REPO&type=contributors&style=flat)](https://contributor.info/YOUR_ORG/YOUR_REPO)
 ```
@@ -71,6 +74,7 @@ Want to contribute to the project? We'd love your help!
 **👉 [See CONTRIBUTING.md](./CONTRIBUTING.md) for complete setup instructions**
 
 The contributing guide includes:
+
 - Development environment setup
 - Database configuration with Supabase
 - Local development workflow
@@ -82,6 +86,7 @@ The contributing guide includes:
 The project uses a comprehensive testing strategy with focus on isolated, pure unit tests. For detailed information, see our [Testing Documentation](./docs/testing/README.md).
 
 **Quick Commands:**
+
 ```bash
 npm test          # Run all tests (pure unit tests only)
 npm run test:watch # Run tests in watch mode
@@ -89,6 +94,7 @@ npm run test:ui   # Open Vitest UI
 ```
 
 **Testing Resources:**
+
 - [Testing Strategy & Philosophy](./docs/testing/README.md)
 - [Test Isolation Solution](./docs/test-isolation-solution.md) - How we fixed hanging tests
 - [Mock Isolation Fix](./docs/MOCK_ISOLATION_FIX.md) - Technical details of the fix
@@ -152,6 +158,7 @@ The application uses an intelligent hybrid routing system to handle repository s
 ```
 
 **Key Features:**
+
 - **Automatic Routing**: Detects large repositories and routes to appropriate service
 - **No Timeouts**: Large repos like `pytorch/pytorch` sync completely
 - **Resumable Syncs**: Can continue from where it left off
@@ -160,12 +167,14 @@ The application uses an intelligent hybrid routing system to handle repository s
 ## ⚡ Tech Stack
 
 **Frontend**
+
 - React + TypeScript
 - Vite (build tool)
 - Tailwind CSS + shadcn/ui
 - Recharts (data visualization)
 
 **Backend & Data**
+
 - Supabase (database & auth)
 - GitHub API (real-time data)
 - Netlify Functions (quick operations <26s)
@@ -173,14 +182,73 @@ The application uses an intelligent hybrid routing system to handle repository s
 - [gh-datapipe](https://github.com/open-source-ready/gh-datapipe) (massive historical imports, no limits)
 
 **Development**
+
 - Vitest (testing) - [Testing Guide](./docs/testing/README.md)
-- ESLint (code quality)
+- ESLint + Prettier (code quality & formatting)
+- Husky + lint-staged (pre-commit hooks)
 - GitHub Actions (CI/CD)
 
 **Infrastructure**
+
 - Performance Monitoring ([see guide](./docs/dev/performance-monitoring.md))
 - Edge Functions
 - CDN Analytics
+
+## 🧹 Code Quality & Linting
+
+This project enforces code quality standards through automated linting and formatting. For detailed information, see the [Linting and Formatting Guide](./docs/dev/linting-and-formatting.md).
+
+### Setup
+
+The project uses:
+
+- **ESLint** - For identifying and fixing code issues
+- **Prettier** - For consistent code formatting
+- **Husky** - For Git hooks management
+- **lint-staged** - For running linters on staged files
+
+### Pre-commit Hooks
+
+When you commit code, the pre-commit hook automatically:
+
+1. Runs ESLint on staged TypeScript/JavaScript files
+2. Formats code with Prettier
+3. Prevents commits if there are linting errors
+
+### Available Commands
+
+```bash
+# Check for linting issues
+npm run lint
+
+# Auto-fix linting issues and format code
+npm run lint:fix
+
+# Run build with linting checks
+npm run build
+```
+
+### Configuration Files
+
+- `.eslintrc.cjs` - ESLint rules configuration
+- `.prettierrc` - Prettier formatting rules
+- `.prettierignore` - Files excluded from Prettier
+- `.husky/pre-commit` - Git pre-commit hook
+
+### For Contributors
+
+1. **Before committing**: Your code will be automatically checked
+2. **If commit fails**: Run `npm run lint:fix` to auto-fix issues
+3. **Manual override**: Use `git commit --no-verify` only when necessary
+4. **IDE Integration**: Install ESLint and Prettier extensions for real-time feedback
+
+### Code Standards
+
+- No `any` types in TypeScript (use proper types or `unknown`)
+- No unused variables (prefix with `_` if intentionally unused)
+- Prefer `.maybeSingle()` over `.single()` for Supabase queries
+- Follow React hooks rules
+- Use consistent formatting (enforced by Prettier)
 
 ## License
 
