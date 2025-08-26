@@ -298,18 +298,21 @@ export default function OrgView() {
             <Users className="w-5 h-5" />
             Repositories
             <div className="ml-auto repo-count-badge">
-              {!isLoading ? (
+              {!isLoading
+? (
                 <Badge variant="secondary">
                   {repositories.length} total
                 </Badge>
-              ) : (
+              )
+: (
                 <div className="h-6 w-16 skeleton-loading rounded" />
               )}
             </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="org-repos-table">
-          {isLoading ? (
+          {isLoading
+? (
             <div className="space-y-4">
               <Table>
                 <TableHeader>
@@ -353,7 +356,9 @@ export default function OrgView() {
                 </TableBody>
               </Table>
             </div>
-          ) : repositories.length > 0 ? (
+          )
+: repositories.length > 0
+? (
             <>
               <Table>
                 <TableHeader>
@@ -393,7 +398,8 @@ export default function OrgView() {
                 </div>
               )}
             </>
-          ) : (
+          )
+: (
             <div className="text-center py-8">
               <p className="text-muted-foreground">No repositories found for this organization.</p>
             </div>

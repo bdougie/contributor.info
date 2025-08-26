@@ -28,7 +28,7 @@ declare global {
 
 // Shared state to prevent duplicate event listeners
 let sharedStatus: OnlineStatus | null = null;
-let listeners: Set<(status: OnlineStatus) => void> = new Set();
+const listeners: Set<(status: OnlineStatus) => void> = new Set();
 let intervalId: number | null = null;
 
 // Initialize shared status safely for SSR

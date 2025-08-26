@@ -86,7 +86,7 @@ async function refreshSelfSelectionData() {
 
     if (missingData && missingData.length > 0) {
       console.log(`⚠️  Found ${missingData.length} repositories with confidence data but no self-selection data:`);
-      missingData.forEach((repo: any) => {
+      missingData.forEach((repo: { repository_owner: string; repository_name: string }) => {
         console.log(`   • ${repo.repository_owner}/${repo.repository_name}`);
       });
       console.log('\nℹ️  This is normal for repositories that have GitHub events but no pull request data.');
@@ -101,7 +101,7 @@ async function refreshSelfSelectionData() {
       .limit(5);
 
     if (sampleData) {
-      sampleData.forEach((repo: any) => {
+      sampleData.forEach((repo: { repository_owner: string; repository_name: string; self_selection_rate: number }) => {
         console.log(`   • ${repo.repository_owner}/${repo.repository_name}: ${repo.self_selection_rate}%`);
       });
     }

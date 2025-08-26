@@ -87,13 +87,15 @@ const MockRecommendations = ({ owner, repo, timeRange, variant = "default" }: {
           <div className="space-y-2">
             <h4 className="font-medium">Recommended Actions:</h4>
             <ul className="text-sm space-y-1 text-muted-foreground">
-              {variant === "high-priority" ? (
+              {variant === "high-priority"
+? (
                 <>
                   <li>• Update all dependencies with security patches</li>
                   <li>• Implement mandatory code review policy</li>
                   <li>• Add automated security scanning</li>
                 </>
-              ) : (
+              )
+: (
                 <>
                   <li>• Implement automated dependency updates</li>
                   <li>• Add PR size guidelines to improve review speed</li>
@@ -191,20 +193,20 @@ export const Error: Story = {
 
 // Interactive test story
 export const Interactive: Story = {
-  play: ({ canvasElement }) => {
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     
     // Wait for component to load
-    expect(canvas.getByText("AI Recommendations")).toBeInTheDocument();
+    await expect(canvas.getByText("AI Recommendations")).toBeInTheDocument();
     
     // Check that AI insight is displayed
-    expect(canvas.getByText(/Based on the repository metrics/)).toBeInTheDocument();
+    await expect(canvas.getByText(/Based on the repository metrics/)).toBeInTheDocument();
     
     // Verify confidence badge is shown
-    expect(canvas.getByText("85% confident")).toBeInTheDocument();
+    await expect(canvas.getByText("85% confident")).toBeInTheDocument();
     
     // Check repository info is displayed
-    expect(canvas.getByText(/facebook\/react/)).toBeInTheDocument();
+    await expect(canvas.getByText(/facebook\/react/)).toBeInTheDocument();
   }
 };
 

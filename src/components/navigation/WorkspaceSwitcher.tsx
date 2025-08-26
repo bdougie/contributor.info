@@ -166,13 +166,19 @@ export function WorkspaceSwitcher({ className, showFullName = true, onOpenComman
               <Package className="h-4 w-4" />
               {showFullName && (
                 <span className="truncate max-w-[200px]">
-                  {isLoading && !loadingTimeout ? (
+                  {isLoading && !loadingTimeout
+? (
                     'Loading...'
-                  ) : error ? (
+                  )
+: error
+? (
                     'Error loading'
-                  ) : loadingTimeout ? (
+                  )
+: loadingTimeout
+? (
                     'Taking longer than usual...'
-                  ) : (
+                  )
+: (
                     activeWorkspace?.name || (workspaces.length > 0 ? 'Select Workspace' : 'No Workspaces')
                   )}
                 </span>

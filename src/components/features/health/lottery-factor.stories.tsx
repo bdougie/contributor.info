@@ -432,7 +432,8 @@ export const YoloCodersView: Story = {
       
       return (
         <div className="w-[600px] p-4">
-          {showYolo ? (
+          {showYolo
+? (
             <LotteryFactorContent
               stats={{
                 pullRequests: mockPullRequests,
@@ -443,7 +444,8 @@ export const YoloCodersView: Story = {
               showYoloButton={true}
               includeBots={false}
             />
-          ) : (
+          )
+: (
             <button 
               onClick={() => setShowYolo(true)}
               className="px-4 py-2 bg-blue-500 text-white rounded"

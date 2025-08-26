@@ -4,7 +4,7 @@ import { AISummaryProcessor } from './ai-summary-processor';
 import { getQueueHealthStatus, getBatchCapabilityMessage } from '../utils/performance-helpers';
 
 // Lazy load Hybrid queue manager to avoid Buffer issues in browser
-let hybridQueueManager: any = null;
+let hybridQueueManager: typeof import('./hybrid-queue-manager').hybridQueueManager | null = null;
 async function getHybridQueueManager() {
   if (!hybridQueueManager) {
     const { hybridQueueManager: manager } = await import('./hybrid-queue-manager');
@@ -213,7 +213,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
   /**
    * Process a recent_prs job - fetch and store recent PRs from GitHub API
    */
-  static async processRecentPRsJob(repositoryId: string, metadata: any): Promise<{ success: boolean; error?: string }> {
+  static async processRecentPRsJob(repositoryId: string, metadata: Record<string, unknown>): Promise<{ success: boolean; error?: string }> {
     try {
       // Get repository info
       const { supabase } = await import('../supabase');
@@ -390,8 +390,10 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
 ✅ Correct Routing: ${routing.correctRouting} jobs
 ⚠️ Suboptimal Routing: ${routing.suboptimalRouting} jobs
 
-${routing.suggestions.length > 0 ? `💡 Suggestions:
-${routing.suggestions.map(s => `  • ${s}`).join('\n')}` : '✅ No routing issues detected'}
+${routing.suggestions.length > 0
+? `💡 Suggestions:
+${routing.suggestions.map(s => `  • ${s}`).join('\n')}`
+: '✅ No routing issues detected'}
       `);
       
       return routing;
@@ -422,10 +424,10 @@ ${routing.suggestions.map(s => `  • ${s}`).join('\n')}` : '✅ No routing issu
 
 // Make it available globally for console access
 if (typeof window !== 'undefined') {
-  (window as any).ProgressiveCapture = ProgressiveCaptureTrigger;
+  (window as unknown as Record<string, unknown>).ProgressiveCapture = ProgressiveCaptureTrigger;
   // Short aliases for easier console usage
-  (window as any).pc = ProgressiveCaptureTrigger;
-  (window as any).cap = ProgressiveCaptureTrigger;
+  (window as unknown as Record<string, unknown>).pc = ProgressiveCaptureTrigger;
+  (window as unknown as Record<string, unknown>).cap = ProgressiveCaptureTrigger;
   
   // Enable console tools in development
   if (import.meta.env?.DEV) {

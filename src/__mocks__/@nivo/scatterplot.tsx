@@ -3,7 +3,7 @@ import { vi } from 'vitest';
 import { createElement } from 'react';
 
 interface MockDataPoint {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface MockSeries {
@@ -11,14 +11,23 @@ interface MockSeries {
   data?: MockDataPoint[];
 }
 
-export const ResponsiveScatterPlot = vi.fn(({ 
-  nodeComponent, 
-  data = [] as MockSeries[], 
-  margin = {},
-  xScale = {},
-  yScale = {},
-  ...props 
-}: any) => {
+interface ScatterPlotProps {
+  nodeComponent?: React.ComponentType<unknown>;
+  data?: MockSeries[];
+  margin?: Record<string, unknown>;
+  xScale?: Record<string, unknown>;
+  yScale?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export const ResponsiveScatterPlot = vi.fn(({
+  nodeComponent,
+  data = [] as MockSeries[],
+  margin: __margin = {},
+  xScale: __xScale = {},
+  yScale: __yScale = {},
+  ...props
+}: ScatterPlotProps) => {
   // Simulate rendering nodes if nodeComponent is provided
   const nodes = data.flatMap((series: MockSeries, seriesIndex: number) => 
     series.data?.map((point: MockDataPoint, pointIndex: number) => {
@@ -49,14 +58,14 @@ export const ResponsiveScatterPlot = vi.fn(({
   }, nodes);
 });
 
-export const ScatterPlot = vi.fn(({ 
-  nodeComponent, 
-  data = [] as MockSeries[], 
-  margin = {},
-  xScale = {},
-  yScale = {},
-  ...props 
-}: any) => {
+export const ScatterPlot = vi.fn(({
+  nodeComponent,
+  data = [] as MockSeries[],
+  margin: __margin = {},
+  xScale: __xScale = {},
+  yScale: __yScale = {},
+  ...props
+}: ScatterPlotProps) => {
   // Similar implementation as ResponsiveScatterPlot
   const nodes = data.flatMap((series: MockSeries, seriesIndex: number) => 
     series.data?.map((point: MockDataPoint, pointIndex: number) => {

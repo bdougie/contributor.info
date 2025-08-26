@@ -6,53 +6,93 @@ import React from 'react';
 import { vi } from 'vitest';
 
 // Card components
-export const Card = ({ children, role, className, ...props }: any) => (
+export const Card = ({ children, role, className, ...props }: {
+  children?: React.ReactNode;
+  role?: string;
+  className?: string;
+  [key: string]: unknown;
+}) => (
   <div role={role} className={className} {...props}>
     {children}
   </div>
 );
 
-export const CardContent = ({ children, className }: any) => (
+export const CardContent = ({ children, className }: {
+  children?: React.ReactNode;
+  className?: string;
+}) => (
   <div className={className}>{children}</div>
 );
 
-export const CardHeader = ({ children, className }: any) => (
+export const CardHeader = ({ children, className }: {
+  children?: React.ReactNode;
+  className?: string;
+}) => (
   <div className={className}>{children}</div>
 );
 
-export const CardTitle = ({ children, className }: any) => (
+export const CardTitle = ({ children, className }: {
+  children?: React.ReactNode;
+  className?: string;
+}) => (
   <h3 className={className}>{children}</h3>
 );
 
-export const CardDescription = ({ children, className }: any) => (
+export const CardDescription = ({ children, className }: {
+  children?: React.ReactNode;
+  className?: string;
+}) => (
   <p className={className}>{children}</p>
 );
 
 // Badge component
-export const Badge = ({ children, className, variant }: any) => (
+export const Badge = ({ children, className, variant }: {
+  children?: React.ReactNode;
+  className?: string;
+  variant?: string;
+}) => (
   <span className={className} data-variant={variant}>
     {children}
   </span>
 );
 
 // Avatar components
-export const Avatar = React.forwardRef(({ children, className, style }: any, ref: any) => (
+export const Avatar = React.forwardRef<HTMLDivElement, {
+  children?: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}>(({ children, className, style }, ref) => (
   <div ref={ref} className={className} style={style}>
     {children}
   </div>
 ));
 Avatar.displayName = 'Avatar';
 
-export const AvatarImage = ({ src, alt, onLoad, onError, className }: any) => (
+export const AvatarImage = ({ src, alt, onLoad, onError, className }: {
+  src?: string;
+  alt?: string;
+  onLoad?: () => void;
+  onError?: () => void;
+  className?: string;
+}) => (
   <img src={src} alt={alt} onLoad={onLoad} onError={onError} className={className} />
 );
 
-export const AvatarFallback = ({ children, className }: any) => (
+export const AvatarFallback = ({ children, className }: {
+  children?: React.ReactNode;
+  className?: string;
+}) => (
   <div className={className}>{children}</div>
 );
 
 // Button component
-export const Button = React.forwardRef(({ children, className, variant, size, ...props }: any, ref: any) => (
+export const Button = React.forwardRef<HTMLButtonElement, {
+  children?: React.ReactNode;
+  className?: string;
+  variant?: string;
+  size?: string;
+  [key: string]: unknown;
+}>(({ children, className, variant, size, ...props }, ref) => (
   <button ref={ref} className={className} data-variant={variant} data-size={size} {...props}>
     {children}
   </button>
@@ -60,25 +100,38 @@ export const Button = React.forwardRef(({ children, className, variant, size, ..
 Button.displayName = 'Button';
 
 // Alert components  
-export const Alert = ({ children, className, role = 'alert', ...props }: any) => (
+export const Alert = ({ children, className, role = 'alert', ...props }: {
+  children?: React.ReactNode;
+  className?: string;
+  role?: string;
+  [key: string]: unknown;
+}) => (
   <div role={role} className={className} aria-live="assertive" {...props}>
     {children}
   </div>
 );
 
-export const AlertDescription = ({ children, className }: any) => (
+export const AlertDescription = ({ children, className }: {
+  children?: React.ReactNode;
+  className?: string;
+}) => (
   <div className={className}>{children}</div>
 );
 
 // Progress component
-export const Progress = ({ value, className }: any) => (
+export const Progress = ({ value, className }: {
+  value?: number;
+  className?: string;
+}) => (
   <div className={className} role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>
     <div style={{ width: `${value}%` }} />
   </div>
 );
 
 // Skeleton component
-export const Skeleton = ({ className }: any) => (
+export const Skeleton = ({ className }: {
+  className?: string;
+}) => (
   <div className={className} aria-busy="true" aria-live="polite" />
 );
 
@@ -94,4 +147,4 @@ export const MessageCircle = () => <svg data-testid="message-circle-icon" />;
 export const Star = () => <svg data-testid="star-icon" />;
 
 // Utility function mock
-export const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
+export const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');

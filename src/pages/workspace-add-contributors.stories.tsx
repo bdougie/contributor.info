@@ -197,7 +197,8 @@ function AddContributorsTableView({
                 <span className="font-medium">{contributions.issues}</span>
               </div>
             </div>
-            {displayOwners.length > 0 ? (
+            {displayOwners.length > 0
+? (
               <div className="flex items-center gap-1.5">
                 <div className="flex -space-x-1.5">
                   {displayOwners.map((owner, i) => (
@@ -216,7 +217,8 @@ function AddContributorsTableView({
                   </span>
                 )}
               </div>
-            ) : (
+            )
+: (
               <div className="text-xs text-muted-foreground">
                 {repoCount} {repoCount === 1 ? 'repo' : 'repos'}
               </div>
@@ -329,7 +331,8 @@ function AddContributorsTableView({
               ))}
             </thead>
             <tbody>
-              {table.getRowModel().rows.length > 0 ? (
+              {table.getRowModel().rows.length > 0
+? (
                 table.getRowModel().rows.map((row) => (
                   <tr
                     key={row.id}
@@ -352,7 +355,8 @@ function AddContributorsTableView({
                     ))}
                   </tr>
                 ))
-              ) : (
+              )
+: (
                 <tr>
                   <td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">
                     No contributors found

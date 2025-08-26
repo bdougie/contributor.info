@@ -427,7 +427,8 @@ export function LotteryFactorContent({
                       </TooltipTrigger>
                       <TooltipContent>
                         <div className="flex items-center gap-2">
-                          {segment.contributor ? (
+                          {segment.contributor
+? (
                             <>
                               <OptimizedAvatar
                                 src={segment.contributor.avatar_url}
@@ -445,7 +446,8 @@ export function LotteryFactorContent({
                                 ({Math.round(segment.contributor.percentage)}%)
                               </span>
                             </>
-                          ) : (
+                          )
+: (
                             <>
                               <Users className="w-4 h-4" />
                               <span>Other contributors</span>

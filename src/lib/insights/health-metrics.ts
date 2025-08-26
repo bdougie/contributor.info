@@ -135,7 +135,7 @@ export async function calculateHealthMetrics(
       ? (prsWithReviews / pullRequests.length) * 100 
       : 0;
     
-    let reviewScore = Math.round(reviewCoverage);
+    const reviewScore = Math.round(reviewCoverage);
     let reviewStatus: "good" | "warning" | "critical" = "good";
     
     if (reviewCoverage < 50) {
@@ -376,12 +376,14 @@ export async function calculateRepositoryConfidence(
         console.log('[Confidence] Using database cached score for %s/%s: %s%', owner, repo, cachedResult.score);
         
         // Store in memory cache for faster future access
-        const cacheValue = returnMetadata ? {
+        const cacheValue = returnMetadata
+? {
           score: cachedResult.score,
           cached: true,
           calculatedAt: cachedResult.calculatedAt,
           calculationTimeMs: cachedResult.calculationTimeMs
-        } : cachedResult.score;
+        }
+: cachedResult.score;
         
         setCache(cacheKey, cacheValue);
         
@@ -468,7 +470,9 @@ export async function calculateRepositoryConfidence(
     console.log('[Confidence] Calculated confidence for %s/%s: %s% (%sms)', owner, repo, finalScore, calculationTime);
     
     if (returnBreakdown) {
-      const breakdownData = typeof starForkResult === 'object' ? starForkResult : {
+      const breakdownData = typeof starForkResult === 'object'
+? starForkResult
+: {
         confidence: starForkConfidence,
         totalStargazers: repoData.stargazers_count,
         totalForkers: repoData.forks_count,

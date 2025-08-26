@@ -16,7 +16,7 @@ async function verifyEmbeddings() {
       .select('id, title, embedding')
       .not('embedding', 'is', null)
       .limit(1)
-      .single();
+      .maybeSingle();
     
     if (issueError || !issue) {
       console.log('❌ No issues with embeddings found');
@@ -36,7 +36,7 @@ async function verifyEmbeddings() {
       .select('id, title, embedding')
       .not('embedding', 'is', null)
       .limit(1)
-      .single();
+      .maybeSingle();
     
     if (prError || !pr) {
       console.log('\n❌ No pull requests with embeddings found');

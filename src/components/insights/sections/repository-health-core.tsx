@@ -92,7 +92,7 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
   );
   const reviewCoverage = totalPRs > 0 ? (reviewedPRs.length / totalPRs) * 100 : 0;
   
-  let reviewScore = Math.max(0, reviewCoverage);
+  const reviewScore = Math.max(0, reviewCoverage);
   let reviewStatus: "good" | "warning" | "critical" = "good";
   
   if (reviewCoverage >= 80) {
@@ -117,7 +117,7 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
   const timeRangeNum = parseInt(timeRange) || 30;
   const dailyActivity = totalPRs / timeRangeNum;
   
-  let activityScore = Math.min(100, dailyActivity * 20); // Scale based on activity
+  const activityScore = Math.min(100, dailyActivity * 20); // Scale based on activity
   let activityStatus: "good" | "warning" | "critical" = "good";
   
   if (dailyActivity >= 2) {

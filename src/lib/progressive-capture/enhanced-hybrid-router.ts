@@ -1,11 +1,12 @@
 import { supabase } from '../supabase';
 import { getTimeSensitivityFactor, getBatchSizeFactor, getPriorityFactor } from '../utils/performance-helpers';
+import type { HybridJob } from './hybrid-queue-manager';
 
 export interface RoutingDecision {
   processor: 'inngest' | 'github_actions';
   reason: string;
   confidence: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface BackfillState {
@@ -25,7 +26,7 @@ export class EnhancedHybridRouter {
   /**
    * Route a job to the appropriate processor based on multiple factors
    */
-  async routeJob(job: any): Promise<RoutingDecision> {
+  async routeJob(job: HybridJob): Promise<RoutingDecision> {
     try {
       // Always use GitHub Actions for progressive backfill
       if (job.job_type === 'progressive_backfill' || job.type === 'progressive_backfill') {
@@ -97,7 +98,7 @@ export class EnhancedHybridRouter {
   /**
    * Calculate routing factors for decision making
    */
-  private async calculateRoutingFactors(job: any, repository: any) {
+  private async calculateRoutingFactors(job: HybridJob, repository: { id: string; full_name: string; size?: number; [key: string]: unknown }) {
     const timeRange = job.time_range || job.timeRange || 30;
     const maxItems = job.max_items || job.maxItems || 100;
     
@@ -138,7 +139,15 @@ export class EnhancedHybridRouter {
   /**
    * Make routing decision based on factors
    */
-  private makeRoutingDecision(factors: any): RoutingDecision {
+  private makeRoutingDecision(factors: {
+    timeSensitivity: number;
+    batchSize: number;
+    priority: number;
+    repoSize: number;
+    historicalSuccess: number;
+    currentLoad: number;
+    [key: string]: unknown;
+  }): RoutingDecision {
     // Calculate weighted scores
     const inngestScore = (
       factors.timeSensitivity * 0.3 +
@@ -267,7 +276,7 @@ export class EnhancedHybridRouter {
   /**
    * Check if a repository should initiate backfill
    */
-  async shouldInitiateBackfill(repository: any): Promise<boolean> {
+  async shouldInitiateBackfill(repository: { id: string; full_name: string; [key: string]: unknown }): Promise<boolean> {
     // Check if repository needs backfill
     if (!repository.pull_request_count || repository.pull_request_count < 100) {
       return false; // Small repos don't need backfill

@@ -233,7 +233,8 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         number: pr.number,
         title: pr.title,
         body: null, // Basic PR list doesn't include body
-        state: pr.state?.toLowerCase() === 'open' ? 'open' : 
+        state: pr.state?.toLowerCase() === 'open'
+? 'open' : 
                pr.merged ? 'merged' : 'closed',
         author_id: contributorIds[index],
         created_at: pr.createdAt,

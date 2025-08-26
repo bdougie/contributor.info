@@ -62,7 +62,7 @@ export function SpamTestTool() {
       .select('*')
       .eq('organization_name', owner)
       .eq('repository_name', repo)
-      .single();
+      .maybeSingle();
 
     return { isTracked: !!trackedRepo && !error, trackedRepo };
   };
@@ -103,7 +103,7 @@ export function SpamTestTool() {
         .select('id, pr_template_content, pr_template_fetched_at')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
 
       if (error && error.code === 'PGRST116') {
         // Repository doesn't exist, create it
@@ -117,7 +117,7 @@ export function SpamTestTool() {
             created_at: new Date().toISOString()
           })
           .select('id')
-          .single();
+          .maybeSingle();
 
         if (insertError) {
           throw new Error(`Failed to create repository: ${insertError.message}`);
@@ -225,7 +225,7 @@ export function SpamTestTool() {
         .select('id')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
 
       let existingPR = null;
       let dbError = repoError;
@@ -240,7 +240,7 @@ export function SpamTestTool() {
           `)
           .eq('repository_id', repositoryData.id)
           .eq('number', prNumber)
-          .single();
+          .maybeSingle();
         
         existingPR = prData;
         dbError = prQueryError;
@@ -286,7 +286,7 @@ export function SpamTestTool() {
             .eq('repository.owner', owner)
             .eq('repository.name', repo)
             .eq('number', prNumber)
-            .single();
+            .maybeSingle();
 
           if (newError && newError.code !== 'PGRST116') {
             throw new Error(`Database query failed: ${newError.message}`);
@@ -589,13 +589,16 @@ export function SpamTestTool() {
               key={index} 
               variant={guidance.type === 'error' ? 'destructive' : 'default'}
               className={
-                guidance.type === 'warning' ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950' :
+                guidance.type === 'warning'
+? 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950' :
                 guidance.type === 'info' ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950' : ''
               }
             >
               <AlertTriangle className={`h-4 w-4 ${
-                guidance.type === 'error' ? 'text-red-600 dark:text-red-400' :
-                guidance.type === 'warning' ? 'text-yellow-600 dark:text-yellow-400' :
+                guidance.type === 'error'
+? 'text-red-600 dark:text-red-400' :
+                guidance.type === 'warning'
+? 'text-yellow-600 dark:text-yellow-400' :
                 'text-blue-600 dark:text-blue-400'
               }`} />
               <div className="flex-1">
@@ -632,9 +635,11 @@ export function SpamTestTool() {
               />
             </div>
             <Button onClick={analyzePR} disabled={loading || !prUrl.trim()}>
-              {loading ? (
+              {loading
+? (
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
+              )
+: (
                 <Search className="h-4 w-4 mr-2" />
               )}
               Analyze
@@ -686,11 +691,13 @@ export function SpamTestTool() {
                   <div>
                     <span className="text-sm text-muted-foreground">Current DB Score</span>
                     <div className="font-semibold">
-                      {result.currentDbScore !== null && result.currentDbScore !== undefined ? (
+                      {result.currentDbScore !== null && result.currentDbScore !== undefined
+? (
                         <Badge variant={getScoreBadgeVariant(result.currentDbScore)}>
                           {result.currentDbScore}%
                         </Badge>
-                      ) : (
+                      )
+: (
                         <Badge variant="outline" className="text-xs">
                           📊 -
                         </Badge>
@@ -708,9 +715,11 @@ export function SpamTestTool() {
                   <div>
                     <span className="text-sm text-muted-foreground">Detection Status</span>
                     <div className="font-semibold">
-                      {result.wasDetected ? (
+                      {result.wasDetected
+? (
                         <Badge variant="destructive">Detected</Badge>
-                      ) : (
+                      )
+: (
                         <Badge variant="outline">Missed</Badge>
                       )}
                     </div>
@@ -719,8 +728,10 @@ export function SpamTestTool() {
                     <span className="text-sm text-muted-foreground">Data Source</span>
                     <div className="font-semibold">
                       <Badge variant={
-                        result.dataSource === 'database' ? 'default' :
-                        result.dataSource === 'github_sync' ? 'secondary' :
+                        result.dataSource === 'database'
+? 'default' :
+                        result.dataSource === 'github_sync'
+? 'secondary' :
                         result.dataSource === 'github_api' ? 'outline' : 'destructive'
                       }>
                         {result.dataSource.replace('_', ' ').toUpperCase()}
@@ -793,9 +804,11 @@ export function SpamTestTool() {
                     variant="destructive"
                     disabled={markingSpam}
                   >
-                    {markingSpam ? (
+                    {markingSpam
+? (
                       <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
+                    )
+: (
                       <AlertTriangle className="h-4 w-4 mr-2" />
                     )}
                     {markingSpam ? 'Marking...' : 'Mark as Spam'}
@@ -805,9 +818,11 @@ export function SpamTestTool() {
                     variant="default"
                     disabled={markingSpam}
                   >
-                    {markingSpam ? (
+                    {markingSpam
+? (
                       <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
+                    )
+: (
                       <CheckCircle className="h-4 w-4 mr-2" />
                     )}
                     {markingSpam ? 'Marking...' : 'Mark as Legitimate'}

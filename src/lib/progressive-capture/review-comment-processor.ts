@@ -155,7 +155,7 @@ export class ReviewCommentProcessor {
         fetch(`${this.GITHUB_API_BASE}/repos/${repo.owner}/${repo.name}/issues/${prNumber}/comments`, { headers })
       ]);
 
-      let allComments: any[] = [];
+      const allComments: any[] = [];
 
       // Process review comments
       if (reviewCommentsResponse.ok) {

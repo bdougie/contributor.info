@@ -6,7 +6,7 @@ import React from 'react';
 
 // Helper function to create icon components
 const createIcon = (name: string) => {
-  const Icon = React.forwardRef<SVGSVGElement, any>((props, ref) => (
+  const Icon = React.forwardRef<SVGSVGElement, React.SVGProps<SVGSVGElement>>((props, ref) => (
     <svg 
       ref={ref}
       data-testid={`${name}-icon`}

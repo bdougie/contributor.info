@@ -49,7 +49,7 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
       settings: data.settings || {}
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     throw new Error(`Failed to create workspace: ${error.message}`);
@@ -101,7 +101,7 @@ export async function getWorkspace(idOrSlug: string): Promise<WorkspaceWithStats
     query.eq('slug', idOrSlug);
   }
 
-  const { data, error } = await query.single();
+  const { data, error } = await query.maybeSingle();
 
   if (error || !data) {
     return null;
@@ -154,7 +154,7 @@ export async function updateWorkspace(id: string, data: UpdateWorkspaceRequest) 
     })
     .eq('id', id)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     throw new Error(`Failed to update workspace: ${error.message}`);
@@ -250,7 +250,7 @@ export async function addRepositoryToWorkspace(
       is_pinned: data.is_pinned || false
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     if (error.code === '23505') { // Unique violation
@@ -362,7 +362,7 @@ export async function inviteMemberToWorkspace(
       invited_by: user.user.id
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     if (error.code === '23505') { // Unique violation
@@ -389,7 +389,7 @@ export async function acceptInvitation(invitationToken: string) {
     .select('*')
     .eq('invitation_token', invitationToken)
     .eq('status', 'pending')
-    .single();
+    .maybeSingle();
 
   if (invError || !invitation) {
     throw new Error('Invalid or expired invitation');
@@ -420,7 +420,7 @@ export async function acceptInvitation(invitationToken: string) {
       accepted_at: new Date().toISOString()
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (memberError) {
     throw new Error('Failed to add member to workspace');
@@ -512,7 +512,7 @@ export async function getWorkspaceMetrics(
     .gte('expires_at', new Date().toISOString())
     .order('calculated_at', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (!cacheError && cached) {
     return cached as WorkspaceMetrics;
@@ -540,7 +540,7 @@ export async function getUserWorkspaceRole(
     .from('workspaces')
     .select('owner_id')
     .eq('id', workspaceId)
-    .single();
+    .maybeSingle();
 
   if (workspace?.owner_id === user.user.id) {
     return 'owner';
@@ -552,7 +552,7 @@ export async function getUserWorkspaceRole(
     .select('role')
     .eq('workspace_id', workspaceId)
     .eq('user_id', user.user.id)
-    .single();
+    .maybeSingle();
 
   return member?.role || null;
 }
@@ -565,7 +565,7 @@ export async function canAccessWorkspace(workspaceId: string): Promise<boolean> 
     .from('workspaces')
     .select('visibility')
     .eq('id', workspaceId)
-    .single();
+    .maybeSingle();
 
   if (workspace?.visibility === 'public') {
     return true;

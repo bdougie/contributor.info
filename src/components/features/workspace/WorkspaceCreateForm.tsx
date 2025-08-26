@@ -189,12 +189,14 @@ export function WorkspaceCreateForm({
           disabled={loading || !formData.name.trim()}
           className="flex-1"
         >
-          {loading ? (
+          {loading
+? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               {mode === 'create' ? 'Creating...' : 'Saving...'}
             </>
-          ) : (
+          )
+: (
             mode === 'create' ? 'Create Workspace' : 'Save Changes'
           )}
         </Button>

@@ -321,12 +321,14 @@ export function UserManagement() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.is_admin ? "default" : "secondary"}>
-                        {user.is_admin ? (
+                        {user.is_admin
+? (
                           <>
                             <Shield className="h-3 w-3 mr-1" />
                             Admin
                           </>
-                        ) : (
+                        )
+: (
                           'User'
                         )}
                       </Badge>

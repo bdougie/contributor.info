@@ -96,9 +96,11 @@ function ContributorCard({
             className="h-8 w-8"
             onClick={isTracked ? onUntrack : onTrack}
           >
-            {isTracked ? (
+            {isTracked
+? (
               <X className="h-4 w-4" />
-            ) : (
+            )
+: (
               <UserPlus className="h-4 w-4" />
             )}
           </Button>
@@ -234,9 +236,11 @@ function ContributorListItem({
             isTracked ? onUntrack?.() : onTrack?.();
           }}
         >
-          {isTracked ? (
+          {isTracked
+? (
             <X className="h-4 w-4" />
-          ) : (
+          )
+: (
             <UserPlus className="h-4 w-4" />
           )}
         </Button>
@@ -337,7 +341,8 @@ export function ContributorsList({
           </div>
         </div>
 
-        {filteredContributors.length === 0 ? (
+        {filteredContributors.length === 0
+? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground mb-2">
@@ -359,7 +364,8 @@ export function ContributorsList({
               </Button>
             )}
           </div>
-        ) : (
+        )
+: (
           <div className={view === 'grid' 
             ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3" 
             : "space-y-3"
@@ -367,7 +373,8 @@ export function ContributorsList({
             {filteredContributors.map((contributor) => {
               const isTracked = trackedContributors.includes(contributor.id);
               
-              return view === 'grid' ? (
+              return view === 'grid'
+? (
                 <ContributorCard
                   key={contributor.id}
                   contributor={contributor}
@@ -376,7 +383,8 @@ export function ContributorsList({
                   onUntrack={() => onUntrackContributor?.(contributor.id)}
                   onClick={() => onContributorClick?.(contributor)}
                 />
-              ) : (
+              )
+: (
                 <ContributorListItem
                   key={contributor.id}
                   contributor={contributor}

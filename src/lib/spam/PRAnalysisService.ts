@@ -209,7 +209,8 @@ export class PRAnalysisService {
     
     // PRs with many small files might indicate focused changes
     const avgChangesPerFile = pr.changed_files > 0 ? 
-      (pr.additions + pr.deletions) / pr.changed_files : 0;
+      (pr.additions + pr.deletions) / pr.changed_files
+: 0;
     
     if (avgChangesPerFile > 0 && avgChangesPerFile < 50) {
       score += 0.2; // Focused changes are generally better

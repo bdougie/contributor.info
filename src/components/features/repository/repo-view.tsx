@@ -308,7 +308,8 @@ export default function RepoView() {
                 </p>
                 {/* Reserve space for last updated timestamp to prevent CLS */}
                 <div className="mt-2 repo-header-timestamp">
-                  {!stats.loading ? (
+                  {!stats.loading
+? (
                     <time className="text-sm text-muted-foreground">
                       <LastUpdated 
                         timestamp={lastUpdated}
@@ -316,7 +317,8 @@ export default function RepoView() {
                         size="sm"
                       />
                     </time>
-                  ) : (
+                  )
+: (
                     <div className="h-5 skeleton-loading" aria-hidden="true" />
                   )}
                 </div>

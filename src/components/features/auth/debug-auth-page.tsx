@@ -218,11 +218,13 @@ export default function DebugAuthPage() {
                 <div>
                   <h3 className="text-lg font-medium">Status</h3>
                   <p className="text-muted-foreground">
-                    {userInfo ? (
+                    {userInfo
+? (
                       <span className="text-green-500 font-medium">
                         Logged in
                       </span>
-                    ) : (
+                    )
+: (
                       <span className="text-yellow-500 font-medium">
                         Not logged in
                       </span>
@@ -275,7 +277,8 @@ export default function DebugAuthPage() {
               </div>
             </CardContent>
             <CardFooter className="flex justify-between gap-2 flex-wrap">
-              {userInfo ? (
+              {userInfo
+? (
                 <>
                   <Button variant="destructive" onClick={handleLogout}>
                     Sign Out
@@ -284,7 +287,8 @@ export default function DebugAuthPage() {
                     Refresh Token
                   </Button>
                 </>
-              ) : (
+              )
+: (
                 <>
                   <Button onClick={handleLogin}>Sign In with GitHub</Button>
                   <Button variant="outline" onClick={handleTestRedirect}>

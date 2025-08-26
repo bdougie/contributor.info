@@ -130,11 +130,15 @@ export function WorkspacePullRequestsTable({
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
             State
-            {column.getIsSorted() === 'asc' ? (
+            {column.getIsSorted() === 'asc'
+? (
               <ChevronUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === 'desc' ? (
+            )
+: column.getIsSorted() === 'desc'
+? (
               <ChevronDown className="ml-2 h-4 w-4" />
-            ) : (
+            )
+: (
               <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
           </Button>
@@ -293,11 +297,15 @@ export function WorkspacePullRequestsTable({
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
             Created
-            {column.getIsSorted() === 'asc' ? (
+            {column.getIsSorted() === 'asc'
+? (
               <ChevronUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === 'desc' ? (
+            )
+: column.getIsSorted() === 'desc'
+? (
               <ChevronDown className="ml-2 h-4 w-4" />
-            ) : (
+            )
+: (
               <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
           </Button>
@@ -319,11 +327,15 @@ export function WorkspacePullRequestsTable({
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
             Updated
-            {column.getIsSorted() === 'asc' ? (
+            {column.getIsSorted() === 'asc'
+? (
               <ChevronUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === 'desc' ? (
+            )
+: column.getIsSorted() === 'desc'
+? (
               <ChevronDown className="ml-2 h-4 w-4" />
-            ) : (
+            )
+: (
               <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
           </Button>

@@ -225,9 +225,11 @@ export function PerformanceMonitoringDashboard() {
 
   const getOverallHealthStatus = useCallback((): 'good' | 'warning' | 'critical' => {
     const dbStatus = getDatabaseStatus();
-    const githubStatus = healthData.github?.status === 'healthy' ? 'good' : 
+    const githubStatus = healthData.github?.status === 'healthy'
+? 'good' : 
                          healthData.github?.status === 'degraded' ? 'warning' : 'critical';
-    const mainStatus = healthData.main?.status === 'healthy' ? 'good' : 
+    const mainStatus = healthData.main?.status === 'healthy'
+? 'good' : 
                        healthData.main?.status === 'degraded' ? 'warning' : 'critical';
     
     if (dbStatus === 'critical' || githubStatus === 'critical' || mainStatus === 'critical') {
@@ -395,7 +397,8 @@ export function PerformanceMonitoringDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {healthData.main ? (
+                {healthData.main
+? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Status</span>
@@ -411,7 +414,8 @@ export function PerformanceMonitoringDashboard() {
                       Updated: {new Date(healthData.main.timestamp).toLocaleTimeString()}
                     </div>
                   </div>
-                ) : (
+                )
+: (
                   <div className="text-sm text-muted-foreground">No data available</div>
                 )}
               </CardContent>
@@ -425,7 +429,8 @@ export function PerformanceMonitoringDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {healthData.database ? (
+                {healthData.database
+? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Status</span>
@@ -442,7 +447,8 @@ export function PerformanceMonitoringDashboard() {
                       Updated: {new Date(healthData.database.timestamp).toLocaleTimeString()}
                     </div>
                   </div>
-                ) : (
+                )
+: (
                   <div className="text-sm text-muted-foreground">No data available</div>
                 )}
               </CardContent>
@@ -456,7 +462,8 @@ export function PerformanceMonitoringDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {healthData.github ? (
+                {healthData.github
+? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Status</span>
@@ -473,7 +480,8 @@ export function PerformanceMonitoringDashboard() {
                       Updated: {new Date(healthData.github.timestamp).toLocaleTimeString()}
                     </div>
                   </div>
-                ) : (
+                )
+: (
                   <div className="text-sm text-muted-foreground">No data available</div>
                 )}
               </CardContent>
@@ -645,12 +653,14 @@ export function PerformanceMonitoringDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {cdnMetrics ? (
+                {cdnMetrics
+? (
                   <>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Performance Score</span>
                       <Badge 
-                        variant={cdnMetrics.performanceScore === 'Excellent' ? 'default' : 
+                        variant={cdnMetrics.performanceScore === 'Excellent'
+? 'default' : 
                                 cdnMetrics.performanceScore === 'Poor' ? 'destructive' : 'secondary'}
                       >
                         {cdnMetrics.performanceScore}
@@ -679,7 +689,8 @@ export function PerformanceMonitoringDashboard() {
                       />
                     </div>
                   </>
-                ) : (
+                )
+: (
                   <div className="text-sm text-muted-foreground">Loading CDN metrics...</div>
                 )}
               </CardContent>
@@ -690,7 +701,8 @@ export function PerformanceMonitoringDashboard() {
                 <CardTitle>Storage Metrics</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {cdnMetrics ? (
+                {cdnMetrics
+? (
                   <>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
@@ -717,7 +729,8 @@ export function PerformanceMonitoringDashboard() {
                       </AlertDescription>
                     </Alert>
                   </>
-                ) : (
+                )
+: (
                   <div className="text-sm text-muted-foreground">Loading storage metrics...</div>
                 )}
               </CardContent>
@@ -771,7 +784,8 @@ export function PerformanceMonitoringDashboard() {
         </TabsContent>
 
         <TabsContent value="alerts" className="space-y-4">
-          {alerts.length > 0 ? (
+          {alerts.length > 0
+? (
             <div className="space-y-4">
               {alerts.map((alert) => (
                 <Alert key={alert.id} variant={alert.severity === 'critical' ? 'destructive' : 'default'}>
@@ -797,7 +811,8 @@ export function PerformanceMonitoringDashboard() {
                 </Alert>
               ))}
             </div>
-          ) : (
+          )
+: (
             <Card>
               <CardContent className="flex items-center justify-center py-2">
                 <div className="text-center">

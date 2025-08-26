@@ -60,8 +60,10 @@ export function ConfidenceAlgorithmExplainer({ weights, onClose }: ConfidenceAlg
     const activityPatternsScore = (eventDiversity * 0.4 + methodDiversity * 0.4 + activityVolume * 0.2);
 
     // Temporal Consistency Component
-    const recencyScore = inputs.daysSinceLastSeen <= 7 ? 1 :
-                        inputs.daysSinceLastSeen <= 30 ? 0.8 :
+    const recencyScore = inputs.daysSinceLastSeen <= 7
+? 1 :
+                        inputs.daysSinceLastSeen <= 30
+? 0.8 :
                         inputs.daysSinceLastSeen <= 90 ? 0.6 : 0.4;
     
     const expectedDays = Math.min(inputs.daysSinceFirstSeen, 90);

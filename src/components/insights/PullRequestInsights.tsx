@@ -57,14 +57,16 @@ export function PullRequestInsights({
         
         <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
           <h3 className="font-medium">PRs by Author</h3>
-          {Object.entries(prAnalysis.prsByAuthor).length > 0 ? (
+          {Object.entries(prAnalysis.prsByAuthor).length > 0
+? (
             Object.entries(prAnalysis.prsByAuthor).map(([author, count]) => (
               <div key={author} className="flex justify-between">
                 <span>{author}</span>
                 <span>{count}</span>
               </div>
             ))
-          ) : (
+          )
+: (
             <p>No author data available</p>
           )}
         </div>

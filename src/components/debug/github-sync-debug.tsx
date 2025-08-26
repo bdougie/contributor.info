@@ -70,7 +70,7 @@ export function GitHubSyncDebug() {
         .select('*')
         .eq('owner', owner)
         .eq('name', repo)
-        .single()
+        .maybeSingle()
       
       if (repoError && repoError.code !== 'PGRST116') {
         addLog(`Error checking repositories: ${repoError.message}`)
@@ -87,7 +87,7 @@ export function GitHubSyncDebug() {
         .select('*')
         .eq('organization_name', owner)
         .eq('repository_name', repo)
-        .single()
+        .maybeSingle()
       
       if (trackedError && trackedError.code !== 'PGRST116') {
         addLog(`Error checking tracked_repositories: ${trackedError.message}`)
@@ -104,7 +104,7 @@ export function GitHubSyncDebug() {
         .select('*')
         .eq('repository_owner', owner)
         .eq('repository_name', repo)
-        .single()
+        .maybeSingle()
       
       if (syncError && syncError.code !== 'PGRST116') {
         addLog(`Error checking sync status: ${syncError.message}`)
@@ -213,7 +213,7 @@ export function GitHubSyncDebug() {
           tracking_enabled: true
         })
         .select()
-        .single()
+        .maybeSingle()
       
       if (error) {
         addLog(`Error tracking repository: ${error.message}`)
@@ -242,9 +242,11 @@ export function GitHubSyncDebug() {
             <AlertDescription>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  {isLoggedIn ? (
+                  {isLoggedIn
+? (
                     <CheckCircle className="h-4 w-4 text-green-600" />
-                  ) : (
+                  )
+: (
                     <XCircle className="h-4 w-4 text-red-600" />
                   )}
                   <span>
@@ -289,9 +291,11 @@ export function GitHubSyncDebug() {
               disabled={isLoading || !owner || !repo}
               className="flex items-center gap-2"
             >
-              {isLoading ? (
+              {isLoading
+? (
                 <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
+              )
+: (
                 <Database className="h-4 w-4" />
               )}
               Trigger Sync

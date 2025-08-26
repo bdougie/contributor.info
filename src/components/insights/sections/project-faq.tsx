@@ -393,9 +393,11 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
                 <span className="text-sm font-medium pr-2 flex-1">
                   {faq.question}
                 </span>
-                {expandedItems.has(faq.id) ? (
+                {expandedItems.has(faq.id)
+? (
                   <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                ) : (
+                )
+: (
                   <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 )}
               </Button>

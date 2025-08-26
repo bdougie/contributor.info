@@ -211,11 +211,13 @@ export function GitHubActionsMonitor({
         </div>
       </CardHeader>
       <CardContent>
-        {workflows.length === 0 ? (
+        {workflows.length === 0
+? (
           <div className="text-center py-8 text-muted-foreground">
             No active workflows
           </div>
-        ) : (
+        )
+: (
           <div className="space-y-4">
             {workflows.map((workflow) => {
               const StatusIcon = getStatusIcon(workflow.status, workflow.conclusion);

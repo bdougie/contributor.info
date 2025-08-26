@@ -112,7 +112,8 @@ export function StatCard({ config, data, className }: StatCardProps) {
                 <Icon className={cn(
                   "flex-shrink-0",
                   metricConfig.color,
-                  size === 'small' ? "h-3 w-3" : 
+                  size === 'small'
+? "h-3 w-3" : 
                   size === 'large' ? "h-6 w-6" : "h-4 w-4"
                 )} />
                 <div className="min-w-0">

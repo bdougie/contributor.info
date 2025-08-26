@@ -169,11 +169,13 @@ export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps)
     return `
       <svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="${height}" viewBox="0 0 ${totalWidth} ${height}">
         <defs>
-          ${styleConfig.shadow ? `
+          ${styleConfig.shadow
+? `
             <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
               <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="rgba(0,0,0,0.2)"/>
             </filter>
-          ` : ''}
+          `
+: ''}
         </defs>
         
         <!-- Left background (label) -->

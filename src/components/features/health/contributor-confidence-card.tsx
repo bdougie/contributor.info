@@ -222,7 +222,8 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
           {/* Authentication and sync trigger - always visible */}
           {hasData === false && !syncStatus.error && (
             <div className="flex flex-col items-center sm:items-start gap-2 pt-2 mt-2 border-t w-full">
-              {!isLoggedIn ? (
+              {!isLoggedIn
+? (
                 <>
                   <p className="text-xs text-muted-foreground hidden sm:block">
                     Log in with GitHub to analyze this repository's contributor data.
@@ -237,7 +238,8 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
                     Log in
                   </Button>
                 </>
-              ) : (
+              )
+: (
                 <>
                   <p className="text-xs text-muted-foreground hidden sm:block">
                     This repository hasn't been analyzed yet.

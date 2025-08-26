@@ -2,20 +2,25 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from '../rate-limiter';
 import { createClient } from '@supabase/supabase-js';
 
+// Types for mocks (used in test implementations)
+interface MockSupabaseClient {
+  from: ReturnType<typeof vi.fn>;
+}
+
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn()
 }));
 
 describe('RateLimiter', () => {
   let rateLimiter: RateLimiter;
-  let mockSupabase: any;
+  let mockSupabase: MockSupabaseClient;
 
   beforeEach(() => {
     mockSupabase = {
       from: vi.fn()
     };
     
-    (createClient as any).mockReturnValue(mockSupabase);
+    (createClient as ReturnType<typeof vi.fn>).mockReturnValue(mockSupabase);
     
     rateLimiter = new RateLimiter(
       'https://test.supabase.co',

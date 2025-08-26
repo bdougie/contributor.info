@@ -267,9 +267,11 @@ export function TrendChart({
               onClick={onExpandToggle}
               className="h-8 w-8"
             >
-              {isExpanded ? (
+              {isExpanded
+? (
                 <X className="h-4 w-4" />
-              ) : (
+              )
+: (
                 <Layout className="h-4 w-4" />
               )}
             </Button>
@@ -277,7 +279,8 @@ export function TrendChart({
         </div>
       </CardHeader>
       <CardContent className="pb-2">
-        {hasData && chartData && chartOptions ? (
+        {hasData && chartData && chartOptions
+? (
           <div className="space-y-3">
             {showLegend && (
               <div className="flex flex-wrap gap-3 px-2">
@@ -324,7 +327,8 @@ export function TrendChart({
               />
             </div>
           </div>
-        ) : (
+        )
+: (
           <div 
             className="flex items-center justify-center text-muted-foreground"
             style={{ height }}

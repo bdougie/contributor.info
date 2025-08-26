@@ -53,9 +53,11 @@ export function ProgressiveRepoView() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {!progressiveData.basicInfo ? (
+              {!progressiveData.basicInfo
+? (
                 <Skeleton className="h-8 w-20" />
-              ) : (
+              )
+: (
                 <div className="flex items-center gap-2">
                   <GitPullRequest className="h-5 w-5 text-muted-foreground" />
                   {progressiveData.basicInfo?.prCount || 0}
@@ -71,9 +73,11 @@ export function ProgressiveRepoView() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {!progressiveData.basicInfo ? (
+              {!progressiveData.basicInfo
+? (
                 <Skeleton className="h-8 w-20" />
-              ) : (
+              )
+: (
                 <div className="flex items-center gap-2">
                   <Users className="h-5 w-5 text-muted-foreground" />
                   {progressiveData.basicInfo?.contributorCount || 0}
@@ -119,13 +123,15 @@ export function ProgressiveRepoView() {
             <CardTitle>Repository Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            {progressiveData.stats.loading ? (
+            {progressiveData.stats.loading
+? (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-4 w-1/2" />
               </div>
-            ) : (
+            )
+: (
               <div>
                 <p className="text-sm text-muted-foreground">
                   {progressiveData.stats?.pullRequests.length || 0} pull requests in the last {timeRange} days
@@ -148,12 +154,14 @@ export function ProgressiveRepoView() {
             <CardTitle>Direct Commits</CardTitle>
           </CardHeader>
           <CardContent>
-            {!progressiveData.stageProgress.enhancement ? (
+            {!progressiveData.stageProgress.enhancement
+? (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-3/4" />
               </div>
-            ) : (
+            )
+: (
               <div>
                 <p className="text-sm text-muted-foreground">
                   {progressiveData.directCommitsData?.hasYoloCoders ? `${progressiveData.directCommitsData.yoloCoderStats.length} YOLO coders detected` : 'No YOLO coders'}
@@ -171,7 +179,8 @@ export function ProgressiveRepoView() {
 
       {/* Lazy loaded chart section */}
       <div ref={chartRef}>
-        {chartLoading ? (
+        {chartLoading
+? (
           <Card>
             <CardHeader>
               <Skeleton className="h-6 w-32" />
@@ -180,7 +189,9 @@ export function ProgressiveRepoView() {
               <Skeleton className="h-64 w-full" />
             </CardContent>
           </Card>
-        ) : chartData ? (
+        )
+: chartData
+? (
           <Card>
             <CardHeader>
               <CardTitle>Activity Chart</CardTitle>
@@ -191,7 +202,8 @@ export function ProgressiveRepoView() {
               </div>
             </CardContent>
           </Card>
-        ) : null}
+        )
+: null}
       </div>
     </div>
   );

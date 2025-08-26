@@ -245,7 +245,8 @@ const highActivityDataset: PullRequest[] = Array.from(
     const daysAgo = Math.floor(Math.random() * 14) + 1; // Within last 2 weeks
     const hasReviews = Math.random() > 0.2; // 80% have reviews
     const hasComments = Math.random() > 0.3; // 70% have comments
-    const labels = i % 3 === 0 ? ["bug", "high-priority"] : 
+    const labels = i % 3 === 0
+? ["bug", "high-priority"] : 
                    i % 2 === 0 ? ["enhancement"] : [];
 
     return createMockPR(

@@ -13,7 +13,7 @@ export interface RetryableJob {
   job_type: string;
   repository_id: string;
   processor_type: 'inngest' | 'github_actions';
-  metadata: any;
+  metadata: Record<string, unknown>;
   error?: string;
   retry_count?: number;
   last_retry_at?: string;
@@ -230,7 +230,7 @@ export class AutoRetryService {
   /**
    * Create a new job for retry
    */
-  private async createRetryJob(originalJob: RetryableJob): Promise<any> {
+  private async createRetryJob(originalJob: RetryableJob): Promise<RetryableJob | { success: boolean; jobId?: string; error?: string }> {
     // Validate required fields before retry
     if (!originalJob.repository_id) {
       console.error('[AutoRetry] Cannot retry job without repository_id:', {
@@ -256,7 +256,7 @@ export class AutoRetryService {
           .from('repositories')
           .select('owner, name')
           .eq('id', originalJob.repository_id)
-          .single();
+          .maybeSingle();
         
         if (error || !repo) {
           console.error('[AutoRetry] Failed to fetch repository details:', {
@@ -379,7 +379,8 @@ export class AutoRetryService {
       // Calculate cache hit rate (this would need to be tracked over time for accuracy)
       // For now, we'll estimate based on cache size
       const cacheHitRate = this.repositoryCache.size > 0 ? 
-        Math.min(this.repositoryCache.size / 100, 1) : 0; // Simple estimate
+        Math.min(this.repositoryCache.size / 100, 1)
+: 0; // Simple estimate
 
       return {
         totalRetries: stats.totalRetries,

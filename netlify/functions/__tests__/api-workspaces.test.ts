@@ -1,4 +1,28 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import type { Context } from '@netlify/functions';
+
+// Types for mocks
+interface MockSupabaseQuery {
+  select: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  or?: ReturnType<typeof vi.fn>;
+  order: ReturnType<typeof vi.fn>;
+  range: ReturnType<typeof vi.fn>;
+  single: ReturnType<typeof vi.fn>;
+  insert?: ReturnType<typeof vi.fn>;
+  update?: ReturnType<typeof vi.fn>;
+  delete?: ReturnType<typeof vi.fn>;
+}
+
+interface MockSupabaseAuth {
+  getUser: ReturnType<typeof vi.fn>;
+}
+
+interface MockSupabaseClient {
+  auth: MockSupabaseAuth;
+  from: ReturnType<typeof vi.fn>;
+  rpc: ReturnType<typeof vi.fn>;
+}
 
 // Mock Supabase before importing handler
 vi.mock('@supabase/supabase-js', () => ({
@@ -14,10 +38,12 @@ vi.mock('@supabase/supabase-js', () => ({
 import { createClient } from '@supabase/supabase-js';
 import handler from '../api-workspaces.mts';
 
+type MockContext = Context;
+
 describe('Workspace API Integration Tests', () => {
-  let mockSupabase: any;
-  let mockAuth: any;
-  let mockFrom: any;
+  let mockSupabase: MockSupabaseClient;
+  let mockAuth: MockSupabaseAuth;
+  let mockFrom: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     // Reset mocks
@@ -33,7 +59,7 @@ describe('Workspace API Integration Tests', () => {
       rpc: vi.fn()
     };
 
-    (createClient as any).mockReturnValue(mockSupabase);
+    (createClient as ReturnType<typeof vi.fn>).mockReturnValue(mockSupabase);
 
     // Mock environment variables
     process.env.VITE_SUPABASE_URL = 'https://test.supabase.co';
@@ -52,7 +78,7 @@ describe('Workspace API Integration Tests', () => {
         method: 'GET'
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(401);
       const data = await response.json();
@@ -72,7 +98,7 @@ describe('Workspace API Integration Tests', () => {
         }
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(401);
       const data = await response.json();
@@ -107,7 +133,7 @@ describe('Workspace API Integration Tests', () => {
         }
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(200);
       const data = await response.json();
@@ -147,7 +173,7 @@ describe('Workspace API Integration Tests', () => {
         }
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(200);
       const data = await response.json();
@@ -182,7 +208,7 @@ describe('Workspace API Integration Tests', () => {
         }
       });
 
-      await handler(request, {} as any);
+      await handler(request, {} as MockContext);
       
       expect(mockQuery.eq).toHaveBeenCalledWith('visibility', 'private');
     });
@@ -209,7 +235,7 @@ describe('Workspace API Integration Tests', () => {
         }
       });
 
-      await handler(request, {} as any);
+      await handler(request, {} as MockContext);
       
       expect(mockQuery.or).toHaveBeenCalledWith('name.ilike.%test%,description.ilike.%test%');
     });
@@ -246,7 +272,7 @@ describe('Workspace API Integration Tests', () => {
         }
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(200);
       const data = await response.json();
@@ -272,7 +298,7 @@ describe('Workspace API Integration Tests', () => {
         }
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(404);
       const data = await response.json();
@@ -311,7 +337,7 @@ describe('Workspace API Integration Tests', () => {
         insert: vi.fn().mockResolvedValue({ error: null })
       };
 
-      mockFrom.mockImplementation((table: string) => {
+      mockFrom.mockImplementation((table: string): MockSupabaseQuery | null => {
         if (table === 'workspaces') return insertQuery;
         if (table === 'workspace_members') return memberQuery;
         return null;
@@ -330,7 +356,7 @@ describe('Workspace API Integration Tests', () => {
         })
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(201);
       const data = await response.json();
@@ -355,7 +381,7 @@ describe('Workspace API Integration Tests', () => {
         })
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(400);
       const data = await response.json();
@@ -391,7 +417,7 @@ describe('Workspace API Integration Tests', () => {
         })
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(409);
       const data = await response.json();
@@ -425,7 +451,7 @@ describe('Workspace API Integration Tests', () => {
         })
       };
 
-      mockFrom.mockImplementation((table: string) => {
+      mockFrom.mockImplementation((table: string): MockSupabaseQuery | null => {
         if (table === 'workspace_members') return memberQuery;
         if (table === 'workspaces') return updateQuery;
         return null;
@@ -442,7 +468,7 @@ describe('Workspace API Integration Tests', () => {
         })
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(200);
       const data = await response.json();
@@ -472,7 +498,7 @@ describe('Workspace API Integration Tests', () => {
         })
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(403);
       const data = await response.json();
@@ -501,7 +527,7 @@ describe('Workspace API Integration Tests', () => {
         eq: vi.fn().mockResolvedValue({ error: null })
       };
 
-      mockFrom.mockImplementation((table: string) => {
+      mockFrom.mockImplementation((table: string): MockSupabaseQuery => {
         if (table === 'workspaces' && !deleteQuery.delete.mock.calls.length) {
           return selectQuery;
         }
@@ -515,7 +541,7 @@ describe('Workspace API Integration Tests', () => {
         }
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(200);
       const data = await response.json();
@@ -541,7 +567,7 @@ describe('Workspace API Integration Tests', () => {
         }
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(403);
       const data = await response.json();
@@ -556,7 +582,7 @@ describe('Workspace API Integration Tests', () => {
     });
 
     it('should handle internal server errors gracefully', async () => {
-      mockFrom.mockImplementation(() => {
+      mockFrom.mockImplementation((): never => {
         throw new Error('Database connection failed');
       });
 
@@ -567,7 +593,7 @@ describe('Workspace API Integration Tests', () => {
         }
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(500);
       const data = await response.json();
@@ -583,7 +609,7 @@ describe('Workspace API Integration Tests', () => {
         }
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(405);
       const data = await response.json();
@@ -597,7 +623,7 @@ describe('Workspace API Integration Tests', () => {
         method: 'OPTIONS'
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.status).toBe(200);
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
@@ -612,7 +638,7 @@ describe('Workspace API Integration Tests', () => {
         method: 'GET'
       });
 
-      const response = await handler(request, {} as any);
+      const response = await handler(request, {} as MockContext);
       
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
       expect(response.headers.get('Access-Control-Allow-Headers')).toContain('Content-Type');

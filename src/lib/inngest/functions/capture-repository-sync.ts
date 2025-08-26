@@ -159,7 +159,8 @@ export const captureRepositorySync = inngest.createFunction(
         number: pr.number,
         title: pr.title,
         body: null, // PR body not available in simplified type
-        state: pr.state === 'open' ? 'open' : 
+        state: pr.state === 'open'
+? 'open' : 
                pr.merged ? 'merged' : 'closed',
         author_id: contributorIds[index], // Now this is a proper UUID
         created_at: pr.created_at,

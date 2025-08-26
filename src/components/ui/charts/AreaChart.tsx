@@ -42,7 +42,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
     const theme = getChartTheme(isDark);
     const seriesColors = getSeriesColors(data.datasets.length, isDark);
     
-    let processedData = [...data.datasets.map(dataset => [...dataset.data])];
+    const processedData = [...data.datasets.map(dataset => [...dataset.data])];
     
     // Stack data if requested
     if (stacked) {

@@ -495,17 +495,23 @@ export class HybridMonitoringDashboard {
   • Inngest: ${stats.health.inngest.toUpperCase()}
   • GitHub Actions: ${stats.health.github_actions.toUpperCase()}
 
-${stats.health.issues.length > 0 ? `
+${stats.health.issues.length > 0
+? `
 ⚠️ Issues Detected:
-${stats.health.issues.map(issue => `  • ${issue}`).join('\n')}` : ''}
+${stats.health.issues.map(issue => `  • ${issue}`).join('\n')}`
+: ''}
 
-${stats.health.recommendations.length > 0 ? `
+${stats.health.recommendations.length > 0
+? `
 💡 Recommendations:
-${stats.health.recommendations.map(rec => `  • ${rec}`).join('\n')}` : ''}
+${stats.health.recommendations.map(rec => `  • ${rec}`).join('\n')}`
+: ''}
 
-${routing.suggestions.length > 0 ? `
+${routing.suggestions.length > 0
+? `
 🔧 Routing Suggestions:
-${routing.suggestions.map(sug => `  • ${sug}`).join('\n')}` : ''}
+${routing.suggestions.map(sug => `  • ${sug}`).join('\n')}`
+: ''}
 
 Report generated at: ${new Date().toISOString()}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -117,9 +117,11 @@ export function SpamIndicator({
       )}
     >
       <Icon className={cn(sizeClasses[size])} />
-      {showScore ? (
+      {showScore
+? (
         <span>Score: {spamScore}</span>
-      ) : (
+      )
+: (
         <span>{styles.label}</span>
       )}
     </Badge>

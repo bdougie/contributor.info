@@ -47,9 +47,11 @@ function MetricChange({ label: _label, value, icon: Icon, formatValue }: MetricC
       isPositive ? 'text-green-600' : isNeutral ? 'text-muted-foreground' : 'text-red-600'
     )}>
       {!isNeutral && (
-        isPositive ? (
+        isPositive
+? (
           <ChevronUp className="w-3 h-3" />
-        ) : (
+        )
+: (
           <ChevronDown className="w-3 h-3" />
         )
       )}

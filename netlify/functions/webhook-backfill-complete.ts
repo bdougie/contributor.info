@@ -100,7 +100,7 @@ export const handler: Handler = async (event) => {
           .eq('owner', owner)
           .eq('name', name)
           .select('id')
-          .single();
+          .maybeSingle();
 
         if (updateError) {
           console.error('[webhook-backfill-complete] Failed to update repository:', updateError);
@@ -112,7 +112,7 @@ export const handler: Handler = async (event) => {
         // Also trigger an Inngest sync to pull the data into our system
         const events: Array<{
           name: string;
-          data: any;
+          data: Record<string, unknown>;
         }> = [
           {
             name: 'repository/backfill-completed',

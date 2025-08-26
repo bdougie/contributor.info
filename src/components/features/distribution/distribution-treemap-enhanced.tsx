@@ -522,14 +522,16 @@ export function DistributionTreemapEnhanced({
           ) : (
             // Contributor tooltip
             <>
-              {data.login === "others" ? (
+              {data.login === "others"
+? (
                 <>
                   <p className="font-semibold text-sm">{data.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {data.value} PRs from remaining contributors
                   </p>
                 </>
-              ) : (
+              )
+: (
                 <>
                   <p className="font-semibold text-sm">{data.login || "Unknown"}</p>
                   <p className="text-xs text-muted-foreground mb-2">
@@ -578,7 +580,8 @@ export function DistributionTreemapEnhanced({
 
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2">
-        {currentView === "contributor" && selectedQuadrant && selectedContributor ? (
+        {currentView === "contributor" && selectedQuadrant && selectedContributor
+? (
           <>
             <Button
               variant="ghost"
@@ -598,7 +601,9 @@ export function DistributionTreemapEnhanced({
               })()}
             </span>
           </>
-        ) : currentView === "quadrant" && selectedQuadrant ? (
+        )
+: currentView === "quadrant" && selectedQuadrant
+? (
           <>
             <Button
               variant="ghost"
@@ -615,7 +620,8 @@ export function DistributionTreemapEnhanced({
                 ?.label || selectedQuadrant}
             </span>
           </>
-        ) : (
+        )
+: (
           <span className="font-medium">All Contributions</span>
         )}
       </div>
@@ -623,7 +629,8 @@ export function DistributionTreemapEnhanced({
       <div className="treemap-container">
         <div
           className={`treemap-view ${
-            viewAnimation === "drill-in" ? "treemap-drill-in" : 
+            viewAnimation === "drill-in"
+? "treemap-drill-in" : 
             viewAnimation === "drill-out" ? "treemap-drill-out" : ""
           }`}
         >

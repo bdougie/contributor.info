@@ -212,9 +212,11 @@ export function ConfidenceAnalyticsDashboard() {
             <CardContent>
               <div className="flex items-center gap-2">
                 <div className="text-2xl font-bold">{stats?.avg_confidence_score?.toFixed(1) || '0.0'}%</div>
-                {(stats?.avg_confidence_score || 0) < 15 ? (
+                {(stats?.avg_confidence_score || 0) < 15
+? (
                   <TrendingDown className="h-4 w-4 text-red-500" />
-                ) : (
+                )
+: (
                   <TrendingUp className="h-4 w-4 text-green-500" />
                 )}
               </div>

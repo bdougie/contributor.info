@@ -214,7 +214,8 @@ export function ChangelogPage() {
                   <Card key={index} id={anchor} className="overflow-hidden">
                     <CardHeader>
                       <CardTitle className="text-2xl flex items-center gap-2">
-                        {entry.versionLink ? (
+                        {entry.versionLink
+? (
                           <a
                             href={entry.versionLink}
                             target="_blank"
@@ -223,7 +224,8 @@ export function ChangelogPage() {
                           >
                             v{entry.version}
                           </a>
-                        ) : (
+                        )
+: (
                           <span>v{entry.version}</span>
                         )}
                         <span className="text-lg text-muted-foreground font-normal">

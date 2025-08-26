@@ -461,9 +461,11 @@ export const NavigationDemo: Story = {
           <div className="mt-4 p-4 bg-muted rounded-lg">
             <h4 className="font-semibold mb-2">Navigation Log:</h4>
             <div className="space-y-1 text-sm">
-              {log.length === 0 ? (
+              {log.length === 0
+? (
                 <p className="text-muted-foreground">Click on quadrants and contributors to see navigation events</p>
-              ) : (
+              )
+: (
                 log.map((entry, i) => (
                   <div key={i} className="font-mono">
                     {entry}

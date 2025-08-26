@@ -83,7 +83,7 @@ export function useSpamFilteredFeed(
 
   // Apply client-side filtering and sorting to the loaded data
   const pullRequests = useMemo(() => {
-    let filtered = allPullRequests.filter(pr => {
+    const filtered = allPullRequests.filter(pr => {
       // Treat both null and 0 spam scores as unanalyzed
       const isUnanalyzed = pr.spam_score === null || pr.spam_score === 0;
       

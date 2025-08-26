@@ -255,13 +255,15 @@ export const waitForElementToDisappear = async (
   } catch (error) {
     const element = getElement();
     logTestError('waitForElementToDisappear', error as Error, { 
-      element: element ? { 
+      element: element
+? { 
         tagName: element.tagName, 
         id: element.id, 
         className: element.className,
         display: getComputedStyle(element).display,
         visibility: getComputedStyle(element).visibility
-      } : null,
+      }
+: null,
       timeout 
     });
     throw error;

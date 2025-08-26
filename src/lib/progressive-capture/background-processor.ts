@@ -154,7 +154,7 @@ export function startBackgroundProcessing(): void {
         if (stats.pending > 0 && import.meta.env?.DEV) {
           console.log('📋 %s jobs pending in queue', stats.pending);
         }
-      } catch (error) {
+      } catch {
         // Silently handle - no need to show user
       }
     }, 5000);
@@ -165,7 +165,7 @@ export function startBackgroundProcessing(): void {
     });
 
     // Expose processor to global scope for debugging
-    (window as any).BackgroundProcessor = BackgroundProcessor;
+    (window as unknown as Window & { BackgroundProcessor: typeof BackgroundProcessor }).BackgroundProcessor = BackgroundProcessor;
   }
 }
 

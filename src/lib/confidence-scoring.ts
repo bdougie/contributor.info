@@ -74,9 +74,12 @@ export function calculateConfidenceScore(
 
   // 3. Temporal Consistency Component
   // Recency factor (recent activity is weighted higher)
-  const recencyScore = metrics.daysSinceLastSeen <= 7 ? 1 :
-                      metrics.daysSinceLastSeen <= 30 ? 0.8 :
-                      metrics.daysSinceLastSeen <= 90 ? 0.6 :
+  const recencyScore = metrics.daysSinceLastSeen <= 7
+? 1 :
+                      metrics.daysSinceLastSeen <= 30
+? 0.8 :
+                      metrics.daysSinceLastSeen <= 90
+? 0.6 :
                       0.4
   
   // Consistency factor (regular activity over time)

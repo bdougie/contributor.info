@@ -124,7 +124,7 @@ export function AddRepositoryModal({
           .from('workspaces')
           .select('*')
           .eq('id', workspaceId)
-          .single();
+          .maybeSingle();
 
         if (workspaceData) {
           setWorkspace(workspaceData);
@@ -282,7 +282,7 @@ export function AddRepositoryModal({
           .from('repositories')
           .select('id')
           .eq('full_name', repo.full_name)
-          .single();
+          .maybeSingle();
 
         if (existingRepo) {
           return existingRepo.id;
@@ -304,7 +304,7 @@ export function AddRepositoryModal({
             is_active: true,
           })
           .select('id')
-          .single();
+          .maybeSingle();
 
         if (createError) {
           console.error('Error creating repository:', createError);
@@ -423,12 +423,14 @@ export function AddRepositoryModal({
         </div>
 
         {/* Existing Repositories Section */}
-        {loading ? (
+        {loading
+? (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="h-6 w-6 animate-spin" />
             <span className="ml-2 text-sm text-muted-foreground">Loading repositories...</span>
           </div>
-        ) : existingRepos.length > 0 && (
+        )
+: existingRepos.length > 0 && (
           <>
             <Separator />
             <div className="space-y-2">
@@ -473,9 +475,11 @@ export function AddRepositoryModal({
                         aria-label={`Remove ${repo.full_name} from workspace`}
                         title={`Remove ${repo.full_name} from workspace`}
                       >
-                        {removingRepoId === repo.id ? (
+                        {removingRepoId === repo.id
+? (
                           <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
+                        )
+: (
                           <X className="h-4 w-4" />
                         )}
                       </Button>
@@ -507,7 +511,8 @@ export function AddRepositoryModal({
             )}
           </div>
 
-          {stagedRepos.length === 0 ? (
+          {stagedRepos.length === 0
+? (
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
               <div className="text-center">
                 <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -515,7 +520,8 @@ export function AddRepositoryModal({
                 <p className="text-xs mt-1">Search and select repositories above</p>
               </div>
             </div>
-          ) : (
+          )
+: (
             <ScrollArea className="flex-1 pr-4">
               <div className="space-y-2">
                 {stagedRepos.map((repo) => (
@@ -600,12 +606,14 @@ export function AddRepositoryModal({
             disabled={submitting || stagedRepos.length === 0 || loading}
             className="gap-2"
           >
-            {submitting ? (
+            {submitting
+? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Adding {stagedRepos.length} {stagedRepos.length === 1 ? 'Repository' : 'Repositories'}...
               </>
-            ) : (
+            )
+: (
               <>
                 <CheckCircle2 className="h-4 w-4" />
                 Add {stagedRepos.length} {stagedRepos.length === 1 ? 'Repository' : 'Repositories'}

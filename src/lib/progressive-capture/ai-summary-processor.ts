@@ -4,7 +4,8 @@ import { trackDatabaseOperation, trackCacheOperation } from '../simple-logging';
 // Removed Sentry import - using simple logging instead
 
 // No-op replacement for trackDataSync
-const trackDataSync = (..._args: any[]) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const trackDataSync = (..._args: unknown[]) => {
   // No-op: Data sync tracking removed
 };
 
@@ -21,7 +22,7 @@ export class AISummaryProcessor {
       const { error } = await supabase
         .from('data_capture_queue')
         .insert({
-          type: 'ai_summary' as any, // Type extension for AI summaries
+          type: 'ai_summary' as const, // Type extension for AI summaries
           priority,
           repository_id: repositoryId,
           estimated_api_calls: 2, // 1 for summary, 1 for embedding
@@ -58,7 +59,7 @@ export class AISummaryProcessor {
   /**
    * Process AI summary generation job
    */
-  static async processAISummaryJob(job: any): Promise<boolean> {
+  static async processAISummaryJob(job: { id: string; repository_id: string; metadata?: Record<string, unknown>; attempts?: number }): Promise<boolean> {
     const startTime = Date.now();
     
     try {
@@ -279,5 +280,5 @@ export class AISummaryProcessor {
 
 // Export for browser console access
 if (typeof window !== 'undefined') {
-  (window as any).AISummaryProcessor = AISummaryProcessor;
+  (window as unknown as Window & { AISummaryProcessor: typeof AISummaryProcessor }).AISummaryProcessor = AISummaryProcessor;
 }

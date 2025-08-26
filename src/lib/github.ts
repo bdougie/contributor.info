@@ -281,7 +281,7 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
     since.setDate(since.getDate() - parseInt(timeRange));
     
     // Fetch multiple pages of PRs to ensure we get all recent ones
-    let allPRs: PullRequest[] = [];
+    const allPRs: PullRequest[] = [];
     let page = 1;
     const perPage = 100;
     
@@ -783,7 +783,7 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
 
     // Fetch commits directly from the default branch using commits API
     // This is more reliable than the events API for longer time ranges
-    let allCommits: GitHubCommit[] = [];
+    const allCommits: GitHubCommit[] = [];
     let page = 1;
     const perPage = 100;
     

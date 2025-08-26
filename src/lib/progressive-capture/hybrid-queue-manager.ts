@@ -19,7 +19,7 @@ export interface JobData {
   prNumbers?: number[];
   maxItems?: number;
   triggerSource?: 'manual' | 'scheduled' | 'automatic' | 'auto-fix';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface HybridJob {
@@ -163,7 +163,7 @@ export class HybridQueueManager {
         .from('repositories')
         .select('first_tracked_at')
         .eq('id', repositoryId)
-        .single();
+        .maybeSingle();
 
       if (error || !repo?.first_tracked_at) {
         return false;
@@ -378,7 +378,7 @@ export class HybridQueueManager {
     }
 
     // Dispatch workflow based on type
-    let inputs: GitHubActionsJobInput['inputs'] = {
+    const inputs: GitHubActionsJobInput['inputs'] = {
       repository_id: data.repositoryId,
       repository_name: data.repositoryName,
       job_id: jobId
@@ -412,7 +412,7 @@ export class HybridQueueManager {
    * Update job status in database
    */
   private async updateJobStatus(jobId: string, status: string, error?: string): Promise<void> {
-    const updates: any = { status };
+    const updates: Record<string, unknown> = { status };
     
     if (status === 'processing' && !updates.started_at) {
       updates.started_at = new Date().toISOString();

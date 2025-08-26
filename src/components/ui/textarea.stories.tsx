@@ -255,7 +255,8 @@ export const WithCharacterCount: Story = {
             <div className="h-1 flex-1 bg-gray-200 rounded mr-3">
               <div 
                 className={`h-full rounded transition-all ${
-                  percentage > 90 ? 'bg-red-500' : 
+                  percentage > 90
+? 'bg-red-500' : 
                   percentage > 75 ? 'bg-amber-500' : 'bg-green-500'
                 }`}
                 style={{ width: `${Math.min(percentage, 100)}%` }}
@@ -264,7 +265,8 @@ export const WithCharacterCount: Story = {
             <p 
               id="char-count"
               className={`text-sm font-medium ${
-                remaining < 20 ? 'text-red-600' : 
+                remaining < 20
+? 'text-red-600' : 
                 remaining < 50 ? 'text-amber-600' : 'text-gray-600'
               }`}
             >
@@ -368,7 +370,8 @@ export const MarkdownEditor: Story = {
             </div>
           </CardHeader>
           <CardContent>
-            {preview ? (
+            {preview
+? (
               <div className="prose prose-sm max-w-none">
                 <div dangerouslySetInnerHTML={{ 
                   __html: value
@@ -378,7 +381,8 @@ export const MarkdownEditor: Story = {
                     .replace(/\n/g, '<br />')
                 }} />
               </div>
-            ) : (
+            )
+: (
               <Textarea
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
@@ -443,7 +447,8 @@ export const Interactive: Story = {
             }}
             rows={4}
             className={
-              errors.length > 0 ? 'border-red-500' : 
+              errors.length > 0
+? 'border-red-500' : 
               value.length >= minLength ? 'border-green-500' : ''
             }
             aria-invalid={errors.length > 0}

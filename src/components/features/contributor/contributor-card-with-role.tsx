@@ -80,8 +80,10 @@ export function ContributorCardWithRole({
     if (showConfidence && role.role !== 'contributor') {
       const confidencePercent = Math.round(role.confidence_score * 100);
       const confidenceColor = 
-        confidencePercent >= 90 ? 'text-green-600' :
-        confidencePercent >= 70 ? 'text-yellow-600' :
+        confidencePercent >= 90
+? 'text-green-600' :
+        confidencePercent >= 70
+? 'text-yellow-600' :
         'text-orange-600';
       
       badges.push(

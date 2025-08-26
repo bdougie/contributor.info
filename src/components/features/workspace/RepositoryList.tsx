@@ -117,11 +117,15 @@ export function RepositoryList({
               onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             >
               Repository
-              {column.getIsSorted() === "asc" ? (
+              {column.getIsSorted() === "asc"
+? (
                 <ChevronUp className="h-3 w-3" />
-              ) : column.getIsSorted() === "desc" ? (
+              )
+: column.getIsSorted() === "desc"
+? (
                 <ChevronDown className="h-3 w-3" />
-              ) : (
+              )
+: (
                 <ChevronsUpDown className="h-3 w-3" />
               )}
             </button>
@@ -176,11 +180,15 @@ export function RepositoryList({
             >
               <Star className="h-3 w-3" />
               Stars
-              {column.getIsSorted() === "asc" ? (
+              {column.getIsSorted() === "asc"
+? (
                 <ChevronUp className="h-3 w-3" />
-              ) : column.getIsSorted() === "desc" ? (
+              )
+: column.getIsSorted() === "desc"
+? (
                 <ChevronDown className="h-3 w-3" />
-              ) : (
+              )
+: (
                 <ChevronsUpDown className="h-3 w-3" />
               )}
             </button>
@@ -205,11 +213,15 @@ export function RepositoryList({
             >
               <GitPullRequest className="h-3 w-3" />
               PRs
-              {column.getIsSorted() === "asc" ? (
+              {column.getIsSorted() === "asc"
+? (
                 <ChevronUp className="h-3 w-3" />
-              ) : column.getIsSorted() === "desc" ? (
+              )
+: column.getIsSorted() === "desc"
+? (
                 <ChevronDown className="h-3 w-3" />
-              ) : (
+              )
+: (
                 <ChevronsUpDown className="h-3 w-3" />
               )}
             </button>
@@ -231,11 +243,15 @@ export function RepositoryList({
             >
               <Users className="h-3 w-3" />
               Contributors
-              {column.getIsSorted() === "asc" ? (
+              {column.getIsSorted() === "asc"
+? (
                 <ChevronUp className="h-3 w-3" />
-              ) : column.getIsSorted() === "desc" ? (
+              )
+: column.getIsSorted() === "desc"
+? (
                 <ChevronDown className="h-3 w-3" />
-              ) : (
+              )
+: (
                 <ChevronsUpDown className="h-3 w-3" />
               )}
             </button>
@@ -256,11 +272,15 @@ export function RepositoryList({
               onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             >
               Last Activity
-              {column.getIsSorted() === "asc" ? (
+              {column.getIsSorted() === "asc"
+? (
                 <ChevronUp className="h-3 w-3" />
-              ) : column.getIsSorted() === "desc" ? (
+              )
+: column.getIsSorted() === "desc"
+? (
                 <ChevronDown className="h-3 w-3" />
-              ) : (
+              )
+: (
                 <ChevronsUpDown className="h-3 w-3" />
               )}
             </button>

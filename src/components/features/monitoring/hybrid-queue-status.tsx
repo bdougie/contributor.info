@@ -213,7 +213,8 @@ export function HybridQueueStatus({
     return null;
   }
 
-  const content = showTabs ? (
+  const content = showTabs
+? (
     <Tabs defaultValue="overview" className="w-full">
       <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -271,7 +272,8 @@ export function HybridQueueStatus({
         </div>
       </TabsContent>
     </Tabs>
-  ) : (
+  )
+: (
     <QueueStatsCard
       title="Queue Status"
       stats={stats.total}

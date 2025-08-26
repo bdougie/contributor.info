@@ -22,14 +22,14 @@ global.IntersectionObserver = vi.fn(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   takeRecords: vi.fn(() => []),
-})) as any;
+})) as unknown as typeof IntersectionObserver;
 
 // Mock ResizeObserver
 global.ResizeObserver = vi.fn(() => ({
   disconnect: vi.fn(),
   observe: vi.fn(),
   unobserve: vi.fn(),
-})) as any;
+})) as unknown as typeof IntersectionObserver;
 
 // Mock matchMedia
 global.matchMedia = vi.fn((query: string) => ({
@@ -41,12 +41,12 @@ global.matchMedia = vi.fn((query: string) => ({
   addEventListener: vi.fn(),
   removeEventListener: vi.fn(),
   dispatchEvent: vi.fn(),
-})) as any;
+})) as unknown as typeof IntersectionObserver;
 
 // Minimal Supabase mock with method chaining support
 vi.mock('@/lib/supabase', () => {
   const createQueryBuilder = () => {
-    const queryBuilder: any = {
+    const queryBuilder: Record<string, unknown> = {
       select: vi.fn(() => queryBuilder),
       insert: vi.fn(() => queryBuilder),
       update: vi.fn(() => queryBuilder),
@@ -64,7 +64,7 @@ vi.mock('@/lib/supabase', () => {
       limit: vi.fn(() => queryBuilder),
       single: vi.fn(() => Promise.resolve({ data: null, error: null })),
       maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
-      then: (resolve: any) => resolve({ data: [], error: null }),
+      then: (resolve: (value: { data: unknown[]; error: null }) => void) => resolve({ data: [], error: null }),
     };
     return queryBuilder;
   };

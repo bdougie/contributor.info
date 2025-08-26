@@ -148,7 +148,7 @@ export function BulkSpamAnalysis() {
   };
 
   const filterRepositories = () => {
-    let filtered = repositories.filter(repo => {
+    const filtered = repositories.filter(repo => {
       const matchesSearch = 
         repo.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         repo.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -507,9 +507,11 @@ export function BulkSpamAnalysis() {
               size="lg"
               className="flex-1"
             >
-              {isAnalyzing ? (
+              {isAnalyzing
+? (
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
+              )
+: (
                 <Play className="h-4 w-4 mr-2" />
               )}
               {isAnalyzing ? 'Analyzing...' : `Analyze All (${systemStats.pendingPrs.toLocaleString()} pending PRs)`}
@@ -601,16 +603,20 @@ export function BulkSpamAnalysis() {
                     <TableCell>{repo.total_prs.toLocaleString()}</TableCell>
                     <TableCell>{repo.analyzed_prs.toLocaleString()}</TableCell>
                     <TableCell>
-                      {repo.pending_prs > 0 ? (
+                      {repo.pending_prs > 0
+? (
                         <Badge variant="destructive">{repo.pending_prs.toLocaleString()}</Badge>
-                      ) : (
+                      )
+: (
                         <span className="text-muted-foreground">0</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {repo.spam_prs > 0 ? (
+                      {repo.spam_prs > 0
+? (
                         <Badge variant="destructive">{repo.spam_prs.toLocaleString()}</Badge>
-                      ) : (
+                      )
+: (
                         <span className="text-muted-foreground">0</span>
                       )}
                     </TableCell>
@@ -625,11 +631,13 @@ export function BulkSpamAnalysis() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {repo.avg_spam_score !== undefined ? (
+                      {repo.avg_spam_score !== undefined
+? (
                         <Badge variant={getSpamScoreBadgeVariant(repo.avg_spam_score)}>
                           {repo.avg_spam_score}%
                         </Badge>
-                      ) : (
+                      )
+: (
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
@@ -687,8 +695,10 @@ export function BulkSpamAnalysis() {
                   </div>
                   <Badge 
                     variant={
-                      job.status === 'completed' ? 'default' :
-                      job.status === 'running' ? 'secondary' :
+                      job.status === 'completed'
+? 'default' :
+                      job.status === 'running'
+? 'secondary' :
                       job.status === 'failed' ? 'destructive' : 'outline'
                     }
                   >

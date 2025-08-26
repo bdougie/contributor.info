@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 
-// Mock user for testing
-const testUser = {
-  email: 'test@example.com',
-  password: 'TestPassword123!'
-};
+// Mock user for testing (currently not used in tests but may be needed for future auth tests)
+// const testUser = {
+//   email: 'test@example.com',
+//   password: 'TestPassword123!'
+// };
 
 test.describe('Workspace Management', () => {
   test.beforeEach(async ({ page }) => {

@@ -105,7 +105,7 @@ export function ManualSyncButton({
           .select('id')
           .eq('owner', owner)
           .eq('name', repo)
-          .single();
+          .maybeSingle();
 
         if (repoError || !repoData) {
           throw new Error('Repository not found in database');
@@ -175,7 +175,7 @@ export function ManualSyncButton({
           .from('repositories')
           .select('last_updated_at')
           .eq('id', repoId)
-          .single();
+          .maybeSingle();
 
         if (repoData) {
           const updateTime = new Date(repoData.last_updated_at);
@@ -218,11 +218,15 @@ export function ManualSyncButton({
 
   const buttonContent = (
     <>
-      {isSyncing ? (
+      {isSyncing
+? (
         <Loader2 className={showLabel ? "mr-2 h-4 w-4 animate-spin" : "h-4 w-4 animate-spin"} />
-      ) : isLoggedIn ? (
+      )
+: isLoggedIn
+? (
         <RefreshCw className={showLabel ? "mr-2 h-4 w-4" : "h-4 w-4"} />
-      ) : (
+      )
+: (
         <Lock className={showLabel ? "mr-2 h-4 w-4" : "h-4 w-4"} />
       )}
       {showLabel && (

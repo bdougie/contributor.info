@@ -202,11 +202,13 @@ export function RepositoryFilter({
 
           {/* Repository List */}
           <div className="max-h-64 overflow-y-auto">
-            {filteredRepositories.length === 0 ? (
+            {filteredRepositories.length === 0
+? (
               <div className="py-4 text-center text-sm text-muted-foreground">
                 No repositories found
               </div>
-            ) : (
+            )
+: (
               <div className="space-y-1">
                 {filteredRepositories.map((repo) => {
                   const isSelected = selectedRepositories.includes(repo.id);
@@ -341,7 +343,8 @@ export function SingleRepositoryFilter({
       >
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <GitBranch className="h-4 w-4 flex-shrink-0" />
-          {selectedRepo ? (
+          {selectedRepo
+? (
             <>
               <img
                 src={selectedRepo.avatar_url || `https://avatars.githubusercontent.com/${selectedRepo.owner}`}
@@ -353,7 +356,8 @@ export function SingleRepositoryFilter({
               />
               <span className="truncate">{selectedRepo.name}</span>
             </>
-          ) : (
+          )
+: (
             <span className="truncate">{placeholder}</span>
           )}
         </div>
@@ -393,11 +397,13 @@ export function SingleRepositoryFilter({
           </div>
 
           <div className="max-h-64 overflow-y-auto">
-            {filteredRepositories.length === 0 ? (
+            {filteredRepositories.length === 0
+? (
               <div className="py-4 text-center text-sm text-muted-foreground">
                 No repositories found
               </div>
-            ) : (
+            )
+: (
               <div className="space-y-1">
                 {filteredRepositories.map((repo) => {
                   const isSelected = repo.id === selectedRepository;

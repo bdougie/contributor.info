@@ -105,12 +105,14 @@ const SelfSelectionRateStory = ({
           Self-Selection Rate
           {mockTrend !== null && (
             <span className="flex items-center text-sm font-normal">
-              {mockTrend > 0 ? (
+              {mockTrend > 0
+? (
                 <>
                   <TrendingUp className="h-4 w-4 text-green-600 mr-1" />
                   <span className="text-green-600">+{mockTrend.toFixed(1)}%</span>
                 </>
-              ) : (
+              )
+: (
                 <>
                   <TrendingDown className="h-4 w-4 text-red-600 mr-1" />
                   <span className="text-red-600">{mockTrend.toFixed(1)}%</span>

@@ -303,7 +303,8 @@ export function RepositoryTrackingCard({
               </p>
             </div>
             <div className="flex flex-col items-center sm:items-end">
-              {!isLoggedIn ? (
+              {!isLoggedIn
+? (
                 <Button 
                   onClick={handleLogin}
                   variant="default"
@@ -312,19 +313,22 @@ export function RepositoryTrackingCard({
                   <Lock className="mr-2 h-4 w-4" />
                   Login to Track
                 </Button>
-              ) : (
+              )
+: (
                 <Button 
                   onClick={handleTrackRepository}
                   disabled={isTracking}
                   variant="default"
                   className="bg-orange-500 hover:bg-orange-600 text-white disabled:bg-orange-300 w-full sm:w-auto"
                 >
-                  {isTracking ? (
+                  {isTracking
+? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Tracking...
                     </>
-                  ) : (
+                  )
+: (
                     <>
                       <BarChart3 className="mr-2 h-4 w-4" />
                       Track This Repo

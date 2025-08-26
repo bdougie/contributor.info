@@ -18,7 +18,8 @@ export function AvgTimeCard({ averageMergeTime, averageMergeTimeTrend, loading }
     );
   }
 
-  const mergeTimeColor = averageMergeTime <= 24 ? "text-green-500" : 
+  const mergeTimeColor = averageMergeTime <= 24
+? "text-green-500" : 
                         averageMergeTime <= 72 ? "text-yellow-500" : "text-red-500";
 
   return (
@@ -34,11 +35,15 @@ export function AvgTimeCard({ averageMergeTime, averageMergeTimeTrend, loading }
         }
       </p>
       <div className="flex items-center gap-1">
-        {averageMergeTimeTrend === "down" ? (
+        {averageMergeTimeTrend === "down"
+? (
           <TrendingDown className="h-3 w-3 text-green-500" />
-        ) : averageMergeTimeTrend === "up" ? (
+        )
+: averageMergeTimeTrend === "up"
+? (
           <TrendingUp className="h-3 w-3 text-red-500" />
-        ) : null}
+        )
+: null}
         <p className="text-xs text-muted-foreground truncate">to merge</p>
       </div>
     </Card>

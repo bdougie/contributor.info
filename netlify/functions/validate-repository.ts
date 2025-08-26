@@ -124,7 +124,7 @@ export const handler: Handler = async (event) => {
   }
 };
 
-async function checkSupabase(owner: string, repo: string): Promise<{ exists: boolean; repository?: any }> {
+async function checkSupabase(owner: string, repo: string): Promise<{ exists: boolean; repository?: Record<string, unknown> }> {
   if (!VITE_SUPABASE_URL || !VITE_SUPABASE_ANON_KEY) {
     console.warn('Supabase credentials not configured, skipping database check');
     return { exists: false };
@@ -172,7 +172,7 @@ async function checkSupabase(owner: string, repo: string): Promise<{ exists: boo
   }
 }
 
-async function checkGitHub(owner: string, repo: string): Promise<{ exists: boolean; repository?: any }> {
+async function checkGitHub(owner: string, repo: string): Promise<{ exists: boolean; repository?: Record<string, unknown> }> {
   try {
     const headers: HeadersInit = {
       'Accept': 'application/vnd.github.v3+json',

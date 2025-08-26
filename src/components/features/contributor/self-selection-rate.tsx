@@ -63,7 +63,7 @@ export function SelfSelectionRate({
           p_repository_name: repo,
           p_days_back: daysBack
         })
-        .single()
+        .maybeSingle()
 
       if (currentError) throw currentError
 
@@ -81,7 +81,7 @@ export function SelfSelectionRate({
             p_repository_name: repo,
             p_days_back: daysBack * 2
           })
-          .single()
+          .maybeSingle()
 
         setStats(currentData as SelfSelectionStats)
         setPreviousStats(previousData as SelfSelectionStats)
@@ -207,7 +207,8 @@ export function SelfSelectionRate({
           {/* Authentication and sync trigger */}
           {hasData === false && !syncStatus.error && (
             <div className="flex flex-col items-center gap-2 pt-4 border-t">
-              {!isLoggedIn ? (
+              {!isLoggedIn
+? (
                 <>
                   <p className="text-sm text-muted-foreground text-center">
                     Log in with GitHub to analyze this repository's contributor data.
@@ -222,7 +223,8 @@ export function SelfSelectionRate({
                     Log in with GitHub
                   </Button>
                 </>
-              ) : (
+              )
+: (
                 <>
                   <p className="text-sm text-muted-foreground text-center">
                     This repository hasn't been analyzed yet.
@@ -292,12 +294,14 @@ export function SelfSelectionRate({
             <div className="flex items-center gap-2">
               {trend !== null && (
                 <span className="flex items-center text-sm font-normal">
-                  {trend > 0 ? (
+                  {trend > 0
+? (
                     <>
                       <TrendingUp className="h-4 w-4 text-green-600 mr-1" />
                       <span className="text-green-600">+{trend.toFixed(1)}%</span>
                     </>
-                  ) : (
+                  )
+: (
                     <>
                       <TrendingDown className="h-4 w-4 text-red-600 mr-1" />
                       <span className="text-red-600">{trend.toFixed(1)}%</span>
@@ -413,7 +417,7 @@ export function useSelfSelectionRate(owner: string, repo: string, daysBack: numb
             p_repository_name: repo,
             p_days_back: daysBack
           })
-          .single()
+          .maybeSingle()
 
         if (err) throw err
         setStats(data as SelfSelectionStats)

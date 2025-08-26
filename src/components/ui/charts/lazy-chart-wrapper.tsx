@@ -34,11 +34,13 @@ export function LazyChartWrapper({
       ref={ref}
       className={className}
     >
-      {hasIntersected ? (
+      {hasIntersected
+? (
         <Suspense fallback={fallback || <SkeletonChart height={skeletonHeight} />}>
           {children}
         </Suspense>
-      ) : (
+      )
+: (
         fallback || <SkeletonChart height={skeletonHeight} />
       )}
     </div>

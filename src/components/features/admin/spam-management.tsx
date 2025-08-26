@@ -401,7 +401,8 @@ export function SpamManagement() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={getStatusBadgeVariant(detection.status)}>
-                        {detection.status === 'false_positive' ? 'False Positive' : 
+                        {detection.status === 'false_positive'
+? 'False Positive' : 
                          detection.status.charAt(0).toUpperCase() + detection.status.slice(1)}
                       </Badge>
                     </TableCell>

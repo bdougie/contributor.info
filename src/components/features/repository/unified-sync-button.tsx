@@ -144,7 +144,7 @@ export function UnifiedSyncButton({
           .select('id')
           .eq('owner', owner)
           .eq('name', repo)
-          .single();
+          .maybeSingle();
 
         if (repoError || !repoData) {
           // Repository not in database, need to track it first
@@ -168,7 +168,7 @@ export function UnifiedSyncButton({
             .select('id')
             .eq('owner', owner)
             .eq('name', repo)
-            .single();
+            .maybeSingle();
 
           if (newRepoData) {
             repoId = newRepoData.id;
@@ -291,7 +291,7 @@ export function UnifiedSyncButton({
           .from('repositories')
           .select('last_updated_at')
           .eq('id', repoId)
-          .single();
+          .maybeSingle();
 
         if (repoData) {
           const updateTime = new Date(repoData.last_updated_at);
@@ -340,11 +340,15 @@ export function UnifiedSyncButton({
 
   const buttonContent = (
     <>
-      {isSyncing ? (
+      {isSyncing
+? (
         <Loader2 className={showLabel ? "mr-2 h-4 w-4 animate-spin" : "h-4 w-4 animate-spin"} />
-      ) : isLoggedIn ? (
+      )
+: isLoggedIn
+? (
         <RefreshCw className={showLabel ? "mr-2 h-4 w-4" : "h-4 w-4"} />
-      ) : (
+      )
+: (
         <Lock className={showLabel ? "mr-2 h-4 w-4" : "h-4 w-4"} />
       )}
       {showLabel && (

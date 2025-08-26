@@ -32,9 +32,11 @@ export function ContributorOfMonthSkeleton({
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {isWinnerPhase ? (
+        {isWinnerPhase
+? (
           <WinnerPhaseSkeleton showContributors={showContributors} />
-        ) : (
+        )
+: (
           <LeaderboardPhaseSkeleton showContributors={showContributors} />
         )}
       </CardContent>

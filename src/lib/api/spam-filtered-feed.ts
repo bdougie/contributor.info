@@ -33,7 +33,7 @@ export async function fetchFilteredPullRequests(
     // This reduces the need for refetching when filters change
     const fetchLimit = Math.max(limit * 3, 300);
     
-    let query = supabase
+    const query = supabase
       .from('pull_requests')
       .select(`
         *,
@@ -56,7 +56,7 @@ export async function fetchFilteredPullRequests(
     if (!data) return [];
 
     // Apply client-side filtering
-    let filtered = data.filter(pr => {
+    const filtered = data.filter(pr => {
       // Treat both null and 0 spam scores as unanalyzed
       const isUnanalyzed = pr.spam_score === null || pr.spam_score === 0;
       

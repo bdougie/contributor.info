@@ -99,11 +99,15 @@ export const Breadcrumbs = () => {
     return (
       <React.Fragment key={crumb.to || crumb.name}>
         <BreadcrumbItem>
-          {crumb.isLast ? (
+          {crumb.isLast
+? (
             <BreadcrumbPage className={cn(isMobile && 'text-sm font-medium')}>{crumb.name}</BreadcrumbPage>
-          ) : crumb.isStatic ? (
+          )
+: crumb.isStatic
+? (
             <span className="text-muted-foreground">{crumb.name}</span>
-          ) : (
+          )
+: (
             <BreadcrumbLink asChild>
               <Link to={crumb.to} className={cn(isMobile && 'text-sm')} {...prefetchHandlers}>{crumb.name}</Link>
             </BreadcrumbLink>

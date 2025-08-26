@@ -300,18 +300,21 @@ export default function UserView() {
             <User className="w-5 h-5" />
             Collaborative Repositories
             <div className="ml-auto repo-count-badge">
-              {!isLoading ? (
+              {!isLoading
+? (
                 <Badge variant="secondary">
                   {repositories.length} collaborative
                 </Badge>
-              ) : (
+              )
+: (
                 <div className="h-6 w-16 skeleton-loading rounded" />
               )}
             </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="user-repos-table">
-          {isLoading ? (
+          {isLoading
+? (
             <div className="space-y-4">
               <Table>
                 <TableHeader>
@@ -355,7 +358,9 @@ export default function UserView() {
                 </TableBody>
               </Table>
             </div>
-          ) : repositories.length > 0 ? (
+          )
+: repositories.length > 0
+? (
             <>
               <Table>
                 <TableHeader>
@@ -395,7 +400,8 @@ export default function UserView() {
                 </div>
               )}
             </>
-          ) : (
+          )
+: (
             <div className="text-center py-8">
               <p className="text-muted-foreground">No collaborative repositories found for this user.</p>
             </div>

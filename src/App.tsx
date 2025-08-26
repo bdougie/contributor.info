@@ -94,9 +94,11 @@ const PageSkeleton = () => {
       
       {/* Main content */}
       <main className="container px-4 py-6 flex-1">
-        {isHomePage ? (
-          /* Home page skeleton - centered card with search */
-          <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        {/* eslint-disable-next-line no-nested-ternary */}
+        {isHomePage
+          ? (
+              /* Home page skeleton - centered card with search */
+              <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
             <div className="w-full max-w-2xl border rounded-lg p-8 space-y-6">
               {/* Title */}
               <div className="space-y-3">
@@ -116,8 +118,10 @@ const PageSkeleton = () => {
               </div>
             </div>
           </div>
-        ) : isOrgPage ? (
-          /* Organization page skeleton */
+            )
+          : isOrgPage
+            ? (
+                /* Organization page skeleton */
           <div className="max-w-6xl mx-auto space-y-6">
             {/* Breadcrumbs */}
             <div className="flex items-center gap-2 text-sm">
@@ -151,8 +155,9 @@ const PageSkeleton = () => {
               </div>
             </div>
           </div>
-        ) : (
-          /* Repository/default page skeleton */
+              )
+            : (
+                /* Repository/default page skeleton */
           <div className="space-y-6">
             {/* Breadcrumbs for repo pages */}
             {isRepoPage && (
@@ -177,7 +182,8 @@ const PageSkeleton = () => {
               ))}
             </div>
           </div>
-        )}
+              )
+        }
       </main>
       
       {/* Footer */}

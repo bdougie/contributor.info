@@ -214,11 +214,14 @@ ${
           <SheetTitle>Pull Request Insights</SheetTitle>
         </SheetHeader>
         <ScrollArea className="h-[calc(100vh-5rem)] mt-6 pr-4">
-          {loading ? (
+          {loading
+? (
             <div className="flex items-center justify-center h-40">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : error ? (
+          )
+: error
+? (
             <div className="space-y-4">
               <div className="flex items-start gap-3 text-destructive">
                 <AlertCircle className="h-5 w-5 mt-0.5" />
@@ -235,11 +238,14 @@ ${
                 Try Again
               </Button>
             </div>
-          ) : insights ? (
+          )
+: insights
+? (
             <div className="prose dark:prose-invert max-w-none">
               <ReactMarkdown>{insights}</ReactMarkdown>
             </div>
-          ) : (
+          )
+: (
             <div className="text-muted-foreground">
               No insights available. Click generate to analyze pull requests.
             </div>

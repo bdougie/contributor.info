@@ -240,7 +240,8 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         number: pr.number,
         title: pr.title,
         body: null, // Basic PR list doesn't include body
-        state: pr.state?.toLowerCase() === 'open' ? 'open' : 
+        state: pr.state?.toLowerCase() === 'open'
+? 'open' : 
                pr.merged ? 'merged' : 'closed',
         author_id: contributorIds[index], // Now this is a proper UUID
         created_at: pr.createdAt,
@@ -371,11 +372,13 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         averagePointsPerQuery: metrics.averagePointsPerQuery,
         fallbackRate: `${metrics.fallbackRate.toFixed(1)}%`
       },
-      rateLimit: rateLimit ? {
+      rateLimit: rateLimit
+? {
         remaining: rateLimit.remaining,
         limit: rateLimit.limit,
         resetAt: rateLimit.resetAt
-      } : null
+      }
+: null
     };
   }
 );

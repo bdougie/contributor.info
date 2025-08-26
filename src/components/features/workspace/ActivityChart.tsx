@@ -414,9 +414,11 @@ export function ActivityChart({
                 onClick={onExpandToggle}
                 className="h-8 w-8"
               >
-                {isExpanded ? (
+                {isExpanded
+? (
                   <X className="h-4 w-4" />
-                ) : (
+                )
+: (
                   <Layout className="h-4 w-4" />
                 )}
               </Button>
@@ -440,7 +442,8 @@ export function ActivityChart({
         </div>
       </CardHeader>
       <CardContent className="pb-2">
-        {hasData && chartData && chartOptions ? (
+        {hasData && chartData && chartOptions
+? (
           <div 
             style={{ height }} 
             className="pr-2 transition-[height] duration-500 ease-in-out relative"
@@ -487,7 +490,8 @@ export function ActivityChart({
               </div>
             )}
           </div>
-        ) : (
+        )
+: (
           <div 
             className="flex items-center justify-center text-muted-foreground"
             style={{ height }}

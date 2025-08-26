@@ -153,12 +153,14 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
                         Draft
                       </Badge>
                     )}
-                    {!alert.hasMaintainerComment ? (
+                    {!alert.hasMaintainerComment
+? (
                       <Badge variant="destructive" className="text-xs flex items-center gap-1">
                         <MessageCircle className="h-3 w-3" />
                         Needs Response
                       </Badge>
-                    ) : alert.daysSinceLastMaintainerComment !== null && alert.daysSinceLastMaintainerComment >= 5 && (
+                    )
+: alert.daysSinceLastMaintainerComment !== null && alert.daysSinceLastMaintainerComment >= 5 && (
                       <Badge variant="secondary" className="text-xs flex items-center gap-1">
                         <MessageSquare className="h-3 w-3" />
                         {alert.daysSinceLastMaintainerComment}d ago

@@ -907,7 +907,8 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
                   ))}
                 </thead>
                 <tbody>
-                  {addTable.getRowModel().rows.length > 0 ? (
+                  {addTable.getRowModel().rows.length > 0
+? (
                     addTable.getRowModel().rows.map((row) => (
                       <tr
                         key={row.id}
@@ -930,7 +931,8 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
                         ))}
                       </tr>
                     ))
-                  ) : (
+                  )
+: (
                     <tr>
                       <td colSpan={addColumns.length} className="px-4 py-8 text-center text-muted-foreground">
                         No contributors found
@@ -1059,7 +1061,8 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
                       ))}
                     </thead>
                     <tbody>
-                      {viewTable.getRowModel().rows.length > 0 ? (
+                      {viewTable.getRowModel().rows.length > 0
+? (
                         viewTable.getRowModel().rows.map((row) => (
                           <tr
                             key={row.id}
@@ -1083,7 +1086,8 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
                             ))}
                           </tr>
                         ))
-                      ) : (
+                      )
+: (
                         <tr>
                           <td colSpan={viewColumns.length} className="px-4 py-8 text-center text-muted-foreground">
                             No contributors found
@@ -1213,13 +1217,13 @@ export default function WorkspacePage() {
               .select('*')
               .eq('is_active', true)
               .eq('id', workspaceId)
-              .single()
+              .maybeSingle()
           : await supabase
               .from('workspaces')
               .select('*')
               .eq('is_active', true)
               .eq('slug', workspaceId)
-              .single();
+              .maybeSingle();
 
         if (wsError || !workspaceData) {
           setError('Workspace not found');

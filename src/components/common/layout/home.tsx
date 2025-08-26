@@ -79,7 +79,8 @@ export default function Home() {
 
         {isLoggedIn && !authLoading && (
           <>
-            {workspaceLoading ? (
+            {workspaceLoading
+? (
               <WorkspacePreviewCard
                 workspace={{
                   id: '',
@@ -93,7 +94,9 @@ export default function Home() {
                 }}
                 loading={true}
               />
-            ) : workspaceError ? (
+            )
+: workspaceError
+? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-8 space-y-4">
                   <p className="text-sm text-muted-foreground">Failed to load workspace</p>
@@ -102,9 +105,12 @@ export default function Home() {
                   </Button>
                 </CardContent>
               </Card>
-            ) : hasWorkspace && workspace ? (
+            )
+: hasWorkspace && workspace
+? (
               <WorkspacePreviewCard workspace={workspace} />
-            ) : (
+            )
+: (
               <WorkspaceOnboarding onCreateClick={() => setCreateModalOpen(true)} />
             )}
           </>

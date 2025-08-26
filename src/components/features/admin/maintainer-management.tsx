@@ -540,12 +540,14 @@ export function MaintainerManagement() {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
-                      {contributor.admin_override ? (
+                      {contributor.admin_override
+? (
                         <Badge variant="outline" className="text-xs">
                           <UserCheck className="h-3 w-3 mr-1" />
                           Manual
                         </Badge>
-                      ) : (
+                      )
+: (
                         <Badge variant="secondary" className="text-xs">
                           Algorithm
                         </Badge>
@@ -607,9 +609,11 @@ export function MaintainerManagement() {
                         onClick={() => toggleLock(contributor)}
                         title={contributor.locked ? "Unlock role" : "Lock role"}
                       >
-                        {contributor.locked ? (
+                        {contributor.locked
+? (
                           <Unlock className="h-4 w-4" />
-                        ) : (
+                        )
+: (
                           <Lock className="h-4 w-4" />
                         )}
                       </Button>

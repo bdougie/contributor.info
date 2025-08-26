@@ -370,7 +370,8 @@ class LLMCitationTracker {
         repositoryBreakdown: {} as Record<string, number>,
         dailyTrend: {} as Record<string, number>,
         averageConfidence: data?.length ? 
-          data.reduce((sum, d) => sum + (d.citation_confidence || 0), 0) / data.length : 0,
+          data.reduce((sum, d) => sum + (d.citation_confidence || 0), 0) / data.length
+: 0,
       };
 
       data?.forEach(item => {

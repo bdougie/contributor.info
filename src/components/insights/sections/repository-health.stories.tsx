@@ -84,7 +84,8 @@ const MockRepositoryHealth = ({ owner, repo, timeRange, variant = "excellent" }:
 
   const data = variant === "low-confidence" 
     ? { ...healthData.warning, confidence: 35, insight: "Based on limited data, your repository appears to have mixed health indicators." }
-    : variant === "llm-unavailable" ? healthData.excellent
+    : variant === "llm-unavailable"
+? healthData.excellent
     : healthData[variant as keyof typeof healthData] || healthData.excellent;
 
   const showLLM = variant !== "llm-unavailable";
@@ -118,9 +119,12 @@ const MockRepositoryHealth = ({ owner, repo, timeRange, variant = "excellent" }:
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">{factor.score}/100</span>
               <span className={`text-xs px-2 py-1 rounded ${
-                factor.status === 'excellent' ? 'bg-green-100 text-green-800' :
-                factor.status === 'good' ? 'bg-blue-100 text-blue-800' :
-                factor.status === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                factor.status === 'excellent'
+? 'bg-green-100 text-green-800' :
+                factor.status === 'good'
+? 'bg-blue-100 text-blue-800' :
+                factor.status === 'warning'
+? 'bg-yellow-100 text-yellow-800' :
                 'bg-red-100 text-red-800'
               }`}>
                 {factor.status}
@@ -136,8 +140,10 @@ const MockRepositoryHealth = ({ owner, repo, timeRange, variant = "excellent" }:
           <div className="flex items-center justify-between mb-2">
             <span className={`text-sm font-medium ${data.textColor}`}>AI Health Assessment</span>
             <span className={`text-xs px-2 py-1 rounded ${
-              data.confidence >= 80 ? 'bg-green-200 text-green-800' : 
-              data.confidence >= 60 ? 'bg-yellow-200 text-yellow-800' : 
+              data.confidence >= 80
+? 'bg-green-200 text-green-800' : 
+              data.confidence >= 60
+? 'bg-yellow-200 text-yellow-800' : 
               'bg-red-200 text-red-800'
             }`}>
               {data.confidence}% confident
@@ -247,24 +253,24 @@ export const LowConfidenceLLM: Story = {
 
 // Interactive test story
 export const Interactive: Story = {
-  play: ({ canvasElement }) => {
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     
     // Wait for component to load
-    expect(canvas.getByText("Repository Health")).toBeInTheDocument();
+    await expect(canvas.getByText("Repository Health")).toBeInTheDocument();
     
     // Check health score is displayed
-    expect(canvas.getByText("92/100")).toBeInTheDocument();
+    await expect(canvas.getByText("92/100")).toBeInTheDocument();
     
     // Verify health factors are shown
-    expect(canvas.getByText("Review Coverage")).toBeInTheDocument();
-    expect(canvas.getByText("Response Time")).toBeInTheDocument();
+    await expect(canvas.getByText("Review Coverage")).toBeInTheDocument();
+    await expect(canvas.getByText("Response Time")).toBeInTheDocument();
     
     // Check AI insight is displayed
-    expect(canvas.getByText(/Outstanding repository health/)).toBeInTheDocument();
+    await expect(canvas.getByText(/Outstanding repository health/)).toBeInTheDocument();
     
     // Verify confidence badge
-    expect(canvas.getByText("92% confident")).toBeInTheDocument();
+    await expect(canvas.getByText("92% confident")).toBeInTheDocument();
   }
 };
 

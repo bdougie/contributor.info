@@ -64,8 +64,10 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
         setProcessor(eventProcessor);
         setEstimatedTime(eventEstimatedTime);
         setProcessingStage(
-          eventProcessor === 'inngest' ? 'Real-time processing...' :
-          eventProcessor === 'github_actions' ? 'Bulk processing...' :
+          eventProcessor === 'inngest'
+? 'Real-time processing...' :
+          eventProcessor === 'github_actions'
+? 'Bulk processing...' :
           'Hybrid processing...'
         );
         setRecentlyCompleted(false);
@@ -168,9 +170,11 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
         <div className="flex items-center gap-3">
           {isProcessing && (
             <div className="flex items-center gap-2">
-              {hasError ? (
+              {hasError
+? (
                 <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-              ) : (
+              )
+: (
                 <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
               )}
               <ProcessorIcon className={cn("h-3 w-3", processorInfo.iconClass)} />

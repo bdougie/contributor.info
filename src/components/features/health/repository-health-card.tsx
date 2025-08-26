@@ -67,7 +67,7 @@ export function RepositoryHealthCard() {
         .rpc('get_repository_confidence_summary_simple')
         .eq('repository_owner', owner)
         .eq('repository_name', repo)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       

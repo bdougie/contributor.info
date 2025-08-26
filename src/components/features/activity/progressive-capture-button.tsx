@@ -74,7 +74,8 @@ export function ProgressiveCaptureButton({
 
       // Calculate realistic processing times based on job types and data volume
       const getProcessingTime = (routing: ProcessorRouting) => {
-        const baseTime = routing.processor === 'inngest' ? 5000 : 
+        const baseTime = routing.processor === 'inngest'
+? 5000 : 
                         routing.processor === 'github_actions' ? 30000 : 15000;
         
         // Add time based on job count
@@ -128,15 +129,18 @@ export function ProgressiveCaptureButton({
         size="sm"
         className={cn("flex items-center gap-2", className)}
       >
-        {isTriggering || isProcessing ? (
+        {isTriggering || isProcessing
+? (
           <RefreshCw className="h-4 w-4 animate-spin" />
-        ) : (
+        )
+: (
           <Database className="h-4 w-4" />
         )}
         {isTriggering ? 'Starting...' : isProcessing ? 'Processing...' : 'Fix Data'}
         {routingInfo && (
           <Badge variant="secondary" className="ml-2">
-            {routingInfo.processor === 'inngest' ? 'Real-time' : 
+            {routingInfo.processor === 'inngest'
+? 'Real-time' : 
              routingInfo.processor === 'github_actions' ? 'Bulk' : 'Hybrid'}
           </Badge>
         )}
@@ -170,7 +174,8 @@ export function ProgressiveCaptureButton({
             {jobsQueued !== null && routingInfo && (
               <div className="text-xs text-muted-foreground mt-2 space-y-1">
                 <p>{jobsQueued} jobs queued for processing</p>
-                {routingInfo.processor === 'hybrid' ? (
+                {routingInfo.processor === 'hybrid'
+? (
                   <div className="flex items-center justify-center gap-4">
                     <div className="flex items-center gap-1">
                       <Zap className="h-3 w-3 text-blue-500" />
@@ -181,14 +186,17 @@ export function ProgressiveCaptureButton({
                       <span>{routingInfo.actionsJobs} bulk</span>
                     </div>
                   </div>
-                ) : (
+                )
+: (
                   <div className="flex items-center justify-center gap-1">
-                    {routingInfo.processor === 'inngest' ? (
+                    {routingInfo.processor === 'inngest'
+? (
                       <>
                         <Zap className="h-3 w-3 text-blue-500" />
                         <span>Real-time processing</span>
                       </>
-                    ) : (
+                    )
+: (
                       <>
                         <GitBranch className="h-3 w-3 text-purple-500" />
                         <span>Bulk processing</span>

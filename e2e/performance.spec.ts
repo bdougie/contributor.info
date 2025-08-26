@@ -38,11 +38,11 @@ test.describe('Performance and Loading', () => {
       'Fetching'
     ];
     
-    let hasLoadingState = false;
+    // Check for loading states to ensure we're measuring real performance 
     for (const state of loadingStates) {
       if (await page.locator(`text=${state}`).isVisible() || 
           await page.locator(`[class*="${state.toLowerCase()}"]`).isVisible()) {
-        hasLoadingState = true;
+        // Found loading state, performance metrics will be more realistic
         break;
       }
     }

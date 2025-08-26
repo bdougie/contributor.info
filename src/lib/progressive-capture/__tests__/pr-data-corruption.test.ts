@@ -1,20 +1,28 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
+// Note: beforeEach and vi are not used in this file
 
 // Helper functions for detecting and handling PR data corruption
-export function isPRDataCorrupted(pr: any): boolean {
+interface PRData {
+  additions: number;
+  deletions: number;
+  changed_files: number;
+  commits: number;
+}
+
+export function isPRDataCorrupted(pr: PRData): boolean {
   return pr.additions === 0 && 
          pr.deletions === 0 && 
          pr.changed_files === 0 && 
          pr.commits === 0;
 }
 
-export function calculateCorruptionRate(prs: any[]): number {
+export function calculateCorruptionRate(prs: PRData[]): number {
   if (prs.length === 0) return 0;
   const corruptedCount = prs.filter(isPRDataCorrupted).length;
   return (corruptedCount / prs.length) * 100;
 }
 
-export function shouldTriggerAutoFix(prs: any[], threshold: number = 10): boolean {
+export function shouldTriggerAutoFix(prs: PRData[], threshold: number = 10): boolean {
   const corruptionRate = calculateCorruptionRate(prs);
   return corruptionRate > threshold;
 }

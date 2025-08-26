@@ -4,9 +4,13 @@ import { createElement } from 'react';
 
 export const animated = new Proxy({}, {
   get(_target, prop) {
-    return vi.fn(({ children, style, ...props }: any) => {
+    return vi.fn(({ children, style, ...props }: {
+      children?: React.ReactNode;
+      style?: Record<string, unknown>;
+      [key: string]: unknown;
+    }) => {
       // Convert animated style to regular style
-      const processedStyle: Record<string, any> = {};
+      const processedStyle: Record<string, unknown> = {};
       if (style) {
         Object.keys(style).forEach(key => {
           const value = style[key];

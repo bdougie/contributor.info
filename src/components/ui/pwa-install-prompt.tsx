@@ -140,12 +140,14 @@ export function PWAInstallPrompt({
               disabled={isInstalling}
               className="text-xs h-8 px-3"
             >
-              {isInstalling ? (
+              {isInstalling
+? (
                 <>
                   <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
                   Installing...
                 </>
-              ) : (
+              )
+: (
                 <>
                   <Download className="w-3 h-3 mr-1" />
                   Install

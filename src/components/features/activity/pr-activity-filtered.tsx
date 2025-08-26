@@ -143,18 +143,22 @@ export default function FilteredPRActivity() {
 
         {/* Activity Feed */}
         <div className="space-y-2">
-          {visibleActivities.length === 0 ? (
+          {visibleActivities.length === 0
+? (
             <div className="text-center py-8 text-muted-foreground">
-              {spamStats && spamStats.spamCount === 0 ? (
+              {spamStats && spamStats.spamCount === 0
+? (
                 <div>
                   <p className="font-medium">No spam detected in this repository</p>
                   <p className="text-sm mt-1">All pull requests appear to be legitimate</p>
                 </div>
-              ) : (
+              )
+: (
                 <p>No pull requests match your filter criteria</p>
               )}
             </div>
-          ) : (
+          )
+: (
             visibleActivities.map((activity) => (
               <SpamAwareActivityItem key={activity.id} activity={activity} />
             ))

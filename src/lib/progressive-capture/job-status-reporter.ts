@@ -8,7 +8,7 @@ export interface JobStatusUpdate {
     processed: number;
     failed?: number;
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   error?: string;
   workflowRunId?: number;
   workflowRunUrl?: string;
@@ -32,7 +32,7 @@ export class JobStatusReporter {
    */
   async reportStatus(update: JobStatusUpdate): Promise<void> {
     try {
-      const updates: any = {
+      const updates: Record<string, unknown> = {
         status: update.status
       };
       
@@ -212,7 +212,7 @@ export class JobStatusReporter {
   /**
    * Get job status summary
    */
-  async getJobSummary(jobId: string): Promise<any> {
+  async getJobSummary(jobId: string): Promise<Record<string, unknown> | null> {
     try {
       const { data: job } = await supabase
         .from('progressive_capture_jobs')
@@ -248,7 +248,7 @@ export class JobStatusReporter {
   /**
    * Stream job status updates (for real-time monitoring)
    */
-  subscribeToJobUpdates(jobId: string, callback: (job: any) => void): () => void {
+  subscribeToJobUpdates(jobId: string, callback: (job: Record<string, unknown>) => void): () => void {
     const subscription = supabase
       .channel(`job-status-${jobId}`)
       .on(
@@ -274,7 +274,7 @@ export class JobStatusReporter {
   /**
    * Get recent job history for a repository
    */
-  async getRepositoryJobHistory(repositoryId: string, limit: number = 10): Promise<any[]> {
+  async getRepositoryJobHistory(repositoryId: string, limit: number = 10): Promise<Record<string, unknown>[]> {
     try {
       const { data: jobs } = await supabase
         .from('progressive_capture_jobs')

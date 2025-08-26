@@ -28,7 +28,7 @@ export function DocsToc({ content, className }: DocsTocProps) {
     while ((match = headingRegex.exec(content)) !== null) {
       const level = match[1].length;
       const title = match[2].trim();
-      let baseId = title
+      const baseId = title
         .toLowerCase()
         .replace(/[^\w\s-]/g, "") // Remove special characters
         .replace(/\s+/g, "-") // Replace spaces with hyphens

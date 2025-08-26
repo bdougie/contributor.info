@@ -125,7 +125,7 @@ export class GitHubActionsQueueManager {
   /**
    * Check the status of a specific job
    */
-  private async checkJobStatus(job: any): Promise<void> {
+  private async checkJobStatus(job: { id: string; started_at?: string; [key: string]: unknown }): Promise<void> {
     try {
       // Query workflow runs to find our job
       const response = await fetch(
@@ -147,7 +147,7 @@ export class GitHubActionsQueueManager {
       
       // Try to find a run that matches our job
       // This is a heuristic - in production, you might want to pass a unique identifier
-      const matchingRun = data.workflow_runs.find((run: any) => {
+      const matchingRun = data.workflow_runs.find((run: { id: number; name?: string; [key: string]: unknown }) => {
         const runTime = new Date(run.created_at).getTime();
         const jobTime = new Date(job.started_at).getTime();
         return Math.abs(runTime - jobTime) < 60000; // Within 1 minute

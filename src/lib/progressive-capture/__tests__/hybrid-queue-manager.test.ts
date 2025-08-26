@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { inngest } from '../../inngest/client';
+// Note: inngest import is mocked below
 
 // Mock window and fetch for browser environment tests
-global.window = {} as any;
+global.window = {} as Window & typeof globalThis;
 global.fetch = vi.fn(() => 
   Promise.resolve({
     ok: true,
@@ -159,7 +159,7 @@ describe('HybridQueueManager', () => {
         manager.queueJob('recent-prs', {
           repositoryName: 'owner/repo'
           // Missing repositoryId
-        } as any)
+        } as Record<string, unknown>)
       ).rejects.toThrow();
     });
   });
@@ -203,3 +203,4 @@ describe('HybridQueueManager', () => {
       ).rejects.toThrow('Unknown job type for Inngest: unknown-job-type');
     });
   });
+});

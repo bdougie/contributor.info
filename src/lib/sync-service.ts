@@ -56,7 +56,7 @@ export class SyncService {
       .select('id, is_tracked, size_class')
       .eq('owner', owner)
       .eq('name', name)
-      .single();
+      .maybeSingle();
     
     if (!repo?.is_tracked) {
       throw new Error('Repository is not tracked. Please track it first.');
@@ -142,7 +142,7 @@ export class SyncService {
       .from('sync_progress')
       .select('*')
       .eq('repository_id', `${owner}/${name}`)
-      .single();
+      .maybeSingle();
     
     if (progress) {
       // Resume with Supabase (since it was a long operation)
@@ -170,13 +170,13 @@ export class SyncService {
       .select('sync_status, last_synced_at')
       .eq('owner', owner)
       .eq('name', name)
-      .single();
+      .maybeSingle();
     
     const { data: progress } = await supabase
       .from('sync_progress')
       .select('prs_processed, status')
       .eq('repository_id', `${owner}/${name}`)
-      .single();
+      .maybeSingle();
     
     return {
       issyncing: repo?.sync_status === 'syncing' || progress?.status === 'partial',

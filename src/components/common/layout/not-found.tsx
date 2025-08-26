@@ -312,7 +312,8 @@ export default function NotFound() {
               </div>
               
               {/* Show validation status for repository paths */}
-              {pathInfo.isRepo && validationResult.status === 'checking' ? (
+              {pathInfo.isRepo && validationResult.status === 'checking'
+? (
                 <div className="mt-4 text-yellow-600">
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -322,7 +323,9 @@ export default function NotFound() {
                     Verifying {pathInfo.owner}/{pathInfo.repo} in our database and on GitHub...
                   </div>
                 </div>
-              ) : pathInfo.isRepo && validationResult.status === 'exists_on_github' ? (
+              )
+: pathInfo.isRepo && validationResult.status === 'exists_on_github'
+? (
                 <div className="mt-4 text-green-600">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4" />
@@ -335,7 +338,9 @@ export default function NotFound() {
                     You'll be redirected automatically in a moment.
                   </div>
                 </div>
-              ) : pathInfo.isRepo && validationResult.status === 'exists_in_db' ? (
+              )
+: pathInfo.isRepo && validationResult.status === 'exists_in_db'
+? (
                 <div className="mt-4 text-green-600">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4" />
@@ -345,7 +350,8 @@ export default function NotFound() {
                     Redirecting to {pathInfo.owner}/{pathInfo.repo}...
                   </div>
                 </div>
-              ) : (
+              )
+: (
                 <div className="mt-4 text-destructive">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4" />
@@ -419,7 +425,8 @@ export default function NotFound() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {loading ? (
+                {loading
+? (
                   Array.from({ length: 5 }).map((_, index) => (
                     <div key={index} className="p-3 animate-pulse">
                       <div className="flex items-center space-x-3">
@@ -435,7 +442,8 @@ export default function NotFound() {
                       </div>
                     </div>
                   ))
-                ) : (
+                )
+: (
                   popularRepos.slice(0, 5).map(renderRepoItem)
                 )}
               </div>
@@ -452,7 +460,8 @@ export default function NotFound() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {loading ? (
+                {loading
+? (
                   Array.from({ length: 5 }).map((_, index) => (
                     <div key={index} className="p-3 animate-pulse">
                       <div className="flex items-center space-x-3">
@@ -468,7 +477,8 @@ export default function NotFound() {
                       </div>
                     </div>
                   ))
-                ) : (
+                )
+: (
                   recentRepos.slice(0, 5).map(renderRepoItem)
                 )}
               </div>
