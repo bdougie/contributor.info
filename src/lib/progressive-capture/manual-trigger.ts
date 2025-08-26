@@ -217,7 +217,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
     try {
       // Get repository info
       const { supabase } = await import('../supabase');
-      const { data: repo, error: _error: repoError } = await supabase
+      const { data: repo, error: repoError } = await supabase
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)

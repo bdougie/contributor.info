@@ -24,7 +24,7 @@ export function parseRateLimit(headers: Headers): RateLimitInfo | null {
   const remaining = headers.get('x-ratelimit-remaining');
   const reset = headers.get('x-ratelimit-reset');
   const used = headers.get('x-ratelimit-used');
-  
+
   if (limit && remaining && reset && used) {
     return {
       limit: parseInt(limit, 10),
@@ -33,7 +33,7 @@ export function parseRateLimit(headers: Headers): RateLimitInfo | null {
       used: parseInt(used, 10),
     };
   }
-  
+
   return null;
 }
 
@@ -42,13 +42,13 @@ export function parseRateLimit(headers: Headers): RateLimitInfo | null {
  */
 export function createHeaders(token: string | null): HeadersInit {
   const headers: HeadersInit = {
-    'Accept': 'application/vnd.github.v3+json',
+    Accept: 'application/vnd.github.v3+json',
   };
-  
+
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  
+
   return headers;
 }
 
@@ -65,50 +65,40 @@ export function isRateLimited(rateLimit: RateLimitInfo | null): boolean {
  */
 export async function fetchFromGitHub<T = unknown>(
   path: string,
-  config: GitHubApiConfig
+  config: GitHubApiConfig,
 ): Promise<{ data: T; rateLimit: RateLimitInfo | null }> {
   const headers = createHeaders(config.token);
   const response = await fetch(`${GITHUB_API_BASE}${path}`, { headers });
-  
+
   const rateLimit = parseRateLimit(response.headers);
-  
+
   if (!response.ok) {
     const errorBody = await response.text();
     throw new Error(`GitHub API error: ${response.status} ${response.statusText}. ${_errorBody}`);
   }
-  
-  const data = await response.json() as T;
+
+  const _data = (await response.json()) as T;
   return { data, rateLimit };
 }
 
 /**
  * Fetch repository information
  */
-export async function fetchRepository(
-  owner: string,
-  repo: string,
-  config: GitHubApiConfig
-) {
+export async function fetchRepository(owner: string, repo: string, config: GitHubApiConfig) {
   return fetchFromGitHub(`/repos/${owner}/${repo}`, config);
 }
 
 /**
  * Fetch user information
  */
-export async function fetchUser(
-  username: string,
-  config: GitHubApiConfig
-) {
+export async function fetchUser(username: string, config: GitHubApiConfig) {
   return fetchFromGitHub(`/users/${username}`, config);
 }
 
 /**
  * Fetch user organizations
  */
-export async function fetchUserOrganizations(
-  username: string,
-  config: GitHubApiConfig
-) {
+export async function fetchUserOrganizations(username: string, config: GitHubApiConfig) {
   return fetchFromGitHub(`/users/${username}/orgs`, config);
 }
 
@@ -119,7 +109,7 @@ export async function fetchPullRequests(
   owner: string,
   repo: string,
   state: 'open' | 'closed' | 'all' = 'all',
-  config: GitHubApiConfig
+  config: GitHubApiConfig,
 ) {
   return fetchFromGitHub(`/repos/${owner}/${repo}/pulls?state=${state}&per_page=100`, config);
 }

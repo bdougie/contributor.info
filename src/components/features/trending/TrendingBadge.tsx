@@ -22,10 +22,10 @@ export function TrendingBadge({
   // Determine badge style based on score and variant
   const isHot = score > 100;
   const effectiveVariant = variant === 'hot' || (variant === 'default' && isHot) ? 'hot' : variant;
-  
+
   const getBadgeClasses = () => {
     const baseClasses = 'flex items-center gap-1 font-medium';
-    
+
     switch (effectiveVariant) {
       case 'hot':
         return cn(
@@ -68,9 +68,7 @@ export function TrendingBadge({
     <Badge className={cn(getBadgeClasses(), className)}>
       {showIcon && <Icon className={getIconSize()} />}
       {showScore && (
-        <span>
-          {score >= 1000 ? `${(score / 1000).toFixed(1)}k` : Math.round(score)}
-        </span>
+        <span>{score >= 1000 ? `${(score / 1000).toFixed(1)}k` : Math.round(score)}</span>
       )}
       {!showScore && 'Trending'}
     </Badge>

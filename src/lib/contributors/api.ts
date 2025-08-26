@@ -56,7 +56,7 @@ export class ContributorApiError extends Error {
   constructor(
     message: string,
     public statusCode?: number,
-    public response?: string
+    public response?: string,
   ) {
     super(message);
     this.name = 'ContributorApiError';
@@ -77,9 +77,9 @@ export class GitHubApiClient {
 
   private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     const headers: Record<string, string> = {
-      'Accept': 'application/vnd.github.v3+json',
+      Accept: 'application/vnd.github.v3+json',
       'User-Agent': 'ContributorInfo/1.0',
     };
 
@@ -101,7 +101,7 @@ export class GitHubApiClient {
       throw new ContributorApiError(
         `GitHub API request failed: ${response.status} ${response.statusText}`,
         response.status,
-        await response.text()
+        await response.text(),
       );
     }
 
@@ -116,7 +116,7 @@ export class GitHubApiClient {
     repo: string,
     startDate: Date,
     endDate: Date,
-    state: 'open' | 'closed' | 'all' = 'all'
+    state: 'open' | 'closed' | 'all' = 'all',
   ): Promise<GitHubPullRequest[]> {
     const endpoint = `/repos/${owner}/${repo}/pulls`;
     const params = new URLSearchParams({
@@ -128,26 +128,26 @@ export class GitHubApiClient {
 
     const allPulls: GitHubPullRequest[] = [];
     let page = 1;
-    
+
     while (true) {
       params.set('page', page.toString());
       const pulls = await this.makeRequest<GitHubPullRequest[]>(`${endpoint}?${params}`);
-      
+
       if (pulls.length === 0) break;
-      
+
       // Filter by date range
-      const filteredPulls = pulls.filter(pr => {
+      const filteredPulls = pulls.filter((pr) => {
         const createdAt = new Date(pr.created_at);
         return createdAt >= startDate && createdAt <= endDate;
       });
-      
+
       allPulls.push(...filteredPulls);
-      
+
       // If we got less than 100 results or the oldest PR is before our date range, we're done
       if (pulls.length < 100 || new Date(pulls[pulls.length - 1].created_at) < startDate) {
         break;
       }
-      
+
       page++;
     }
 
@@ -157,7 +157,11 @@ export class GitHubApiClient {
   /**
    * Fetches reviews for a specific pull request
    */
-  async getPullRequestReviews(owner: string, repo: string, pullNumber: number): Promise<GitHubReview[]> {
+  async getPullRequestReviews(
+    owner: string,
+    repo: string,
+    pullNumber: number,
+  ): Promise<GitHubReview[]> {
     const endpoint = `/repos/${owner}/${repo}/pulls/${pullNumber}/reviews`;
     return this.makeRequest<GitHubReview[]>(endpoint);
   }
@@ -165,7 +169,11 @@ export class GitHubApiClient {
   /**
    * Fetches comments for a specific pull request
    */
-  async getPullRequestComments(owner: string, repo: string, pullNumber: number): Promise<GitHubComment[]> {
+  async getPullRequestComments(
+    owner: string,
+    repo: string,
+    pullNumber: number,
+  ): Promise<GitHubComment[]> {
     const endpoint = `/repos/${owner}/${repo}/pulls/${pullNumber}/comments`;
     return this.makeRequest<GitHubComment[]>(endpoint);
   }
@@ -177,7 +185,7 @@ export class GitHubApiClient {
     owner: string,
     repo: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<GitHubComment[]> {
     const endpoint = `/repos/${owner}/${repo}/issues/comments`;
     const params = new URLSearchParams({
@@ -188,26 +196,26 @@ export class GitHubApiClient {
 
     const allComments: GitHubComment[] = [];
     let page = 1;
-    
+
     while (true) {
       params.set('page', page.toString());
       const comments = await this.makeRequest<GitHubComment[]>(`${endpoint}?${params}`);
-      
+
       if (comments.length === 0) break;
-      
+
       // Filter by date range
-      const filteredComments = comments.filter(comment => {
+      const filteredComments = comments.filter((comment) => {
         const createdAt = new Date(comment.created_at);
         return createdAt >= startDate && createdAt <= endDate;
       });
-      
+
       allComments.push(...filteredComments);
-      
+
       // If we got less than 100 results or the oldest comment is before our date range, we're done
       if (comments.length < 100 || new Date(comments[comments.length - 1].created_at) < startDate) {
         break;
       }
-      
+
       page++;
     }
 
@@ -239,14 +247,14 @@ export async function fetchRepositoryActivity(
   owner: string,
   repo: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<Map<string, ContributorActivity>> {
   const contributors = new Map<string, ContributorActivity>();
 
   try {
     // Fetch pull requests
     const pullRequests = await client.getPullRequests(owner, repo, startDate, endDate);
-    
+
     // Process pull requests and their associated reviews/comments
     for (const pr of pullRequests) {
       const author = pr.user;
@@ -272,7 +280,7 @@ export async function fetchRepositoryActivity(
 
       const contributor = contributors.get(contributorId)!;
       contributor.pullRequests++;
-      
+
       // Only count merged PRs for scoring
       if (pr.merged_at) {
         contributor.mergedPullRequests++;
@@ -293,7 +301,7 @@ export async function fetchRepositoryActivity(
         for (const review of reviews) {
           const reviewerId = review.user.login;
           const reviewDate = new Date(review.submitted_at);
-          
+
           // Only count reviews within our date range
           if (reviewDate >= startDate && reviewDate <= endDate) {
             if (!contributors.has(reviewerId)) {
@@ -335,7 +343,7 @@ export async function fetchRepositoryActivity(
         for (const comment of comments) {
           const commenterId = comment.user.login;
           const commentDate = new Date(comment.created_at);
-          
+
           // Only count comments within our date range
           if (commentDate >= startDate && commentDate <= endDate) {
             if (!contributors.has(commenterId)) {
@@ -410,10 +418,9 @@ export async function fetchRepositoryActivity(
     } catch (_error) {
       console.warn(`Failed to fetch issue comments:`, _error);
     }
-
   } catch (_error) {
     throw new ContributorApiError(
-      `Failed to fetch activity for repository ${owner}/${repo}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to fetch activity for repository ${owner}/${repo}: ${error instanceof Error ? error.message : 'Unknown error'}`,
     );
   }
 
@@ -428,22 +435,22 @@ export async function fetchContributorActivity(
   month: number,
   year: number,
   token?: string,
-  filter?: RepositoryFilter
+  filter?: RepositoryFilter,
 ): Promise<ContributorApiResponse<ContributorActivity[]>> {
   const startTime = Date.now();
   const client = new GitHubApiClient(token);
   const { startDate, endDate } = getMonthDateRange(month, year);
-  
+
   const allContributors = new Map<string, ContributorActivity>();
 
   try {
     // Apply repository filters
     let filteredRepos = repositories;
     if (filter?.includeRepositories && filter.includeRepositories.length > 0) {
-      filteredRepos = repositories.filter(repo => filter.includeRepositories!.includes(repo));
+      filteredRepos = repositories.filter((repo) => filter.includeRepositories!.includes(repo));
     }
     if (filter?.excludeRepositories && filter.excludeRepositories.length > 0) {
-      filteredRepos = filteredRepos.filter(repo => !filter.excludeRepositories!.includes(repo));
+      filteredRepos = filteredRepos.filter((repo) => !filter.excludeRepositories!.includes(repo));
     }
 
     // Fetch activity for each repository
@@ -458,18 +465,24 @@ export async function fetchContributorActivity(
         // Apply repository-level filters
         if (filter?.minimumStars || filter?.excludeForks) {
           const repoInfo = await client.getRepository(owner, repo);
-          
+
           if (filter.minimumStars && repoInfo.stargazers_count < filter.minimumStars) {
             continue;
           }
-          
+
           if (filter.excludeForks && repoInfo.fork) {
             continue;
           }
         }
 
-        const repoContributors = await fetchRepositoryActivity(client, owner, repo, startDate, endDate);
-        
+        const repoContributors = await fetchRepositoryActivity(
+          client,
+          owner,
+          repo,
+          startDate,
+          endDate,
+        );
+
         // Merge repository contributors with overall contributors
         for (const [contributorId, activity] of repoContributors) {
           if (allContributors.has(contributorId)) {
@@ -479,7 +492,7 @@ export async function fetchContributorActivity(
             existing.comments += activity.comments;
             existing.reviews += activity.reviews;
             existing.repositoriesContributed++;
-            
+
             // Update date ranges
             if (activity.earliestContribution < existing.earliestContribution) {
               existing.earliestContribution = activity.earliestContribution;
@@ -509,10 +522,9 @@ export async function fetchContributorActivity(
         fromCache: false,
       },
     };
-
   } catch (_error) {
     const processingTime = Date.now() - startTime;
-    
+
     return {
       data: [],
       success: false,
@@ -531,7 +543,7 @@ export async function fetchContributorActivity(
  */
 class SimpleCache<T> {
   private cache = new Map<string, { data: T; timestamp: number; ttl: number }>();
-  
+
   set(key: string, _data: T, ttl: number): void {
     this.cache.set(key, {
       data,
@@ -539,23 +551,23 @@ class SimpleCache<T> {
       ttl,
     });
   }
-  
+
   get(key: string): T | null {
     const entry = this.cache.get(key);
     if (!entry) return null;
-    
+
     if (Date.now() - entry.timestamp > entry.ttl) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return entry.data;
   }
-  
+
   clear(): void {
     this.cache.clear();
   }
-  
+
   size(): number {
     return this.cache.size;
   }
@@ -573,10 +585,10 @@ export async function fetchContributorActivityCached(
   year: number,
   token?: string,
   filter?: RepositoryFilter,
-  cacheTtl: number = 5 * 60 * 1000 // 5 minutes default
+  cacheTtl: number = 5 * 60 * 1000, // 5 minutes default
 ): Promise<ContributorApiResponse<ContributorActivity[]>> {
   const cacheKey = `contributors:${repositories.join(',')}:${month}:${year}:${JSON.stringify(filter)}`;
-  
+
   // Try to get from cache first
   const cached = contributorCache.get(cacheKey);
   if (cached) {
@@ -590,14 +602,14 @@ export async function fetchContributorActivityCached(
       },
     };
   }
-  
+
   // Fetch fresh data
   const result = await fetchContributorActivity(repositories, month, year, token, filter);
-  
+
   // Cache successful results
   if (result.success) {
     contributorCache.set(cacheKey, result._data, cacheTtl);
   }
-  
+
   return result;
 }

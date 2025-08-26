@@ -1,6 +1,6 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { expect, within } from "@storybook/test";
-import { useState } from "react";
+import type { Meta, StoryObj } from '@storybook/react';
+import { expect, within } from '@storybook/test';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,25 +10,24 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogClose,
-} from "./dialog";
-import { Button } from "./button";
-import { Input } from "./input";
-import { Label } from "./label";
-import { Textarea } from "./textarea";
+} from './dialog';
+import { Button } from './button';
+import { Input } from './input';
+import { Label } from './label';
+import { Textarea } from './textarea';
 
 const meta = {
-  title: "UI/Overlay/Dialog",
+  title: 'UI/Overlay/Dialog',
   component: Dialog,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
-        component:
-          "A modal dialog component built on Radix UI Dialog primitive.",
+        component: 'A modal dialog component built on Radix UI Dialog primitive.',
       },
     },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
 } satisfies Meta<typeof Dialog>;
 
 export default meta;
@@ -44,8 +43,8 @@ export const Default: Story = {
         <DialogHeader>
           <DialogTitle>Are you absolutely sure?</DialogTitle>
           <DialogDescription>
-            This action cannot be undone. This will permanently delete your
-            account and remove your data from our servers.
+            This action cannot be undone. This will permanently delete your account and remove your
+            data from our servers.
           </DialogDescription>
         </DialogHeader>
       </DialogContent>
@@ -71,21 +70,13 @@ export const WithForm: Story = {
             <Label htmlFor="name" className="text-right">
               Name
             </Label>
-            <Input
-              id="name"
-              defaultValue="Pedro Duarte"
-              className="col-span-3"
-            />
+            <Input id="name" defaultValue="Pedro Duarte" className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="username" className="text-right">
               Username
             </Label>
-            <Input
-              id="username"
-              defaultValue="@peduarte"
-              className="col-span-3"
-            />
+            <Input id="username" defaultValue="@peduarte" className="col-span-3" />
           </div>
         </div>
         <DialogFooter>
@@ -105,20 +96,14 @@ export const CustomCloseButton: Story = {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Share this document</DialogTitle>
-          <DialogDescription>
-            Anyone with the link can view this document.
-          </DialogDescription>
+          <DialogDescription>Anyone with the link can view this document.</DialogDescription>
         </DialogHeader>
         <div className="flex items-center space-x-2">
           <div className="grid flex-1 gap-2">
             <Label htmlFor="link" className="sr-only">
               Link
             </Label>
-            <Input
-              id="link"
-              defaultValue="https://ui.shadcn.com/docs/installation"
-              readOnly
-            />
+            <Input id="link" defaultValue="https://ui.shadcn.com/docs/installation" readOnly />
           </div>
           <Button type="submit" size="sm" className="px-3">
             <span className="sr-only">Copy</span>
@@ -164,40 +149,37 @@ export const LargeContent: Story = {
           <div>
             <h3 className="font-medium">1. Acceptance of Terms</h3>
             <p className="text-muted-foreground mt-2">
-              By accessing and using this service, you accept and agree to be
-              bound by the terms and provision of this agreement. If you do not
-              agree to abide by the above, please do not use this service.
+              By accessing and using this service, you accept and agree to be bound by the terms and
+              provision of this agreement. If you do not agree to abide by the above, please do not
+              use this service.
             </p>
           </div>
           <div>
             <h3 className="font-medium">2. Use License</h3>
             <p className="text-muted-foreground mt-2">
-              Permission is granted to temporarily download one copy of the
-              materials (information or software) on our service for personal,
-              non-commercial transitory viewing only. This is the grant of a
-              license, not a transfer of title.
+              Permission is granted to temporarily download one copy of the materials (information
+              or software) on our service for personal, non-commercial transitory viewing only. This
+              is the grant of a license, not a transfer of title.
             </p>
           </div>
           <div>
             <h3 className="font-medium">3. Disclaimer</h3>
             <p className="text-muted-foreground mt-2">
-              The materials on our service are provided on an 'as is' basis. We
-              make no warranties, expressed or implied, and hereby disclaim and
-              negate all other warranties including, without limitation, implied
-              warranties or conditions of merchantability, fitness for a
-              particular purpose, or non-infringement of intellectual property
-              or other violation of rights.
+              The materials on our service are provided on an 'as is' basis. We make no warranties,
+              expressed or implied, and hereby disclaim and negate all other warranties including,
+              without limitation, implied warranties or conditions of merchantability, fitness for a
+              particular purpose, or non-infringement of intellectual property or other violation of
+              rights.
             </p>
           </div>
           <div>
             <h3 className="font-medium">4. Limitations</h3>
             <p className="text-muted-foreground mt-2">
-              In no event shall our company or its suppliers be liable for any
-              damages (including, without limitation, damages for loss of data
-              or profit, or due to business interruption) arising out of the use
-              or inability to use the materials on our service, even if we or
-              our authorized representative has been notified orally or in
-              writing of the possibility of such damage.
+              In no event shall our company or its suppliers be liable for any damages (including,
+              without limitation, damages for loss of data or profit, or due to business
+              interruption) arising out of the use or inability to use the materials on our service,
+              even if we or our authorized representative has been notified orally or in writing of
+              the possibility of such damage.
             </p>
           </div>
         </div>
@@ -234,8 +216,7 @@ export const NestedDialogs: Story = {
               <DialogHeader>
                 <DialogTitle>Second Dialog</DialogTitle>
                 <DialogDescription>
-                  This is a nested dialog. Close this to return to the first
-                  dialog.
+                  This is a nested dialog. Close this to return to the first dialog.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
@@ -265,9 +246,7 @@ export const WithTextarea: Story = {
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Report an issue</DialogTitle>
-          <DialogDescription>
-            What area are you having problems with?
-          </DialogDescription>
+          <DialogDescription>What area are you having problems with?</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
@@ -317,7 +296,7 @@ export const ControlledDialog: Story = {
         <div className="flex gap-4">
           <Button onClick={() => setOpen(true)}>Open Dialog</Button>
           <span className="text-sm text-muted-foreground self-center">
-            Dialog is {open ? "open" : "closed"}
+            Dialog is {open ? 'open' : 'closed'}
           </span>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -325,15 +304,14 @@ export const ControlledDialog: Story = {
             <DialogHeader>
               <DialogTitle>Controlled Dialog</DialogTitle>
               <DialogDescription>
-                This dialog is controlled by React state. You can
-                programmatically open and close it.
+                This dialog is controlled by React state. You can programmatically open and close
+                it.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
               <p className="text-sm text-muted-foreground">
-                The dialog state is managed externally, allowing for more
-                complex interactions and integration with your application
-                logic.
+                The dialog state is managed externally, allowing for more complex interactions and
+                integration with your application logic.
               </p>
             </div>
             <DialogFooter>
@@ -358,8 +336,8 @@ export const ConfirmationDialog: Story = {
         <DialogHeader>
           <DialogTitle>Are you absolutely sure?</DialogTitle>
           <DialogDescription>
-            This action cannot be undone. This will permanently delete your
-            account and remove your data from our servers.
+            This action cannot be undone. This will permanently delete your account and remove your
+            data from our servers.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -401,11 +379,7 @@ export const LoginDialog: Story = {
             <Input id="password" type="password" />
           </div>
           <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="remember"
-              className="h-4 w-4 rounded border-gray-300"
-            />
+            <input type="checkbox" id="remember" className="h-4 w-4 rounded border-gray-300" />
             <Label htmlFor="remember" className="text-sm font-normal">
               Remember me
             </Label>
@@ -414,7 +388,7 @@ export const LoginDialog: Story = {
         <DialogFooter className="flex-col space-y-2 sm:space-y-0 sm:flex-row">
           <Button className="w-full sm:w-auto">Login</Button>
           <p className="text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
+            Don't have an account?{' '}
             <a href="#" className="underline">
               Sign up
             </a>
@@ -475,22 +449,19 @@ export const WithoutCloseButton: Story = {
           <DialogHeader>
             <DialogTitle>Processing...</DialogTitle>
             <DialogDescription>
-              Please wait while we process your request. Do not close this
-              dialog.
+              Please wait while we process your request. Do not close this dialog.
             </DialogDescription>
           </DialogHeader>
           <div className="py-6 text-center">
-            {loading
-? (
+            {loading ? (
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-            )
-: (
+            ) : (
               <p>Click the button below to start processing.</p>
             )}
           </div>
           <DialogFooter>
             <Button onClick={handleSave} disabled={loading}>
-              {loading ? "Processing..." : "Start Process"}
+              {loading ? 'Processing...' : 'Start Process'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -512,9 +483,7 @@ export const SmallDialog: Story = {
           <DialogTitle>Quick Action</DialogTitle>
         </DialogHeader>
         <div className="py-4">
-          <p className="text-sm text-muted-foreground">
-            Perform a quick action with minimal UI.
-          </p>
+          <p className="text-sm text-muted-foreground">Perform a quick action with minimal UI.</p>
         </div>
         <DialogFooter>
           <DialogClose asChild>
@@ -538,20 +507,14 @@ export const DialogInteraction: Story = {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Test Dialog</DialogTitle>
-          <DialogDescription>
-            This is a test dialog for interaction testing.
-          </DialogDescription>
+          <DialogDescription>This is a test dialog for interaction testing.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="test-name" className="text-right">
               Name
             </Label>
-            <Input
-              id="test-name"
-              defaultValue="Test User"
-              className="col-span-3"
-            />
+            <Input id="test-name" defaultValue="Test User" className="col-span-3" />
           </div>
         </div>
         <DialogFooter>
@@ -565,13 +528,13 @@ export const DialogInteraction: Story = {
   ),
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const trigger = canvas.getByRole("button", { name: "Open Test Dialog" });
-    
+    const trigger = canvas.getByRole('button', { name: 'Open Test Dialog' });
+
     // Simple synchronous test - just verify trigger exists
     expect(trigger).toBeInTheDocument();
-    expect(trigger).toHaveTextContent("Open Test Dialog");
+    expect(trigger).toHaveTextContent('Open Test Dialog');
   },
-  tags: ["interaction"],
+  tags: ['interaction'],
 };
 
 export const DialogKeyboardNavigation: Story = {
@@ -583,9 +546,7 @@ export const DialogKeyboardNavigation: Story = {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Keyboard Navigation Test</DialogTitle>
-          <DialogDescription>
-            Test keyboard navigation and focus management.
-          </DialogDescription>
+          <DialogDescription>Test keyboard navigation and focus management.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <Input placeholder="First input" />
@@ -602,11 +563,11 @@ export const DialogKeyboardNavigation: Story = {
   ),
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const trigger = canvas.getByRole("button", { name: "Keyboard Test Dialog" });
-    
+    const trigger = canvas.getByRole('button', { name: 'Keyboard Test Dialog' });
+
     // Simple synchronous test - just verify trigger exists
     expect(trigger).toBeInTheDocument();
-    expect(trigger).toHaveTextContent("Keyboard Test Dialog");
+    expect(trigger).toHaveTextContent('Keyboard Test Dialog');
   },
-  tags: ["interaction", "accessibility"],
+  tags: ['interaction', 'accessibility'],
 };

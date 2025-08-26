@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { parseChangelog, generateRss, generateAtom } from '../../../scripts/changelog/generate-rss.js';
+import {
+  parseChangelog,
+  generateRss,
+  generateAtom,
+} from '../../../scripts/changelog/generate-rss.js';
 
 describe('RSS/Atom Feed Generation', () => {
   describe('parseChangelog', () => {
@@ -21,9 +25,9 @@ describe('RSS/Atom Feed Generation', () => {
 ### 🚀 Features
 * Initial release
 `;
-      
+
       const entries = parseChangelog(changelog);
-      
+
       expect(entries).toHaveLength(2);
       expect(entries[0].version).toBe('1.2.0');
       expect(entries[0].versionLink).toBe('https://github.com/example/repo/releases/tag/v1.2.0');
@@ -43,7 +47,7 @@ describe('RSS/Atom Feed Generation', () => {
 ### 🚀 Features
 * Test feature
 `;
-      
+
       const entries = parseChangelog(changelog);
       expect(entries[0].date).toBeInstanceOf(Date);
       expect(entries[0].date.getFullYear()).toBe(2025);
@@ -55,9 +59,9 @@ describe('RSS/Atom Feed Generation', () => {
 ### 🚀 Features
 * Test feature
 `;
-      
+
       expect(() => parseChangelog(changelog)).toThrow(
-        'Invalid date format in changelog: "invalid-date"'
+        'Invalid date format in changelog: "invalid-date"',
       );
     });
 
@@ -80,10 +84,10 @@ describe('RSS/Atom Feed Generation', () => {
 ### ⚠️ Breaking Changes
 * Breaking change
 `;
-      
+
       const entries = parseChangelog(changelog);
       const sections = entries[0].sections;
-      
+
       expect(sections.features).toHaveLength(1);
       expect(sections.fixes).toHaveLength(1);
       expect(sections.performance).toHaveLength(1);
@@ -106,15 +110,15 @@ describe('RSS/Atom Feed Generation', () => {
           fixes: ['Fix 1'],
           performance: [],
           documentation: [],
-          breaking: []
+          breaking: [],
         },
-        guid: 'https://contributor.info/changelog#version-1-0-0'
-      }
+        guid: 'https://contributor.info/changelog#version-1-0-0',
+      },
     ];
 
     it('should generate valid RSS XML', () => {
       const rss = generateRss(mockEntries);
-      
+
       expect(rss).toContain('<?xml version="1.0" encoding="UTF-8" ?>');
       expect(rss).toContain('<rss version="2.0"');
       expect(rss).toContain('<title>contributor.info Changelog</title>');
@@ -123,17 +127,19 @@ describe('RSS/Atom Feed Generation', () => {
     });
 
     it('should escape XML special characters', () => {
-      const entriesWithSpecialChars = [{
-        ...mockEntries[0],
-        title: 'Version & <Test>',
-        sections: {
-          ...mockEntries[0].sections,
-          features: ['Feature with <tag> & "quotes"']
-        }
-      }];
-      
+      const entriesWithSpecialChars = [
+        {
+          ...mockEntries[0],
+          title: 'Version & <Test>',
+          sections: {
+            ...mockEntries[0].sections,
+            features: ['Feature with <tag> & "quotes"'],
+          },
+        },
+      ];
+
       const rss = generateRss(entriesWithSpecialChars);
-      
+
       expect(rss).toContain('Version &amp; &lt;Test&gt;');
       expect(rss).toContain('&lt;tag&gt;');
       expect(rss).toContain('&quot;quotes&quot;');
@@ -145,32 +151,36 @@ describe('RSS/Atom Feed Generation', () => {
     });
 
     it('should limit to 20 entries', () => {
-      const manyEntries = Array(25).fill(null).map((_, i) => ({
-        ...mockEntries[0],
-        version: `1.${i}.0`,
-        title: `Version 1.${i}.0`
-      }));
-      
+      const manyEntries = Array(25)
+        .fill(null)
+        .map((_, i) => ({
+          ...mockEntries[0],
+          version: `1.${i}.0`,
+          title: `Version 1.${i}.0`,
+        }));
+
       const rss = generateRss(manyEntries);
       const itemCount = (rss.match(/<item>/g) || []).length;
-      
+
       expect(itemCount).toBe(20);
     });
 
     it('should add appropriate categories', () => {
-      const entriesWithBreaking = [{
-        ...mockEntries[0],
-        sections: {
-          features: ['Feature 1'],
-          fixes: ['Fix 1'],
-          performance: [],
-          documentation: [],
-          breaking: ['Breaking change']
-        }
-      }];
-      
+      const entriesWithBreaking = [
+        {
+          ...mockEntries[0],
+          sections: {
+            features: ['Feature 1'],
+            fixes: ['Fix 1'],
+            performance: [],
+            documentation: [],
+            breaking: ['Breaking change'],
+          },
+        },
+      ];
+
       const rss = generateRss(entriesWithBreaking);
-      
+
       expect(rss).toContain('<category>Features</category>');
       expect(rss).toContain('<category>Bug Fixes</category>');
       expect(rss).toContain('<category>Breaking Changes</category>');
@@ -191,15 +201,15 @@ describe('RSS/Atom Feed Generation', () => {
           fixes: [],
           performance: [],
           documentation: [],
-          breaking: []
+          breaking: [],
         },
-        guid: 'https://contributor.info/changelog#version-1-0-0'
-      }
+        guid: 'https://contributor.info/changelog#version-1-0-0',
+      },
     ];
 
     it('should generate valid Atom XML', () => {
       const atom = generateAtom(mockEntries);
-      
+
       expect(atom).toContain('<?xml version="1.0" encoding="UTF-8"?>');
       expect(atom).toContain('<feed xmlns="http://www.w3.org/2005/Atom"');
       expect(atom).toContain('<title>contributor.info Changelog</title>');
@@ -209,7 +219,7 @@ describe('RSS/Atom Feed Generation', () => {
 
     it('should include proper ISO dates', () => {
       const atom = generateAtom(mockEntries);
-      
+
       expect(atom).toMatch(/<published>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
       expect(atom).toMatch(/<updated>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     });
@@ -221,7 +231,7 @@ describe('RSS/Atom Feed Generation', () => {
 
     it('should handle empty entries list', () => {
       const atom = generateAtom([]);
-      
+
       expect(atom).toContain('<feed xmlns="http://www.w3.org/2005/Atom"');
       expect(atom).not.toContain('<entry>');
     });
@@ -235,7 +245,7 @@ describe('RSS/Atom Feed Generation', () => {
 ### 🚀 Features
 * Repository gained 100 stars (from unknown)
 `;
-      
+
       const entries = parseChangelog(changelog);
       expect(entries[0].sections.features[0]).toContain('100 stars');
     });
@@ -247,7 +257,7 @@ describe('RSS/Atom Feed Generation', () => {
 ### 📉 Metrics
 * Stars decreased by 5%
 `;
-      
+
       const entries = parseChangelog(changelog);
       expect(entries).toHaveLength(1);
     });
@@ -259,7 +269,7 @@ describe('RSS/Atom Feed Generation', () => {
 ### 🚀 Features
 * Activity increased by exactly 5%
 `;
-      
+
       const entries = parseChangelog(changelog);
       expect(entries[0].sections.features[0]).toContain('5%');
     });
@@ -267,7 +277,7 @@ describe('RSS/Atom Feed Generation', () => {
     it('should handle repository with no metrics history', () => {
       const emptyChangelog = '# Changelog\n\nNo releases yet.';
       const entries = parseChangelog(emptyChangelog);
-      
+
       expect(entries).toHaveLength(0);
     });
 
@@ -282,9 +292,9 @@ This is not a proper version entry
 ### Features
 * Test
 `;
-      
+
       const entries = parseChangelog(malformedChangelog);
-      
+
       // Should still parse what it can
       expect(entries.length).toBeGreaterThanOrEqual(0);
     });

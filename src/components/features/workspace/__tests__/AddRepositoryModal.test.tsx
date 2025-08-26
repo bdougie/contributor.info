@@ -9,15 +9,15 @@ vi.mock('@/lib/supabase', () => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           single: vi.fn(),
-          data: null
+          data: null,
         })),
-        in: vi.fn(() => ({ _data: [] }))
-      }))
+        in: vi.fn(() => ({ _data: [] })),
+      })),
     })),
     auth: {
-      getUser: vi.fn(() => ({ _data: { user: null } }))
-    }
-  }
+      getUser: vi.fn(() => ({ _data: { user: null } })),
+    },
+  },
 }));
 
 vi.mock('@/hooks/use-github-search', () => ({
@@ -27,16 +27,16 @@ vi.mock('@/hooks/use-github-search', () => ({
     results: [],
     loading: false,
     error: null,
-    clearResults: vi.fn()
-  }))
+    clearResults: vi.fn(),
+  })),
 }));
 
 vi.mock('@/services/workspace.service', () => ({
   WorkspaceService: {
     getWorkspace: vi.fn(),
     addRepositoryToWorkspace: vi.fn(),
-    listWorkspaceRepositories: vi.fn()
-  }
+    listWorkspaceRepositories: vi.fn(),
+  },
 }));
 
 describe('AddRepositoryModal', () => {
@@ -51,7 +51,7 @@ describe('AddRepositoryModal', () => {
         open={true}
         onOpenChange={vi.fn()}
         onSuccess={vi.fn()}
-      />
+      />,
     );
 
     // Simple synchronous assertion
@@ -65,7 +65,7 @@ describe('AddRepositoryModal', () => {
         open={false}
         onOpenChange={vi.fn()}
         onSuccess={vi.fn()}
-      />
+      />,
     );
 
     // Simple synchronous assertion
@@ -74,14 +74,14 @@ describe('AddRepositoryModal', () => {
 
   it('should call onOpenChange when cancel clicked', () => {
     const mockOnOpenChange = vi.fn();
-    
+
     render(
       <AddRepositoryModal
         workspaceId="test-id"
         open={true}
         onOpenChange={mockOnOpenChange}
         onSuccess={vi.fn()}
-      />
+      />,
     );
 
     const cancelButton = screen.getByRole('button', { name: /cancel/i });

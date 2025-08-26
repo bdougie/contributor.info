@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight, HelpCircle } from '@/components/ui/icon';
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useCachedRepoData } from "@/hooks/use-cached-repo-data";
-import { faqService } from "@/lib/llm/faq-service";
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useCachedRepoData } from '@/hooks/use-cached-repo-data';
+import { faqService } from '@/lib/llm/faq-service';
 
 interface FAQ {
   id: string;
@@ -14,10 +14,10 @@ interface FAQ {
   sources?: string[];
   isAIGenerated?: boolean;
   schema?: {
-    "@type": string;
+    '@type': string;
     name: string;
     acceptedAnswer: {
-      "@type": string;
+      '@type': string;
       text: string;
     };
   };
@@ -52,17 +52,17 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
       if (useAI) {
         // Use AI-powered FAQ generation
         const repositoryData = {
-          pullRequests: stats.pullRequests
+          pullRequests: stats.pullRequests,
         };
 
         const aiAnswers = await faqService.generateFAQAnswers(
           owner,
           repo,
           timeRange,
-          repositoryData
+          repositoryData,
         );
 
-        const aiFAQs: FAQ[] = aiAnswers.map(answer => ({
+        const aiFAQs: FAQ[] = aiAnswers.map((answer) => ({
           id: answer.id,
           question: answer.question,
           answer: answer.answer,
@@ -70,13 +70,13 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
           sources: answer.sources,
           isAIGenerated: true,
           schema: {
-            "@type": "Question",
+            '@type': 'Question',
             name: answer.question,
             acceptedAnswer: {
-              "@type": "Answer",
-              text: answer.answer
-            }
-          }
+              '@type': 'Answer',
+              text: answer.answer,
+            },
+          },
         }));
 
         setFaqs(aiFAQs.slice(0, 8));
@@ -96,107 +96,109 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
   const generateStaticFAQs = () => {
     const generatedFAQs: FAQ[] = [
       {
-        id: "contributor-count",
+        id: 'contributor-count',
         question: `How many contributors does ${owner}/${repo} have?`,
         answer: generateContributorCountAnswer(),
         schema: {
-          "@type": "Question",
+          '@type': 'Question',
           name: `How many contributors does ${owner}/${repo} have?`,
           acceptedAnswer: {
-            "@type": "Answer",
-            text: generateContributorCountAnswer()
-          }
-        }
+            '@type': 'Answer',
+            text: generateContributorCountAnswer(),
+          },
+        },
       },
       {
-        id: "top-contributors",
+        id: 'top-contributors',
         question: `Who are the top contributors to ${owner}/${repo}?`,
         answer: generateTopContributorsAnswer(),
         schema: {
-          "@type": "Question",
+          '@type': 'Question',
           name: `Who are the top contributors to ${owner}/${repo}?`,
           acceptedAnswer: {
-            "@type": "Answer",
-            text: generateTopContributorsAnswer()
-          }
-        }
+            '@type': 'Answer',
+            text: generateTopContributorsAnswer(),
+          },
+        },
       },
       {
-        id: "commit-frequency",
+        id: 'commit-frequency',
         question: `What is the commit frequency for ${owner}/${repo}?`,
         answer: generateCommitFrequencyAnswer(),
         schema: {
-          "@type": "Question",
+          '@type': 'Question',
           name: `What is the commit frequency for ${owner}/${repo}?`,
           acceptedAnswer: {
-            "@type": "Answer",
-            text: generateCommitFrequencyAnswer()
-          }
-        }
+            '@type': 'Answer',
+            text: generateCommitFrequencyAnswer(),
+          },
+        },
       },
       {
-        id: "development-activity",
+        id: 'development-activity',
         question: `How active is ${owner}/${repo} development?`,
         answer: generateActivityAnswer(),
         schema: {
-          "@type": "Question",
+          '@type': 'Question',
           name: `How active is ${owner}/${repo} development?`,
           acceptedAnswer: {
-            "@type": "Answer",
-            text: generateActivityAnswer()
-          }
-        }
+            '@type': 'Answer',
+            text: generateActivityAnswer(),
+          },
+        },
       },
       {
-        id: "recent-changes",
+        id: 'recent-changes',
         question: `What are the recent changes in ${owner}/${repo}?`,
         answer: generateRecentChangesAnswer(),
         schema: {
-          "@type": "Question",
+          '@type': 'Question',
           name: `What are the recent changes in ${owner}/${repo}?`,
           acceptedAnswer: {
-            "@type": "Answer",
-            text: generateRecentChangesAnswer()
-          }
-        }
+            '@type': 'Answer',
+            text: generateRecentChangesAnswer(),
+          },
+        },
       },
       {
-        id: "contributor-diversity",
+        id: 'contributor-diversity',
         question: `How diverse is the contributor base of ${owner}/${repo}?`,
         answer: generateContributorDiversityAnswer(),
         schema: {
-          "@type": "Question",
+          '@type': 'Question',
           name: `How diverse is the contributor base of ${owner}/${repo}?`,
           acceptedAnswer: {
-            "@type": "Answer",
-            text: generateContributorDiversityAnswer()
-          }
-        }
+            '@type': 'Answer',
+            text: generateContributorDiversityAnswer(),
+          },
+        },
       },
       {
-        id: "pr-patterns",
+        id: 'pr-patterns',
         question: `What are the pull request patterns for ${owner}/${repo}?`,
         answer: generatePRPatternsAnswer(),
         schema: {
-          "@type": "Question",
+          '@type': 'Question',
           name: `What are the pull request patterns for ${owner}/${repo}?`,
           acceptedAnswer: {
-            "@type": "Answer",
-            text: generatePRPatternsAnswer()
-          }
-        }
-      }
+            '@type': 'Answer',
+            text: generatePRPatternsAnswer(),
+          },
+        },
+      },
     ];
 
     setFaqs(generatedFAQs.slice(0, 8)); // Limit to 8 FAQs
   };
 
   const generateContributorCountAnswer = (): string => {
-    if (!stats.pullRequests) return "Data is still loading...";
-    
-    const uniqueContributors = new Set(stats.pullRequests.map(pr => pr.author?.login || pr.user?.login || 'unknown')).size;
+    if (!stats.pullRequests) return 'Data is still loading...';
+
+    const uniqueContributors = new Set(
+      stats.pullRequests.map((pr) => pr.author?.login || pr.user?.login || 'unknown'),
+    ).size;
     const timeRangeText = getTimeRangeText();
-    
+
     let communityStatus: string;
     if (uniqueContributors >= 20) {
       communityStatus = 'a healthy and active';
@@ -205,18 +207,21 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     } else {
       communityStatus = 'a small but focused';
     }
-    
+
     return `${uniqueContributors} unique contributors ${timeRangeText}. ${communityStatus.charAt(0).toUpperCase() + communityStatus.slice(1)} community.`;
   };
 
   const generateTopContributorsAnswer = (): string => {
-    if (!stats.pullRequests) return "Data is still loading...";
-    
-    const contributorCounts = stats.pullRequests.reduce((acc, pr) => {
-      const authorLogin = pr.author?.login || pr.user?.login || 'unknown';
-      acc[authorLogin] = (acc[authorLogin] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    if (!stats.pullRequests) return 'Data is still loading...';
+
+    const contributorCounts = stats.pullRequests.reduce(
+      (acc, pr) => {
+        const authorLogin = pr.author?.login || pr.user?.login || 'unknown';
+        acc[authorLogin] = (acc[authorLogin] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     const topContributors = Object.entries(contributorCounts)
       .sort(([, a], [, b]) => b - a)
@@ -227,13 +232,13 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
   };
 
   const generateCommitFrequencyAnswer = (): string => {
-    if (!stats.pullRequests) return "Data is still loading...";
-    
+    if (!stats.pullRequests) return 'Data is still loading...';
+
     const totalPRs = stats.pullRequests.length;
     const timeRangeText = getTimeRangeText();
     const timeRangeDays = getTimeRangeDays();
     const avgPerWeek = (totalPRs / (timeRangeDays / 7)).toFixed(1);
-    
+
     let activityLevel: string;
     const weeklyAvg = parseFloat(avgPerWeek);
     if (weeklyAvg >= 10) {
@@ -243,17 +248,19 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     } else {
       activityLevel = 'low';
     }
-    
+
     return `${totalPRs} PRs ${timeRangeText}. Average: ${avgPerWeek}/week. Activity level: ${activityLevel}.`;
   };
 
   const generateActivityAnswer = (): string => {
-    if (!stats.pullRequests) return "Data is still loading...";
-    
+    if (!stats.pullRequests) return 'Data is still loading...';
+
     const totalPRs = stats.pullRequests.length;
-    const uniqueContributors = new Set(stats.pullRequests.map(pr => pr.author?.login || pr.user?.login || 'unknown')).size;
+    const uniqueContributors = new Set(
+      stats.pullRequests.map((pr) => pr.author?.login || pr.user?.login || 'unknown'),
+    ).size;
     const timeRangeText = getTimeRangeText();
-    
+
     let activityLevel: string;
     if (totalPRs >= 50) {
       activityLevel = 'very active';
@@ -262,31 +269,36 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     } else {
       activityLevel = 'lightly active';
     }
-    
+
     return `${activityLevel.charAt(0).toUpperCase() + activityLevel.slice(1)}. ${totalPRs} PRs from ${uniqueContributors} contributors ${timeRangeText}.`;
   };
 
   const generateRecentChangesAnswer = (): string => {
-    if (!stats.pullRequests) return "Data is still loading...";
-    
+    if (!stats.pullRequests) return 'Data is still loading...';
+
     const recentPRs = stats.pullRequests.slice(0, 5);
-    const recentTitles = recentPRs.map(pr => pr.title.substring(0, 60) + (pr.title.length > 60 ? '...' : ''));
-    
+    const recentTitles = recentPRs.map(
+      (pr) => pr.title.substring(0, 60) + (pr.title.length > 60 ? '...' : ''),
+    );
+
     return `Recent: ${recentTitles.slice(0, 3).join('; ')}.`;
   };
 
   const generateContributorDiversityAnswer = (): string => {
-    if (!stats.pullRequests) return "Data is still loading...";
-    
-    const contributorCounts = stats.pullRequests.reduce((acc, pr) => {
-      const authorLogin = pr.author?.login || pr.user?.login || 'unknown';
-      acc[authorLogin] = (acc[authorLogin] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    if (!stats.pullRequests) return 'Data is still loading...';
+
+    const contributorCounts = stats.pullRequests.reduce(
+      (acc, pr) => {
+        const authorLogin = pr.author?.login || pr.user?.login || 'unknown';
+        acc[authorLogin] = (acc[authorLogin] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     const contributors = Object.values(contributorCounts);
     const totalContributors = contributors.length;
-    const singlePRContributors = contributors.filter(count => count === 1).length;
+    const singlePRContributors = contributors.filter((count) => count === 1).length;
     const diversityPercentage = ((singlePRContributors / totalContributors) * 100).toFixed(0);
 
     let diversityLevel: string;
@@ -298,38 +310,53 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     } else {
       diversityLevel = 'limited';
     }
-    
+
     return `${totalContributors} contributors. ${diversityPercentage}% are occasional contributors. Diversity: ${diversityLevel}.`;
   };
 
   const generatePRPatternsAnswer = (): string => {
-    if (!stats.pullRequests) return "Data is still loading...";
-    
-    const featCount = stats.pullRequests.filter(pr => pr.title.toLowerCase().includes('feat')).length;
-    const fixCount = stats.pullRequests.filter(pr => pr.title.toLowerCase().includes('fix')).length;
-    
-    const predominantType = featCount > fixCount ? 'feature development' : 'bug fixes and maintenance';
-    
+    if (!stats.pullRequests) return 'Data is still loading...';
+
+    const featCount = stats.pullRequests.filter((pr) =>
+      pr.title.toLowerCase().includes('feat'),
+    ).length;
+    const fixCount = stats.pullRequests.filter((pr) =>
+      pr.title.toLowerCase().includes('fix'),
+    ).length;
+
+    const predominantType =
+      featCount > fixCount ? 'feature development' : 'bug fixes and maintenance';
+
     return `${featCount} features, ${fixCount} fixes. Focus: ${predominantType}.`;
   };
 
   const getTimeRangeText = (): string => {
     switch (timeRange) {
-      case '30d': return 'in the last 30 days';
-      case '90d': return 'in the last 90 days';
-      case '6m': return 'in the last 6 months';
-      case '1y': return 'in the last year';
-      default: return 'in the selected time period';
+      case '30d':
+        return 'in the last 30 days';
+      case '90d':
+        return 'in the last 90 days';
+      case '6m':
+        return 'in the last 6 months';
+      case '1y':
+        return 'in the last year';
+      default:
+        return 'in the selected time period';
     }
   };
 
   const getTimeRangeDays = (): number => {
     switch (timeRange) {
-      case '30d': return 30;
-      case '90d': return 90;
-      case '6m': return 180;
-      case '1y': return 365;
-      default: return 90;
+      case '30d':
+        return 30;
+      case '90d':
+        return 90;
+      case '6m':
+        return 180;
+      case '1y':
+        return 365;
+      default:
+        return 90;
     }
   };
 
@@ -357,18 +384,16 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     return (
       <div className="text-center py-4">
         <HelpCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-        <p className="text-sm text-muted-foreground">
-          No FAQ data available yet.
-        </p>
+        <p className="text-sm text-muted-foreground">No FAQ data available yet.</p>
       </div>
     );
   }
 
   // Generate FAQ schema markup
   const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map(faq => faq.schema).filter(Boolean)
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((faq) => faq.schema).filter(Boolean),
   };
 
   return (
@@ -377,10 +402,10 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(faqSchema)
+          __html: JSON.stringify(faqSchema),
         }}
       />
-      
+
       <div className="space-y-3">
         {faqs.map((faq) => (
           <Card key={faq.id} className="p-4 hover:shadow-sm transition-shadow">
@@ -390,23 +415,17 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
                 className="w-full justify-between h-auto p-0 text-left font-normal hover:bg-transparent"
                 onClick={() => toggleExpanded(faq.id)}
               >
-                <span className="text-sm font-medium pr-2 flex-1">
-                  {faq.question}
-                </span>
-                {expandedItems.has(faq.id)
-? (
+                <span className="text-sm font-medium pr-2 flex-1">{faq.question}</span>
+                {expandedItems.has(faq.id) ? (
                   <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                )
-: (
+                ) : (
                   <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 )}
               </Button>
-              
+
               {expandedItems.has(faq.id) && (
                 <div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {faq.answer}
-                  </p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{faq.answer}</p>
                   {faq.isAIGenerated && faq.confidence && (
                     <div className="mt-2 text-xs text-muted-foreground">
                       <span>AI confidence: {Math.round(faq.confidence * 100)}%</span>
@@ -417,7 +436,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
             </div>
           </Card>
         ))}
-        
+
         {useAI && (
           <div className="text-center">
             <p className="text-xs text-muted-foreground">

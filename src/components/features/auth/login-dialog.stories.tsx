@@ -1,8 +1,8 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { useState } from "react";
-import { fn } from "@storybook/test";
-import { vi } from "vitest";
-import { LoginDialog } from "./login-dialog";
+import type { Meta, StoryObj } from '@storybook/react';
+import { useState } from 'react';
+import { fn } from '@storybook/test';
+import { vi } from 'vitest';
+import { LoginDialog } from './login-dialog';
 
 // Create mock functions
 const mockLogin = fn();
@@ -21,33 +21,33 @@ const mockUseGitHubAuth = fn(() => ({
   setShowLoginDialog: mockSetShowLoginDialog,
 }));
 
-vi.mock("@/hooks/use-github-auth", () => ({
-  useGitHubAuth: mockUseGitHubAuth
+vi.mock('@/hooks/use-github-auth', () => ({
+  useGitHubAuth: mockUseGitHubAuth,
 }));
 
 const meta = {
-  title: "Features/Auth/LoginDialog",
+  title: 'Features/Auth/LoginDialog',
   component: LoginDialog,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
         component:
-          "A modal dialog that prompts users to log in with GitHub. Includes login state management, error handling, and prevents closing when login is required."
-      }
-    }
+          'A modal dialog that prompts users to log in with GitHub. Includes login state management, error handling, and prevents closing when login is required.',
+      },
+    },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   argTypes: {
     open: {
-      control: "boolean",
-      description: "Whether the dialog is open"
+      control: 'boolean',
+      description: 'Whether the dialog is open',
     },
     onOpenChange: {
-      action: "onOpenChange",
-      description: "Callback fired when dialog open state changes"
-    }
-  }
+      action: 'onOpenChange',
+      description: 'Callback fired when dialog open state changes',
+    },
+  },
 } satisfies Meta<typeof LoginDialog>;
 
 export default meta;
@@ -58,7 +58,7 @@ export const Default: Story = {
     open: true,
     onOpenChange: fn(),
   },
-  render: (args) => <LoginDialog {...args} />
+  render: (args) => <LoginDialog {...args} />,
 };
 
 export const Interactive: Story = {
@@ -88,10 +88,10 @@ export const Interactive: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Interactive version where you can open and close the dialog using a button."
-      }
-    }
-  }
+        story: 'Interactive version where you can open and close the dialog using a button.',
+      },
+    },
+  },
 };
 
 export const LoggingInState: Story = {
@@ -102,7 +102,7 @@ export const LoggingInState: Story = {
   render: (args) => {
     // Mock the hook to return logging in state
     mockUseGitHubAuth.mockReturnValue({
-      login: fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 5000))),
+      login: fn().mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 5000))),
       isLoggedIn: false,
       loading: false,
       logout: mockLogout,
@@ -141,10 +141,10 @@ export const LoggingInState: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Dialog showing the loading state when login is in progress."
-      }
-    }
-  }
+        story: 'Dialog showing the loading state when login is in progress.',
+      },
+    },
+  },
 };
 
 export const WithError: Story = {
@@ -155,7 +155,7 @@ export const WithError: Story = {
   render: (args) => {
     // Mock the hook to simulate login error
     mockUseGitHubAuth.mockReturnValue({
-      login: fn().mockRejectedValue(new Error("Authentication failed. Please try again.")),
+      login: fn().mockRejectedValue(new Error('Authentication failed. Please try again.')),
       isLoggedIn: false,
       loading: false,
       logout: mockLogout,
@@ -169,10 +169,10 @@ export const WithError: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Dialog showing error state when login fails."
-      }
-    }
-  }
+        story: 'Dialog showing error state when login fails.',
+      },
+    },
+  },
 };
 
 export const AlreadyLoggedIn: Story = {
@@ -204,10 +204,10 @@ export const AlreadyLoggedIn: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Dialog behavior when user is already logged in (should allow closing)."
-      }
-    }
-  }
+        story: 'Dialog behavior when user is already logged in (should allow closing).',
+      },
+    },
+  },
 };
 
 export const MobileView: Story = {
@@ -217,13 +217,13 @@ export const MobileView: Story = {
   },
   parameters: {
     viewport: {
-      defaultViewport: "mobile1"
+      defaultViewport: 'mobile1',
     },
     docs: {
       description: {
-        story: "Dialog appearance on mobile devices."
-      }
-    }
+        story: 'Dialog appearance on mobile devices.',
+      },
+    },
   },
-  render: (args) => <LoginDialog {...args} />
+  render: (args) => <LoginDialog {...args} />,
 };

@@ -9,10 +9,10 @@ import {
   contributorCreateSchema,
   repositoryCreateSchema,
   pullRequestCreateSchema,
-  
+
   // GitHub API schemas
   githubUserSchema,
-  
+
   // Validation utilities
   validateData,
   validateBulkData,
@@ -235,8 +235,18 @@ describe('Validation Integration Tests', () => {
 
     it('should create readable _error messages', () => {
       const errors = [
-        { field: 'username', message: 'Username is required', code: 'required', received: undefined },
-        { field: 'email', message: 'Invalid email format', code: 'invalid_string', received: 'invalid@' },
+        {
+          field: 'username',
+          message: 'Username is required',
+          code: 'required',
+          received: undefined,
+        },
+        {
+          field: 'email',
+          message: 'Invalid email format',
+          code: 'invalid_string',
+          received: 'invalid@',
+        },
       ];
 
       const message = createErrorMessage(_errors);
@@ -253,7 +263,7 @@ describe('Validation Integration Tests', () => {
 
       const result = validateBulkData(
         contributorCreateSchema.pick({ github_id: true, username: true }),
-        contributors
+        contributors,
       );
 
       expect(result.totalProcessed).toBe(3);
@@ -267,12 +277,10 @@ describe('Validation Integration Tests', () => {
 
   describe('Error Handling', () => {
     it('should handle ValidationError correctly', () => {
-      const errors = [
-        { field: 'test', message: 'Test error', code: 'test', received: 'invalid' },
-      ];
-      
-      const error = new ValidationError('Test validation failed', _errors);
-      
+      const errors = [{ field: 'test', message: 'Test error', code: 'test', received: 'invalid' }];
+
+      const _error = new ValidationError('Test validation failed', _errors);
+
       expect(_error.message).toBe('Test validation failed');
       expect(_error.name).toBe('ValidationError');
       expect(_error.validationErrors).toEqual(_errors);

@@ -11,7 +11,7 @@ describe('Theme Detection FOUC Fix', () => {
       },
       clear: () => {
         store = {};
-      }
+      },
     };
   })();
 
@@ -35,27 +35,27 @@ describe('Theme Detection FOUC Fix', () => {
   it('should default to dark theme when no localStorage', () => {
     const storageKey = 'contributor-info-theme';
     const theme = localStorage.getItem(storageKey) || 'dark';
-    
+
     expect(theme).toBe('dark');
   });
 
   it('should respect localStorage theme setting', () => {
     const storageKey = 'contributor-info-theme';
     localStorage.setItem(storageKey, 'light');
-    
+
     const theme = localStorage.getItem(storageKey) || 'dark';
-    
+
     expect(theme).toBe('light');
   });
 
   it('should detect system preference for system theme', () => {
     const storageKey = 'contributor-info-theme';
     localStorage.setItem(storageKey, 'system');
-    
+
     const theme = localStorage.getItem(storageKey) || 'dark';
-    
+
     expect(theme).toBe('system');
-    
+
     // Simulate the system theme detection
     if (theme === 'system') {
       const systemTheme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -67,17 +67,17 @@ describe('Theme Detection FOUC Fix', () => {
     // Simulate the theme detection script
     const storageKey = 'contributor-info-theme';
     const theme = localStorage.getItem(storageKey) || 'dark';
-    
+
     // Mock document element
     const mockElement = {
       classList: {
         classes: [] as string[],
-        add: function(className: string) {
+        add: function (className: string) {
           this.classes.push(className);
-        }
-      }
+        },
+      },
     };
-    
+
     // Simulate theme application
     if (theme === 'system') {
       const systemTheme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -85,7 +85,7 @@ describe('Theme Detection FOUC Fix', () => {
     } else {
       mockElement.classList.add(theme);
     }
-    
+
     expect(mockElement.classList.classes).toContain('dark');
   });
 
@@ -94,7 +94,7 @@ describe('Theme Detection FOUC Fix', () => {
     const allowedOperations = [
       'classList.add', // Only allowed operation
     ];
-    
+
     // Our script only uses classList.add, which doesn't cause layout shift
     expect(allowedOperations).toContain('classList.add');
     expect(allowedOperations).not.toContain('innerHTML');

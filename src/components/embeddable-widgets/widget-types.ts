@@ -39,11 +39,7 @@ export interface ComparisonConfig {
   metric?: 'contributors' | 'activity' | 'health';
 }
 
-export type EmbeddableWidgetConfig = 
-  | StatCardConfig 
-  | BadgeConfig 
-  | ChartConfig 
-  | ComparisonConfig;
+export type EmbeddableWidgetConfig = StatCardConfig | BadgeConfig | ChartConfig | ComparisonConfig;
 
 export interface WidgetData {
   repository: {

@@ -1,4 +1,4 @@
-import { Inngest } from "inngest";
+import { Inngest } from 'inngest';
 import { env, serverEnv } from '../env';
 
 // Detect development environment
@@ -7,16 +7,16 @@ const isDevelopment = () => {
   if (typeof window !== 'undefined') {
     return window.location.hostname === 'localhost' || env.DEV;
   }
-  
+
   // Server environment - check multiple indicators
   const nodeEnv = process.env.NODE_ENV;
   const netlifyContext = process.env.CONTEXT;
-  
+
   // Explicitly check for production context
   if (netlifyContext === 'production' || nodeEnv === 'production') {
     return false;
   }
-  
+
   // Default to development for safety
   return env.MODE === 'development' || nodeEnv !== 'production';
 };
@@ -28,17 +28,18 @@ const getEventKey = () => {
   if (typeof window !== 'undefined') {
     return 'browser-client'; // Placeholder for browser client
   }
-  
+
   // Server context - prefer production keys to match production endpoint
-  const eventKey = process.env.INNGEST_PRODUCTION_EVENT_KEY ||
-                   serverEnv.INNGEST_EVENT_KEY || 
-                   process.env.INNGEST_EVENT_KEY;
-  
+  const eventKey =
+    process.env.INNGEST_PRODUCTION_EVENT_KEY ||
+    serverEnv.INNGEST_EVENT_KEY ||
+    process.env.INNGEST_EVENT_KEY;
+
   // In production, ensure we have a real key
   if (!isDevelopment() && (!eventKey || eventKey === 'dev-key')) {
     console.warn('[Inngest] Production environment detected but no valid event key found');
   }
-  
+
   return eventKey || 'dev-key';
 };
 
@@ -47,22 +48,23 @@ const getSigningKey = () => {
   if (typeof window !== 'undefined') {
     return undefined; // Not needed in browser
   }
-  
+
   // Prefer production signing key to match production endpoint
-  const signingKey = process.env.INNGEST_PRODUCTION_SIGNING_KEY ||
-                     serverEnv.INNGEST_SIGNING_KEY || 
-                     process.env.INNGEST_SIGNING_KEY;
-  
+  const signingKey =
+    process.env.INNGEST_PRODUCTION_SIGNING_KEY ||
+    serverEnv.INNGEST_SIGNING_KEY ||
+    process.env.INNGEST_SIGNING_KEY;
+
   // In production, we need a signing key
   if (!isDevelopment() && !signingKey) {
     console.warn('[Inngest] Production environment detected but no signing key found');
   }
-  
+
   return signingKey;
 };
 
 // Create the Inngest client
-export const inngest = new Inngest({ 
+export const inngest = new Inngest({
   id: env.INNGEST_APP_ID,
   // Set to development mode for local testing
   isDev: isDevelopment(),
@@ -74,7 +76,7 @@ export const inngest = new Inngest({
 
 // Define event schemas for type safety
 export type DataCaptureEvents = {
-  "capture/pr.details": {
+  'capture/pr.details': {
     data: {
       repositoryId: string;
       prNumber: string;
@@ -82,7 +84,7 @@ export type DataCaptureEvents = {
       priority: 'critical' | 'high' | 'medium' | 'low';
     };
   };
-  "capture/pr.details.graphql": {
+  'capture/pr.details.graphql': {
     data: {
       repositoryId: string;
       prNumber: string;
@@ -90,16 +92,7 @@ export type DataCaptureEvents = {
       priority: 'critical' | 'high' | 'medium' | 'low';
     };
   };
-  "capture/pr.reviews": {
-    data: {
-      repositoryId: string;
-      prNumber: string;
-      prId: string;
-      prGithubId: string;
-      priority: 'critical' | 'high' | 'medium' | 'low';
-    };
-  };
-  "capture/pr.comments": {
+  'capture/pr.reviews': {
     data: {
       repositoryId: string;
       prNumber: string;
@@ -108,7 +101,16 @@ export type DataCaptureEvents = {
       priority: 'critical' | 'high' | 'medium' | 'low';
     };
   };
-  "capture/repository.sync": {
+  'capture/pr.comments': {
+    data: {
+      repositoryId: string;
+      prNumber: string;
+      prId: string;
+      prGithubId: string;
+      priority: 'critical' | 'high' | 'medium' | 'low';
+    };
+  };
+  'capture/repository.sync': {
     data: {
       repositoryId: string;
       days: number;
@@ -116,7 +118,7 @@ export type DataCaptureEvents = {
       reason: string;
     };
   };
-  "capture/repository.sync.graphql": {
+  'capture/repository.sync.graphql': {
     data: {
       repositoryId: string;
       days: number;
@@ -124,7 +126,7 @@ export type DataCaptureEvents = {
       reason: string;
     };
   };
-  "capture/commits.analyze": {
+  'capture/commits.analyze': {
     data: {
       repositoryId: string;
       commitSha: string;
@@ -132,7 +134,7 @@ export type DataCaptureEvents = {
       batchId: string;
     };
   };
-  "capture/batch.completed": {
+  'capture/batch.completed': {
     data: {
       repositoryId: string;
       jobType: string;
@@ -141,10 +143,10 @@ export type DataCaptureEvents = {
       totalCount: number;
     };
   };
-  "classify/repository.size": {
+  'classify/repository.size': {
     data: Record<string, never>; // No data needed for scheduled job
   };
-  "classify/repository.single": {
+  'classify/repository.single': {
     data: {
       repositoryId: string;
       owner: string;

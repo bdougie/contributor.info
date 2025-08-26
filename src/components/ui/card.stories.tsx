@@ -1,14 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { expect, within } from '@storybook/test';
 import { designTokens } from '../../../.storybook/design-tokens';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from './card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './card';
 import { Button } from './button';
 import { Input } from './input';
 import { Label } from './label';
@@ -23,7 +16,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A versatile card component for displaying content in a contained, organized format. Supports header, content, and footer sections with various layouts and styles.',
+        component:
+          'A versatile card component for displaying content in a contained, organized format. Supports header, content, and footer sections with various layouts and styles.',
       },
     },
   },
@@ -36,10 +30,12 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div style={{ 
-        minWidth: '400px',
-        padding: designTokens.spacing[4],
-      }}>
+      <div
+        style={{
+          minWidth: '400px',
+          padding: designTokens.spacing[4],
+        }}
+      >
         <Story />
       </div>
     ),
@@ -81,7 +77,7 @@ export const Simple: Story = {
 
 export const Interactive: Story = {
   render: () => (
-    <Card 
+    <Card
       className="cursor-pointer transition-all hover:shadow-lg active:scale-[0.98]"
       tabIndex={0}
       role="article"
@@ -95,26 +91,29 @@ export const Interactive: Story = {
         <p>This card responds to user interaction with hover effects and click handling.</p>
       </CardContent>
       <CardFooter>
-        <Button variant="ghost" size="sm">Learn More →</Button>
+        <Button variant="ghost" size="sm">
+          Learn More →
+        </Button>
       </CardFooter>
     </Card>
   ),
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const card = canvas.getByRole('article', { name: /interactive card/i });
-    
+
     // Simple synchronous tests only
     expect(card).toBeInTheDocument();
     expect(card).toHaveClass('cursor-pointer');
     expect(card).toHaveClass('transition-all');
-    
+
     const button = canvas.getByRole('button', { name: /Learn More/i });
     expect(button).toBeInTheDocument();
   },
   parameters: {
     docs: {
       description: {
-        story: 'An interactive card with hover effects, click handling, and mobile touch support. Includes keyboard accessibility.',
+        story:
+          'An interactive card with hover effects, click handling, and mobile touch support. Includes keyboard accessibility.',
       },
     },
   },
@@ -149,14 +148,14 @@ export const WithForm: Story = {
   ),
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    
+
     // Simple synchronous tests only
     const nameInput = canvas.getByLabelText('Name');
     expect(nameInput).toBeInTheDocument();
-    
+
     const frameworkInput = canvas.getByLabelText('Framework');
     expect(frameworkInput).toBeInTheDocument();
-    
+
     const cancelButton = canvas.getByRole('button', { name: 'Cancel' });
     const deployButton = canvas.getByRole('button', { name: 'Deploy' });
     expect(cancelButton).toBeInTheDocument();
@@ -165,7 +164,8 @@ export const WithForm: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'A card containing a form with inputs and action buttons. Ideal for data entry and submission flows.',
+        story:
+          'A card containing a form with inputs and action buttons. Ideal for data entry and submission flows.',
       },
     },
   },
@@ -186,8 +186,8 @@ export const ProfileCard: Story = {
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground">
-          Building amazing products with modern web technologies. 
-          Passionate about React, TypeScript, and great user experiences.
+          Building amazing products with modern web technologies. Passionate about React,
+          TypeScript, and great user experiences.
         </p>
         <div className="flex gap-2 mt-4">
           <Badge>React</Badge>
@@ -196,7 +196,9 @@ export const ProfileCard: Story = {
         </div>
       </CardContent>
       <CardFooter className="flex justify-between">
-        <Button variant="outline" size="sm">Message</Button>
+        <Button variant="outline" size="sm">
+          Message
+        </Button>
         <Button size="sm">Follow</Button>
       </CardFooter>
     </Card>
@@ -204,7 +206,8 @@ export const ProfileCard: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'A profile card with avatar, badges, and action buttons. Perfect for user profiles and team member displays.',
+        story:
+          'A profile card with avatar, badges, and action buttons. Perfect for user profiles and team member displays.',
       },
     },
   },
@@ -224,9 +227,7 @@ export const Notification: Story = {
             <label htmlFor="push" className="text-sm font-medium leading-none">
               Push Notifications
             </label>
-            <p className="text-sm text-muted-foreground">
-              Send notifications to device.
-            </p>
+            <p className="text-sm text-muted-foreground">Send notifications to device.</p>
           </div>
         </div>
         <div className="flex items-center space-x-4 rounded-md border p-4">
@@ -235,9 +236,7 @@ export const Notification: Story = {
             <label htmlFor="email" className="text-sm font-medium leading-none">
               Email Notifications
             </label>
-            <p className="text-sm text-muted-foreground">
-              Send notifications via email.
-            </p>
+            <p className="text-sm text-muted-foreground">Send notifications via email.</p>
           </div>
         </div>
       </CardContent>
@@ -248,18 +247,18 @@ export const Notification: Story = {
   ),
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    
+
     // Simple synchronous tests only
     const pushSwitch = canvas.getByRole('switch', { name: /push notifications/i });
     const emailSwitch = canvas.getByRole('switch', { name: /email notifications/i });
-    
+
     expect(pushSwitch).toBeInTheDocument();
     expect(emailSwitch).toBeInTheDocument();
-    
+
     // Email should be checked by default
     expect(emailSwitch).toBeChecked();
     expect(pushSwitch).not.toBeChecked();
-    
+
     const saveButton = canvas.getByRole('button', { name: /save preferences/i });
     expect(saveButton).toBeInTheDocument();
   },
@@ -276,9 +275,7 @@ export const Stats: Story = {
   render: () => (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">
-          Total Revenue
-        </CardTitle>
+        <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
@@ -294,9 +291,7 @@ export const Stats: Story = {
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">$45,231.89</div>
-        <p className="text-xs text-muted-foreground">
-          +20.1% from last month
-        </p>
+        <p className="text-xs text-muted-foreground">+20.1% from last month</p>
       </CardContent>
     </Card>
   ),
@@ -345,9 +340,7 @@ export const Error: Story = {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-red-700 text-sm">
-          Please check your connection and try again.
-        </p>
+        <p className="text-red-700 text-sm">Please check your connection and try again.</p>
       </CardContent>
       <CardFooter>
         <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-100">
@@ -368,7 +361,7 @@ export const Error: Story = {
 export const WithImage: Story = {
   render: () => (
     <Card className="overflow-hidden">
-      <div 
+      <div
         className="h-[200px] bg-gradient-to-r from-blue-500 to-purple-500"
         style={{
           background: `linear-gradient(135deg, ${designTokens.colors.primary[500]} 0%, ${designTokens.colors.secondary[500]} 100%)`,
@@ -376,9 +369,7 @@ export const WithImage: Story = {
       />
       <CardHeader>
         <CardTitle>Beautiful Gradient</CardTitle>
-        <CardDescription>
-          A card with a beautiful gradient header image.
-        </CardDescription>
+        <CardDescription>A card with a beautiful gradient header image.</CardDescription>
       </CardHeader>
       <CardContent>
         <p>This card demonstrates how to use images or gradients with the card component.</p>
@@ -399,13 +390,15 @@ export const WithImage: Story = {
 
 export const GridLayout: Story = {
   render: () => (
-    <div style={{ 
-      display: 'grid',
-      gridTemplateColumns: 'repeat(3, 1fr)',
-      gap: designTokens.spacing[4],
-      width: '100%',
-      minWidth: '800px',
-    }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: designTokens.spacing[4],
+        width: '100%',
+        minWidth: '800px',
+      }}
+    >
       {[1, 2, 3].map((i) => (
         <Card key={i}>
           <CardHeader>
@@ -422,7 +415,8 @@ export const GridLayout: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Multiple cards in a responsive grid layout. Shows how cards work in collection displays.',
+        story:
+          'Multiple cards in a responsive grid layout. Shows how cards work in collection displays.',
       },
     },
   },
@@ -430,12 +424,14 @@ export const GridLayout: Story = {
 
 export const Sizes: Story = {
   render: () => (
-    <div style={{ 
-      display: 'flex',
-      flexDirection: 'column',
-      gap: designTokens.spacing[4],
-      alignItems: 'center',
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: designTokens.spacing[4],
+        alignItems: 'center',
+      }}
+    >
       <Card className="w-64">
         <CardHeader>
           <CardTitle className="text-sm">Small Card</CardTitle>
@@ -444,7 +440,7 @@ export const Sizes: Story = {
           <p className="text-xs">Compact size for tight spaces</p>
         </CardContent>
       </Card>
-      
+
       <Card className="w-96">
         <CardHeader>
           <CardTitle>Medium Card</CardTitle>
@@ -453,7 +449,7 @@ export const Sizes: Story = {
           <p>Standard size for most use cases</p>
         </CardContent>
       </Card>
-      
+
       <Card className="w-[32rem]">
         <CardHeader>
           <CardTitle className="text-xl">Large Card</CardTitle>
@@ -475,7 +471,7 @@ export const Sizes: Story = {
 
 export const MobileInteractions: Story = {
   render: () => (
-    <Card 
+    <Card
       className="cursor-pointer transition-all hover:shadow-lg active:scale-[0.98] touch-manipulation"
       tabIndex={0}
       role="button"
@@ -509,20 +505,21 @@ export const MobileInteractions: Story = {
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const card = canvas.getByRole('button', { name: /tap to interact/i });
-    
+
     // Simple synchronous tests only
     expect(card).toBeInTheDocument();
     expect(card).toHaveClass('touch-manipulation');
-    
+
     const buttons = canvas.getAllByRole('button');
-    buttons.forEach(button => {
+    buttons.forEach((button) => {
       expect(button).toBeInTheDocument();
     });
   },
   parameters: {
     docs: {
       description: {
-        story: 'A card optimized for mobile interactions with touch gestures, proper tap targets, and visual feedback.',
+        story:
+          'A card optimized for mobile interactions with touch gestures, proper tap targets, and visual feedback.',
       },
     },
     viewport: {
@@ -533,13 +530,15 @@ export const MobileInteractions: Story = {
 
 export const AllVariants: Story = {
   render: () => (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(2, 1fr)',
-      gap: designTokens.spacing[4],
-      width: '100%',
-      minWidth: '800px',
-    }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: designTokens.spacing[4],
+        width: '100%',
+        minWidth: '800px',
+      }}
+    >
       <Card>
         <CardHeader>
           <CardTitle>Default Card</CardTitle>
@@ -549,7 +548,7 @@ export const AllVariants: Story = {
           <p>Regular content styling</p>
         </CardContent>
       </Card>
-      
+
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle>Elevated Card</CardTitle>
@@ -559,7 +558,7 @@ export const AllVariants: Story = {
           <p>Stands out from the page</p>
         </CardContent>
       </Card>
-      
+
       <Card className="border-2 border-primary">
         <CardHeader>
           <CardTitle>Highlighted Card</CardTitle>
@@ -569,7 +568,7 @@ export const AllVariants: Story = {
           <p>Draws attention to important content</p>
         </CardContent>
       </Card>
-      
+
       <Card className="bg-muted">
         <CardHeader>
           <CardTitle>Muted Card</CardTitle>

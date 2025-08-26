@@ -30,7 +30,7 @@ class SupabaseAvatarCache {
   private memoryCache: Map<number, { result: CachedAvatarResult; timestamp: number }> = new Map();
   private batchQueue: Set<number> = new Set();
   private batchTimeout: ReturnType<typeof setTimeout> | null = null;
-  
+
   /**
    * Validates avatar URL to prevent XSS and ensure it's from trusted sources
    */
@@ -42,14 +42,19 @@ class SupabaseAvatarCache {
         'avatars.githubusercontent.com',
         'github.com',
         'secure.gravatar.com',
-        'www.gravatar.com'
+        'www.gravatar.com',
       ];
-      return parsed.protocol === 'https:' && trustedDomains.some(domain => parsed.hostname === domain || parsed.hostname.endsWith(`.${domain}`));
+      return (
+        parsed.protocol === 'https:' &&
+        trustedDomains.some(
+          (domain) => parsed.hostname === domain || parsed.hostname.endsWith(`.${domain}`),
+        )
+      );
     } catch {
       return false;
     }
   }
-  
+
   /**
    * Manages memory cache size and TTL
    */
@@ -61,13 +66,13 @@ class SupabaseAvatarCache {
         this.memoryCache.delete(firstKey);
       }
     }
-    
+
     this.memoryCache.set(githubId, {
       result,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
-  
+
   /**
    * Gets from memory cache with TTL check
    */
@@ -89,9 +94,9 @@ class SupabaseAvatarCache {
    * Checks Supabase cache first, then localStorage, finally GitHub
    */
   async getAvatarUrl(
-    githubId: number, 
-    username: string, 
-    fallbackUrl?: string
+    githubId: number,
+    username: string,
+    fallbackUrl?: string,
   ): Promise<CachedAvatarResult> {
     // Check memory cache first
     const memCached = this.getFromMemoryCache(githubId);
@@ -111,7 +116,7 @@ class SupabaseAvatarCache {
         const result: CachedAvatarResult = {
           url: contributor.avatar_url!,
           isCached: true,
-          source: 'supabase'
+          source: 'supabase',
         };
         this.addToMemoryCache(githubId, result);
         return result;
@@ -122,11 +127,11 @@ class SupabaseAvatarCache {
       if (localCached) {
         // Update Supabase cache with localStorage data
         this.queueCacheUpdate(githubId, username, localCached);
-        
+
         const result: CachedAvatarResult = {
           url: localCached,
           isCached: true,
-          source: 'localStorage'
+          source: 'localStorage',
         };
         this.addToMemoryCache(githubId, result);
         return result;
@@ -136,11 +141,11 @@ class SupabaseAvatarCache {
       if (fallbackUrl) {
         // Queue background update
         this.queueCacheUpdate(githubId, username, fallbackUrl);
-        
+
         const result: CachedAvatarResult = {
           url: fallbackUrl,
           isCached: false,
-          source: 'github'
+          source: 'github',
         };
         this.addToMemoryCache(githubId, result);
         return result;
@@ -152,11 +157,10 @@ class SupabaseAvatarCache {
       const result: CachedAvatarResult = {
         url: defaultUrl,
         isCached: false,
-        source: 'github'
+        source: 'github',
       };
       this.addToMemoryCache(githubId, result);
       return result;
-
     } catch (_error) {
       // On error, use fallback or localStorage
       const localCached = localCache.get(username);
@@ -164,7 +168,7 @@ class SupabaseAvatarCache {
         return {
           url: localCached,
           isCached: true,
-          source: 'localStorage'
+          source: 'localStorage',
         };
       }
 
@@ -172,7 +176,7 @@ class SupabaseAvatarCache {
         return {
           url: fallbackUrl,
           isCached: false,
-          source: 'github'
+          source: 'github',
         };
       }
 
@@ -180,7 +184,7 @@ class SupabaseAvatarCache {
       return {
         url: `https://avatars.githubusercontent.com/u/${githubId}?v=4`,
         isCached: false,
-        source: 'github'
+        source: 'github',
       };
     }
   }
@@ -190,12 +194,12 @@ class SupabaseAvatarCache {
    * Optimizes database queries for chart rendering
    */
   async getAvatarUrls(
-    contributors: Array<{ githubId: number; username: string; fallbackUrl?: string }>
+    contributors: Array<{ githubId: number; username: string; fallbackUrl?: string }>,
   ): Promise<Map<number, CachedAvatarResult>> {
     const results = new Map<number, CachedAvatarResult>();
-    
+
     // Check memory cache first
-    const uncachedContributors = contributors.filter(c => {
+    const uncachedContributors = contributors.filter((c) => {
       const cached = this.getFromMemoryCache(c.githubId);
       if (cached) {
         results.set(c.githubId, cached);
@@ -210,7 +214,7 @@ class SupabaseAvatarCache {
 
     try {
       // Batch query Supabase
-      const githubIds = uncachedContributors.map(c => c.githubId);
+      const githubIds = uncachedContributors.map((c) => c.githubId);
       const { data: dbContributors, error: _error } = await supabase
         .from('contributors')
         .select('github_id, username, avatar_url, avatar_cached_at, avatar_cache_expires_at')
@@ -218,20 +222,20 @@ class SupabaseAvatarCache {
 
       if (!_error && dbContributors) {
         const dbMap = new Map<number, ContributorAvatarData>();
-        dbContributors.forEach(contrib => {
+        dbContributors.forEach((contrib) => {
           dbMap.set(contrib.github_id, contrib);
         });
 
         // Process each contributor
         for (const contributor of uncachedContributors) {
           const dbData = dbMap.get(contributor.githubId);
-          
+
           if (dbData && this.isCacheValid(dbData) && dbData.avatar_url) {
             // Use Supabase cache
             const result: CachedAvatarResult = {
               url: dbData.avatar_url,
               isCached: true,
-              source: 'supabase'
+              source: 'supabase',
             };
             results.set(contributor.githubId, result);
             this.addToMemoryCache(contributor.githubId, result);
@@ -242,11 +246,11 @@ class SupabaseAvatarCache {
               const result: CachedAvatarResult = {
                 url: localCached,
                 isCached: true,
-                source: 'localStorage'
+                source: 'localStorage',
               };
               results.set(contributor.githubId, result);
               this.addToMemoryCache(contributor.githubId, result);
-              
+
               // Queue update if URL is valid
               if (this.isValidAvatarUrl(localCached)) {
                 this.queueCacheUpdate(contributor.githubId, contributor.username, localCached);
@@ -255,14 +259,18 @@ class SupabaseAvatarCache {
               const result: CachedAvatarResult = {
                 url: contributor.fallbackUrl,
                 isCached: false,
-                source: 'github'
+                source: 'github',
               };
               results.set(contributor.githubId, result);
               this.addToMemoryCache(contributor.githubId, result);
-              
+
               // Queue update if URL is valid
               if (this.isValidAvatarUrl(contributor.fallbackUrl)) {
-                this.queueCacheUpdate(contributor.githubId, contributor.username, contributor.fallbackUrl);
+                this.queueCacheUpdate(
+                  contributor.githubId,
+                  contributor.username,
+                  contributor.fallbackUrl,
+                );
               }
             } else {
               // Use GitHub default - avatars API with CORS headers
@@ -270,7 +278,7 @@ class SupabaseAvatarCache {
               const result: CachedAvatarResult = {
                 url: defaultUrl,
                 isCached: false,
-                source: 'github'
+                source: 'github',
               };
               results.set(contributor.githubId, result);
               this.addToMemoryCache(contributor.githubId, result);
@@ -284,12 +292,14 @@ class SupabaseAvatarCache {
         if (!results.has(contributor.githubId)) {
           const localCached = localCache.get(contributor.username);
           // Use GitHub avatar API with CORS headers as final fallback
-          const url = localCached || contributor.fallbackUrl || 
-                     `https://avatars.githubusercontent.com/u/${contributor.githubId}?v=4`;
+          const url =
+            localCached ||
+            contributor.fallbackUrl ||
+            `https://avatars.githubusercontent.com/u/${contributor.githubId}?v=4`;
           const result: CachedAvatarResult = {
             url,
             isCached: !!localCached,
-            source: localCached ? 'localStorage' : 'github'
+            source: localCached ? 'localStorage' : 'github',
           };
           results.set(contributor.githubId, result);
           this.addToMemoryCache(contributor.githubId, result);
@@ -311,8 +321,10 @@ class SupabaseAvatarCache {
         .update({
           avatar_url: avatarUrl,
           avatar_cached_at: new Date().toISOString(),
-          avatar_cache_expires_at: new Date(Date.now() + CACHE_DURATION_DAYS * 24 * 60 * 60 * 1000).toISOString(),
-          last_updated_at: new Date().toISOString()
+          avatar_cache_expires_at: new Date(
+            Date.now() + CACHE_DURATION_DAYS * 24 * 60 * 60 * 1000,
+          ).toISOString(),
+          last_updated_at: new Date().toISOString(),
         })
         .eq('github_id', githubId);
 
@@ -323,10 +335,9 @@ class SupabaseAvatarCache {
       const result: CachedAvatarResult = {
         url: avatarUrl,
         isCached: true,
-        source: 'supabase'
+        source: 'supabase',
       };
       this.addToMemoryCache(githubId, result);
-
     } catch (_error) {
       // Fallback to localStorage only
       localCache.set(username, avatarUrl);
@@ -337,7 +348,11 @@ class SupabaseAvatarCache {
    * Check if cache is valid (not expired)
    */
   private isCacheValid(contributor: ContributorAvatarData): boolean {
-    if (!contributor.avatar_url || !contributor.avatar_cached_at || !contributor.avatar_cache_expires_at) {
+    if (
+      !contributor.avatar_url ||
+      !contributor.avatar_cached_at ||
+      !contributor.avatar_cache_expires_at
+    ) {
       return false;
     }
 
@@ -373,39 +388,45 @@ class SupabaseAvatarCache {
   private async processBatchUpdates(): Promise<void> {
     if (this.batchQueue.size === 0) return;
 
-    const updates = Array.from(this.batchQueue).map(githubId => {
-      // Check if sessionStorage exists for SSR safety
-      if (typeof sessionStorage === 'undefined') return null;
-      
-      const updateKey = `update_${githubId}`;
-      const updateData = sessionStorage.getItem(updateKey);
-      sessionStorage.removeItem(updateKey);
-      
-      if (updateData) {
-        try {
-          const parsed = JSON.parse(updateData);
-          // Validate the parsed shape
-          if (parsed && typeof parsed.username === 'string' && typeof parsed.avatarUrl === 'string') {
-            return { githubId, username: parsed.username, avatarUrl: parsed.avatarUrl };
+    const updates = Array.from(this.batchQueue)
+      .map((githubId) => {
+        // Check if sessionStorage exists for SSR safety
+        if (typeof sessionStorage === 'undefined') return null;
+
+        const updateKey = `update_${githubId}`;
+        const updateData = sessionStorage.getItem(updateKey);
+        sessionStorage.removeItem(updateKey);
+
+        if (updateData) {
+          try {
+            const parsed = JSON.parse(updateData);
+            // Validate the parsed shape
+            if (
+              parsed &&
+              typeof parsed.username === 'string' &&
+              typeof parsed.avatarUrl === 'string'
+            ) {
+              return { githubId, username: parsed.username, avatarUrl: parsed.avatarUrl };
+            }
+          } catch (_error) {
+            console.error('Failed to parse avatar cache update _data:', _error);
           }
-        } catch (_error) {
-          console.error('Failed to parse avatar cache update _data:', _error);
         }
-      }
-      return null;
-    }).filter(Boolean);
+        return null;
+      })
+      .filter(Boolean);
 
     this.batchQueue.clear();
 
     // Process updates in batches
     for (let i = 0; i < updates.length; i += BATCH_SIZE) {
       const batch = updates.slice(i, i + BATCH_SIZE);
-      
+
       // Process batch updates
       await Promise.allSettled(
-        batch.map(update => 
-          this.updateAvatarCache(update!.githubId, update!.username, update!.avatarUrl)
-        )
+        batch.map((update) =>
+          this.updateAvatarCache(update!.githubId, update!.username, update!.avatarUrl),
+        ),
       );
     }
   }
@@ -424,7 +445,7 @@ class SupabaseAvatarCache {
   getCacheStats(): { memorySize: number; hasLocalStorage: boolean } {
     return {
       memorySize: this.memoryCache.size,
-      hasLocalStorage: typeof localStorage !== 'undefined'
+      hasLocalStorage: typeof localStorage !== 'undefined',
     };
   }
 }

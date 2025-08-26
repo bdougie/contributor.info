@@ -115,7 +115,7 @@ export class QueuePrioritizationService {
       reason: reasons.join(', '),
       processor,
       timeRange,
-      maxItems
+      maxItems,
     };
   }
 
@@ -140,7 +140,7 @@ export class QueuePrioritizationService {
         name: `${data.organization_name}/${data.repository_name}`,
         size: data.size || 'medium',
         priority: data.priority || 'low',
-        metrics: data.metrics
+        metrics: data.metrics,
       };
     } catch (_error) {
       console.error('[QueuePrioritization] Error getting repository meta_data:', _error);
@@ -174,11 +174,11 @@ export class QueuePrioritizationService {
 
           const priority = this.calculatePriorityScore(
             repo,
-            job.metadata?.trigger_source || 'automatic'
+            job.metadata?.trigger_source || 'automatic',
           );
 
           return { job, score: priority.score };
-        })
+        }),
       );
 
       // Sort by priority score (highest first)
@@ -193,11 +193,11 @@ export class QueuePrioritizationService {
               metadata: {
                 ...job.metadata,
                 priority_score: score,
-                queue_position: index + 1
-              }
+                queue_position: index + 1,
+              },
             })
             .eq('id', job.id);
-        })
+        }),
       );
 
       console.log('[QueuePrioritization] Prioritized %s jobs', jobsWithScores.length);
@@ -237,14 +237,12 @@ export class QueuePrioritizationService {
   async rebalanceQueue(): Promise<void> {
     try {
       // Get current load for each processor
-      const { data: stats } = await supabase
-        .from('progressive_capture_stats')
-        .select('*');
+      const { data: stats } = await supabase.from('progressive_capture_stats').select('*');
 
       if (!stats) return;
 
-      const inngestLoad = stats.find(s => s.processor_type === 'inngest');
-      const actionsLoad = stats.find(s => s.processor_type === 'github_actions');
+      const inngestLoad = stats.find((s) => s.processor_type === 'inngest');
+      const actionsLoad = stats.find((s) => s.processor_type === 'github_actions');
 
       if (!inngestLoad || !actionsLoad) return;
 
@@ -254,11 +252,13 @@ export class QueuePrioritizationService {
 
       // If one processor is overloaded, rebalance
       const loadRatio = inngestPending / (actionsPending + 1);
-      
+
       if (loadRatio > 3) {
         // Inngest is overloaded, move some medium jobs to GitHub Actions
-        console.log('[QueuePrioritization] Rebalancing: Moving jobs from Inngest to GitHub Actions');
-        
+        console.log(
+          '[QueuePrioritization] Rebalancing: Moving jobs from Inngest to GitHub Actions',
+        );
+
         const { data: jobsToMove } = await supabase
           .from('progressive_capture_jobs')
           .select('*')
@@ -276,12 +276,12 @@ export class QueuePrioritizationService {
                 metadata: {
                   ...job.metadata,
                   rebalanced: true,
-                  rebalanced_at: new Date().toISOString()
-                }
+                  rebalanced_at: new Date().toISOString(),
+                },
               })
               .eq('id', job.id);
           }
-          
+
           console.log('[QueuePrioritization] Rebalanced %s jobs', jobsToMove.length);
         }
       }

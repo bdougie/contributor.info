@@ -20,7 +20,7 @@ class LLMService {
       enableCaching: true,
       cacheExpiryMinutes: 60, // 1 hour default
       enableFallbacks: true,
-      ...options
+      ...options,
     };
   }
 
@@ -36,11 +36,11 @@ class LLMService {
    */
   async generateHealthInsight(
     healthData: unknown,
-    repoInfo: { owner: string; repo: string }
+    repoInfo: { owner: string; repo: string },
   ): Promise<LLMInsight | null> {
     const cacheKey = this.buildCacheKey('health', repoInfo, healthData.score);
     const dataHash = this.generateDataHash(healthData);
-    
+
     // Check cache first
     if (this.options.enableCaching) {
       const cached = cacheService.get(cacheKey, _dataHash);
@@ -52,24 +52,24 @@ class LLMService {
     // Try OpenAI service
     try {
       const insight = await openAIService.generateHealthInsight(healthData, repoInfo);
-      
+
       if (insight && this.options.enableCaching) {
         cacheService.set(cacheKey, insight, _dataHash);
       }
-      
+
       // If OpenAI is unavailable (returns null), use fallback
       if (!insight && this.options.enableFallbacks) {
         return this.generateFallbackHealthInsight(healthData);
       }
-      
+
       return insight;
     } catch (_error) {
       console.error('LLM health insight failed:', _error);
-      
+
       if (this.options.enableFallbacks) {
         return this.generateFallbackHealthInsight(healthData);
       }
-      
+
       return null;
     }
   }
@@ -79,11 +79,11 @@ class LLMService {
    */
   async generateRecommendations(
     data: unknown,
-    repoInfo: { owner: string; repo: string }
+    repoInfo: { owner: string; repo: string },
   ): Promise<LLMInsight | null> {
     const cacheKey = this.buildCacheKey('recommendations', repoInfo, _data.health?.score || 0);
     const dataHash = this.generateDataHash(_data);
-    
+
     // Check cache first
     if (this.options.enableCaching) {
       const cached = cacheService.get(cacheKey, _dataHash);
@@ -95,24 +95,24 @@ class LLMService {
     // Try OpenAI service
     try {
       const insight = await openAIService.generateRecommendations(_data, repoInfo);
-      
+
       if (insight && this.options.enableCaching) {
         cacheService.set(cacheKey, insight, _dataHash);
       }
-      
+
       // If OpenAI is unavailable (returns null), use fallback
       if (!insight && this.options.enableFallbacks) {
         return this.generateFallbackRecommendations(_data);
       }
-      
+
       return insight;
     } catch (_error) {
       console.error('LLM recommendations failed:', _error);
-      
+
       if (this.options.enableFallbacks) {
         return this.generateFallbackRecommendations(_data);
       }
-      
+
       return null;
     }
   }
@@ -122,11 +122,11 @@ class LLMService {
    */
   async analyzePRPatterns(
     prData: unknown[],
-    repoInfo: { owner: string; repo: string }
+    repoInfo: { owner: string; repo: string },
   ): Promise<LLMInsight | null> {
     const cacheKey = this.buildCacheKey('patterns', repoInfo, prData.length);
     const dataHash = this.generateDataHash(prData);
-    
+
     // Check cache first
     if (this.options.enableCaching) {
       const cached = cacheService.get(cacheKey, _dataHash);
@@ -138,24 +138,24 @@ class LLMService {
     // Try OpenAI service
     try {
       const insight = await openAIService.analyzePRPatterns(prData, repoInfo);
-      
+
       if (insight && this.options.enableCaching) {
         cacheService.set(cacheKey, insight, _dataHash);
       }
-      
+
       // If OpenAI is unavailable (returns null), use fallback
       if (!insight && this.options.enableFallbacks) {
         return this.generateFallbackPatternInsight(prData);
       }
-      
+
       return insight;
     } catch (_error) {
       console.error('LLM pattern analysis failed:', _error);
-      
+
       if (this.options.enableFallbacks) {
         return this.generateFallbackPatternInsight(prData);
       }
-      
+
       return null;
     }
   }
@@ -191,7 +191,11 @@ class LLMService {
   /**
    * Build cache key from parameters
    */
-  private buildCacheKey(type: string, repoInfo: { owner: string; repo: string }, _dataHash: number): string {
+  private buildCacheKey(
+    type: string,
+    repoInfo: { owner: string; repo: string },
+    _dataHash: number,
+  ): string {
     return `${type}:${repoInfo.owner}/${repoInfo.repo}:${dataHash}`;
   }
 
@@ -204,38 +208,41 @@ class LLMService {
     let hash = 0;
     for (let i = 0; i < _dataString.length; i++) {
       const char = dataString.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(36);
   }
-
 
   /**
    * Generate fallback health insight when LLM fails
    */
   private generateFallbackHealthInsight(healthData: unknown): LLMInsight {
     let content = '';
-    
+
     if (healthData.score >= 80) {
-      content = 'Repository health is excellent. Continue maintaining current development practices and code review standards.';
+      content =
+        'Repository health is excellent. Continue maintaining current development practices and code review standards.';
     } else if (healthData.score >= 60) {
-      content = 'Repository health is good with room for improvement. Focus on the areas marked as warnings to further optimize your workflow.';
+      content =
+        'Repository health is good with room for improvement. Focus on the areas marked as warnings to further optimize your workflow.';
     } else {
-      content = 'Repository health needs attention. Address critical issues first, particularly in areas with the lowest scores.';
+      content =
+        'Repository health needs attention. Address critical issues first, particularly in areas with the lowest scores.';
     }
-    
+
     // Add specific recommendations from the data
-    const criticalFactors = healthData.factors?.filter((f: unknown) => f.status === 'critical') || [];
+    const criticalFactors =
+      healthData.factors?.filter((f: unknown) => f.status === 'critical') || [];
     if (criticalFactors.length > 0) {
       content += ` Priority: ${criticalFactors[0].name.toLowerCase()}.`;
     }
-    
+
     return {
       type: 'health',
       content,
       confidence: 0.6, // Lower confidence for fallback
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   }
 
@@ -244,24 +251,27 @@ class LLMService {
    */
   private generateFallbackRecommendations(_data: unknown): LLMInsight {
     const recommendations = [];
-    
+
     if (_data.health?.score < 70) {
       recommendations.push('Improve code review coverage to increase repository health');
     }
-    
+
     if (_data.activity?.weeklyVelocity < 5) {
       recommendations.push('Consider breaking down large PRs to increase development velocity');
     }
-    
+
     recommendations.push('Monitor PR merge times and establish review SLAs');
-    
-    const content = recommendations.slice(0, 3).map((rec, i) => `${i + 1}. ${rec}`).join('\n');
-    
+
+    const content = recommendations
+      .slice(0, 3)
+      .map((rec, i) => `${i + 1}. ${rec}`)
+      .join('\n');
+
     return {
       type: 'recommendation',
       content: content || 'Continue following development best practices.',
       confidence: 0.5,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   }
 
@@ -272,9 +282,9 @@ class LLMService {
     const totalPRs = prData.length;
     const merged = prData.filter((pr: unknown) => pr.merged_at).length;
     const mergeRate = totalPRs > 0 ? Math.round((merged / totalPRs) * 100) : 0;
-    
+
     let content = `Analyzed ${totalPRs} PRs with ${mergeRate}% merge rate. `;
-    
+
     if (mergeRate >= 80) {
       content += 'Strong PR completion rate indicates healthy development workflow.';
     } else if (mergeRate >= 60) {
@@ -282,12 +292,12 @@ class LLMService {
     } else {
       content += 'Consider reviewing PR process to improve completion rates.';
     }
-    
+
     return {
       type: 'pattern',
       content,
       confidence: 0.5,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   }
 }

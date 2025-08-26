@@ -1,7 +1,7 @@
-import { RepositorySizeBadge } from "./repository-size-badge";
-import { DataFreshnessIndicator } from "./data-freshness-indicator";
-import { useRepositoryMetadata } from "@/hooks/use-repository-metadata";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { RepositorySizeBadge } from './repository-size-badge';
+import { DataFreshnessIndicator } from './data-freshness-indicator';
+import { useRepositoryMetadata } from '@/hooks/use-repository-metadata';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface RepositoryInlineMetadataProps {
   owner?: string;
@@ -9,10 +9,10 @@ interface RepositoryInlineMetadataProps {
   className?: string;
 }
 
-export function RepositoryInlineMetadata({ 
-  owner, 
-  repo, 
-  className 
+export function RepositoryInlineMetadata({
+  owner,
+  repo,
+  className,
 }: RepositoryInlineMetadataProps) {
   const { metadata, loading } = useRepositoryMetadata(owner, repo);
 
@@ -45,7 +45,7 @@ export function RepositoryInlineMetadata({
   };
 
   const getFreshnessTooltip = () => {
-    const timeInfo = metadata.lastDataUpdate 
+    const timeInfo = metadata.lastDataUpdate
       ? `\n\nLast updated: ${new Date(meta_data.lastDataUpdate).toLocaleString()}`
       : '\n\nNo recent updates found';
 
@@ -74,11 +74,11 @@ export function RepositoryInlineMetadata({
             {getSizeTooltip()}
           </TooltipContent>
         </Tooltip>
-        
+
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="flex items-center justify-center h-5">
-              <DataFreshnessIndicator 
+              <DataFreshnessIndicator
                 freshness={metadata.dataFreshness}
                 lastUpdate={metadata.lastDataUpdate}
               />

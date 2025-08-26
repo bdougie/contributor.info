@@ -1,16 +1,11 @@
-import { useState } from "react";
-import { MetricCard } from "./MetricCard";
-import { TrendChart } from "./TrendChart";
-import { ActivityChart, type ActivityDataPoint } from "./ActivityChart";
-import { RepositoryList, type Repository } from "./RepositoryList";
-import { TimeRange } from "./TimeRangeSelector";
-import { 
-  Star, 
-  GitPullRequest, 
-  Users, 
-  GitCommit
-} from "@/components/ui/icon";
-import { cn } from "@/lib/utils";
+import { useState } from 'react';
+import { MetricCard } from './MetricCard';
+import { TrendChart } from './TrendChart';
+import { ActivityChart, type ActivityDataPoint } from './ActivityChart';
+import { RepositoryList, type Repository } from './RepositoryList';
+import { TimeRange } from './TimeRangeSelector';
+import { Star, GitPullRequest, Users, GitCommit } from '@/components/ui/icon';
+import { cn } from '@/lib/utils';
 
 export interface WorkspaceMetrics {
   totalStars: number;
@@ -52,10 +47,10 @@ export interface WorkspaceDashboardProps {
 // Time range labels for trend comparison
 const timeRangeComparisonLabels: Record<TimeRange, string> = {
   '7d': 'vs previous 7 days',
-  '30d': 'vs previous 30 days', 
+  '30d': 'vs previous 30 days',
   '90d': 'vs previous 90 days',
   '1y': 'vs previous year',
-  'all': 'vs previous period',
+  all: 'vs previous period',
 };
 
 export function WorkspaceDashboard({
@@ -75,15 +70,15 @@ export function WorkspaceDashboard({
   className,
 }: WorkspaceDashboardProps) {
   const [pinnedRepos, setPinnedRepos] = useState<Set<string>>(
-    new Set(repositories.filter(r => r.is_pinned).map(r => r.id))
+    new Set(repositories.filter((r) => r.is_pinned).map((r) => r.id)),
   );
   const [expandedChart, setExpandedChart] = useState<'trends' | 'activity' | null>(null);
-  
+
   // Get the trend comparison label based on selected time range
   const trendLabel = timeRangeComparisonLabels[timeRange];
 
   const handlePinToggle = (repo: Repository) => {
-    setPinnedRepos(prev => {
+    setPinnedRepos((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(repo.id)) {
         newSet.delete(repo.id);
@@ -94,13 +89,13 @@ export function WorkspaceDashboard({
     });
   };
 
-  const repositoriesWithPinState = repositories.map(repo => ({
+  const repositoriesWithPinState = repositories.map((repo) => ({
     ...repo,
     is_pinned: pinnedRepos.has(repo.id),
   }));
 
   return (
-    <div className={cn("space-y-6", className)}>
+    <div className={cn('space-y-6', className)}>
       {/* Metrics Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
@@ -111,13 +106,13 @@ export function WorkspaceDashboard({
           icon={<Star className="h-4 w-4" />}
           trend={{
             value: metrics.starsTrend,
-            label: trendLabel
+            label: trendLabel,
           }}
           format="compact"
           color="gray"
           loading={loading}
         />
-        
+
         <MetricCard
           title="Pull Requests"
           subtitle="Currently open"
@@ -126,13 +121,13 @@ export function WorkspaceDashboard({
           icon={<GitPullRequest className="h-4 w-4" />}
           trend={{
             value: metrics.prsTrend,
-            label: trendLabel
+            label: trendLabel,
           }}
           format="number"
           color="green"
           loading={loading}
         />
-        
+
         <MetricCard
           title="Contributors"
           subtitle="Unique contributors"
@@ -141,13 +136,13 @@ export function WorkspaceDashboard({
           icon={<Users className="h-4 w-4" />}
           trend={{
             value: metrics.contributorsTrend,
-            label: trendLabel
+            label: trendLabel,
           }}
           format="number"
           color="blue"
           loading={loading}
         />
-        
+
         <MetricCard
           title="Commits"
           subtitle="Total commits"
@@ -156,7 +151,7 @@ export function WorkspaceDashboard({
           icon={<GitCommit className="h-4 w-4" />}
           trend={{
             value: metrics.commitsTrend,
-            label: trendLabel
+            label: trendLabel,
           }}
           format="compact"
           color="purple"
@@ -165,15 +160,21 @@ export function WorkspaceDashboard({
       </div>
 
       {/* Charts Row */}
-      <div className={cn(
-        "grid gap-4 transition-all duration-500 ease-in-out",
-        expandedChart ? "grid-cols-1" : "lg:grid-cols-2"
-      )}>
-        <div className={cn(
-          "transition-all duration-500 ease-in-out transform-gpu",
-          expandedChart === 'activity' ? 'opacity-0 scale-95 h-0 overflow-hidden' : 'opacity-100 scale-100',
-          expandedChart === 'trends' ? 'col-span-full' : ''
-        )}>
+      <div
+        className={cn(
+          'grid gap-4 transition-all duration-500 ease-in-out',
+          expandedChart ? 'grid-cols-1' : 'lg:grid-cols-2',
+        )}
+      >
+        <div
+          className={cn(
+            'transition-all duration-500 ease-in-out transform-gpu',
+            expandedChart === 'activity'
+              ? 'opacity-0 scale-95 h-0 overflow-hidden'
+              : 'opacity-100 scale-100',
+            expandedChart === 'trends' ? 'col-span-full' : '',
+          )}
+        >
           {(!expandedChart || expandedChart === 'trends') && (
             <TrendChart
               title="Activity Trends"
@@ -187,12 +188,16 @@ export function WorkspaceDashboard({
             />
           )}
         </div>
-        
-        <div className={cn(
-          "transition-all duration-500 ease-in-out transform-gpu",
-          expandedChart === 'trends' ? 'opacity-0 scale-95 h-0 overflow-hidden' : 'opacity-100 scale-100',
-          expandedChart === 'activity' ? 'col-span-full' : ''
-        )}>
+
+        <div
+          className={cn(
+            'transition-all duration-500 ease-in-out transform-gpu',
+            expandedChart === 'trends'
+              ? 'opacity-0 scale-95 h-0 overflow-hidden'
+              : 'opacity-100 scale-100',
+            expandedChart === 'activity' ? 'col-span-full' : '',
+          )}
+        >
           {(!expandedChart || expandedChart === 'activity') && (
             <ActivityChart
               title="Code Activity"
@@ -201,7 +206,9 @@ export function WorkspaceDashboard({
               loading={loading}
               height={expandedChart === 'activity' ? 400 : 300}
               isExpanded={expandedChart === 'activity'}
-              onExpandToggle={() => setExpandedChart(expandedChart === 'activity' ? null : 'activity')}
+              onExpandToggle={() =>
+                setExpandedChart(expandedChart === 'activity' ? null : 'activity')
+              }
             />
           )}
         </div>
@@ -215,12 +222,11 @@ export function WorkspaceDashboard({
         onPinToggle={handlePinToggle}
         onAddRepository={onAddRepository}
         emptyMessage={
-          repositories.length === 0 
-            ? "No repositories in this workspace yet. Add your first repository to start tracking activity."
-            : "No repositories match your search criteria."
+          repositories.length === 0
+            ? 'No repositories in this workspace yet. Add your first repository to start tracking activity.'
+            : 'No repositories match your search criteria.'
         }
       />
-
     </div>
   );
 }

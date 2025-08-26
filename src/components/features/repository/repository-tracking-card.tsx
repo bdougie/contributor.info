@@ -35,7 +35,7 @@ export function RepositoryTrackingCard({
 
   // Generate mock scatter plot data
   const mockData = useMemo(() => {
-    const data = [];
+    const _data = [];
     const contributors = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank'];
     
     // Generate 30 mock PR data points
@@ -159,7 +159,7 @@ export function RepositoryTrackingCard({
       try {
         // Check if repository now has data
         const response = await fetch(`/api/repository-status?owner=${owner}&repo=${repo}`);
-        const data = await response.json();
+        const _data = await response.json();
 
         if (_data.hasData) {
           if (pollIntervalRef.current) {

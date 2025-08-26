@@ -17,18 +17,18 @@ export function isValidMethod(method: string): boolean {
 // Pure function to create response headers
 export function createResponseHeaders(
   contentType: string | null,
-  includeCors: boolean
+  includeCors: boolean,
 ): Record<string, string> {
   const headers: Record<string, string> = {};
-  
+
   if (contentType) {
     headers['Content-Type'] = contentType;
   }
-  
+
   if (includeCors) {
     Object.assign(headers, getCorsHeaders());
   }
-  
+
   return headers;
 }
 

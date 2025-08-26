@@ -3,7 +3,6 @@
  * Uses VITE_OPENAI_API_KEY environment variable
  */
 
-
 export interface LLMInsight {
   type: 'health' | 'recommendation' | 'pattern' | 'trend';
   content: string;
@@ -19,7 +18,6 @@ export interface LLMServiceConfig {
   fallbackModel?: string;
 }
 
-
 class OpenAIService {
   private apiKey: string | undefined;
   private baseUrl = 'https://api.openai.com/v1';
@@ -28,11 +26,10 @@ class OpenAIService {
   constructor() {
     // Handle both Vite and Node.js environments
     this.apiKey = import.meta.env?.VITE_OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
-    
 
     this.config = {
-      model: 'gpt-4o-mini',        // Start with high-quota free model
-      fallbackModel: 'gpt-4o',     // Fallback to primary free model
+      model: 'gpt-4o-mini', // Start with high-quota free model
+      fallbackModel: 'gpt-4o', // Fallback to primary free model
       maxTokens: 500,
       temperature: 0.3,
       timeout: 10000,
@@ -54,45 +51,47 @@ class OpenAIService {
     if (insightType === 'health') {
       return 'gpt-4o-mini';
     }
-    
+
     // For complex recommendations and patterns, use primary models (1M free tokens/day)
     if (insightType === 'recommendation' || insightType === 'pattern') {
       return 'gpt-4o';
     }
-    
+
     return this.config.model;
   }
-
 
   /**
    * Generate health assessment insight from repository metrics
    */
-  async generateHealthInsight(healthData: {
-    score: number;
-    trend: string;
-    factors: Array<{
-      name: string;
+  async generateHealthInsight(
+    healthData: {
       score: number;
-      status: string;
-      description: string;
-    }>;
-    recommendations: string[];
-  }, repoInfo: { owner: string; repo: string }): Promise<LLMInsight | null> {
+      trend: string;
+      factors: Array<{
+        name: string;
+        score: number;
+        status: string;
+        description: string;
+      }>;
+      recommendations: string[];
+    },
+    repoInfo: { owner: string; repo: string },
+  ): Promise<LLMInsight | null> {
     if (!this.isAvailable()) {
       return null;
     }
 
     const prompt = this.buildHealthPrompt(healthData, repoInfo);
     const model = this.selectModel('health');
-    
+
     try {
       const response = await this.callOpenAI(prompt, model);
-      
+
       return {
         type: 'health',
         content: response,
         confidence: this.calculateConfidence(healthData.score),
-        timestamp: new Date()
+        timestamp: new Date(),
       };
     } catch (_error) {
       console.error('Failed to generate health insight:', _error);
@@ -103,26 +102,29 @@ class OpenAIService {
   /**
    * Generate actionable recommendations based on repository data
    */
-  async generateRecommendations(data: {
-    health: unknown;
-    trends: unknown[];
-    activity: unknown;
-  }, repoInfo: { owner: string; repo: string }): Promise<LLMInsight | null> {
+  async generateRecommendations(
+    data: {
+      health: unknown;
+      trends: unknown[];
+      activity: unknown;
+    },
+    repoInfo: { owner: string; repo: string },
+  ): Promise<LLMInsight | null> {
     if (!this.isAvailable()) {
       return null;
     }
 
     const prompt = this.buildRecommendationPrompt(_data, repoInfo);
     const model = this.selectModel('recommendation');
-    
+
     try {
       const response = await this.callOpenAI(prompt, model);
-      
+
       return {
         type: 'recommendation',
         content: response,
         confidence: 0.8, // Default confidence for recommendations
-        timestamp: new Date()
+        timestamp: new Date(),
       };
     } catch (_error) {
       console.error('Failed to generate recommendations:', _error);
@@ -133,22 +135,25 @@ class OpenAIService {
   /**
    * Analyze PR patterns and contributor behavior
    */
-  async analyzePRPatterns(prData: unknown[], repoInfo: { owner: string; repo: string }): Promise<LLMInsight | null> {
+  async analyzePRPatterns(
+    prData: unknown[],
+    repoInfo: { owner: string; repo: string },
+  ): Promise<LLMInsight | null> {
     if (!this.isAvailable()) {
       return null;
     }
 
     const prompt = this.buildPatternPrompt(prData, repoInfo);
     const model = this.selectModel('pattern');
-    
+
     try {
       const response = await this.callOpenAI(prompt, model);
-      
+
       return {
         type: 'pattern',
         content: response,
         confidence: 0.7, // Patterns can be more subjective
-        timestamp: new Date()
+        timestamp: new Date(),
       };
     } catch (_error) {
       console.error('Failed to analyze PR patterns:', _error);
@@ -165,7 +170,11 @@ class OpenAIService {
     }
 
     // Prevent real API calls in test environment
-    if (process.env.NODE_ENV === 'test' || this.apiKey === 'test-openai-key' || this.apiKey === 'test-key-for-ci') {
+    if (
+      process.env.NODE_ENV === 'test' ||
+      this.apiKey === 'test-openai-key' ||
+      this.apiKey === 'test-key-for-ci'
+    ) {
       throw new Error('OpenAI API calls blocked in test environment');
     }
 
@@ -176,7 +185,7 @@ class OpenAIService {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
         },
         signal: controller.signal,
@@ -185,12 +194,13 @@ class OpenAIService {
           messages: [
             {
               role: 'system',
-              content: 'You are a helpful assistant that provides concise, actionable insights about GitHub repository health and development patterns. Keep responses under 150 words and focus on practical advice.'
+              content:
+                'You are a helpful assistant that provides concise, actionable insights about GitHub repository health and development patterns. Keep responses under 150 words and focus on practical advice.',
             },
             {
               role: 'user',
-              content: prompt
-            }
+              content: prompt,
+            },
           ],
           max_tokens: this.config.maxTokens,
           temperature: this.config.temperature,
@@ -209,8 +219,8 @@ class OpenAIService {
         }
       }
 
-      const data = await response.json();
-      
+      const _data = await response.json();
+
       if (!data.choices || _data.choices.length === 0) {
         throw new Error('No response from OpenAI');
       }
@@ -218,11 +228,11 @@ class OpenAIService {
       return data.choices[0].message.content.trim();
     } catch (_error) {
       clearTimeout(timeoutId);
-      
+
       if (error instanceof Error && _error.name === 'AbortError') {
         throw new Error('OpenAI request timeout');
       }
-      
+
       throw error;
     }
   }
@@ -230,7 +240,10 @@ class OpenAIService {
   /**
    * Build prompt for health assessment
    */
-  private buildHealthPrompt(healthData: unknown, repoInfo: { owner: string; repo: string }): string {
+  private buildHealthPrompt(
+    healthData: unknown,
+    repoInfo: { owner: string; repo: string },
+  ): string {
     return `Analyze the health of repository ${repoInfo.owner}/${repoInfo.repo}:
 
 Health Score: ${healthData.score}/100 (${healthData.trend})
@@ -253,7 +266,10 @@ Include insights about development workflow effectiveness, review patterns, and 
   /**
    * Build prompt for recommendations
    */
-  private buildRecommendationPrompt(_data: unknown, repoInfo: { owner: string; repo: string }): string {
+  private buildRecommendationPrompt(
+    _data: unknown,
+    repoInfo: { owner: string; repo: string },
+  ): string {
     return `Based on ${repoInfo.owner}/${repoInfo.repo} repository data, provide 3 specific, actionable recommendations:
 
 Health: ${data.health.score}/100
@@ -273,12 +289,12 @@ Focus on specific, measurable steps that address both metrics and development wo
    */
   private buildPatternPrompt(prData: unknown[], repoInfo: { owner: string; repo: string }): string {
     const totalPRs = prData.length;
-    const merged = prData.filter(pr => pr.merged_at).length;
+    const merged = prData.filter((pr) => pr.merged_at).length;
     const avgSize = prData.reduce((sum, pr) => sum + (pr.additions + pr.deletions), 0) / totalPRs;
-    
+
     return `Analyze PR patterns for ${repoInfo.owner}/${repoInfo.repo}:
 
-PRs: ${totalPRs} total, ${merged} merged (${Math.round(merged/totalPRs*100)}%)
+PRs: ${totalPRs} total, ${merged} merged (${Math.round((merged / totalPRs) * 100)}%)
 Avg size: ${Math.round(avgSize)} lines changed
 
 Identify:

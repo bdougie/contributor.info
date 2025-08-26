@@ -5,12 +5,20 @@ export const trackRateLimit = (..._args: unknown[]) => {
   // No-op: Rate limit tracking removed
 };
 
-export const trackDatabaseOperation = async (_name: string, operation: () => any, _metadata?: unknown) => {
+export const trackDatabaseOperation = async (
+  _name: string,
+  operation: () => any,
+  _metadata?: unknown,
+) => {
   // No-op: Just execute the operation without tracking
   return await operation();
 };
 
-export const trackCacheOperation = async (_name: string, operation: () => any, _metadata?: unknown) => {
+export const trackCacheOperation = async (
+  _name: string,
+  operation: () => any,
+  _metadata?: unknown,
+) => {
   // No-op: Just execute the operation without tracking
   return await operation();
 };
@@ -27,7 +35,7 @@ export const startSpan = (_config: unknown, callback: (span: unknown) => any) =>
   // No-op: Just execute the callback with a mock span object
   const mockSpan = {
     setAttributes: () => {},
-    setAttribute: () => {}
+    setAttribute: () => {},
   };
   return callback(mockSpan);
 };

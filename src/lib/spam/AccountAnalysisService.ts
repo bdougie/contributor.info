@@ -1,8 +1,4 @@
-import { 
-  PullRequestData, 
-  SpamFlags, 
-  ACCOUNT_THRESHOLDS 
-} from './types';
+import { PullRequestData, SpamFlags, ACCOUNT_THRESHOLDS } from './types';
 
 export class AccountAnalysisService {
   /**
@@ -177,8 +173,10 @@ export class AccountAnalysisService {
     }
 
     // No followers or following (might indicate throwaway account)
-    if ((!author.followers || author.followers === 0) && 
-        (!author.following || author.following === 0)) {
+    if (
+      (!author.followers || author.followers === 0) &&
+      (!author.following || author.following === 0)
+    ) {
       riskFactors.push('no_social_connections');
     }
 
@@ -224,7 +222,10 @@ export class AccountAnalysisService {
     }
 
     // Penalize very new accounts making contributions
-    if (accountFlags && accountFlags.account_age_days <= ACCOUNT_THRESHOLDS.SUSPICIOUS_ACCOUNT_DAYS) {
+    if (
+      accountFlags &&
+      accountFlags.account_age_days <= ACCOUNT_THRESHOLDS.SUSPICIOUS_ACCOUNT_DAYS
+    ) {
       trustScore -= 0.3;
     }
 

@@ -12,10 +12,10 @@ import type { RepoStats, LotteryFactor, DirectCommitsData, TimeRange } from '@/l
  * @param includeBots - Whether to include bot accounts in analysis
  */
 export function useRepoData(
-  owner: string | undefined, 
-  repo: string | undefined, 
-  timeRange: TimeRange, 
-  includeBots: boolean
+  owner: string | undefined,
+  repo: string | undefined,
+  timeRange: TimeRange,
+  includeBots: boolean,
 ) {
   const [stats, setStats] = useState<RepoStats>({
     pullRequests: [],
@@ -49,8 +49,7 @@ export function useRepoData(
         setStats((prev) => ({
           ...prev,
           loading: false,
-          error:
-            error instanceof Error ? error.message : "Failed to fetch data",
+          error: error instanceof Error ? error.message : 'Failed to fetch data',
         }));
       }
     }

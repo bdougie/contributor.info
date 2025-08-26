@@ -107,7 +107,7 @@ export function SpamTestTool() {
 
       if (error && _error.code === 'PGRST116') {
         // Repository doesn't exist, create it
-        const { data: newRepo, error: _error: insertError } = await supabase
+        const { data: newRepo, error: insertError } = await supabase
           .from('repositories')
           .insert({
             owner,
@@ -220,7 +220,7 @@ export function SpamTestTool() {
 
       // First check if PR exists in our database
       // Get repository ID first since nested filtering doesn't work reliably
-      const { data: repositoryData, error: _error: repoError } = await supabase
+      const { data: repositoryData, error: repoError } = await supabase
         .from('repositories')
         .select('id')
         .eq('owner', owner)
@@ -231,7 +231,7 @@ export function SpamTestTool() {
       let dbError = repoError;
 
       if (repositoryData && !repoError) {
-        const { data: prData, error: _error: prQueryError } = await supabase
+        const { data: prData, error: prQueryError } = await supabase
           .from('pull_requests')
           .select(`
             *,
@@ -276,7 +276,7 @@ export function SpamTestTool() {
 
           // Try to get the PR from database again
           // Simplified query without foreign key syntax to avoid PostgREST issues
-          const { data: newPR, error: _error: newError } = await supabase
+          const { data: newPR, error: newError } = await supabase
             .from('pull_requests')
             .select(`
               *,
@@ -475,7 +475,7 @@ export function SpamTestTool() {
       // Only create spam detection record if we have real database IDs (not GitHub API fallback)
       if (result.pr.id && !result.pr.id.toString().startsWith('github-') && !result.pr.id.toString().startsWith('mock-')) {
         // Create spam detection record
-        const { error: _error: insertError } = await supabase
+        const { error: insertError } = await supabase
           .from('spam_detections')
           .insert({
             pr_id: result.pr.id,
@@ -495,7 +495,7 @@ export function SpamTestTool() {
 
       // Update PR spam score in database (only for real _database records)
       if (result.pr.id && !result.pr.id.toString().startsWith('github-') && !result.pr.id.toString().startsWith('mock-')) {
-        const { error: _error: updateError } = await supabase
+        const { error: updateError } = await supabase
           .from('pull_requests')
           .update({
             spam_score: isSpam ? Math.max(result.spamScore, 75) : Math.min(result.spamScore, 25),

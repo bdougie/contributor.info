@@ -1,11 +1,11 @@
-import { useMemo } from "react"
+import { useMemo } from 'react';
 import { Heart, TrendingUp, TrendingDown, Minus } from '@/components/ui/icon';
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-import type { HealthMetrics } from "@/lib/insights/health-metrics";
-import type { RepoStats } from "@/lib/types";
+import { Card } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+import type { HealthMetrics } from '@/lib/insights/health-metrics';
+import type { RepoStats } from '@/lib/types';
 
 interface RepositoryHealthOverallProps {
   stats: RepoStats;
@@ -16,15 +16,15 @@ interface RepositoryHealthOverallProps {
 function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): HealthMetrics {
   const now = new Date();
   const pullRequests = stats.pullRequests;
-  
+
   // Calculate various health factors
   const factors: HealthMetrics['factors'] = [];
   const recommendations: string[] = [];
-  
+
   // 1. PR Merge Time Factor
   const mergedPRs = pullRequests.filter((pr: unknown) => pr.merged_at);
   let avgMergeTime = 0;
-  
+
   if (mergedPRs.length > 0) {
     const mergeTimes = mergedPRs.map((pr: unknown) => {
       const created = new Date(pr.created_at);
@@ -33,108 +33,108 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
     });
     avgMergeTime = mergeTimes.reduce((a, b) => a + b, 0) / mergeTimes.length;
   }
-  
+
   let mergeTimeScore = 100;
-  let mergeTimeStatus: "good" | "warning" | "critical" = "good";
-  
+  let mergeTimeStatus: 'good' | 'warning' | 'critical' = 'good';
+
   if (avgMergeTime <= 24) {
     mergeTimeScore = 100;
-    mergeTimeStatus = "good";
+    mergeTimeStatus = 'good';
   } else if (avgMergeTime <= 72) {
     mergeTimeScore = 80;
-    mergeTimeStatus = "warning";
-    recommendations.push("Consider reviewing PRs more frequently to reduce merge times");
+    mergeTimeStatus = 'warning';
+    recommendations.push('Consider reviewing PRs more frequently to reduce merge times');
   } else {
     mergeTimeScore = 50;
-    mergeTimeStatus = "critical";
-    recommendations.push("PRs are taking too long to merge - consider improving review processes");
+    mergeTimeStatus = 'critical';
+    recommendations.push('PRs are taking too long to merge - consider improving review processes');
   }
-  
+
   factors.push({
-    name: "PR Merge Time",
+    name: 'PR Merge Time',
     score: mergeTimeScore,
     weight: 25,
     status: mergeTimeStatus,
-    description: `Average merge time: ${avgMergeTime.toFixed(1)} hours`
+    description: `Average merge time: ${avgMergeTime.toFixed(1)} hours`,
   });
 
   // 2. Contributor Diversity Factor
   const uniqueContributors = new Set(pullRequests.map((pr: unknown) => pr.user.login)).size;
   const totalPRs = pullRequests.length;
-  
+
   let diversityScore = 100;
-  let diversityStatus: "good" | "warning" | "critical" = "good";
-  
+  let diversityStatus: 'good' | 'warning' | 'critical' = 'good';
+
   if (uniqueContributors >= 10) {
     diversityScore = 100;
-    diversityStatus = "good";
+    diversityStatus = 'good';
   } else if (uniqueContributors >= 5) {
     diversityScore = 75;
-    diversityStatus = "warning";
-    recommendations.push("Consider encouraging more contributors to improve bus factor");
+    diversityStatus = 'warning';
+    recommendations.push('Consider encouraging more contributors to improve bus factor');
   } else {
     diversityScore = 40;
-    diversityStatus = "critical";
-    recommendations.push("Very few contributors - high risk if key contributors leave");
+    diversityStatus = 'critical';
+    recommendations.push('Very few contributors - high risk if key contributors leave');
   }
-  
+
   factors.push({
-    name: "Contributor Diversity",
+    name: 'Contributor Diversity',
     score: diversityScore,
     weight: 20,
     status: diversityStatus,
-    description: `${uniqueContributors} unique contributors`
+    description: `${uniqueContributors} unique contributors`,
   });
 
   // 3. Review Coverage Factor
-  const reviewedPRs = pullRequests.filter((pr: unknown) => 
-    pr.requested_reviewers?.length > 0 || pr.reviews?.length > 0
+  const reviewedPRs = pullRequests.filter(
+    (pr: unknown) => pr.requested_reviewers?.length > 0 || pr.reviews?.length > 0,
   );
   const reviewCoverage = totalPRs > 0 ? (reviewedPRs.length / totalPRs) * 100 : 0;
-  
+
   const reviewScore = Math.max(0, reviewCoverage);
-  let reviewStatus: "good" | "warning" | "critical" = "good";
-  
+  let reviewStatus: 'good' | 'warning' | 'critical' = 'good';
+
   if (reviewCoverage >= 80) {
-    reviewStatus = "good";
+    reviewStatus = 'good';
   } else if (reviewCoverage >= 50) {
-    reviewStatus = "warning";
-    recommendations.push("Consider requiring reviews for more PRs");
+    reviewStatus = 'warning';
+    recommendations.push('Consider requiring reviews for more PRs');
   } else {
-    reviewStatus = "critical";
-    recommendations.push("Most PRs lack proper review - implement review requirements");
+    reviewStatus = 'critical';
+    recommendations.push('Most PRs lack proper review - implement review requirements');
   }
-  
+
   factors.push({
-    name: "Review Coverage",
+    name: 'Review Coverage',
     score: reviewScore,
     weight: 20,
     status: reviewStatus,
-    description: `${reviewCoverage.toFixed(0)}% of PRs reviewed`
+    description: `${reviewCoverage.toFixed(0)}% of PRs reviewed`,
   });
 
   // 4. Activity Level Factor
   const timeRangeNum = parseInt(timeRange) || 30;
   const dailyActivity = totalPRs / timeRangeNum;
-  
+
   const activityScore = Math.min(100, dailyActivity * 20); // Scale based on activity
-  let activityStatus: "good" | "warning" | "critical" = "good";
-  
+  let activityStatus: 'good' | 'warning' | 'critical' = 'good';
+
   if (dailyActivity >= 2) {
-    activityStatus = "good";
+    activityStatus = 'good';
   } else if (dailyActivity >= 0.5) {
-    activityStatus = "warning";
+    activityStatus = 'warning';
   } else {
-    activityStatus = "critical";
-    recommendations.push("Repository activity is very low");
+    activityStatus = 'critical';
+    recommendations.push('Repository activity is very low');
   }
-  
+
   factors.push({
-    name: "Activity Level",
+    name: 'Activity Level',
     score: activityScore,
     weight: 20,
     status: activityStatus,
-    description: `${dailyActivity.toFixed(1)} PRs per day average`
+    description: `${dailyActivity.toFixed(1)} PRs per day average`,
   });
 
   // 5. Response Time Factor
@@ -146,57 +146,53 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
       const updated = new Date(pr.updated_at);
       return (updated.getTime() - created.getTime()) / (1000 * 60 * 60); // hours
     });
-  
-  const avgResponseTime = responseTimes.length > 0 
-    ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length 
-    : 0;
-  
+
+  const avgResponseTime =
+    responseTimes.length > 0 ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length : 0;
+
   let responseScore = 100;
-  let responseStatus: "good" | "warning" | "critical" = "good";
-  
+  let responseStatus: 'good' | 'warning' | 'critical' = 'good';
+
   if (avgResponseTime <= 4) {
     responseScore = 100;
-    responseStatus = "good";
+    responseStatus = 'good';
   } else if (avgResponseTime <= 24) {
     responseScore = 75;
-    responseStatus = "warning";
+    responseStatus = 'warning';
   } else {
     responseScore = 40;
-    responseStatus = "critical";
-    recommendations.push("PRs are getting slow responses - consider improving communication");
+    responseStatus = 'critical';
+    recommendations.push('PRs are getting slow responses - consider improving communication');
   }
-  
+
   factors.push({
-    name: "Response Time",
+    name: 'Response Time',
     score: responseScore,
     weight: 15,
     status: responseStatus,
-    description: `${avgResponseTime.toFixed(1)} hours average response`
+    description: `${avgResponseTime.toFixed(1)} hours average response`,
   });
 
   // Calculate weighted overall score
   const totalWeight = factors.reduce((sum, factor) => sum + factor.weight, 0);
-  const weightedScore = factors.reduce((sum, factor) => sum + (factor.score * factor.weight), 0);
+  const weightedScore = factors.reduce((sum, factor) => sum + factor.score * factor.weight, 0);
   const overallScore = Math.round(weightedScore / totalWeight);
 
   // Determine trend (simplified - could be enhanced with historical _data)
-  let trend: HealthMetrics['trend'] = "stable";
-  if (overallScore >= 80) trend = "improving";
-  else if (overallScore < 60) trend = "declining";
+  let trend: HealthMetrics['trend'] = 'stable';
+  if (overallScore >= 80) trend = 'improving';
+  else if (overallScore < 60) trend = 'declining';
 
   return {
     score: overallScore,
     trend,
     lastChecked: now,
     factors,
-    recommendations: recommendations.slice(0, 3) // Limit to top 3 recommendations
+    recommendations: recommendations.slice(0, 3), // Limit to top 3 recommendations
   };
 }
 
-export function RepositoryHealthOverall({
-  stats,
-  timeRange,
-}: RepositoryHealthOverallProps) {
+export function RepositoryHealthOverall({ stats, timeRange }: RepositoryHealthOverallProps) {
   const health = useMemo(() => {
     if (stats.loading || stats._error || stats.pullRequests.length === 0) {
       return null;
@@ -206,21 +202,21 @@ export function RepositoryHealthOverall({
 
   const loading = stats.loading;
 
-  const getTrendIcon = (trend: HealthMetrics["trend"]) => {
+  const getTrendIcon = (trend: HealthMetrics['trend']) => {
     switch (trend) {
-      case "improving":
+      case 'improving':
         return <TrendingUp className="h-4 w-4 text-green-500" />;
-      case "declining":
+      case 'declining':
         return <TrendingDown className="h-4 w-4 text-red-500" />;
-      case "stable":
+      case 'stable':
         return <Minus className="h-4 w-4 text-yellow-500" />;
     }
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-500";
-    if (score >= 60) return "text-yellow-500";
-    return "text-red-500";
+    if (score >= 80) return 'text-green-500';
+    if (score >= 60) return 'text-yellow-500';
+    return 'text-red-500';
   };
 
   if (loading) {
@@ -244,17 +240,13 @@ export function RepositoryHealthOverall({
         <h4 className="text-sm font-medium">Overall Health</h4>
         <div className="flex items-center gap-2">
           {getTrendIcon(health.trend)}
-          <span className="text-xs text-muted-foreground capitalize">
-            {health.trend}
-          </span>
+          <span className="text-xs text-muted-foreground capitalize">{health.trend}</span>
         </div>
       </div>
 
       <div className="space-y-3">
         <div className="flex items-end gap-2">
-          <span
-            className={cn("text-4xl font-bold", getScoreColor(health.score))}
-          >
+          <span className={cn('text-4xl font-bold', getScoreColor(health.score))}>
             {health.score}
           </span>
           <span className="text-lg text-muted-foreground mb-1">/100</span>

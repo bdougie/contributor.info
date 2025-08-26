@@ -1,13 +1,13 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect } from 'react';
 import { SearchIcon, Star, Clock, GitBranch, Loader2 } from '@/components/ui/icon';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import { useGitHubSearch } from "@/hooks/use-github-search";
-import { OrganizationAvatar } from "@/components/ui/organization-avatar";
-import { useTimeFormatter } from "@/hooks/use-time-formatter";
-import { Skeleton } from "@/components/ui/skeleton";
-import type { GitHubRepository } from "@/lib/github";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import { useGitHubSearch } from '@/hooks/use-github-search';
+import { OrganizationAvatar } from '@/components/ui/organization-avatar';
+import { useTimeFormatter } from '@/hooks/use-time-formatter';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { GitHubRepository } from '@/lib/github';
 
 interface GitHubSearchInputProps {
   placeholder?: string;
@@ -44,13 +44,13 @@ const languageColors: Record<string, string> = {
 };
 
 export function GitHubSearchInput({
-  placeholder = "Search repositories (e.g., facebook/react)",
-  value = "",
+  placeholder = 'Search repositories (e.g., facebook/react)',
+  value = '',
   onSearch,
   onSelect,
   className,
   showButton = true,
-  buttonText = "Search",
+  buttonText = 'Search',
 }: GitHubSearchInputProps) {
   const [inputValue, setInputValue] = useState(value);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -90,14 +90,14 @@ export function GitHubSearchInput({
       handleSelectRepository(selected);
     } else {
       onSearch(inputValue);
-      setInputValue(""); // Clear the input after search
+      setInputValue(''); // Clear the input after search
       setShowDropdown(false);
     }
   };
 
   // Handle repository selection
   const handleSelectRepository = (repository: GitHubRepository) => {
-    setInputValue(""); // Clear the input when selecting a repository
+    setInputValue(''); // Clear the input when selecting a repository
     setShowDropdown(false);
     setSelectedIndex(-1);
 
@@ -113,19 +113,17 @@ export function GitHubSearchInput({
     if (!showDropdown || results.length === 0) return;
 
     switch (e.key) {
-      case "ArrowDown":
+      case 'ArrowDown':
         e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev < results.length - 1 ? prev + 1 : prev
-        );
+        setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : prev));
         break;
 
-      case "ArrowUp":
+      case 'ArrowUp':
         e.preventDefault();
         setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
         break;
 
-      case "Enter":
+      case 'Enter':
         e.preventDefault();
         if (selectedIndex >= 0 && results[selectedIndex]) {
           handleSelectRepository(results[selectedIndex]);
@@ -134,7 +132,7 @@ export function GitHubSearchInput({
         }
         break;
 
-      case "Escape":
+      case 'Escape':
         setShowDropdown(false);
         setSelectedIndex(-1);
         inputRef.current?.blur();
@@ -155,12 +153,12 @@ export function GitHubSearchInput({
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn('relative', className)}>
       <form onSubmit={handleSubmit} className="flex gap-4">
         <div className="flex-1 relative">
           <Input
@@ -189,8 +187,8 @@ export function GitHubSearchInput({
                 <div className="p-2">
                   {/* Skeleton loaders for search results */}
                   {[...Array(3)].map((_, index) => (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className="p-2 animate-in fade-in-0 duration-500"
                       style={{ animationDelay: `${index * 100}ms` }}
                     >
@@ -221,8 +219,8 @@ export function GitHubSearchInput({
                     type="button"
                     onClick={() => handleSelectRepository(repo)}
                     className={cn(
-                      "w-full px-4 py-3 text-left hover:bg-accent focus:bg-accent focus:outline-none transition-colors animate-in fade-in-0 slide-in-from-top-1 duration-300",
-                      selectedIndex === index && "bg-accent"
+                      'w-full px-4 py-3 text-left hover:bg-accent focus:bg-accent focus:outline-none transition-colors animate-in fade-in-0 slide-in-from-top-1 duration-300',
+                      selectedIndex === index && 'bg-accent',
                     )}
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
@@ -235,14 +233,14 @@ export function GitHubSearchInput({
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm truncate">
-                            {repo.full_name}
-                          </span>
+                          <span className="font-medium text-sm truncate">{repo.full_name}</span>
                           {repo.language && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-muted">
-                              <span 
-                                className="w-2 h-2 rounded-full" 
-                                style={{ backgroundColor: languageColors[repo.language] || '#959da5' }}
+                              <span
+                                className="w-2 h-2 rounded-full"
+                                style={{
+                                  backgroundColor: languageColors[repo.language] || '#959da5',
+                                }}
                               />
                               <span>{repo.language}</span>
                             </span>
@@ -256,9 +254,7 @@ export function GitHubSearchInput({
                         <div className="flex items-center space-x-4 mt-1 text-xs text-muted-foreground">
                           <span className="flex items-center space-x-1">
                             <Star className="w-3 h-3" />
-                            <span>
-                              {repo.stargazers_count.toLocaleString()}
-                            </span>
+                            <span>{repo.stargazers_count.toLocaleString()}</span>
                           </span>
                           <span className="flex items-center space-x-1">
                             <GitBranch className="w-3 h-3" />

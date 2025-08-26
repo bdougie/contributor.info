@@ -10,11 +10,11 @@
  */
 export function optimizeGitHubAvatar(avatarUrl: string, size: number): string {
   if (!avatarUrl) return '';
-  
+
   // Check if URL already has parameters
   const hasParams = avatarUrl.includes('?');
   const separator = hasParams ? '&' : '?';
-  
+
   return `${avatarUrl}${separator}s=${size}`;
 }
 
@@ -31,7 +31,7 @@ export function getOptimalAvatarSize(displaySize: string): number {
     'h-12 w-12': 96,
     'h-16 w-16': 128,
   };
-  
+
   return sizeMap[displaySize] || 80; // Default to 80px
 }
 
@@ -43,7 +43,7 @@ export function getOptimalAvatarSize(displaySize: string): number {
  */
 export function getImageLoadingStrategy(
   isAboveFold: boolean = false,
-  priority: boolean = false
+  priority: boolean = false,
 ): 'eager' | 'lazy' {
   return isAboveFold || priority ? 'eager' : 'lazy';
 }
@@ -55,17 +55,13 @@ export function getImageLoadingStrategy(
  * @param className - CSS classes
  * @returns Picture element JSX
  */
-export function createOptimizedImage(
-  imagePath: string,
-  alt: string,
-  className?: string
-) {
+export function createOptimizedImage(imagePath: string, alt: string, className?: string) {
   const webpPath = imagePath.replace(/\.(png|jpg|jpeg)$/, '.webp');
-  
+
   return {
     webpSrc: webpPath,
     fallbackSrc: imagePath,
     alt,
-    className
+    className,
   };
 }

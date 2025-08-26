@@ -9,7 +9,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A card component for displaying trending repository information with metric changes and trending indicators.',
+        component:
+          'A card component for displaying trending repository information with metric changes and trending indicators.',
       },
     },
   },
@@ -34,7 +35,8 @@ const mockTrendingRepo: TrendingRepositoryData = {
   id: 'repo-1',
   owner: 'continuedev',
   name: 'continue',
-  description: 'The open-source autopilot for software development—bring the power of ChatGPT to VS Code',
+  description:
+    'The open-source autopilot for software development—bring the power of ChatGPT to VS Code',
   language: 'TypeScript',
   stars: 15240,
   trending_score: 87.5,
@@ -168,7 +170,8 @@ export const LongDescription: Story = {
     repository: {
       ...mockTrendingRepo,
       name: 'very-long-repository-name-that-should-truncate',
-      description: 'This is a very long description that should demonstrate how the component handles text overflow and line clamping behavior in the card layout. It contains multiple sentences to test the line-clamp-2 functionality.',
+      description:
+        'This is a very long description that should demonstrate how the component handles text overflow and line clamping behavior in the card layout. It contains multiple sentences to test the line-clamp-2 functionality.',
     },
     showDataFreshness: true,
     compact: false,

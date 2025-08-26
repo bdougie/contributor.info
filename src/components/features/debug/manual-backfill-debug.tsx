@@ -23,11 +23,7 @@ export function ManualBackfillDebug() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-3xl mx-auto">
-        <Button
-          variant="ghost"
-          className="mb-4"
-          onClick={() => navigate('/dev')}
-        >
+        <Button variant="ghost" className="mb-4" onClick={() => navigate('/dev')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Debug Menu
         </Button>
@@ -36,15 +32,16 @@ export function ManualBackfillDebug() {
           <CardHeader>
             <CardTitle>Manual Backfill Debug</CardTitle>
             <CardDescription>
-              Test the manual backfill functionality for GitHub repositories.
-              This tool allows you to trigger a data backfill for any repository.
+              Test the manual backfill functionality for GitHub repositories. This tool allows you
+              to trigger a data backfill for any repository.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Alert>
               <AlertDescription>
-                <strong>Note:</strong> This feature requires the gh-datapipe API to be deployed and configured.
-                Make sure GH_DATPIPE_KEY and GH_DATPIPE_API_URL are set in your environment variables.
+                <strong>Note:</strong> This feature requires the gh-datapipe API to be deployed and
+                configured. Make sure GH_DATPIPE_KEY and GH_DATPIPE_API_URL are set in your
+                environment variables.
               </AlertDescription>
             </Alert>
 
@@ -63,7 +60,7 @@ export function ManualBackfillDebug() {
                   Enter the repository in the format: owner/name
                 </p>
               </div>
-              
+
               <Button type="submit" disabled={!repository}>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Test Backfill
@@ -72,7 +69,7 @@ export function ManualBackfillDebug() {
 
             {showBackfill && repository && (
               <div className="mt-6 pt-6 border-t">
-                <ManualBackfill 
+                <ManualBackfill
                   repository={repository}
                   onComplete={() => {
                     console.log('Backfill completed for %s', repository);

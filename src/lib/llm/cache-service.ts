@@ -37,7 +37,7 @@ class CacheService {
   private config: CacheConfig;
   private stats = {
     hits: 0,
-    misses: 0
+    misses: 0,
   };
 
   constructor(config: Partial<CacheConfig> = {}) {
@@ -46,7 +46,7 @@ class CacheService {
       enablePersistentCache: true,
       defaultExpiryMinutes: 60,
       maxCacheSize: 100,
-      ...config
+      ...config,
     };
 
     // Clean up expired entries on initialization
@@ -100,7 +100,7 @@ class CacheService {
       expiresAt,
       dataHash,
       accessCount: 1,
-      lastAccessed: now
+      lastAccessed: now,
     };
 
     // Store in memory cache
@@ -152,14 +152,14 @@ class CacheService {
   getStats(): CacheStats {
     const memoryEntries = Array.from(this.memoryCache.values());
     const persistentKeys = this.getPersistentKeys();
-    
+
     let oldestEntry: Date | undefined;
     let newestEntry: Date | undefined;
 
     if (memoryEntries.length > 0) {
-      const dates = memoryEntries.map(e => e.createdAt);
-      oldestEntry = new Date(Math.min(...dates.map(d => d.getTime())));
-      newestEntry = new Date(Math.max(...dates.map(d => d.getTime())));
+      const dates = memoryEntries.map((e) => e.createdAt);
+      oldestEntry = new Date(Math.min(...dates.map((d) => d.getTime())));
+      newestEntry = new Date(Math.max(...dates.map((d) => d.getTime())));
     }
 
     const totalRequests = this.stats.hits + this.stats.misses;
@@ -172,7 +172,7 @@ class CacheService {
       totalMisses: this.stats.misses,
       hitRate,
       oldestEntry,
-      newestEntry
+      newestEntry,
     };
   }
 
@@ -234,7 +234,7 @@ class CacheService {
     }
 
     // Adjust based on confidence (higher confidence = longer cache)
-    const confidenceMultiplier = 0.5 + (insight.confidence * 0.5);
+    const confidenceMultiplier = 0.5 + insight.confidence * 0.5;
     baseMinutes *= confidenceMultiplier;
 
     return Math.round(baseMinutes);
@@ -273,7 +273,7 @@ class CacheService {
         ...parsed,
         createdAt: new Date(parsed.createdAt),
         expiresAt: new Date(parsed.expiresAt),
-        lastAccessed: new Date(parsed.lastAccessed)
+        lastAccessed: new Date(parsed.lastAccessed),
       };
     } catch (_error) {
       console.warn('Failed to parse cached entry:', _error);
@@ -319,7 +319,7 @@ class CacheService {
    */
   private invalidatePersistentByPrefix(prefix: string): void {
     const keysToRemove: string[] = [];
-    
+
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith('llm_cache_') && key.includes(prefix)) {
@@ -327,7 +327,7 @@ class CacheService {
       }
     }
 
-    keysToRemove.forEach(key => localStorage.removeItem(key));
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
   }
 
   /**
@@ -335,7 +335,7 @@ class CacheService {
    */
   private clearPersistentCache(): void {
     const keysToRemove = this.getPersistentKeys();
-    keysToRemove.forEach(key => localStorage.removeItem(key));
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
   }
 
   /**
@@ -360,7 +360,7 @@ class CacheService {
       }
     }
 
-    keysToRemove.forEach(key => localStorage.removeItem(key));
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
   }
 }
 

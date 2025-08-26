@@ -1,24 +1,24 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ContributorCardSkeleton } from "../components/contributor-card-skeleton";
-import { cn } from "@/lib/utils";
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ContributorCardSkeleton } from '../components/contributor-card-skeleton';
+import { cn } from '@/lib/utils';
 
 interface ContributorOfMonthSkeletonProps {
   className?: string;
-  phase?: "winner" | "leaderboard";
+  phase?: 'winner' | 'leaderboard';
   contributorCount?: number;
 }
 
-export function ContributorOfMonthSkeleton({ 
+export function ContributorOfMonthSkeleton({
   className,
-  phase = "leaderboard",
-  contributorCount = 5
+  phase = 'leaderboard',
+  contributorCount = 5,
 }: ContributorOfMonthSkeletonProps) {
-  const isWinnerPhase = phase === "winner";
+  const isWinnerPhase = phase === 'winner';
   const showContributors = Math.min(contributorCount, 5);
 
   return (
-    <Card className={cn("w-full animate-pulse", className)} role="region">
+    <Card className={cn('w-full animate-pulse', className)} role="region">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="space-y-2">
@@ -32,11 +32,9 @@ export function ContributorOfMonthSkeleton({
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {isWinnerPhase
-? (
+        {isWinnerPhase ? (
           <WinnerPhaseSkeleton showContributors={showContributors} />
-        )
-: (
+        ) : (
           <LeaderboardPhaseSkeleton showContributors={showContributors} />
         )}
       </CardContent>
@@ -54,10 +52,7 @@ function WinnerPhaseSkeleton({ showContributors }: { showContributors: number })
           <Skeleton className="h-6 w-48" />
         </div>
         <div className="max-w-sm mx-auto">
-          <ContributorCardSkeleton
-            isWinner={true}
-            showRank={false}
-          />
+          <ContributorCardSkeleton isWinner={true} showRank={false} />
         </div>
       </div>
 
@@ -70,10 +65,7 @@ function WinnerPhaseSkeleton({ showContributors }: { showContributors: number })
           </div>
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: showContributors - 1 }).map((_, i) => (
-              <ContributorCardSkeleton
-                key={i}
-                showRank={true}
-              />
+              <ContributorCardSkeleton key={i} showRank={true} />
             ))}
           </div>
         </div>
@@ -94,10 +86,7 @@ function LeaderboardPhaseSkeleton({ showContributors }: { showContributors: numb
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: showContributors }).map((_, i) => (
-          <ContributorCardSkeleton
-            key={i}
-            showRank={true}
-          />
+          <ContributorCardSkeleton key={i} showRank={true} />
         ))}
       </div>
 

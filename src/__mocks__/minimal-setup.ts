@@ -13,7 +13,7 @@ global.fetch = vi.fn(() =>
     status: 200,
     json: () => Promise.resolve({}),
     text: () => Promise.resolve(''),
-  } as Response)
+  } as Response),
 );
 
 // Mock IntersectionObserver
@@ -64,7 +64,8 @@ vi.mock('@/lib/supabase', () => {
       limit: vi.fn(() => queryBuilder),
       single: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
       maybeSingle: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
-      then: (resolve: (value: { _data: unknown[]; _error: null }) => void) => resolve({ _data: [], _error: null }),
+      then: (resolve: (value: { _data: unknown[]; _error: null }) => void) =>
+        resolve({ _data: [], _error: null }),
     };
     return queryBuilder;
   };

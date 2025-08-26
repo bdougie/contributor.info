@@ -42,13 +42,13 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // Interactive wrapper component
-const InteractiveWrapper = ({ 
-  tier = 'free', 
+const InteractiveWrapper = ({
+  tier = 'free',
   variant = 'select' as const,
-  initialValue = '30d' as const 
+  initialValue = '30d' as const,
 }) => {
   const [value, setValue] = useState(initialValue);
-  
+
   return (
     <TimeRangeSelector
       value={value}
@@ -130,7 +130,7 @@ export const QuickSelect: Story = {
   render: () => {
     const QuickSelectWrapper = () => {
       const [value, setValue] = useState<'7d' | '30d' | '90d'>('30d');
-      
+
       return (
         <TimeRangeQuickSelect
           value={value}
@@ -140,7 +140,7 @@ export const QuickSelect: Story = {
         />
       );
     };
-    
+
     return <QuickSelectWrapper />;
   },
   parameters: {
@@ -165,7 +165,7 @@ export const CustomRanges: Story = {
   render: () => {
     const CustomWrapper = () => {
       const [value, setValue] = useState<'7d' | '30d'>('7d');
-      
+
       return (
         <TimeRangeSelector
           value={value}
@@ -176,7 +176,7 @@ export const CustomRanges: Story = {
         />
       );
     };
-    
+
     return <CustomWrapper />;
   },
   parameters: {
@@ -195,12 +195,12 @@ export const ComparisonDemo: Story = {
         <h3 className="text-sm font-semibold mb-2 text-muted-foreground">Free Tier</h3>
         <InteractiveWrapper tier="free" variant="buttons" />
       </div>
-      
+
       <div>
         <h3 className="text-sm font-semibold mb-2 text-muted-foreground">Pro Tier</h3>
         <InteractiveWrapper tier="pro" variant="buttons" initialValue="90d" />
       </div>
-      
+
       <div>
         <h3 className="text-sm font-semibold mb-2 text-muted-foreground">Enterprise Tier</h3>
         <InteractiveWrapper tier="enterprise" variant="buttons" initialValue="1y" />
@@ -221,7 +221,7 @@ export const IntegratedExample: Story = {
     const IntegratedWrapper = () => {
       const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y' | 'all'>('30d');
       const [tier] = useState<'free' | 'pro' | 'enterprise'>('free');
-      
+
       return (
         <div className="p-4 border rounded-lg space-y-4">
           <div className="flex items-center justify-between">
@@ -234,13 +234,15 @@ export const IntegratedExample: Story = {
                 toast.info(
                   <div>
                     <p className="font-semibold">Unlock more insights!</p>
-                    <p className="text-sm">Upgrade to Pro to access historical data and advanced analytics.</p>
-                  </div>
+                    <p className="text-sm">
+                      Upgrade to Pro to access historical data and advanced analytics.
+                    </p>
+                  </div>,
                 );
               }}
             />
           </div>
-          
+
           <div className="bg-muted/50 rounded p-4">
             <p className="text-sm text-muted-foreground">
               Showing data for: <span className="font-semibold">{timeRange}</span>
@@ -252,7 +254,7 @@ export const IntegratedExample: Story = {
         </div>
       );
     };
-    
+
     return <IntegratedWrapper />;
   },
   parameters: {

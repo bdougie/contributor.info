@@ -1,19 +1,19 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { PrCountCard } from "./pr-count-card";
+import type { Meta, StoryObj } from '@storybook/react';
+import { PrCountCard } from './pr-count-card';
 
 const meta = {
-  title: "Features/Activity/PrCountCard",
+  title: 'Features/Activity/PrCountCard',
   component: PrCountCard,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
         component:
-          "A card component that displays the count of open pull requests versus total pull requests.",
+          'A card component that displays the count of open pull requests versus total pull requests.',
       },
     },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   decorators: [
     (Story) => (
       <div className="w-[200px] p-4">
@@ -23,16 +23,16 @@ const meta = {
   ],
   argTypes: {
     openPRs: {
-      control: "number",
-      description: "Number of open pull requests",
+      control: 'number',
+      description: 'Number of open pull requests',
     },
     totalPRs: {
-      control: "number",
-      description: "Total number of pull requests",
+      control: 'number',
+      description: 'Total number of pull requests',
     },
     loading: {
-      control: "boolean",
-      description: "Whether the card is in a loading state",
+      control: 'boolean',
+      description: 'Whether the card is in a loading state',
     },
   },
 } satisfies Meta<typeof PrCountCard>;

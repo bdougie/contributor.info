@@ -53,16 +53,16 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
     if (isFetchingRef.current) {
       return;
     }
-    
+
     // Cancel any existing requests
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
+
     // Create new AbortController for this request
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
-    
+
     isFetchingRef.current = true;
     try {
       setLoading(true);
@@ -70,29 +70,31 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
 
       // Check if user is authenticated - with AbortController timeout
       let user = null;
-      
+
       // Add timeout using AbortSignal
       const authTimeoutId = setTimeout(() => {
         abortControllerRef.current?.abort();
       }, 2000);
-      
+
       try {
         console.log('[Workspace] Checking auth status...');
-        
+
         // Check if aborted
         if (signal.aborted) {
           throw new Error('Request aborted');
         }
-        
+
         const authResult = await supabase.auth.getUser();
         clearTimeout(authTimeoutId);
-        
-        const { data: authData, error: _error: authError } = authResult;
-        
+
+        const { data: authData, error: authError } = authResult;
+
         // If auth error, try to get session as fallback
         if (authError) {
           console.log('[Workspace] Auth _error, checking session:', authError.message);
-          const { data: { session } } = await supabase.auth.getSession();
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
           if (!session) {
             console.log('[Workspace] No session found, user is not authenticated');
             setWorkspaces([]);
@@ -106,14 +108,16 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         }
       } catch (timeoutError) {
         clearTimeout(authTimeoutId);
-        
+
         if (signal.aborted) {
           console.warn('[Workspace] Auth check aborted or timed out, using session fallback');
         }
-        
+
         // Try to get session directly as fallback
         try {
-          const { data: { session } } = await supabase.auth.getSession();
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
           if (session?.user) {
             user = session.user;
           } else {
@@ -132,7 +136,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
           return;
         }
       }
-      
+
       if (!user) {
         console.log('[Workspace] No user found after auth check');
         setWorkspaces([]);
@@ -140,7 +144,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         hasInitialLoadRef.current = true;
         return;
       }
-      
+
       console.log('[Workspace] User authenticated, fetching workspaces...');
 
       // Fetch workspaces where user is owner or member
@@ -152,24 +156,24 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         .eq('is_active', true);
 
       // Then get workspace IDs where user is a member
-      const { data: memberData, error: _error: memberError } = await supabase
+      const { data: memberData, error: memberError } = await supabase
         .from('workspace_members')
         .select('workspace_id, role')
         .eq('user_id', user.id);
-      
+
       if (memberError && !ownedWorkspaces) {
         throw new Error(`Failed to fetch workspace memberships: ${memberError.message}`);
       }
-      
+
       // Combine owned and member workspace IDs
       const workspaceIds = new Set<string>();
       if (ownedWorkspaces) {
-        ownedWorkspaces.forEach(w => workspaceIds.add(w.id));
+        ownedWorkspaces.forEach((w) => workspaceIds.add(w.id));
       }
       if (memberData) {
-        memberData.forEach(m => workspaceIds.add(m.workspace_id));
+        memberData.forEach((m) => workspaceIds.add(m.workspace_id));
       }
-      
+
       if (workspaceIds.size === 0) {
         console.log('[Workspace] User has no workspaces');
         setWorkspaces([]);
@@ -177,22 +181,24 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         hasInitialLoadRef.current = true;
         return;
       }
-      
+
       console.log('[Workspace] Found %d workspace(s) for user', workspaceIds.size);
-      
+
       const workspaceIdsArray = Array.from(workspaceIds);
-      
+
       // Now fetch the workspace details
-      const { data: workspaceData, error: _error: workspaceError } = await supabase
+      const { data: workspaceData, error: workspaceError } = await supabase
         .from('workspaces')
-        .select(`
+        .select(
+          `
           id,
           name,
           slug,
           description,
           owner_id,
           created_at
-        `)
+        `,
+        )
         .in('id', workspaceIdsArray)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
@@ -201,7 +207,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       if (workspaceError) {
         throw new Error(`Failed to fetch workspaces: ${workspaceError.message}`);
       }
-      
+
       if (!workspaceData || workspaceData.length === 0) {
         setWorkspaces([]);
         return;
@@ -214,7 +220,8 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
           const [repositoriesResult, repoCountResult, membersResult] = await Promise.all([
             supabase
               .from('workspace_repositories')
-              .select(`
+              .select(
+                `
                 id,
                 is_pinned,
                 repositories!inner(
@@ -228,32 +235,38 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
                   pull_request_count,
                   open_issues_count
                 )
-              `)
+              `,
+              )
               .eq('workspace_id', workspace.id)
               .order('is_pinned', { ascending: false })
-              .limit(10)  // Fetch more to sort client-side
+              .limit(10) // Fetch more to sort client-side
               .returns<RepositoryWithWorkspace[]>(),
-            
+
             // Get actual total count of repositories (not just the displayed 3)
             supabase
               .from('workspace_repositories')
               .select('id', { count: 'exact', head: true })
               .eq('workspace_id', workspace.id),
-            
-            supabase
-              .from('workspace_members')
-              .select('id')
-              .eq('workspace_id', workspace.id)
+
+            supabase.from('workspace_members').select('id').eq('workspace_id', workspace.id),
           ]);
 
           // Check for errors in individual queries and fail fast for critical data
           if (repositoriesResult._error) {
-            console.error(`Failed to fetch repositories for workspace ${workspace.id}:`, repositoriesResult._error.message);
+            console.error(
+              `Failed to fetch repositories for workspace ${workspace.id}:`,
+              repositoriesResult._error.message,
+            );
             // For critical data failures, throw to trigger error state
-            throw new Error(`Unable to load workspace repositories: ${repositoriesResult._error.message}`);
+            throw new Error(
+              `Unable to load workspace repositories: ${repositoriesResult._error.message}`,
+            );
           }
           if (membersResult._error) {
-            console.warn(`Failed to fetch members for workspace ${workspace.id}:`, membersResult._error.message);
+            console.warn(
+              `Failed to fetch members for workspace ${workspace.id}:`,
+              membersResult._error.message,
+            );
             // Members count is less critical, can continue with fallback
           }
 
@@ -269,30 +282,29 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
             return dateB - dateA;
           });
 
-          const repositories = sortedRepositories?.slice(0, 3).map(item => {
-            // Calculate activity score: weight issues 2x higher than PRs
-            const issueScore = (item.repositories.open_issues_count || 0) * 2;
-            const prScore = item.repositories.pull_request_count || 0;
-            const activityScore = issueScore + prScore;
-            
-            return {
-              id: item.repositories.id,
-              full_name: item.repositories.full_name,
-              name: item.repositories.name,
-              owner: item.repositories.owner,
-              description: item.repositories.description,
-              language: item.repositories.language,
-              activity_score: activityScore,
-              last_activity: item.repositories.github_pushed_at || new Date().toISOString(),
-              avatar_url: getRepoOwnerAvatarUrl(item.repositories.owner),
-              html_url: `https://github.com/${item.repositories.full_name}`,
-            };
-          }) || [];
+          const repositories =
+            sortedRepositories?.slice(0, 3).map((item) => {
+              // Calculate activity score: weight issues 2x higher than PRs
+              const issueScore = (item.repositories.open_issues_count || 0) * 2;
+              const prScore = item.repositories.pull_request_count || 0;
+              const activityScore = issueScore + prScore;
+
+              return {
+                id: item.repositories.id,
+                full_name: item.repositories.full_name,
+                name: item.repositories.name,
+                owner: item.repositories.owner,
+                description: item.repositories.description,
+                language: item.repositories.language,
+                activity_score: activityScore,
+                last_activity: item.repositories.github_pushed_at || new Date().toISOString(),
+                avatar_url: getRepoOwnerAvatarUrl(item.repositories.owner),
+                html_url: `https://github.com/${item.repositories.full_name}`,
+              };
+            }) || [];
 
           // Use current user's metadata if they're the owner
-          const ownerMetadata = workspace.owner_id === user.id 
-            ? user.user_metadata 
-            : null;
+          const ownerMetadata = workspace.owner_id === user.id ? user.user_metadata : null;
 
           return {
             id: workspace.id,
@@ -309,7 +321,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
             repositories,
             created_at: workspace.created_at,
           } as WorkspacePreviewData;
-        })
+        }),
       );
 
       console.log('[Workspace] Successfully loaded %d workspace(s)', enrichedWorkspaces.length);
@@ -330,10 +342,10 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
   useEffect(() => {
     let mounted = true;
     let loadingTimeout: NodeJS.Timeout;
-    
+
     const initFetch = async () => {
       if (!mounted) return;
-      
+
       // Add a shorter timeout to prevent infinite loading state
       loadingTimeout = setTimeout(() => {
         if (loading && mounted && !hasInitialLoadRef.current) {
@@ -347,7 +359,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       await fetchUserWorkspaces();
       clearTimeout(loadingTimeout);
     };
-    
+
     initFetch();
 
     // Listen for auth state changes

@@ -8,7 +8,8 @@ const meta: Meta<typeof RepositorySummaryCard> = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'AI-powered repository summary card that displays intelligent insights about repository activity and focus areas.',
+        component:
+          'AI-powered repository summary card that displays intelligent insights about repository activity and focus areas.',
       },
     },
   },
@@ -19,7 +20,7 @@ const meta: Meta<typeof RepositorySummaryCard> = {
       description: 'Repository owner',
     },
     repo: {
-      control: 'text', 
+      control: 'text',
       description: 'Repository name',
     },
   },
@@ -37,7 +38,8 @@ const mockUseRepositorySummary = {
     refetch: () => {},
   },
   withSummary: {
-    summary: 'React is a JavaScript library for building user interfaces, maintained by Meta and the React community. Recent development has focused on performance improvements through concurrent features and the new React Server Components architecture. Current open pull requests indicate ongoing work on accessibility enhancements, testing infrastructure, and developer experience improvements.',
+    summary:
+      'React is a JavaScript library for building user interfaces, maintained by Meta and the React community. Recent development has focused on performance improvements through concurrent features and the new React Server Components architecture. Current open pull requests indicate ongoing work on accessibility enhancements, testing infrastructure, and developer experience improvements.',
     loading: false,
     error: null,
     refetch: () => {},
@@ -79,7 +81,8 @@ export const WithSummary: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Displays a generated AI summary with repository insights and recent activity analysis.',
+        story:
+          'Displays a generated AI summary with repository insights and recent activity analysis.',
       },
     },
     mockData: mockUseRepositorySummary.withSummary,

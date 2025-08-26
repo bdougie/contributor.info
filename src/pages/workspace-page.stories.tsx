@@ -4,15 +4,15 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  GitPullRequest, 
-  AlertCircle, 
-  Plus, 
-  TrendingUp, 
-  TrendingDown, 
+import {
+  GitPullRequest,
+  AlertCircle,
+  Plus,
+  TrendingUp,
+  TrendingDown,
   Search,
   Menu,
-  Package
+  Package,
 } from '@/components/ui/icon';
 import {
   useReactTable,
@@ -99,10 +99,10 @@ const mockContributors: Contributor[] = [
 ];
 
 // Component wrapper for the Contributors table view
-function ContributorsTableView({ 
+function ContributorsTableView({
   contributors = mockContributors,
-  viewMode: initialViewMode = 'list'
-}: { 
+  viewMode: initialViewMode = 'list',
+}: {
   contributors?: Contributor[];
   viewMode?: 'grid' | 'list';
 }) {
@@ -161,19 +161,19 @@ function ContributorsTableView({
         const contributions = row.original.contributions;
         const trend = stats.contribution_trend;
         const getTrendColor = () => {
-          if (trend > 0) return "text-green-600";
-          if (trend < 0) return "text-red-600";
-          return "text-muted-foreground";
+          if (trend > 0) return 'text-green-600';
+          if (trend < 0) return 'text-red-600';
+          return 'text-muted-foreground';
         };
         const trendColor = getTrendColor();
         const TrendIcon = trend > 0 ? TrendingUp : TrendingDown;
-        
+
         const repoCount = row.original.stats.repositories_contributed;
         const repoOwners: string[] = [];
         const maxDisplay = 4;
         const displayOwners = repoOwners.slice(0, maxDisplay);
         const remainingCount = Math.max(0, repoCount - maxDisplay);
-        
+
         return (
           <div className="flex items-center justify-end gap-6 text-sm">
             <div className="flex items-center gap-4">
@@ -186,8 +186,7 @@ function ContributorsTableView({
                 <span className="font-medium">{contributions.issues}</span>
               </div>
             </div>
-            {displayOwners.length > 0
-? (
+            {displayOwners.length > 0 ? (
               <div className="flex items-center gap-1.5">
                 <div className="flex -space-x-1.5">
                   {displayOwners.map((owner, i) => (
@@ -201,13 +200,10 @@ function ContributorsTableView({
                   ))}
                 </div>
                 {remainingCount > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    +{remainingCount}
-                  </span>
+                  <span className="text-xs text-muted-foreground">+{remainingCount}</span>
                 )}
               </div>
-            )
-: (
+            ) : (
               <div className="text-xs text-muted-foreground">
                 {repoCount} {repoCount === 1 ? 'repo' : 'repos'}
               </div>
@@ -229,7 +225,7 @@ function ContributorsTableView({
         const isTracked = row.original.is_tracked;
         return (
           <Button
-            variant={isTracked ? "outline" : "default"}
+            variant={isTracked ? 'outline' : 'default'}
             size="sm"
             onClick={() => console.log('Toggle tracking for', row.original.username)}
           >
@@ -318,10 +314,7 @@ function ContributorsTableView({
                     >
                       {header.isPlaceholder
                         ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                        : flexRender(header.column.columnDef.header, header.getContext())}
                     </th>
                   ))}
                 </tr>
@@ -329,22 +322,16 @@ function ContributorsTableView({
             </thead>
             <tbody>
               {table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="border-b hover:bg-muted/50 transition-colors"
-                >
+                <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
                   {row.getVisibleCells().map((cell) => (
-                    <td 
-                      key={cell.id} 
+                    <td
+                      key={cell.id}
                       className="px-4 py-3"
                       style={{
                         width: cell.column.columnDef.size,
                       }}
                     >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
                 </tr>
@@ -356,12 +343,9 @@ function ContributorsTableView({
         {/* Pagination */}
         <div className="flex items-center justify-between p-4">
           <div className="text-sm text-muted-foreground">
-            Showing {table.getState().pagination.pageIndex * 10 + 1} to{" "}
-            {Math.min(
-              (table.getState().pagination.pageIndex + 1) * 10,
-              contributors.length
-            )}{" "}
-            of {contributors.length} contributors
+            Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
+            {Math.min((table.getState().pagination.pageIndex + 1) * 10, contributors.length)} of{' '}
+            {contributors.length} contributors
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -394,7 +378,8 @@ const meta: Meta<typeof ContributorsTableView> = {
     layout: 'padded',
     docs: {
       description: {
-        component: 'The contributors table view from the workspace page, showing contributor activity and tracking status.',
+        component:
+          'The contributors table view from the workspace page, showing contributor activity and tracking status.',
       },
     },
   },
@@ -467,7 +452,7 @@ export const MixedTrackingStatus: Story = {
 
 export const WithHighActivity: Story = {
   args: {
-    contributors: mockContributors.map(c => ({
+    contributors: mockContributors.map((c) => ({
       ...c,
       contributions: {
         commits: Math.floor(Math.random() * 1000) + 500,

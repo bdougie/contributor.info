@@ -62,7 +62,7 @@ export function getWorkspaceUrl(workspace: { id: string; slug?: string; name?: s
  * @returns Workspace with slug guaranteed
  */
 export function ensureWorkspaceSlug<T extends { id: string; name?: string; slug?: string }>(
-  workspace: T
+  workspace: T,
 ): T & { slug: string } {
   return {
     ...workspace,

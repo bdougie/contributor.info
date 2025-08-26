@@ -1,14 +1,18 @@
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from '@storybook/react';
 // import { ContributorCardWithRole } from './contributor-card-with-role' // Not used directly in stories
-import { RepoStatsContext } from '@/lib/repo-stats-context'
-import { MonthlyContributor } from '@/lib/types'
+import { RepoStatsContext } from '@/lib/repo-stats-context';
+import { MonthlyContributor } from '@/lib/types';
 
 // Mock data for the context
 const mockStats = {
   pullRequests: [
     {
       id: 1,
-      user: { id: 1, login: 'alice-maintainer', avatar_url: 'https://github.com/alice-maintainer.png' },
+      user: {
+        id: 1,
+        login: 'alice-maintainer',
+        avatar_url: 'https://github.com/alice-maintainer.png',
+      },
       title: 'Add new feature',
       created_at: '2024-01-15T10:00:00Z',
       updated_at: '2024-01-15T11:00:00Z',
@@ -28,12 +32,12 @@ const mockStats = {
       additions: 100,
       deletions: 50,
       repository_owner: 'testorg',
-      repository_name: 'testrepo'
-    }
+      repository_name: 'testrepo',
+    },
   ],
   reviews: [],
-  comments: []
-}
+  comments: [],
+};
 
 // Mock contributors with different roles
 const mockContributors: MonthlyContributor[] = [
@@ -46,8 +50,8 @@ const mockContributors: MonthlyContributor[] = [
       reviews: 8,
       comments: 25,
       totalScore: 48,
-      firstContributionDate: '2024-01-01T00:00:00Z'
-    }
+      firstContributionDate: '2024-01-01T00:00:00Z',
+    },
   },
   {
     login: 'bob-owner',
@@ -58,8 +62,8 @@ const mockContributors: MonthlyContributor[] = [
       reviews: 20,
       comments: 30,
       totalScore: 62,
-      firstContributionDate: '2024-01-02T00:00:00Z'
-    }
+      firstContributionDate: '2024-01-02T00:00:00Z',
+    },
   },
   {
     login: 'charlie-contributor',
@@ -70,8 +74,8 @@ const mockContributors: MonthlyContributor[] = [
       reviews: 2,
       comments: 8,
       totalScore: 15,
-      firstContributionDate: '2024-01-10T00:00:00Z'
-    }
+      firstContributionDate: '2024-01-10T00:00:00Z',
+    },
   },
   {
     login: 'dependabot[bot]',
@@ -82,10 +86,10 @@ const mockContributors: MonthlyContributor[] = [
       reviews: 0,
       comments: 0,
       totalScore: 20,
-      firstContributionDate: '2024-01-01T00:00:00Z'
-    }
-  }
-]
+      firstContributionDate: '2024-01-01T00:00:00Z',
+    },
+  },
+];
 
 // Mock the useContributorRole hook
 const mockRoles = {
@@ -102,7 +106,7 @@ const mockRoles = {
     permission_events_count: 15,
     is_bot: false,
     activity_level: 'high' as const,
-    days_since_last_active: 1
+    days_since_last_active: 1,
   },
   'bob-owner': {
     id: '2',
@@ -117,7 +121,7 @@ const mockRoles = {
     permission_events_count: 25,
     is_bot: false,
     activity_level: 'high' as const,
-    days_since_last_active: 0
+    days_since_last_active: 0,
   },
   'charlie-contributor': {
     id: '3',
@@ -132,7 +136,7 @@ const mockRoles = {
     permission_events_count: 0,
     is_bot: false,
     activity_level: 'medium' as const,
-    days_since_last_active: 2
+    days_since_last_active: 2,
   },
   'dependabot[bot]': {
     id: '4',
@@ -147,33 +151,41 @@ const mockRoles = {
     permission_events_count: 0,
     is_bot: true,
     activity_level: 'high' as const,
-    days_since_last_active: 0
-  }
-}
+    days_since_last_active: 0,
+  },
+};
 
 // Mock the hook - removed unused function
 
 // Create a simplified version for stories that accepts mock role data
-import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { ContributorHoverCard } from "./contributor-hover-card";
-import { useMemo } from "react";
-import { GitPullRequest, MessageSquare, GitPullRequestDraft, Trophy, Shield, User, Bot } from "@/components/ui/icon";
+import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { ContributorHoverCard } from './contributor-hover-card';
+import { useMemo } from 'react';
+import {
+  GitPullRequest,
+  MessageSquare,
+  GitPullRequestDraft,
+  Trophy,
+  Shield,
+  User,
+  Bot,
+} from '@/components/ui/icon';
 
-const ContributorCardStory = ({ 
-  contributor, 
-  mockRole = null, 
+const ContributorCardStory = ({
+  contributor,
+  mockRole = null,
   mockLoading = false,
   showRank = true,
   isWinner = false,
   showConfidence = false,
-  className 
+  className,
 }: unknown) => {
   const { login, avatar_url, activity, rank } = contributor;
   // const { stats } = useContext(RepoStatsContext); // Not used in story component
-  
+
   // Use mock data instead of hook
   const role = mockRole;
   const roleLoading = mockLoading;
@@ -187,7 +199,7 @@ const ContributorCardStory = ({
       pullRequests: 0,
       reviews: [],
       comments: [],
-      percentage: 0
+      percentage: 0,
     };
   }, [login, avatar_url]);
 
@@ -203,14 +215,14 @@ const ContributorCardStory = ({
         <Badge key="role" variant="default" className="bg-purple-600 hover:bg-purple-700">
           <Shield className="h-3 w-3 mr-1" />
           Owner
-        </Badge>
+        </Badge>,
       );
     } else if (role.role === 'maintainer') {
       badges.push(
         <Badge key="role" variant="default" className="bg-blue-600 hover:bg-blue-700">
           <User className="h-3 w-3 mr-1" />
           Maintainer
-        </Badge>
+        </Badge>,
       );
     }
 
@@ -220,24 +232,24 @@ const ContributorCardStory = ({
         <Badge key="bot" variant="outline" className="border-muted-foreground/50">
           <Bot className="h-3 w-3 mr-1" />
           Bot
-        </Badge>
+        </Badge>,
       );
     }
 
     // Confidence score
     if (showConfidence && role.role !== 'contributor') {
       const confidencePercent = Math.round(role.confidence_score * 100);
-      const confidenceColor = 
+      const confidenceColor =
         confidencePercent >= 90
-? 'text-green-600' :
-        confidencePercent >= 70
-? 'text-yellow-600' :
-        'text-orange-600';
-      
+          ? 'text-green-600'
+          : confidencePercent >= 70
+            ? 'text-yellow-600'
+            : 'text-orange-600';
+
       badges.push(
-        <span key="confidence" className={cn("text-xs font-medium", confidenceColor)}>
+        <span key="confidence" className={cn('text-xs font-medium', confidenceColor)}>
           {confidencePercent}% confidence
-        </span>
+        </span>,
       );
     }
 
@@ -248,7 +260,7 @@ const ContributorCardStory = ({
   const tooltipContent = (
     <div className="space-y-2">
       <div className="font-medium">{login}'s Activity</div>
-      
+
       {role && (
         <div className="text-xs space-y-1 border-b pb-2">
           <div className="font-medium">Role Detection</div>
@@ -262,7 +274,7 @@ const ContributorCardStory = ({
           )}
         </div>
       )}
-      
+
       <div className="text-xs space-y-1">
         <div className="flex items-center gap-2">
           <GitPullRequest className="h-3 w-3" />
@@ -286,22 +298,22 @@ const ContributorCardStory = ({
         <TooltipTrigger asChild>
           <div
             className={cn(
-              "relative p-4 rounded-lg border bg-card transition-all cursor-pointer",
-              "hover:bg-muted/50",
-              isWinner && "ring-2 ring-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10",
-              role?.role === 'owner' && "border-purple-500/30",
-              role?.role === 'maintainer' && "border-blue-500/30",
-              className
+              'relative p-4 rounded-lg border bg-card transition-all cursor-pointer',
+              'hover:bg-muted/50',
+              isWinner && 'ring-2 ring-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10',
+              role?.role === 'owner' && 'border-purple-500/30',
+              role?.role === 'maintainer' && 'border-blue-500/30',
+              className,
             )}
-            role={isWinner ? "article" : "listitem"}
-            aria-label={`${login}${isWinner ? " - Winner" : ""}, ${activity.totalScore} points${role ? `, ${role.role}` : ''}`}
+            role={isWinner ? 'article' : 'listitem'}
+            aria-label={`${login}${isWinner ? ' - Winner' : ''}, ${activity.totalScore} points${role ? `, ${role.role}` : ''}`}
             tabIndex={0}
           >
             {/* Rank Badge */}
             {showRank && (
               <div className="absolute -top-2 -right-2 z-10">
-                <Badge 
-                  variant={rank === 1 ? "default" : "secondary"}
+                <Badge
+                  variant={rank === 1 ? 'default' : 'secondary'}
                   className="h-6 w-6 rounded-full p-0 flex items-center justify-center"
                 >
                   {rank}
@@ -314,9 +326,7 @@ const ContributorCardStory = ({
                 <ContributorHoverCard contributor={contributorData}>
                   <Avatar className="h-10 w-10 cursor-pointer">
                     <AvatarImage src={avatar_url} alt={login} />
-                    <AvatarFallback>
-                      {login.charAt(0).toUpperCase()}
-                    </AvatarFallback>
+                    <AvatarFallback>{login.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </ContributorHoverCard>
 
@@ -324,20 +334,18 @@ const ContributorCardStory = ({
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium text-sm truncate">{login}</h3>
                     {isWinner && (
-                      <Trophy 
-                        className="h-4 w-4 text-yellow-600" 
+                      <Trophy
+                        className="h-4 w-4 text-yellow-600"
                         data-testid="trophy-icon"
                         aria-label="Winner"
                         role="img"
                       />
                     )}
                   </div>
-                  
+
                   {/* Role badges */}
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    {getRoleBadge()}
-                  </div>
-                  
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">{getRoleBadge()}</div>
+
                   <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <GitPullRequest className="h-3 w-3" />
@@ -352,15 +360,11 @@ const ContributorCardStory = ({
                       <span>{activity.comments}</span>
                     </div>
                   </div>
-                  
+
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="text-xs font-medium">
-                      Score: {activity.totalScore}
-                    </span>
+                    <span className="text-xs font-medium">Score: {activity.totalScore}</span>
                     {role && role.role !== 'contributor' && (
-                      <span className="text-xs text-muted-foreground">
-                        Internal Contributor
-                      </span>
+                      <span className="text-xs text-muted-foreground">Internal Contributor</span>
                     )}
                   </div>
                 </div>
@@ -374,7 +378,7 @@ const ContributorCardStory = ({
       </Tooltip>
     </TooltipProvider>
   );
-}
+};
 
 const meta: Meta<typeof ContributorCardStory> = {
   title: 'Components/ContributorCardWithRole',
@@ -383,36 +387,39 @@ const meta: Meta<typeof ContributorCardStory> = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'Enhanced contributor card that displays role badges, confidence scores, and internal/external contributor indicators.'
-      }
-    }
+        component:
+          'Enhanced contributor card that displays role badges, confidence scores, and internal/external contributor indicators.',
+      },
+    },
   },
   decorators: [
     (Story) => (
-      <RepoStatsContext.Provider value={{ 
-        stats: { ...mockStats, loading: false, error: null },
-        lotteryFactor: null,
-        directCommitsData: null,
-        includeBots: false,
-        setIncludeBots: () => {}
-      }}>
+      <RepoStatsContext.Provider
+        value={{
+          stats: { ...mockStats, loading: false, error: null },
+          lotteryFactor: null,
+          directCommitsData: null,
+          includeBots: false,
+          setIncludeBots: () => {},
+        }}
+      >
         <div className="w-80">
           <Story />
         </div>
       </RepoStatsContext.Provider>
-    )
+    ),
   ],
   argTypes: {
     owner: { control: 'text' },
     repo: { control: 'text' },
     showRank: { control: 'boolean' },
     isWinner: { control: 'boolean' },
-    showConfidence: { control: 'boolean' }
-  }
-}
+    showConfidence: { control: 'boolean' },
+  },
+};
 
-export default meta
-type Story = StoryObj<typeof ContributorCardStory>
+export default meta;
+type Story = StoryObj<typeof ContributorCardStory>;
 
 export const Maintainer: Story = {
   args: {
@@ -420,9 +427,9 @@ export const Maintainer: Story = {
     mockRole: mockRoles['alice-maintainer'],
     showRank: true,
     isWinner: false,
-    showConfidence: true
-  }
-}
+    showConfidence: true,
+  },
+};
 
 export const Owner: Story = {
   args: {
@@ -430,9 +437,9 @@ export const Owner: Story = {
     mockRole: mockRoles['bob-owner'],
     showRank: true,
     isWinner: true,
-    showConfidence: true
-  }
-}
+    showConfidence: true,
+  },
+};
 
 export const ExternalContributor: Story = {
   args: {
@@ -440,9 +447,9 @@ export const ExternalContributor: Story = {
     mockRole: mockRoles['charlie-contributor'],
     showRank: true,
     isWinner: false,
-    showConfidence: false
-  }
-}
+    showConfidence: false,
+  },
+};
 
 export const BotContributor: Story = {
   args: {
@@ -450,9 +457,9 @@ export const BotContributor: Story = {
     mockRole: mockRoles['dependabot[bot]'],
     showRank: true,
     isWinner: false,
-    showConfidence: false
-  }
-}
+    showConfidence: false,
+  },
+};
 
 export const WithoutRank: Story = {
   args: {
@@ -460,9 +467,9 @@ export const WithoutRank: Story = {
     mockRole: mockRoles['alice-maintainer'],
     showRank: false,
     isWinner: false,
-    showConfidence: true
-  }
-}
+    showConfidence: true,
+  },
+};
 
 export const Loading: Story = {
   args: {
@@ -471,19 +478,21 @@ export const Loading: Story = {
     mockLoading: true,
     showRank: true,
     isWinner: false,
-    showConfidence: true
-  }
-}
+    showConfidence: true,
+  },
+};
 
 export const ComparisonGrid: Story = {
   render: () => (
-    <RepoStatsContext.Provider value={{ 
-      stats: { ...mockStats, loading: false, error: null },
-      lotteryFactor: null,
-      directCommitsData: null,
-      includeBots: false,
-      setIncludeBots: () => {}
-    }}>
+    <RepoStatsContext.Provider
+      value={{
+        stats: { ...mockStats, loading: false, error: null },
+        lotteryFactor: null,
+        directCommitsData: null,
+        includeBots: false,
+        setIncludeBots: () => {},
+      }}
+    >
       <div className="grid grid-cols-2 gap-4 w-[700px]">
         <ContributorCardStory
           contributor={mockContributors[1]}
@@ -519,8 +528,9 @@ export const ComparisonGrid: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Comparison showing different contributor roles: Owner (purple badge), Maintainer (blue badge), External Contributor (no role badge), and Bot (with bot indicator).'
-      }
-    }
-  }
-}
+        story:
+          'Comparison showing different contributor roles: Owner (purple badge), Maintainer (blue badge), External Contributor (no role badge), and Bot (with bot indicator).',
+      },
+    },
+  },
+};

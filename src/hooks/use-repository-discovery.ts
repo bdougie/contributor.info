@@ -24,15 +24,15 @@ export function useRepositoryDiscovery({
   owner,
   repo,
   enabled = true,
-  onDiscoveryComplete
+  onDiscoveryComplete,
 }: DiscoveryOptions): DiscoveryState {
   const [state, setState] = useState<DiscoveryState>({
     status: 'checking',
     repository: null,
     message: null,
-    isNewRepository: false
+    isNewRepository: false,
   });
-  
+
   const hasInitiatedDiscovery = useRef(false);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   // const pollCountRef = useRef(0); // Commented out - no longer used after refactor
@@ -44,7 +44,7 @@ export function useRepositoryDiscovery({
         status: 'checking',
         repository: null,
         message: null,
-        isNewRepository: false
+        isNewRepository: false,
       });
       return;
     }
@@ -68,7 +68,7 @@ export function useRepositoryDiscovery({
             status: 'error',
             repository: null,
             message: 'Failed to check repository status',
-            isNewRepository: false
+            isNewRepository: false,
           });
           return;
         }
@@ -79,7 +79,7 @@ export function useRepositoryDiscovery({
             status: 'ready',
             repository: repoData,
             message: null,
-            isNewRepository: false
+            isNewRepository: false,
           });
           return;
         }
@@ -89,7 +89,7 @@ export function useRepositoryDiscovery({
           status: 'discovering',
           repository: null,
           message: `Setting up ${owner}/${repo}...`,
-          isNewRepository: true
+          isNewRepository: true,
         });
 
         // DISABLED: Old discovery flow - replaced with explicit tracking
@@ -98,17 +98,16 @@ export function useRepositoryDiscovery({
         //   hasInitiatedDiscovery.current = true;
         //   await initiateDiscovery(owner, repo);
         // }
-        
+
         // Just set the state to indicate it needs tracking
         // The user will use the new tracking card instead
-
       } catch (_error) {
         console.error('Repository check error:', _error);
         setState({
           status: 'error',
           repository: null,
           message: 'Something went wrong. Please try again.',
-          isNewRepository: false
+          isNewRepository: false,
         });
       }
     };

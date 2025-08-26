@@ -5,12 +5,7 @@ import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
 import { inngest } from '@/lib/inngest/client';
 import { supabase } from '@/lib/supabase';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { POLLING_CONFIG, isSyncAllowed } from '@/lib/progressive-capture/throttle-config';
 
 interface UnifiedSyncButtonProps {
@@ -34,7 +29,7 @@ export function UnifiedSyncButton({
   variant = 'outline',
   size = 'sm',
   showLabel = true,
-  autoTriggerOnLoad = false
+  autoTriggerOnLoad = false,
 }: UnifiedSyncButtonProps) {
   const { isLoggedIn, login } = useGitHubAuth();
   const [isSyncing, setIsSyncing] = useState(false);
@@ -56,10 +51,10 @@ export function UnifiedSyncButton({
     if (autoTriggerOnLoad && !hasAutoTriggeredRef.current && isLoggedIn) {
       const shouldAutoSync = () => {
         if (!lastUpdated) return true;
-        
+
         const lastUpdateTime = new Date(lastUpdated);
         const hoursSinceUpdate = (Date.now() - lastUpdateTime.getTime()) / (1000 * 60 * 60);
-        
+
         // Auto-sync if data is older than 24 hours
         return hoursSinceUpdate > 24;
       };
@@ -82,16 +77,17 @@ export function UnifiedSyncButton({
   // Format time since last update
   const getTimeSinceUpdate = () => {
     if (!lastUpdated) return null;
-    
+
     const lastUpdateTime = new Date(lastUpdated);
     const minutesSinceUpdate = Math.floor((Date.now() - lastUpdateTime.getTime()) / (1000 * 60));
-    
+
     if (minutesSinceUpdate < 1) return 'just now';
     if (minutesSinceUpdate < 60) return `${minutesSinceUpdate} min ago`;
-    
+
     const hoursSinceUpdate = Math.floor(minutesSinceUpdate / 60);
-    if (hoursSinceUpdate < 24) return `${hoursSinceUpdate} hour${hoursSinceUpdate > 1 ? 's' : ''} ago`;
-    
+    if (hoursSinceUpdate < 24)
+      return `${hoursSinceUpdate} hour${hoursSinceUpdate > 1 ? 's' : ''} ago`;
+
     const daysSinceUpdate = Math.floor(hoursSinceUpdate / 24);
     return `${daysSinceUpdate} day${daysSinceUpdate > 1 ? 's' : ''} ago`;
   };
@@ -113,7 +109,7 @@ export function UnifiedSyncButton({
     if (!canSync() && !isAutomatic) {
       toast.info('Recently synced', {
         description: `This repository was synced ${getTimeSinceUpdate()}. Please wait a few minutes before syncing again.`,
-        duration: 5000
+        duration: 5000,
       });
       return;
     }
@@ -125,12 +121,12 @@ export function UnifiedSyncButton({
     if (isAutomatic) {
       toast.info(`Updating ${owner}/${repo}...`, {
         description: 'Loading fresh data in the background',
-        duration: 4000
+        duration: 4000,
       });
     } else {
       toast.info(`Refreshing ${owner}/${repo}...`, {
         description: "We're updating this repository with the latest data.",
-        duration: 6000
+        duration: 6000,
       });
     }
 
@@ -139,7 +135,7 @@ export function UnifiedSyncButton({
       let repoId = repositoryId;
       if (!repoId) {
         setSyncProgress('Finding repository...');
-        const { data: repoData, error: _error: repoError } = await supabase
+        const { data: repoData, error: repoError } = await supabase
           .from('repositories')
           .select('id')
           .eq('owner', owner)
@@ -152,7 +148,7 @@ export function UnifiedSyncButton({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ owner, repo })
+            body: JSON.stringify({ owner, repo }),
           });
 
           if (!trackResponse.ok) {
@@ -160,7 +156,7 @@ export function UnifiedSyncButton({
           }
 
           // Wait a moment for tracking to initialize
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise((resolve) => setTimeout(resolve, 2000));
 
           // Try to get repo ID again
           const { data: newRepoData } = await supabase
@@ -193,42 +189,46 @@ export function UnifiedSyncButton({
           repository: `${owner}/${repo}`,
           days: 30,
         }),
-      }).then(async (response) => {
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: 'Unknown _error' }));
-          console.error('gh-_datapipe trigger failed:', _errorData.message);
-          // Don't throw - we want to continue even if gh-datapipe fails
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: 'Unknown _error' }));
+            console.error('gh-_datapipe trigger failed:', _errorData.message);
+            // Don't throw - we want to continue even if gh-datapipe fails
+            return null;
+          }
+          const job = await response.json();
+
+          // Note: SSE not supported in Netlify Functions, relying on polling instead
+          console.log('gh-_datapipe job started:', job.job_id);
+
+          return job;
+        })
+        .catch((err) => {
+          console.error('gh-_datapipe _error:', err);
           return null;
-        }
-        const job = await response.json();
-        
-        // Note: SSE not supported in Netlify Functions, relying on polling instead
-        console.log('gh-_datapipe job started:', job.job_id);
-        
-        return job;
-      }).catch(err => {
-        console.error('gh-_datapipe _error:', err);
-        return null;
-      });
+        });
 
       syncPromises.push(ghDatapipePromise);
 
       // 2. Trigger Inngest sync for immediate processing
-      const inngestPromise = inngest.send({
-        name: 'capture/repository.sync.graphql',
-        data: {
-          repositoryId: repoId,
-          repositoryName: `${owner}/${repo}`,
-          days: 7, // Last 7 days for quick sync
-          priority: 'critical',
-          reason: isAutomatic ? 'auto' : 'manual',
-          triggeredBy: isAutomatic ? 'auto_page_load' : 'user_manual_sync'
-        }
-      }).catch(err => {
-        console.error('Inngest trigger _error:', err);
-        // Don't throw - we want to continue even if Inngest fails
-        return null;
-      });
+      const inngestPromise = inngest
+        .send({
+          name: 'capture/repository.sync.graphql',
+          data: {
+            repositoryId: repoId,
+            repositoryName: `${owner}/${repo}`,
+            days: 7, // Last 7 days for quick sync
+            priority: 'critical',
+            reason: isAutomatic ? 'auto' : 'manual',
+            triggeredBy: isAutomatic ? 'auto_page_load' : 'user_manual_sync',
+          },
+        })
+        .catch((err) => {
+          console.error('Inngest trigger _error:', err);
+          // Don't throw - we want to continue even if Inngest fails
+          return null;
+        });
 
       syncPromises.push(inngestPromise);
 
@@ -244,21 +244,20 @@ export function UnifiedSyncButton({
       if (!isAutomatic) {
         toast.success('Sync initiated!', {
           description: 'Data will be refreshed in 1-2 minutes. The page will update automatically.',
-          duration: 8000
+          duration: 8000,
         });
       }
 
       // Start polling for completion
       startPollingForCompletion(repoId);
-
     } catch (_error) {
       console.error('Unified sync error:', _error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to initiate sync';
-      
+
       if (!isAutomatic) {
         toast.error('Sync failed', {
           description: errorMessage,
-          duration: 6000
+          duration: 6000,
         });
       } else {
         // For automatic syncs, just log the error silently
@@ -272,13 +271,13 @@ export function UnifiedSyncButton({
 
   const startPollingForCompletion = (repoId: string | undefined) => {
     if (!repoId) return;
-    
+
     // Clear any existing polling interval
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
     }
-    
+
     let pollCount = 0;
     const maxPolls = POLLING_CONFIG.maxPolls;
 
@@ -296,23 +295,23 @@ export function UnifiedSyncButton({
         if (repoData) {
           const updateTime = new Date(repoData.last_updated_at);
           const secondsSinceUpdate = (Date.now() - updateTime.getTime()) / 1000;
-          
+
           // If updated within completion threshold, consider it complete
           if (secondsSinceUpdate < POLLING_CONFIG.completionThreshold) {
             if (pollIntervalRef.current) {
               clearInterval(pollIntervalRef.current);
               pollIntervalRef.current = null;
             }
-            
+
             toast.success('Repository data updated!', {
               description: 'Fresh data is now available',
               duration: 6000,
               action: {
                 label: 'Refresh',
-                onClick: () => window.location.reload()
-              }
+                onClick: () => window.location.reload(),
+              },
             });
-            
+
             // Auto-refresh after a short delay for seamless experience
             setTimeout(() => {
               window.location.reload();
@@ -325,10 +324,11 @@ export function UnifiedSyncButton({
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
-          
+
           toast.info('Sync in progress', {
-            description: 'The sync is taking longer than expected. Please refresh the page in a minute.',
-            duration: 10000
+            description:
+              'The sync is taking longer than expected. Please refresh the page in a minute.',
+            duration: 10000,
           });
         }
       } catch (err) {
@@ -340,21 +340,15 @@ export function UnifiedSyncButton({
 
   const buttonContent = (
     <>
-      {isSyncing
-? (
-        <Loader2 className={showLabel ? "mr-2 h-4 w-4 animate-spin" : "h-4 w-4 animate-spin"} />
-      )
-: isLoggedIn
-? (
-        <RefreshCw className={showLabel ? "mr-2 h-4 w-4" : "h-4 w-4"} />
-      )
-: (
-        <Lock className={showLabel ? "mr-2 h-4 w-4" : "h-4 w-4"} />
+      {isSyncing ? (
+        <Loader2 className={showLabel ? 'mr-2 h-4 w-4 animate-spin' : 'h-4 w-4 animate-spin'} />
+      ) : isLoggedIn ? (
+        <RefreshCw className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
+      ) : (
+        <Lock className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
       )}
       {showLabel && (
-        <span>
-          {isSyncing ? 'Syncing...' : isLoggedIn ? 'Sync Now' : 'Login to Sync'}
-        </span>
+        <span>{isSyncing ? 'Syncing...' : isLoggedIn ? 'Sync Now' : 'Login to Sync'}</span>
       )}
     </>
   );
@@ -376,9 +370,7 @@ export function UnifiedSyncButton({
     return (
       <TooltipProvider>
         <Tooltip open>
-          <TooltipTrigger asChild>
-            {button}
-          </TooltipTrigger>
+          <TooltipTrigger asChild>{button}</TooltipTrigger>
           <TooltipContent>
             <p className="text-xs">{syncProgress}</p>
           </TooltipContent>
@@ -390,16 +382,14 @@ export function UnifiedSyncButton({
   // Show tooltip with last update time if available
   if (!showLabel && lastUpdated) {
     const timeSince = getTimeSinceUpdate();
-    const tooltipText = isLoggedIn 
+    const tooltipText = isLoggedIn
       ? `Last synced ${timeSince}. Click to refresh data.`
       : 'Login to manually sync this repository';
 
     return (
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
-            {button}
-          </TooltipTrigger>
+          <TooltipTrigger asChild>{button}</TooltipTrigger>
           <TooltipContent>
             <p className="text-xs">{tooltipText}</p>
           </TooltipContent>

@@ -31,7 +31,7 @@ const cacheTimestamps = new Map<string, number>();
 export function useRepositoryValidation(
   owner: string | null,
   repo: string | null,
-  options: UseRepositoryValidationOptions = {}
+  options: UseRepositoryValidationOptions = {},
 ): ValidationResult {
   const { autoRedirect = true, autoTrack = true } = options;
   const navigate = useNavigate();
@@ -53,14 +53,14 @@ export function useRepositoryValidation(
     }
 
     const cacheKey = `${owner}/${repo}`;
-    
+
     // Check cache first
     if (validationCache.has(cacheKey)) {
       const cachedTime = cacheTimestamps.get(cacheKey) || 0;
       if (Date.now() - cachedTime < CACHE_TTL) {
         const cached = validationCache.get(cacheKey)!;
         setResult(cached);
-        
+
         // Handle auto-redirect for cached results
         if (autoRedirect && cached.status === 'exists_in_db' && !cached.isLoading) {
           navigate(`/${owner}/${repo}`, { replace: true });
@@ -86,13 +86,13 @@ export function useRepositoryValidation(
 
         // Call the validation API
         const response = await fetch(`/api/validate-repository?owner=${owner}&repo=${repo}`);
-        
+
         if (!response.ok) {
           throw new Error(`Validation failed: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        
+        const _data = await response.json();
+
         // Process the validation result
         const validationResult: ValidationResult = {
           status: data.status,
@@ -116,7 +116,7 @@ export function useRepositoryValidation(
           // Auto-track it and then redirect
           hasTracked.current = true;
           await trackRepository(owner!, repo!);
-          
+
           // After tracking, redirect to the repository page
           if (autoRedirect) {
             setTimeout(() => {
@@ -126,17 +126,17 @@ export function useRepositoryValidation(
         }
       } catch (_error) {
         console.error('Repository validation error:', _error);
-        
+
         const errorResult: ValidationResult = {
           status: 'error',
           isLoading: false,
           error: error instanceof Error ? error.message : 'Validation failed',
         };
-        
+
         // Cache error results for a shorter time
         validationCache.set(cacheKey, _errorResult);
         cacheTimestamps.set(cacheKey, Date.now() - (CACHE_TTL - 60000)); // Cache for 1 minute
-        
+
         setResult(_errorResult);
       } finally {
         isValidating.current = false;
@@ -150,8 +150,10 @@ export function useRepositoryValidation(
 async function trackRepository(owner: string, repo: string): Promise<void> {
   try {
     // Check if user is authenticated
-    const { data: { session } } = await supabase.auth.getSession();
-    
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
     // Insert the repository into tracked_repositories
     const { error: _error } = await supabase
       .from('tracked_repositories')
@@ -175,14 +177,16 @@ async function trackRepository(owner: string, repo: string): Promise<void> {
       }
     } else {
       console.log('Successfully tracked repository: %s/%s', owner, repo);
-      
+
       // Trigger initial data sync (using existing infrastructure)
       try {
         // Dispatch a custom event that the app can listen to for syncing
-        window.dispatchEvent(new CustomEvent('repository-tracked', {
-          detail: { owner, repo, full_name: `${owner}/${repo}` }
-        }));
-      } catch (e) {
+        window.dispatchEvent(
+          new CustomEvent('repository-tracked', {
+            detail: { owner, repo, full_name: `${owner}/${repo}` },
+          }),
+        );
+      } catch (_e) {
         console.error('Error dispatching tracking event:', e);
       }
     }
@@ -198,20 +202,24 @@ export function clearValidationCache(): void {
 }
 
 // Utility function to check if a path looks like a repository
-export function isRepositoryPath(pathname: string): { isRepo: boolean; owner?: string; repo?: string } {
+export function isRepositoryPath(pathname: string): {
+  isRepo: boolean;
+  owner?: string;
+  repo?: string;
+} {
   // Remove leading slash and any trailing slashes
   const cleanPath = pathname.replace(/^\/+|\/+$/g, '');
-  
+
   // Check if it matches the pattern: owner/repo (with optional sub-paths)
   const parts = cleanPath.split('/');
-  
+
   if (parts.length >= 2) {
     const [owner, repo] = parts;
-    
+
     // Basic validation: both parts should exist and not contain special characters
     // that wouldn't be valid in GitHub usernames/repo names
     const isValidName = (name: string) => /^[a-zA-Z0-9][\w.-]*$/.test(name);
-    
+
     if (owner && repo && isValidName(owner) && isValidName(repo)) {
       return {
         isRepo: true,
@@ -220,6 +228,6 @@ export function isRepositoryPath(pathname: string): { isRepo: boolean; owner?: s
       };
     }
   }
-  
+
   return { isRepo: false };
 }

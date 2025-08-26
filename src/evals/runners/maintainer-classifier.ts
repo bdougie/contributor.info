@@ -15,7 +15,7 @@ export class MaintainerClassifier {
   async evaluateSample(
     input: EvaluationInput,
     sampleId: string,
-    expected: 'maintainer' | 'contributor'
+    expected: 'maintainer' | 'contributor',
   ): Promise<EvaluationResult> {
     const startTime = Date.now();
 
@@ -30,7 +30,7 @@ export class MaintainerClassifier {
         confidence,
         expected,
         correct: prediction === expected,
-        execution_time_ms: executionTime
+        execution_time_ms: executionTime,
       };
     } catch (_error) {
       return {
@@ -40,7 +40,7 @@ export class MaintainerClassifier {
         expected,
         correct: false,
         execution_time_ms: Date.now() - startTime,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -57,8 +57,10 @@ export class MaintainerClassifier {
     }
   }
 
-
-  private calculateConfidence(input: EvaluationInput, prediction: 'maintainer' | 'contributor'): number {
+  private calculateConfidence(
+    input: EvaluationInput,
+    prediction: 'maintainer' | 'contributor',
+  ): number {
     // Use the pre-calculated confidence score from input metrics
     const score = input.metrics.confidence_score;
 
@@ -71,7 +73,7 @@ export class MaintainerClassifier {
     } else {
       // For contributor: confidence decreases as score approaches maintainer threshold
       const distanceFromThreshold = maintainerThreshold - score;
-      return Math.min(0.5 + (distanceFromThreshold / maintainerThreshold), 1.0);
+      return Math.min(0.5 + distanceFromThreshold / maintainerThreshold, 1.0);
     }
   }
 

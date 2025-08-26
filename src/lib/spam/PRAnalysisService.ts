@@ -1,8 +1,4 @@
-import { 
-  PullRequestData, 
-  SpamFlags, 
-  CONTENT_THRESHOLDS
-} from './types';
+import { PullRequestData, SpamFlags, CONTENT_THRESHOLDS } from './types';
 import { TemplateDetector, SPAM_PATTERNS } from './templates/CommonTemplates';
 import { PRTemplateService } from './PRTemplateService';
 
@@ -38,25 +34,25 @@ export class PRAnalysisService {
     const combinedText = `${title} ${description}`.trim();
 
     const descriptionLength = description.length;
-    
+
     // Check for meaningful content indicators
     const hasMeaningfulContent = this.hasMeaningfulContent(combinedText);
-    
+
     // Calculate quality score based on various factors
     let qualityScore = 0;
-    
+
     // Length score (0-0.3)
     if (descriptionLength >= CONTENT_THRESHOLDS.MIN_DESCRIPTION_LENGTH) {
       qualityScore += 0.3;
     } else if (descriptionLength > 0) {
       qualityScore += (descriptionLength / CONTENT_THRESHOLDS.MIN_DESCRIPTION_LENGTH) * 0.3;
     }
-    
+
     // Meaningful content score (0-0.4)
     if (hasMeaningfulContent) {
       qualityScore += 0.4;
     }
-    
+
     // Title quality score (0-0.3)
     const titleQuality = this.analyzeTitleQuality(title);
     qualityScore += titleQuality * 0.3;
@@ -75,7 +71,7 @@ export class PRAnalysisService {
     if (!text || text.length < 5) return false;
 
     const normalized = text.toLowerCase().trim();
-    
+
     // Check against spam patterns
     for (const pattern of Object.values(SPAM_PATTERNS)) {
       if (pattern.test(normalized)) {
@@ -87,29 +83,30 @@ export class PRAnalysisService {
     const meaningfulIndicators = [
       /fix(es|ed)?\s+#?\d+/i, // References to issues
       /close(s|d)?\s+#?\d+/i, // Closes issues
-      /implement(s|ed)?/i,    // Implementation details
+      /implement(s|ed)?/i, // Implementation details
       /add(s|ed)?\s+\w{4,}/i, // Adds something specific
       /updat(e|ed)?\s+\w{4,}/i, // Updates something specific
       /remov(e|ed)?\s+\w{4,}/i, // Removes something specific
-      /refactor/i,            // Refactoring
-      /performance/i,         // Performance improvements
-      /security/i,            // Security fixes
-      /test(s|ing)?/i,        // Testing related
-      /documentation/i,       // Documentation
-      /feature/i,             // Feature additions
-      /bug/i,                 // Bug fixes
+      /refactor/i, // Refactoring
+      /performance/i, // Performance improvements
+      /security/i, // Security fixes
+      /test(s|ing)?/i, // Testing related
+      /documentation/i, // Documentation
+      /feature/i, // Feature additions
+      /bug/i, // Bug fixes
     ];
 
-    const hasIndicators = meaningfulIndicators.some(pattern => pattern.test(normalized));
-    
+    const hasIndicators = meaningfulIndicators.some((pattern) => pattern.test(normalized));
+
     // Check for code snippets, file paths, or technical terms
-    const hasTechnicalContent = /\.(js|ts|py|java|cpp|c|h|css|html|md|json|yml|yaml)|\w+\/\w+|`[^`]+`/i.test(text);
-    
+    const hasTechnicalContent =
+      /\.(js|ts|py|java|cpp|c|h|css|html|md|json|yml|yaml)|\w+\/\w+|`[^`]+`/i.test(text);
+
     // Check word diversity (not just repeated words)
-    const words = normalized.split(/\s+/).filter(word => word.length > 2);
+    const words = normalized.split(/\s+/).filter((word) => word.length > 2);
     const uniqueWords = new Set(words);
     const wordDiversity = words.length > 0 ? uniqueWords.size / words.length : 0;
-    
+
     return hasIndicators || hasTechnicalContent || (words.length >= 5 && wordDiversity > 0.6);
   }
 
@@ -129,21 +126,25 @@ export class PRAnalysisService {
 
     // Check for specific keywords that indicate quality
     const qualityKeywords = [
-      /fix/i, /add/i, /update/i, /implement/i, /remove/i, 
-      /refactor/i, /improve/i, /enhance/i, /optimize/i
+      /fix/i,
+      /add/i,
+      /update/i,
+      /implement/i,
+      /remove/i,
+      /refactor/i,
+      /improve/i,
+      /enhance/i,
+      /optimize/i,
     ];
 
-    if (qualityKeywords.some(pattern => pattern.test(normalized))) {
+    if (qualityKeywords.some((pattern) => pattern.test(normalized))) {
       score += 0.2;
     }
 
     // Penalize very generic titles
-    const genericPatterns = [
-      /^(update|fix|change|test)\.?$/i,
-      /^.{1,3}$/,
-    ];
+    const genericPatterns = [/^(update|fix|change|test)\.?$/i, /^.{1,3}$/];
 
-    if (genericPatterns.some(pattern => pattern.test(normalized))) {
+    if (genericPatterns.some((pattern) => pattern.test(normalized))) {
       score = Math.max(score - 0.4, 0);
     }
 
@@ -188,7 +189,7 @@ export class PRAnalysisService {
 
     // Very small PRs should have proportionally more description
     const totalChanges = pr.additions + pr.deletions;
-    
+
     if (totalChanges <= 10) {
       return combinedLength >= 20; // Small changes need some explanation
     } else if (totalChanges <= 100) {
@@ -204,23 +205,22 @@ export class PRAnalysisService {
   private estimateCommitQuality(pr: PullRequestData): number {
     // This is a simplified estimation since we don't have commit messages
     // In a full implementation, we'd analyze actual commit messages
-    
+
     let score = 0.5; // Base score
-    
+
     // PRs with many small files might indicate focused changes
-    const avgChangesPerFile = pr.changed_files > 0 ? 
-      (pr.additions + pr.deletions) / pr.changed_files
-: 0;
-    
+    const avgChangesPerFile =
+      pr.changed_files > 0 ? (pr.additions + pr.deletions) / pr.changed_files : 0;
+
     if (avgChangesPerFile > 0 && avgChangesPerFile < 50) {
       score += 0.2; // Focused changes are generally better
     }
-    
+
     // Very large PRs with many files might be problematic
-    if (pr.changed_files > 20 && (pr.additions + pr.deletions) > 1000) {
+    if (pr.changed_files > 20 && pr.additions + pr.deletions > 1000) {
       score -= 0.3;
     }
-    
+
     return Math.max(0, Math.min(score, 1.0));
   }
 
@@ -252,7 +252,7 @@ export class PRAnalysisService {
           if (repo?.id) {
             repositoryMatchResult = await this.prTemplateService.checkRepositorySpamPatterns(
               repo.id,
-              combinedText
+              combinedText,
             );
           }
         }

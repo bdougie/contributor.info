@@ -6,10 +6,14 @@ interface SyncLogMetadata {
 
 export class SyncLogger {
   private syncLogId: string | null = null;
-  
-  async start(syncType: string, repositoryId: string, metadata?: SyncLogMeta_data): Promise<string> {
+
+  async start(
+    syncType: string,
+    repositoryId: string,
+    metadata?: SyncLogMeta_data,
+  ): Promise<string> {
     console.log('[SyncLogger] Starting sync log for %s on repository %s', syncType, repositoryId);
-    
+
     const { data, error: _error } = await supabase
       .from('sync_logs')
       .insert({
@@ -17,7 +21,7 @@ export class SyncLogger {
         repository_id: repositoryId,
         status: 'started',
         started_at: new Date().toISOString(),
-        metadata: metadata || {}
+        metadata: metadata || {},
       })
       .select('id')
       .maybeSingle();
@@ -75,7 +79,7 @@ export class SyncLogger {
       .update({
         status: 'completed',
         completed_at: new Date().toISOString(),
-        ...summary
+        ...summary,
       })
       .eq('id', this.syncLogId);
 
@@ -84,15 +88,18 @@ export class SyncLogger {
     }
   }
 
-  async fail(errorMessage: string, summary?: {
-    records_processed?: number;
-    records_inserted?: number;
-    records_updated?: number;
-    records_failed?: number;
-    github_api_calls_used?: number;
-    rate_limit_remaining?: number;
-    metadata?: SyncLogMetadata;
-  }): Promise<void> {
+  async fail(
+    errorMessage: string,
+    summary?: {
+      records_processed?: number;
+      records_inserted?: number;
+      records_updated?: number;
+      records_failed?: number;
+      github_api_calls_used?: number;
+      rate_limit_remaining?: number;
+      metadata?: SyncLogMetadata;
+    },
+  ): Promise<void> {
     if (!this.syncLogId) {
       console.warn('No sync log ID available for failure');
       return;
@@ -104,7 +111,7 @@ export class SyncLogger {
         status: 'failed',
         completed_at: new Date().toISOString(),
         error_message: errorMessage,
-        ...summary
+        ...summary,
       })
       .eq('id', this.syncLogId);
 

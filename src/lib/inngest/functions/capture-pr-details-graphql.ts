@@ -80,7 +80,9 @@ function getGraphQLClient(): GraphQLClient {
 }
 
 // Helper function to ensure contributors exist and return their UUIDs
-async function ensureContributorExists(githubUser: GitHubUser | null | undefined): Promise<string | null> {
+async function ensureContributorExists(
+  githubUser: GitHubUser | null | undefined,
+): Promise<string | null> {
   if (!githubUser) {
     console.log('ensureContributorExists: githubUser is null/undefined');
     return null;
@@ -89,7 +91,7 @@ async function ensureContributorExists(githubUser: GitHubUser | null | undefined
   if (!githubUser._databaseId) {
     console.log('ensureContributorExists: githubUser.databaseId is missing', {
       login: githubUser.login,
-      keys: Object.keys(githubUser)
+      keys: Object.keys(githubUser),
     });
     return null;
   }
@@ -97,7 +99,7 @@ async function ensureContributorExists(githubUser: GitHubUser | null | undefined
   if (!githubUser.login) {
     console.log('ensureContributorExists: githubUser.login is missing', {
       databaseId: githubUser.databaseId,
-      keys: Object.keys(githubUser)
+      keys: Object.keys(githubUser),
     });
     return null;
   }
@@ -105,31 +107,34 @@ async function ensureContributorExists(githubUser: GitHubUser | null | undefined
   try {
     const { data, error: _error } = await supabase
       .from('contributors')
-      .upsert({
-        github_id: githubUser.databaseId,
-        username: githubUser.login,
-        display_name: githubUser.name || null,
-        email: githubUser.email || null,
-        avatar_url: githubUser.avatarUrl || null,
-        profile_url: `https://github.com/${githubUser.login}`,
-        // Only include fields that are actually requested in the GraphQL query
-        // Other fields like bio, company, etc. are not available in PR author data
-        bio: null,
-        company: null,
-        location: null,
-        blog: null,
-        public_repos: 0,
-        public_gists: 0,
-        followers: 0,
-        following: 0,
-        is_bot: false,
-        is_active: true,
-        first_seen_at: new Date().toISOString(),
-        last_updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'github_id',
-        ignoreDuplicates: false
-      })
+      .upsert(
+        {
+          github_id: githubUser.databaseId,
+          username: githubUser.login,
+          display_name: githubUser.name || null,
+          email: githubUser.email || null,
+          avatar_url: githubUser.avatarUrl || null,
+          profile_url: `https://github.com/${githubUser.login}`,
+          // Only include fields that are actually requested in the GraphQL query
+          // Other fields like bio, company, etc. are not available in PR author data
+          bio: null,
+          company: null,
+          location: null,
+          blog: null,
+          public_repos: 0,
+          public_gists: 0,
+          followers: 0,
+          following: 0,
+          is_bot: false,
+          is_active: true,
+          first_seen_at: new Date().toISOString(),
+          last_updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'github_id',
+          ignoreDuplicates: false,
+        },
+      )
       .select('id')
       .maybeSingle();
 
@@ -140,23 +145,23 @@ async function ensureContributorExists(githubUser: GitHubUser | null | undefined
           login: githubUser.login,
           name: githubUser.name,
           email: githubUser.email,
-          avatarUrl: githubUser.avatarUrl
-        }
+          avatarUrl: githubUser.avatarUrl,
+        },
       });
       return null;
     }
 
     if (!_data) {
-    throw new Error(`Failed to ensure contributor exists`);
-  }
-  return data.id;
+      throw new Error(`Failed to ensure contributor exists`);
+    }
+    return data.id;
   } catch (err) {
     console.error('Exception in ensureContributorExists:', err, {
       githubUser: {
         databaseId: githubUser.databaseId,
         login: githubUser.login,
-        keys: Object.keys(githubUser)
-      }
+        keys: Object.keys(githubUser),
+      },
     });
     return null;
   }
@@ -164,21 +169,21 @@ async function ensureContributorExists(githubUser: GitHubUser | null | undefined
 
 export const capturePrDetailsGraphQL = inngest.createFunction(
   {
-    id: "capture-pr-details-graphql",
-    name: "Capture PR Details (GraphQL)",
+    id: 'capture-pr-details-graphql',
+    name: 'Capture PR Details (GraphQL)',
     concurrency: {
       limit: 10, // Can increase due to better rate limits
-      key: "event.data.repositoryId",
+      key: 'event.data.repositoryId',
     },
-    throttle: { limit: 50, period: "1m" }, // More generous than REST
+    throttle: { limit: 50, period: '1m' }, // More generous than REST
     retries: 2,
   },
-  { event: "capture/pr.details.graphql" },
+  { event: 'capture/pr.details.graphql' },
   async ({ event, step }) => {
     const { repositoryId, prNumber, prId, priority } = event.data;
 
     // Step 1: Get repository details
-    const repository = await step.run("get-repository", async () => {
+    const repository = await step.run('get-repository', async () => {
       const { data, error: _error } = await supabase
         .from('repositories')
         .select('owner, name')
@@ -193,24 +198,30 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
     });
 
     // Step 2: Fetch comprehensive PR data with GraphQL
-    const prData = await step.run("fetch-pr-all-_data", async () => {
+    const prData = await step.run('fetch-pr-all-_data', async () => {
       try {
         const client = getGraphQLClient();
         const result = await client.getPRDetails(
           repository.owner,
           repository.name,
-          parseInt(prNumber)
+          parseInt(prNumber),
         );
-        
-        console.log('✅ GraphQL query successful for PR #%s (cost: %s points)', prNumber, result.rateLimit?.cost || 'unknown');
+
+        console.log(
+          '✅ GraphQL query successful for PR #%s (cost: %s points)',
+          prNumber,
+          result.rateLimit?.cost || 'unknown',
+        );
         return result;
       } catch (_error) {
         // Log GraphQL-specific errors
         const errorMessage = error instanceof Error ? error.message : String(_error);
         if (_errorMessage.includes('rate limit')) {
-          throw new Error(`GraphQL rate limit exceeded for ${repository.owner}/${repository.name}#${prNumber}`);
+          throw new Error(
+            `GraphQL rate limit exceeded for ${repository.owner}/${repository.name}#${prNumber}`,
+          );
         }
-        
+
         // Sanitize error logging to avoid exposing sensitive information
         const errorType = error instanceof Error ? error.constructor.name : 'UnknownError';
         console.warn(`GraphQL failed for PR #${prNumber}, falling back to REST:`, _errorType);
@@ -219,7 +230,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
     });
 
     // Step 3: Store all data in database using bulk upsert
-    const storedData = await step.run("store-all-_data", async () => {
+    const storedData = await step.run('store-all-_data', async () => {
       const pullRequest = prData.pullRequest;
       if (!pullRequest) {
         throw new Error(`No PR _data returned for #${prNumber}`) as NonRetriableError;
@@ -238,33 +249,36 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
       }
 
       // Store PR details
-      const { data: prRecord, error: _error: prError } = await supabase
+      const { data: prRecord, error: prError } = await supabase
         .from('pull_requests')
-        .upsert({
-          repository_id: repositoryId,
-          github_id: pullRequest.databaseId,
-          number: pullRequest.number,
-          title: pullRequest.title,
-          body: pullRequest.body,
-          state: pullRequest.state?.toLowerCase() === 'open' ? 'open' : 'closed',
-          draft: pullRequest.isDraft || false,
-          additions: pullRequest.additions || 0,
-          deletions: pullRequest.deletions || 0,
-          changed_files: pullRequest.changedFiles || 0,
-          commits: pullRequest.commits?.totalCount || 0,
-          author_id: authorId,
-          created_at: pullRequest.createdAt,
-          updated_at: pullRequest.updatedAt,
-          closed_at: pullRequest.closedAt,
-          merged_at: pullRequest.mergedAt,
-          merged: pullRequest.merged || false,
-          mergeable: getMergeableStatus(pullRequest.mergeable),
-          merged_by_id: mergedById,
-          base_branch: pullRequest.baseRefName,
-          head_branch: pullRequest.headRefName,
-        }, {
-          onConflict: 'github_id'
-        })
+        .upsert(
+          {
+            repository_id: repositoryId,
+            github_id: pullRequest.databaseId,
+            number: pullRequest.number,
+            title: pullRequest.title,
+            body: pullRequest.body,
+            state: pullRequest.state?.toLowerCase() === 'open' ? 'open' : 'closed',
+            draft: pullRequest.isDraft || false,
+            additions: pullRequest.additions || 0,
+            deletions: pullRequest.deletions || 0,
+            changed_files: pullRequest.changedFiles || 0,
+            commits: pullRequest.commits?.totalCount || 0,
+            author_id: authorId,
+            created_at: pullRequest.createdAt,
+            updated_at: pullRequest.updatedAt,
+            closed_at: pullRequest.closedAt,
+            merged_at: pullRequest.mergedAt,
+            merged: pullRequest.merged || false,
+            mergeable: getMergeableStatus(pullRequest.mergeable),
+            merged_by_id: mergedById,
+            base_branch: pullRequest.baseRefName,
+            head_branch: pullRequest.headRefName,
+          },
+          {
+            onConflict: 'github_id',
+          },
+        )
         .select('id')
         .maybeSingle();
 
@@ -279,11 +293,11 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
       // Store reviews
       if (pullRequest.reviews?.nodes?.length > 0) {
         // Create all review authors in parallel
-        const reviewAuthorPromises = pullRequest.reviews.nodes.map((review: GraphQLReview) => 
-          ensureContributorExists(review.author)
+        const reviewAuthorPromises = pullRequest.reviews.nodes.map((review: GraphQLReview) =>
+          ensureContributorExists(review.author),
         );
         const reviewAuthorIds = await Promise.all(reviewAuthorPromises);
-        
+
         const reviewsToStore: Array<{
           repository_id: string;
           pull_request_id: string;
@@ -310,7 +324,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           }
         });
 
-        const { data: reviews, error: _error: reviewsError } = await supabase
+        const { data: reviews, error: reviewsError } = await supabase
           .from('reviews')
           .upsert(reviewsToStore, { onConflict: 'github_id' })
           .select('id');
@@ -325,11 +339,11 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
       // Store issue comments (general PR comments)
       if (pullRequest.comments?.nodes?.length > 0) {
         // Create all comment authors in parallel
-        const commenterPromises = pullRequest.comments.nodes.map((comment: GraphQLComment) => 
-          ensureContributorExists(comment.author)
+        const commenterPromises = pullRequest.comments.nodes.map((comment: GraphQLComment) =>
+          ensureContributorExists(comment.author),
         );
         const commenterIds = await Promise.all(commenterPromises);
-        
+
         const issueCommentsToStore: Array<{
           repository_id: string;
           pull_request_id: string;
@@ -351,12 +365,12 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
               commenter_id: commenterId,
               created_at: comment.createdAt,
               updated_at: comment.updatedAt,
-              comment_type: 'issue_comment'
+              comment_type: 'issue_comment',
             });
           }
         });
 
-        const { data: issueComments, error: _error: issueCommentsError } = await supabase
+        const { data: issueComments, error: issueCommentsError } = await supabase
           .from('comments')
           .upsert(issueCommentsToStore, { onConflict: 'github_id' })
           .select('id');
@@ -370,11 +384,14 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
 
       // Store review comments (code comments) - extract from reviews
       const reviewCommentsToStore: ReviewComment[] = [];
-      
+
       if (pullRequest.reviews?.nodes?.length > 0) {
         // Collect all review comment authors for parallel processing
-        const allReviewCommentAuthors: Array<{comment: GraphQLReviewComment, review: GraphQLReview}> = [];
-        
+        const allReviewCommentAuthors: Array<{
+          comment: GraphQLReviewComment;
+          review: GraphQLReview;
+        }> = [];
+
         for (const review of pullRequest.reviews.nodes) {
           if (review.comments?.nodes?.length > 0) {
             for (const comment of review.comments.nodes) {
@@ -382,13 +399,13 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
             }
           }
         }
-        
+
         // Create all review comment authors in parallel
-        const reviewCommentAuthorPromises = allReviewCommentAuthors.map(({ comment }) => 
-          ensureContributorExists(comment.author)
+        const reviewCommentAuthorPromises = allReviewCommentAuthors.map(({ comment }) =>
+          ensureContributorExists(comment.author),
         );
         const reviewCommentAuthorIds = await Promise.all(reviewCommentAuthorPromises);
-        
+
         // Build review comments with the resolved author IDs
         allReviewCommentAuthors.forEach(({ comment, review }, index) => {
           const commenterId = reviewCommentAuthorIds[index];
@@ -409,14 +426,14 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
               created_at: comment.createdAt,
               updated_at: comment.updatedAt,
               in_reply_to_id: comment.replyTo?.databaseId?.toString(),
-              comment_type: 'review_comment'
+              comment_type: 'review_comment',
             });
           }
         });
       }
-      
+
       if (reviewCommentsToStore.length > 0) {
-        const { data: reviewComments, error: _error: reviewCommentsError } = await supabase
+        const { data: reviewComments, error: reviewCommentsError } = await supabase
           .from('comments')
           .upsert(reviewCommentsToStore, { onConflict: 'github_id' })
           .select('id');
@@ -432,7 +449,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
         prStored: true,
         reviewsStored,
         commentsStored,
-        totalItems: 1 + reviewsStored + commentsStored
+        totalItems: 1 + reviewsStored + commentsStored,
       };
     });
 
@@ -448,8 +465,8 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
       breakdown: {
         pr: 1,
         reviews: storedData.reviewsStored,
-        comments: storedData.commentsStored
-      }
+        comments: storedData.commentsStored,
+      },
     };
-  }
+  },
 );

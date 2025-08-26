@@ -1,6 +1,6 @@
 /**
  * Simplified Rollout Alerts (Analytics Removed)
- * 
+ *
  * No-op implementation that maintains the same interface but removes all Sentry dependencies.
  * All alert functionality has been replaced with simple console logging.
  */
@@ -24,7 +24,15 @@ export interface RolloutPerformanceMetrics {
 }
 
 export interface RolloutAlert {
-  type: 'performance' | 'error' | 'rollback' | 'capacity' | 'success' | 'warning' | 'threshold' | 'completion';
+  type:
+    | 'performance'
+    | 'error'
+    | 'rollback'
+    | 'capacity'
+    | 'success'
+    | 'warning'
+    | 'threshold'
+    | 'completion';
   severity: 'low' | 'medium' | 'high' | 'critical';
   message: string;
   context: RolloutAlertContext;
@@ -46,7 +54,10 @@ export class SentryRolloutAlertsService {
     console.warn('Performance alert triggered:', { metrics, threshold });
   }
 
-  triggerErrorAlert(message: string, severity: 'low' | 'medium' | 'high' | 'critical' = 'medium'): void {
+  triggerErrorAlert(
+    message: string,
+    severity: 'low' | 'medium' | 'high' | 'critical' = 'medium',
+  ): void {
     // Simple error alert logging
     console.error('Error alert triggered:', { message, severity });
   }
@@ -71,7 +82,12 @@ export class SentryRolloutAlertsService {
     console.warn('Warning alert triggered:', { message, context });
   }
 
-  triggerThresholdAlert(metric: string, value: number, threshold: number, severity: 'low' | 'medium' | 'high' = 'medium'): void {
+  triggerThresholdAlert(
+    metric: string,
+    value: number,
+    threshold: number,
+    severity: 'low' | 'medium' | 'high' = 'medium',
+  ): void {
     // Simple threshold alert logging
     console.warn('Threshold alert triggered:', { metric, value, threshold, severity });
   }
@@ -85,7 +101,7 @@ export class SentryRolloutAlertsService {
     // Simple rollout error logging
     console.error('Rollout error handled:', {
       error: error.message,
-      context: { ...this.rolloutContext, ...context }
+      context: { ...this.rolloutContext, ...context },
     });
   }
 

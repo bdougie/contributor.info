@@ -7,21 +7,22 @@ interface ChangelogSEOProps {
   description?: string;
 }
 
-export function ChangelogSEO({ 
-  version, 
-  date, 
-  title = "Changelog", 
-  description = "All notable changes to contributor.info are documented here. Stay up to date with new features, improvements, and bug fixes."
+export function ChangelogSEO({
+  version,
+  date,
+  title = 'Changelog',
+  description = 'All notable changes to contributor.info are documented here. Stay up to date with new features, improvements, and bug fixes.',
 }: ChangelogSEOProps) {
-  const pageTitle = version 
+  const pageTitle = version
     ? `Version ${version} - contributor.info Changelog`
     : `${title} - contributor.info`;
-    
-  const pageDescription = version && date
-    ? `Changes and updates in contributor.info version ${version}, released on ${new Date(date).toLocaleDateString()}.`
-    : description;
 
-  const canonicalUrl = version 
+  const pageDescription =
+    version && date
+      ? `Changes and updates in contributor.info version ${version}, released on ${new Date(date).toLocaleDateString()}.`
+      : description;
+
+  const canonicalUrl = version
     ? `https://contributor.info/changelog#version-${version.replace(/\./g, '-')}`
     : 'https://contributor.info/changelog';
 
@@ -31,7 +32,7 @@ export function ChangelogSEO({
       <title>{pageTitle}</title>
       <meta name="description" content={pageDescription} />
       <link rel="canonical" href={canonicalUrl} />
-      
+
       {/* Open Graph Tags */}
       <meta property="og:title" content={pageTitle} />
       <meta property="og:description" content={pageDescription} />
@@ -42,67 +43,76 @@ export function ChangelogSEO({
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
       <meta property="og:image:alt" content="contributor.info - Open Source Repository Analytics" />
-      
+
       {/* Twitter Card Tags */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={pageTitle} />
       <meta name="twitter:description" content={pageDescription} />
       <meta name="twitter:image" content="https://contributor.info/social.png" />
-      <meta name="twitter:image:alt" content="contributor.info - Open Source Repository Analytics" />
-      
+      <meta
+        name="twitter:image:alt"
+        content="contributor.info - Open Source Repository Analytics"
+      />
+
       {/* Additional Meta Tags */}
       <meta name="robots" content="index, follow" />
       <meta name="author" content="contributor.info Team" />
-      
+
       {/* Structured Data for Article */}
       {version && date && (
         <script type="application/ld+json">
           {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Article",
-            "headline": pageTitle,
-            "description": pageDescription,
-            "author": {
-              "@type": "Organization",
-              "name": "contributor.info Team"
+            '@context': 'https://schema.org',
+            '@type': 'Article',
+            headline: pageTitle,
+            description: pageDescription,
+            author: {
+              '@type': 'Organization',
+              name: 'contributor.info Team',
             },
-            "publisher": {
-              "@type": "Organization",
-              "name": "contributor.info",
-              "logo": {
-                "@type": "ImageObject",
-                "url": "https://contributor.info/social.png"
-              }
+            publisher: {
+              '@type': 'Organization',
+              name: 'contributor.info',
+              logo: {
+                '@type': 'ImageObject',
+                url: 'https://contributor.info/social.png',
+              },
             },
-            "datePublished": new Date(date).toISOString(),
-            "dateModified": new Date(date).toISOString(),
-            "url": canonicalUrl,
-            "image": "https://contributor.info/social.png"
+            datePublished: new Date(date).toISOString(),
+            dateModified: new Date(date).toISOString(),
+            url: canonicalUrl,
+            image: 'https://contributor.info/social.png',
           })}
         </script>
       )}
-      
+
       {/* RSS/Atom Feed Links for better discoverability */}
-      <link 
-        rel="alternate" 
-        type="application/rss+xml" 
-        title="contributor.info Changelog RSS Feed" 
-        href="https://contributor.info/changelog-rss.xml" 
+      <link
+        rel="alternate"
+        type="application/rss+xml"
+        title="contributor.info Changelog RSS Feed"
+        href="https://contributor.info/changelog-rss.xml"
       />
-      <link 
-        rel="alternate" 
-        type="application/atom+xml" 
-        title="contributor.info Changelog Atom Feed" 
-        href="https://contributor.info/changelog-atom.xml" 
+      <link
+        rel="alternate"
+        type="application/atom+xml"
+        title="contributor.info Changelog Atom Feed"
+        href="https://contributor.info/changelog-atom.xml"
       />
-      
+
       {/* WebSub Hub Discovery (for future real-time updates) */}
       <link rel="hub" href="https://contributor.info/api/websub/hub" />
-      
+
       {/* Content freshness signals - use actual changelog date */}
-      <meta name="last-modified" content={date ? new Date(date).toISOString() : new Date().toISOString()} />
+      <meta
+        name="last-modified"
+        content={date ? new Date(date).toISOString() : new Date().toISOString()}
+      />
       <meta name="revisit-after" content="7 days" />
-      <meta property="article:modified_time" content={date ? new Date(date).toISOString() : new Date().toISOString()} />
+      <meta
+        property="article:modified_time"
+        content={date ? new Date(date).toISOString() : new Date().toISOString()}
+      />
     </Helmet>
   );
 }

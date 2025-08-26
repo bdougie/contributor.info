@@ -21,24 +21,23 @@ export interface RepositoryCategorizer {
 
 /**
  * Repository Categorization Manager
- * 
+ *
  * Handles automatic categorization of repositories based on:
  * - Star count
- * - Contributor count  
+ * - Contributor count
  * - PR count
  * - Activity patterns
- * 
+ *
  * Categories: test, small, medium, large, enterprise
  */
 export class RepositoryCategorizationManager implements RepositoryCategorizer {
-  
   /**
    * Categorize all repositories in the database
    */
   async categorizeAll(): Promise<void> {
     try {
       console.log('[RepositoryCategorization] Starting bulk categorization...');
-      
+
       // Get all repositories
       const { data: repositories, error: _error } = await supabase
         .from('repositories')
@@ -54,7 +53,10 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         return;
       }
 
-      console.log('[RepositoryCategorization] Categorizing %s repositories...', repositories.length);
+      console.log(
+        '[RepositoryCategorization] Categorizing %s repositories...',
+        repositories.length,
+      );
 
       // Categorize each repository
       for (const repo of repositories) {
@@ -62,7 +64,10 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
           const category = await this.categorizeRepository(repo.id);
           console.log('[RepositoryCategorization] %s/%s → %s', repo.owner, repo.name, category);
         } catch (_error) {
-          console.error(`[RepositoryCategorization] Error categorizing ${repo.owner}/${repo.name}:`, _error);
+          console.error(
+            `[RepositoryCategorization] Error categorizing ${repo.owner}/${repo.name}:`,
+            _error,
+          );
         }
       }
 
@@ -80,7 +85,10 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
       const category = await hybridRolloutManager.categorizeRepository(repositoryId);
       return category?.category || null;
     } catch (_error) {
-      console.error(`[RepositoryCategorization] Error categorizing repository ${repositoryId}:`, _error);
+      console.error(
+        `[RepositoryCategorization] Error categorizing repository ${repositoryId}:`,
+        _error,
+      );
       return null;
     }
   }
@@ -90,9 +98,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
    */
   async getCategoryStats(): Promise<RepositoryCategoryStats[]> {
     try {
-      const { data, error: _error } = await supabase
-        .from('repository_categories')
-        .select(`
+      const { data, error: _error } = await supabase.from('repository_categories').select(`
           category,
           star_count,
           contributor_count,
@@ -110,13 +116,16 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
       }
 
       // Group by category and calculate stats
-      const categoryMap = new Map<string, {
-        count: number;
-        total_star_count: number;
-        total_contributor_count: number;
-        total_pr_count: number;
-        total_activity_score: number;
-      }>();
+      const categoryMap = new Map<
+        string,
+        {
+          count: number;
+          total_star_count: number;
+          total_contributor_count: number;
+          total_pr_count: number;
+          total_activity_score: number;
+        }
+      >();
 
       for (const repo of _data) {
         const category = repo.category;
@@ -125,7 +134,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
           total_star_count: 0,
           total_contributor_count: 0,
           total_pr_count: 0,
-          total_activity_score: 0
+          total_activity_score: 0,
         };
 
         existing.count += 1;
@@ -146,7 +155,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
           total_star_count: totals.total_star_count,
           total_contributor_count: totals.total_contributor_count,
           total_pr_count: totals.total_pr_count,
-          average_activity_score: totals.count > 0 ? totals.total_activity_score / totals.count : 0
+          average_activity_score: totals.count > 0 ? totals.total_activity_score / totals.count : 0,
         });
       }
 
@@ -167,7 +176,8 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
     try {
       const { data, error: _error } = await supabase
         .from('repository_categories')
-        .select(`
+        .select(
+          `
           *,
           repositories (
             id,
@@ -178,18 +188,25 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
             contributors_count,
             updated_at
           )
-        `)
+        `,
+        )
         .eq('category', category)
         .order('priority_level', { ascending: false });
 
       if (_error) {
-        console.error(`[RepositoryCategorization] Error fetching repositories for category ${category}:`, _error);
+        console.error(
+          `[RepositoryCategorization] Error fetching repositories for category ${category}:`,
+          _error,
+        );
         return [];
       }
 
       return data || [];
     } catch (_error) {
-      console.error(`[RepositoryCategorization] Exception getting repositories for category ${category}:`, _error);
+      console.error(
+        `[RepositoryCategorization] Exception getting repositories for category ${category}:`,
+        _error,
+      );
       return [];
     }
   }
@@ -205,19 +222,28 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
           is_test_repository: true,
           category: 'test',
           priority_level: 100,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('repository_id', repositoryId);
 
       if (_error) {
-        console.error(`[RepositoryCategorization] Error marking repository ${repositoryId} as test:`, _error);
+        console.error(
+          `[RepositoryCategorization] Error marking repository ${repositoryId} as test:`,
+          _error,
+        );
         return false;
       }
 
-      console.log('[RepositoryCategorization] Marked repository %s as test repository', repositoryId);
+      console.log(
+        '[RepositoryCategorization] Marked repository %s as test repository',
+        repositoryId,
+      );
       return true;
     } catch (_error) {
-      console.error(`[RepositoryCategorization] Exception marking repository ${repositoryId} as test:`, _error);
+      console.error(
+        `[RepositoryCategorization] Exception marking repository ${repositoryId} as test:`,
+        _error,
+      );
       return false;
     }
   }
@@ -229,9 +255,11 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
     try {
       // Re-categorize based on actual metrics
       const category = await this.categorizeRepository(repositoryId);
-      
+
       if (!category) {
-        console.error(`[RepositoryCategorization] Could not re-categorize repository ${repositoryId}`);
+        console.error(
+          `[RepositoryCategorization] Could not re-categorize repository ${repositoryId}`,
+        );
         return false;
       }
 
@@ -239,19 +267,28 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         .from('repository_categories')
         .update({
           is_test_repository: false,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('repository_id', repositoryId);
 
       if (_error) {
-        console.error(`[RepositoryCategorization] Error unmarking repository ${repositoryId} as test:`, _error);
+        console.error(
+          `[RepositoryCategorization] Error unmarking repository ${repositoryId} as test:`,
+          _error,
+        );
         return false;
       }
 
-      console.log('[RepositoryCategorization] Unmarked repository %s as test repository', repositoryId);
+      console.log(
+        '[RepositoryCategorization] Unmarked repository %s as test repository',
+        repositoryId,
+      );
       return true;
     } catch (_error) {
-      console.error(`[RepositoryCategorization] Exception unmarking repository ${repositoryId} as test:`, _error);
+      console.error(
+        `[RepositoryCategorization] Exception unmarking repository ${repositoryId} as test:`,
+        _error,
+      );
       return false;
     }
   }
@@ -263,7 +300,8 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
     try {
       const { data, error: _error } = await supabase
         .from('repository_categories')
-        .select(`
+        .select(
+          `
           *,
           repositories (
             id,
@@ -274,7 +312,8 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
             contributors_count,
             updated_at
           )
-        `)
+        `,
+        )
         .eq('is_test_repository', true)
         .order('priority_level', { ascending: false });
 
@@ -297,7 +336,8 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
     try {
       const { data, error: _error } = await supabase
         .from('repository_categories')
-        .select(`
+        .select(
+          `
           *,
           repositories (
             id,
@@ -308,18 +348,25 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
             contributors_count,
             updated_at
           )
-        `)
+        `,
+        )
         .order('priority_level', { ascending: false })
         .limit(limit);
 
       if (_error) {
-        console.error('[RepositoryCategorization] Error fetching rollout-ready repositories:', _error);
+        console.error(
+          '[RepositoryCategorization] Error fetching rollout-ready repositories:',
+          _error,
+        );
         return [];
       }
 
       return data || [];
     } catch (_error) {
-      console.error('[RepositoryCategorization] Exception getting rollout-ready repositories:', _error);
+      console.error(
+        '[RepositoryCategorization] Exception getting rollout-ready repositories:',
+        _error,
+      );
       return [];
     }
   }

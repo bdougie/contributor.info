@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
-import { 
-  WorkspaceTabNavigation, 
+import {
+  WorkspaceTabNavigation,
   WorkspaceTabNavigationMobile,
   WorkspaceTabWithContent,
-  type TabValue 
+  type TabValue,
 } from './WorkspaceTabNavigation';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -20,15 +20,11 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // Wrapper component for state management
-function TabNavigationWrapper(props: Omit<Parameters<typeof WorkspaceTabNavigation>[0], 'activeTab' | 'onTabChange'>) {
+function TabNavigationWrapper(
+  props: Omit<Parameters<typeof WorkspaceTabNavigation>[0], 'activeTab' | 'onTabChange'>,
+) {
   const [activeTab, setActiveTab] = useState<TabValue>('overview');
-  return (
-    <WorkspaceTabNavigation
-      {...props}
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-    />
-  );
+  return <WorkspaceTabNavigation {...props} activeTab={activeTab} onTabChange={setActiveTab} />;
 }
 
 export const Default: Story = {
@@ -144,9 +140,7 @@ export const MobileVersion: Story = {
           }}
         />
         <div className="p-4">
-          <p className="text-center text-muted-foreground">
-            Active tab: {activeTab}
-          </p>
+          <p className="text-center text-muted-foreground">Active tab: {activeTab}</p>
         </div>
       </div>
     );
@@ -199,11 +193,7 @@ export const WithDisabledTabs: Story = {
     ];
 
     return (
-      <WorkspaceTabNavigation
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        tabs={customTabs}
-      />
+      <WorkspaceTabNavigation activeTab={activeTab} onTabChange={setActiveTab} tabs={customTabs} />
     );
   },
 };
@@ -211,7 +201,7 @@ export const WithDisabledTabs: Story = {
 export const TabsWithCustomContent: Story = {
   render: () => {
     const [activeTab, setActiveTab] = useState<TabValue>('overview');
-    
+
     const content: Record<TabValue, React.ReactNode> = {
       overview: (
         <Card>

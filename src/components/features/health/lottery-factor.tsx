@@ -1,37 +1,30 @@
-import { useContext, useState, useEffect, useRef } from "react"
-import { HelpCircle, Users, Bot, ArrowLeft, ArrowRight, GitPullRequest, Percent,  } from '@/components/ui/icon';
-import { useParams } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { useContext, useState, useEffect, useRef } from 'react';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
-import { ContributorHoverCard } from "../contributor";
-import { RepoStatsContext } from "@/lib/repo-stats-context";
-import { useTimeRange } from "@/lib/time-range-store";
-import { YoloIcon } from "@/components/icons/YoloIcon";
-import { LotteryIcon } from "@/components/icons/LotteryIcon";
-import { ShareableCard } from "@/components/features/sharing/shareable-card";
-import type {
-  RepoStats,
-  LotteryFactor as LotteryFactorType,
-  ContributorStats,
-} from "@/lib/types";
+  HelpCircle,
+  Users,
+  Bot,
+  ArrowLeft,
+  ArrowRight,
+  GitPullRequest,
+  Percent,
+} from '@/components/ui/icon';
+import { useParams } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
+import { ContributorHoverCard } from '../contributor';
+import { RepoStatsContext } from '@/lib/repo-stats-context';
+import { useTimeRange } from '@/lib/time-range-store';
+import { YoloIcon } from '@/components/icons/YoloIcon';
+import { LotteryIcon } from '@/components/icons/LotteryIcon';
+import { ShareableCard } from '@/components/features/sharing/shareable-card';
+import type { RepoStats, LotteryFactor as LotteryFactorType, ContributorStats } from '@/lib/types';
 
 function LotteryFactorSkeleton() {
   return (
@@ -75,8 +68,7 @@ function LotteryFactorEmpty() {
       <LotteryIcon className="h-5 w-5" />
       <h3 className="text-lg font-medium">No data available</h3>
       <p className="text-sm text-muted-foreground mt-2">
-        This repository doesn't have enough commit data to calculate the Lottery
-        Factor.
+        This repository doesn't have enough commit data to calculate the Lottery Factor.
       </p>
     </div>
   );
@@ -101,16 +93,14 @@ export function LotteryFactorContent({
   const repositoryName = owner && repo ? `${owner}/${repo}` : undefined;
 
   // State for contributor roles from confidence system
-  const [contributorRoles, setContributorRoles] = useState<Map<string, string>>(
-    new Map()
-  );
+  const [contributorRoles, setContributorRoles] = useState<Map<string, string>>(new Map());
 
   // Apply client-side filtering based on includeBots
   const safeStats = {
     ...rawStats,
     pullRequests: includeBots
       ? rawStats.pullRequests
-      : rawStats.pullRequests.filter((pr) => pr.user.type !== "Bot"),
+      : rawStats.pullRequests.filter((pr) => pr.user.type !== 'Bot'),
   };
 
   // Filter lottery factor contributors based on includeBots
@@ -121,9 +111,9 @@ export function LotteryFactorContent({
           contributors: rawLotteryFactor.contributors.filter((contributor) => {
             // Find the corresponding PR to check if user is a bot
             const userPRs = rawStats.pullRequests.filter(
-              (pr) => pr.user.login === contributor.login
+              (pr) => pr.user.login === contributor.login,
             );
-            return userPRs.length === 0 || userPRs[0].user.type !== "Bot";
+            return userPRs.length === 0 || userPRs[0].user.type !== 'Bot';
           }),
         }
       : rawLotteryFactor;
@@ -137,13 +127,13 @@ export function LotteryFactorContent({
 
       try {
         const { data, error: _error } = await supabase
-          .from("contributor_roles")
-          .select("user_id, role")
-          .eq("repository_owner", owner)
-          .eq("repository_name", repo);
+          .from('contributor_roles')
+          .select('user_id, role')
+          .eq('repository_owner', owner)
+          .eq('repository_name', repo);
 
         if (_error) {
-          console.warn("Failed to fetch contributor roles:", _error);
+          console.warn('Failed to fetch contributor roles:', _error);
           return;
         }
 
@@ -153,7 +143,7 @@ export function LotteryFactorContent({
         });
         setContributorRoles(rolesMap);
       } catch (_error) {
-        console.warn("Error fetching contributor roles:", _error);
+        console.warn('Error fetching contributor roles:', _error);
       }
     }
 
@@ -169,9 +159,9 @@ export function LotteryFactorContent({
     }
 
     // Fallback to old position-based system
-    if (index === 0) return "maintainer";
-    if (index === 1) return "member";
-    return "contributor";
+    if (index === 0) return 'maintainer';
+    if (index === 1) return 'member';
+    return 'contributor';
   };
 
   if (safeStats.loading) {
@@ -191,7 +181,7 @@ export function LotteryFactorContent({
           title="YOLO Coders"
           contextInfo={{
             repository: repositoryName,
-            metric: "direct commits",
+            metric: 'direct commits',
           }}
           chartType="yolo-coders"
         >
@@ -212,8 +202,7 @@ export function LotteryFactorContent({
               <h2 className="text-xl font-semibold">YOLO Coders</h2>
             </div>
             <p className="text-sm text-muted-foreground">
-              No direct commits to the main branch detected in the last{" "}
-              {timeRangeNumber} days.
+              No direct commits to the main branch detected in the last {timeRangeNumber} days.
             </p>
           </div>
         </ShareableCard>
@@ -225,7 +214,7 @@ export function LotteryFactorContent({
         title="YOLO Coders"
         contextInfo={{
           repository: repositoryName,
-          metric: "direct commits",
+          metric: 'direct commits',
         }}
         chartType="yolo-coders"
       >
@@ -247,16 +236,12 @@ export function LotteryFactorContent({
           </div>
           <p className="text-sm text-muted-foreground">
             {directCommitsData.yoloCoderStats.length} contributor
-            {directCommitsData.yoloCoderStats.length !== 1 ? "s" : ""} have
-            pushed directly to the main branch of this repository in the last{" "}
-            {timeRangeNumber} days without pull requests
+            {directCommitsData.yoloCoderStats.length !== 1 ? 's' : ''} have pushed directly to the
+            main branch of this repository in the last {timeRangeNumber} days without pull requests
           </p>
           <div className="space-y-4 mt-2">
             {directCommitsData.yoloCoderStats.map((coder, index) => (
-              <div
-                key={coder.login}
-                className="flex items-center justify-between"
-              >
+              <div key={coder.login} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <ContributorHoverCard
                     contributor={{
@@ -265,32 +250,29 @@ export function LotteryFactorContent({
                       pullRequests: 0, // YOLO coders bypass PRs
                       percentage: 0, // Not applicable for direct commits
                     }}
-                    role={coder.type === "Bot" ? "bot" : getContributorRole(coder.login, index)}
+                    role={coder.type === 'Bot' ? 'bot' : getContributorRole(coder.login, index)}
                   >
                     <OptimizedAvatar
                       src={coder.avatar_url}
                       alt={coder.login}
                       size={32}
                       lazy={false}
-                      fallback={coder.login[0]?.toUpperCase() || "?"}
+                      fallback={coder.login[0]?.toUpperCase() || '?'}
                       className="cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
                     />
                   </ContributorHoverCard>
                   <div>
                     <p className="font-medium">{coder.login}</p>
                     <p className="text-sm text-muted-foreground">
-                      {coder.type === "Bot" ? "bot" : getContributorRole(coder.login, index)}
+                      {coder.type === 'Bot' ? 'bot' : getContributorRole(coder.login, index)}
                     </p>
                   </div>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  <span className="font-medium">{coder.directCommits}</span>{" "}
-                  push
-                  {coder.directCommits !== 1 ? "es" : ""} with{" "}
-                  <span className="font-medium">
-                    {coder.totalCommits}
-                  </span>{" "}
-                  commit{coder.totalCommits !== 1 ? "s" : ""}
+                  <span className="font-medium">{coder.directCommits}</span> push
+                  {coder.directCommits !== 1 ? 'es' : ''} with{' '}
+                  <span className="font-medium">{coder.totalCommits}</span> commit
+                  {coder.totalCommits !== 1 ? 's' : ''}
                 </div>
               </div>
             ))}
@@ -300,24 +282,24 @@ export function LotteryFactorContent({
     );
   }
 
-  const getRiskLevelColor = (level: "Low" | "Medium" | "High") => {
+  const getRiskLevelColor = (level: 'Low' | 'Medium' | 'High') => {
     switch (level) {
-      case "Low":
-        return "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400";
-      case "Medium":
-        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400";
-      case "High":
-        return "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400";
+      case 'Low':
+        return 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400';
+      case 'Medium':
+        return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400';
+      case 'High':
+        return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400';
     }
   };
 
   const getProgressBarSegments = (contributors: ContributorStats[]) => {
     const colors = [
-      "bg-orange-500 hover:bg-orange-600",
-      "bg-orange-400 hover:bg-orange-500",
-      "bg-yellow-500 hover:bg-yellow-600",
-      "bg-green-500 hover:bg-green-600",
-      "bg-blue-500 hover:bg-blue-600",
+      'bg-orange-500 hover:bg-orange-600',
+      'bg-orange-400 hover:bg-orange-500',
+      'bg-yellow-500 hover:bg-yellow-600',
+      'bg-green-500 hover:bg-green-600',
+      'bg-blue-500 hover:bg-blue-600',
     ];
 
     const otherContributorsPercentage =
@@ -330,7 +312,7 @@ export function LotteryFactorContent({
         contributor,
       })),
       {
-        color: "bg-gray-400 hover:bg-gray-500",
+        color: 'bg-gray-400 hover:bg-gray-500',
         width: `${otherContributorsPercentage}%`,
         contributor: null,
       },
@@ -342,7 +324,7 @@ export function LotteryFactorContent({
       title="Lottery Factor"
       contextInfo={{
         repository: repositoryName,
-        metric: "lottery factor",
+        metric: 'lottery factor',
       }}
       chartType="lottery-factor"
     >
@@ -359,9 +341,9 @@ export function LotteryFactorContent({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs">
-                      The Lottery Factor measures the distribution of
-                      contributions across maintainers. A high percentage
-                      indicates increased risk due to concentrated knowledge.
+                      The Lottery Factor measures the distribution of contributions across
+                      maintainers. A high percentage indicates increased risk due to concentrated
+                      knowledge.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -369,9 +351,7 @@ export function LotteryFactorContent({
             </div>
             <Badge
               variant="secondary"
-              className={`ml-auto ${getRiskLevelColor(
-                safeLotteryFactor.riskLevel
-              )}`}
+              className={`ml-auto ${getRiskLevelColor(safeLotteryFactor.riskLevel)}`}
             >
               {safeLotteryFactor.riskLevel}
             </Badge>
@@ -390,7 +370,7 @@ export function LotteryFactorContent({
                 </div>
                 <p
                   className="text-sm hidden sm:inline"
-                  style={{ overflow: "hidden", textOverflow: "ellipsis" }}
+                  style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
                 >
                   commits pushed on main
                 </p>
@@ -406,62 +386,55 @@ export function LotteryFactorContent({
         <div className="space-y-4">
           <div className="space-y-2">
             <div className="text-sm text-muted-foreground">
-              The top {safeLotteryFactor.topContributorsCount} contributors of
-              this repository have made{" "}
+              The top {safeLotteryFactor.topContributorsCount} contributors of this repository have
+              made{' '}
               <span className="font-medium text-foreground">
                 {safeLotteryFactor.topContributorsPercentage}%
-              </span>{" "}
+              </span>{' '}
               of all pull requests in the past {timeRangeNumber} days.
             </div>
 
             <div className="h-2 w-full rounded-full overflow-hidden flex">
-              {getProgressBarSegments(safeLotteryFactor.contributors).map(
-                (segment, i) => (
-                  <TooltipProvider key={i}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div
-                          className={`h-full transition-colors ${segment.color}`}
-                          style={{ width: segment.width }}
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="flex items-center gap-2">
-                          {segment.contributor
-? (
-                            <>
-                              <OptimizedAvatar
-                                src={segment.contributor.avatar_url}
-                                alt={segment.contributor.login}
-                                size={32}
-                                lazy={false}
-                                fallback={
-                                  segment.contributor.login[0]?.toUpperCase() ||
-                                  "?"
-                                }
-                                className="w-4 h-4"
-                              />
-                              <span>{segment.contributor.login}</span>
-                              <span className="text-muted-foreground">
-                                ({Math.round(segment.contributor.percentage)}%)
-                              </span>
-                            </>
-                          )
-: (
-                            <>
-                              <Users className="w-4 h-4" />
-                              <span>Other contributors</span>
-                              <span className="text-muted-foreground">
-                                ({Math.round(parseFloat(segment.width))}%)
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )
-              )}
+              {getProgressBarSegments(safeLotteryFactor.contributors).map((segment, i) => (
+                <TooltipProvider key={i}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className={`h-full transition-colors ${segment.color}`}
+                        style={{ width: segment.width }}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="flex items-center gap-2">
+                        {segment.contributor ? (
+                          <>
+                            <OptimizedAvatar
+                              src={segment.contributor.avatar_url}
+                              alt={segment.contributor.login}
+                              size={32}
+                              lazy={false}
+                              fallback={segment.contributor.login[0]?.toUpperCase() || '?'}
+                              className="w-4 h-4"
+                            />
+                            <span>{segment.contributor.login}</span>
+                            <span className="text-muted-foreground">
+                              ({Math.round(segment.contributor.percentage)}%)
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Users className="w-4 h-4" />
+                            <span>Other contributors</span>
+                            <span className="text-muted-foreground">
+                              ({Math.round(parseFloat(segment.width))}%)
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ))}
             </div>
           </div>
 
@@ -487,32 +460,23 @@ export function LotteryFactorContent({
                       alt={contributor.login}
                       size={32}
                       lazy={false}
-                      fallback={contributor.login[0]?.toUpperCase() || "?"}
+                      fallback={contributor.login[0]?.toUpperCase() || '?'}
                       className="cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
                     />
                   </ContributorHoverCard>
                   <div className="flex-1 min-w-0">
-                    <div
-                      className="font-medium"
-                      style={{ wordBreak: "break-word" }}
-                    >
+                    <div className="font-medium" style={{ wordBreak: 'break-word' }}>
                       {contributor.login}
                     </div>
                     <div className="text-sm text-muted-foreground flex items-center justify-between">
-                      <span>
-                        {getContributorRole(contributor.login, index)}
-                      </span>
+                      <span>{getContributorRole(contributor.login, index)}</span>
                       <div className="flex items-center gap-2 sm:hidden">
                         <span className="flex items-center gap-1">
-                          <span className="text-xs">
-                            {contributor.pullRequests}
-                          </span>
+                          <span className="text-xs">{contributor.pullRequests}</span>
                           <GitPullRequest className="h-3 w-3" />
                         </span>
                         <span className="flex items-center gap-1">
-                          <span className="text-xs">
-                            {Math.round(contributor.percentage)}
-                          </span>
+                          <span className="text-xs">{Math.round(contributor.percentage)}</span>
                           <Percent className="h-3 w-3" />
                         </span>
                       </div>
@@ -521,14 +485,10 @@ export function LotteryFactorContent({
                 </div>
                 <div className="hidden sm:flex sm:justify-between sm:contents">
                   <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
-                    <span className="text-base">
-                      {contributor.pullRequests}
-                    </span>
+                    <span className="text-base">{contributor.pullRequests}</span>
                   </div>
                   <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
-                    <span className="text-base">
-                      {Math.round(contributor.percentage)}%
-                    </span>
+                    <span className="text-base">{Math.round(contributor.percentage)}%</span>
                   </div>
                 </div>
               </div>
@@ -545,7 +505,7 @@ export function LotteryFactorContent({
                     <div className="text-sm text-muted-foreground flex items-center justify-between">
                       <span>
                         {safeLotteryFactor.totalContributors -
-                          safeLotteryFactor.contributors.length}{" "}
+                          safeLotteryFactor.contributors.length}{' '}
                         contributors
                       </span>
                       <div className="flex items-center gap-2 sm:hidden">
@@ -554,7 +514,7 @@ export function LotteryFactorContent({
                             {safeStats.pullRequests.length -
                               safeLotteryFactor.contributors.reduce(
                                 (sum, c) => sum + c.pullRequests,
-                                0
+                                0,
                               )}
                           </span>
                           <GitPullRequest className="h-3 w-3" />
@@ -565,8 +525,8 @@ export function LotteryFactorContent({
                               100 -
                                 safeLotteryFactor.contributors.reduce(
                                   (sum, c) => sum + c.percentage,
-                                  0
-                                )
+                                  0,
+                                ),
                             )}
                           </span>
                           <Percent className="h-3 w-3" />
@@ -579,20 +539,14 @@ export function LotteryFactorContent({
                   <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
                     <span className="text-base">
                       {safeStats.pullRequests.length -
-                        safeLotteryFactor.contributors.reduce(
-                          (sum, c) => sum + c.pullRequests,
-                          0
-                        )}
+                        safeLotteryFactor.contributors.reduce((sum, c) => sum + c.pullRequests, 0)}
                     </span>
                   </div>
                   <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
                     <span className="text-base">
                       {Math.round(
                         100 -
-                          safeLotteryFactor.contributors.reduce(
-                            (sum, c) => sum + c.percentage,
-                            0
-                          )
+                          safeLotteryFactor.contributors.reduce((sum, c) => sum + c.percentage, 0),
                       )}
                       %
                     </span>
@@ -609,8 +563,7 @@ export function LotteryFactorContent({
 
 // LotteryFactor Tab Component that uses Context
 export default function LotteryFactor() {
-  const { stats, lotteryFactor, directCommitsData, includeBots } =
-    useContext(RepoStatsContext);
+  const { stats, lotteryFactor, directCommitsData, includeBots } = useContext(RepoStatsContext);
 
   // Local state for bot toggle to avoid page refresh
   const [localIncludeBots, setLocalIncludeBots] = useState(includeBots);
@@ -621,9 +574,7 @@ export default function LotteryFactor() {
     setLocalIncludeBots(includeBots);
   }, [includeBots]);
 
-  const botCount = stats.pullRequests.filter(
-    (pr) => pr.user.type === "Bot"
-  ).length;
+  const botCount = stats.pullRequests.filter((pr) => pr.user.type === 'Bot').length;
   const hasBots = botCount > 0;
   // YOLO Coders button should only be visible if there are YOLO pushes
   const showYoloButton = directCommitsData?.hasYoloCoders === true;
@@ -661,10 +612,7 @@ export default function LotteryFactor() {
               checked={localIncludeBots}
               onCheckedChange={handleToggleIncludeBots}
             />
-            <Label
-              htmlFor="show-bots"
-              className="flex items-center gap-1 cursor-pointer"
-            >
+            <Label htmlFor="show-bots" className="flex items-center gap-1 cursor-pointer">
               <Bot className="h-4 w-4" />
               Show bots
               {botCount > 0 && (

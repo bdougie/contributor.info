@@ -1,25 +1,22 @@
-;
-import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
-import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
-import type { ContributorStats } from "@/lib/types";
-import React from "react"
+import * as HoverCardPrimitive from '@radix-ui/react-hover-card';
+import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
+import type { ContributorStats } from '@/lib/types';
+import React from 'react';
 import { GitPullRequest, MessageSquare, GitPullRequestDraft } from '@/components/ui/icon';
 
 // Function to get status badge styling
 const getStatusBadgeStyle = (state: string, merged: boolean) => {
-  if (merged)
-    return "bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400";
-  if (state === "closed")
-    return "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400";
-  return "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400";
+  if (merged) return 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400';
+  if (state === 'closed') return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400';
+  return 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400';
 };
 
 // Function to get status label
 const getStatusLabel = (state: string, merged: boolean) => {
-  if (merged) return "merged";
+  if (merged) return 'merged';
   return state;
 };
 
@@ -45,19 +42,19 @@ export function ContributorHoverCard({
   return (
     <HoverCardPrimitive.Root openDelay={0} closeDelay={100}>
       <HoverCardPrimitive.Trigger asChild>
-        <div className="inline-block" style={{ pointerEvents: "auto" }}>
+        <div className="inline-block" style={{ pointerEvents: 'auto' }}>
           {children}
         </div>
       </HoverCardPrimitive.Trigger>
       <HoverCardPrimitive.Portal>
         <HoverCardPrimitive.Content
           className={cn(
-            "relative z-[100] w-80 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out",
-            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-            "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
-            "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
+            'relative z-[100] w-80 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none',
+            'data-[state=open]:animate-in data-[state=closed]:animate-out',
+            'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+            'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+            'data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2',
+            'data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
           )}
           side="top"
           align="center"
@@ -70,12 +67,12 @@ export function ContributorHoverCard({
           forceMount
         >
           {role && (
-            <Badge 
+            <Badge
               className={cn(
-                "absolute top-4 right-4 border-0",
-                role.toLowerCase() === "contributor" 
-                  ? "bg-blue-500 text-white hover:bg-blue-600" 
-                  : "bg-gray-500 text-white hover:bg-gray-600"
+                'absolute top-4 right-4 border-0',
+                role.toLowerCase() === 'contributor'
+                  ? 'bg-blue-500 text-white hover:bg-blue-600'
+                  : 'bg-gray-500 text-white hover:bg-gray-600',
               )}
               variant="default"
             >
@@ -156,7 +153,7 @@ export function ContributorHoverCard({
                           variant="outline"
                           className={`ml-auto text-xs shrink-0 ${getStatusBadgeStyle(
                             pr.state,
-                            pr.merged_at !== null
+                            pr.merged_at !== null,
                           )}`}
                         >
                           {getStatusLabel(pr.state, pr.merged_at !== null)}

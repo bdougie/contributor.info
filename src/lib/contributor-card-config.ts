@@ -2,7 +2,7 @@
  * Business logic for ContributorCard component
  * Pure functions with no React dependencies
  */
-import type { MonthlyContributor } from "@/lib/types";
+import type { MonthlyContributor } from '@/lib/types';
 
 export interface TooltipContent {
   title: string;
@@ -15,12 +15,12 @@ export interface TooltipContent {
 
 export interface CardClasses {
   container: string;
-  rank: "default" | "secondary";
+  rank: 'default' | 'secondary';
 }
 
 export interface CardAriaLabel {
   label: string;
-  role: "article" | "listitem";
+  role: 'article' | 'listitem';
 }
 
 /**
@@ -31,18 +31,18 @@ export function createTooltipContent(contributor: MonthlyContributor): TooltipCo
     title: `${contributor.login}'s Activity`,
     items: [
       {
-        iconName: "GitPullRequest",
-        label: "Pull Requests",
+        iconName: 'GitPullRequest',
+        label: 'Pull Requests',
         count: contributor.activity.pullRequests,
       },
       {
-        iconName: "GitPullRequestDraft",
-        label: "Reviews",
+        iconName: 'GitPullRequestDraft',
+        label: 'Reviews',
         count: contributor.activity.reviews,
       },
       {
-        iconName: "MessageSquare",
-        label: "Comments",
+        iconName: 'MessageSquare',
+        label: 'Comments',
         count: contributor.activity.comments,
       },
     ],
@@ -53,12 +53,13 @@ export function createTooltipContent(contributor: MonthlyContributor): TooltipCo
  * Determine CSS classes for the card container
  */
 export function getCardClasses(isWinner: boolean): CardClasses {
-  const baseClasses = "relative p-4 rounded-lg border bg-card transition-all cursor-pointer hover:bg-muted/50";
-  const winnerClasses = "ring-2 ring-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10";
-  
+  const baseClasses =
+    'relative p-4 rounded-lg border bg-card transition-all cursor-pointer hover:bg-muted/50';
+  const winnerClasses = 'ring-2 ring-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10';
+
   return {
     container: isWinner ? `${baseClasses} ${winnerClasses}` : baseClasses,
-    rank: isWinner || 1 ? "default" : "secondary", // Rank 1 gets default styling
+    rank: isWinner || 1 ? 'default' : 'secondary', // Rank 1 gets default styling
   };
 }
 
@@ -68,12 +69,12 @@ export function getCardClasses(isWinner: boolean): CardClasses {
 export function getCardAccessibility(
   login: string,
   totalScore: number,
-  isWinner: boolean
+  isWinner: boolean,
 ): CardAriaLabel {
-  const role = isWinner ? "article" : "listitem";
-  const winnerText = isWinner ? " - Winner" : "";
+  const role = isWinner ? 'article' : 'listitem';
+  const winnerText = isWinner ? ' - Winner' : '';
   const label = `${login}${winnerText}, ${totalScore} points`;
-  
+
   return { label, role };
 }
 
@@ -89,8 +90,8 @@ export function getAvatarFallback(login: string): string {
  */
 export function getActivityItems(activity: MonthlyContributor['activity']) {
   return [
-    { iconName: "GitPullRequest", count: activity.pullRequests },
-    { iconName: "GitPullRequestDraft", count: activity.reviews },
-    { iconName: "MessageSquare", count: activity.comments },
+    { iconName: 'GitPullRequest', count: activity.pullRequests },
+    { iconName: 'GitPullRequestDraft', count: activity.reviews },
+    { iconName: 'MessageSquare', count: activity.comments },
   ];
 }

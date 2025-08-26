@@ -8,7 +8,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A line chart component built on uPlot with theme support and Recharts-like API.',
+        component:
+          'A line chart component built on uPlot with theme support and Recharts-like API.',
       },
     },
   },
@@ -69,8 +70,9 @@ const performanceData = {
   datasets: [
     {
       label: 'Response Time (ms)',
-      data: Array.from({ length: 50 }, () => 
-        Math.floor(Math.random() * 100) + 50 + Math.sin(Math.random() * 10) * 20
+      data: Array.from(
+        { length: 50 },
+        () => Math.floor(Math.random() * 100) + 50 + Math.sin(Math.random() * 10) * 20,
       ),
       color: '#8b5cf6',
     },
@@ -148,7 +150,7 @@ export const WithPoints: Story = {
   args: {
     data: {
       ...sampleData,
-      datasets: sampleData.datasets.map(dataset => ({
+      datasets: sampleData.datasets.map((dataset) => ({
         ...dataset,
         points: true,
       })),

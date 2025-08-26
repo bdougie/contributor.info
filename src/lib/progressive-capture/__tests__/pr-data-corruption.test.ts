@@ -10,10 +10,7 @@ interface PRData {
 }
 
 export function isPRDataCorrupted(pr: PRData): boolean {
-  return pr.additions === 0 && 
-         pr.deletions === 0 && 
-         pr.changed_files === 0 && 
-         pr.commits === 0;
+  return pr.additions === 0 && pr.deletions === 0 && pr.changed_files === 0 && pr.commits === 0;
 }
 
 export function calculateCorruptionRate(prs: PRData[]): number {
@@ -30,7 +27,7 @@ export function shouldTriggerAutoFix(prs: PRData[], threshold: number = 10): boo
 export function getEffectiveThrottleHours(
   baseHours: number,
   hasCompleteData: boolean,
-  isAutoFix: boolean = false
+  isAutoFix: boolean = false,
 ): number {
   // If auto-fix and data is incomplete, use minimal throttle
   if (isAutoFix && !hasCompleteData) {
@@ -47,7 +44,7 @@ describe('PR Data Corruption Detection', () => {
         additions: 0,
         deletions: 0,
         changed_files: 0,
-        commits: 0
+        commits: 0,
       };
       expect(isPRDataCorrupted(corruptedPR)).toBe(true);
     });
@@ -58,7 +55,7 @@ describe('PR Data Corruption Detection', () => {
         additions: 6,
         deletions: 1,
         changed_files: 1,
-        commits: 1
+        commits: 1,
       };
       expect(isPRDataCorrupted(validPR)).toBe(false);
     });
@@ -68,10 +65,10 @@ describe('PR Data Corruption Detection', () => {
         { additions: 1, deletions: 0, changed_files: 0, commits: 0 },
         { additions: 0, deletions: 1, changed_files: 0, commits: 0 },
         { additions: 0, deletions: 0, changed_files: 1, commits: 0 },
-        { additions: 0, deletions: 0, changed_files: 0, commits: 1 }
+        { additions: 0, deletions: 0, changed_files: 0, commits: 1 },
       ];
 
-      prsWithSingleMetric.forEach(pr => {
+      prsWithSingleMetric.forEach((pr) => {
         expect(isPRDataCorrupted(pr)).toBe(false);
       });
     });
@@ -85,7 +82,7 @@ describe('PR Data Corruption Detection', () => {
         changed_files: 0,
         commits: 1, // At least one commit
         state: 'closed',
-        merged: false
+        merged: false,
       };
       expect(isPRDataCorrupted(legitimateZeroPR)).toBe(false);
     });
@@ -96,7 +93,7 @@ describe('PR Data Corruption Detection', () => {
       const validPRs = [
         { additions: 10, deletions: 5, changed_files: 2, commits: 1 },
         { additions: 20, deletions: 10, changed_files: 3, commits: 2 },
-        { additions: 30, deletions: 15, changed_files: 4, commits: 3 }
+        { additions: 30, deletions: 15, changed_files: 4, commits: 3 },
       ];
       expect(calculateCorruptionRate(validPRs)).toBe(0);
     });
@@ -105,7 +102,7 @@ describe('PR Data Corruption Detection', () => {
       const corruptedPRs = [
         { additions: 0, deletions: 0, changed_files: 0, commits: 0 },
         { additions: 0, deletions: 0, changed_files: 0, commits: 0 },
-        { additions: 0, deletions: 0, changed_files: 0, commits: 0 }
+        { additions: 0, deletions: 0, changed_files: 0, commits: 0 },
       ];
       expect(calculateCorruptionRate(corruptedPRs)).toBe(100);
     });
@@ -113,9 +110,9 @@ describe('PR Data Corruption Detection', () => {
     it('should calculate partial corruption rate', () => {
       const mixedPRs = [
         { additions: 10, deletions: 5, changed_files: 2, commits: 1 }, // valid
-        { additions: 0, deletions: 0, changed_files: 0, commits: 0 },  // corrupted
+        { additions: 0, deletions: 0, changed_files: 0, commits: 0 }, // corrupted
         { additions: 20, deletions: 10, changed_files: 3, commits: 2 }, // valid
-        { additions: 0, deletions: 0, changed_files: 0, commits: 0 }   // corrupted
+        { additions: 0, deletions: 0, changed_files: 0, commits: 0 }, // corrupted
       ];
       expect(calculateCorruptionRate(mixedPRs)).toBe(50);
     });
@@ -130,7 +127,7 @@ describe('PR Data Corruption Detection', () => {
       const prsWithHighCorruption = [
         { additions: 10, deletions: 5, changed_files: 2, commits: 1 },
         { additions: 0, deletions: 0, changed_files: 0, commits: 0 },
-        { additions: 0, deletions: 0, changed_files: 0, commits: 0 }
+        { additions: 0, deletions: 0, changed_files: 0, commits: 0 },
       ];
       // 2 out of 3 corrupted = 66.67% > 10% threshold
       expect(shouldTriggerAutoFix(prsWithHighCorruption, 10)).toBe(true);
@@ -141,7 +138,7 @@ describe('PR Data Corruption Detection', () => {
         { additions: 10, deletions: 5, changed_files: 2, commits: 1 },
         { additions: 20, deletions: 10, changed_files: 3, commits: 2 },
         { additions: 30, deletions: 15, changed_files: 4, commits: 3 },
-        { additions: 0, deletions: 0, changed_files: 0, commits: 0 }
+        { additions: 0, deletions: 0, changed_files: 0, commits: 0 },
       ];
       // 1 out of 4 corrupted = 25% < 50% threshold
       expect(shouldTriggerAutoFix(prsWithLowCorruption, 50)).toBe(false);
@@ -158,7 +155,7 @@ describe('PR Data Corruption Detection', () => {
         { additions: 10, deletions: 5, changed_files: 2, commits: 1 },
         { additions: 10, deletions: 5, changed_files: 2, commits: 1 },
         { additions: 0, deletions: 0, changed_files: 0, commits: 0 },
-        { additions: 0, deletions: 0, changed_files: 0, commits: 0 }
+        { additions: 0, deletions: 0, changed_files: 0, commits: 0 },
       ];
       // 2 out of 10 = 20% > 10% default
       expect(shouldTriggerAutoFix(prsWithModerateCorruption)).toBe(true);
@@ -189,17 +186,19 @@ describe('PR Data Corruption Detection', () => {
   describe('Integration Scenarios', () => {
     it('should handle the August 2025 corruption scenario', () => {
       // Simulate the actual corruption that occurred
-      const corruptedPRs = Array(198).fill(null).map((_, i) => ({
-        number: 7000 + i,
-        additions: 0,
-        deletions: 0,
-        changed_files: 0,
-        commits: 0
-      }));
+      const corruptedPRs = Array(198)
+        .fill(null)
+        .map((_, i) => ({
+          number: 7000 + i,
+          additions: 0,
+          deletions: 0,
+          changed_files: 0,
+          commits: 0,
+        }));
 
       expect(calculateCorruptionRate(corruptedPRs)).toBe(100);
       expect(shouldTriggerAutoFix(corruptedPRs)).toBe(true);
-      
+
       // With auto-fix and incomplete data, throttle should be minimal
       const throttleHours = getEffectiveThrottleHours(12, false, true);
       expect(throttleHours).toBe(0.083); // 5 minutes
@@ -207,18 +206,22 @@ describe('PR Data Corruption Detection', () => {
 
     it('should handle partial recovery scenario', () => {
       const partiallyRecoveredPRs = [
-        ...Array(99).fill(null).map(() => ({
-          additions: 100,
-          deletions: 50,
-          changed_files: 5,
-          commits: 3
-        })),
-        ...Array(99).fill(null).map(() => ({
-          additions: 0,
-          deletions: 0,
-          changed_files: 0,
-          commits: 0
-        }))
+        ...Array(99)
+          .fill(null)
+          .map(() => ({
+            additions: 100,
+            deletions: 50,
+            changed_files: 5,
+            commits: 3,
+          })),
+        ...Array(99)
+          .fill(null)
+          .map(() => ({
+            additions: 0,
+            deletions: 0,
+            changed_files: 0,
+            commits: 0,
+          })),
       ];
 
       expect(calculateCorruptionRate(partiallyRecoveredPRs)).toBe(50);
@@ -226,13 +229,15 @@ describe('PR Data Corruption Detection', () => {
     });
 
     it('should handle fully recovered scenario', () => {
-      const recoveredPRs = Array(198).fill(null).map((_, i) => ({
-        number: 7000 + i,
-        additions: Math.floor(Math.random() * 100) + 1,
-        deletions: Math.floor(Math.random() * 50),
-        changed_files: Math.floor(Math.random() * 10) + 1,
-        commits: Math.floor(Math.random() * 5) + 1
-      }));
+      const recoveredPRs = Array(198)
+        .fill(null)
+        .map((_, i) => ({
+          number: 7000 + i,
+          additions: Math.floor(Math.random() * 100) + 1,
+          deletions: Math.floor(Math.random() * 50),
+          changed_files: Math.floor(Math.random() * 10) + 1,
+          commits: Math.floor(Math.random() * 5) + 1,
+        }));
 
       expect(calculateCorruptionRate(recoveredPRs)).toBe(0);
       expect(shouldTriggerAutoFix(recoveredPRs)).toBe(false);

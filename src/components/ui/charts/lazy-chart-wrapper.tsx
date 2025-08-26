@@ -8,7 +8,7 @@ interface LazyChartWrapperProps {
   rootMargin?: string;
   threshold?: number;
   className?: string;
-  skeletonHeight?: "sm" | "md" | "lg" | "xl";
+  skeletonHeight?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 /**
@@ -21,26 +21,21 @@ export function LazyChartWrapper({
   rootMargin = '100px',
   threshold = 0,
   className = '',
-  skeletonHeight = 'lg'
+  skeletonHeight = 'lg',
 }: LazyChartWrapperProps) {
   const { ref, hasIntersected } = useIntersectionObserver({
     rootMargin,
     threshold,
-    triggerOnce: true
+    triggerOnce: true,
   });
 
   return (
-    <div 
-      ref={ref}
-      className={className}
-    >
-      {hasIntersected
-? (
+    <div ref={ref} className={className}>
+      {hasIntersected ? (
         <Suspense fallback={fallback || <SkeletonChart height={skeletonHeight} />}>
           {children}
         </Suspense>
-      )
-: (
+      ) : (
         fallback || <SkeletonChart height={skeletonHeight} />
       )}
     </div>

@@ -55,13 +55,13 @@ export function ConfidenceAnalyticsDashboard() {
       setError(null);
 
       // Fetch overall confidence statistics
-      const { data: confidenceData, error: _error: confidenceError } = await supabase
+      const { data: confidenceData, error: confidenceError } = await supabase
         .rpc('get_confidence_analytics_summary_simple');
 
       if (confidenceError) throw confidenceError;
 
       // Fetch repository-level confidence data
-      const { data: repoData, error: _error: repoError } = await supabase
+      const { data: repoData, error: repoError } = await supabase
         .rpc('get_repository_confidence_summary_simple');
 
       if (repoError) throw repoError;

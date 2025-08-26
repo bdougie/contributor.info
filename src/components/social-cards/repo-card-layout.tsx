@@ -1,10 +1,10 @@
-import { useParams } from "react-router-dom";
-import CardLayout from "./card-layout";
-import RepoCardWithData from "./repo-card-with-data";
+import { useParams } from 'react-router-dom';
+import CardLayout from './card-layout';
+import RepoCardWithData from './repo-card-with-data';
 
 export default function RepoCardLayout() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
-  
+
   if (!owner || !repo) {
     return (
       <CardLayout

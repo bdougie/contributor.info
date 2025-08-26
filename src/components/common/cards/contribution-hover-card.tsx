@@ -1,14 +1,10 @@
 import { GitPullRequest } from '@/components/ui/icon';
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
-import type { PullRequest } from "@/lib/types";
-import { ContributionAnalyzer } from "@/lib/contribution-analyzer";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import type { PullRequest } from '@/lib/types';
+import { ContributionAnalyzer } from '@/lib/contribution-analyzer';
 
 interface ContributionHoverCardProps {
   authorId: number;
@@ -19,30 +15,28 @@ interface ContributionHoverCardProps {
 
 // Function to get status badge styling
 const getStatusBadgeStyle = (state: string, merged: boolean) => {
-  if (merged)
-    return "bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400";
-  if (state === "closed")
-    return "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400";
-  return "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400";
+  if (merged) return 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400';
+  if (state === 'closed') return 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400';
+  return 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400';
 };
 
 // Function to get status label
 const getStatusLabel = (state: string, merged: boolean) => {
-  if (merged) return "merged";
+  if (merged) return 'merged';
   return state;
 };
 
 // Function to get quadrant display name
 const getQuadrantDisplayName = (quadrant: string): string => {
   switch (quadrant) {
-    case "refinement":
-      return "Refinement";
-    case "new":
-      return "New Features";
-    case "maintenance":
-      return "Maintenance";
-    case "refactoring":
-      return "Refactoring";
+    case 'refinement':
+      return 'Refinement';
+    case 'new':
+      return 'New Features';
+    case 'maintenance':
+      return 'Maintenance';
+    case 'refactoring':
+      return 'Refactoring';
     default:
       return quadrant;
   }
@@ -51,16 +45,16 @@ const getQuadrantDisplayName = (quadrant: string): string => {
 // Function to get quadrant badge styling
 const getQuadrantBadgeStyle = (quadrant: string): string => {
   switch (quadrant) {
-    case "refinement":
-      return "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400";
-    case "new":
-      return "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400";
-    case "maintenance":
-      return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400";
-    case "refactoring":
-      return "bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400";
+    case 'refinement':
+      return 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400';
+    case 'new':
+      return 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400';
+    case 'maintenance':
+      return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400';
+    case 'refactoring':
+      return 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400';
     default:
-      return "";
+      return '';
   }
 };
 
@@ -74,14 +68,17 @@ export function ContributionHoverCard({
   const authorPRs = pullRequests.filter((pr) => pr.user.id === authorId);
 
   // Group PRs by quadrant
-  const prsByQuadrant = authorPRs.reduce((acc, pr) => {
-    const metrics = ContributionAnalyzer.analyze(pr);
-    if (!acc[metrics.quadrant]) {
-      acc[metrics.quadrant] = [];
-    }
-    acc[metrics.quadrant].push(pr);
-    return acc;
-  }, {} as Record<string, PullRequest[]>);
+  const prsByQuadrant = authorPRs.reduce(
+    (acc, pr) => {
+      const metrics = ContributionAnalyzer.analyze(pr);
+      if (!acc[metrics.quadrant]) {
+        acc[metrics.quadrant] = [];
+      }
+      acc[metrics.quadrant].push(pr);
+      return acc;
+    },
+    {} as Record<string, PullRequest[]>,
+  );
 
   return (
     <HoverCard>
@@ -93,9 +90,7 @@ export function ContributionHoverCard({
         side="right"
       >
         <div>
-          <h4 className="text-sm font-semibold mb-2">
-            {authorLogin}'s Contributions
-          </h4>
+          <h4 className="text-sm font-semibold mb-2">{authorLogin}'s Contributions</h4>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <GitPullRequest className="h-4 w-4" />
             <span>{authorPRs.length} pull requests</span>
@@ -107,15 +102,11 @@ export function ContributionHoverCard({
             <Separator className="my-3" />
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className={getQuadrantBadgeStyle(quadrant)}
-                >
+                <Badge variant="outline" className={getQuadrantBadgeStyle(quadrant)}>
                   {getQuadrantDisplayName(quadrant)}
                 </Badge>
                 <span className="text-xs text-muted-foreground">
-                  {prs.length}{" "}
-                  {prs.length === 1 ? "contribution" : "contributions"}
+                  {prs.length} {prs.length === 1 ? 'contribution' : 'contributions'}
                 </span>
               </div>
               <div className="space-y-2">
@@ -136,15 +127,15 @@ export function ContributionHoverCard({
                         variant="outline"
                         className={`ml-auto text-xs shrink-0 ${getStatusBadgeStyle(
                           pr.state,
-                          pr.merged_at !== null
+                          pr.merged_at !== null,
                         )}`}
                       >
                         {getStatusLabel(pr.state, pr.merged_at !== null)}
                       </Badge>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {format(new Date(pr.created_at), "MMM d, yyyy")} · +
-                      {pr.additions} -{pr.deletions}
+                      {format(new Date(pr.created_at), 'MMM d, yyyy')} · +{pr.additions} -
+                      {pr.deletions}
                     </div>
                   </a>
                 ))}

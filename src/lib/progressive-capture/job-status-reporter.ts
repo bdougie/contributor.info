@@ -33,9 +33,9 @@ export class JobStatusReporter {
   async reportStatus(update: JobStatusUpdate): Promise<void> {
     try {
       const updates: Record<string, unknown> = {
-        status: update.status
+        status: update.status,
       };
-      
+
       // Only set metadata if provided, to avoid overwriting existing data
       if (update.metadata && Object.keys(update.meta_data).length > 0) {
         updates.metadata = update.metadata;
@@ -49,12 +49,12 @@ export class JobStatusReporter {
           .select('started_at')
           .eq('id', update.jobId)
           .maybeSingle();
-        
+
         if (!existingJob?.started_at) {
           updates.started_at = new Date().toISOString();
         }
       }
-      
+
       if (update.status === 'completed' || update.status === 'failed') {
         updates.completed_at = new Date().toISOString();
       }
@@ -68,12 +68,12 @@ export class JobStatusReporter {
       if (update.workflowRunId) {
         updates.workflow_run_id = update.workflowRunId;
       }
-      
+
       // Add workflow URL to metadata if provided
       if (update.workflowRunUrl) {
         updates.metadata = {
           ...updates.metadata,
-          workflow_run_url: update.workflowRunUrl
+          workflow_run_url: update.workflowRunUrl,
         };
       }
 
@@ -89,7 +89,7 @@ export class JobStatusReporter {
           updates.metadata = {
             ...currentJob.metadata,
             ...update.metadata,
-            last_updated: new Date().toISOString()
+            last_updated: new Date().toISOString(),
           };
         }
       }
@@ -120,19 +120,23 @@ export class JobStatusReporter {
   /**
    * Update job progress
    */
-  async updateProgress(jobId: string, progress: { total: number; processed: number; failed?: number }): Promise<void> {
+  async updateProgress(
+    jobId: string,
+    progress: { total: number; processed: number; failed?: number },
+  ): Promise<void> {
     try {
-      const { error: _error } = await supabase
-        .from('progressive_capture_progress')
-        .upsert({
+      const { error: _error } = await supabase.from('progressive_capture_progress').upsert(
+        {
           job_id: jobId,
           total_items: progress.total,
           processed_items: progress.processed,
           failed_items: progress.failed || 0,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'job_id'
-        });
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'job_id',
+        },
+      );
 
       if (_error) {
         console.error('[JobStatusReporter] Failed to update progress:', _error);
@@ -166,9 +170,9 @@ export class JobStatusReporter {
         console.warn(`[JobStatusReporter] Job ${jobId} has no started_at timestamp`);
         return null;
       }
-      
+
       const metrics: JobMetrics = {
-        startTime: new Date(job.started_at)
+        startTime: new Date(job.started_at),
       };
 
       if (job.completed_at) {
@@ -179,7 +183,7 @@ export class JobStatusReporter {
       if (progress) {
         metrics.itemsProcessed = progress.processed_items;
         metrics.itemsFailed = progress.failed_items;
-        
+
         if (metrics.duration && metrics.itemsProcessed && metrics.itemsProcessed > 0) {
           metrics.averageProcessingTime = metrics.duration / metrics.itemsProcessed;
         }
@@ -196,9 +200,9 @@ export class JobStatusReporter {
               items_processed: metrics.itemsProcessed,
               items_failed: metrics.itemsFailed,
               avg_processing_time_ms: metrics.averageProcessingTime,
-              calculated_at: new Date().toISOString()
-            }
-          }
+              calculated_at: new Date().toISOString(),
+            },
+          },
         })
         .eq('id', jobId);
 
@@ -237,7 +241,7 @@ export class JobStatusReporter {
         progress: job.progressive_capture_progress?.[0] || null,
         metrics: metrics,
         metadata: job.metadata,
-        error: job.error
+        error: job.error,
       };
     } catch (_error) {
       console.error('[JobStatusReporter] Error getting job summary:', _error);
@@ -248,7 +252,10 @@ export class JobStatusReporter {
   /**
    * Stream job status updates (for real-time monitoring)
    */
-  subscribeToJobUpdates(jobId: string, callback: (job: Record<string, unknown>) => void): () => void {
+  subscribeToJobUpdates(
+    jobId: string,
+    callback: (job: Record<string, unknown>) => void,
+  ): () => void {
     const subscription = supabase
       .channel(`job-status-${jobId}`)
       .on(
@@ -257,11 +264,11 @@ export class JobStatusReporter {
           event: '*',
           schema: 'public',
           table: 'progressive_capture_jobs',
-          filter: `id=eq.${jobId}`
+          filter: `id=eq.${jobId}`,
         },
         (payload) => {
           callback(payload.new);
-        }
+        },
       )
       .subscribe();
 
@@ -274,7 +281,10 @@ export class JobStatusReporter {
   /**
    * Get recent job history for a repository
    */
-  async getRepositoryJobHistory(repositoryId: string, limit: number = 10): Promise<Record<string, unknown>[]> {
+  async getRepositoryJobHistory(
+    repositoryId: string,
+    limit: number = 10,
+  ): Promise<Record<string, unknown>[]> {
     try {
       const { data: jobs } = await supabase
         .from('progressive_capture_jobs')
@@ -291,9 +301,9 @@ export class JobStatusReporter {
           const metrics = await this.calculateMetrics(job.id);
           return {
             ...job,
-            metrics
+            metrics,
           };
-        })
+        }),
       );
     } catch (_error) {
       console.error('[JobStatusReporter] Error getting job history:', _error);
@@ -310,9 +320,9 @@ export class JobStatusReporter {
       const batchSize = 10;
       for (let i = 0; i < updates.length; i += batchSize) {
         const batch = updates.slice(i, i + batchSize);
-        await Promise.all(batch.map(update => this.reportStatus(update)));
+        await Promise.all(batch.map((update) => this.reportStatus(update)));
       }
-      
+
       console.log('[JobStatusReporter] Bulk updated %s job statuses', updates.length);
     } catch (_error) {
       console.error('[JobStatusReporter] Error in bulk update:', _error);

@@ -1,7 +1,7 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
-import { ProtectedRoute } from "./protected-route";
-import { MemoryRouter } from "react-router-dom";
+import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from '@storybook/test';
+import { ProtectedRoute } from './protected-route';
+import { MemoryRouter } from 'react-router-dom';
 
 // Mock the GitHub auth hook
 const mockUseGitHubAuth = fn();
@@ -23,21 +23,21 @@ const SampleProtectedContent = () => (
 );
 
 const meta = {
-  title: "Features/Auth/ProtectedRoute",
+  title: 'Features/Auth/ProtectedRoute',
   component: ProtectedRoute,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
         component:
-          "A route protection component that redirects unauthenticated users to login and shows loading states during authentication checks."
-      }
-    }
+          'A route protection component that redirects unauthenticated users to login and shows loading states during authentication checks.',
+      },
+    },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <MemoryRouter initialEntries={["/protected"]}>
+      <MemoryRouter initialEntries={['/protected']}>
         <div className="w-[600px] h-[400px] border border-gray-200 rounded-lg">
           <Story />
         </div>
@@ -51,7 +51,7 @@ type Story = StoryObj<typeof meta>;
 
 export const AuthenticatedUser: Story = {
   args: {
-    children: <SampleProtectedContent />
+    children: <SampleProtectedContent />,
   },
   render: (args) => {
     // Mock authenticated state
@@ -66,26 +66,24 @@ export const AuthenticatedUser: Story = {
     });
 
     mockUseLocation.mockReturnValue({
-      pathname: "/protected",
-      search: "",
+      pathname: '/protected',
+      search: '',
     });
 
-    return (
-      <ProtectedRoute {...args} />
-    );
+    return <ProtectedRoute {...args} />;
   },
   parameters: {
     docs: {
       description: {
-        story: "Shows the protected content when user is authenticated."
-      }
-    }
-  }
+        story: 'Shows the protected content when user is authenticated.',
+      },
+    },
+  },
 };
 
 export const LoadingState: Story = {
   args: {
-    children: <SampleProtectedContent />
+    children: <SampleProtectedContent />,
   },
   render: (args) => {
     // Mock loading state
@@ -96,8 +94,8 @@ export const LoadingState: Story = {
     });
 
     mockUseLocation.mockReturnValue({
-      pathname: "/protected",
-      search: "",
+      pathname: '/protected',
+      search: '',
     });
 
     return (
@@ -109,15 +107,15 @@ export const LoadingState: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Shows loading spinner while checking authentication status."
-      }
-    }
-  }
+        story: 'Shows loading spinner while checking authentication status.',
+      },
+    },
+  },
 };
 
 export const UnauthenticatedUser: Story = {
   args: {
-    children: <SampleProtectedContent />
+    children: <SampleProtectedContent />,
   },
   render: (args) => {
     // Mock unauthenticated state
@@ -128,8 +126,8 @@ export const UnauthenticatedUser: Story = {
     });
 
     mockUseLocation.mockReturnValue({
-      pathname: "/protected",
-      search: "?tab=insights",
+      pathname: '/protected',
+      search: '?tab=insights',
     });
 
     // Reset navigate mock
@@ -142,7 +140,7 @@ export const UnauthenticatedUser: Story = {
           <p className="text-yellow-800 text-sm">
             User is not authenticated. Component would redirect to /login.
             <br />
-            Navigate function called: {mockNavigate.mock.calls.length > 0 ? "Yes" : "No"}
+            Navigate function called: {mockNavigate.mock.calls.length > 0 ? 'Yes' : 'No'}
           </p>
         </div>
       </div>
@@ -151,15 +149,15 @@ export const UnauthenticatedUser: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Shows behavior when user is not authenticated (renders nothing and redirects)."
-      }
-    }
-  }
+        story: 'Shows behavior when user is not authenticated (renders nothing and redirects).',
+      },
+    },
+  },
 };
 
 export const WithComplexContent: Story = {
   args: {
-    children: null // Will be overridden in render
+    children: null, // Will be overridden in render
   },
   render: () => {
     mockUseGitHubAuth.mockReturnValue({
@@ -173,19 +171,17 @@ export const WithComplexContent: Story = {
     });
 
     mockUseLocation.mockReturnValue({
-      pathname: "/admin/dashboard",
-      search: "",
+      pathname: '/admin/dashboard',
+      search: '',
     });
 
     const ComplexContent = () => (
       <div className="p-6">
         <div className="mb-6">
           <h2 className="text-2xl font-bold mb-2">Admin Dashboard</h2>
-          <p className="text-muted-foreground">
-            Complex protected content with multiple sections
-          </p>
+          <p className="text-muted-foreground">Complex protected content with multiple sections</p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h3 className="font-semibold text-blue-900 mb-2">User Management</h3>
@@ -217,15 +213,15 @@ export const WithComplexContent: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Protected route with complex nested content to test layout and functionality."
-      }
-    }
-  }
+        story: 'Protected route with complex nested content to test layout and functionality.',
+      },
+    },
+  },
 };
 
 export const MobileView: Story = {
   args: {
-    children: <SampleProtectedContent />
+    children: <SampleProtectedContent />,
   },
   render: (args) => {
     mockUseGitHubAuth.mockReturnValue({
@@ -238,18 +234,16 @@ export const MobileView: Story = {
       setShowLoginDialog: fn(),
     });
 
-    return (
-      <ProtectedRoute {...args} />
-    );
+    return <ProtectedRoute {...args} />;
   },
   parameters: {
     viewport: {
-      defaultViewport: "mobile1"
+      defaultViewport: 'mobile1',
     },
     docs: {
       description: {
-        story: "Protected route on mobile devices."
-      }
-    }
-  }
+        story: 'Protected route on mobile devices.',
+      },
+    },
+  },
 };

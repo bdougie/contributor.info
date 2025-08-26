@@ -10,15 +10,9 @@ describe('TemplateDetector', () => {
 
   describe('detectTemplateMatch', () => {
     it('should detect exact template matches', () => {
-      const testCases = [
-        'update',
-        'fix',
-        'change',
-        'added my name',
-        'hello world',
-      ];
+      const testCases = ['update', 'fix', 'change', 'added my name', 'hello world'];
 
-      testCases.forEach(template => {
+      testCases.forEach((template) => {
         const result = detector.detectTemplateMatch(template);
         expect(result.is_match).toBe(true);
         expect(result.similarity_score).toBeGreaterThanOrEqual(0.9);
@@ -52,7 +46,7 @@ describe('TemplateDetector', () => {
         'added name to list',
       ];
 
-      hacktoberfestCases.forEach(text => {
+      hacktoberfestCases.forEach((text) => {
         const result = detector.detectTemplateMatch(text);
         expect(result.is_match).toBe(true);
         expect(result.template_id).toBe('hacktoberfest');
@@ -67,7 +61,7 @@ describe('TemplateDetector', () => {
         'My First PR',
       ];
 
-      firstContribCases.forEach(text => {
+      firstContribCases.forEach((text) => {
         const result = detector.detectTemplateMatch(text);
         expect(result.is_match).toBe(true);
         expect(result.template_id).toBe('first_contrib');
@@ -75,14 +69,9 @@ describe('TemplateDetector', () => {
     });
 
     it('should detect minimal effort patterns', () => {
-      const minimalCases = [
-        'fix.',
-        'update.',
-        'change',
-        'test',
-      ];
+      const minimalCases = ['fix.', 'update.', 'change', 'test'];
 
-      minimalCases.forEach(text => {
+      minimalCases.forEach((text) => {
         const result = detector.detectTemplateMatch(text);
         expect(result.is_match).toBe(true);
         // These will be detected as exact matches or minimal_effort patterns
@@ -93,7 +82,7 @@ describe('TemplateDetector', () => {
     it('should detect single character spam', () => {
       const singleCharCases = ['a', 'x', '🎉', '123'];
 
-      singleCharCases.forEach(text => {
+      singleCharCases.forEach((text) => {
         const result = detector.detectTemplateMatch(text);
         expect(result.is_match).toBe(true);
         expect(result.template_id).toBe('single_char');
@@ -110,7 +99,7 @@ describe('TemplateDetector', () => {
         'Implement dark mode toggle for user interface',
       ];
 
-      legitimateCases.forEach(text => {
+      legitimateCases.forEach((text) => {
         const result = detector.detectTemplateMatch(text);
         expect(result.is_match).toBe(false);
       });
@@ -118,7 +107,7 @@ describe('TemplateDetector', () => {
 
     it('should handle similarity matching', () => {
       const result = detector.detectTemplateMatch('updated readme file');
-      
+
       // Should detect similarity to "update" but not exact match
       if (result.is_match) {
         expect(result.similarity_score).toBeLessThan(1.0);
@@ -135,10 +124,10 @@ describe('TemplateDetector', () => {
   describe('getAllMatches', () => {
     it('should return all matching templates sorted by similarity', () => {
       const matches = detector.getAllMatches('fix');
-      
+
       // Should find some matches for "fix"
       expect(matches.length).toBeGreaterThan(0);
-      
+
       // Should be sorted by similarity (descending)
       for (let i = 1; i < matches.length; i++) {
         expect(matches[i - 1].similarity).toBeGreaterThanOrEqual(matches[i].similarity);
@@ -146,7 +135,9 @@ describe('TemplateDetector', () => {
     });
 
     it('should return empty array for no matches', () => {
-      const matches = detector.getAllMatches('comprehensive technical implementation of advanced features');
+      const matches = detector.getAllMatches(
+        'comprehensive technical implementation of advanced features',
+      );
       expect(matches.length).toBe(0);
     });
 
@@ -160,15 +151,35 @@ describe('TemplateDetector', () => {
     it('should test all spam patterns work correctly', () => {
       const testCases = [
         { pattern: SPAM_PATTERNS.MINIMAL_EFFORT, text: 'fix', shouldMatch: true },
-        { pattern: SPAM_PATTERNS.MINIMAL_EFFORT, text: 'Fixed authentication bug', shouldMatch: false },
-        { pattern: SPAM_PATTERNS.HACKTOBERFEST, text: 'hacktoberfest contribution', shouldMatch: true },
-        { pattern: SPAM_PATTERNS.HACKTOBERFEST, text: 'legitimate feature addition', shouldMatch: false },
+        {
+          pattern: SPAM_PATTERNS.MINIMAL_EFFORT,
+          text: 'Fixed authentication bug',
+          shouldMatch: false,
+        },
+        {
+          pattern: SPAM_PATTERNS.HACKTOBERFEST,
+          text: 'hacktoberfest contribution',
+          shouldMatch: true,
+        },
+        {
+          pattern: SPAM_PATTERNS.HACKTOBERFEST,
+          text: 'legitimate feature addition',
+          shouldMatch: false,
+        },
         { pattern: SPAM_PATTERNS.FIRST_CONTRIB, text: 'my first contribution', shouldMatch: true },
-        { pattern: SPAM_PATTERNS.FIRST_CONTRIB, text: 'experienced developer update', shouldMatch: false },
+        {
+          pattern: SPAM_PATTERNS.FIRST_CONTRIB,
+          text: 'experienced developer update',
+          shouldMatch: false,
+        },
         { pattern: SPAM_PATTERNS.SINGLE_CHAR, text: 'x', shouldMatch: true },
         { pattern: SPAM_PATTERNS.SINGLE_CHAR, text: 'comprehensive update', shouldMatch: false },
         { pattern: SPAM_PATTERNS.MEANINGLESS, text: 'done', shouldMatch: true },
-        { pattern: SPAM_PATTERNS.MEANINGLESS, text: 'Implementation completed successfully', shouldMatch: false },
+        {
+          pattern: SPAM_PATTERNS.MEANINGLESS,
+          text: 'Implementation completed successfully',
+          shouldMatch: false,
+        },
       ];
 
       testCases.forEach(({ pattern, text, shouldMatch }) => {
@@ -182,7 +193,7 @@ describe('TemplateDetector', () => {
     it('should handle very long descriptions', () => {
       const longText = 'a'.repeat(10000);
       const result = detector.detectTemplateMatch(longText);
-      
+
       // Should not crash and should return a result
       expect(result).toBeDefined();
       expect(typeof result.is_match).toBe('boolean');
@@ -191,7 +202,7 @@ describe('TemplateDetector', () => {
     it('should handle unicode characters', () => {
       const unicodeText = '🚀 Added emoji support 🎉';
       const result = detector.detectTemplateMatch(unicodeText);
-      
+
       expect(result).toBeDefined();
       expect(typeof result.is_match).toBe('boolean');
     });
@@ -199,7 +210,7 @@ describe('TemplateDetector', () => {
     it('should handle mixed case and spacing', () => {
       const messyText = '  FiX  ';
       const result = detector.detectTemplateMatch(messyText);
-      
+
       // Should normalize and still detect "fix"
       expect(result.is_match).toBe(true);
     });
@@ -207,7 +218,7 @@ describe('TemplateDetector', () => {
     it('should handle null and undefined gracefully', () => {
       const result1 = detector.detectTemplateMatch(null as any);
       const result2 = detector.detectTemplateMatch(undefined as any);
-      
+
       expect(result1.is_match).toBe(true); // Empty content is spam
       expect(result2.is_match).toBe(true); // Empty content is spam
     });

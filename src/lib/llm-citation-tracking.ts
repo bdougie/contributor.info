@@ -27,7 +27,12 @@ export interface CitationAlert {
 
 export interface QueryPattern {
   pattern_text: string;
-  pattern_type: 'contributor_lookup' | 'repository_analysis' | 'github_stats' | 'maintainer_info' | 'project_insights';
+  pattern_type:
+    | 'contributor_lookup'
+    | 'repository_analysis'
+    | 'github_stats'
+    | 'maintainer_info'
+    | 'project_insights';
   ai_platforms?: string[];
   example_queries?: string[];
 }
@@ -55,7 +60,7 @@ class LLMCitationTracker {
     }
 
     this.isInitialized = true;
-    
+
     // Track the current page view if it came from a referrer
     this.trackPageView();
 
@@ -85,7 +90,7 @@ class LLMCitationTracker {
       event.citation_confidence = this.calculateCitationConfidence(
         referrerInfo.referrer_url,
         navigator.userAgent,
-        landingPage
+        landingPage,
       );
 
       // Only track if there's a referrer or high confidence of AI citation
@@ -107,7 +112,7 @@ class LLMCitationTracker {
    */
   private analyzeReferrer() {
     const referrerUrl = document.referrer;
-    
+
     if (!referrerUrl) {
       return {
         referrer_url: undefined,
@@ -141,7 +146,11 @@ class LLMCitationTracker {
     if (domain === 'claude.ai' || domain === 'anthropic.com' || domain.endsWith('.anthropic.com')) {
       referrerType = 'ai_platform';
       aiPlatform = 'claude';
-    } else if (domain === 'chat.openai.com' || domain === 'chatgpt.com' || domain.endsWith('.openai.com')) {
+    } else if (
+      domain === 'chat.openai.com' ||
+      domain === 'chatgpt.com' ||
+      domain.endsWith('.openai.com')
+    ) {
       referrerType = 'ai_platform';
       aiPlatform = 'chatgpt';
     } else if (domain === 'perplexity.ai' || domain.endsWith('.perplexity.ai')) {
@@ -150,7 +159,10 @@ class LLMCitationTracker {
     } else if (domain === 'gemini.google.com' || domain === 'bard.google.com') {
       referrerType = 'ai_platform';
       aiPlatform = 'gemini';
-    } else if (domain === 'copilot.microsoft.com' || (domain === 'bing.com' && referrerUrl.includes('/chat'))) {
+    } else if (
+      domain === 'copilot.microsoft.com' ||
+      (domain === 'bing.com' && referrerUrl.includes('/chat'))
+    ) {
       referrerType = 'ai_platform';
       aiPlatform = 'copilot';
     } else if (domain === 'poe.com' || domain === 'you.com' || domain === 'character.ai') {
@@ -162,12 +174,18 @@ class LLMCitationTracker {
       referrerType = 'search_engine';
     }
     // Social media - check exact domains
-    else if (domain === 'twitter.com' || domain === 'x.com' || 
-             domain === 'linkedin.com' || domain.endsWith('.linkedin.com') ||
-             domain === 'facebook.com' || domain.endsWith('.facebook.com') || 
-             domain === 'reddit.com' || domain.endsWith('.reddit.com') ||
-             domain === 'news.ycombinator.com' || 
-             domain === 'github.com') {
+    else if (
+      domain === 'twitter.com' ||
+      domain === 'x.com' ||
+      domain === 'linkedin.com' ||
+      domain.endsWith('.linkedin.com') ||
+      domain === 'facebook.com' ||
+      domain.endsWith('.facebook.com') ||
+      domain === 'reddit.com' ||
+      domain.endsWith('.reddit.com') ||
+      domain === 'news.ycombinator.com' ||
+      domain === 'github.com'
+    ) {
       referrerType = 'social_media';
     }
     // Everything else
@@ -220,7 +238,11 @@ class LLMCitationTracker {
   /**
    * Calculate confidence that this is an AI platform citation
    */
-  private calculateCitationConfidence(_referrerUrl?: string, userAgent?: string, landingPage?: string): number {
+  private calculateCitationConfidence(
+    _referrerUrl?: string,
+    userAgent?: string,
+    landingPage?: string,
+  ): number {
     let confidence = 0;
 
     // Base confidence from AI platform detection
@@ -234,7 +256,7 @@ class LLMCitationTracker {
       if (landingPage.includes('/contributors') || landingPage.includes('/insights')) {
         confidence += 0.2;
       }
-      
+
       // Direct repository pages are commonly cited by AI
       if (this.extractRepositoryFromPath(landingPage)) {
         confidence += 0.3;
@@ -258,9 +280,7 @@ class LLMCitationTracker {
    */
   private async sendReferralEvent(event: ReferralTrafficEvent): Promise<void> {
     try {
-      const { error: _error } = await supabase
-        .from('referral_traffic')
-        .insert([event]);
+      const { error: _error } = await supabase.from('referral_traffic').insert([event]);
 
       if (_error) {
         console.error('[LLM Citation Tracker] Failed to send referral event:', _error);
@@ -275,9 +295,7 @@ class LLMCitationTracker {
    */
   public async trackCitationAlert(alert: CitationAlert): Promise<void> {
     try {
-      const { error: _error } = await supabase
-        .from('citation_alerts')
-        .insert([alert]);
+      const { error: _error } = await supabase.from('citation_alerts').insert([alert]);
 
       if (_error) {
         console.error('[LLM Citation Tracker] Failed to track citation alert:', _error);
@@ -293,13 +311,14 @@ class LLMCitationTracker {
   public async recordQueryPattern(pattern: QueryPattern): Promise<void> {
     try {
       // First, try to update existing pattern
-      const { data: existing, error: _error: fetchError } = await supabase
+      const { data: existing, error: fetchError } = await supabase
         .from('query_patterns')
         .select('id, frequency_count')
         .eq('pattern_text', pattern.pattern_text)
         .maybeSingle();
 
-      if (fetchError && fetchError.code !== 'PGRST116') { // Not found error
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        // Not found error
         throw fetchError;
       }
 
@@ -319,13 +338,13 @@ class LLMCitationTracker {
         if (_error) throw error;
       } else {
         // Insert new pattern
-        const { error: _error } = await supabase
-          .from('query_patterns')
-          .insert([{
+        const { error: _error } = await supabase.from('query_patterns').insert([
+          {
             ...pattern,
             frequency_count: 1,
             last_seen_at: new Date().toISOString(),
-          }]);
+          },
+        ]);
 
         if (_error) throw error;
       }
@@ -339,10 +358,7 @@ class LLMCitationTracker {
    */
   public async getCitationMetrics(dateRange?: { start: Date; end: Date }) {
     try {
-      let query = supabase
-        .from('referral_traffic')
-        .select('*')
-        .eq('referrer_type', 'ai_platform');
+      let query = supabase.from('referral_traffic').select('*').eq('referrer_type', 'ai_platform');
 
       if (dateRange) {
         query = query
@@ -365,25 +381,25 @@ class LLMCitationTracker {
       // Aggregate the data
       const metrics = {
         totalCitations: data?.length || 0,
-        uniqueRepositories: new Set(_data?.map(d => d.repository).filter(Boolean)).size,
+        uniqueRepositories: new Set(_data?.map((d) => d.repository).filter(Boolean)).size,
         platformBreakdown: {} as Record<string, number>,
         repositoryBreakdown: {} as Record<string, number>,
         dailyTrend: {} as Record<string, number>,
-        averageConfidence: data?.length ? 
-          data.reduce((sum, d) => sum + (d.citation_confidence || 0), 0) / data.length
-: 0,
+        averageConfidence: data?.length
+          ? data.reduce((sum, d) => sum + (d.citation_confidence || 0), 0) / data.length
+          : 0,
       };
 
-      data?.forEach(item => {
+      data?.forEach((item) => {
         // Platform breakdown
         if (item.ai_platform) {
-          metrics.platformBreakdown[item.ai_platform] = 
+          metrics.platformBreakdown[item.ai_platform] =
             (metrics.platformBreakdown[item.ai_platform] || 0) + 1;
         }
 
         // Repository breakdown
         if (item.repository) {
-          metrics.repositoryBreakdown[item.repository] = 
+          metrics.repositoryBreakdown[item.repository] =
             (metrics.repositoryBreakdown[item.repository] || 0) + 1;
         }
 
@@ -405,20 +421,20 @@ class LLMCitationTracker {
   private setupPeriodicTracking(): void {
     // Track engagement every 30 seconds for active sessions
     let lastActivity = Date.now();
-    
+
     this.activityHandler = () => {
       lastActivity = Date.now();
     };
 
     // Listen for user activity
-    ['click', 'scroll', 'keypress', 'mousemove'].forEach(event => {
+    ['click', 'scroll', 'keypress', 'mousemove'].forEach((event) => {
       document.addEventListener(event, this.activityHandler!, { passive: true });
     });
 
     // Periodic engagement tracking
     this.engagementInterval = setInterval(() => {
       const timeSinceActivity = Date.now() - lastActivity;
-      
+
       // If user has been inactive for more than 5 minutes, stop tracking
       if (timeSinceActivity > 5 * 60 * 1000) {
         if (this.engagementInterval) {
@@ -442,18 +458,20 @@ class LLMCitationTracker {
     if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') {
       return `llm_tracker_ssr_${Date.now()}`;
     }
-    
+
     const storageKey = 'contributor-info-llm-session';
     let sessionId = sessionStorage.getItem(storageKey);
-    
+
     if (!sessionId) {
       const randomBytes = new Uint8Array(16);
       window.crypto.getRandomValues(randomBytes);
-      const randomString = Array.from(randomBytes, byte => byte.toString(36)).join('').substr(0, 9);
+      const randomString = Array.from(randomBytes, (byte) => byte.toString(36))
+        .join('')
+        .substr(0, 9);
       sessionId = `llm_${Date.now()}_${randomString}`;
       sessionStorage.setItem(storageKey, sessionId);
     }
-    
+
     return sessionId;
   }
 
@@ -462,15 +480,15 @@ class LLMCitationTracker {
    */
   public destroy(): void {
     this.isInitialized = false;
-    
+
     // Clean up event listeners
     if (this.activityHandler) {
-      ['click', 'scroll', 'keypress', 'mousemove'].forEach(event => {
+      ['click', 'scroll', 'keypress', 'mousemove'].forEach((event) => {
         document.removeEventListener(event, this.activityHandler!);
       });
       this.activityHandler = undefined;
     }
-    
+
     // Clear interval
     if (this.engagementInterval) {
       clearInterval(this.engagementInterval);
@@ -498,8 +516,9 @@ export function initializeLLMCitationTracking(): LLMCitationTracker {
  */
 export function getLLMCitationTracker(): LLMCitationTracker {
   if (!trackerInstance) {
-    throw new Error('LLM Citation Tracker not initialized. Call initializeLLMCitationTracking first.');
+    throw new Error(
+      'LLM Citation Tracker not initialized. Call initializeLLMCitationTracking first.',
+    );
   }
   return trackerInstance;
 }
-

@@ -30,11 +30,9 @@ export function CriticalDataFallback({ message, partialData }: FallbackProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {partialData?.prCount !== undefined
-? (
+            {partialData?.prCount !== undefined ? (
               <div className="text-2xl font-bold">{partialData.prCount}</div>
-            )
-: (
+            ) : (
               <Skeleton className="h-8 w-16" />
             )}
           </CardContent>
@@ -48,11 +46,9 @@ export function CriticalDataFallback({ message, partialData }: FallbackProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {partialData?.contributorCount !== undefined
-? (
+            {partialData?.contributorCount !== undefined ? (
               <div className="text-2xl font-bold">{partialData.contributorCount}</div>
-            )
-: (
+            ) : (
               <Skeleton className="h-8 w-16" />
             )}
           </CardContent>
@@ -63,17 +59,18 @@ export function CriticalDataFallback({ message, partialData }: FallbackProps) {
             <CardTitle className="text-sm font-medium">Top Contributors</CardTitle>
           </CardHeader>
           <CardContent>
-            {partialData?.topContributors?.length > 0
-? (
+            {partialData?.topContributors?.length > 0 ? (
               <div className="flex -space-x-2">
                 {partialData.topContributors.slice(0, 5).map((contributor: unknown, i: number) => (
-                  <div key={i} className="h-8 w-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs font-medium">
+                  <div
+                    key={i}
+                    className="h-8 w-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs font-medium"
+                  >
                     {contributor.login?.[0]?.toUpperCase() || '?'}
                   </div>
                 ))}
               </div>
-            )
-: (
+            ) : (
               <div className="flex -space-x-2">
                 {[...Array(5)].map((_, i) => (
                   <Skeleton key={i} className="h-8 w-8 rounded-full" />
@@ -112,8 +109,7 @@ export function FullDataFallback({ message, partialData }: FallbackProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {partialData?.stats
-? (
+          {partialData?.stats ? (
             <div>
               <p className="text-sm text-gray-600">
                 Showing {partialData.stats.pullRequests?.length || 0} pull requests
@@ -124,8 +120,7 @@ export function FullDataFallback({ message, partialData }: FallbackProps) {
                 </p>
               )}
             </div>
-          )
-: (
+          ) : (
             <div className="space-y-2">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-3/4" />
@@ -177,13 +172,12 @@ export function EnhancementDataFallback({ message, showPartialData, partialData 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {partialData?.directCommitsData
-? (
+          {partialData?.directCommitsData ? (
             <div>
               <p className="text-sm text-gray-600">
-                {partialData.directCommitsData.hasYoloCoders ? 
-                  'YOLO coders detected'
-: 'No YOLO coders found'}
+                {partialData.directCommitsData.hasYoloCoders
+                  ? 'YOLO coders detected'
+                  : 'No YOLO coders found'}
               </p>
               {partialData.directCommitsData.yoloCoderStats?.length > 0 && (
                 <p className="text-xs text-gray-500 mt-1">
@@ -191,8 +185,7 @@ export function EnhancementDataFallback({ message, showPartialData, partialData 
                 </p>
               )}
             </div>
-          )
-: (
+          ) : (
             <div className="space-y-2">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-2/3" />
@@ -206,15 +199,13 @@ export function EnhancementDataFallback({ message, showPartialData, partialData 
           <CardTitle>Historical Trends</CardTitle>
         </CardHeader>
         <CardContent>
-          {showPartialData
-? (
+          {showPartialData ? (
             <div className="space-y-2">
               <div className="h-32 bg-gray-100 rounded-lg flex items-center justify-center">
                 <p className="text-sm text-gray-500">Chart data loading...</p>
               </div>
             </div>
-          )
-: (
+          ) : (
             <Skeleton className="h-32 w-full" />
           )}
         </CardContent>
@@ -237,17 +228,21 @@ export function EnhancementDataFallback({ message, showPartialData, partialData 
 /**
  * Generic error state with contextual message
  */
-export function ErrorFallback({ 
-  stage, 
+export function ErrorFallback({
+  stage,
   message = 'Something went wrong',
-  onRetry 
+  onRetry,
 }: FallbackProps & { onRetry?: () => void }) {
   const getStageDescription = (stage: LoadingStage) => {
     switch (stage) {
-      case 'critical': return 'essential repository data';
-      case 'full': return 'detailed repository information';
-      case 'enhancement': return 'additional analytics';
-      default: return 'data';
+      case 'critical':
+        return 'essential repository data';
+      case 'full':
+        return 'detailed repository information';
+      case 'enhancement':
+        return 'additional analytics';
+      default:
+        return 'data';
     }
   };
 
@@ -258,9 +253,7 @@ export function ErrorFallback({
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
           Failed to load {getStageDescription(stage)}
         </h3>
-        <p className="text-gray-600 mb-4">
-          {message}
-        </p>
+        <p className="text-gray-600 mb-4">{message}</p>
         {onRetry && (
           <button
             onClick={onRetry}
@@ -277,10 +270,10 @@ export function ErrorFallback({
 /**
  * Loading state with progress indication
  */
-export function LoadingWithProgress({ 
-  stage, 
-  progress = 0, 
-  message = 'Loading...' 
+export function LoadingWithProgress({
+  stage,
+  progress = 0,
+  message = 'Loading...',
 }: FallbackProps & { progress?: number }) {
   return (
     <Card>
@@ -288,16 +281,16 @@ export function LoadingWithProgress({
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <h4 className="text-md font-medium text-gray-900 mb-2">{message}</h4>
-          
+
           {progress > 0 && (
             <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out" 
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
                 style={{ width: `${Math.min(progress, 100)}%` }}
               ></div>
             </div>
           )}
-          
+
           <p className="text-sm text-gray-500">
             {stage === 'critical' && 'Loading essential data...'}
             {stage === 'full' && 'Fetching detailed information...'}

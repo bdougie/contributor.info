@@ -65,16 +65,22 @@ export const Left: Story = {
       <SheetContent side="left">
         <SheetHeader>
           <SheetTitle>Navigation</SheetTitle>
-          <SheetDescription>
-            This sheet slides out from the left side.
-          </SheetDescription>
+          <SheetDescription>This sheet slides out from the left side.</SheetDescription>
         </SheetHeader>
         <div className="py-4">
           <nav className="space-y-2">
-            <a href="#" className="block py-2 text-sm">Home</a>
-            <a href="#" className="block py-2 text-sm">About</a>
-            <a href="#" className="block py-2 text-sm">Services</a>
-            <a href="#" className="block py-2 text-sm">Contact</a>
+            <a href="#" className="block py-2 text-sm">
+              Home
+            </a>
+            <a href="#" className="block py-2 text-sm">
+              About
+            </a>
+            <a href="#" className="block py-2 text-sm">
+              Services
+            </a>
+            <a href="#" className="block py-2 text-sm">
+              Contact
+            </a>
           </nav>
         </div>
       </SheetContent>
@@ -91,9 +97,7 @@ export const Top: Story = {
       <SheetContent side="top">
         <SheetHeader>
           <SheetTitle>Notification Center</SheetTitle>
-          <SheetDescription>
-            This sheet slides down from the top.
-          </SheetDescription>
+          <SheetDescription>This sheet slides down from the top.</SheetDescription>
         </SheetHeader>
         <div className="py-4">
           <p>Your latest notifications will appear here.</p>
@@ -112,14 +116,18 @@ export const Bottom: Story = {
       <SheetContent side="bottom">
         <SheetHeader>
           <SheetTitle>Quick Actions</SheetTitle>
-          <SheetDescription>
-            This sheet slides up from the bottom.
-          </SheetDescription>
+          <SheetDescription>This sheet slides up from the bottom.</SheetDescription>
         </SheetHeader>
         <div className="py-4 grid grid-cols-3 gap-4">
-          <Button variant="outline" size="sm">Share</Button>
-          <Button variant="outline" size="sm">Copy</Button>
-          <Button variant="outline" size="sm">Delete</Button>
+          <Button variant="outline" size="sm">
+            Share
+          </Button>
+          <Button variant="outline" size="sm">
+            Copy
+          </Button>
+          <Button variant="outline" size="sm">
+            Delete
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
@@ -195,9 +203,7 @@ export const Settings: Story = {
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Settings</SheetTitle>
-          <SheetDescription>
-            Configure your application settings.
-          </SheetDescription>
+          <SheetDescription>Configure your application settings.</SheetDescription>
         </SheetHeader>
         <div className="py-4 space-y-4">
           <div className="space-y-2">
@@ -205,11 +211,15 @@ export const Settings: Story = {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="dark-mode">Dark mode</Label>
-                <Button variant="outline" size="sm">Toggle</Button>
+                <Button variant="outline" size="sm">
+                  Toggle
+                </Button>
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="animations">Animations</Label>
-                <Button variant="outline" size="sm">Enable</Button>
+                <Button variant="outline" size="sm">
+                  Enable
+                </Button>
               </div>
             </div>
           </div>
@@ -218,11 +228,15 @@ export const Settings: Story = {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Email notifications</Label>
-                <Button variant="outline" size="sm">On</Button>
+                <Button variant="outline" size="sm">
+                  On
+                </Button>
               </div>
               <div className="flex items-center justify-between">
                 <Label>Push notifications</Label>
-                <Button variant="outline" size="sm">Off</Button>
+                <Button variant="outline" size="sm">
+                  Off
+                </Button>
               </div>
             </div>
           </div>
@@ -246,33 +260,41 @@ export const LargeContent: Story = {
       <SheetContent className="w-[400px] sm:w-[540px]">
         <SheetHeader>
           <SheetTitle>Terms of Service</SheetTitle>
-          <SheetDescription>
-            Please read our terms of service carefully.
-          </SheetDescription>
+          <SheetDescription>Please read our terms of service carefully.</SheetDescription>
         </SheetHeader>
         <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
           <div>
             <h4 className="font-medium mb-2">1. Acceptance of Terms</h4>
             <p className="text-sm text-muted-foreground">
-              By accessing and using this service, you accept and agree to be bound by the terms and provision of this agreement.
+              By accessing and using this service, you accept and agree to be bound by the terms and
+              provision of this agreement.
             </p>
           </div>
           <div>
             <h4 className="font-medium mb-2">2. Use License</h4>
             <p className="text-sm text-muted-foreground">
-              Permission is granted to temporarily download one copy of the materials on our website for personal, non-commercial transitory viewing only.
+              Permission is granted to temporarily download one copy of the materials on our website
+              for personal, non-commercial transitory viewing only.
             </p>
           </div>
           <div>
             <h4 className="font-medium mb-2">3. Disclaimer</h4>
             <p className="text-sm text-muted-foreground">
-              The materials on our website are provided on an 'as is' basis. We make no warranties, expressed or implied, and hereby disclaim and negate all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
+              The materials on our website are provided on an 'as is' basis. We make no warranties,
+              expressed or implied, and hereby disclaim and negate all other warranties including,
+              without limitation, implied warranties or conditions of merchantability, fitness for a
+              particular purpose, or non-infringement of intellectual property or other violation of
+              rights.
             </p>
           </div>
           <div>
             <h4 className="font-medium mb-2">4. Limitations</h4>
             <p className="text-sm text-muted-foreground">
-              In no event shall our company or its suppliers be liable for any damages (including, without limitation, damages for loss of _data or profit, or due to business interruption) arising out of the use or inability to use the materials on our website, even if we or our authorized representative has been notified orally or in writing of the possibility of such damage.
+              In no event shall our company or its suppliers be liable for any damages (including,
+              without limitation, damages for loss of _data or profit, or due to business
+              interruption) arising out of the use or inability to use the materials on our website,
+              even if we or our authorized representative has been notified orally or in writing of
+              the possibility of such damage.
             </p>
           </div>
         </div>

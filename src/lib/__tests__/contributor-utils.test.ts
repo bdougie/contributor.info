@@ -8,145 +8,145 @@ describe('Contributor Utilities', () => {
     {
       id: 1,
       number: 101,
-      title: "Fix navigation bug",
-      state: "closed",
-      created_at: "2023-01-01T10:00:00Z",
-      updated_at: "2023-01-02T10:00:00Z",
-      merged_at: "2023-01-02T10:00:00Z",
-      closed_at: "2023-01-02T10:00:00Z",
+      title: 'Fix navigation bug',
+      state: 'closed',
+      created_at: '2023-01-01T10:00:00Z',
+      updated_at: '2023-01-02T10:00:00Z',
+      merged_at: '2023-01-02T10:00:00Z',
+      closed_at: '2023-01-02T10:00:00Z',
       additions: 100,
       deletions: 20,
-      repository_owner: "testowner",
-      repository_name: "testrepo",
-      html_url: "https://github.com/testowner/testrepo/pull/101",
+      repository_owner: 'testowner',
+      repository_name: 'testrepo',
+      html_url: 'https://github.com/testowner/testrepo/pull/101',
       user: {
         id: 1001,
-        login: "user1",
-        avatar_url: "https://example.com/avatar1.png",
-        type: "User"
+        login: 'user1',
+        avatar_url: 'https://example.com/avatar1.png',
+        type: 'User',
       },
       organizations: [],
       reviews: [],
-      comments: []
+      comments: [],
     },
     {
       id: 2,
       number: 102,
-      title: "Add new feature",
-      state: "open",
-      created_at: "2023-01-03T10:00:00Z",
-      updated_at: "2023-01-03T10:00:00Z",
+      title: 'Add new feature',
+      state: 'open',
+      created_at: '2023-01-03T10:00:00Z',
+      updated_at: '2023-01-03T10:00:00Z',
       merged_at: null,
       closed_at: null,
       additions: 200,
       deletions: 50,
-      repository_owner: "testowner",
-      repository_name: "testrepo",
-      html_url: "https://github.com/testowner/testrepo/pull/102",
+      repository_owner: 'testowner',
+      repository_name: 'testrepo',
+      html_url: 'https://github.com/testowner/testrepo/pull/102',
       user: {
         id: 1001,
-        login: "user1",
-        avatar_url: "https://example.com/avatar1.png",
-        type: "User"
+        login: 'user1',
+        avatar_url: 'https://example.com/avatar1.png',
+        type: 'User',
       },
       organizations: [],
       reviews: [],
-      comments: []
+      comments: [],
     },
     {
       id: 3,
       number: 103,
-      title: "Refactor API endpoints",
-      state: "closed",
-      created_at: "2023-01-04T10:00:00Z",
-      updated_at: "2023-01-05T10:00:00Z",
-      merged_at: "2023-01-05T10:00:00Z",
-      closed_at: "2023-01-05T10:00:00Z",
+      title: 'Refactor API endpoints',
+      state: 'closed',
+      created_at: '2023-01-04T10:00:00Z',
+      updated_at: '2023-01-05T10:00:00Z',
+      merged_at: '2023-01-05T10:00:00Z',
+      closed_at: '2023-01-05T10:00:00Z',
       additions: 150,
       deletions: 120,
-      repository_owner: "testowner",
-      repository_name: "testrepo",
-      html_url: "https://github.com/testowner/testrepo/pull/103",
+      repository_owner: 'testowner',
+      repository_name: 'testrepo',
+      html_url: 'https://github.com/testowner/testrepo/pull/103',
       user: {
         id: 1002,
-        login: "user2",
-        avatar_url: "https://example.com/avatar2.png",
-        type: "User"
+        login: 'user2',
+        avatar_url: 'https://example.com/avatar2.png',
+        type: 'User',
       },
       organizations: [],
       reviews: [],
-      comments: []
+      comments: [],
     },
     {
       id: 4,
       number: 104,
-      title: "Update documentation",
-      state: "open",
-      created_at: "2023-01-06T10:00:00Z",
-      updated_at: "2023-01-06T10:00:00Z",
+      title: 'Update documentation',
+      state: 'open',
+      created_at: '2023-01-06T10:00:00Z',
+      updated_at: '2023-01-06T10:00:00Z',
       merged_at: null,
       closed_at: null,
       additions: 50,
       deletions: 10,
-      repository_owner: "testowner",
-      repository_name: "testrepo",
-      html_url: "https://github.com/testowner/testrepo/pull/104",
+      repository_owner: 'testowner',
+      repository_name: 'testrepo',
+      html_url: 'https://github.com/testowner/testrepo/pull/104',
       author: {
-        login: "user1", // Using author property instead of user
+        login: 'user1', // Using author property instead of user
       },
       user: {
         id: 9999, // Different ID but same login in the author field
-        login: "different-user",
-        avatar_url: "https://example.com/different.png",
-        type: "User"
+        login: 'different-user',
+        avatar_url: 'https://example.com/different.png',
+        type: 'User',
       },
       organizations: [],
       reviews: [],
-      comments: []
+      comments: [],
     },
     {
       id: 5,
       number: 105,
-      title: "Fix dependency issues",
-      state: "closed",
-      created_at: "2023-01-07T10:00:00Z",
-      updated_at: "2023-01-08T10:00:00Z",
-      merged_at: "2023-01-08T10:00:00Z",
-      closed_at: "2023-01-08T10:00:00Z",
+      title: 'Fix dependency issues',
+      state: 'closed',
+      created_at: '2023-01-07T10:00:00Z',
+      updated_at: '2023-01-08T10:00:00Z',
+      merged_at: '2023-01-08T10:00:00Z',
+      closed_at: '2023-01-08T10:00:00Z',
       additions: 25,
       deletions: 15,
-      repository_owner: "testowner",
-      repository_name: "testrepo",
-      html_url: "https://github.com/testowner/testrepo/pull/105",
+      repository_owner: 'testowner',
+      repository_name: 'testrepo',
+      html_url: 'https://github.com/testowner/testrepo/pull/105',
       user: {
         id: 1003,
-        login: "dependabot",
-        avatar_url: "https://example.com/avatar3.png",
-        type: "Bot"
+        login: 'dependabot',
+        avatar_url: 'https://example.com/avatar3.png',
+        type: 'Bot',
       },
       organizations: [],
       reviews: [],
-      comments: []
-    }
+      comments: [],
+    },
   ];
 
   describe('findUserPullRequests', () => {
     it('should find pull requests by username (user.login)', () => {
       const result = findUserPullRequests(mockPullRequests, 'user1');
       expect(result).toHaveLength(3); // Should find 3 PRs (2 with user.login and 1 with author.login)
-      expect(result.map(pr => pr.id)).toEqual([1, 2, 4]);
+      expect(result.map((pr) => pr.id)).toEqual([1, 2, 4]);
     });
 
     it('should find pull requests by username (author.login)', () => {
       const result = findUserPullRequests(mockPullRequests, 'user1');
       // Should include PR with id 4 which has author.login = 'user1'
-      expect(result.some(pr => pr.id === 4)).toBe(true);
+      expect(result.some((pr) => pr.id === 4)).toBe(true);
     });
 
     it('should find pull requests by userId if provided', () => {
       const result = findUserPullRequests(mockPullRequests, 'not-matching', '1001');
       expect(result).toHaveLength(2); // Should find PRs with user.id = 1001
-      expect(result.map(pr => pr.id)).toEqual([1, 2]);
+      expect(result.map((pr) => pr.id)).toEqual([1, 2]);
     });
 
     it('should be case-insensitive when matching usernames', () => {
@@ -175,36 +175,35 @@ describe('Contributor Utilities', () => {
       const result = createContributorStats(
         mockPullRequests,
         'user1',
-        'https://example.com/avatar1.png'
+        'https://example.com/avatar1.png',
       );
-      
+
       expect(result).toEqual({
         login: 'user1',
         avatar_url: 'https://example.com/avatar1.png',
         pullRequests: 3, // user1 has 3 PRs
         percentage: 60, // 3 out of 5 PRs = 60%
-        recentPRs: mockPullRequests.filter(pr => 
-          pr.user?.login === 'user1' || 
-          (pr.author && pr.author.login === 'user1')
-        ).slice(0, 5),
-        organizations: []
+        recentPRs: mockPullRequests
+          .filter((pr) => pr.user?.login === 'user1' || (pr.author && pr.author.login === 'user1'))
+          .slice(0, 5),
+        organizations: [],
       });
     });
 
     it('should create correct stats for a contributor with one PR', () => {
       const result = createContributorStats(
-        mockPullRequests, 
+        mockPullRequests,
         'user2',
-        'https://example.com/avatar2.png'
+        'https://example.com/avatar2.png',
       );
-      
+
       expect(result).toEqual({
         login: 'user2',
         avatar_url: 'https://example.com/avatar2.png',
         pullRequests: 1, // user2 has 1 PR
         percentage: 20, // 1 out of 5 PRs = 20%
         recentPRs: [mockPullRequests[2]], // Only PR with id 3
-        organizations: []
+        organizations: [],
       });
     });
 
@@ -212,33 +211,29 @@ describe('Contributor Utilities', () => {
       const result = createContributorStats(
         mockPullRequests,
         'nonexistent-user',
-        'https://example.com/avatar-none.png'
+        'https://example.com/avatar-none.png',
       );
-      
+
       expect(result).toEqual({
         login: 'nonexistent-user',
         avatar_url: 'https://example.com/avatar-none.png',
         pullRequests: 0,
         percentage: 0,
         recentPRs: [],
-        organizations: []
+        organizations: [],
       });
     });
 
     it('should handle empty pull requests array', () => {
-      const result = createContributorStats(
-        [],
-        'user1',
-        'https://example.com/avatar1.png'
-      );
-      
+      const result = createContributorStats([], 'user1', 'https://example.com/avatar1.png');
+
       expect(result).toEqual({
         login: 'user1',
         avatar_url: 'https://example.com/avatar1.png',
         pullRequests: 0,
         percentage: 0,
         recentPRs: [],
-        organizations: []
+        organizations: [],
       });
     });
 
@@ -247,36 +242,31 @@ describe('Contributor Utilities', () => {
         mockPullRequests,
         'different-display-name',
         'https://example.com/avatar1.png',
-        '1001' // user ID that matches user1's PRs
+        '1001', // user ID that matches user1's PRs
       );
-      
+
       expect(result.pullRequests).toBe(2); // Should find 2 PRs with user.id = 1001
       expect(result.percentage).toBe(40); // 2 out of 5 PRs = 40%
     });
 
     it('should limit recentPRs to maximum of 5', () => {
       // Create a test array with more than 5 PRs for the same user
-      const extraPRs = Array(7).fill(0).map((_, i) => {
-        // Create a proper PullRequest object by copying the template
-        const prCopy = JSON.parse(JSON.stringify(mockPullRequests[0]));
-        // Update the necessary fields
-        prCopy.id = 100 + i;
-        prCopy.number = 200 + i;
-        prCopy.title = `Extra PR ${i+1}`;
-        return prCopy as PullRequest;
-      });
-      
-      const manyPRs: PullRequest[] = [
-        ...mockPullRequests,
-        ...extraPRs
-      ];
-      
-      const result = createContributorStats(
-        manyPRs,
-        'user1',
-        'https://example.com/avatar1.png'
-      );
-      
+      const extraPRs = Array(7)
+        .fill(0)
+        .map((_, i) => {
+          // Create a proper PullRequest object by copying the template
+          const prCopy = JSON.parse(JSON.stringify(mockPullRequests[0]));
+          // Update the necessary fields
+          prCopy.id = 100 + i;
+          prCopy.number = 200 + i;
+          prCopy.title = `Extra PR ${i + 1}`;
+          return prCopy as PullRequest;
+        });
+
+      const manyPRs: PullRequest[] = [...mockPullRequests, ...extraPRs];
+
+      const result = createContributorStats(manyPRs, 'user1', 'https://example.com/avatar1.png');
+
       expect(result.recentPRs).toHaveLength(5); // Should be limited to 5 even though there are more
     });
   });

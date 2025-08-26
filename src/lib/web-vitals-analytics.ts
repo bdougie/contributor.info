@@ -51,7 +51,7 @@ class WebVitalsAnalytics {
 
   constructor() {
     this.sessionId = this.getOrCreateSessionId();
-    
+
     // Flush metrics on page unload
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', () => {
@@ -65,18 +65,20 @@ class WebVitalsAnalytics {
     if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') {
       return `vitals_ssr_${Date.now()}`;
     }
-    
+
     const storageKey = 'contributor-info-vitals-session';
     let sessionId = sessionStorage.getItem(storageKey);
-    
+
     if (!sessionId) {
       const randomBytes = new Uint8Array(16);
       window.crypto.getRandomValues(randomBytes);
-      const randomString = Array.from(randomBytes, byte => byte.toString(36)).join('').substr(0, 9);
+      const randomString = Array.from(randomBytes, (byte) => byte.toString(36))
+        .join('')
+        .substr(0, 9);
       sessionId = `vitals_${Date.now()}_${randomString}`;
       sessionStorage.setItem(storageKey, sessionId);
     }
-    
+
     return sessionId;
   }
 
@@ -85,13 +87,13 @@ class WebVitalsAnalytics {
    */
   public async trackMetric(metric: VitalMetric): Promise<void> {
     const event = this.createWebVitalsEvent(metric);
-    
+
     // Add to buffer
     this.metricsBuffer.push(event);
-    
+
     // Check for alerts
     this.checkForAlerts(metric);
-    
+
     // Flush if buffer is full
     if (this.metricsBuffer.length >= this.MAX_BUFFER_SIZE) {
       await this.flushMetrics();
@@ -103,7 +105,7 @@ class WebVitalsAnalytics {
 
   private createWebVitalsEvent(metric: VitalMetric): WebVitalsEvent {
     const repository = this.extractRepository(window.location.pathname);
-    
+
     return {
       metric_name: metric.name,
       metric_value: metric.value,
@@ -118,7 +120,8 @@ class WebVitalsAnalytics {
       viewport_height: window.innerHeight,
       screen_width: window.screen.width,
       screen_height: window.screen.height,
-      connection_type: (navigator as Navigator & { connection?: { effectiveType?: string } }).connection?.effectiveType,
+      connection_type: (navigator as Navigator & { connection?: { effectiveType?: string } })
+        .connection?.effectiveType,
       device_memory: (navigator as Navigator & { deviceMemory?: number }).deviceMemory,
       hardware_concurrency: navigator.hardwareConcurrency,
       timestamp: new Date().toISOString(),
@@ -136,7 +139,7 @@ class WebVitalsAnalytics {
     if (this.bufferTimer) {
       clearTimeout(this.bufferTimer);
     }
-    
+
     this.bufferTimer = setTimeout(() => {
       this.flushMetrics();
     }, this.BUFFER_TIMEOUT);
@@ -144,53 +147,57 @@ class WebVitalsAnalytics {
 
   private async flushMetrics(): Promise<void> {
     if (this.metricsBuffer.length === 0) return;
-    
+
     const metricsToSend = [...this.metricsBuffer];
     this.metricsBuffer = [];
-    
+
     // Send to enabled providers
     const promises: Promise<void>[] = [];
-    
+
     if (this.providers.has('supabase')) {
       promises.push(this.sendToSupabase(metricsToSend));
     }
-    
+
     if (this.providers.has('posthog')) {
       promises.push(this.sendToPostHog(metricsToSend));
     }
-    
+
     if (this.providers.has('custom')) {
       promises.push(this.sendToCustomEndpoint(metricsToSend));
     }
-    
+
     await Promise.allSettled(promises);
   }
 
   private flushMetricsSync(): void {
     if (this.metricsBuffer.length === 0) return;
-    
+
     const metricsToSend = [...this.metricsBuffer];
     this.metricsBuffer = [];
-    
+
     // Use sendBeacon for reliable delivery on page unload
     if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-      const data = JSON.stringify({
+      const _data = JSON.stringify({
         events: metricsToSend,
         sessionId: this.sessionId,
       });
-      
+
       // Send to custom endpoint using sendBeacon
       const customEndpoint = import.meta.env?.VITE_VITALS_ENDPOINT;
       if (this.providers.has('custom') && customEndpoint) {
         navigator.sendBeacon(customEndpoint, _data);
       }
-      
+
       // For Supabase, we'd need a special endpoint that accepts beacon data
       // For now, we'll try to use a synchronous XMLHttpRequest as fallback
       if (this.providers.has('supabase')) {
         try {
           const xhr = new XMLHttpRequest();
-          xhr.open('POST', `${import.meta.env?.VITE_SUPABASE_URL || ''}/rest/v1/web_vitals_events`, false); // false = synchronous
+          xhr.open(
+            'POST',
+            `${import.meta.env?.VITE_SUPABASE_URL || ''}/rest/v1/web_vitals_events`,
+            false,
+          ); // false = synchronous
           xhr.setRequestHeader('Content-Type', 'application/json');
           xhr.setRequestHeader('apikey', import.meta.env?.VITE_SUPABASE_ANON_KEY || '');
           xhr.send(JSON.stringify(metricsToSend));
@@ -204,10 +211,8 @@ class WebVitalsAnalytics {
 
   private async sendToSupabase(events: WebVitalsEvent[]): Promise<void> {
     try {
-      const { error: _error } = await supabase
-        .from('web_vitals_events')
-        .insert(events);
-      
+      const { error: _error } = await supabase.from('web_vitals_events').insert(events);
+
       if (_error) {
         console.error('Failed to send Web Vitals to Supabase:', _error);
       }
@@ -220,15 +225,15 @@ class WebVitalsAnalytics {
     // Lazy load PostHog to minimize bundle impact
     try {
       const { batchTrackWebVitals } = await import('./posthog-lazy');
-      
+
       // Convert all events to PostHog format and send as a single batch
-      const metricsForPostHog = events.map(event => ({
+      const metricsForPostHog = events.map((event) => ({
         name: event.metric_name,
         value: event.metric_value,
         rating: event.metric_rating,
-        delta: event.metric_delta
+        delta: event.metric_delta,
       }));
-      
+
       // Send all metrics in a single batch call
       if (metricsForPostHog.length > 0) {
         await batchTrackWebVitals(metricsForPostHog);
@@ -245,7 +250,7 @@ class WebVitalsAnalytics {
     // Custom endpoint integration
     const endpoint = import.meta.env?.VITE_VITALS_ENDPOINT;
     if (!endpoint) return;
-    
+
     try {
       await fetch(endpoint, {
         method: 'POST',
@@ -260,15 +265,15 @@ class WebVitalsAnalytics {
   private checkForAlerts(metric: VitalMetric): void {
     const thresholds = this.alertThresholds.get(metric.name);
     if (!thresholds) return;
-    
+
     let severity: 'warning' | 'critical' | null = null;
-    
+
     if (metric.value > thresholds.critical) {
       severity = 'critical';
     } else if (metric.value > thresholds.warning) {
       severity = 'warning';
     }
-    
+
     if (severity) {
       this.sendAlert({
         metric_name: metric.name,
@@ -284,15 +289,15 @@ class WebVitalsAnalytics {
   private async sendAlert(alert: PerformanceAlert): Promise<void> {
     // Log alert in development
     if (process.env.NODE_ENV === 'development') {
-      console.warn(`[Performance Alert] ${alert.severity.toUpperCase()}: ${alert.metric_name} = ${alert.actual_value} (threshold: ${alert.threshold})`);
+      console.warn(
+        `[Performance Alert] ${alert.severity.toUpperCase()}: ${alert.metric_name} = ${alert.actual_value} (threshold: ${alert.threshold})`,
+      );
     }
-    
+
     // Send to Supabase
     try {
-      const { error: _error } = await supabase
-        .from('performance_alerts')
-        .insert([alert]);
-      
+      const { error: _error } = await supabase.from('performance_alerts').insert([alert]);
+
       if (_error) {
         console.error('Failed to send performance alert:', _error);
       }
@@ -310,31 +315,29 @@ class WebVitalsAnalytics {
     metricName?: string;
   }) {
     try {
-      let query = supabase
-        .from('web_vitals_events')
-        .select('*');
-      
+      let query = supabase.from('web_vitals_events').select('*');
+
       if (filters?.repository) {
         query = query.eq('repository', filters.repository);
       }
-      
+
       if (filters?.metricName) {
         query = query.eq('metric_name', filters.metricName);
       }
-      
+
       if (filters?.dateRange) {
         query = query
           .gte('timestamp', filters.dateRange.start.toISOString())
           .lte('timestamp', filters.dateRange.end.toISOString());
       }
-      
+
       const { data, error: _error } = await query.order('timestamp', { ascending: false });
-      
+
       if (_error) {
         console.error('Failed to get Web Vitals metrics:', _error);
         return [];
       }
-      
+
       return data || [];
     } catch (err) {
       console.error('Error getting Web Vitals metrics:', err);
@@ -348,35 +351,39 @@ class WebVitalsAnalytics {
   public async getPerformanceSummary(repository?: string) {
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    
+
     const metrics = await this.getMetrics({
       repository,
       dateRange: { start: oneDayAgo, end: now },
     });
-    
+
     // Calculate percentiles and ratings
     const summary: Record<string, unknown> = {};
     const metricNames = ['LCP', 'INP', 'CLS', 'FCP', 'TTFB'];
-    
+
     for (const metricName of metricNames) {
       const metricValues = metrics
-        .filter(m => m.metric_name === metricName)
-        .map(m => m.metric_value)
+        .filter((m) => m.metric_name === metricName)
+        .map((m) => m.metric_value)
         .sort((a, b) => a - b);
-      
+
       if (metricValues.length > 0) {
         summary[metricName] = {
           p50: this.percentile(metricValues, 50),
           p75: this.percentile(metricValues, 75),
           p95: this.percentile(metricValues, 95),
-          good: metrics.filter(m => m.metric_name === metricName && m.metric_rating === 'good').length,
-          needsImprovement: metrics.filter(m => m.metric_name === metricName && m.metric_rating === 'needs-improvement').length,
-          poor: metrics.filter(m => m.metric_name === metricName && m.metric_rating === 'poor').length,
+          good: metrics.filter((m) => m.metric_name === metricName && m.metric_rating === 'good')
+            .length,
+          needsImprovement: metrics.filter(
+            (m) => m.metric_name === metricName && m.metric_rating === 'needs-improvement',
+          ).length,
+          poor: metrics.filter((m) => m.metric_name === metricName && m.metric_rating === 'poor')
+            .length,
           total: metricValues.length,
         };
       }
     }
-    
+
     return summary;
   }
 

@@ -90,7 +90,7 @@ export const Interactive: Story = {
 
       const simulateRetry = async () => {
         setIsLoading(true);
-        
+
         for (let i = 1; i <= 3; i++) {
           setRetryState({
             isRetrying: true,
@@ -98,9 +98,9 @@ export const Interactive: Story = {
             maxAttempts: 3,
             nextRetryIn: Math.pow(2, i - 1) * 1000,
           });
-          
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
+
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+
           if (i === 3) {
             setRetryState({
               isRetrying: false,
@@ -111,17 +111,14 @@ export const Interactive: Story = {
             break;
           }
         }
-        
+
         setIsLoading(false);
       };
 
       return (
         <div className="space-y-4 w-96">
-          <RetryIndicator 
-            retryState={retryState} 
-            onRetry={simulateRetry}
-          />
-          
+          <RetryIndicator retryState={retryState} onRetry={simulateRetry} />
+
           <div className="flex gap-2">
             <button
               onClick={simulateRetry}
@@ -130,13 +127,15 @@ export const Interactive: Story = {
             >
               Simulate Retry
             </button>
-            
+
             <button
-              onClick={() => setRetryState({
-                isRetrying: false,
-                attempt: 0,
-                maxAttempts: 3,
-              })}
+              onClick={() =>
+                setRetryState({
+                  isRetrying: false,
+                  attempt: 0,
+                  maxAttempts: 3,
+                })
+              }
               className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
             >
               Reset
@@ -145,7 +144,7 @@ export const Interactive: Story = {
         </div>
       );
     };
-    
+
     return <Component />;
   },
 };

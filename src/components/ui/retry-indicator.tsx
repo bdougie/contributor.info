@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 import { AlertCircle, RefreshCw, XCircle } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
@@ -17,20 +17,20 @@ interface RetryIndicatorProps {
   compact?: boolean;
 }
 
-export function RetryIndicator({ 
-  retryState, 
-  onRetry, 
+export function RetryIndicator({
+  retryState,
+  onRetry,
   className,
-  compact = false 
+  compact = false,
 }: RetryIndicatorProps) {
   const [countdown, setCountdown] = useState<number>(0);
 
   useEffect(() => {
     if (retryState.nextRetryIn && retryState.nextRetryIn > 0) {
       setCountdown(Math.ceil(retryState.nextRetryIn / 1000));
-      
+
       const interval = setInterval(() => {
-        setCountdown(prev => {
+        setCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(interval);
             return 0;
@@ -49,83 +49,71 @@ export function RetryIndicator({
 
   if (compact) {
     return (
-      <div className={cn("flex items-center gap-2 text-sm", className)}>
-        {retryState.isRetrying
-? (
+      <div className={cn('flex items-center gap-2 text-sm', className)}>
+        {retryState.isRetrying ? (
           <>
             <RefreshCw className="h-3 w-3 animate-spin text-yellow-600" />
             <span className="text-muted-foreground">
               Retrying... ({retryState.attempt}/{retryState.maxAttempts})
             </span>
           </>
-        )
-: retryState.error
-? (
+        ) : retryState.error ? (
           <>
             <XCircle className="h-3 w-3 text-red-600" />
             <span className="text-muted-foreground">Failed</span>
             {onRetry && (
-              <button
-                onClick={onRetry}
-                className="text-xs underline hover:no-underline"
-              >
+              <button onClick={onRetry} className="text-xs underline hover:no-underline">
                 Retry
               </button>
             )}
           </>
-        )
-: null}
+        ) : null}
       </div>
     );
   }
 
   return (
-    <div className={cn(
-      "rounded-lg border p-4",
-      retryState.isRetrying && "border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950",
-      retryState.error && "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950",
-      className
-    )}>
+    <div
+      className={cn(
+        'rounded-lg border p-4',
+        retryState.isRetrying &&
+          'border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950',
+        retryState.error && 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950',
+        className,
+      )}
+    >
       <div className="flex items-start gap-3">
-        {retryState.isRetrying
-? (
+        {retryState.isRetrying ? (
           <RefreshCw className="h-5 w-5 animate-spin text-yellow-600 dark:text-yellow-400 mt-0.5" />
-        )
-: retryState.error
-? (
+        ) : retryState.error ? (
           <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
-        )
-: (
+        ) : (
           <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
         )}
-        
+
         <div className="flex-1">
           <div className="font-medium text-sm">
-            {retryState.isRetrying
-? (
-              <>Connection attempt {retryState.attempt} of {retryState.maxAttempts}</>
-            )
-: retryState.error
-? (
+            {retryState.isRetrying ? (
+              <>
+                Connection attempt {retryState.attempt} of {retryState.maxAttempts}
+              </>
+            ) : retryState.error ? (
               <>Connection failed after {retryState.maxAttempts} attempts</>
-            )
-: (
+            ) : (
               <>Connecting...</>
             )}
           </div>
-          
+
           {retryState.error && (
-            <p className="text-sm text-muted-foreground mt-1">
-              {retryState.error.message}
-            </p>
+            <p className="text-sm text-muted-foreground mt-1">{retryState.error.message}</p>
           )}
-          
+
           {countdown > 0 && (
             <p className="text-sm text-muted-foreground mt-1">
               Next retry in {countdown} second{countdown !== 1 ? 's' : ''}...
             </p>
           )}
-          
+
           {onRetry && retryState.error && (
             <button
               onClick={onRetry}
@@ -151,7 +139,7 @@ export function useRetryState(): [RetryState, (updates: Partial<RetryState>) => 
   });
 
   const updateState = (updates: Partial<RetryState>) => {
-    setState(prev => ({ ...prev, ...updates }));
+    setState((prev) => ({ ...prev, ...updates }));
   };
 
   return [state, updateState];
@@ -195,10 +183,11 @@ export function useRetryIndicator() {
   return {
     retryState,
     createRetryHandler,
-    resetRetryState: () => setRetryState({
-      isRetrying: false,
-      attempt: 0,
-      maxAttempts: 3,
-    }),
+    resetRetryState: () =>
+      setRetryState({
+        isRetrying: false,
+        attempt: 0,
+        maxAttempts: 3,
+      }),
   };
 }

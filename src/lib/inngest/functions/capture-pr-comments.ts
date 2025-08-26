@@ -41,47 +41,47 @@ interface GitHubIssueComment {
 
 /**
  * Captures PR comments (both issue and review comments) using GitHub REST API
- * 
+ *
  * Note: This function intentionally uses REST API instead of GraphQL because:
  * 1. Two REST calls (issue + review comments) are still efficient
  * 2. REST provides cleaner separation between comment types
  * 3. Comment threading is simpler to handle with REST responses
  * 4. Current performance meets our requirements
- * 
+ *
  * For GraphQL implementation details, see the hybrid client at:
  * scripts/progressive-capture/lib/hybrid-github-client.js
  */
 export const capturePrComments = inngest.createFunction(
   {
-    id: "capture-pr-comments",
-    name: "Capture PR Comments",
+    id: 'capture-pr-comments',
+    name: 'Capture PR Comments',
     concurrency: {
       limit: 3,
-      key: "event.data.repositoryId",
+      key: 'event.data.repositoryId',
     },
     retries: 2,
     throttle: {
       limit: 30,
-      period: "1m",
+      period: '1m',
     },
   },
-  { event: "capture/pr.comments" },
+  { event: 'capture/pr.comments' },
   async ({ event, step }) => {
     const { repositoryId, prNumber, prId } = event.data;
     const syncLogger = new SyncLogger();
     let apiCallsUsed = 0;
 
     // Step 0: Initialize sync log
-    await step.run("init-sync-log", async () => {
+    await step.run('init-sync-log', async () => {
       return await syncLogger.start('pr_comments', repositoryId, {
         prNumber,
         prId,
-        source: 'inngest'
+        source: 'inngest',
       });
     });
 
     // Step 1: Get repository details
-    const repository = await step.run("get-repository", async () => {
+    const repository = await step.run('get-repository', async () => {
       const { data, error: _error } = await supabase
         .from('repositories')
         .select('owner, name')
@@ -95,11 +95,16 @@ export const capturePrComments = inngest.createFunction(
     });
 
     // Step 2: Fetch both PR comments and issue comments
-    const commentsData = await step.run("fetch-comments", async () => {
+    const commentsData = await step.run('fetch-comments', async () => {
       const octokit = getOctokit();
-      
+
       try {
-        console.log('Fetching comments for PR #%s in %s/%s', prNumber, repository.owner, repository.name);
+        console.log(
+          'Fetching comments for PR #%s in %s/%s',
+          prNumber,
+          repository.owner,
+          repository.name,
+        );
         // Fetch PR review comments
         apiCallsUsed++;
         const { data: prCommentsData } = await octokit.rest.pulls.listComments({
@@ -120,41 +125,44 @@ export const capturePrComments = inngest.createFunction(
         const processedPrComments: DatabaseComment[] = [];
         const processedIssueComments: DatabaseComment[] = [];
         let failedContributorCreations = 0;
-        
+
         for (const comment of prCommentsData as GitHubPRComment[]) {
           if (!comment.user) continue;
-          
+
           // Find or create the commenter in contributors table
           const { data: existingContributor } = await supabase
             .from('contributors')
             .select('id')
             .eq('github_id', comment.user.id)
             .maybeSingle();
-          
+
           let commenterId = existingContributor?.id;
-          
+
           if (!commenterId) {
             // Create new contributor
-            const { data: newContributor, error: _error: contributorError } = await supabase
+            const { data: newContributor, error: contributorError } = await supabase
               .from('contributors')
               .insert({
                 github_id: comment.user.id,
                 username: comment.user.login,
                 avatar_url: comment.user.avatar_url,
-                is_bot: comment.user.type === 'Bot' || comment.user.login.includes('[bot]')
+                is_bot: comment.user.type === 'Bot' || comment.user.login.includes('[bot]'),
               })
               .select('id')
               .maybeSingle();
-              
+
             if (contributorError || !newContributor) {
-              console.warn(`Failed to create commenter ${comment.user.login}:`, contributorError?.message || 'Unknown _error');
+              console.warn(
+                `Failed to create commenter ${comment.user.login}:`,
+                contributorError?.message || 'Unknown _error',
+              );
               failedContributorCreations++;
               continue;
             }
-            
+
             commenterId = newContributor.id;
           }
-          
+
           processedPrComments.push({
             github_id: comment.id.toString(),
             repository_id: repositoryId,
@@ -172,41 +180,44 @@ export const capturePrComments = inngest.createFunction(
             commit_id: comment.commit_id,
           });
         }
-        
+
         for (const comment of issueCommentsData as GitHubIssueComment[]) {
           if (!comment.user) continue;
-          
+
           // Find or create the commenter in contributors table
           const { data: existingContributor } = await supabase
             .from('contributors')
             .select('id')
             .eq('github_id', comment.user.id)
             .maybeSingle();
-          
+
           let commenterId = existingContributor?.id;
-          
+
           if (!commenterId) {
             // Create new contributor
-            const { data: newContributor, error: _error: contributorError } = await supabase
+            const { data: newContributor, error: contributorError } = await supabase
               .from('contributors')
               .insert({
                 github_id: comment.user.id,
                 username: comment.user.login,
                 avatar_url: comment.user.avatar_url,
-                is_bot: comment.user.type === 'Bot' || comment.user.login.includes('[bot]')
+                is_bot: comment.user.type === 'Bot' || comment.user.login.includes('[bot]'),
               })
               .select('id')
               .maybeSingle();
-              
+
             if (contributorError || !newContributor) {
-              console.warn(`Failed to create commenter ${comment.user.login}:`, contributorError?.message || 'Unknown _error');
+              console.warn(
+                `Failed to create commenter ${comment.user.login}:`,
+                contributorError?.message || 'Unknown _error',
+              );
               failedContributorCreations++;
               continue;
             }
-            
+
             commenterId = newContributor.id;
           }
-          
+
           processedIssueComments.push({
             github_id: comment.id.toString(),
             repository_id: repositoryId,
@@ -219,15 +230,19 @@ export const capturePrComments = inngest.createFunction(
           });
         }
 
-        console.log('Found %s review comments and %s issue comments', processedPrComments.length, processedIssueComments.length);
-        
+        console.log(
+          'Found %s review comments and %s issue comments',
+          processedPrComments.length,
+          processedIssueComments.length,
+        );
+
         await syncLogger.update({
           github_api_calls_used: apiCallsUsed,
           metadata: {
             prCommentsFound: processedPrComments.length,
             issueCommentsFound: processedIssueComments.length,
-            failedContributorCreations: failedContributorCreations
-          }
+            failedContributorCreations: failedContributorCreations,
+          },
         });
 
         return {
@@ -243,33 +258,33 @@ export const capturePrComments = inngest.createFunction(
           return { prComments: [], issueComments: [], failedContributorCreations: 0 };
         }
         if (apiError.status === 403) {
-          throw new Error(`Rate limit exceeded while fetching comments for PR #${prNumber}. Will retry later.`);
+          throw new Error(
+            `Rate limit exceeded while fetching comments for PR #${prNumber}. Will retry later.`,
+          );
         }
         throw error;
       }
     });
 
     // Step 3: Store comments in database
-    const storedCount = await step.run("store-comments", async () => {
+    const storedCount = await step.run('store-comments', async () => {
       const allComments = [...commentsData.prComments, ...commentsData.issueComments];
-      
+
       if (allComments.length === 0) {
         return 0;
       }
 
       // Batch insert comments
-      const { error: _error } = await supabase
-        .from('comments')
-        .upsert(allComments, {
-          onConflict: 'github_id',
-          ignoreDuplicates: false,
-        });
+      const { error: _error } = await supabase.from('comments').upsert(allComments, {
+        onConflict: 'github_id',
+        ignoreDuplicates: false,
+      });
 
       if (_error) {
         await syncLogger.fail(`Failed to store comments: ${error.message}`, {
           records_processed: allComments.length,
           records_failed: allComments.length,
-          github_api_calls_used: apiCallsUsed
+          github_api_calls_used: apiCallsUsed,
         });
         throw new Error(`Failed to store comments: ${_error.message}`);
       }
@@ -278,7 +293,7 @@ export const capturePrComments = inngest.createFunction(
     });
 
     // Step 4: Update PR timestamp (comment counts are tracked via foreign key relationships)
-    await step.run("update-pr-stats", async () => {
+    await step.run('update-pr-stats', async () => {
       const { error: _error } = await supabase
         .from('pull_requests')
         .update({
@@ -292,7 +307,7 @@ export const capturePrComments = inngest.createFunction(
     });
 
     // Complete sync log
-    await step.run("complete-sync-log", async () => {
+    await step.run('complete-sync-log', async () => {
       await syncLogger.complete({
         records_processed: storedCount,
         records_inserted: storedCount,
@@ -301,8 +316,8 @@ export const capturePrComments = inngest.createFunction(
           reviewCommentsCount: commentsData.prComments.length,
           issueCommentsCount: commentsData.issueComments.length,
           totalCommentsCount: storedCount,
-          failedContributorCreations: commentsData.failedContributorCreations
-        }
+          failedContributorCreations: commentsData.failedContributorCreations,
+        },
       });
     });
 
@@ -314,5 +329,5 @@ export const capturePrComments = inngest.createFunction(
       issueCommentsCount: commentsData.issueComments.length,
       totalCommentsCount: storedCount,
     };
-  }
+  },
 );

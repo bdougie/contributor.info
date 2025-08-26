@@ -4,14 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  GitPullRequest, 
-  AlertCircle, 
+import {
+  GitPullRequest,
+  AlertCircle,
   Plus,
-  TrendingUp, 
-  TrendingDown, 
+  TrendingUp,
+  TrendingDown,
   Search,
-  X
+  X,
 } from '@/components/ui/icon';
 import {
   useReactTable,
@@ -114,11 +114,11 @@ const mockAvailableContributors: Contributor[] = [
 ];
 
 // Component wrapper for the Add Contributors table view
-function AddContributorsTableView({ 
+function AddContributorsTableView({
   contributors = mockAvailableContributors,
   onClose = () => console.log('Close clicked'),
-  onAddSelected = (ids: string[]) => console.log('Adding contributors:', ids)
-}: { 
+  onAddSelected = (ids: string[]) => console.log('Adding contributors:', ids),
+}: {
   contributors?: Contributor[];
   onClose?: () => void;
   onAddSelected?: (contributorIds: string[]) => void;
@@ -177,19 +177,19 @@ function AddContributorsTableView({
         const contributions = row.original.contributions;
         const trend = stats.contribution_trend;
         const getTrendColor = () => {
-          if (trend > 0) return "text-green-600";
-          if (trend < 0) return "text-red-600";
-          return "text-muted-foreground";
+          if (trend > 0) return 'text-green-600';
+          if (trend < 0) return 'text-red-600';
+          return 'text-muted-foreground';
         };
         const trendColor = getTrendColor();
         const TrendIcon = trend > 0 ? TrendingUp : TrendingDown;
-        
+
         const repoCount = row.original.stats.repositories_contributed;
         const repoOwners: string[] = [];
         const maxDisplay = 4;
         const displayOwners = repoOwners.slice(0, maxDisplay);
         const remainingCount = Math.max(0, repoCount - maxDisplay);
-        
+
         return (
           <div className="flex items-center justify-end gap-6 text-sm">
             <div className="flex items-center gap-4">
@@ -202,8 +202,7 @@ function AddContributorsTableView({
                 <span className="font-medium">{contributions.issues}</span>
               </div>
             </div>
-            {displayOwners.length > 0
-? (
+            {displayOwners.length > 0 ? (
               <div className="flex items-center gap-1.5">
                 <div className="flex -space-x-1.5">
                   {displayOwners.map((owner, i) => (
@@ -217,13 +216,10 @@ function AddContributorsTableView({
                   ))}
                 </div>
                 {remainingCount > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    +{remainingCount}
-                  </span>
+                  <span className="text-xs text-muted-foreground">+{remainingCount}</span>
                 )}
               </div>
-            )
-: (
+            ) : (
               <div className="text-xs text-muted-foreground">
                 {repoCount} {repoCount === 1 ? 'repo' : 'repos'}
               </div>
@@ -259,12 +255,12 @@ function AddContributorsTableView({
     onRowSelectionChange: setSelectedRows,
   });
 
-  const selectedCount = Object.keys(selectedRows).filter(key => selectedRows[key]).length;
+  const selectedCount = Object.keys(selectedRows).filter((key) => selectedRows[key]).length;
 
   const handleAddSelected = () => {
     const selectedIds = Object.keys(selectedRows)
-      .filter(key => selectedRows[key])
-      .map(index => contributors[parseInt(index)]?.id)
+      .filter((key) => selectedRows[key])
+      .map((index) => contributors[parseInt(index)]?.id)
       .filter(Boolean);
     onAddSelected(selectedIds);
   };
@@ -273,11 +269,7 @@ function AddContributorsTableView({
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Add Contributors to Workspace</CardTitle>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-        >
+        <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
       </CardHeader>
@@ -295,14 +287,9 @@ function AddContributorsTableView({
           </div>
           <div className="flex items-center gap-2">
             {selectedCount > 0 && (
-              <span className="text-sm text-muted-foreground">
-                {selectedCount} selected
-              </span>
+              <span className="text-sm text-muted-foreground">{selectedCount} selected</span>
             )}
-            <Button
-              onClick={handleAddSelected}
-              disabled={selectedCount === 0}
-            >
+            <Button onClick={handleAddSelected} disabled={selectedCount === 0}>
               <Plus className="h-4 w-4 mr-1" />
               Add {selectedCount > 0 ? `${selectedCount} ` : ''}Contributors
             </Button>
@@ -326,44 +313,36 @@ function AddContributorsTableView({
                     >
                       {header.isPlaceholder
                         ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                        : flexRender(header.column.columnDef.header, header.getContext())}
                     </th>
                   ))}
                 </tr>
               ))}
             </thead>
             <tbody>
-              {table.getRowModel().rows.length > 0
-? (
+              {table.getRowModel().rows.length > 0 ? (
                 table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b hover:bg-muted/50 transition-colors"
-                  >
+                  <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
                     {row.getVisibleCells().map((cell) => (
-                      <td 
-                        key={cell.id} 
+                      <td
+                        key={cell.id}
                         className="px-4 py-3"
                         style={{
                           width: cell.column.columnDef.size,
                           minWidth: cell.column.columnDef.size,
                         }}
                       >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
                   </tr>
                 ))
-              )
-: (
+              ) : (
                 <tr>
-                  <td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={columns.length}
+                    className="px-4 py-8 text-center text-muted-foreground"
+                  >
                     No contributors found
                   </td>
                 </tr>
@@ -375,12 +354,9 @@ function AddContributorsTableView({
         {/* Pagination */}
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {table.getState().pagination.pageIndex * 10 + 1} to{" "}
-            {Math.min(
-              (table.getState().pagination.pageIndex + 1) * 10,
-              contributors.length
-            )}{" "}
-            of {contributors.length} contributors
+            Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
+            {Math.min((table.getState().pagination.pageIndex + 1) * 10, contributors.length)} of{' '}
+            {contributors.length} contributors
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -413,7 +389,8 @@ const meta: Meta<typeof AddContributorsTableView> = {
     layout: 'padded',
     docs: {
       description: {
-        component: 'The add contributors table view that appears when adding new contributors to a workspace.',
+        component:
+          'The add contributors table view that appears when adding new contributors to a workspace.',
       },
     },
   },
@@ -466,7 +443,7 @@ export const WithManyContributors: Story = {
 
 export const WithHighActivityContributors: Story = {
   args: {
-    contributors: mockAvailableContributors.map(c => ({
+    contributors: mockAvailableContributors.map((c) => ({
       ...c,
       contributions: {
         commits: Math.floor(Math.random() * 1000) + 500,

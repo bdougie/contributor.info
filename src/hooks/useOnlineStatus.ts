@@ -41,33 +41,34 @@ function getInitialStatus(): OnlineStatus {
       effectiveType: undefined,
       downlink: undefined,
       rtt: undefined,
-      saveData: false
+      saveData: false,
     };
   }
-  
+
   const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  
+
   return {
     isOnline: navigator.onLine,
-    isSlowConnection: connection?.effectiveType === '2g' || connection?.effectiveType === 'slow-2g' || false,
+    isSlowConnection:
+      connection?.effectiveType === '2g' || connection?.effectiveType === 'slow-2g' || false,
     connectionType: connection?.type,
     effectiveType: connection?.effectiveType,
     downlink: connection?.downlink,
     rtt: connection?.rtt,
-    saveData: connection?.saveData || false
+    saveData: connection?.saveData || false,
   };
 }
 
 // Update all subscribers
 function notifyListeners(status: OnlineStatus) {
   sharedStatus = status;
-  listeners.forEach(listener => listener(_status));
+  listeners.forEach((listener) => listener(_status));
 }
 
 // Setup shared event listeners once
 function setupSharedListeners() {
   if (typeof window === 'undefined') return;
-  
+
   const updateStatus = () => {
     const newStatus = getInitialStatus();
     notifyListeners(newStatus);
@@ -94,7 +95,8 @@ function setupSharedListeners() {
 
   // Listen to connection changes if available
   if (typeof navigator !== 'undefined') {
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const connection =
+      navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     if (connection && 'addEventListener' in connection) {
       (connection as EventTarget).addEventListener('change', handleConnectionChange);
     }
@@ -109,14 +111,15 @@ function setupSharedListeners() {
   return () => {
     window.removeEventListener('online', handleOnline);
     window.removeEventListener('offline', handleOffline);
-    
+
     if (typeof navigator !== 'undefined') {
-      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      const connection =
+        navigator.connection || navigator.mozConnection || navigator.webkitConnection;
       if (connection && 'removeEventListener' in connection) {
         (connection as EventTarget).removeEventListener('change', handleConnectionChange);
       }
     }
-    
+
     if (intervalId !== null) {
       window.clearInterval(intervalId);
       intervalId = null;
@@ -149,7 +152,7 @@ export function useOnlineStatus(): OnlineStatus {
     return () => {
       // Remove this component's listener
       listeners.delete(setStatus);
-      
+
       // If no more listeners, cleanup shared resources
       if (listeners.size === 0 && cleanup) {
         cleanup();

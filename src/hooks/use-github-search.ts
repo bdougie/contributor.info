@@ -36,26 +36,29 @@ export function useGitHubSearch({
     setError(null);
   }, []);
 
-  const performSearch = useCallback(async (searchQuery: string) => {
-    if (searchQuery.length < minQueryLength) {
-      setResults([]);
-      setLoading(false);
-      return;
-    }
+  const performSearch = useCallback(
+    async (searchQuery: string) => {
+      if (searchQuery.length < minQueryLength) {
+        setResults([]);
+        setLoading(false);
+        return;
+      }
 
-    setLoading(true);
-    setError(null);
+      setLoading(true);
+      setError(null);
 
-    try {
-      const repositories = await searchGitHubRepositories(searchQuery, maxResults);
-      setResults(repositories);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to search repositories');
-      setResults([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [minQueryLength, maxResults]);
+      try {
+        const repositories = await searchGitHubRepositories(searchQuery, maxResults);
+        setResults(repositories);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to search repositories');
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [minQueryLength, maxResults],
+  );
 
   // Debounced search effect
   useEffect(() => {

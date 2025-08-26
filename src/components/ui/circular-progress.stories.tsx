@@ -10,7 +10,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A semicircle progress indicator that grows from left to right, matching the exact design from project 8 reference.',
+        component:
+          'A semicircle progress indicator that grows from left to right, matching the exact design from project 8 reference.',
       },
     },
   },
@@ -43,10 +44,10 @@ export const Intimidating: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Low confidence (9%) - Red progress indicator showing intimidating project.'
-      }
-    }
-  }
+        story: 'Low confidence (9%) - Red progress indicator showing intimidating project.',
+      },
+    },
+  },
 };
 
 export const Approachable: Story = {
@@ -62,10 +63,10 @@ export const Approachable: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Medium confidence (40%) - Orange progress indicator showing approachable project.'
-      }
-    }
-  }
+        story: 'Medium confidence (40%) - Orange progress indicator showing approachable project.',
+      },
+    },
+  },
 };
 
 export const Welcoming: Story = {
@@ -81,10 +82,10 @@ export const Welcoming: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'High confidence (85%) - Green progress indicator showing welcoming project.'
-      }
-    }
-  }
+        story: 'High confidence (85%) - Green progress indicator showing welcoming project.',
+      },
+    },
+  },
 };
 
 export const Complete: Story = {
@@ -116,7 +117,7 @@ export const Animated: Story = {
   render: () => {
     const AnimatedProgress = () => {
       const [progress, setProgress] = useState(0);
-      
+
       useEffect(() => {
         const timer = setInterval(() => {
           setProgress((prev) => {
@@ -126,10 +127,10 @@ export const Animated: Story = {
             return prev + 2;
           });
         }, 100);
-        
+
         return () => clearInterval(timer);
       }, []);
-      
+
       return (
         <div className="text-center">
           <p className="text-sm mb-4">Animated Semicircle Progress</p>
@@ -140,7 +141,7 @@ export const Animated: Story = {
         </div>
       );
     };
-    
+
     return <AnimatedProgress />;
   },
 };
@@ -150,7 +151,7 @@ export const Interactive: Story = {
   render: () => {
     const InteractiveProgress = () => {
       const [progress, setProgress] = useState(40);
-      
+
       return (
         <div className="text-center space-y-4">
           <p className="text-sm">Interactive Semicircle Progress</p>
@@ -158,50 +159,38 @@ export const Interactive: Story = {
             <span className="font-bold tracking-[-0.05px]">{progress}</span>
             <span className="font-bold text-xs tracking-[-0.01px]">%</span>
           </CircularProgress>
-          
+
           <div className="flex gap-2 justify-center">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setProgress(Math.max(0, progress - 10))}
               disabled={progress === 0}
             >
               -10%
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setProgress(Math.min(100, progress + 10))}
               disabled={progress === 100}
             >
               +10%
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setProgress(9)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setProgress(9)}>
               Intimidating
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setProgress(40)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setProgress(40)}>
               Approachable
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setProgress(85)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setProgress(85)}>
               Welcoming
             </Button>
           </div>
         </div>
       );
     };
-    
+
     return <InteractiveProgress />;
   },
 };
@@ -217,7 +206,7 @@ export const ConfidenceLevels: Story = {
           <span className="font-bold text-xs tracking-[-0.01px]">%</span>
         </CircularProgress>
       </div>
-      
+
       <div className="text-center">
         <p className="text-sm mb-2 text-orange-600">Challenging (31-50%)</p>
         <CircularProgress value={40}>
@@ -225,7 +214,7 @@ export const ConfidenceLevels: Story = {
           <span className="font-bold text-xs tracking-[-0.01px]">%</span>
         </CircularProgress>
       </div>
-      
+
       <div className="text-center">
         <p className="text-sm mb-2 text-blue-600">Approachable (51-70%)</p>
         <CircularProgress value={60}>
@@ -233,7 +222,7 @@ export const ConfidenceLevels: Story = {
           <span className="font-bold text-xs tracking-[-0.01px]">%</span>
         </CircularProgress>
       </div>
-      
+
       <div className="text-center">
         <p className="text-sm mb-2 text-green-600">Welcoming (71-100%)</p>
         <CircularProgress value={85}>
@@ -256,7 +245,7 @@ export const BoundaryValues: Story = {
           <span className="font-bold text-xs tracking-[-0.01px]">%</span>
         </CircularProgress>
       </div>
-      
+
       <div className="text-center">
         <p className="text-sm mb-2">50% (Orange/Blue boundary)</p>
         <CircularProgress value={50}>
@@ -264,7 +253,7 @@ export const BoundaryValues: Story = {
           <span className="font-bold text-xs tracking-[-0.01px]">%</span>
         </CircularProgress>
       </div>
-      
+
       <div className="text-center">
         <p className="text-sm mb-2">70% (Blue/Green boundary)</p>
         <CircularProgress value={70}>
@@ -283,10 +272,10 @@ export const WithoutContent: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Semicircle progress without center content.'
-      }
-    }
-  }
+        story: 'Semicircle progress without center content.',
+      },
+    },
+  },
 };
 
 export const AllPercentages: Story = {
@@ -300,7 +289,7 @@ export const AllPercentages: Story = {
             <span className="font-bold text-xs tracking-[-0.01px]">%</span>
           </CircularProgress>
           <span className="mt-2 text-sm text-muted-foreground">
-            {value <= 30 ? "Red" : value <= 50 ? "Orange" : value <= 70 ? "Blue" : "Green"}
+            {value <= 30 ? 'Red' : value <= 50 ? 'Orange' : value <= 70 ? 'Blue' : 'Green'}
           </span>
         </div>
       ))}

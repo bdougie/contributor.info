@@ -19,7 +19,7 @@ const QUERY_CATEGORIES = {
   AUTH: 'auth',
 } as const;
 
-type QueryCategory = typeof QUERY_CATEGORIES[keyof typeof QUERY_CATEGORIES];
+type QueryCategory = (typeof QUERY_CATEGORIES)[keyof typeof QUERY_CATEGORIES];
 
 interface QueryMetrics {
   operation: string;
@@ -80,7 +80,6 @@ class SupabaseMonitoring {
       });
     }
   }
-
 
   private async logQueryMetrics(metrics: QueryMetrics) {
     this.queryMetrics.push(metrics);
@@ -149,15 +148,14 @@ class SupabaseMonitoring {
     return this.client.from(table);
   }
 
-
   // Enhanced RPC with monitoring
   async rpc(functionName: string, params?: unknown) {
     const startTime = performance.now();
-    
+
     try {
       const result = await this.client.rpc(functionName, params);
       const duration = performance.now() - startTime;
-      
+
       await this.logQueryMetrics({
         operation: `rpc: ${functionName}`,
         category: QUERY_CATEGORIES.RPC,
@@ -190,23 +188,29 @@ class SupabaseMonitoring {
   getMetrics() {
     const now = Date.now();
     const recentMetrics = this.queryMetrics.filter(
-      m => now - new Date(m.duration).getTime() < 300000 // Last 5 minutes
+      (m) => now - new Date(m.duration).getTime() < 300000, // Last 5 minutes
     );
 
     return {
       totalQueries: this.queryMetrics.length,
       recentQueries: recentMetrics.length,
-      slowQueries: recentMetrics.filter(m => m.duration > MONITORING_CONFIG.slowQueryThreshold).length,
-      errorRate: recentMetrics.length > 0 
-        ? recentMetrics.filter(m => !m.success).length / recentMetrics.length 
-        : 0,
-      averageQueryTime: recentMetrics.length > 0
-        ? recentMetrics.reduce((sum, m) => sum + m.duration, 0) / recentMetrics.length
-        : 0,
-      queryBreakdown: recentMetrics.reduce((breakdown, m) => {
-        breakdown[m.category] = (breakdown[m.category] || 0) + 1;
-        return breakdown;
-      }, {} as Record<QueryCategory, number>),
+      slowQueries: recentMetrics.filter((m) => m.duration > MONITORING_CONFIG.slowQueryThreshold)
+        .length,
+      errorRate:
+        recentMetrics.length > 0
+          ? recentMetrics.filter((m) => !m.success).length / recentMetrics.length
+          : 0,
+      averageQueryTime:
+        recentMetrics.length > 0
+          ? recentMetrics.reduce((sum, m) => sum + m.duration, 0) / recentMetrics.length
+          : 0,
+      queryBreakdown: recentMetrics.reduce(
+        (breakdown, m) => {
+          breakdown[m.category] = (breakdown[m.category] || 0) + 1;
+          return breakdown;
+        },
+        {} as Record<QueryCategory, number>,
+      ),
     };
   }
 
@@ -241,8 +245,8 @@ export function createMonitoredSupabaseClient(supabaseUrl: string, supabaseKey: 
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,
-      flowType: 'implicit'
-    }
+      flowType: 'implicit',
+    },
   });
 
   return new SupabaseMonitoring(client);

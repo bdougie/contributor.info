@@ -39,18 +39,18 @@ export async function generateFAQSitemapEntries(limit: number = 100): Promise<FA
     }
 
     const faqEntries: FAQSitemapEntry[] = repositories
-      .filter(repo => repo.full_name) // Ensure valid repository names
-      .map(repo => {
+      .filter((repo) => repo.full_name) // Ensure valid repository names
+      .map((repo) => {
         const [owner, repoName] = repo.full_name.split('/');
         const baseUrl = 'https://contributor.info';
-        
+
         return {
           url: `${baseUrl}/${owner}/${repoName}/faq`,
           lastModified: new Date(repo.updated_at).toISOString().split('T')[0],
           changeFrequency: 'weekly' as const,
           priority: 0.6, // Medium priority for FAQ pages
           repositoryName: repo.full_name,
-          questionCount: 7 // Default FAQ question count
+          questionCount: 7, // Default FAQ question count
         };
       });
 
@@ -65,12 +65,16 @@ export async function generateFAQSitemapEntries(limit: number = 100): Promise<FA
  * Generate XML sitemap content for FAQ pages
  */
 export function generateFAQSitemapXML(entries: FAQSitemapEntry[]): string {
-  const xmlEntries = entries.map(entry => `  <url>
+  const xmlEntries = entries
+    .map(
+      (entry) => `  <url>
     <loc>${entry.url}</loc>
     <changefreq>${entry.changeFrequency}</changefreq>
     <priority>${entry.priority}</priority>
     <lastmod>${entry.lastModified}</lastmod>
-  </url>`).join('\n');
+  </url>`,
+    )
+    .join('\n');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -88,25 +92,25 @@ ${xmlEntries}
 export function generateFAQStructuredData(
   owner: string,
   repo: string,
-  faqs: Array<{ question: string; answer: string }>
+  faqs: Array<{ question: string; answer: string }>,
 ): object {
   return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": faqs.map(faq => ({
-      "@type": "Question",
-      "name": faq.question,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": faq.answer
-      }
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.answer,
+      },
     })),
-    "about": {
-      "@type": "SoftwareApplication",
-      "name": `${owner}/${repo}`,
-      "applicationCategory": "DeveloperApplication",
-      "url": `https://github.com/${owner}/${repo}`
-    }
+    about: {
+      '@type': 'SoftwareApplication',
+      name: `${owner}/${repo}`,
+      applicationCategory: 'DeveloperApplication',
+      url: `https://github.com/${owner}/${repo}`,
+    },
   };
 }
 
@@ -116,7 +120,7 @@ export function generateFAQStructuredData(
 export async function updateMainSitemapWithFAQs(): Promise<boolean> {
   try {
     const faqEntries = await generateFAQSitemapEntries(50); // Top 50 repositories
-    
+
     if (faqEntries.length === 0) {
       return false;
     }
@@ -124,7 +128,7 @@ export async function updateMainSitemapWithFAQs(): Promise<boolean> {
     // Read current sitemap (this would typically be done server-side)
     // For now, we'll just return the entries for manual integration
     console.log('Generated %s FAQ sitemap entries', faqEntries.length);
-    
+
     return true;
   } catch (_error) {
     console.error('Failed to update main sitemap with FAQs:', _error);
@@ -137,34 +141,34 @@ export async function updateMainSitemapWithFAQs(): Promise<boolean> {
  */
 export function generateFAQBreadcrumbs(owner: string, repo: string): object {
   return {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
       {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Home",
-        "item": "https://contributor.info"
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://contributor.info',
       },
       {
-        "@type": "ListItem", 
-        "position": 2,
-        "name": owner,
-        "item": `https://contributor.info/${owner}`
+        '@type': 'ListItem',
+        position: 2,
+        name: owner,
+        item: `https://contributor.info/${owner}`,
       },
       {
-        "@type": "ListItem",
-        "position": 3,
-        "name": repo,
-        "item": `https://contributor.info/${owner}/${repo}`
+        '@type': 'ListItem',
+        position: 3,
+        name: repo,
+        item: `https://contributor.info/${owner}/${repo}`,
       },
       {
-        "@type": "ListItem",
-        "position": 4,
-        "name": "FAQ",
-        "item": `https://contributor.info/${owner}/${repo}/faq`
-      }
-    ]
+        '@type': 'ListItem',
+        position: 4,
+        name: 'FAQ',
+        item: `https://contributor.info/${owner}/${repo}/faq`,
+      },
+    ],
   };
 }
 
@@ -174,7 +178,7 @@ export function generateFAQBreadcrumbs(owner: string, repo: string): object {
 export function calculateFAQPriority(
   pullRequestCount: number,
   lastUpdated: string,
-  isPopularRepo: boolean
+  isPopularRepo: boolean,
 ): number {
   let priority = 0.5; // Base priority
 
@@ -182,7 +186,7 @@ export function calculateFAQPriority(
   if (pullRequestCount > 100) priority += 0.2;
   else if (pullRequestCount > 50) priority += 0.1;
 
-  // Boost for recently updated repositories  
+  // Boost for recently updated repositories
   const daysSinceUpdate = (Date.now() - new Date(lastUpdated).getTime()) / (1000 * 60 * 60 * 24);
   if (daysSinceUpdate < 30) priority += 0.1;
   else if (daysSinceUpdate < 90) priority += 0.05;
@@ -199,6 +203,6 @@ if (typeof window !== 'undefined') {
     generateFAQSitemapEntries,
     generateFAQSitemapXML,
     generateFAQStructuredData,
-    updateMainSitemapWithFAQs
+    updateMainSitemapWithFAQs,
   };
 }

@@ -1,6 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { action } from '@storybook/addon-actions';
-import { WorkspaceDashboard, WorkspaceDashboardSkeleton, type WorkspaceMetrics, type WorkspaceTrendData } from './WorkspaceDashboard';
+import {
+  WorkspaceDashboard,
+  WorkspaceDashboardSkeleton,
+  type WorkspaceMetrics,
+  type WorkspaceTrendData,
+} from './WorkspaceDashboard';
 import type { Repository } from './RepositoryList';
 import type { ActivityDataPoint } from './ActivityChart';
 import { toast } from 'sonner';
@@ -11,19 +16,19 @@ const generateTrendData = (days: number): WorkspaceTrendData => {
   const prs = [];
   const issues = [];
   const commits = [];
-  
+
   const today = new Date();
-  
+
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
     labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-    
+
     prs.push(Math.floor(Math.random() * 30) + 10);
     issues.push(Math.floor(Math.random() * 20) + 5);
     commits.push(Math.floor(Math.random() * 60) + 20);
   }
-  
+
   return {
     labels,
     datasets: [
@@ -50,18 +55,18 @@ const generateTrendData = (days: number): WorkspaceTrendData => {
 const generateActivityData = (days: number): ActivityDataPoint[] => {
   const data: ActivityDataPoint[] = [];
   const today = new Date();
-  
+
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-    
+
     // Generate varying patterns of additions and deletions
     const baseAdditions = Math.floor(Math.random() * 500) + 100;
     const baseDeletions = Math.floor(Math.random() * 300) + 50;
-    
+
     // Sometimes have heavy deletions (refactoring days)
     const isRefactoringDay = Math.random() > 0.8;
-    
+
     data.push({
       date: date.toISOString(),
       additions: isRefactoringDay ? baseAdditions * 0.3 : baseAdditions,
@@ -70,7 +75,7 @@ const generateActivityData = (days: number): ActivityDataPoint[] => {
       files_changed: Math.floor(Math.random() * 30) + 10,
     });
   }
-  
+
   return data;
 };
 
@@ -93,7 +98,8 @@ const sampleRepositories: Repository[] = [
     full_name: 'facebook/react',
     owner: 'facebook',
     name: 'react',
-    description: 'A declarative, efficient, and flexible JavaScript library for building user interfaces',
+    description:
+      'A declarative, efficient, and flexible JavaScript library for building user interfaces',
     language: 'JavaScript',
     stars: 215000,
     forks: 45000,
@@ -246,11 +252,14 @@ export const ProTier: Story = {
     },
     trendData: generateTrendData(90),
     activityData: generateActivityData(90),
-    repositories: [...sampleRepositories, ...sampleRepositories.map(r => ({
-      ...r,
-      id: `${r.id}-2`,
-      full_name: `${r.owner}/${r.name}-v2`,
-    }))],
+    repositories: [
+      ...sampleRepositories,
+      ...sampleRepositories.map((r) => ({
+        ...r,
+        id: `${r.id}-2`,
+        full_name: `${r.owner}/${r.name}-v2`,
+      })),
+    ],
     tier: 'pro',
     onAddRepository: () => toast.info('Add repository clicked'),
     onRepositoryClick: (repo) => {
@@ -286,7 +295,7 @@ export const EnterpriseTier: Story = {
     activityData: generateActivityData(365),
     repositories: [
       ...sampleRepositories,
-      ...sampleRepositories.map(r => ({
+      ...sampleRepositories.map((r) => ({
         ...r,
         id: `${r.id}-ent`,
         full_name: `enterprise/${r.name}`,

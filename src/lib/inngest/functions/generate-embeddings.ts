@@ -1,7 +1,7 @@
 import { inngest } from '../client';
-import { 
-  getItemsNeedingEmbeddings, 
-  generateAndStoreEmbeddings 
+import {
+  getItemsNeedingEmbeddings,
+  generateAndStoreEmbeddings,
 } from '../../../../app/services/embeddings';
 import { supabase } from '../../supabase';
 
@@ -27,11 +27,11 @@ export const generateEmbeddings = inngest.createFunction(
         .select('id, full_name')
         .eq('id', repositoryId)
         .maybeSingle();
-      
+
       if (!_data) {
         throw new Error(`Repository ${repositoryId} not found`);
       }
-      
+
       return data;
     });
 
@@ -57,7 +57,7 @@ export const generateEmbeddings = inngest.createFunction(
       repository: repository.full_name,
       itemsProcessed: items.length,
     };
-  }
+  },
 );
 
 /**
@@ -77,13 +77,13 @@ export const batchGenerateEmbeddings = inngest.createFunction(
         .select('repository_id')
         .eq('is_active', true)
         .limit(100); // Process top 100 active repos
-      
+
       return data || [];
     });
 
     // Queue embedding generation for each repository
     await step.run('queue-embedding-jobs', async () => {
-      const events = repositories.map(repo => ({
+      const events = repositories.map((repo) => ({
         name: 'embeddings.generate' as const,
         data: {
           repositoryId: repo.repository_id,
@@ -99,5 +99,5 @@ export const batchGenerateEmbeddings = inngest.createFunction(
     return {
       message: `Queued embedding generation for ${repositories.length} repositories`,
     };
-  }
+  },
 );

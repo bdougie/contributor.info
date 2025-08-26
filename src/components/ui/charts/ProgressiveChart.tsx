@@ -6,42 +6,42 @@ export interface ProgressiveChartProps {
    * Skeleton component to show immediately while loading
    */
   skeleton: React.ReactNode;
-  
+
   /**
    * Low-fidelity chart component (lightweight SVG/Canvas)
    * Optional - if not provided, will skip to high-fidelity
    */
   lowFidelity?: React.ReactNode;
-  
+
   /**
    * High-fidelity chart component (full interactive chart)
    * Can be a lazy-loaded component
    */
   highFidelity: React.ReactNode;
-  
+
   /**
    * Delay before showing low-fidelity chart (ms)
    * @default 100
    */
   lowFiDelay?: number;
-  
+
   /**
    * Delay before showing high-fidelity chart (ms)
    * @default 500
    */
   highFiDelay?: number;
-  
+
   /**
    * Whether to load immediately or wait for intersection
    * @default false
    */
   priority?: boolean;
-  
+
   /**
    * Additional CSS classes
    */
   className?: string;
-  
+
   /**
    * Intersection observer options
    */
@@ -67,8 +67,8 @@ export function ProgressiveChart({
   className,
   observerOptions = {
     rootMargin: '50px',
-    threshold: 0.01
-  }
+    threshold: 0.01,
+  },
 }: ProgressiveChartProps) {
   const [stage, setStage] = useState<LoadingStage>('skeleton');
   const [isVisible, setIsVisible] = useState(priority);
@@ -79,17 +79,14 @@ export function ProgressiveChart({
   useEffect(() => {
     if (priority || !containerRef.current) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setIsVisible(true);
-            observer.disconnect();
-          }
-        });
-      },
-      observerOptions
-    );
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      });
+    }, observerOptions);
 
     observer.observe(containerRef.current);
 
@@ -112,9 +109,12 @@ export function ProgressiveChart({
     }
 
     // Stage 3: High-fidelity chart
-    timeoutsRef.current.highFi = setTimeout(() => {
-      setStage('high-fi');
-    }, lowFidelity ? highFiDelay : lowFiDelay);
+    timeoutsRef.current.highFi = setTimeout(
+      () => {
+        setStage('high-fi');
+      },
+      lowFidelity ? highFiDelay : lowFiDelay,
+    );
 
     return () => {
       if (timeoutsRef.current.lowFi) {
@@ -134,21 +134,19 @@ export function ProgressiveChart({
             {skeleton}
           </div>
         );
-      
+
       case 'low-fi':
         return (
           <div className="progressive-chart-lowfi animate-in fade-in duration-300">
             {lowFidelity}
           </div>
         );
-      
+
       case 'high-fi':
         return (
-          <Suspense fallback={
-            <div className="progressive-chart-fallback">
-              {lowFidelity || skeleton}
-            </div>
-          }>
+          <Suspense
+            fallback={<div className="progressive-chart-fallback">{lowFidelity || skeleton}</div>}
+          >
             <div className="progressive-chart-highfi animate-in fade-in duration-500">
               {highFidelity}
             </div>
@@ -163,7 +161,7 @@ export function ProgressiveChart({
       className={cn(
         'progressive-chart-container relative',
         'transition-opacity duration-500',
-        className
+        className,
       )}
       data-stage={stage}
       aria-busy={stage !== 'high-fi'}
@@ -176,11 +174,13 @@ export function ProgressiveChart({
 /**
  * Hook for using progressive loading pattern
  */
-export function useProgressiveLoading(options: {
-  priority?: boolean;
-  lowFiDelay?: number;
-  highFiDelay?: number;
-} = {}) {
+export function useProgressiveLoading(
+  options: {
+    priority?: boolean;
+    lowFiDelay?: number;
+    highFiDelay?: number;
+  } = {},
+) {
   const [stage, setStage] = useState<LoadingStage>('skeleton');
   const [isVisible, setIsVisible] = useState(options.priority || false);
 
@@ -210,6 +210,6 @@ export function useProgressiveLoading(options: {
     setIsVisible,
     isSkeleton: stage === 'skeleton',
     isLowFi: stage === 'low-fi',
-    isHighFi: stage === 'high-fi'
+    isHighFi: stage === 'high-fi',
   };
 }

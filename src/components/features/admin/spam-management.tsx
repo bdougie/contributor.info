@@ -66,7 +66,7 @@ export function SpamManagement() {
       setLoading(true);
       setError(null);
       
-      const { data, error: _error: fetchError } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('spam_detections')
         .select(`
           *,
@@ -101,7 +101,7 @@ export function SpamManagement() {
     if (!adminGitHubId) return;
 
     try {
-      const { error: _error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('spam_detections')
         .update({ 
           status: newStatus,

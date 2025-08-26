@@ -9,48 +9,53 @@ interface RoleBadgeProps {
   showIcon?: boolean;
 }
 
-const roleConfig: Record<Role, {
-  label: string;
-  variant: 'default' | 'secondary' | 'destructive' | 'outline';
-  icon?: string;
-  className: string;
-}> = {
+const roleConfig: Record<
+  Role,
+  {
+    label: string;
+    variant: 'default' | 'secondary' | 'destructive' | 'outline';
+    icon?: string;
+    className: string;
+  }
+> = {
   owner: {
     label: 'Owner',
     variant: 'default',
     icon: '👑',
-    className: 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
+    className: 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700',
   },
   maintainer: {
     label: 'Maintainer',
-    variant: 'secondary', 
+    variant: 'secondary',
     icon: '🔧',
-    className: 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+    className: 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700',
   },
   contributor: {
     label: 'Contributor',
     variant: 'outline',
     icon: '👤',
-    className: 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-700'
+    className:
+      'bg-green-100 text-green-800 border-green-300 hover:bg-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-700',
   },
   bot: {
     label: 'Bot',
     variant: 'outline',
     icon: '🤖',
-    className: 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600'
-  }
+    className:
+      'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600',
+  },
 };
 
 export function RoleBadge({ role, className, showIcon = true }: RoleBadgeProps) {
   const config = roleConfig[role];
-  
+
   return (
     <Badge
       variant="outline"
       className={cn(
         config.className,
         'inline-flex items-center gap-1 text-xs font-medium',
-        className
+        className,
       )}
     >
       {showIcon && config.icon && (

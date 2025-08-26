@@ -5,7 +5,7 @@ import { env } from '../env';
 
 /**
  * Rollout Console - Manual override and management utilities
- * 
+ *
  * This module provides console utilities for managing hybrid progressive capture rollout.
  * Available as global functions for debugging and manual operations.
  */
@@ -15,42 +15,41 @@ export interface RolloutConsole {
   status(): Promise<void>;
   stats(): Promise<void>;
   categories(): Promise<void>;
-  
+
   // Rollout controls
   setRollout(percentage: number): Promise<void>;
   emergencyStop(reason?: string): Promise<void>;
   resume(): Promise<void>;
-  
+
   // Whitelist management
   addToWhitelist(repositoryIds: string[]): Promise<void>;
   removeFromWhitelist(repositoryIds: string[]): Promise<void>;
   showWhitelist(): Promise<void>;
-  
+
   // Repository management
   categorizeAll(): Promise<void>;
   markAsTest(repositoryId: string): Promise<void>;
   unmarkAsTest(repositoryId: string): Promise<void>;
-  
+
   // Rollback procedures
   rollbackToPercentage(percentage: number): Promise<void>;
   rollbackToZero(): Promise<void>;
   enableAutoRollback(): Promise<void>;
   disableAutoRollback(): Promise<void>;
-  
+
   // Monitoring
   checkHealth(): Promise<void>;
   showMetrics(): Promise<void>;
   monitorPhase4(): Promise<void>;
-  
+
   // Help
   help(): void;
-  
+
   // Utility
   clearCache(): void;
 }
 
 class RolloutConsoleManager implements RolloutConsole {
-  
   /**
    * Show current rollout status
    */
@@ -58,7 +57,7 @@ class RolloutConsoleManager implements RolloutConsole {
     try {
       console.log('\n🚀 Hybrid Progressive Capture Rollout Status');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      
+
       const config = await hybridRolloutManager.getRolloutConfiguration();
       if (!config) {
         console.log('❌ No active rollout configuration found');
@@ -76,17 +75,16 @@ class RolloutConsoleManager implements RolloutConsole {
       console.log('🚫 Blacklist: %s repositories', config.excluded_repositories.length);
       console.log('🆕 Created: %s', new Date(config.created_at).toLocaleString());
       console.log('🔄 Updated: %s', new Date(config.updated_at).toLocaleString());
-      
+
       // Environment overrides
       const envPercentage = env.HYBRID_ROLLOUT_PERCENTAGE;
       const envEmergencyStop = env.HYBRID_EMERGENCY_STOP;
-      
+
       if (envPercentage || envEmergencyStop) {
         console.log('\n🔧 Environment Overrides:');
         if (envPercentage) console.log('   HYBRID_ROLLOUT_PERCENTAGE: %s', envPercentage);
         if (envEmergencyStop) console.log('   HYBRID_EMERGENCY_STOP: %s', envEmergencyStop);
       }
-      
     } catch (_error) {
       console.error('❌ Error getting rollout status:', _error);
     }
@@ -99,7 +97,7 @@ class RolloutConsoleManager implements RolloutConsole {
     try {
       console.log('\n📊 Rollout Statistics');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      
+
       const stats = await hybridRolloutManager.getRolloutStats();
       if (!stats) {
         console.log('❌ Unable to fetch rollout statistics');
@@ -112,17 +110,16 @@ class RolloutConsoleManager implements RolloutConsole {
       console.log('❌ Error Rate: %s%', stats._error_rate.toFixed(2));
       console.log('✅ Success Rate: %s%', stats.success_rate.toFixed(2));
       console.log('🔄 Active Jobs: %s', stats.active_jobs);
-      
+
       console.log('\n📂 Repository Categories:');
       Object.entries(stats.categories).forEach(([category, count]) => {
         console.log('   %s: %s repositories', category, count);
       });
-      
+
       console.log('\n⚡ Processor Distribution:');
       Object.entries(stats.processor_distribution).forEach(([processor, count]) => {
         console.log('   %s: %s jobs', processor, count);
       });
-      
     } catch (_error) {
       console.error('❌ Error getting rollout stats:', _error);
     }
@@ -135,15 +132,15 @@ class RolloutConsoleManager implements RolloutConsole {
     try {
       console.log('\n📂 Repository Categories');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      
+
       const categoryStats = await repositoryCategorizer.getCategoryStats();
-      
+
       if (categoryStats.length === 0) {
         console.log('ℹ️  No repositories categorized yet. Run rollout.categorizeAll() first.');
         return;
       }
 
-      categoryStats.forEach(stat => {
+      categoryStats.forEach((stat) => {
         console.log('\n📁 %s', stat.category.toUpperCase());
         console.log('   Count: %s', stat.count);
         console.log('   Total Stars: %s', stat.total_star_count.toLocaleString());
@@ -151,7 +148,6 @@ class RolloutConsoleManager implements RolloutConsole {
         console.log('   Total PRs: %s', stat.total_pr_count.toLocaleString());
         console.log('   Avg Activity Score: %s', stat.average_activity_score.toFixed(1));
       });
-      
     } catch (_error) {
       console.error('❌ Error getting category stats:', _error);
     }
@@ -170,7 +166,7 @@ class RolloutConsoleManager implements RolloutConsole {
       const success = await hybridRolloutManager.updateRolloutPercentage(
         percentage,
         'manual',
-        `Manual rollout update via console`
+        `Manual rollout update via console`,
       );
 
       if (success) {
@@ -189,7 +185,7 @@ class RolloutConsoleManager implements RolloutConsole {
   async emergencyStop(reason: string = 'Manual emergency stop via console'): Promise<void> {
     try {
       const success = await hybridRolloutManager.emergencyStop(reason, 'manual');
-      
+
       if (success) {
         console.log('🚨 EMERGENCY STOP ACTIVATED');
         console.log('   Reason: %s', reason);
@@ -218,7 +214,7 @@ class RolloutConsoleManager implements RolloutConsole {
         .from('rollout_configuration')
         .update({
           emergency_stop: false,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', config.id);
 
@@ -241,12 +237,12 @@ class RolloutConsoleManager implements RolloutConsole {
     try {
       const success = await hybridRolloutManager.addToWhitelist(
         repositoryIds,
-        'Manual whitelist addition via console'
+        'Manual whitelist addition via console',
       );
 
       if (success) {
         console.log('✅ Added %s repositories to whitelist', repositoryIds.length);
-        repositoryIds.forEach(id => console.log('   - %s', id));
+        repositoryIds.forEach((id) => console.log('   - %s', id));
       } else {
         console.log('❌ Failed to add repositories to whitelist');
       }
@@ -262,12 +258,12 @@ class RolloutConsoleManager implements RolloutConsole {
     try {
       const success = await hybridRolloutManager.removeFromWhitelist(
         repositoryIds,
-        'Manual whitelist removal via console'
+        'Manual whitelist removal via console',
       );
 
       if (success) {
         console.log('✅ Removed %s repositories from whitelist', repositoryIds.length);
-        repositoryIds.forEach(id => console.log('   - %s', id));
+        repositoryIds.forEach((id) => console.log('   - %s', id));
       } else {
         console.log('❌ Failed to remove repositories from whitelist');
       }
@@ -289,7 +285,7 @@ class RolloutConsoleManager implements RolloutConsole {
 
       console.log('\n📝 Current Whitelist');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      
+
       if (config.target_repositories.length === 0) {
         console.log('ℹ️  Whitelist is empty');
       } else {
@@ -298,14 +294,13 @@ class RolloutConsoleManager implements RolloutConsole {
           console.log('   %s. %s', index + 1, id);
         });
       }
-      
+
       if (config.excluded_repositories.length > 0) {
         console.log('\n🚫 %s repositories in blacklist:', config.excluded_repositories.length);
         config.excluded_repositories.forEach((id, index) => {
           console.log('   %s. %s', index + 1, id);
         });
       }
-      
     } catch (_error) {
       console.error('❌ Error showing whitelist:', _error);
     }
@@ -330,7 +325,7 @@ class RolloutConsoleManager implements RolloutConsole {
   async markAsTest(repositoryId: string): Promise<void> {
     try {
       const success = await repositoryCategorizer.markAsTestRepository(repositoryId);
-      
+
       if (success) {
         console.log('✅ Marked repository %s as test repository', repositoryId);
       } else {
@@ -347,7 +342,7 @@ class RolloutConsoleManager implements RolloutConsole {
   async unmarkAsTest(repositoryId: string): Promise<void> {
     try {
       const success = await repositoryCategorizer.unmarkAsTestRepository(repositoryId);
-      
+
       if (success) {
         console.log('✅ Unmarked repository %s as test repository', repositoryId);
       } else {
@@ -366,7 +361,7 @@ class RolloutConsoleManager implements RolloutConsole {
       const success = await hybridRolloutManager.updateRolloutPercentage(
         percentage,
         'manual_rollback',
-        `Manual rollback to ${percentage}% via console`
+        `Manual rollback to ${percentage}% via console`,
       );
 
       if (success) {
@@ -401,7 +396,7 @@ class RolloutConsoleManager implements RolloutConsole {
         .from('rollout_configuration')
         .update({
           auto_rollback_enabled: true,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', config.id);
 
@@ -431,7 +426,7 @@ class RolloutConsoleManager implements RolloutConsole {
         .from('rollout_configuration')
         .update({
           auto_rollback_enabled: false,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', config.id);
 
@@ -453,15 +448,15 @@ class RolloutConsoleManager implements RolloutConsole {
     try {
       console.log('\n🏥 Rollout Health Check');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      
+
       const rollbackTriggered = await hybridRolloutManager.checkAndTriggerAutoRollback();
-      
+
       if (rollbackTriggered) {
         console.log('⚠️  Auto rollback was triggered due to high _error rate');
       } else {
         console.log('✅ Rollout health is normal');
       }
-      
+
       // Show current stats
       await this.stats();
     } catch (_error) {
@@ -476,11 +471,10 @@ class RolloutConsoleManager implements RolloutConsole {
     try {
       console.log('\n📈 Detailed Rollout Metrics');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      
+
       // This would query rollout_metrics table for detailed metrics
       // Implementation depends on specific metrics needed
       console.log('ℹ️  Detailed metrics implementation pending');
-      
     } catch (_error) {
       console.error('❌ Error showing metrics:', _error);
     }
@@ -492,7 +486,7 @@ class RolloutConsoleManager implements RolloutConsole {
   async monitorPhase4(): Promise<void> {
     try {
       console.log('\n🚀 PHASE 4 MONITORING: 10% Test Repository Rollout\n');
-      
+
       // Get current rollout configuration
       const config = await hybridRolloutManager.getRolloutConfiguration();
       if (!config) {
@@ -500,15 +494,24 @@ class RolloutConsoleManager implements RolloutConsole {
         return;
       }
 
-      console.log('📊 Current Rollout: %s% (Strategy: %s)', config.rollout_percentage, config.rollout_strategy);
-      console.log('🛡️ Auto Rollback: %s', config.auto_rollback_enabled ? '✅ Enabled' : '❌ Disabled');
+      console.log(
+        '📊 Current Rollout: %s% (Strategy: %s)',
+        config.rollout_percentage,
+        config.rollout_strategy,
+      );
+      console.log(
+        '🛡️ Auto Rollback: %s',
+        config.auto_rollback_enabled ? '✅ Enabled' : '❌ Disabled',
+      );
       console.log('🚨 Emergency Stop: %s', config.emergency_stop ? '🔴 ACTIVE' : '🟢 Normal');
       console.log('⚠️ Max Error Rate: %s%', config.max__error_rate);
 
       // Check which repositories are eligible
       const { data: testRepos } = await supabase
         .from('repository_categories')
-        .select('repository_id, category, priority_level, is_test_repository, repositories!inner(full_name)')
+        .select(
+          'repository_id, category, priority_level, is_test_repository, repositories!inner(full_name)',
+        )
         .eq('category', 'test');
 
       console.log('\n📋 Test Repositories (%s total):', testRepos?.length || 0);
@@ -524,11 +527,15 @@ class RolloutConsoleManager implements RolloutConsole {
       const stats = await hybridRolloutManager.getRolloutStats();
       if (stats) {
         console.log(`\n📈 Rollout Metrics:`);
-        console.log('   Eligible Repositories: %s/%s', stats.eligible_repositories, stats.total_repositories);
+        console.log(
+          '   Eligible Repositories: %s/%s',
+          stats.eligible_repositories,
+          stats.total_repositories,
+        );
         console.log('   Error Rate: %s%', stats._error_rate.toFixed(2));
         console.log('   Success Rate: %s%', stats.success_rate.toFixed(2));
         console.log('   Active Jobs: %s', stats.active_jobs);
-        
+
         if (Object.keys(stats.processor_distribution).length > 0) {
           console.log(`   Processor Distribution:`);
           Object.entries(stats.processor_distribution).forEach(([processor, count]) => {
@@ -547,9 +554,15 @@ class RolloutConsoleManager implements RolloutConsole {
 
       console.log(`\n📜 Recent History:`);
       if (history && history.length > 0) {
-        history.forEach(entry => {
+        history.forEach((entry) => {
           const timestamp = new Date(entry.created_at).toLocaleString();
-          console.log('   %s: %s (%s% → %s%)', timestamp, entry.action, entry.previous_percentage, entry.new_percentage);
+          console.log(
+            '   %s: %s (%s% → %s%)',
+            timestamp,
+            entry.action,
+            entry.previous_percentage,
+            entry.new_percentage,
+          );
           if (entry.reason) console.log('     Reason: %s', entry.reason);
         });
       } else {
@@ -567,7 +580,7 @@ class RolloutConsoleManager implements RolloutConsole {
 
       if (recentMetrics && recentMetrics.length > 0) {
         console.log(`\n⚠️ Recent Errors:`);
-        recentMetrics.forEach(metric => {
+        recentMetrics.forEach((metric) => {
           console.log('   Repository: %s', metric.repository_id);
           console.log('   Processor: %s', metric.processor_type);
           console.log('   Errors: %s/%s', metric._error_count, metric.total_jobs);
@@ -579,25 +592,27 @@ class RolloutConsoleManager implements RolloutConsole {
 
       // Recommendations
       console.log(`\n💡 Phase 4 Recommendations:`);
-      
+
       if (config.rollout_percentage < 10) {
         console.log(`   📈 Increase rollout to 10% with: rollout.setRollout(10)`);
       } else if (config.rollout_percentage === 10) {
         console.log(`   ✅ Phase 4 active! Monitor for 24-48 hours before proceeding`);
         console.log(`   📊 Next: Phase 5 (25%) when ready with small production repos`);
       }
-      
+
       if (stats && stats._error_rate > 2) {
-        console.log('   ⚠️ Error rate elevated (%s%). Consider investigation.', stats.error_rate.toFixed(2));
+        console.log(
+          '   ⚠️ Error rate elevated (%s%). Consider investigation.',
+          stats.error_rate.toFixed(2),
+        );
       }
-      
+
       if (!config.auto_rollback_enabled) {
         console.log(`   🛡️ Enable auto rollback with: rollout.enableAutoRollback()`);
       }
 
       console.log(`\n🔄 Refresh monitoring with: rollout.monitorPhase4()`);
       console.log(`🆘 Emergency stop with: rollout.emergencyStop("reason")`);
-
     } catch (_error) {
       console.error('❌ Error monitoring Phase 4:', _error);
     }
@@ -661,13 +676,13 @@ EXAMPLES:
         localStorage.clear();
         console.log('✅ localStorage cleared');
       }
-      
+
       // Clear sessionStorage
       if (typeof window !== 'undefined' && window.sessionStorage) {
         sessionStorage.clear();
         console.log('✅ sessionStorage cleared');
       }
-      
+
       console.log('🔄 Reloading page...');
       // Small delay to ensure console messages are visible
       setTimeout(() => {

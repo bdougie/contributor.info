@@ -45,19 +45,19 @@ const generateMockTrendData = (days: number): WorkspaceTrendData => {
   const prs = [];
   const issues = [];
   const commits = [];
-  
+
   const today = new Date();
-  
+
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
     labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-    
+
     prs.push(Math.floor(Math.random() * 30) + 10);
     issues.push(Math.floor(Math.random() * 20) + 5);
     commits.push(Math.floor(Math.random() * 60) + 20);
   }
-  
+
   return {
     labels,
     datasets: [
@@ -108,7 +108,10 @@ const generateMockRepositories = (): Repository[] => {
   }));
 };
 
-export function useWorkspace({ workspaceId, timeRange = '30d' }: UseWorkspaceOptions): UseWorkspaceReturn {
+export function useWorkspace({
+  workspaceId,
+  timeRange = '30d',
+}: UseWorkspaceOptions): UseWorkspaceReturn {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(null);
   const [trendData, setTrendData] = useState<WorkspaceTrendData | null>(null);
@@ -122,7 +125,7 @@ export function useWorkspace({ workspaceId, timeRange = '30d' }: UseWorkspaceOpt
       setError(null);
 
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // For now, return mock data
       // TODO: Replace with actual API calls to Supabase
@@ -141,7 +144,7 @@ export function useWorkspace({ workspaceId, timeRange = '30d' }: UseWorkspaceOpt
         '30d': 30,
         '90d': 90,
         '1y': 365,
-        'all': 365 * 2,
+        all: 365 * 2,
       };
 
       setWorkspace(mockWorkspace);
@@ -181,10 +184,10 @@ export function useWorkspaceMetrics(workspaceId: string, timeRange: TimeRange = 
       try {
         setLoading(true);
         setError(null);
-        
+
         // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
         setMetrics(generateMockMetrics());
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch metrics'));
@@ -210,10 +213,10 @@ export function useWorkspaceRepositories(workspaceId: string) {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 700));
-        
+        await new Promise((resolve) => setTimeout(resolve, 700));
+
         setRepositories(generateMockRepositories());
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch repositories'));

@@ -3,12 +3,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock window and fetch for browser environment tests
 global.window = {} as Window & typeof globalThis;
-global.fetch = vi.fn(() => 
+global.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
     statusText: 'OK',
-    json: () => Promise.resolve({ success: true })
-  } as Response)
+    json: () => Promise.resolve({ success: true }),
+  } as Response),
 );
 
 // Mock dependencies
@@ -17,30 +17,32 @@ vi.mock('../../supabase', () => ({
     from: vi.fn(() => ({
       insert: vi.fn(() => ({
         select: vi.fn(() => ({
-          single: vi.fn(() => Promise.resolve({
-            data: {
-              id: 'test-job-id',
-              status: 'pending',
-              repository_id: 'test-repo-id',
-              repository_name: 'test/repo',
-              processor_type: 'inngest',
-              job_type: 'recent-prs'
-            },
-            error: null
-          }))
-        }))
+          single: vi.fn(() =>
+            Promise.resolve({
+              data: {
+                id: 'test-job-id',
+                status: 'pending',
+                repository_id: 'test-repo-id',
+                repository_name: 'test/repo',
+                processor_type: 'inngest',
+                job_type: 'recent-prs',
+              },
+              error: null,
+            }),
+          ),
+        })),
       })),
       update: vi.fn(() => ({
-        eq: vi.fn(() => Promise.resolve({ _error: null }))
-      }))
-    }))
-  }
+        eq: vi.fn(() => Promise.resolve({ _error: null })),
+      })),
+    })),
+  },
 }));
 
 vi.mock('../../inngest/client', () => ({
   inngest: {
-    send: vi.fn()
-  }
+    send: vi.fn(),
+  },
 }));
 
 vi.mock('../../inngest/types/event-_data', () => ({
@@ -51,28 +53,28 @@ vi.mock('../../inngest/types/event-_data', () => ({
     priority: 'medium',
     reason: data.triggerSource || 'automatic',
     maxItems: Math.min(_data.maxItems || 50, 50),
-    jobId: data.jobId
-  }))
+    jobId: data.jobId,
+  })),
 }));
 
 // Mock other dependencies
 vi.mock('../rollout-manager', () => ({
   hybridRolloutManager: {
     isRepositoryEligible: vi.fn(() => Promise.resolve(false)),
-    recordMetrics: vi.fn(() => Promise.resolve())
-  }
+    recordMetrics: vi.fn(() => Promise.resolve()),
+  },
 }));
 
 vi.mock('../queue-prioritization', () => ({
   queuePrioritizationService: {
-    getRepositoryMetadata: vi.fn(() => Promise.resolve(null))
-  }
+    getRepositoryMetadata: vi.fn(() => Promise.resolve(null)),
+  },
 }));
 
 vi.mock('../job-status-reporter', () => ({
   jobStatusReporter: {
-    updateStatus: vi.fn()
-  }
+    updateStatus: vi.fn(),
+  },
 }));
 
 // Import after mocks
@@ -97,7 +99,7 @@ describe('HybridQueueManager', () => {
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toBe('/api/queue-event');
       expect(options.method).toBe('POST');
-      
+
       const body = JSON.parse(options.body);
       expect(body.eventName).toBe('capture/repository.sync.graphql');
       expect(body._data).toMatchObject({
@@ -106,7 +108,7 @@ describe('HybridQueueManager', () => {
         days: 1, // timeRange of 1 should map to days: 1
         priority: 'medium',
         reason: 'automatic',
-        maxItems: 50
+        maxItems: 50,
       });
     });
 
@@ -119,7 +121,7 @@ describe('HybridQueueManager', () => {
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toBe('/api/queue-event');
       expect(options.method).toBe('POST');
-      
+
       const body = JSON.parse(options.body);
       expect(body.eventName).toBe('capture/repository.sync.graphql');
       expect(body._data).toMatchObject({
@@ -128,7 +130,7 @@ describe('HybridQueueManager', () => {
         days: 30, // Should map timeRange to days
         priority: 'medium',
         reason: 'scheduled',
-        maxItems: 50 // Capped at INNGEST_MAX_ITEMS
+        maxItems: 50, // Capped at INNGEST_MAX_ITEMS
       });
     });
 
@@ -138,7 +140,7 @@ describe('HybridQueueManager', () => {
       // Direct call to queueJob to test default handling
       await manager.queueJob('recent-prs', {
         repositoryId: 'test-repo-id',
-        repositoryName: 'owner/repo'
+        repositoryName: 'owner/repo',
         // Missing timeRange and triggerSource
       });
 
@@ -146,7 +148,7 @@ describe('HybridQueueManager', () => {
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toBe('/api/queue-event');
       expect(options.method).toBe('POST');
-      
+
       const body = JSON.parse(options.body);
       expect(body.eventName).toBe('capture/repository.sync.graphql');
       expect(body._data.days).toBe(7); // Default when timeRange is missing
@@ -157,9 +159,9 @@ describe('HybridQueueManager', () => {
       // Test that repositoryId is required
       await expect(
         manager.queueJob('recent-prs', {
-          repositoryName: 'owner/repo'
+          repositoryName: 'owner/repo',
           // Missing repositoryId
-        } as Record<string, unknown>)
+        } as Record<string, unknown>),
       ).rejects.toThrow();
     });
   });
@@ -173,22 +175,22 @@ describe('HybridQueueManager', () => {
         { jobType: 'recent-prs', expectedEvent: 'capture/repository.sync.graphql' },
         { jobType: 'pr-details', expectedEvent: 'capture/pr.details.graphql' },
         { jobType: 'reviews', expectedEvent: 'capture/pr.reviews' },
-        { jobType: 'comments', expectedEvent: 'capture/pr.comments' }
+        { jobType: 'comments', expectedEvent: 'capture/pr.comments' },
       ];
 
       for (const { jobType, expectedEvent } of testCases) {
         vi.clearAllMocks();
-        
+
         await manager.queueJob(jobType, {
           repositoryId: 'test-repo-id',
           repositoryName: 'owner/repo',
-          timeRange: 1
+          timeRange: 1,
         });
 
         expect(mockFetch).toHaveBeenCalled();
         const [url, options] = mockFetch.mock.calls[0];
         expect(url).toBe('/api/queue-event');
-        
+
         const body = JSON.parse(options.body);
         expect(body.eventName).toBe(expectedEvent);
       }
@@ -198,8 +200,8 @@ describe('HybridQueueManager', () => {
       await expect(
         manager.queueJob('unknown-job-type', {
           repositoryId: 'test-repo-id',
-          repositoryName: 'owner/repo'
-        })
+          repositoryName: 'owner/repo',
+        }),
       ).rejects.toThrow('Unknown job type for Inngest: unknown-job-type');
     });
   });

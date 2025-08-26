@@ -57,7 +57,7 @@ export function SelfSelectionRate({
       setError(null)
 
       // Fetch current period stats
-      const { data: currentData, error: _error: currentError } = await supabase
+      const { data: currentData, error: currentError } = await supabase
         .rpc('calculate_self_selection_rate', {
           p_repository_owner: owner,
           p_repository_name: repo,
@@ -411,7 +411,7 @@ export function useSelfSelectionRate(owner: string, repo: string, daysBack: numb
     const fetchStats = async () => {
       try {
         setLoading(true)
-        const { data, error: _error: err } = await supabase
+        const { data, error: err } = await supabase
           .rpc('calculate_self_selection_rate', {
             p_repository_owner: owner,
             p_repository_name: repo,

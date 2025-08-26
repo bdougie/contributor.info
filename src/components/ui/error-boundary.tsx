@@ -55,8 +55,8 @@ export class ErrorBoundary extends Component<Props, State> {
             </details>
           </CardContent>
           <CardFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="border-red-300 text-red-700 hover:bg-red-100"
               onClick={this.handleReset}
             >

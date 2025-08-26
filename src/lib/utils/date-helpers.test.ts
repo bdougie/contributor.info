@@ -32,9 +32,9 @@ describe('Date Helpers', () => {
       // Mock date to be 5th of January 2024
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2024, 0, 5)); // January 5, 2024
-      
+
       const state = getCurrentMonthlyCycleState();
-      
+
       expect(state.phase).toBe(CyclePhase.WINNER_ANNOUNCEMENT);
       expect(state.dayOfMonth).toBe(5);
       expect(state.currentMonth.month).toBe(0); // January
@@ -42,7 +42,7 @@ describe('Date Helpers', () => {
       expect(state.previousMonth.month).toBe(11); // December
       expect(state.previousMonth.year).toBe(2023);
       expect(state.isTransitioning).toBe(false);
-      
+
       vi.useRealTimers();
     });
 
@@ -50,9 +50,9 @@ describe('Date Helpers', () => {
       // Mock date to be 15th of June 2024
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2024, 5, 15)); // June 15, 2024
-      
+
       const state = getCurrentMonthlyCycleState();
-      
+
       expect(state.phase).toBe(CyclePhase.RUNNING_LEADERBOARD);
       expect(state.dayOfMonth).toBe(15);
       expect(state.currentMonth.month).toBe(5); // June
@@ -60,7 +60,7 @@ describe('Date Helpers', () => {
       expect(state.previousMonth.month).toBe(4); // May
       expect(state.previousMonth.year).toBe(2024);
       expect(state.isTransitioning).toBe(false);
-      
+
       vi.useRealTimers();
     });
 
@@ -68,11 +68,11 @@ describe('Date Helpers', () => {
       // Mock date to be 2nd of March 2024
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2024, 2, 2)); // March 2, 2024
-      
+
       const state = getCurrentMonthlyCycleState();
-      
+
       expect(state.isTransitioning).toBe(true);
-      
+
       vi.useRealTimers();
     });
 
@@ -80,14 +80,14 @@ describe('Date Helpers', () => {
       // Mock date to be 1st of January 2024
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2024, 0, 1)); // January 1, 2024
-      
+
       const state = getCurrentMonthlyCycleState();
-      
+
       expect(state.currentMonth.month).toBe(0); // January
       expect(state.currentMonth.year).toBe(2024);
       expect(state.previousMonth.month).toBe(11); // December
       expect(state.previousMonth.year).toBe(2023);
-      
+
       vi.useRealTimers();
     });
   });
@@ -95,7 +95,7 @@ describe('Date Helpers', () => {
   describe('getMonthDateRange', () => {
     it('should return correct date range for a month', () => {
       const { startDate, endDate } = getMonthDateRange(5, 2024); // June 2024
-      
+
       expect(startDate).toEqual(new Date(2024, 5, 1));
       expect(endDate.getFullYear()).toBe(2024);
       expect(endDate.getMonth()).toBe(5);
@@ -107,14 +107,14 @@ describe('Date Helpers', () => {
 
     it('should handle February in leap year', () => {
       const { startDate, endDate } = getMonthDateRange(1, 2024); // February 2024 (leap year)
-      
+
       expect(startDate).toEqual(new Date(2024, 1, 1));
       expect(endDate.getDate()).toBe(29); // February has 29 days in 2024
     });
 
     it('should handle February in non-leap year', () => {
       const { startDate, endDate } = getMonthDateRange(1, 2023); // February 2023 (non-leap year)
-      
+
       expect(startDate).toEqual(new Date(2023, 1, 1));
       expect(endDate.getDate()).toBe(28); // February has 28 days in 2023
     });
@@ -124,13 +124,13 @@ describe('Date Helpers', () => {
     it('should return current month date range', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2024, 3, 15)); // April 15, 2024
-      
+
       const { startDate, endDate } = getCurrentMonthDateRange();
-      
+
       expect(startDate).toEqual(new Date(2024, 3, 1));
       expect(endDate.getMonth()).toBe(3); // April
       expect(endDate.getDate()).toBe(30); // April has 30 days
-      
+
       vi.useRealTimers();
     });
   });
@@ -139,27 +139,27 @@ describe('Date Helpers', () => {
     it('should return previous month date range', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2024, 3, 15)); // April 15, 2024
-      
+
       const { startDate, endDate } = getPreviousMonthDateRange();
-      
+
       expect(startDate).toEqual(new Date(2024, 2, 1)); // March 1, 2024
       expect(endDate.getMonth()).toBe(2); // March
       expect(endDate.getDate()).toBe(31); // March has 31 days
-      
+
       vi.useRealTimers();
     });
 
     it('should handle year boundary', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2024, 0, 15)); // January 15, 2024
-      
+
       const { startDate, endDate } = getPreviousMonthDateRange();
-      
+
       expect(startDate).toEqual(new Date(2023, 11, 1)); // December 1, 2023
       expect(endDate.getFullYear()).toBe(2023);
       expect(endDate.getMonth()).toBe(11); // December
       expect(endDate.getDate()).toBe(31); // December has 31 days
-      
+
       vi.useRealTimers();
     });
   });
@@ -204,7 +204,7 @@ describe('Date Helpers', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2024, 5, 5));
       expect(isRunningLeaderboardPhase()).toBe(!isWinnerAnnouncementPhase());
-      
+
       vi.setSystemTime(new Date(2024, 5, 15));
       expect(isRunningLeaderboardPhase()).toBe(!isWinnerAnnouncementPhase());
       vi.useRealTimers();
@@ -215,18 +215,18 @@ describe('Date Helpers', () => {
     it('should calculate days remaining in month correctly', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2024, 5, 15)); // June 15, 2024 (June has 30 days)
-      
+
       expect(getDaysRemainingInMonth()).toBe(15); // 30 - 15 = 15
-      
+
       vi.useRealTimers();
     });
 
     it('should calculate days elapsed in month correctly', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2024, 5, 15)); // June 15, 2024
-      
+
       expect(getDaysElapsedInMonth()).toBe(15);
-      
+
       vi.useRealTimers();
     });
   });
@@ -241,7 +241,9 @@ describe('Date Helpers', () => {
 
   describe('getPhaseDescription', () => {
     it('should return correct descriptions for each phase', () => {
-      expect(getPhaseDescription(CyclePhase.WINNER_ANNOUNCEMENT)).toBe('Winner Announcement Period');
+      expect(getPhaseDescription(CyclePhase.WINNER_ANNOUNCEMENT)).toBe(
+        'Winner Announcement Period',
+      );
       expect(getPhaseDescription(CyclePhase.RUNNING_LEADERBOARD)).toBe('Active Competition Period');
     });
   });
@@ -250,24 +252,24 @@ describe('Date Helpers', () => {
     it('should calculate days until running leaderboard phase', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2024, 5, 5)); // June 5, 2024
-      
+
       const result = getTimeUntilNextPhase();
-      
+
       expect(result.phase).toBe(CyclePhase.RUNNING_LEADERBOARD);
       expect(result.days).toBe(3); // Until June 8
-      
+
       vi.useRealTimers();
     });
 
     it('should calculate days until next winner announcement phase', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2024, 5, 20)); // June 20, 2024
-      
+
       const result = getTimeUntilNextPhase();
-      
+
       expect(result.phase).toBe(CyclePhase.WINNER_ANNOUNCEMENT);
       expect(result.days).toBe(11); // Until July 1 (30 - 20 + 1)
-      
+
       vi.useRealTimers();
     });
   });
@@ -296,40 +298,40 @@ describe('Date Helpers', () => {
     it('should return correct week range for a Sunday', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2024, 5, 9)); // June 9, 2024 (Sunday)
-      
+
       const { startDate, endDate } = getCurrentWeekDateRange();
-      
+
       expect(startDate.getDate()).toBe(9); // Same day (Sunday)
       expect(startDate.getHours()).toBe(0);
       expect(endDate.getDate()).toBe(15); // Following Saturday
       expect(endDate.getHours()).toBe(23);
-      
+
       vi.useRealTimers();
     });
 
     it('should return correct week range for a Wednesday', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2024, 5, 12)); // June 12, 2024 (Wednesday)
-      
+
       const { startDate, endDate } = getCurrentWeekDateRange();
-      
+
       expect(startDate.getDate()).toBe(9); // Previous Sunday
       expect(endDate.getDate()).toBe(15); // Following Saturday
-      
+
       vi.useRealTimers();
     });
 
     it('should handle month boundaries correctly', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2024, 6, 3)); // July 3, 2024 (Wednesday)
-      
+
       const { startDate, endDate } = getCurrentWeekDateRange();
-      
+
       expect(startDate.getMonth()).toBe(5); // June
       expect(startDate.getDate()).toBe(30); // June 30 (Sunday)
       expect(endDate.getMonth()).toBe(6); // July
       expect(endDate.getDate()).toBe(6); // July 6 (Saturday)
-      
+
       vi.useRealTimers();
     });
   });

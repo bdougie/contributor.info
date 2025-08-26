@@ -33,18 +33,18 @@ describe('useProgressiveRepoData - Basic Tests', () => {
   beforeEach(() => {
     setupBasicMocks();
     vi.clearAllMocks();
-    
+
     // Set up default mock return values
     fetchDirectCommitsMock.mockResolvedValue({ commits: [], totalCommits: 0 });
-    fetchPRDataMock.mockResolvedValue({ 
-      data: mockPRData, 
-      status: 'success', 
-      message: 'Data loaded' 
+    fetchPRDataMock.mockResolvedValue({
+      data: mockPRData,
+      status: 'success',
+      message: 'Data loaded',
     });
-    calculateLotteryFactorMock.mockReturnValue({ 
-      factor: 0.5, 
-      description: 'Test', 
-      category: 'balanced' 
+    calculateLotteryFactorMock.mockReturnValue({
+      factor: 0.5,
+      description: 'Test',
+      category: 'balanced',
     });
   });
 
@@ -55,9 +55,7 @@ describe('useProgressiveRepoData - Basic Tests', () => {
 
   describe('Initial State', () => {
     it('should initialize with correct default state', () => {
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       expect(result.current.basicInfo).toBe(null);
       expect(result.current.stats.loading).toBe(true);
@@ -67,20 +65,16 @@ describe('useProgressiveRepoData - Basic Tests', () => {
     });
 
     it('should not start loading without owner', () => {
-      const { result } = renderHook(() => 
-        useProgressiveRepoData(undefined, 'repo', '90d', false)
-      );
-      
+      const { result } = renderHook(() => useProgressiveRepoData(undefined, 'repo', '90d', false));
+
       // When no owner, loading should be true initially but no API calls
       expect(result.current.currentStage).toBe('initial');
       expect(fetchPRDataMock).not.toHaveBeenCalled();
     });
 
     it('should not start loading without repo', () => {
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', undefined, '90d', false)
-      );
-      
+      const { result } = renderHook(() => useProgressiveRepoData('owner', undefined, '90d', false));
+
       // When no repo, loading should be true initially but no API calls
       expect(result.current.currentStage).toBe('initial');
       expect(fetchPRDataMock).not.toHaveBeenCalled();
@@ -89,17 +83,13 @@ describe('useProgressiveRepoData - Basic Tests', () => {
 
   describe('Data Status', () => {
     it('should initialize with pending status', () => {
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       expect(result.current._dataStatus.status).toBe('pending');
     });
 
     it('should have initial stage progress as false except critical which starts', () => {
-      const { result } = renderHook(() => 
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       // Initial and critical may be true since loading starts immediately
       // Other stages should be false

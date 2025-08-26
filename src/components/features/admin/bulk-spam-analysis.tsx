@@ -78,7 +78,7 @@ export function BulkSpamAnalysis() {
       setError(null);
 
       // Get repository stats with PR analysis data
-      const { data: repoData, error: _error: repoError } = await supabase
+      const { data: repoData, error: repoError } = await supabase
         .from('repositories')
         .select(`
           id,

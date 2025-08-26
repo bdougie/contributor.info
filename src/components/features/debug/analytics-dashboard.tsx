@@ -53,7 +53,7 @@ export function AnalyticsDashboard() {
     
     try {
       // Fetch recent share events
-      const { data: shareEvents, error: _error: eventsError } = await supabase
+      const { data: shareEvents, error: eventsError } = await supabase
         .from('share_events')
         .select('*')
         .order('created_at', { ascending: false })

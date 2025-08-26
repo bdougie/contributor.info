@@ -2,9 +2,11 @@ import { lazy, Suspense } from 'react';
 import { DialogSkeleton } from '@/components/ui/lazy-dialog';
 
 // Lazy load the LoginDialog component
-const LoginDialog = lazy(() => import('./login-dialog').then(module => ({
-  default: module.LoginDialog
-})));
+const LoginDialog = lazy(() =>
+  import('./login-dialog').then((module) => ({
+    default: module.LoginDialog,
+  })),
+);
 
 interface LazyLoginDialogProps {
   open: boolean;

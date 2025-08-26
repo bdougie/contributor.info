@@ -1,14 +1,11 @@
-import { useState, useEffect } from "react"
-import { Heart, AlertTriangle, Sparkles, Brain,  } from '@/components/ui/icon';
-import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import {
-  calculateHealthMetrics,
-  type HealthMetrics,
-} from "@/lib/insights/health-metrics";
-import { llmService, type LLMInsight } from "@/lib/llm";
+import { useState, useEffect } from 'react';
+import { Heart, AlertTriangle, Sparkles, Brain } from '@/components/ui/icon';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { calculateHealthMetrics, type HealthMetrics } from '@/lib/insights/health-metrics';
+import { llmService, type LLMInsight } from '@/lib/llm';
 
 interface RepositoryHealthProps {
   owner: string;
@@ -16,11 +13,7 @@ interface RepositoryHealthProps {
   timeRange: string;
 }
 
-export function InsightsHealth({
-  owner,
-  repo,
-  timeRange,
-}: RepositoryHealthProps) {
+export function InsightsHealth({ owner, repo, timeRange }: RepositoryHealthProps) {
   const [loading, setLoading] = useState(true);
   const [health, setHealth] = useState<HealthMetrics | null>(null);
   const [llmInsight, setLlmInsight] = useState<LLMInsight | null>(null);
@@ -43,7 +36,7 @@ export function InsightsHealth({
         loadLLMInsight(metrics);
       }
     } catch (_error) {
-      console.error("Failed to load health metrics:", _error);
+      console.error('Failed to load health metrics:', _error);
       setHealth(null);
     } finally {
       setLoading(false);
@@ -59,7 +52,7 @@ export function InsightsHealth({
       });
       setLlmInsight(insight);
     } catch (_error) {
-      console.error("Failed to load LLM insight:", _error);
+      console.error('Failed to load LLM insight:', _error);
       setLlmInsight(null);
     } finally {
       setLlmLoading(false);
@@ -67,15 +60,15 @@ export function InsightsHealth({
   };
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return "text-green-600";
-    if (confidence >= 0.6) return "text-yellow-600";
-    return "text-gray-600";
+    if (confidence >= 0.8) return 'text-green-600';
+    if (confidence >= 0.6) return 'text-yellow-600';
+    return 'text-gray-600';
   };
 
   const getConfidenceLabel = (confidence: number) => {
-    if (confidence >= 0.8) return "High";
-    if (confidence >= 0.6) return "Medium";
-    return "Low";
+    if (confidence >= 0.8) return 'High';
+    if (confidence >= 0.6) return 'Medium';
+    return 'Low';
   };
   if (loading) {
     return (
@@ -109,10 +102,7 @@ export function InsightsHealth({
             {llmInsight && (
               <Badge
                 variant="outline"
-                className={cn(
-                  "text-xs",
-                  getConfidenceColor(llmInsight.confidence)
-                )}
+                className={cn('text-xs', getConfidenceColor(llmInsight.confidence))}
               >
                 <Sparkles className="h-3 w-3 mr-1" />
                 {getConfidenceLabel(llmInsight.confidence)} Confidence
@@ -120,16 +110,13 @@ export function InsightsHealth({
             )}
           </div>
 
-          {llmLoading
-? (
+          {llmLoading ? (
             <div className="space-y-2">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-4/5" />
               <Skeleton className="h-4 w-3/4" />
             </div>
-          )
-: llmInsight
-? (
+          ) : llmInsight ? (
             <div className="space-y-3">
               <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
                 {llmInsight.content}
@@ -138,8 +125,7 @@ export function InsightsHealth({
                 Generated {new Date(llmInsight.timestamp).toLocaleTimeString()}
               </p>
             </div>
-          )
-: null}
+          ) : null}
         </Card>
       )}
       {/* Recommendations */}

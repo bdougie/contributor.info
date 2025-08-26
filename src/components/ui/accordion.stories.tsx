@@ -1,30 +1,25 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "./accordion";
+import type { Meta, StoryObj } from '@storybook/react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './accordion';
 
 interface AccordionArgs {
-  type?: "single" | "multiple";
+  type?: 'single' | 'multiple';
   collapsible?: boolean;
   className?: string;
 }
 
 const meta: Meta<AccordionArgs> = {
-  title: "UI/Navigation/Accordion",
+  title: 'UI/Navigation/Accordion',
   component: Accordion,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
         component:
-          "A vertically stacked set of interactive headings that reveal or hide sections of content.",
+          'A vertically stacked set of interactive headings that reveal or hide sections of content.',
       },
     },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   decorators: [
     (Story) => (
       <div className="w-[500px]">
@@ -34,11 +29,11 @@ const meta: Meta<AccordionArgs> = {
   ],
   argTypes: {
     type: {
-      control: { type: "select" },
-      options: ["single", "multiple"],
+      control: { type: 'select' },
+      options: ['single', 'multiple'],
     },
     collapsible: {
-      control: { type: "boolean" },
+      control: { type: 'boolean' },
     },
   },
 };
@@ -52,15 +47,12 @@ export const Single: Story = {
     <Accordion type="single" collapsible className="w-full">
       <AccordionItem value="item-1">
         <AccordionTrigger>Is it accessible?</AccordionTrigger>
-        <AccordionContent>
-          Yes. It adheres to the WAI-ARIA design pattern.
-        </AccordionContent>
+        <AccordionContent>Yes. It adheres to the WAI-ARIA design pattern.</AccordionContent>
       </AccordionItem>
       <AccordionItem value="item-2">
         <AccordionTrigger>Is it styled?</AccordionTrigger>
         <AccordionContent>
-          Yes. It comes with default styles that match the other components'
-          aesthetic.
+          Yes. It comes with default styles that match the other components' aesthetic.
         </AccordionContent>
       </AccordionItem>
       <AccordionItem value="item-3">
@@ -92,8 +84,7 @@ export const Multiple: Story = {
       <AccordionItem value="item-3">
         <AccordionTrigger>Any other benefits?</AccordionTrigger>
         <AccordionContent>
-          Users can compare content between sections more easily when multiple
-          items are open.
+          Users can compare content between sections more easily when multiple items are open.
         </AccordionContent>
       </AccordionItem>
     </Accordion>
@@ -107,34 +98,30 @@ export const FAQ: Story = {
       <AccordionItem value="faq-1">
         <AccordionTrigger>What is your return policy?</AccordionTrigger>
         <AccordionContent>
-          We offer a 30-day return policy for all items. Items must be in
-          original condition with tags attached. Return shipping is free for
-          defective items, otherwise customer is responsible for return shipping
-          costs.
+          We offer a 30-day return policy for all items. Items must be in original condition with
+          tags attached. Return shipping is free for defective items, otherwise customer is
+          responsible for return shipping costs.
         </AccordionContent>
       </AccordionItem>
       <AccordionItem value="faq-2">
         <AccordionTrigger>How long does shipping take?</AccordionTrigger>
         <AccordionContent>
-          Standard shipping takes 3-7 business days. Express shipping (1-2
-          business days) and overnight shipping options are available at
-          checkout for an additional fee.
+          Standard shipping takes 3-7 business days. Express shipping (1-2 business days) and
+          overnight shipping options are available at checkout for an additional fee.
         </AccordionContent>
       </AccordionItem>
       <AccordionItem value="faq-3">
         <AccordionTrigger>Do you ship internationally?</AccordionTrigger>
         <AccordionContent>
-          Yes, we ship to over 50 countries worldwide. International shipping
-          costs and delivery times vary by destination. Customers are
-          responsible for any customs duties or taxes.
+          Yes, we ship to over 50 countries worldwide. International shipping costs and delivery
+          times vary by destination. Customers are responsible for any customs duties or taxes.
         </AccordionContent>
       </AccordionItem>
       <AccordionItem value="faq-4">
         <AccordionTrigger>How can I track my order?</AccordionTrigger>
         <AccordionContent>
-          Once your order ships, you'll receive a tracking number via email. You
-          can also log into your account to view order status and tracking
-          information.
+          Once your order ships, you'll receive a tracking number via email. You can also log into
+          your account to view order status and tracking information.
         </AccordionContent>
       </AccordionItem>
     </Accordion>
@@ -222,8 +209,8 @@ export const Documentation: Story = {
               GET https://api.example.com/v1/users
             </div>
             <p className="text-sm">
-              Authentication is required for all API calls. Include your API key
-              in the Authorization header.
+              Authentication is required for all API calls. Include your API key in the
+              Authorization header.
             </p>
           </div>
         </AccordionContent>
@@ -257,30 +244,21 @@ export const Documentation: Story = {
 export const WithDefaultOpen: Story = {
   args: {},
   render: () => (
-    <Accordion
-      type="single"
-      collapsible
-      defaultValue="item-2"
-      className="w-full"
-    >
+    <Accordion type="single" collapsible defaultValue="item-2" className="w-full">
       <AccordionItem value="item-1">
         <AccordionTrigger>First Item</AccordionTrigger>
-        <AccordionContent>
-          This is the first accordion item, but it starts closed.
-        </AccordionContent>
+        <AccordionContent>This is the first accordion item, but it starts closed.</AccordionContent>
       </AccordionItem>
       <AccordionItem value="item-2">
         <AccordionTrigger>Second Item (Default Open)</AccordionTrigger>
         <AccordionContent>
-          This accordion item is open by default because we set
-          defaultValue="item-2" on the Accordion component.
+          This accordion item is open by default because we set defaultValue="item-2" on the
+          Accordion component.
         </AccordionContent>
       </AccordionItem>
       <AccordionItem value="item-3">
         <AccordionTrigger>Third Item</AccordionTrigger>
-        <AccordionContent>
-          This is the third accordion item, also starting closed.
-        </AccordionContent>
+        <AccordionContent>This is the third accordion item, also starting closed.</AccordionContent>
       </AccordionItem>
     </Accordion>
   ),
@@ -292,9 +270,7 @@ export const AccordionInteraction: Story = {
     <Accordion type="single" collapsible className="w-full">
       <AccordionItem value="item-1">
         <AccordionTrigger>Is it accessible?</AccordionTrigger>
-        <AccordionContent>
-          Yes. It adheres to the WAI-ARIA design pattern.
-        </AccordionContent>
+        <AccordionContent>Yes. It adheres to the WAI-ARIA design pattern.</AccordionContent>
       </AccordionItem>
       <AccordionItem value="item-2">
         <AccordionTrigger>Is it styled?</AccordionTrigger>
@@ -340,9 +316,7 @@ export const AccordionMultiple: Story = {
       </AccordionItem>
       <AccordionItem value="multi-2">
         <AccordionTrigger>Multiple Item 2</AccordionTrigger>
-        <AccordionContent>
-          You can expand both this and the first item.
-        </AccordionContent>
+        <AccordionContent>You can expand both this and the first item.</AccordionContent>
       </AccordionItem>
     </Accordion>
   ),

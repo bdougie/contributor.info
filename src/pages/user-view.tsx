@@ -1,13 +1,8 @@
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect } from 'react';
 import { ExternalLink, Star, GitFork, User, Clock, Eye } from '@/components/ui/icon';
-import { useParams, Link, useNavigate } from "react-router-dom";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -15,14 +10,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useUserRepos } from "@/hooks/use-user-repos";
-import { humanizeNumber } from "@/lib/utils";
-import { UserAvatar } from "@/components/ui/user-avatar";
-import { Breadcrumbs } from "@/components/common/layout/breadcrumbs";
-import { avatarCache } from "@/lib/avatar-cache";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useUserRepos } from '@/hooks/use-user-repos';
+import { humanizeNumber } from '@/lib/utils';
+import { UserAvatar } from '@/components/ui/user-avatar';
+import { Breadcrumbs } from '@/components/common/layout/breadcrumbs';
+import { avatarCache } from '@/lib/avatar-cache';
 
 interface RepositoryWithTracking {
   id: number;
@@ -45,30 +40,40 @@ const MAX_DISPLAY_COUNT = 25;
 
 const getLanguageColor = (language: string): string => {
   const colors: { [key: string]: string } = {
-    TypeScript: "#3178c6",
-    JavaScript: "#f1e05a",
-    Python: "#3572A5",
-    Java: "#b07219",
-    "C#": "#239120",
-    Go: "#00ADD8",
-    Rust: "#dea584",
-    Ruby: "#701516",
-    PHP: "#4F5D95",
-    Swift: "#fa7343",
-    Kotlin: "#A97BFF",
-    Dart: "#00B4AB",
-    HTML: "#e34c26",
-    CSS: "#1572B6",
+    TypeScript: '#3178c6',
+    JavaScript: '#f1e05a',
+    Python: '#3572A5',
+    Java: '#b07219',
+    'C#': '#239120',
+    Go: '#00ADD8',
+    Rust: '#dea584',
+    Ruby: '#701516',
+    PHP: '#4F5D95',
+    Swift: '#fa7343',
+    Kotlin: '#A97BFF',
+    Dart: '#00B4AB',
+    HTML: '#e34c26',
+    CSS: '#1572B6',
   };
-  return colors[language] || "#6b7280";
+  return colors[language] || '#6b7280';
 };
 
 const getActivityLevel = (updatedAt: string): { level: string; color: string } => {
-  const daysSinceUpdate = Math.floor((Date.now() - new Date(updatedAt).getTime()) / (1000 * 60 * 60 * 24));
-  
-  if (daysSinceUpdate <= 7) return { level: "Active", color: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400" };
-  if (daysSinceUpdate <= 30) return { level: "Moderate", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400" };
-  return { level: "Low", color: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300" };
+  const daysSinceUpdate = Math.floor(
+    (Date.now() - new Date(updatedAt).getTime()) / (1000 * 60 * 60 * 24),
+  );
+
+  if (daysSinceUpdate <= 7)
+    return {
+      level: 'Active',
+      color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
+    };
+  if (daysSinceUpdate <= 30)
+    return {
+      level: 'Moderate',
+      color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+    };
+  return { level: 'Low', color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300' };
 };
 
 const TrackingStatusBadge = ({ repo }: { repo: RepositoryWithTracking }) => {
@@ -81,18 +86,13 @@ const TrackingStatusBadge = ({ repo }: { repo: RepositoryWithTracking }) => {
 
   if (repo.is_tracked) {
     return (
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="text-xs h-6 px-2"
-        onClick={handleViewRepo}
-      >
+      <Button variant="outline" size="sm" className="text-xs h-6 px-2" onClick={handleViewRepo}>
         <Eye className="w-3 h-3 mr-1" />
         View
       </Button>
     );
   }
-  
+
   if (repo.is_processing) {
     return (
       <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/20">
@@ -101,14 +101,9 @@ const TrackingStatusBadge = ({ repo }: { repo: RepositoryWithTracking }) => {
       </Badge>
     );
   }
-  
+
   return (
-    <Button 
-      variant="outline" 
-      size="sm" 
-      className="text-xs h-6 px-2"
-      onClick={handleViewRepo}
-    >
+    <Button variant="outline" size="sm" className="text-xs h-6 px-2" onClick={handleViewRepo}>
       Track
     </Button>
   );
@@ -122,7 +117,7 @@ const RepositoryRow = ({ repo }: { repo: RepositoryWithTracking }) => {
     <TableRow className="hover:bg-muted/50">
       <TableCell className="font-medium">
         <div className="flex flex-col">
-          <Link 
+          <Link
             to={`/${owner}/${repoName}`}
             className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
           >
@@ -142,19 +137,17 @@ const RepositoryRow = ({ repo }: { repo: RepositoryWithTracking }) => {
       </TableCell>
       <TableCell className="max-w-md">
         <p className="text-sm text-muted-foreground truncate">
-          {repo.description || "No description available"}
+          {repo.description || 'No description available'}
         </p>
       </TableCell>
       <TableCell>
-        <Badge className={activity.color}>
-          {activity.level}
-        </Badge>
+        <Badge className={activity.color}>{activity.level}</Badge>
       </TableCell>
       <TableCell>
         {repo.language && (
           <div className="flex items-center gap-2">
-            <div 
-              className="w-3 h-3 rounded-full" 
+            <div
+              className="w-3 h-3 rounded-full"
               style={{ backgroundColor: getLanguageColor(repo.language) }}
             />
             <span className="text-sm">{repo.language}</span>
@@ -178,11 +171,13 @@ const CollaborationNotice = ({ username }: { username: string }) => {
               Optimized for Collaboration
             </h3>
             <p className="text-blue-700 dark:text-blue-300">
-              This product focuses on collaborative projects. We only show repositories from {username} that have stars, forks, or active pull request activity, as these indicate collaborative development.
+              This product focuses on collaborative projects. We only show repositories from{' '}
+              {username} that have stars, forks, or active pull request activity, as these indicate
+              collaborative development.
             </p>
           </div>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="gap-2 border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/30"
             asChild
           >
@@ -205,7 +200,7 @@ export default function UserView() {
   const { username } = useParams<{ username: string }>();
   const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
   const [cachedAvatarUrl, setCachedAvatarUrl] = useState<string | null>(null);
-  
+
   const { repositories, userData, isLoading, error: _error } = useUserRepos(username);
 
   // Check for cached avatar URL on mount
@@ -228,7 +223,7 @@ export default function UserView() {
       avatarCache.preload(userData.avatar_url);
     }
   }, [userData, username]);
-  
+
   const displayedRepos = useMemo(() => {
     return repositories.slice(0, displayCount);
   }, [repositories, displayCount]);
@@ -248,7 +243,8 @@ export default function UserView() {
             <div className="text-center space-y-4">
               <h2 className="text-xl font-semibold text-destructive">Error Loading User</h2>
               <p className="text-muted-foreground">
-                {error.message || `Unable to load repositories for ${username}. Please check if the user exists.`}
+                {error.message ||
+                  `Unable to load repositories for ${username}. Please check if the user exists.`}
               </p>
               <Button asChild>
                 <Link to="/">Return to Home</Link>
@@ -264,14 +260,13 @@ export default function UserView() {
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       {/* Breadcrumbs */}
       <Breadcrumbs />
-      
+
       {/* Header */}
       <div className="space-y-4 user-header">
         <div className="flex items-center gap-3">
           <div className="user-avatar-container">
             {/* Use cached avatar URL immediately if available, fall back to userData */}
-            {(cachedAvatarUrl || userData?.avatar_url) 
-              ? (
+            {cachedAvatarUrl || userData?.avatar_url ? (
               <UserAvatar
                 src={cachedAvatarUrl || userData?.avatar_url || ''}
                 alt={userData?.name || username || ''}
@@ -279,8 +274,7 @@ export default function UserView() {
                 priority={true}
                 lazy={false} // Always load immediately for user avatar
               />
-            ) 
-              : (
+            ) : (
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
                 {username?.charAt(0)?.toUpperCase() || '?'}
               </div>
@@ -289,7 +283,7 @@ export default function UserView() {
           <div>
             <h1 className="text-3xl font-bold">{userData?.name || username}</h1>
             <p className="text-muted-foreground">
-              {userData?.bio || "Collaborative projects from this GitHub user"}
+              {userData?.bio || 'Collaborative projects from this GitHub user'}
             </p>
           </div>
         </div>
@@ -302,13 +296,9 @@ export default function UserView() {
             <User className="w-5 h-5" />
             Collaborative Repositories
             <div className="ml-auto repo-count-badge">
-              {!isLoading
-? (
-                <Badge variant="secondary">
-                  {repositories.length} collaborative
-                </Badge>
-              )
-: (
+              {!isLoading ? (
+                <Badge variant="secondary">{repositories.length} collaborative</Badge>
+              ) : (
                 <div className="h-6 w-16 skeleton-loading rounded" />
               )}
             </div>
@@ -363,7 +353,7 @@ export default function UserView() {
                 </div>
               );
             }
-            
+
             if (repositories.length > 0) {
               return (
                 <>
@@ -383,14 +373,10 @@ export default function UserView() {
                       ))}
                     </TableBody>
                   </Table>
-                  
+
                   {canShowMore && (
                     <div className="mt-6 text-center">
-                      <Button 
-                        variant="outline" 
-                        onClick={showMoreRepos}
-                        className="gap-2"
-                      >
+                      <Button variant="outline" onClick={showMoreRepos} className="gap-2">
                         Show More Repositories
                         <span className="text-xs text-muted-foreground">
                           ({displayCount} of {Math.min(repositories.length, MAX_DISPLAY_COUNT)})
@@ -398,19 +384,22 @@ export default function UserView() {
                       </Button>
                     </div>
                   )}
-                  
+
                   {hasMoreRepos && displayCount >= MAX_DISPLAY_COUNT && (
                     <div className="mt-4 text-center text-sm text-muted-foreground">
-                      Showing most collaborative repositories. View GitHub profile for all repositories.
+                      Showing most collaborative repositories. View GitHub profile for all
+                      repositories.
                     </div>
                   )}
                 </>
               );
             }
-            
+
             return (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">No collaborative repositories found for this user.</p>
+                <p className="text-muted-foreground">
+                  No collaborative repositories found for this user.
+                </p>
               </div>
             );
           })()}
@@ -419,9 +408,7 @@ export default function UserView() {
 
       {/* Collaboration Notice */}
       <div className="user-cta-section">
-        {!isLoading && (
-          <CollaborationNotice username={username || ""} />
-        )}
+        {!isLoading && <CollaborationNotice username={username || ''} />}
       </div>
     </div>
   );

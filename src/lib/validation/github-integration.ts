@@ -3,7 +3,7 @@
  * Shows how to integrate validation schemas with existing GitHub API functions
  */
 
-import { 
+import {
   githubUserSchema,
   githubRepositorySchema,
   githubPullRequestSchema,
@@ -99,7 +99,9 @@ export function transformGitHubUserToContributor(githubUser: GitHubUser): Contri
 /**
  * Transforms GitHub repository data into database repository format
  */
-export function transformGitHubRepositoryToRepository(githubRepo: GitHubRepository): RepositoryCreate {
+export function transformGitHubRepositoryToRepository(
+  githubRepo: GitHubRepository,
+): RepositoryCreate {
   const result = {
     github_id: githubRepo.id,
     full_name: githubRepo.full_name,
@@ -141,7 +143,7 @@ export function transformGitHubPullRequestToPullRequest(
   repositoryId: string,
   authorId: string,
   assigneeId?: string,
-  mergedById?: string
+  mergedById?: string,
 ): PullRequestCreate {
   return {
     github_id: githubPR.id,
@@ -179,7 +181,7 @@ export function transformGitHubPullRequestToPullRequest(
 export function transformGitHubReviewToReview(
   githubReview: GitHubReview,
   pullRequestId: string,
-  reviewerId: string
+  reviewerId: string,
 ): ReviewCreate {
   return {
     github_id: githubReview.id,
@@ -199,7 +201,7 @@ export function transformGitHubCommentToComment(
   githubComment: GitHubComment,
   pullRequestId: string,
   commenterId: string,
-  commentType: 'issue_comment' | 'review_comment' = 'issue_comment'
+  commentType: 'issue_comment' | 'review_comment' = 'issue_comment',
 ): CommentCreate {
   return {
     github_id: githubComment.id,
@@ -231,7 +233,7 @@ export function validateAndTransformGitHubUser(userData: unknown): ContributorCr
   if (!inputValidation.success || !inputValidation._data) {
     return null;
   }
-  
+
   // Transform the validated data
   return transformGitHubUserToContributor(inputValidation._data);
 }
@@ -245,7 +247,7 @@ export function validateAndTransformGitHubRepository(repoData: unknown): Reposit
   if (!inputValidation.success || !inputValidation._data) {
     return null;
   }
-  
+
   // Transform the validated data
   return transformGitHubRepositoryToRepository(inputValidation._data);
 }
@@ -258,21 +260,21 @@ export function validateAndTransformGitHubPullRequest(
   repositoryId: string,
   authorId: string,
   assigneeId?: string,
-  mergedById?: string
+  mergedById?: string,
 ): PullRequestCreate | null {
   // First validate the input
   const inputValidation = validateData(githubPullRequestSchema, prData, 'GitHub pull request');
   if (!inputValidation.success || !inputValidation._data) {
     return null;
   }
-  
+
   // Transform the validated data
   return transformGitHubPullRequestToPullRequest(
-    inputValidation.data, 
-    repositoryId, 
-    authorId, 
-    assigneeId, 
-    mergedById
+    inputValidation.data,
+    repositoryId,
+    authorId,
+    assigneeId,
+    mergedById,
   );
 }
 
@@ -306,19 +308,25 @@ export function validateAndTransformGitHubPullRequests(
   getRepositoryId: (pr: GitHubPullRequest) => string,
   getAuthorId: (pr: GitHubPullRequest) => string,
   getAssigneeId?: (pr: GitHubPullRequest) => string | undefined,
-  getMergedById?: (pr: GitHubPullRequest) => string | undefined
+  getMergedById?: (pr: GitHubPullRequest) => string | undefined,
 ): PullRequestCreate[] {
   return prsData
     .map((prData) => {
       const githubPR = validateGitHubPullRequest(prData);
       if (!githubPR) return null;
-      
+
       const repositoryId = getRepositoryId(githubPR);
       const authorId = getAuthorId(githubPR);
       const assigneeId = getAssigneeId?.(githubPR);
       const mergedById = getMergedById?.(githubPR);
-      
-      return validateAndTransformGitHubPullRequest(prData, repositoryId, authorId, assigneeId, mergedById);
+
+      return validateAndTransformGitHubPullRequest(
+        prData,
+        repositoryId,
+        authorId,
+        assigneeId,
+        mergedById,
+      );
     })
     .filter((pr): pr is PullRequestCreate => pr !== null);
 }
@@ -334,13 +342,13 @@ export function safeValidateGitHubResponse<T>(
   schema: unknown,
   data: unknown,
   context: string,
-  logger?: (message: string, _data?: unknown) => void
+  logger?: (message: string, _data?: unknown) => void,
 ): T | null {
   const result = validateData(schema, _data, context);
-  
+
   if (!result.success) {
-    const errorMessage = `Failed to validate ${context}: ${result.error: _error}`;
-    
+    const errorMessage = `Failed to validate ${context}: ${result.error}`;
+
     if (logger) {
       logger(errorMessage, {
         errors: result.errors,
@@ -349,10 +357,10 @@ export function safeValidateGitHubResponse<T>(
     } else {
       console.warn(errorMessage, result._errors);
     }
-    
+
     return null;
   }
-  
+
   return result.data as T;
 }
 
@@ -360,7 +368,7 @@ export function safeValidateGitHubResponse<T>(
  * Creates a standardized error handler for GitHub API validation
  */
 export function createGitHubValidationErrorHandler(
-  onError: (_error: string, context: string, _data?: unknown) => void
+  onError: (_error: string, context: string, _data?: unknown) => void,
 ) {
   return <T>(schema: unknown, _data: unknown, context: string): T | null => {
     return safeValidateGitHubResponse<T>(schema, _data, context, (message, _errorData) => {

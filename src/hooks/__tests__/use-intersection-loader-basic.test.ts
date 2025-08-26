@@ -51,25 +51,25 @@ describe('useIntersectionLoader - Basic Tests', () => {
     const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
     const loadPromise = result.current.load();
-    
+
     expect(loadFn).toHaveBeenCalled();
-    
+
     // Wait for the promise to resolve
     await loadPromise;
-    
+
     // The hook may not update immediately, that's okay for this basic test
     expect(loadFn).toHaveBeenCalledTimes(1);
   });
 
   it('should handle load _errors', async () => {
-    const error = new Error('Load failed');
+    const _error = new Error('Load failed');
     const loadFn = vi.fn().mockRejectedValue(_error);
     const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
     // Try to load and catch the error
     try {
       await result.current.load();
-    } catch (e) {
+    } catch (_e) {
       // Error is expected
     }
 
@@ -82,7 +82,7 @@ describe('useIntersectionLoader - Basic Tests', () => {
 
     // Reset function should be defined
     expect(typeof result.current.reset).toBe('function');
-    
+
     // Calling reset should not throw
     expect(() => result.current.reset()).not.toThrow();
   });

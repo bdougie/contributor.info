@@ -1,7 +1,7 @@
 import { Loader2 } from '@/components/ui/icon';
-import { ActivityItem } from "./activity-item";
-import { PullRequestActivity, ActivityType } from "@/lib/types";
-import { ActivityItemSkeleton } from "@/components/skeletons";
+import { ActivityItem } from './activity-item';
+import { PullRequestActivity, ActivityType } from '@/lib/types';
+import { ActivityItemSkeleton } from '@/components/skeletons';
 
 export interface PullRequestActivityFeedProps {
   activities?: PullRequestActivity[];

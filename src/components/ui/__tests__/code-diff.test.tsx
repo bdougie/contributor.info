@@ -40,7 +40,7 @@ describe('InlineCodeDiff', () => {
 
   it('should apply custom className', () => {
     const { container } = render(
-      <InlineCodeDiff additions={10} deletions={5} className="custom-class" />
+      <InlineCodeDiff additions={10} deletions={5} className="custom-class" />,
     );
     expect(container.firstChild).toHaveClass('custom-class');
   });

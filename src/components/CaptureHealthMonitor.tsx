@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 import { RefreshCw, CheckCircle, XCircle, Clock, AlertCircle } from '@/components/ui/icon';
 import { supabase } from '@/lib/supabase';
 import { jobStatusReporter } from '@/lib/progressive-capture/job-status-reporter';
@@ -58,7 +58,7 @@ export function CaptureHealthMonitor() {
         .limit(20);
 
       if (jobs) {
-        const jobSummaries = jobs.map(job => ({
+        const jobSummaries = jobs.map((job) => ({
           id: job.id,
           type: job.job_type,
           processor: job.processor_type,
@@ -67,11 +67,12 @@ export function CaptureHealthMonitor() {
           created_at: job.created_at,
           started_at: job.started_at,
           completed_at: job.completed_at,
-          duration: job.completed_at && job.started_at
-            ? new Date(job.completed_at).getTime() - new Date(job.started_at).getTime()
-            : undefined,
+          duration:
+            job.completed_at && job.started_at
+              ? new Date(job.completed_at).getTime() - new Date(job.started_at).getTime()
+              : undefined,
           progress: job.progressive_capture_progress?.[0],
-          error: job.error
+          error: job.error,
         }));
         setRecentJobs(jobSummaries);
       }
@@ -100,18 +101,18 @@ export function CaptureHealthMonitor() {
 
   // Subscribe to real-time updates for active jobs
   useEffect(() => {
-    const activeJobs = recentJobs.filter(job => 
-      job.status === 'pending' || job.status === 'processing'
+    const activeJobs = recentJobs.filter(
+      (job) => job.status === 'pending' || job.status === 'processing',
     );
 
-    const unsubscribes = activeJobs.map(job => 
+    const unsubscribes = activeJobs.map((job) =>
       jobStatusReporter.subscribeToJobUpdates(job.id, () => {
         fetchRecentJobs();
-      })
+      }),
     );
 
     return () => {
-      unsubscribes.forEach(unsubscribe => unsubscribe());
+      unsubscribes.forEach((unsubscribe) => unsubscribe());
     };
   }, [recentJobs]);
 
@@ -150,7 +151,7 @@ export function CaptureHealthMonitor() {
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes % 60}m`;
     } else if (minutes > 0) {
@@ -241,7 +242,9 @@ export function CaptureHealthMonitor() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Completed</span>
-                  <span className="font-medium text-green-600">{stats.github_actions.completed}</span>
+                  <span className="font-medium text-green-600">
+                    {stats.github_actions.completed}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Failed</span>
@@ -303,34 +306,32 @@ export function CaptureHealthMonitor() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-4">
                   {/* Progress */}
                   {job.progress && job.status === 'processing' && (
                     <div className="w-32">
-                      <Progress 
-                        value={(job.progress.processed_items / job.progress.total_items) * 100} 
+                      <Progress
+                        value={(job.progress.processed_items / job.progress.total_items) * 100}
                       />
                       <div className="text-xs text-gray-500 mt-1">
                         {job.progress.processed_items}/{job.progress.total_items}
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Duration */}
                   <div className="text-sm text-gray-500 w-20 text-right">
                     {formatDuration(job.duration)}
                   </div>
-                  
+
                   {/* Processor */}
                   <Badge variant="outline" className="text-xs">
                     {job.processor}
                   </Badge>
-                  
+
                   {/* Status */}
-                  <Badge className={cn('text-xs', getStatusColor(job.status))}>
-                    {job.status}
-                  </Badge>
+                  <Badge className={cn('text-xs', getStatusColor(job.status))}>{job.status}</Badge>
                 </div>
               </div>
             ))}

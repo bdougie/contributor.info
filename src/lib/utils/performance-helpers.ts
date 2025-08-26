@@ -83,7 +83,11 @@ export function getPRActivityType(pr: { merged?: boolean; state: string }): stri
 }
 
 // Batch processing helpers
-export function getBatchCapabilityMessage(canMake100: boolean, canMake10: boolean, cannotMake: boolean): string {
+export function getBatchCapabilityMessage(
+  canMake100: boolean,
+  canMake10: boolean,
+  cannotMake: boolean,
+): string {
   if (canMake100) return '  • ✅ Good to process large batches';
   if (canMake10) return '  • ⚡ Process small batches';
   if (cannotMake) return '  • ⏸️ Wait for rate limit reset';

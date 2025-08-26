@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -9,9 +9,9 @@ import {
   CardTitle,
   CardDescription,
   CardFooter,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useGitHubAuth } from "@/hooks/use-github-auth";
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useGitHubAuth } from '@/hooks/use-github-auth';
 
 export default function DebugAuthPage() {
   const [sessionInfo, setSessionInfo] = useState<any>(null);
@@ -23,15 +23,12 @@ export default function DebugAuthPage() {
 
   // Add a log entry
   const addLog = (message: string) => {
-    setDebugLogs((prev) => [
-      ...prev,
-      `${new Date().toISOString()}: ${message}`,
-    ]);
+    setDebugLogs((prev) => [...prev, `${new Date().toISOString()}: ${message}`]);
   };
 
   const refreshSessionInfo = async () => {
     try {
-      addLog("Checking session...");
+      addLog('Checking session...');
       const { data, error: _error } = await supabase.auth.getSession();
       if (_error) {
         setAuthError(_error.message);
@@ -40,19 +37,14 @@ export default function DebugAuthPage() {
         setSessionInfo(_data);
         if (_data.session?.user) {
           setUserInfo(_data.session.user);
-          addLog(
-            `Session found for user: ${
-              data.session.user.email || data.session.user.id
-            }`
-          );
+          addLog(`Session found for user: ${data.session.user.email || data.session.user.id}`);
         } else {
           setUserInfo(null);
-          addLog("No active session found");
+          addLog('No active session found');
         }
       }
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to check session";
+      const errorMessage = err instanceof Error ? err.message : 'Failed to check session';
       setAuthError(_errorMessage);
       addLog(`Session check error: ${_errorMessage}`);
     }
@@ -61,16 +53,16 @@ export default function DebugAuthPage() {
   const handleLogin = async () => {
     try {
       setAuthError(null);
-      addLog("Starting login process...");
+      addLog('Starting login process...');
 
       // Store the current path for redirect after login (for testing)
-      localStorage.setItem("redirectAfterLogin", "/debug-auth");
+      localStorage.setItem('redirectAfterLogin', '/debug-auth');
 
-      const { error: _error: signInError } = await supabase.auth.signInWithOAuth({
-        provider: "github",
+      const { error: signInError } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
         options: {
           redirectTo: `${window.location.origin}/debug-auth`,
-          scopes: "repo user",
+          scopes: 'repo user',
         },
       });
 
@@ -78,11 +70,10 @@ export default function DebugAuthPage() {
         setAuthError(signInError.message);
         addLog(`Login _error: ${signInError.message}`);
       } else {
-        addLog("Login initiated, waiting for redirect...");
+        addLog('Login initiated, waiting for redirect...');
       }
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to initiate login";
+      const errorMessage = err instanceof Error ? err.message : 'Failed to initiate login';
       setAuthError(_errorMessage);
       addLog(`Login error: ${_errorMessage}`);
     }
@@ -91,8 +82,8 @@ export default function DebugAuthPage() {
   const handleLogout = async () => {
     try {
       setAuthError(null);
-      addLog("Starting logout process...");
-      const { error: _error: signOutError } = await supabase.auth.signOut();
+      addLog('Starting logout process...');
+      const { error: signOutError } = await supabase.auth.signOut();
 
       if (signOutError) {
         setAuthError(signOutError.message);
@@ -100,12 +91,11 @@ export default function DebugAuthPage() {
       } else {
         // Clear state on successful logout
         setUserInfo(null);
-        addLog("Logout successful");
+        addLog('Logout successful');
         refreshSessionInfo();
       }
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to log out";
+      const errorMessage = err instanceof Error ? err.message : 'Failed to log out';
       setAuthError(_errorMessage);
       addLog(`Logout error: ${_errorMessage}`);
     }
@@ -114,28 +104,23 @@ export default function DebugAuthPage() {
   // Force Supabase session refresh
   const handleForceRefresh = async () => {
     try {
-      addLog("Forcing session refresh...");
+      addLog('Forcing session refresh...');
       const { data, error: _error } = await supabase.auth.refreshSession();
       if (_error) {
         addLog(`Refresh error: ${_error.message}`);
         setAuthError(_error.message);
       } else {
-        addLog("Session refreshed successfully");
+        addLog('Session refreshed successfully');
         if (_data.session) {
-          addLog(
-            `Refreshed session for user: ${
-              data.session.user.email || data.session.user.id
-            }`
-          );
+          addLog(`Refreshed session for user: ${data.session.user.email || data.session.user.id}`);
           setSessionInfo({ session: _data.session });
           setUserInfo(_data.session.user);
         } else {
-          addLog("No session after refresh");
+          addLog('No session after refresh');
         }
       }
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to refresh session";
+      const errorMessage = err instanceof Error ? err.message : 'Failed to refresh session';
       setAuthError(_errorMessage);
       addLog(`Refresh error: ${_errorMessage}`);
     }
@@ -143,7 +128,7 @@ export default function DebugAuthPage() {
 
   // Manual redirect test
   const handleTestRedirect = () => {
-    const redirectPath = "/login?redirectTo=/debug-auth";
+    const redirectPath = '/login?redirectTo=/debug-auth';
     addLog(`Testing redirect to: ${redirectPath}`);
     navigate(redirectPath);
   };
@@ -151,30 +136,25 @@ export default function DebugAuthPage() {
   // Hook check session
   const handleHookCheckSession = async () => {
     try {
-      addLog("Using hook to check session...");
+      addLog('Using hook to check session...');
       const isActive = await hookCheckSession();
-      addLog(
-        `Hook session check result: ${
-          isActive ? "Active session" : "No active session"
-        }`
-      );
+      addLog(`Hook session check result: ${isActive ? 'Active session' : 'No active session'}`);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed with hook check session";
+      const errorMessage = err instanceof Error ? err.message : 'Failed with hook check session';
       addLog(`Hook session check error: ${_errorMessage}`);
     }
   };
 
   useEffect(() => {
-    addLog("Component mounted");
+    addLog('Component mounted');
     addLog(`Current URL: ${window.location.href}`);
     addLog(`URL Hash: ${window.location.hash}`);
     addLog(`URL Search: ${window.location.search}`);
     addLog(`Protocol: ${window.location.protocol}`);
 
     // Check for auth tokens in URL
-    if (window.location.hash.includes("access_token")) {
-      addLog("Auth tokens found in URL hash");
+    if (window.location.hash.includes('access_token')) {
+      addLog('Auth tokens found in URL hash');
     }
 
     refreshSessionInfo();
@@ -186,7 +166,7 @@ export default function DebugAuthPage() {
       if (session) {
         addLog(`Session update for user: ${session.user.id}`);
       } else {
-        addLog("Session update: No session");
+        addLog('Session update: No session');
       }
       refreshSessionInfo();
     });
@@ -209,25 +189,17 @@ export default function DebugAuthPage() {
           <Card>
             <CardHeader>
               <CardTitle>Authentication Status</CardTitle>
-              <CardDescription>
-                Current login state and session information
-              </CardDescription>
+              <CardDescription>Current login state and session information</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-medium">Status</h3>
                   <p className="text-muted-foreground">
-                    {userInfo
-? (
-                      <span className="text-green-500 font-medium">
-                        Logged in
-                      </span>
-                    )
-: (
-                      <span className="text-yellow-500 font-medium">
-                        Not logged in
-                      </span>
+                    {userInfo ? (
+                      <span className="text-green-500 font-medium">Logged in</span>
+                    ) : (
+                      <span className="text-yellow-500 font-medium">Not logged in</span>
                     )}
                   </p>
                 </div>
@@ -239,20 +211,18 @@ export default function DebugAuthPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm font-medium">User ID</p>
-                          <p className="text-sm text-muted-foreground break-all">
-                            {userInfo.id}
-                          </p>
+                          <p className="text-sm text-muted-foreground break-all">{userInfo.id}</p>
                         </div>
                         <div>
                           <p className="text-sm font-medium">Email</p>
                           <p className="text-sm text-muted-foreground">
-                            {userInfo.email || "Not available"}
+                            {userInfo.email || 'Not available'}
                           </p>
                         </div>
                         <div>
                           <p className="text-sm font-medium">Provider</p>
                           <p className="text-sm text-muted-foreground">
-                            {userInfo.app_metadata?.provider || "Unknown"}
+                            {userInfo.app_metadata?.provider || 'Unknown'}
                           </p>
                         </div>
                         <div>
@@ -260,7 +230,7 @@ export default function DebugAuthPage() {
                           <p className="text-sm text-muted-foreground">
                             {userInfo.created_at
                               ? new Date(userInfo.created_at).toLocaleString()
-                              : "Not available"}
+                              : 'Not available'}
                           </p>
                         </div>
                       </div>
@@ -277,8 +247,7 @@ export default function DebugAuthPage() {
               </div>
             </CardContent>
             <CardFooter className="flex justify-between gap-2 flex-wrap">
-              {userInfo
-? (
+              {userInfo ? (
                 <>
                   <Button variant="destructive" onClick={handleLogout}>
                     Sign Out
@@ -287,8 +256,7 @@ export default function DebugAuthPage() {
                     Refresh Token
                   </Button>
                 </>
-              )
-: (
+              ) : (
                 <>
                   <Button onClick={handleLogin}>Sign In with GitHub</Button>
                   <Button variant="outline" onClick={handleTestRedirect}>
@@ -302,23 +270,17 @@ export default function DebugAuthPage() {
           <Card>
             <CardHeader>
               <CardTitle>Environment</CardTitle>
-              <CardDescription>
-                Information about your environment configuration
-              </CardDescription>
+              <CardDescription>Information about your environment configuration</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div>
                   <p className="font-medium">Current URL</p>
-                  <p className="text-sm text-muted-foreground break-all">
-                    {window.location.href}
-                  </p>
+                  <p className="text-sm text-muted-foreground break-all">{window.location.href}</p>
                 </div>
                 <div>
                   <p className="font-medium">Origin</p>
-                  <p className="text-sm text-muted-foreground">
-                    {window.location.origin}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{window.location.origin}</p>
                 </div>
                 <div>
                   <p className="font-medium">Supabase Configuration</p>
@@ -326,17 +288,13 @@ export default function DebugAuthPage() {
                     <div className="bg-muted p-2 rounded-md">
                       <p className="text-sm font-medium">Supabase URL</p>
                       <p className="text-sm text-muted-foreground">
-                        {import.meta.env.VITE_SUPABASE_URL
-                          ? "✓ Set"
-                          : "✗ Missing"}
+                        {import.meta.env.VITE_SUPABASE_URL ? '✓ Set' : '✗ Missing'}
                       </p>
                     </div>
                     <div className="bg-muted p-2 rounded-md">
                       <p className="text-sm font-medium">Supabase Anon Key</p>
                       <p className="text-sm text-muted-foreground">
-                        {import.meta.env.VITE_SUPABASE_ANON_KEY
-                          ? "✓ Set"
-                          : "✗ Missing"}
+                        {import.meta.env.VITE_SUPABASE_ANON_KEY ? '✓ Set' : '✗ Missing'}
                       </p>
                     </div>
                   </div>
@@ -350,15 +308,11 @@ export default function DebugAuthPage() {
           <Card>
             <CardHeader>
               <CardTitle>Session Details</CardTitle>
-              <CardDescription>
-                Raw session information from Supabase
-              </CardDescription>
+              <CardDescription>Raw session information from Supabase</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="bg-muted rounded-md p-4 overflow-auto max-h-96">
-                <pre className="text-xs">
-                  {JSON.stringify(sessionInfo, null, 2)}
-                </pre>
+                <pre className="text-xs">{JSON.stringify(sessionInfo, null, 2)}</pre>
               </div>
             </CardContent>
             <CardFooter>
@@ -373,9 +327,7 @@ export default function DebugAuthPage() {
           <Card>
             <CardHeader>
               <CardTitle>Debug Logs</CardTitle>
-              <CardDescription>
-                Detailed logs of authentication events
-              </CardDescription>
+              <CardDescription>Detailed logs of authentication events</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="bg-muted rounded-md p-4 overflow-auto max-h-96 font-mono text-xs">
@@ -402,7 +354,7 @@ export default function DebugAuthPage() {
       </Tabs>
 
       <div className="mt-8 flex justify-center">
-        <Button variant="ghost" onClick={() => navigate("/")}>
+        <Button variant="ghost" onClick={() => navigate('/')}>
           Return to Home
         </Button>
       </div>

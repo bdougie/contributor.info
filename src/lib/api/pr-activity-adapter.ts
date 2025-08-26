@@ -70,12 +70,18 @@ export function convertDatabasePRToActivity(pr: DatabasePR): PullRequestActivity
  * Convert multiple database PRs to activity format
  */
 export function convertDatabasePRsToActivities(prs: DatabasePR[]): PullRequestActivity[] {
-  return prs.map(convertDatabasePRToActivity).filter((activity): activity is PullRequestActivity => activity !== null);
+  return prs
+    .map(convertDatabasePRToActivity)
+    .filter((activity): activity is PullRequestActivity => activity !== null);
 }
 
 /**
  * Sort activities by timestamp (most recent first)
  */
-export function sortActivitiesByTimestamp(activities: PullRequestActivity[]): PullRequestActivity[] {
-  return activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+export function sortActivitiesByTimestamp(
+  activities: PullRequestActivity[],
+): PullRequestActivity[] {
+  return activities.sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+  );
 }

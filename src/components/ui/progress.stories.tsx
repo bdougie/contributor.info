@@ -192,7 +192,7 @@ export const Animated: Story = {
   render: () => {
     const AnimatedProgress = () => {
       const [progress, setProgress] = useState(0);
-      
+
       useEffect(() => {
         const timer = setInterval(() => {
           setProgress((prev) => {
@@ -202,10 +202,10 @@ export const Animated: Story = {
             return prev + 1;
           });
         }, 50);
-        
+
         return () => clearInterval(timer);
       }, []);
-      
+
       return (
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
@@ -216,7 +216,7 @@ export const Animated: Story = {
         </div>
       );
     };
-    
+
     return <AnimatedProgress />;
   },
 };
@@ -231,9 +231,9 @@ export const TaskProgress: Story = {
         { id: 4, name: 'Write tests', completed: false, progress: 45 },
         { id: 5, name: 'Deploy to production', completed: false, progress: 0 },
       ]);
-      
+
       const overallProgress = tasks.reduce((acc, task) => acc + task.progress, 0) / tasks.length;
-      
+
       return (
         <div className="space-y-4">
           <div className="space-y-2">
@@ -243,7 +243,7 @@ export const TaskProgress: Story = {
             </div>
             <Progress value={overallProgress} className="h-3" />
           </div>
-          
+
           <div className="space-y-3">
             {tasks.map((task) => (
               <div key={task.id} className="space-y-1">
@@ -253,8 +253,8 @@ export const TaskProgress: Story = {
                   </span>
                   <span>{task.progress}%</span>
                 </div>
-                <Progress 
-                  value={task.progress} 
+                <Progress
+                  value={task.progress}
                   className={`h-1 ${task.completed ? '[&>div]:bg-green-500' : ''}`}
                 />
               </div>
@@ -263,7 +263,7 @@ export const TaskProgress: Story = {
         </div>
       );
     };
-    
+
     return <TaskProgressDemo />;
   },
 };
@@ -272,7 +272,7 @@ export const Interactive: Story = {
   render: () => {
     const InteractiveProgress = () => {
       const [progress, setProgress] = useState(33);
-      
+
       return (
         <div className="space-y-4">
           <div className="space-y-2">
@@ -282,36 +282,32 @@ export const Interactive: Story = {
             </div>
             <Progress value={progress} />
           </div>
-          
+
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setProgress(Math.max(0, progress - 10))}
               disabled={progress === 0}
             >
               -10%
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setProgress(Math.min(100, progress + 10))}
               disabled={progress === 100}
             >
               +10%
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setProgress(0)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setProgress(0)}>
               Reset
             </Button>
           </div>
         </div>
       );
     };
-    
+
     return <InteractiveProgress />;
   },
 };

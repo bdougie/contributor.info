@@ -1,5 +1,5 @@
 // filepath: /Users/briandouglas/code/contributor.info/src/components/language-legend.tsx
-import type { LanguageStats } from "@/types";
+import type { LanguageStats } from '@/types';
 
 interface LanguageLegendProps {
   languages: LanguageStats[];
@@ -12,10 +12,7 @@ export function LanguageLegend({ languages }: LanguageLegendProps) {
     <div className="flex flex-wrap items-center gap-3 justify-center sm:justify-start w-full">
       {sortedLanguages.map((lang) => (
         <div key={lang.name} className="flex items-center gap-2">
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: lang.color }}
-          />
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: lang.color }} />
           <span className="text-xs sm:text-sm">
             {lang.name} ({lang.count})
           </span>

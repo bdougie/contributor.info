@@ -26,7 +26,7 @@ export default function PRActivity() {
   const [hasBots, setHasBots] = useState(false);
 
   // Use fast PR data for immediate loading, fallback to context data
-  const { pullRequests: fastPRs, loading: fastLoading, error: _error: fastError } = useFastPRData(owner, repo, timeRange);
+  const { pullRequests: fastPRs, loading: fastLoading, error: fastError } = useFastPRData(owner, repo, timeRange);
   
   // Use fast data if available, otherwise fallback to context data
   const effectivePRs = fastPRs.length > 0 ? fastPRs : stats.pullRequests;
@@ -41,7 +41,7 @@ export default function PRActivity() {
 
   // Combined loading state and error
   const loading = effectiveLoading || activityLoading;
-  const error = activityError || (effectiveError ? new Error(effectiveError) : null);
+  const _error = activityError || (effectiveError ? new Error(effectiveError) : null);
 
   // Check if there are any bot activities
   useEffect(() => {

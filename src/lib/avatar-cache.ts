@@ -27,18 +27,18 @@ class AvatarCache {
     try {
       const key = `${CACHE_KEY_PREFIX}${orgName}`;
       const cached = localStorage.getItem(key);
-      
+
       if (!cached) return null;
-      
+
       const entry: AvatarCacheEntry = JSON.parse(cached);
       const now = Date.now();
-      
+
       // Check if cache is expired
       if (now - entry.timestamp > CACHE_DURATION) {
         localStorage.removeItem(key);
         return null;
       }
-      
+
       // Store in memory cache for faster subsequent access
       this.memoryCache.set(orgName, entry.url);
       return entry.url;
@@ -52,19 +52,19 @@ class AvatarCache {
    */
   set(orgName: string, url: string): void {
     if (!orgName || !url) return;
-    
+
     // Store in memory cache
     this.memoryCache.set(orgName, url);
-    
+
     try {
       const key = `${CACHE_KEY_PREFIX}${orgName}`;
       const entry: AvatarCacheEntry = {
         url,
         timestamp: Date.now(),
       };
-      
+
       localStorage.setItem(key, JSON.stringify(entry));
-      
+
       // Clean up old entries if needed
       this.cleanup();
     } catch {
@@ -89,13 +89,12 @@ class AvatarCache {
    */
   private cleanup(): void {
     try {
-      const keys = Object.keys(localStorage)
-        .filter(key => key.startsWith(CACHE_KEY_PREFIX));
-      
+      const keys = Object.keys(localStorage).filter((key) => key.startsWith(CACHE_KEY_PREFIX));
+
       if (keys.length <= MAX_CACHE_ENTRIES) return;
-      
+
       // Get all entries with timestamps
-      const entries = keys.map(key => {
+      const entries = keys.map((key) => {
         try {
           const entry: AvatarCacheEntry = JSON.parse(localStorage.getItem(key) || '{}');
           return { key, timestamp: entry.timestamp || 0 };
@@ -103,10 +102,10 @@ class AvatarCache {
           return { key, timestamp: 0 };
         }
       });
-      
+
       // Sort by timestamp (oldest first)
       entries.sort((a, b) => a.timestamp - b.timestamp);
-      
+
       // Remove oldest entries
       const toRemove = entries.slice(0, entries.length - MAX_CACHE_ENTRIES);
       toRemove.forEach(({ key }) => localStorage.removeItem(key));
@@ -120,11 +119,10 @@ class AvatarCache {
    */
   clearAll(): void {
     this.memoryCache.clear();
-    
+
     try {
-      const keys = Object.keys(localStorage)
-        .filter(key => key.startsWith(CACHE_KEY_PREFIX));
-      keys.forEach(key => localStorage.removeItem(key));
+      const keys = Object.keys(localStorage).filter((key) => key.startsWith(CACHE_KEY_PREFIX));
+      keys.forEach((key) => localStorage.removeItem(key));
     } catch {
       // Ignore errors
     }

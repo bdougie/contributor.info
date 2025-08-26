@@ -1,13 +1,23 @@
-import { GitPullRequest, Users, Activity, TrendingUp, AlertCircle, RefreshCw } from '@/components/ui/icon';
-import { useParams } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useTimeRangeStore } from "@/lib/time-range-store";
-import { useProgressiveRepoDataWithErrorBoundaries } from "@/hooks/use-progressive-repo-data-with-error-boundaries";
-import { DataLoadingErrorBoundary } from "@/components/error-boundaries/data-loading-error-boundary";
-import { FullDataFallback, EnhancementDataFallback } from "@/components/fallbacks/loading-fallbacks";
-import { useErrorTracking } from "@/lib/error-tracking";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  GitPullRequest,
+  Users,
+  Activity,
+  TrendingUp,
+  AlertCircle,
+  RefreshCw,
+} from '@/components/ui/icon';
+import { useParams } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useTimeRangeStore } from '@/lib/time-range-store';
+import { useProgressiveRepoDataWithErrorBoundaries } from '@/hooks/use-progressive-repo-data-with-error-boundaries';
+import { DataLoadingErrorBoundary } from '@/components/error-boundaries/data-loading-error-boundary';
+import {
+  FullDataFallback,
+  EnhancementDataFallback,
+} from '@/components/fallbacks/loading-fallbacks';
+import { useErrorTracking } from '@/lib/error-tracking';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 /**
  * Enhanced Progressive Repository View with comprehensive error boundaries
@@ -18,7 +28,7 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
   const timeRange = useTimeRangeStore((state) => state.timeRange);
   const includeBots = false;
   const { trackError, addBreadcrumb } = useErrorTracking();
-  
+
   const progressiveData = useProgressiveRepoDataWithErrorBoundaries(
     owner,
     repo,
@@ -32,31 +42,21 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
           repository: `${owner}/${repo}`,
           timeRange,
         });
-        addBreadcrumb(
-          `Data loading error in ${stage} stage: ${error.type}`,
-          'data',
-          'error',
-          { stage, errorType: error.type }
-        );
+        addBreadcrumb(`Data loading error in ${stage} stage: ${error.type}`, 'data', 'error', {
+          stage,
+          errorType: error.type,
+        });
       },
       onRecovery: (stage) => {
-        addBreadcrumb(
-          `Successfully recovered from ${stage} stage error`,
-          'data',
-          'info',
-          { stage }
-        );
+        addBreadcrumb(`Successfully recovered from ${stage} stage error`, 'data', 'info', {
+          stage,
+        });
       },
-    }
+    },
   );
 
   const handleManualRetry = (stage?: unknown) => {
-    addBreadcrumb(
-      `Manual retry triggered for stage: ${stage || 'all'}`,
-      'user',
-      'info',
-      { stage }
-    );
+    addBreadcrumb(`Manual retry triggered for stage: ${stage || 'all'}`, 'user', 'info', { stage });
     progressiveData.manualRetry(stage);
   };
 
@@ -79,11 +79,9 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {!progressiveData.basicInfo
-? (
+                {!progressiveData.basicInfo ? (
                   <Skeleton className="h-8 w-20" />
-                )
-: (
+                ) : (
                   <div className="flex items-center gap-2">
                     {progressiveData.basicInfo?.prCount || 0}
                     {progressiveData.stageErrors.critical && (
@@ -104,11 +102,9 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {!progressiveData.basicInfo
-? (
+                {!progressiveData.basicInfo ? (
                   <Skeleton className="h-8 w-20" />
-                )
-: (
+                ) : (
                   progressiveData.basicInfo?.contributorCount || 0
                 )}
               </div>
@@ -120,26 +116,29 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
               <CardTitle className="text-sm font-medium">Top Contributors</CardTitle>
             </CardHeader>
             <CardContent>
-              {!progressiveData.basicInfo
-? (
+              {!progressiveData.basicInfo ? (
                 <div className="flex -space-x-2">
                   {[...Array(5)].map((_, i) => (
                     <Skeleton key={i} className="h-8 w-8 rounded-full" />
                   ))}
                 </div>
-              )
-: (
+              ) : (
                 <div className="flex -space-x-2">
-                  {progressiveData.basicInfo?.topContributors.map((contributor: unknown, i: number) => (
-                    <Avatar key={contributor.login} className="h-8 w-8 border-2 border-background">
-                      <AvatarImage 
-                        src={`${contributor.avatar_url}?s=64`} 
-                        alt={contributor.login}
-                        loading={i < 3 ? "eager" : "lazy"}
-                      />
-                      <AvatarFallback>{contributor.login[0]}</AvatarFallback>
-                    </Avatar>
-                  ))}
+                  {progressiveData.basicInfo?.topContributors.map(
+                    (contributor: unknown, i: number) => (
+                      <Avatar
+                        key={contributor.login}
+                        className="h-8 w-8 border-2 border-background"
+                      >
+                        <AvatarImage
+                          src={`${contributor.avatar_url}?s=64`}
+                          alt={contributor.login}
+                          loading={i < 3 ? 'eager' : 'lazy'}
+                        />
+                        <AvatarFallback>{contributor.login[0]}</AvatarFallback>
+                      </Avatar>
+                    ),
+                  )}
                 </div>
               )}
             </CardContent>
@@ -153,7 +152,7 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
         enableGracefulDegradation={true}
         onRetry={() => handleManualRetry('full')}
         fallbackData={
-          <FullDataFallback 
+          <FullDataFallback
             stage="full"
             partialData={progressiveData.basicInfo ? { stats: progressiveData.stats } : undefined}
             message={progressiveData.stageErrors.full?.userMessage}
@@ -175,28 +174,30 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {progressiveData.stats.loading
-? (
+              {progressiveData.stats.loading ? (
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-3/4" />
                   <Skeleton className="h-4 w-1/2" />
                 </div>
-              )
-: (
+              ) : (
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    {progressiveData.stats?.pullRequests.length || 0} pull requests in the last {timeRange} days
+                    {progressiveData.stats?.pullRequests.length || 0} pull requests in the last{' '}
+                    {timeRange} days
                   </p>
                   {progressiveData.lotteryFactor && (
                     <p className="text-sm mt-2">
-                      Lottery Factor: {progressiveData.lotteryFactor.riskLevel} ({progressiveData.lotteryFactor.topContributorsPercentage.toFixed(1)}% from top {progressiveData.lotteryFactor.topContributorsCount} contributors)
+                      Lottery Factor: {progressiveData.lotteryFactor.riskLevel} (
+                      {progressiveData.lotteryFactor.topContributorsPercentage.toFixed(1)}% from top{' '}
+                      {progressiveData.lotteryFactor.topContributorsCount} contributors)
                     </p>
                   )}
                   {progressiveData.stageErrors.full && (
                     <div className="mt-3 p-2 bg-orange-50 border border-orange-200 rounded-md">
                       <p className="text-sm text-orange-800">
-                        ⚠️ Some data may be incomplete: {progressiveData.stageErrors.full.userMessage}
+                        ⚠️ Some data may be incomplete:{' '}
+                        {progressiveData.stageErrors.full.userMessage}
                       </p>
                       {progressiveData.stageErrors.full.retryable && (
                         <button
@@ -222,9 +223,13 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
         enableGracefulDegradation={true}
         onRetry={() => handleManualRetry('enhancement')}
         fallbackData={
-          <EnhancementDataFallback 
+          <EnhancementDataFallback
             stage="enhancement"
-            partialData={progressiveData.directCommitsData ? { directCommitsData: progressiveData.directCommitsData } : undefined}
+            partialData={
+              progressiveData.directCommitsData
+                ? { directCommitsData: progressiveData.directCommitsData }
+                : undefined
+            }
             message={progressiveData.stageErrors.enhancement?.userMessage}
             showPartialData={true}
           />
@@ -245,49 +250,49 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!progressiveData.stageProgress.enhancement && !progressiveData.directCommitsData
-? (
+              {!progressiveData.stageProgress.enhancement && !progressiveData.directCommitsData ? (
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-3/4" />
                 </div>
-              )
-: progressiveData.directCommitsData
-? (
+              ) : progressiveData.directCommitsData ? (
                 <div>
                   <p className="text-sm text-muted-foreground">
-                    {progressiveData.directCommitsData?.hasYoloCoders ? 
-                      `${progressiveData.directCommitsData.yoloCoderStats?.length || 0} YOLO coders detected` : 
-                      'No YOLO coders detected'
-                    }
+                    {progressiveData.directCommitsData?.hasYoloCoders
+                      ? `${progressiveData.directCommitsData.yoloCoderStats?.length || 0} YOLO coders detected`
+                      : 'No YOLO coders detected'}
                   </p>
-                  {progressiveData.directCommitsData?.yoloCoderStats && progressiveData.directCommitsData.yoloCoderStats.length > 0 && (
-                    <p className="text-sm mt-1">
-                      Top YOLO coder: {progressiveData.directCommitsData.yoloCoderStats[0].login} 
-                      ({progressiveData.directCommitsData.yoloCoderStats[0].directCommitPercentage.toFixed(1)}% direct commits)
-                    </p>
-                  )}
-                  
+                  {progressiveData.directCommitsData?.yoloCoderStats &&
+                    progressiveData.directCommitsData.yoloCoderStats.length > 0 && (
+                      <p className="text-sm mt-1">
+                        Top YOLO coder: {progressiveData.directCommitsData.yoloCoderStats[0].login}(
+                        {progressiveData.directCommitsData.yoloCoderStats[0].directCommitPercentage.toFixed(
+                          1,
+                        )}
+                        % direct commits)
+                      </p>
+                    )}
+
                   {progressiveData.stageErrors.enhancement && (
                     <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
                       <p className="text-sm text-yellow-800">
-                        ℹ️ Enhancement features partially unavailable: {progressiveData.stageErrors.enhancement.userMessage}
+                        ℹ️ Enhancement features partially unavailable:{' '}
+                        {progressiveData.stageErrors.enhancement.userMessage}
                       </p>
                       <button
                         onClick={() => handleManualRetry('enhancement')}
                         className="text-sm text-yellow-700 hover:text-yellow-900 mt-1 underline"
                         disabled={progressiveData.isRetrying === 'enhancement'}
                       >
-                        {progressiveData.isRetrying === 'enhancement' ? 'Retrying...' : 'Try loading enhancements'}
+                        {progressiveData.isRetrying === 'enhancement'
+                          ? 'Retrying...'
+                          : 'Try loading enhancements'}
                       </button>
                     </div>
                   )}
                 </div>
-              )
-: (
-                <div className="text-sm text-muted-foreground">
-                  Loading advanced analytics...
-                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">Loading advanced analytics...</div>
               )}
             </CardContent>
           </Card>
@@ -306,9 +311,15 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
             <div>Has Partial Data: {progressiveData.hasPartialData.toString()}</div>
             <div>Is Retrying: {progressiveData.isRetrying || 'none'}</div>
             <div>Retry Attempts: {JSON.stringify(progressiveData.retryAttempts)}</div>
-            <div>Stage Errors: {Object.keys(progressiveData.stageErrors).filter(stage => 
-              progressiveData.stageErrors[stage as keyof typeof progressiveData.stageErrors]
-            ).join(', ') || 'none'}</div>
+            <div>
+              Stage Errors:{' '}
+              {Object.keys(progressiveData.stageErrors)
+                .filter(
+                  (stage) =>
+                    progressiveData.stageErrors[stage as keyof typeof progressiveData.stageErrors],
+                )
+                .join(', ') || 'none'}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -320,23 +331,17 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
  * Example of using the withDataLoadingErrorBoundary HOC
  */
 export const ProgressiveRepoViewWithHOC = () => {
-  const BasicComponent = () => (
-    <div>Basic repository view without error handling</div>
-  );
+  const BasicComponent = () => <div>Basic repository view without error handling</div>;
 
-  const EnhancedComponent = withDataLoadingErrorBoundary(
-    BasicComponent,
-    'full',
-    {
-      enableGracefulDegradation: true,
-      onError: (_error, _errorInfo) => {
-        console.error('HOC caught error:', _error, _errorInfo);
-      },
-      onRetry: () => {
-        console.log('HOC retry triggered');
-      },
-    }
-  );
+  const EnhancedComponent = withDataLoadingErrorBoundary(BasicComponent, 'full', {
+    enableGracefulDegradation: true,
+    onError: (_error, _errorInfo) => {
+      console.error('HOC caught error:', _error, _errorInfo);
+    },
+    onRetry: () => {
+      console.log('HOC retry triggered');
+    },
+  });
 
   return <EnhancedComponent />;
 };

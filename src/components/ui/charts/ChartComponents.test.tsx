@@ -16,7 +16,7 @@ vi.mock('uplot', () => {
     };
     return instance;
   });
-  
+
   return { default: mockUPlot };
 });
 
@@ -26,7 +26,7 @@ class MockResizeObserver {
   observe = vi.fn();
   unobserve = vi.fn();
   disconnect = vi.fn();
-  
+
   constructor(...args: unknown[]) {
     mockResizeObserverConstructor(...args);
   }
@@ -79,13 +79,7 @@ describe('Chart Components', () => {
     });
 
     it('handles custom axis labels', () => {
-      render(
-        <LineChart 
-          data={mockLineData} 
-          xAxisLabel="Time" 
-          yAxisLabel="Value"
-        />
-      );
+      render(<LineChart data={mockLineData} xAxisLabel="Time" yAxisLabel="Value" />);
       expect(document.querySelector('.uplot-chart')).toBeInTheDocument();
     });
 
@@ -114,7 +108,7 @@ describe('Chart Components', () => {
     it('applies custom fill opacity', () => {
       const dataWithOpacity = {
         ...mockLineData,
-        datasets: mockLineData.datasets.map(dataset => ({
+        datasets: mockLineData.datasets.map((dataset) => ({
           ...dataset,
           fillOpacity: 0.5,
         })),
@@ -190,14 +184,7 @@ describe('Chart Components', () => {
     });
 
     it('supports fixed dimensions', () => {
-      render(
-        <LineChart 
-          data={mockLineData} 
-          width={800} 
-          height={400} 
-          responsive={false} 
-        />
-      );
+      render(<LineChart data={mockLineData} width={800} height={400} responsive={false} />);
       expect(document.querySelector('.uplot-chart')).toBeInTheDocument();
     });
   });

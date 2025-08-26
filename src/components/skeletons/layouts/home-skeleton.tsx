@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function HomeSkeleton() {
   return (
@@ -14,7 +14,7 @@ export function HomeSkeleton() {
           <div className="space-y-2">
             <Skeleton className="h-10 w-full rounded-md" />
           </div>
-          
+
           {/* Example repos skeleton */}
           <div className="space-y-2">
             <Skeleton className="h-5 w-32" />

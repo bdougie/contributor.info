@@ -1,6 +1,6 @@
 /**
  * Tests for request deduplication functionality
- * 
+ *
  * Following bulletproof testing guidelines - synchronous tests only
  */
 
@@ -22,7 +22,7 @@ describe('RequestDeduplicator', () => {
       // Start multiple requests with same key
       const promise1 = requestDeduplicator.dedupe(key, mockFetcher);
       const promise2 = requestDeduplicator.dedupe(key, mockFetcher);
-      
+
       // Should only call fetcher once
       expect(mockFetcher).toHaveBeenCalledTimes(1);
     });
@@ -32,7 +32,7 @@ describe('RequestDeduplicator', () => {
 
       requestDeduplicator.dedupe('key1', mockFetcher);
       requestDeduplicator.dedupe('key2', mockFetcher);
-      
+
       // Should call fetcher twice (once per unique key)
       expect(mockFetcher).toHaveBeenCalledTimes(2);
     });
@@ -41,10 +41,10 @@ describe('RequestDeduplicator', () => {
   describe('statistics tracking', () => {
     it('should track pending requests', () => {
       const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('_data'));
-      
+
       // Start a request
       requestDeduplicator.dedupe('stats-test', mockFetcher);
-      
+
       const stats = requestDeduplicator.getStats();
       expect(stats.totalPending).toBeGreaterThan(0);
     });
@@ -52,26 +52,26 @@ describe('RequestDeduplicator', () => {
     it('should track multiple subscribers', () => {
       const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('_data'));
       const key = 'subscriber-test';
-      
+
       // Multiple requests with same key
       requestDeduplicator.dedupe(key, mockFetcher);
       requestDeduplicator.dedupe(key, mockFetcher);
       requestDeduplicator.dedupe(key, mockFetcher);
-      
+
       const stats = requestDeduplicator.getStats();
       expect(stats.totalSubscribers).toBeGreaterThan(1);
     });
 
     it('should reset stats after cancelAll', () => {
       const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('_data'));
-      
+
       // Start some requests
       requestDeduplicator.dedupe('test1', mockFetcher);
       requestDeduplicator.dedupe('test2', mockFetcher);
-      
+
       // Cancel all
       requestDeduplicator.cancelAll();
-      
+
       const stats = requestDeduplicator.getStats();
       expect(stats.totalPending).toBe(0);
     });
@@ -87,7 +87,7 @@ describe('RequestDeduplicator', () => {
       });
 
       requestDeduplicator.dedupe('abort-test', mockFetcher, { abortable: true });
-      
+
       expect(mockFetcher).toHaveBeenCalled();
     });
 
@@ -99,7 +99,7 @@ describe('RequestDeduplicator', () => {
       });
 
       requestDeduplicator.dedupe('no-abort-test', mockFetcher, { abortable: false });
-      
+
       expect(mockFetcher).toHaveBeenCalled();
     });
 
@@ -107,7 +107,7 @@ describe('RequestDeduplicator', () => {
       const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('_data'));
 
       requestDeduplicator.dedupe('cancel-test', mockFetcher, { abortable: true });
-      
+
       // Cancel should work without throwing
       expect(() => requestDeduplicator.cancel('cancel-test')).not.toThrow();
     });
@@ -115,7 +115,8 @@ describe('RequestDeduplicator', () => {
 
   describe('withRequestDeduplication wrapper', () => {
     it('should wrap functions with deduplication', () => {
-      const originalFetcher = vi.fn()
+      const originalFetcher = vi
+        .fn()
         .mockReturnValueOnce(Promise.resolve('result-1'))
         .mockReturnValueOnce(Promise.resolve('result-2'));
 
@@ -125,13 +126,13 @@ describe('RequestDeduplicator', () => {
       // Call with same argument twice
       wrappedFetcher('same-arg');
       wrappedFetcher('same-arg');
-      
+
       // Should only call original once for same key
       expect(originalFetcher).toHaveBeenCalledTimes(1);
-      
+
       // Call with different argument
       wrappedFetcher('different-arg');
-      
+
       // Now should have been called twice
       expect(originalFetcher).toHaveBeenCalledTimes(2);
     });
@@ -145,13 +146,13 @@ describe('RequestDeduplicator', () => {
       // Call with same arguments
       wrappedFetcher('arg1', 'arg2');
       wrappedFetcher('arg1', 'arg2');
-      
+
       // Should only call original once
       expect(originalFetcher).toHaveBeenCalledTimes(1);
-      
+
       // Call with different arguments
       wrappedFetcher('arg3', 'arg4');
-      
+
       // Should have been called twice now
       expect(originalFetcher).toHaveBeenCalledTimes(2);
     });
@@ -160,15 +161,15 @@ describe('RequestDeduplicator', () => {
   describe('cleanup behavior', () => {
     it('should handle cancelAll without _errors', () => {
       const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('_data'));
-      
+
       // Start multiple requests
       requestDeduplicator.dedupe('test1', mockFetcher);
       requestDeduplicator.dedupe('test2', mockFetcher);
       requestDeduplicator.dedupe('test3', mockFetcher);
-      
+
       // Cancel all should work without throwing
       expect(() => requestDeduplicator.cancelAll()).not.toThrow();
-      
+
       // Stats should show no pending
       const stats = requestDeduplicator.getStats();
       expect(stats.totalPending).toBe(0);

@@ -55,8 +55,8 @@ export function GitHubSyncDebug() {
         error: result.error
       }
     } catch (_error) {
-      addLog(`Error checking tokens: ${error: __error}`)
-      return { userToken: false, systemToken: false, error: error instanceof Error ? error.message : String(_error) }
+      addLog(`Error checking tokens: ${_error}`)
+      return { userToken: false, systemToken: false, error: _error instanceof Error ? _error.message : String(_error) }
     }
   }
 
@@ -65,7 +65,7 @@ export function GitHubSyncDebug() {
     
     try {
       // Check repositories table
-      const { data: repoData, error: _error: repoError } = await supabase
+      const { data: repoData, error: repoError } = await supabase
         .from('repositories')
         .select('*')
         .eq('owner', owner)
@@ -82,7 +82,7 @@ export function GitHubSyncDebug() {
       }
       
       // Check tracked_repositories
-      const { data: trackedData, error: _error: trackedError } = await supabase
+      const { data: trackedData, error: trackedError } = await supabase
         .from('tracked_repositories')
         .select('*')
         .eq('organization_name', owner)
@@ -99,7 +99,7 @@ export function GitHubSyncDebug() {
       }
       
       // Check sync status
-      const { data: syncStatus, error: _error: syncError } = await supabase
+      const { data: syncStatus, error: syncError } = await supabase
         .from('github_sync_status')
         .select('*')
         .eq('repository_owner', owner)
@@ -116,7 +116,7 @@ export function GitHubSyncDebug() {
       }
       
       // Check contributor roles
-      const { data: rolesData, error: _error: rolesError } = await supabase
+      const { data: rolesData, error: rolesError } = await supabase
         .from('contributor_roles')
         .select('*')
         .eq('repository_owner', owner)

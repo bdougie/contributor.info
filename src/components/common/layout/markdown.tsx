@@ -25,7 +25,7 @@ export function Markdown({ children, className }: MarkdownProps) {
         'prose-p:mb-2 prose-p:leading-relaxed',
         'prose-li:mb-0.5',
         'prose-code:px-1 prose-code:py-0.5 prose-code:rounded-md prose-code:bg-muted',
-        className
+        className,
       )}
       components={{
         h1: ({ children }) => {
@@ -46,7 +46,7 @@ export function Markdown({ children, className }: MarkdownProps) {
         img: ({ src, alt }) => {
           // Determine if image should be priority loaded (above the fold)
           const isPriority = src?.includes('hero') || src?.includes('banner');
-          
+
           return (
             <OptimizedImage
               src={src || ''}
@@ -56,7 +56,7 @@ export function Markdown({ children, className }: MarkdownProps) {
               className="rounded-lg shadow-sm"
             />
           );
-        }
+        },
       }}
     >
       {children}

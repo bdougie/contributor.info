@@ -10,13 +10,15 @@ export const UPlotChartDemo: React.FC = () => {
   // Generate sample data
   const generateData = (points: number = 50): AlignedData => {
     const x = Array.from({ length: points }, (_, i) => i);
-    const y1 = Array.from({ length: points }, (_, i) => 
-      Math.sin(i * 0.1) * 50 + 50 + Math.random() * 10
+    const y1 = Array.from(
+      { length: points },
+      (_, i) => Math.sin(i * 0.1) * 50 + 50 + Math.random() * 10,
     );
-    const y2 = Array.from({ length: points }, (_, i) => 
-      Math.cos(i * 0.1) * 30 + 50 + Math.random() * 10
+    const y2 = Array.from(
+      { length: points },
+      (_, i) => Math.cos(i * 0.1) * 30 + 50 + Math.random() * 10,
     );
-    
+
     return [x, y1, y2];
   };
 
@@ -98,7 +100,7 @@ export const UPlotChartDemo: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">uPlot Chart Demo</h2>
-        
+
         <div className="flex gap-4">
           <button
             onClick={handleRegenerateData}
@@ -106,7 +108,7 @@ export const UPlotChartDemo: React.FC = () => {
           >
             Regenerate Data
           </button>
-          
+
           <label className="flex items-center gap-2">
             <input
               type="checkbox"

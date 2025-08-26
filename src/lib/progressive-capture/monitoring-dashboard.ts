@@ -55,7 +55,7 @@ export class HybridMonitoringDashboard {
       hybridQueueManager.getHybridStats(),
       this.getProcessorMetrics(),
       this.getSystemHealth(),
-      this.getCostAnalysis()
+      this.getCostAnalysis(),
     ]);
 
     return { current, metrics, health, cost };
@@ -66,7 +66,7 @@ export class HybridMonitoringDashboard {
    */
   private static async getProcessorMetrics(): Promise<ProcessorMetrics> {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    
+
     try {
       const { data: jobs, error: _error } = await supabase
         .from('progressive_capture_jobs')
@@ -85,17 +85,17 @@ export class HybridMonitoringDashboard {
           failed: 0,
           successRate: 0,
           avgProcessingTime: 0,
-          throughput: 0
+          throughput: 0,
         };
         return {
           inngest: emptyMetrics,
           github_actions: emptyMetrics,
-          combined: emptyMetrics
+          combined: emptyMetrics,
         };
       }
 
-      const inngestJobs = jobs.filter(j => j.processor_type === 'inngest');
-      const githubActionsJobs = jobs.filter(j => j.processor_type === 'github_actions');
+      const inngestJobs = jobs.filter((j) => j.processor_type === 'inngest');
+      const githubActionsJobs = jobs.filter((j) => j.processor_type === 'github_actions');
 
       const inngestMetrics = this.calculateJobMetrics(inngestJobs);
       const githubActionsMetrics = this.calculateJobMetrics(githubActionsJobs);
@@ -104,7 +104,7 @@ export class HybridMonitoringDashboard {
       return {
         inngest: inngestMetrics,
         github_actions: githubActionsMetrics,
-        combined: combinedMetrics
+        combined: combinedMetrics,
       };
     } catch (_error) {
       console.error('[Monitoring] Error getting processor metrics:', _error);
@@ -114,12 +114,12 @@ export class HybridMonitoringDashboard {
         failed: 0,
         successRate: 0,
         avgProcessingTime: 0,
-        throughput: 0
+        throughput: 0,
       };
       return {
         inngest: emptyMetrics,
         github_actions: emptyMetrics,
-        combined: emptyMetrics
+        combined: emptyMetrics,
       };
     }
   }
@@ -129,22 +129,27 @@ export class HybridMonitoringDashboard {
    */
   private static calculateJobMetrics(jobs: unknown[]): JobMetrics {
     const total = jobs.length;
-    const successful = jobs.filter(j => j.status === 'completed').length;
-    const failed = jobs.filter(j => j.status === 'failed').length;
+    const successful = jobs.filter((j) => j.status === 'completed').length;
+    const failed = jobs.filter((j) => j.status === 'failed').length;
     const successRate = total > 0 ? (successful / total) * 100 : 0;
 
     // Calculate average processing time
-    const completedJobs = jobs.filter(j => j.status === 'completed' && j.started_at && j.completed_at);
-    const avgProcessingTime = completedJobs.length > 0 
-      ? completedJobs.reduce((sum, job) => {
-          const start = new Date(job.started_at).getTime();
-          const end = new Date(job.completed_at).getTime();
-          return sum + (end - start);
-        }, 0) / completedJobs.length / 1000 // Convert to seconds
-      : 0;
+    const completedJobs = jobs.filter(
+      (j) => j.status === 'completed' && j.started_at && j.completed_at,
+    );
+    const avgProcessingTime =
+      completedJobs.length > 0
+        ? completedJobs.reduce((sum, job) => {
+            const start = new Date(job.started_at).getTime();
+            const end = new Date(job.completed_at).getTime();
+            return sum + (end - start);
+          }, 0) /
+          completedJobs.length /
+          1000 // Convert to seconds
+        : 0;
 
     // Calculate throughput (jobs per hour)
-    const throughput = total * (60 * 60) / (24 * 60 * 60); // jobs per hour over 24 hours
+    const throughput = (total * (60 * 60)) / (24 * 60 * 60); // jobs per hour over 24 hours
 
     return {
       total,
@@ -152,7 +157,7 @@ export class HybridMonitoringDashboard {
       failed,
       successRate,
       avgProcessingTime,
-      throughput
+      throughput,
     };
   }
 
@@ -165,8 +170,12 @@ export class HybridMonitoringDashboard {
     const recommendations: string[] = [];
 
     // Check for high failure rates
-    const inngestFailureRate = stats.inngest.failed / (stats.inngest.completed + stats.inngest.failed + 1) * 100;
-    const githubActionsFailureRate = stats.github_actions.failed / (stats.github_actions.completed + stats.github_actions.failed + 1) * 100;
+    const inngestFailureRate =
+      (stats.inngest.failed / (stats.inngest.completed + stats.inngest.failed + 1)) * 100;
+    const githubActionsFailureRate =
+      (stats.github_actions.failed /
+        (stats.github_actions.completed + stats.github_actions.failed + 1)) *
+      100;
 
     let inngestHealth: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
     let githubActionsHealth: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
@@ -188,7 +197,9 @@ export class HybridMonitoringDashboard {
       recommendations.push('Check GitHub Actions workflow logs');
     } else if (githubActionsFailureRate > 10) {
       githubActionsHealth = 'degraded';
-      issues.push(`GitHub Actions has elevated failure rate: ${githubActionsFailureRate.toFixed(1)}%`);
+      issues.push(
+        `GitHub Actions has elevated failure rate: ${githubActionsFailureRate.toFixed(1)}%`,
+      );
     }
 
     // Check for processing bottlenecks
@@ -210,7 +221,7 @@ export class HybridMonitoringDashboard {
       inngest: inngestHealth,
       github_actions: githubActionsHealth,
       issues,
-      recommendations
+      recommendations,
     };
   }
 
@@ -219,7 +230,7 @@ export class HybridMonitoringDashboard {
    */
   private static async getCostAnalysis(): Promise<CostAnalysis> {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    
+
     try {
       const { data: jobs, error: _error } = await supabase
         .from('progressive_capture_jobs')
@@ -236,12 +247,12 @@ export class HybridMonitoringDashboard {
         return {
           inngest: { estimatedCost: 0, jobsProcessed: 0, costPerJob: 0 },
           github_actions: { estimatedCost: 0, jobsProcessed: 0, costPerJob: 0 },
-          savings: { totalSavings: 0, percentageSaving: 0 }
+          savings: { totalSavings: 0, percentageSaving: 0 },
         };
       }
 
-      const inngestJobs = jobs.filter(j => j.processor_type === 'inngest').length;
-      const githubActionsJobs = jobs.filter(j => j.processor_type === 'github_actions').length;
+      const inngestJobs = jobs.filter((j) => j.processor_type === 'inngest').length;
+      const githubActionsJobs = jobs.filter((j) => j.processor_type === 'github_actions').length;
 
       // Cost estimates (rough approximations)
       const inngestCostPerJob = 0.02; // $0.02 per job
@@ -261,24 +272,24 @@ export class HybridMonitoringDashboard {
         inngest: {
           estimatedCost: inngestCost,
           jobsProcessed: inngestJobs,
-          costPerJob: inngestCostPerJob
+          costPerJob: inngestCostPerJob,
         },
         github_actions: {
           estimatedCost: githubActionsCost,
           jobsProcessed: githubActionsJobs,
-          costPerJob: githubActionsCostPerJob
+          costPerJob: githubActionsCostPerJob,
         },
         savings: {
           totalSavings: savings,
-          percentageSaving
-        }
+          percentageSaving,
+        },
       };
     } catch (_error) {
       console.error('[Monitoring] Error calculating cost analysis:', _error);
       return {
         inngest: { estimatedCost: 0, jobsProcessed: 0, costPerJob: 0 },
         github_actions: { estimatedCost: 0, jobsProcessed: 0, costPerJob: 0 },
-        savings: { totalSavings: 0, percentageSaving: 0 }
+        savings: { totalSavings: 0, percentageSaving: 0 },
       };
     }
   }
@@ -293,7 +304,7 @@ export class HybridMonitoringDashboard {
     suggestions: string[];
   }> {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    
+
     try {
       const { data: jobs, error: _error } = await supabase
         .from('progressive_capture_jobs')
@@ -310,7 +321,7 @@ export class HybridMonitoringDashboard {
           correctRouting: 0,
           suboptimalRouting: 0,
           routingAccuracy: 0,
-          suggestions: []
+          suggestions: [],
         };
       }
 
@@ -318,7 +329,7 @@ export class HybridMonitoringDashboard {
       let suboptimalRouting = 0;
       const suggestions: string[] = [];
 
-      jobs.forEach(job => {
+      jobs.forEach((job) => {
         const isRecent = job.time_range_days && job.time_range_days <= 1;
         const isHistorical = job.time_range_days && job.time_range_days > 1;
         const isSmallBatch = job.metadata?.max_items && job.metadata.max_items <= 50;
@@ -347,7 +358,7 @@ export class HybridMonitoringDashboard {
         correctRouting,
         suboptimalRouting,
         routingAccuracy,
-        suggestions
+        suggestions,
       };
     } catch (_error) {
       console.error('[Monitoring] Error getting routing effectiveness:', _error);
@@ -355,7 +366,7 @@ export class HybridMonitoringDashboard {
         correctRouting: 0,
         suboptimalRouting: 0,
         routingAccuracy: 0,
-        suggestions: ['Error analyzing routing effectiveness']
+        suggestions: ['Error analyzing routing effectiveness'],
       };
     }
   }
@@ -394,7 +405,7 @@ export class HybridMonitoringDashboard {
         return {
           errors: [],
           errorSummary: {},
-          topErrors: []
+          topErrors: [],
         };
       }
 
@@ -402,16 +413,17 @@ export class HybridMonitoringDashboard {
       const errorSummary: Record<string, number> = {};
       const errorCounts: Record<string, number> = {};
 
-      failedJobs.forEach(job => {
+      failedJobs.forEach((job) => {
         // Categorize by processor type
         errorSummary[job.processor_type] = (_errorSummary[job.processor_type] || 0) + 1;
-        
+
         // Count specific errors
-        const errorMessage = typeof job.error === 'string' 
-          ? job.error 
-          : job.error 
-            ? JSON.stringify(job._error) 
-            : 'Unknown error';
+        const errorMessage =
+          typeof job.error === 'string'
+            ? job.error
+            : job.error
+              ? JSON.stringify(job._error)
+              : 'Unknown error';
         const errorKey = errorMessage.substring(0, 100);
         errorCounts[errorKey] = (errorCounts[_errorKey] || 0) + 1;
       });
@@ -423,24 +435,24 @@ export class HybridMonitoringDashboard {
         .slice(0, 5);
 
       return {
-        errors: failedJobs.map(job => ({
+        errors: failedJobs.map((job) => ({
           id: job.id,
           job_type: job.job_type,
           processor_type: job.processor_type,
           repository_id: job.repository_id,
           error: job.error,
           created_at: job.created_at,
-          metadata: job.metadata
+          metadata: job.metadata,
         })),
         errorSummary,
-        topErrors
+        topErrors,
       };
     } catch (_error) {
       console.error('[Monitoring] Error fetching job errors:', _error);
       return {
         errors: [],
         errorSummary: {},
-        topErrors: []
+        topErrors: [],
       };
     }
   }
@@ -495,23 +507,29 @@ export class HybridMonitoringDashboard {
   • Inngest: ${stats.health.inngest.toUpperCase()}
   • GitHub Actions: ${stats.health.github_actions.toUpperCase()}
 
-${stats.health.issues.length > 0
-? `
+${
+  stats.health.issues.length > 0
+    ? `
 ⚠️ Issues Detected:
-${stats.health.issues.map(issue => `  • ${issue}`).join('\n')}`
-: ''}
+${stats.health.issues.map((issue) => `  • ${issue}`).join('\n')}`
+    : ''
+}
 
-${stats.health.recommendations.length > 0
-? `
+${
+  stats.health.recommendations.length > 0
+    ? `
 💡 Recommendations:
-${stats.health.recommendations.map(rec => `  • ${rec}`).join('\n')}`
-: ''}
+${stats.health.recommendations.map((rec) => `  • ${rec}`).join('\n')}`
+    : ''
+}
 
-${routing.suggestions.length > 0
-? `
+${
+  routing.suggestions.length > 0
+    ? `
 🔧 Routing Suggestions:
-${routing.suggestions.map(sug => `  • ${sug}`).join('\n')}`
-: ''}
+${routing.suggestions.map((sug) => `  • ${sug}`).join('\n')}`
+    : ''
+}
 
 Report generated at: ${new Date().toISOString()}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -522,7 +540,7 @@ Report generated at: ${new Date().toISOString()}
 // Make it available globally for console access
 if (typeof window !== 'undefined') {
   (window as any).HybridMonitoring = HybridMonitoringDashboard;
-  
+
   // Enable console tools in development
   if (import.meta.env?.DEV) {
     console.log('📊 Hybrid monitoring dashboard available in console:');

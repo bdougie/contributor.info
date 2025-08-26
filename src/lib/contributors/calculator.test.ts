@@ -56,7 +56,7 @@ describe('Contributor Calculator', () => {
       { ...sampleContributor, id: '2', pullRequests: 5 },
       { ...sampleContributor, id: '3', pullRequests: 3 },
     ];
-    
+
     const sorted = sortContributorsByScore(contributors);
     expect(sorted).toHaveLength(3);
     expect(sorted[0].id).toBeDefined();
@@ -75,7 +75,7 @@ describe('Contributor Calculator', () => {
       comments: 0,
       reviews: 0,
     };
-    
+
     expect(calculateWeightedScore(zeroActivity)).toBe(0);
     expect(calculateTotalActivity(zeroActivity)).toBe(0);
     expect(meetsActivityThreshold(zeroActivity, 0)).toBe(true);

@@ -1,5 +1,16 @@
-import { useState, useEffect, useCallback } from 'react'
-import { RefreshCw, AlertTriangle, CheckCircle, Clock, Database, Globe, Zap, Activity, Heart, Image } from '@/components/ui/icon';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Database,
+  Globe,
+  Zap,
+  Activity,
+  Heart,
+  Image,
+} from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -49,7 +60,7 @@ interface CDNMetrics {
 
 export function PerformanceMonitoringDashboard() {
   const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes instead of 1 minute
-  
+
   const [databaseMetrics, setDatabaseMetrics] = useState<DatabaseMetrics | null>(null);
   const [alerts, setAlerts] = useState<PerformanceAlert[]>([]);
   const [healthData, setHealthData] = useState<{
@@ -64,28 +75,28 @@ export function PerformanceMonitoringDashboard() {
   const fetchHealthEndpoints = useCallback(async () => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    
+
     if (!supabaseUrl || !anonKey) {
       console.warn('Missing Supabase configuration for health endpoints');
       return { main: null, database: null, github: null };
     }
 
     const headers = {
-      'Authorization': `Bearer ${anonKey}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${anonKey}`,
+      'Content-Type': 'application/json',
     };
 
     try {
       const [mainHealth, databaseHealth, githubHealth] = await Promise.allSettled([
-        fetch(`${supabaseUrl}/functions/v1/health`, { headers }).then(r => r.json()),
-        fetch(`${supabaseUrl}/functions/v1/health-_database`, { headers }).then(r => r.json()),
-        fetch(`${supabaseUrl}/functions/v1/health-github`, { headers }).then(r => r.json())
+        fetch(`${supabaseUrl}/functions/v1/health`, { headers }).then((r) => r.json()),
+        fetch(`${supabaseUrl}/functions/v1/health-_database`, { headers }).then((r) => r.json()),
+        fetch(`${supabaseUrl}/functions/v1/health-github`, { headers }).then((r) => r.json()),
       ]);
 
       return {
         main: mainHealth.status === 'fulfilled' ? mainHealth.value : null,
         database: databaseHealth.status === 'fulfilled' ? databaseHealth.value : null,
-        github: githubHealth.status === 'fulfilled' ? githubHealth.value : null
+        github: githubHealth.status === 'fulfilled' ? githubHealth.value : null,
       };
     } catch (_error) {
       console.error('Error fetching health endpoints:', _error);
@@ -96,33 +107,31 @@ export function PerformanceMonitoringDashboard() {
   const loadCDNMetrics = useCallback(async () => {
     try {
       // Get social cards storage metrics
-      const { data: files, error: _error } = await supabase.storage
-        .from('social-cards')
-        .list('', {
-          limit: 1000,
-          sortBy: { column: 'created_at', order: 'desc' }
-        });
-      
+      const { data: files, error: _error } = await supabase.storage.from('social-cards').list('', {
+        limit: 1000,
+        sortBy: { column: 'created_at', order: 'desc' },
+      });
+
       if (!_error && files) {
         const totalSize = files.reduce((sum, file) => sum + (file.meta_data?.size || 0), 0);
         const avgFileSize = files.length > 0 ? totalSize / files.length : 0;
-        
+
         // Mock CDN performance data (in production, this would come from actual CDN analytics)
         const avgLoadTime = 250; // ms
         const cacheHitRate = 85; // percentage
-        
+
         let performanceScore: CDNMetrics['performanceScore'] = 'Good';
         if (avgLoadTime > 1000) performanceScore = 'Poor';
         else if (avgLoadTime > 500) performanceScore = 'Fair';
         else if (avgLoadTime < 100) performanceScore = 'Excellent';
-        
+
         setCdnMetrics({
           totalFiles: files.length,
           totalSize,
           avgFileSize,
           avgLoadTime,
           cacheHitRate,
-          performanceScore
+          performanceScore,
         });
       }
     } catch (_error) {
@@ -133,37 +142,34 @@ export function PerformanceMonitoringDashboard() {
   const loadMetrics = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Load health endpoint data first (critical)
       const healthEndpoints = await fetchHealthEndpoints();
       setHealthData(healthEndpoints);
-      
+
       // Load other metrics in parallel but don't block on them
       const metricsPromise = Promise.all([
         supabase.from('slow_queries').select('*'),
         supabase.rpc('get_connection_pool_status'),
         supabase.rpc('get__database_size_stats'),
-        supabase.from('query_performance_alerts')
+        supabase
+          .from('query_performance_alerts')
           .select('*')
           .is('resolved_at', null)
           .order('created_at', { ascending: false })
-          .limit(10)
+          .limit(10),
       ]);
-      
+
       // Load CDN metrics
       await loadCDNMetrics();
-      
-      const [
-        slowQueriesResult,
-        connectionStatusResult,
-        databaseSizeResult,
-        alertsResult
-      ] = await metricsPromise;
+
+      const [slowQueriesResult, connectionStatusResult, databaseSizeResult, alertsResult] =
+        await metricsPromise;
 
       // Process database metrics
       const connectionStatus = connectionStatusResult.data?.[0];
       const sizeStats = databaseSizeResult.data?.[0];
-      
+
       setDatabaseMetrics({
         slowQueries: slowQueriesResult.data?.length || 0,
         totalConnections: connectionStatus?.total_connections || 0,
@@ -192,12 +198,15 @@ export function PerformanceMonitoringDashboard() {
     }
   }, [loadMetrics]);
 
-  const getStatusColor = useCallback((value: number, threshold: number, inverted: boolean = false) => {
-    if (inverted) {
-      return value < threshold ? 'destructive' : 'default';
-    }
-    return value > threshold ? 'destructive' : 'default';
-  }, []);
+  const getStatusColor = useCallback(
+    (value: number, threshold: number, inverted: boolean = false) => {
+      if (inverted) {
+        return value < threshold ? 'destructive' : 'default';
+      }
+      return value > threshold ? 'destructive' : 'default';
+    },
+    [],
+  );
 
   const getStatusIcon = useCallback((status: 'good' | 'warning' | 'critical') => {
     switch (_status) {
@@ -225,13 +234,19 @@ export function PerformanceMonitoringDashboard() {
 
   const getOverallHealthStatus = useCallback((): 'good' | 'warning' | 'critical' => {
     const dbStatus = getDatabaseStatus();
-    const githubStatus = healthData.github?.status === 'healthy'
-? 'good' : 
-                         healthData.github?.status === 'degraded' ? 'warning' : 'critical';
-    const mainStatus = healthData.main?.status === 'healthy'
-? 'good' : 
-                       healthData.main?.status === 'degraded' ? 'warning' : 'critical';
-    
+    const githubStatus =
+      healthData.github?.status === 'healthy'
+        ? 'good'
+        : healthData.github?.status === 'degraded'
+          ? 'warning'
+          : 'critical';
+    const mainStatus =
+      healthData.main?.status === 'healthy'
+        ? 'good'
+        : healthData.main?.status === 'degraded'
+          ? 'warning'
+          : 'critical';
+
     if (dbStatus === 'critical' || githubStatus === 'critical' || mainStatus === 'critical') {
       return 'critical';
     }
@@ -272,9 +287,7 @@ export function PerformanceMonitoringDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Performance Monitoring</h2>
-          <p className="text-muted-foreground">
-            Last updated: {lastRefresh.toLocaleTimeString()}
-          </p>
+          <p className="text-muted-foreground">Last updated: {lastRefresh.toLocaleTimeString()}</p>
         </div>
         <Button onClick={loadMetrics} disabled={loading}>
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
@@ -290,12 +303,8 @@ export function PerformanceMonitoringDashboard() {
             {getStatusIcon(getOverallHealthStatus())}
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {getOverallHealthStatus().toUpperCase()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {getHealthSummary()}
-            </p>
+            <div className="text-2xl font-bold">{getOverallHealthStatus().toUpperCase()}</div>
+            <p className="text-xs text-muted-foreground">{getHealthSummary()}</p>
           </CardContent>
         </Card>
 
@@ -309,7 +318,10 @@ export function PerformanceMonitoringDashboard() {
               {databaseMetrics ? getDatabaseStatus().toUpperCase() : 'Loading...'}
             </div>
             <p className="text-xs text-muted-foreground">
-              {healthData.database?.connectivity?.latency ? `${healthData.database.connectivity.latency}ms` : 'N/A'} latency
+              {healthData.database?.connectivity?.latency
+                ? `${healthData.database.connectivity.latency}ms`
+                : 'N/A'}{' '}
+              latency
             </p>
           </CardContent>
         </Card>
@@ -324,7 +336,8 @@ export function PerformanceMonitoringDashboard() {
               {databaseMetrics?.connectionUtilization.toFixed(0) || 0}%
             </div>
             <p className="text-xs text-muted-foreground">
-              {databaseMetrics?.totalConnections || 0}/{databaseMetrics?.maxConnections || 100} connections
+              {databaseMetrics?.totalConnections || 0}/{databaseMetrics?.maxConnections || 100}{' '}
+              connections
             </p>
           </CardContent>
         </Card>
@@ -335,12 +348,8 @@ export function PerformanceMonitoringDashboard() {
             <Globe className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {githubStats.totalRequests}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              requests in last hour
-            </p>
+            <div className="text-2xl font-bold">{githubStats.totalRequests}</div>
+            <p className="text-xs text-muted-foreground">requests in last hour</p>
           </CardContent>
         </Card>
 
@@ -350,12 +359,8 @@ export function PerformanceMonitoringDashboard() {
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {alerts.length}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              unresolved performance alerts
-            </p>
+            <div className="text-2xl font-bold">{alerts.length}</div>
+            <p className="text-xs text-muted-foreground">unresolved performance alerts</p>
           </CardContent>
         </Card>
 
@@ -365,9 +370,7 @@ export function PerformanceMonitoringDashboard() {
             <Image className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {cdnMetrics?.performanceScore || 'N/A'}
-            </div>
+            <div className="text-2xl font-bold">{cdnMetrics?.performanceScore || 'N/A'}</div>
             <p className="text-xs text-muted-foreground">
               {cdnMetrics ? `${cdnMetrics.avgLoadTime}ms avg load` : 'Loading...'}
             </p>
@@ -397,25 +400,25 @@ export function PerformanceMonitoringDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {healthData.main
-? (
+                {healthData.main ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Status</span>
-                      <Badge variant={healthData.main.status === 'healthy' ? 'default' : 'destructive'}>
+                      <Badge
+                        variant={healthData.main.status === 'healthy' ? 'default' : 'destructive'}
+                      >
                         {healthData.main.status}
                       </Badge>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      DB: {healthData.main.checks?.database?.latency || 'N/A'}ms | 
-                      System: {healthData.main.checks?.system?.latency || 'N/A'}ms
+                      DB: {healthData.main.checks?.database?.latency || 'N/A'}ms | System:{' '}
+                      {healthData.main.checks?.system?.latency || 'N/A'}ms
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Updated: {new Date(healthData.main.timestamp).toLocaleTimeString()}
                     </div>
                   </div>
-                )
-: (
+                ) : (
                   <div className="text-sm text-muted-foreground">No data available</div>
                 )}
               </CardContent>
@@ -429,26 +432,32 @@ export function PerformanceMonitoringDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {healthData.database
-? (
+                {healthData.database ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Status</span>
-                      <Badge variant={healthData.database.status === 'healthy' ? 'default' : 'destructive'}>
+                      <Badge
+                        variant={
+                          healthData.database.status === 'healthy' ? 'default' : 'destructive'
+                        }
+                      >
                         {healthData.database.status}
                       </Badge>
                     </div>
                     <div className="text-xs space-y-1">
-                      <div>Connectivity: {healthData.database.connectivity?.latency || 'N/A'}ms</div>
-                      <div>Slow queries: {healthData.database.performance?.slow_queries_5min || 0}</div>
+                      <div>
+                        Connectivity: {healthData.database.connectivity?.latency || 'N/A'}ms
+                      </div>
+                      <div>
+                        Slow queries: {healthData.database.performance?.slow_queries_5min || 0}
+                      </div>
                       <div>Active alerts: {healthData.database.alerts?.count || 0}</div>
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Updated: {new Date(healthData._database.timestamp).toLocaleTimeString()}
                     </div>
                   </div>
-                )
-: (
+                ) : (
                   <div className="text-sm text-muted-foreground">No data available</div>
                 )}
               </CardContent>
@@ -462,12 +471,13 @@ export function PerformanceMonitoringDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {healthData.github
-? (
+                {healthData.github ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Status</span>
-                      <Badge variant={healthData.github.status === 'healthy' ? 'default' : 'destructive'}>
+                      <Badge
+                        variant={healthData.github.status === 'healthy' ? 'default' : 'destructive'}
+                      >
                         {healthData.github.status}
                       </Badge>
                     </div>
@@ -480,8 +490,7 @@ export function PerformanceMonitoringDashboard() {
                       Updated: {new Date(healthData.github.timestamp).toLocaleTimeString()}
                     </div>
                   </div>
-                )
-: (
+                ) : (
                   <div className="text-sm text-muted-foreground">No data available</div>
                 )}
               </CardContent>
@@ -522,10 +531,7 @@ export function PerformanceMonitoringDashboard() {
                       {databaseMetrics?.connectionUtilization.toFixed(1) || 0}%
                     </span>
                   </div>
-                  <Progress 
-                    value={databaseMetrics?.connectionUtilization || 0} 
-                    className="h-2"
-                  />
+                  <Progress value={databaseMetrics?.connectionUtilization || 0} className="h-2" />
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -581,9 +587,13 @@ export function PerformanceMonitoringDashboard() {
                   <div>
                     <p className="text-muted-foreground">Success Rate</p>
                     <p className="font-medium">
-                      {githubStats.totalRequests > 0 
-                        ? ((githubStats.successfulRequests / githubStats.totalRequests) * 100).toFixed(1) 
-                        : 0}%
+                      {githubStats.totalRequests > 0
+                        ? (
+                            (githubStats.successfulRequests / githubStats.totalRequests) *
+                            100
+                          ).toFixed(1)
+                        : 0}
+                      %
                     </p>
                   </div>
                   <div>
@@ -612,8 +622,8 @@ export function PerformanceMonitoringDashboard() {
                           {limit.remaining}/{limit.limit}
                         </span>
                       </div>
-                      <Progress 
-                        value={((limit.limit - limit.remaining) / limit.limit) * 100} 
+                      <Progress
+                        value={((limit.limit - limit.remaining) / limit.limit) * 100}
                         className="h-2"
                       />
                     </div>
@@ -628,19 +638,11 @@ export function PerformanceMonitoringDashboard() {
         </TabsContent>
 
         <TabsContent value="queues" className="space-y-4">
-          <HybridQueueStatus 
-            showTabs={true}
-            autoRefresh={true}
-            refreshInterval={30000}
-          />
+          <HybridQueueStatus showTabs={true} autoRefresh={true} refreshInterval={30000} />
         </TabsContent>
 
         <TabsContent value="workflows" className="space-y-4">
-          <GitHubActionsMonitor 
-            showAll={true}
-            autoRefresh={true}
-            refreshInterval={60000}
-          />
+          <GitHubActionsMonitor showAll={true} autoRefresh={true} refreshInterval={60000} />
         </TabsContent>
 
         <TabsContent value="cdn" className="space-y-4">
@@ -653,15 +655,18 @@ export function PerformanceMonitoringDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {cdnMetrics
-? (
+                {cdnMetrics ? (
                   <>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Performance Score</span>
-                      <Badge 
-                        variant={cdnMetrics.performanceScore === 'Excellent'
-? 'default' : 
-                                cdnMetrics.performanceScore === 'Poor' ? 'destructive' : 'secondary'}
+                      <Badge
+                        variant={
+                          cdnMetrics.performanceScore === 'Excellent'
+                            ? 'default'
+                            : cdnMetrics.performanceScore === 'Poor'
+                              ? 'destructive'
+                              : 'secondary'
+                        }
                       >
                         {cdnMetrics.performanceScore}
                       </Badge>
@@ -683,14 +688,10 @@ export function PerformanceMonitoringDashboard() {
                           {cdnMetrics.cacheHitRate}%
                         </span>
                       </div>
-                      <Progress 
-                        value={cdnMetrics.cacheHitRate} 
-                        className="h-2"
-                      />
+                      <Progress value={cdnMetrics.cacheHitRate} className="h-2" />
                     </div>
                   </>
-                )
-: (
+                ) : (
                   <div className="text-sm text-muted-foreground">Loading CDN metrics...</div>
                 )}
               </CardContent>
@@ -701,8 +702,7 @@ export function PerformanceMonitoringDashboard() {
                 <CardTitle>Storage Metrics</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {cdnMetrics
-? (
+                {cdnMetrics ? (
                   <>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
@@ -725,12 +725,12 @@ export function PerformanceMonitoringDashboard() {
                     <Alert variant="default">
                       <Activity className="h-4 w-4" />
                       <AlertDescription>
-                        Social cards are served via Supabase CDN with automatic compression and global distribution.
+                        Social cards are served via Supabase CDN with automatic compression and
+                        global distribution.
                       </AlertDescription>
                     </Alert>
                   </>
-                )
-: (
+                ) : (
                   <div className="text-sm text-muted-foreground">Loading storage metrics...</div>
                 )}
               </CardContent>
@@ -784,11 +784,13 @@ export function PerformanceMonitoringDashboard() {
         </TabsContent>
 
         <TabsContent value="alerts" className="space-y-4">
-          {alerts.length > 0
-? (
+          {alerts.length > 0 ? (
             <div className="space-y-4">
               {alerts.map((alert) => (
-                <Alert key={alert.id} variant={alert.severity === 'critical' ? 'destructive' : 'default'}>
+                <Alert
+                  key={alert.id}
+                  variant={alert.severity === 'critical' ? 'destructive' : 'default'}
+                >
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle className="capitalize">
                     {alert.alert_type.replace('_', ' ')} - {alert.severity}
@@ -811,8 +813,7 @@ export function PerformanceMonitoringDashboard() {
                 </Alert>
               ))}
             </div>
-          )
-: (
+          ) : (
             <Card>
               <CardContent className="flex items-center justify-center py-2">
                 <div className="text-center">
@@ -837,10 +838,7 @@ export function PerformanceMonitoringDashboard() {
               <Clock className="h-4 w-4 mr-2" />
               Create Snapshot
             </Button>
-            <Button 
-              onClick={() => window.open('/monitor-db', '_blank')} 
-              variant="outline"
-            >
+            <Button onClick={() => window.open('/monitor-db', '_blank')} variant="outline">
               <Zap className="h-4 w-4 mr-2" />
               View Detailed Report
             </Button>

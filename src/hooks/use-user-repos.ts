@@ -63,18 +63,18 @@ const MAX_CACHE_SIZE = 50;
 function cleanupUserCache() {
   const now = Date.now();
   const entries = Object.entries(userRepoCache);
-  
+
   // Remove expired entries
   entries.forEach(([user, cache]) => {
     if (now - cache.timestamp > CACHE_DURATION) {
       delete userRepoCache[user];
     }
   });
-  
+
   // If still over size limit, remove oldest entries (LRU)
   const remainingEntries = Object.entries(userRepoCache);
   if (remainingEntries.length > MAX_CACHE_SIZE) {
-    const sortedByTimestamp = remainingEntries.sort(([,a], [,b]) => a.timestamp - b.timestamp);
+    const sortedByTimestamp = remainingEntries.sort(([, a], [, b]) => a.timestamp - b.timestamp);
     const toRemove = sortedByTimestamp.slice(0, remainingEntries.length - MAX_CACHE_SIZE);
     toRemove.forEach(([user]) => delete userRepoCache[user]);
   }
@@ -90,7 +90,7 @@ export function useUserRepos(username?: string): UseUserReposState {
     isLoading: true,
     error: null,
   });
-  
+
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -107,22 +107,22 @@ export function useUserRepos(username?: string): UseUserReposState {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
+
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
     const fetchUserRepos = async () => {
       try {
-        setState(prev => ({ ...prev, isLoading: true, _error: null }));
-        
+        setState((prev) => ({ ...prev, isLoading: true, _error: null }));
+
         // Clean up old cache entries
         cleanupUserCache();
-        
+
         // Check cache first
         const cachedData = userRepoCache[username];
         const now = Date.now();
-        
-        if (cachedData && (now - cachedData.timestamp) < CACHE_DURATION) {
+
+        if (cachedData && now - cachedData.timestamp < CACHE_DURATION) {
           setState({
             repositories: cachedData.repositories,
             userData: cachedData.userData,
@@ -136,7 +136,7 @@ export function useUserRepos(username?: string): UseUserReposState {
         const octokit = new Octokit({
           auth: env.GITHUB_TOKEN,
         });
-        
+
         // Fetch user data and repositories
         const [userResponse, reposResponse] = await Promise.all([
           octokit.rest.users.getByUsername({ username, request: { signal } }),
@@ -146,8 +146,8 @@ export function useUserRepos(username?: string): UseUserReposState {
             direction: 'desc',
             per_page: 30,
             type: 'owner', // Only repos owned by user, not forks
-            request: { signal }
-          })
+            request: { signal },
+          }),
         ]);
 
         const { data: userDetails } = userResponse;
@@ -158,17 +158,18 @@ export function useUserRepos(username?: string): UseUserReposState {
         // Filter repos for collaboration (has stars, forks, or pull requests)
         // This optimizes for collaborative projects as mentioned in the requirements
         const collaborativeRepos = repos
-          .filter(repo => 
-            !repo.archived && 
-            !repo.disabled && 
-            !repo.private &&
-            ((repo.stargazers_count || 0) > 0 || (repo.forks_count || 0) > 0)
+          .filter(
+            (repo) =>
+              !repo.archived &&
+              !repo.disabled &&
+              !repo.private &&
+              ((repo.stargazers_count || 0) > 0 || (repo.forks_count || 0) > 0),
           )
           .slice(0, 25); // Max 25 as per requirements
 
         // Check tracking status for each repository
-        const repoFullNames = collaborativeRepos.map(repo => repo.full_name);
-        
+        const repoFullNames = collaborativeRepos.map((repo) => repo.full_name);
+
         let trackedRepos: { full_name: string; last_updated: string | null }[] = [];
         if (repoFullNames.length > 0) {
           const { data } = await supabase
@@ -181,27 +182,29 @@ export function useUserRepos(username?: string): UseUserReposState {
         if (signal.aborted) return;
 
         // Combine GitHub data with tracking status
-        const repositoriesWithTracking: RepositoryWithTracking[] = collaborativeRepos.map(repo => {
-          const trackedRepo = trackedRepos.find(tr => tr.full_name === repo.full_name);
-          
-          return {
-            id: repo.id,
-            name: repo.name,
-            full_name: repo.full_name,
-            description: repo.description,
-            stargazers_count: repo.stargazers_count || 0,
-            forks_count: repo.forks_count || 0,
-            language: repo.language || null,
-            html_url: repo.html_url,
-            updated_at: repo.updated_at || new Date().toISOString(),
-            archived: repo.archived || false,
-            disabled: repo.disabled || false,
-            fork: repo.fork || false,
-            private: repo.private || false,
-            is_tracked: Boolean(trackedRepo),
-            is_processing: trackedRepo ? isRecentlyUpdated(trackedRepo.last_updated) : false,
-          };
-        });
+        const repositoriesWithTracking: RepositoryWithTracking[] = collaborativeRepos.map(
+          (repo) => {
+            const trackedRepo = trackedRepos.find((tr) => tr.full_name === repo.full_name);
+
+            return {
+              id: repo.id,
+              name: repo.name,
+              full_name: repo.full_name,
+              description: repo.description,
+              stargazers_count: repo.stargazers_count || 0,
+              forks_count: repo.forks_count || 0,
+              language: repo.language || null,
+              html_url: repo.html_url,
+              updated_at: repo.updated_at || new Date().toISOString(),
+              archived: repo.archived || false,
+              disabled: repo.disabled || false,
+              fork: repo.fork || false,
+              private: repo.private || false,
+              is_tracked: Boolean(trackedRepo),
+              is_processing: trackedRepo ? isRecentlyUpdated(trackedRepo.last_updated) : false,
+            };
+          },
+        );
 
         // Prepare user data
         const userData = {
@@ -224,19 +227,24 @@ export function useUserRepos(username?: string): UseUserReposState {
           isLoading: false,
           error: null,
         });
-        
       } catch (_error) {
         if (signal.aborted) return;
-        
+
         let errorMessage = 'Failed to fetch repositories';
-        if ((_error as any)?.status === 404 || (error instanceof Error && _error.message.includes('404'))) {
+        if (
+          (_error as any)?.status === 404 ||
+          (error instanceof Error && _error.message.includes('404'))
+        ) {
           errorMessage = `User "${username}" not found`;
-        } else if ((_error as any)?.status === 403 || (error instanceof Error && _error.message.includes('403'))) {
+        } else if (
+          (_error as any)?.status === 403 ||
+          (error instanceof Error && _error.message.includes('403'))
+        ) {
           errorMessage = 'Rate limit exceeded. Please try again later.';
         } else if (_error instanceof Error) {
           errorMessage = error.message;
         }
-        
+
         setState({
           repositories: [],
           isLoading: false,
@@ -263,9 +271,9 @@ export function useUserRepos(username?: string): UseUserReposState {
  */
 function isRecentlyUpdated(lastUpdated: string | null): boolean {
   if (!lastUpdated) return false;
-  
-  const oneHourAgo = Date.now() - (60 * 60 * 1000);
+
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
   const updateTime = new Date(lastUpdated).getTime();
-  
+
   return updateTime > oneHourAgo;
 }

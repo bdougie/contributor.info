@@ -1,10 +1,10 @@
-import { useMemo } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import type { PullRequest, QuadrantData } from "@/lib/types";
-import { ContributionAnalyzer } from "@/lib/contribution-analyzer";
-import { ContributorHoverCard } from "../contributor";
-import { FileHoverInfo } from "@/components/common/cards";
+import { useMemo } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import type { PullRequest, QuadrantData } from '@/lib/types';
+import { ContributionAnalyzer } from '@/lib/contribution-analyzer';
+import { ContributorHoverCard } from '../contributor';
+import { FileHoverInfo } from '@/components/common/cards';
 
 interface QuadrantChartProps {
   data: PullRequest[];
@@ -13,22 +13,22 @@ interface QuadrantChartProps {
 
 const QUADRANTS = {
   REFINEMENT: {
-    label: "Refinement",
+    label: 'Refinement',
     x: 25,
     y: 25,
   },
   NEW_STUFF: {
-    label: "New Stuff",
+    label: 'New Stuff',
     x: 75,
     y: 25,
   },
   MAINTENANCE: {
-    label: "Maintenance",
+    label: 'Maintenance',
     x: 25,
     y: 75,
   },
   REFACTORING: {
-    label: "Refactoring",
+    label: 'Refactoring',
     x: 75,
     y: 75,
   },
@@ -52,17 +52,11 @@ export function QuadrantChart({ _data, quadrants }: QuadrantChartProps) {
           }
           return acc;
         },
-        { name: "", changes: 0 }
+        { name: '', changes: 0 },
       ).name;
 
-      const totalAdditions = commits.reduce(
-        (sum, commit) => sum + commit.additions,
-        0
-      );
-      const totalDeletions = commits.reduce(
-        (sum, commit) => sum + commit.deletions,
-        0
-      );
+      const totalAdditions = commits.reduce((sum, commit) => sum + commit.additions, 0);
+      const totalDeletions = commits.reduce((sum, commit) => sum + commit.deletions, 0);
 
       // Extract files touched information
       const filesTouched = commits.map((commit) => ({
@@ -105,8 +99,8 @@ export function QuadrantChart({ _data, quadrants }: QuadrantChartProps) {
         </div>
         <h3 className="text-lg font-medium">Desktop Recommended</h3>
         <p className="text-sm text-muted-foreground">
-          For a better experience, view this chart on a desktop as it's
-          optimized for larger screens.
+          For a better experience, view this chart on a desktop as it's optimized for larger
+          screens.
         </p>
       </div>
 
@@ -138,29 +132,22 @@ export function QuadrantChart({ _data, quadrants }: QuadrantChartProps) {
               style={{
                 left: `${x}%`,
                 top: `${y}%`,
-                transform: "translate(-50%, -50%)",
+                transform: 'translate(-50%, -50%)',
               }}
             >
               <div className="flex -space-x-2">
                 {authors.slice(0, 3).map((author, index) => {
                   // Use type assertion with the actual expected interface
                   const authorContributions =
-                    "contributions" in author
-                      ? (author.contributions as number)
-                      : 0;
+                    'contributions' in author ? (author.contributions as number) : 0;
 
                   // Create a minimal ContributorStats object for each author
                   const contributorStats = {
                     login: author.login,
-                    avatar_url: `https://avatars.githubusercontent.com/u/${
-                      author.id ?? 0
-                    }`,
+                    avatar_url: `https://avatars.githubusercontent.com/u/${author.id ?? 0}`,
                     pullRequests: authorContributions || 0,
-                    percentage:
-                      ((authorContributions || 0) / (_data.length || 1)) * 100,
-                    recentPRs: data
-                      .filter((pr) => pr.author?.login === author.login)
-                      .slice(0, 5), // Get up to 5 recent PRs
+                    percentage: ((authorContributions || 0) / (_data.length || 1)) * 100,
+                    recentPRs: data.filter((pr) => pr.author?.login === author.login).slice(0, 5), // Get up to 5 recent PRs
                   };
 
                   return (
@@ -170,9 +157,7 @@ export function QuadrantChart({ _data, quadrants }: QuadrantChartProps) {
                     >
                       <Avatar className="w-6 h-6 border-2 border-background cursor-pointer">
                         <AvatarImage
-                          src={`https://avatars.githubusercontent.com/u/${
-                            author.id ?? 0
-                          }`}
+                          src={`https://avatars.githubusercontent.com/u/${author.id ?? 0}`}
                           alt={author.login}
                         />
                         <AvatarFallback className="bg-primary text-[8px]">
@@ -216,7 +201,7 @@ export function QuadrantChart({ _data, quadrants }: QuadrantChartProps) {
               style={{
                 left: `${point.x}%`,
                 top: `${point.y}%`,
-                transform: "translate(-50%, -50%)",
+                transform: 'translate(-50%, -50%)',
                 opacity: 0.6,
               }}
             />

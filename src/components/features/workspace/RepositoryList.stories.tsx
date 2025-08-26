@@ -8,15 +8,16 @@ import { toast } from 'sonner';
 const generateRepositories = (count: number): Repository[] => {
   const languages = ['TypeScript', 'JavaScript', 'Python', 'Go', 'Rust', 'Java', 'Ruby'];
   const owners = ['facebook', 'google', 'microsoft', 'vercel', 'openai', 'anthropic'];
-  
+
   return Array.from({ length: count }, (_, i) => ({
     id: `repo-${i + 1}`,
     full_name: `${owners[i % owners.length]}/project-${i + 1}`,
     owner: owners[i % owners.length],
     name: `project-${i + 1}`,
-    description: i % 2 === 0 
-      ? `A powerful ${languages[i % languages.length]} library for building scalable applications with modern architecture`
-      : undefined,
+    description:
+      i % 2 === 0
+        ? `A powerful ${languages[i % languages.length]} library for building scalable applications with modern architecture`
+        : undefined,
     language: languages[i % languages.length],
     stars: Math.floor(Math.random() * 50000) + 100,
     forks: Math.floor(Math.random() * 5000) + 10,
@@ -39,7 +40,8 @@ const meta = {
     layout: 'padded',
     docs: {
       description: {
-        component: 'A sortable, searchable table component for displaying workspace repositories with actions.',
+        component:
+          'A sortable, searchable table component for displaying workspace repositories with actions.',
       },
     },
   },
@@ -68,40 +70,32 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // Interactive wrapper for stateful interactions
-const InteractiveWrapper = ({ 
+const InteractiveWrapper = ({
   initialRepos = sampleRepositories,
   showActions = true,
-}: { 
+}: {
   initialRepos?: Repository[];
   showActions?: boolean;
 }) => {
   const [repositories, setRepositories] = useState(initialRepos);
-  
+
   const handlePinToggle = (repo: Repository) => {
-    setRepositories(repos => 
-      repos.map(r => 
-        r.id === repo.id 
-          ? { ...r, is_pinned: !r.is_pinned }
-          : r
-      )
+    setRepositories((repos) =>
+      repos.map((r) => (r.id === repo.id ? { ...r, is_pinned: !r.is_pinned } : r)),
     );
-    toast.success(
-      repo.is_pinned 
-        ? `Unpinned ${repo.full_name}` 
-        : `Pinned ${repo.full_name}`
-    );
+    toast.success(repo.is_pinned ? `Unpinned ${repo.full_name}` : `Pinned ${repo.full_name}`);
   };
-  
+
   const handleRemove = (repo: Repository) => {
-    setRepositories(repos => repos.filter(r => r.id !== repo.id));
+    setRepositories((repos) => repos.filter((r) => r.id !== repo.id));
     toast.success(`Removed ${repo.full_name} from workspace`);
   };
-  
+
   const handleClick = (repo: Repository) => {
     toast.info(`Navigating to /${repo.owner}/${repo.name}`);
     action('onRepositoryClick')(`/${repo.owner}/${repo.name}`);
   };
-  
+
   return (
     <RepositoryList
       repositories={repositories}
@@ -137,7 +131,8 @@ export const WithManyRepositories: Story = {
 export const Empty: Story = {
   args: {
     repositories: [],
-    emptyMessage: 'No repositories in this workspace yet. Add your first repository to get started!',
+    emptyMessage:
+      'No repositories in this workspace yet. Add your first repository to get started!',
   },
 };
 
@@ -166,8 +161,8 @@ export const WithoutActions: Story = {
 export const PinnedRepositories: Story = {
   args: {
     repositories: [
-      ...sampleRepositories.slice(0, 2).map(r => ({ ...r, is_pinned: true })),
-      ...sampleRepositories.slice(2, 5).map(r => ({ ...r, is_pinned: false })),
+      ...sampleRepositories.slice(0, 2).map((r) => ({ ...r, is_pinned: true })),
+      ...sampleRepositories.slice(2, 5).map((r) => ({ ...r, is_pinned: false })),
     ],
   },
   render: (args) => <InteractiveWrapper initialRepos={args.repositories} />,
@@ -184,10 +179,25 @@ export const SearchDemo: Story = {
   render: () => {
     const manyRepos = generateRepositories(15);
     // Add some specific repos for search testing
-    manyRepos[0] = { ...manyRepos[0], full_name: 'react/react', name: 'react', description: 'A JavaScript library for building user interfaces' };
-    manyRepos[1] = { ...manyRepos[1], full_name: 'vuejs/vue', name: 'vue', description: 'Progressive JavaScript framework' };
-    manyRepos[2] = { ...manyRepos[2], full_name: 'angular/angular', name: 'angular', description: 'Platform for building mobile and desktop web applications' };
-    
+    manyRepos[0] = {
+      ...manyRepos[0],
+      full_name: 'react/react',
+      name: 'react',
+      description: 'A JavaScript library for building user interfaces',
+    };
+    manyRepos[1] = {
+      ...manyRepos[1],
+      full_name: 'vuejs/vue',
+      name: 'vue',
+      description: 'Progressive JavaScript framework',
+    };
+    manyRepos[2] = {
+      ...manyRepos[2],
+      full_name: 'angular/angular',
+      name: 'angular',
+      description: 'Platform for building mobile and desktop web applications',
+    };
+
     return <InteractiveWrapper initialRepos={manyRepos} />;
   },
   parameters: {
@@ -224,11 +234,26 @@ export const RecentActivity: Story = {
   args: {
     repositories: [
       { ...sampleRepositories[0], last_activity: new Date().toISOString() },
-      { ...sampleRepositories[1], last_activity: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
-      { ...sampleRepositories[2], last_activity: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
-      { ...sampleRepositories[3], last_activity: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString() },
-      { ...sampleRepositories[4], last_activity: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString() },
-      { ...sampleRepositories[5], last_activity: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString() },
+      {
+        ...sampleRepositories[1],
+        last_activity: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        ...sampleRepositories[2],
+        last_activity: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        ...sampleRepositories[3],
+        last_activity: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        ...sampleRepositories[4],
+        last_activity: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        ...sampleRepositories[5],
+        last_activity: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
+      },
     ],
   },
   render: (args) => <InteractiveWrapper initialRepos={args.repositories} />,
@@ -263,9 +288,10 @@ export const HighActivityRepos: Story = {
 
 export const LongDescriptions: Story = {
   args: {
-    repositories: sampleRepositories.slice(0, 5).map(repo => ({
+    repositories: sampleRepositories.slice(0, 5).map((repo) => ({
       ...repo,
-      description: 'This is a very long description that demonstrates how the component handles text overflow and truncation in the repository list. It should be truncated with an ellipsis when it exceeds the available space in the table cell.',
+      description:
+        'This is a very long description that demonstrates how the component handles text overflow and truncation in the repository list. It should be truncated with an ellipsis when it exceeds the available space in the table cell.',
     })),
   },
   render: (args) => <InteractiveWrapper initialRepos={args.repositories} />,
@@ -313,16 +339,16 @@ export const ComparisonDemo: Story = {
         <h3 className="text-sm font-semibold mb-2 text-muted-foreground">With Data</h3>
         <InteractiveWrapper initialRepos={sampleRepositories.slice(0, 3)} />
       </div>
-      
+
       <div>
         <h3 className="text-sm font-semibold mb-2 text-muted-foreground">Loading State</h3>
         <RepositoryListSkeleton />
       </div>
-      
+
       <div>
         <h3 className="text-sm font-semibold mb-2 text-muted-foreground">Empty State</h3>
-        <RepositoryList 
-          repositories={[]} 
+        <RepositoryList
+          repositories={[]}
           emptyMessage="Start by adding repositories to your workspace"
         />
       </div>

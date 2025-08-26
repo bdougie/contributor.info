@@ -10,8 +10,8 @@ vi.mock('@/lib/contribution-analyzer', () => {
       resetCounts: vi.fn(),
       analyze: vi.fn(),
       getDistribution: vi.fn(),
-      getCounts: vi.fn()
-    }
+      getCounts: vi.fn(),
+    },
   };
 });
 
@@ -22,9 +22,7 @@ describe('useDistribution', () => {
       id: 1,
       title: 'Feature PR',
       number: 1,
-      commits: [
-        { additions: 100, deletions: 10, language: 'ts' }
-      ],
+      commits: [{ additions: 100, deletions: 10, language: 'ts' }],
       additions: 100,
       deletions: 10,
       state: 'closed',
@@ -38,16 +36,14 @@ describe('useDistribution', () => {
       user: {
         id: 123,
         login: 'user1',
-        avatar_url: 'https://example.com/avatar1.jpg'
-      }
+        avatar_url: 'https://example.com/avatar1.jpg',
+      },
     },
     {
       id: 2,
       title: 'Bugfix PR',
-      number: 2, 
-      commits: [
-        { additions: 5, deletions: 50, language: 'js' }
-      ],
+      number: 2,
+      commits: [{ additions: 5, deletions: 50, language: 'js' }],
       additions: 5,
       deletions: 50,
       state: 'closed',
@@ -61,27 +57,27 @@ describe('useDistribution', () => {
       user: {
         id: 456,
         login: 'user2',
-        avatar_url: 'https://example.com/avatar2.jpg'
-      }
-    }
+        avatar_url: 'https://example.com/avatar2.jpg',
+      },
+    },
   ];
 
   // Update the mock distribution to include all required properties
   const mockDistribution = {
-    label: "Contribution Distribution",
+    label: 'Contribution Distribution',
     value: 100,
     percentage: 100,
     refinement: 25,
     new: 25,
     refactoring: 25,
-    maintenance: 25
+    maintenance: 25,
   };
 
   const mockCounts = {
     refinement: 1,
     new: 2,
     refactoring: 3,
-    maintenance: 4
+    maintenance: 4,
   };
 
   beforeEach(() => {
@@ -102,10 +98,10 @@ describe('useDistribution', () => {
         return {
           getTotalContributions: () => {
             return Object.values(mockCounts).reduce((sum, count) => sum + count, 0);
-          }
+          },
         };
       });
-      
+
       // Sum of all quadrant counts: 1+2+3+4 = 10
       expect(result.current.getTotalContributions()).toBe(10);
     });
@@ -118,46 +114,48 @@ describe('useDistribution', () => {
             refinement: {
               label: 'Refinement',
               description: 'Improving existing features with careful changes',
-              color: '#4ade80'
+              color: '#4ade80',
             },
             new: {
               label: 'New Features',
               description: 'Adding new functionality and capabilities',
-              color: '#60a5fa'
+              color: '#60a5fa',
             },
             refactoring: {
               label: 'Refactoring',
               description: 'Restructuring code without changing behavior',
-              color: '#f97316'
+              color: '#f97316',
             },
             maintenance: {
               label: 'Maintenance',
               description: 'Bug fixes and routine upkeep',
-              color: '#a78bfa'
-            }
+              color: '#a78bfa',
+            },
           }[key as keyof typeof mockCounts];
-          
+
           return {
             id: key,
             label: info.label,
             value,
             percentage: (value / 10) * 100,
             description: info.description,
-            color: info.color
+            color: info.color,
           };
         });
-        
+
         // Return the getDominantQuadrant function and the chart data
         return {
           chartData,
           getDominantQuadrant: () => {
             if (chartData.length === 0) return null;
-            return chartData.reduce((max, quadrant) => 
-              quadrant.value > max.value ? quadrant : max, chartData[0]);
-          }
+            return chartData.reduce(
+              (max, quadrant) => (quadrant.value > max.value ? quadrant : max),
+              chartData[0],
+            );
+          },
         };
       });
-      
+
       const dominantQuadrant = result.current.getDominantQuadrant();
       expect(dominantQuadrant).not.toBeNull();
       expect(dominantQuadrant?.id).toBe('maintenance');
@@ -170,10 +168,10 @@ describe('useDistribution', () => {
           chartData: [],
           getDominantQuadrant: () => {
             return null;
-          }
+          },
         };
       });
-      
+
       expect(result.current.getDominantQuadrant()).toBeNull();
     });
   });
@@ -183,10 +181,10 @@ describe('useDistribution', () => {
     it('should reset and analyze when given pull requests', () => {
       // Directly test the logic that would happen in useEffect
       ContributionAnalyzer.resetCounts();
-      mockPullRequests.forEach(pr => {
+      mockPullRequests.forEach((pr) => {
         ContributionAnalyzer.analyze(pr);
       });
-      
+
       expect(ContributionAnalyzer.resetCounts).toHaveBeenCalled();
       expect(ContributionAnalyzer.analyze).toHaveBeenCalledTimes(2);
       expect(ContributionAnalyzer.analyze).toHaveBeenCalledWith(mockPullRequests[0]);
@@ -197,10 +195,10 @@ describe('useDistribution', () => {
       // Directly test the logic that would happen in useEffect
       ContributionAnalyzer.resetCounts();
       const emptyPRs: PullRequest[] = [];
-      emptyPRs.forEach(pr => {
+      emptyPRs.forEach((pr) => {
         ContributionAnalyzer.analyze(pr);
       });
-      
+
       expect(ContributionAnalyzer.resetCounts).toHaveBeenCalled();
       expect(ContributionAnalyzer.analyze).not.toHaveBeenCalled();
     });
@@ -212,16 +210,16 @@ describe('useDistribution', () => {
       });
 
       // Directly test the error handling
-      let error = null;
+      const _error = null;
       try {
         ContributionAnalyzer.resetCounts();
-        mockPullRequests.forEach(pr => {
+        mockPullRequests.forEach((pr) => {
           ContributionAnalyzer.analyze(pr);
         });
       } catch (err) {
         error = err;
       }
-      
+
       expect(_error).toBeInstanceOf(Error);
       expect((_error as Error).message).toBe('Analysis failed');
     });

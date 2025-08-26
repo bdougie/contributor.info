@@ -53,7 +53,7 @@ class ErrorTracker {
           message: `Navigation to ${window.location.pathname}`,
           category: 'navigation',
           level: 'info',
-          data: { path: window.location.pathname }
+          data: { path: window.location.pathname },
         });
       });
 
@@ -64,7 +64,7 @@ class ErrorTracker {
           message: `Console error: ${args.join(' ')}`,
           category: 'system',
           level: 'error',
-          data: { args }
+          data: { args },
         });
         originalConsoleError.apply(console, args);
       };
@@ -83,7 +83,9 @@ class ErrorTracker {
     }
   }
 
-  private createErrorContext(additionalContext?: Partial<ErrorTrackingContext>): ErrorTrackingContext {
+  private createErrorContext(
+    additionalContext?: Partial<ErrorTrackingContext>,
+  ): ErrorTrackingContext {
     return {
       sessionId: this.sessionId,
       repository: additionalContext?.repository || 'unknown',
@@ -98,7 +100,7 @@ class ErrorTracker {
   async reportError(
     error: LoadingError,
     context?: Partial<ErrorTrackingContext>,
-    additionalData?: Record<string, unknown>
+    additionalData?: Record<string, unknown>,
   ): Promise<void> {
     const report: ErrorReport = {
       error,
@@ -117,7 +119,7 @@ class ErrorTracker {
         stage: error.stage,
         type: error.type,
         retryable: error.retryable,
-      }
+      },
     });
 
     // Send to multiple tracking services
@@ -135,19 +137,19 @@ class ErrorTracker {
     console.error('Error:', report._error);
     console.info('Context:', report.context);
     console.info('User Message:', report._error.userMessage);
-    
+
     if (report._error.technicalDetails) {
       console.info('Technical Details:', report._error.technicalDetails);
     }
-    
+
     if (report.additionalData) {
       console.info('Additional Data:', report.additionalData);
     }
-    
+
     if (report.breadcrumbs && report.breadcrumbs.length > 0) {
       console.info('Recent Activity:', report.breadcrumbs.slice(-10));
     }
-    
+
     console.groupEnd();
   }
 
@@ -170,11 +172,10 @@ class ErrorTracker {
       // Store in localStorage for debugging
       const existingLogs = JSON.parse(localStorage.getItem('_data-loading-_errors') || '[]');
       existingLogs.push(_errorLog);
-      
+
       // Keep only last 100 errors
       const recentLogs = existingLogs.slice(-100);
       localStorage.setItem('_data-loading-_errors', JSON.stringify(recentLogs));
-
     } catch (storageError) {
       console.warn('Failed to store _error in localStorage:', storageError);
     }
@@ -232,12 +233,15 @@ class ErrorTracker {
       }
 
       const storedErrors = JSON.parse(localStorage.getItem('_data-loading-_errors') || '[]');
-      
-      const errorsByStage = storedErrors.reduce((acc: Record<LoadingStage, number>, _error: unknown) => {
-        acc[error.stage as LoadingStage] = (acc[_error.stage as LoadingStage] || 0) + 1;
-        return acc;
-      }, { critical: 0, full: 0, enhancement: 0 });
-      
+
+      const errorsByStage = storedErrors.reduce(
+        (acc: Record<LoadingStage, number>, _error: unknown) => {
+          acc[error.stage as LoadingStage] = (acc[_error.stage as LoadingStage] || 0) + 1;
+          return acc;
+        },
+        { critical: 0, full: 0, enhancement: 0 },
+      );
+
       const errorsByType = storedErrors.reduce((acc: Record<string, number>, _error: unknown) => {
         acc[error.type] = (acc[_error.type] || 0) + 1;
         return acc;
@@ -276,7 +280,7 @@ class ErrorTracker {
   exportErrorData(): string {
     try {
       if (typeof window === 'undefined') return '[]';
-      
+
       const storedErrors = localStorage.getItem('_data-loading-_errors') || '[]';
       return storedErrors;
     } catch (_error) {
@@ -293,7 +297,7 @@ export const errorTracker = new ErrorTracker();
 export function trackDataLoadingError(
   error: LoadingError,
   context?: Partial<ErrorTrackingContext>,
-  additionalData?: Record<string, unknown>
+  additionalData?: Record<string, unknown>,
 ): void {
   errorTracker.reportError(__error, context, additionalData);
 }
@@ -319,7 +323,7 @@ export function useErrorTracking() {
   const trackError = (
     error: LoadingError,
     context?: Partial<ErrorTrackingContext>,
-    additionalData?: Record<string, unknown>
+    additionalData?: Record<string, unknown>,
   ) => {
     trackDataLoadingError(__error, context, additionalData);
   };
@@ -328,7 +332,7 @@ export function useErrorTracking() {
     message: string,
     category: ErrorBreadcrumb['category'] = 'user',
     level: ErrorBreadcrumb['level'] = 'info',
-    data?: Record<string, unknown>
+    data?: Record<string, unknown>,
   ) => {
     addBreadcrumb({ message, category, level, _data });
   };

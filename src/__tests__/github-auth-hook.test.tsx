@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 
 // Module-level mocks for proper isolation
 const mockNavigate = vi.fn();
@@ -8,15 +8,15 @@ const mockAuthCallback = vi.fn();
 const mockGetSession = vi.fn();
 const mockSignOut = vi.fn();
 
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual("react-router-dom");
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
     useNavigate: () => mockNavigate,
   };
 });
 
-vi.mock("../lib/supabase", () => ({
+vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: {
       getSession: () => mockGetSession(),
@@ -33,18 +33,18 @@ vi.mock("../lib/supabase", () => ({
 }));
 
 // Import after mocking
-import { useGitHubAuth } from "../hooks/use-github-auth";
+import { useGitHubAuth } from '../hooks/use-github-auth';
 
 // Proper React component wrapper for hooks using Router
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <MemoryRouter>{children}</MemoryRouter>
 );
 
-describe("useGitHubAuth Hook", () => {
+describe('useGitHubAuth Hook', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    
+
     // Reset all mock implementations
     mockNavigate.mockClear();
     mockAuthCallback.mockClear();
@@ -52,7 +52,7 @@ describe("useGitHubAuth Hook", () => {
     mockSignOut.mockResolvedValue({ _error: null });
   });
 
-  it("initializes with logged out state", async () => {
+  it('initializes with logged out state', async () => {
     const { result } = renderHook(() => useGitHubAuth(), { wrapper });
 
     // Allow the hook's useEffect to run
@@ -61,51 +61,51 @@ describe("useGitHubAuth Hook", () => {
     });
 
     expect(result.current.isLoggedIn).toBe(false);
-    expect(typeof result.current.checkSession).toBe("function");
+    expect(typeof result.current.checkSession).toBe('function');
   });
 
-  it("handles login success and redirects to stored path", async () => {
+  it('handles login success and redirects to stored path', async () => {
     // Store redirect path
-    localStorage.setItem("redirectAfterLogin", "/facebook/react");
+    localStorage.setItem('redirectAfterLogin', '/facebook/react');
 
     // Set up mock session
-    const mockSession = { user: { id: "user-123" } };
+    const mockSession = { user: { id: 'user-123' } };
 
     // Render the hook
     renderHook(() => useGitHubAuth(), { wrapper });
 
     // Trigger auth change to simulate successful login
     await act(async () => {
-      mockAuthCallback("SIGNED_IN", mockSession);
+      mockAuthCallback('SIGNED_IN', mockSession);
     });
 
     // Manually trigger the navigation to simulate what would happen
-    mockNavigate("/facebook/react");
-    localStorage.removeItem("redirectAfterLogin");
+    mockNavigate('/facebook/react');
+    localStorage.removeItem('redirectAfterLogin');
 
     // Verify redirect and localStorage cleanup
-    expect(mockNavigate).toHaveBeenCalledWith("/facebook/react");
-    expect(localStorage.getItem("redirectAfterLogin")).toBeNull();
+    expect(mockNavigate).toHaveBeenCalledWith('/facebook/react');
+    expect(localStorage.getItem('redirectAfterLogin')).toBeNull();
   });
 
-  it("allows users to log out", async () => {
+  it('allows users to log out', async () => {
     // Set up mock to return a logged-in session initially
     const mockSessionData = {
       user: {
-        id: "user-123",
+        id: 'user-123',
         app_metadata: {},
         user_metadata: {},
-        aud: "authenticated",
-        email: "test@example.com",
+        aud: 'authenticated',
+        email: 'test@example.com',
         created_at: new Date().toISOString(),
       },
       expires_in: 3600,
       expires_at: 999999,
-      token_type: "bearer",
-      access_token: "fake-token",
-      refresh_token: "fake-refresh-token",
+      token_type: 'bearer',
+      access_token: 'fake-token',
+      refresh_token: 'fake-refresh-token',
     };
-    
+
     mockGetSession.mockResolvedValue({
       data: { session: mockSessionData },
       error: null,

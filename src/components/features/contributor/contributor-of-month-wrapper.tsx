@@ -1,7 +1,7 @@
-import { ContributorOfTheMonth } from "./contributor-of-the-month";
-import { useMonthlyContributorRankings } from "@/hooks/use-monthly-contributor-rankings";
-import { ContributorRanking, MonthlyContributor } from "@/lib/types";
-import { useParams } from "react-router-dom";
+import { ContributorOfTheMonth } from './contributor-of-the-month';
+import { useMonthlyContributorRankings } from '@/hooks/use-monthly-contributor-rankings';
+import { ContributorRanking, MonthlyContributor } from '@/lib/types';
+import { useParams } from 'react-router-dom';
 
 export default function ContributorOfTheMonthWrapper() {
   const { owner = '', repo = '' } = useParams<{ owner: string; repo: string }>();
@@ -19,7 +19,7 @@ export default function ContributorOfTheMonthWrapper() {
   const now = new Date();
   const dayOfMonth = now.getDate();
   const isWinnerPhase = dayOfMonth >= 1 && dayOfMonth <= 7;
-  
+
   // Transform the data to match the expected format
   const monthlyContributors: MonthlyContributor[] = rankings.map((ranking) => ({
     login: ranking.username,
@@ -43,9 +43,5 @@ export default function ContributorOfTheMonthWrapper() {
     phase: isWinnerPhase ? 'winner_announcement' : 'running_leaderboard',
   };
 
-  return (
-    <ContributorOfTheMonth 
-      ranking={contributorRanking} 
-    />
-  );
+  return <ContributorOfTheMonth ranking={contributorRanking} />;
 }

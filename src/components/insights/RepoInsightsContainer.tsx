@@ -1,15 +1,12 @@
-import { useState } from "react";
-import { PullRequestInsights } from "./PullRequestInsights";
+import { useState } from 'react';
+import { PullRequestInsights } from './PullRequestInsights';
 
 interface RepoInsightsContainerProps {
   owner: string;
   repo: string;
 }
 
-export function RepoInsightsContainer({
-  owner,
-  repo,
-}: RepoInsightsContainerProps) {
+export function RepoInsightsContainer({ owner, repo }: RepoInsightsContainerProps) {
   const [dateRange] = useState<{
     startDate?: Date;
     endDate?: Date;

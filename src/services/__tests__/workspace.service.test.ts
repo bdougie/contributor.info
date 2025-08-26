@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import type {
   CreateWorkspaceRequest,
   UpdateWorkspaceRequest,
-  AddRepositoryRequest
+  AddRepositoryRequest,
 } from '@/types/workspace';
 
 // Mock types for Supabase query builder
@@ -33,8 +33,8 @@ interface MockQueryBuilder {
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     from: vi.fn(),
-    rpc: vi.fn()
-  }
+    rpc: vi.fn(),
+  },
 }));
 
 describe('WorkspaceService', () => {
@@ -51,12 +51,12 @@ describe('WorkspaceService', () => {
     const mockWorkspaceData: CreateWorkspaceRequest = {
       name: 'Test Workspace',
       description: 'Test Description',
-      visibility: 'public'
+      visibility: 'public',
     };
 
     it('should create a workspace successfully with free tier limits', async () => {
       let callCount = 0;
-      
+
       // Setup mocks
       vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'workspaces' && callCount === 0) {
@@ -66,9 +66,9 @@ describe('WorkspaceService', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockResolvedValue({
                 count: 0,
-                error: null
-              })
-            })
+                error: null,
+              }),
+            }),
           } as MockQueryBuilder;
         }
         if (table === 'subscriptions') {
@@ -79,11 +79,11 @@ describe('WorkspaceService', () => {
                 eq: vi.fn().mockReturnValue({
                   maybeSingle: vi.fn().mockResolvedValue({
                     data: null,
-                    error: null
-                  })
-                })
-              })
-            })
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
           } as MockQueryBuilder;
         }
         if (table === 'workspaces' && callCount === 1) {
@@ -98,20 +98,20 @@ describe('WorkspaceService', () => {
                     name: 'Test Workspace',
                     tier: 'free',
                     max_repositories: 4,
-                    current_repository_count: 0
+                    current_repository_count: 0,
                   },
-                  error: null
-                })
-              })
-            })
+                  error: null,
+                }),
+              }),
+            }),
           } as MockQueryBuilder;
         }
         if (table === 'workspace_members') {
           // Mock member creation
           return {
             insert: vi.fn().mockResolvedValue({
-              error: null
-            })
+              error: null,
+            }),
           } as MockQueryBuilder;
         }
         return {} as MockQueryBuilder;
@@ -120,7 +120,7 @@ describe('WorkspaceService', () => {
       // Mock slug generation
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: 'test-workspace',
-        error: null
+        error: null,
       });
 
       // Execute
@@ -140,9 +140,9 @@ describe('WorkspaceService', () => {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
             count: 0,
-            error: null
-          })
-        })
+            error: null,
+          }),
+        }),
       });
 
       // Mock pro subscription
@@ -154,19 +154,19 @@ describe('WorkspaceService', () => {
                 data: {
                   tier: 'pro',
                   max_workspaces: 5,
-                  max_repos_per_workspace: 10
+                  max_repos_per_workspace: 10,
                 },
-                error: null
-              })
-            })
-          })
-        })
+                error: null,
+              }),
+            }),
+          }),
+        }),
       });
 
       // Mock slug generation
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: 'test-workspace',
-        error: null
+        error: null,
       });
 
       // Mock workspace creation with pro tier
@@ -180,12 +180,12 @@ describe('WorkspaceService', () => {
                 tier: 'pro',
                 max_repositories: 10,
                 current_repository_count: 0,
-                data_retention_days: 90
+                data_retention_days: 90,
               },
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       });
 
       // Setup mocks
@@ -203,7 +203,7 @@ describe('WorkspaceService', () => {
         }
         if (table === 'workspace_members') {
           return {
-            insert: vi.fn().mockResolvedValue({ _error: null })
+            insert: vi.fn().mockResolvedValue({ _error: null }),
           } as MockQueryBuilder;
         }
         return {} as MockQueryBuilder;
@@ -221,7 +221,7 @@ describe('WorkspaceService', () => {
 
     it('should reject workspace creation when limit is reached', async () => {
       let callCount = 0;
-      
+
       // Setup mocks
       vi.mocked(supabase.from).mockImplementation((table: string) => {
         if (table === 'workspaces' && callCount === 0) {
@@ -231,9 +231,9 @@ describe('WorkspaceService', () => {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockResolvedValue({
                 count: 1, // At free tier limit
-                error: null
-              })
-            })
+                error: null,
+              }),
+            }),
           } as MockQueryBuilder;
         }
         if (table === 'subscriptions') {
@@ -244,11 +244,11 @@ describe('WorkspaceService', () => {
                 eq: vi.fn().mockReturnValue({
                   maybeSingle: vi.fn().mockResolvedValue({
                     data: null,
-                    error: null
-                  })
-                })
-              })
-            })
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
           } as MockQueryBuilder;
         }
         return {} as MockQueryBuilder;
@@ -267,7 +267,7 @@ describe('WorkspaceService', () => {
       const invalidData: CreateWorkspaceRequest = {
         name: '', // Invalid: empty name
         description: 'Test',
-        visibility: 'public'
+        visibility: 'public',
       };
 
       // Execute
@@ -287,7 +287,7 @@ describe('WorkspaceService', () => {
       repository_id: 'repo-123',
       notes: 'Test repository',
       tags: ['test'],
-      is_pinned: false
+      is_pinned: false,
     };
 
     it('should add repository when under limit', async () => {
@@ -295,7 +295,7 @@ describe('WorkspaceService', () => {
       const permissionCheckSpy = vi.spyOn(WorkspaceService, 'checkPermission');
       permissionCheckSpy.mockResolvedValue({
         hasPermission: true,
-        role: 'owner'
+        role: 'owner',
       });
 
       // Mock existing repo check
@@ -305,11 +305,11 @@ describe('WorkspaceService', () => {
             eq: vi.fn().mockReturnValue({
               maybeSingle: vi.fn().mockResolvedValue({
                 data: null, // No existing repo
-                error: null
-              })
-            })
-          })
-        })
+                error: null,
+              }),
+            }),
+          }),
+        }),
       };
 
       // Mock workspace limit check
@@ -319,12 +319,12 @@ describe('WorkspaceService', () => {
             maybeSingle: vi.fn().mockResolvedValue({
               data: {
                 max_repositories: 4,
-                current_repository_count: 2 // Under limit
+                current_repository_count: 2, // Under limit
               },
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       };
 
       // Mock add repository
@@ -335,21 +335,21 @@ describe('WorkspaceService', () => {
               data: {
                 id: 'workspace-repo-123',
                 workspace_id: mockWorkspaceId,
-                repository_id: mockRepoData.repository_id
+                repository_id: mockRepoData.repository_id,
               },
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       };
 
       // Mock update workspace count
       const updateMock = {
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
-            error: null
-          })
-        })
+            error: null,
+          }),
+        }),
       };
 
       // Setup mocks
@@ -376,7 +376,7 @@ describe('WorkspaceService', () => {
       const result = await WorkspaceService.addRepositoryToWorkspace(
         mockWorkspaceId,
         mockUserId,
-        mockRepoData
+        mockRepoData,
       );
 
       // Assert
@@ -390,7 +390,7 @@ describe('WorkspaceService', () => {
       const permissionCheckSpy = vi.spyOn(WorkspaceService, 'checkPermission');
       permissionCheckSpy.mockResolvedValue({
         hasPermission: true,
-        role: 'owner'
+        role: 'owner',
       });
 
       // Mock existing repo check
@@ -400,11 +400,11 @@ describe('WorkspaceService', () => {
             eq: vi.fn().mockReturnValue({
               maybeSingle: vi.fn().mockResolvedValue({
                 data: null,
-                error: null
-              })
-            })
-          })
-        })
+                error: null,
+              }),
+            }),
+          }),
+        }),
       });
 
       // Mock workspace at limit
@@ -414,19 +414,19 @@ describe('WorkspaceService', () => {
             maybeSingle: vi.fn().mockResolvedValue({
               data: {
                 max_repositories: 4,
-                current_repository_count: 4 // At limit
+                current_repository_count: 4, // At limit
               },
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       });
 
       // Execute
       const result = await WorkspaceService.addRepositoryToWorkspace(
         mockWorkspaceId,
         mockUserId,
-        mockRepoData
+        mockRepoData,
       );
 
       // Assert
@@ -440,7 +440,7 @@ describe('WorkspaceService', () => {
       const permissionCheckSpy = vi.spyOn(WorkspaceService, 'checkPermission');
       permissionCheckSpy.mockResolvedValue({
         hasPermission: true,
-        role: 'owner'
+        role: 'owner',
       });
 
       // Mock existing repo found
@@ -450,18 +450,18 @@ describe('WorkspaceService', () => {
             eq: vi.fn().mockReturnValue({
               maybeSingle: vi.fn().mockResolvedValue({
                 data: { id: 'existing-repo' }, // Repository exists
-                error: null
-              })
-            })
-          })
-        })
+                error: null,
+              }),
+            }),
+          }),
+        }),
       });
 
       // Execute
       const result = await WorkspaceService.addRepositoryToWorkspace(
         mockWorkspaceId,
         mockUserId,
-        mockRepoData
+        mockRepoData,
       );
 
       // Assert
@@ -474,14 +474,14 @@ describe('WorkspaceService', () => {
       // Mock permission check - no permission
       const permissionCheckSpy = vi.spyOn(WorkspaceService, 'checkPermission');
       permissionCheckSpy.mockResolvedValue({
-        hasPermission: false
+        hasPermission: false,
       });
 
       // Execute
       const result = await WorkspaceService.addRepositoryToWorkspace(
         mockWorkspaceId,
         mockUserId,
-        mockRepoData
+        mockRepoData,
       );
 
       // Assert
@@ -496,7 +496,7 @@ describe('WorkspaceService', () => {
     const mockUserId = 'user-123';
     const updateData: UpdateWorkspaceRequest = {
       name: 'Updated Name',
-      description: 'Updated Description'
+      description: 'Updated Description',
     };
 
     it('should update workspace successfully', async () => {
@@ -507,11 +507,11 @@ describe('WorkspaceService', () => {
             eq: vi.fn().mockReturnValue({
               maybeSingle: vi.fn().mockResolvedValue({
                 data: { role: 'owner' },
-                error: null
-              })
-            })
-          })
-        })
+                error: null,
+              }),
+            }),
+          }),
+        }),
       });
 
       // Mock update
@@ -523,20 +523,20 @@ describe('WorkspaceService', () => {
                 data: {
                   id: mockWorkspaceId,
                   name: 'Updated Name',
-                  description: 'Updated Description'
+                  description: 'Updated Description',
                 },
-                error: null
-              })
-            })
-          })
-        })
+                error: null,
+              }),
+            }),
+          }),
+        }),
       });
 
       // Execute
       const result = await WorkspaceService.updateWorkspace(
         mockWorkspaceId,
         mockUserId,
-        updateData
+        updateData,
       );
 
       // Assert
@@ -553,18 +553,18 @@ describe('WorkspaceService', () => {
             eq: vi.fn().mockReturnValue({
               maybeSingle: vi.fn().mockResolvedValue({
                 data: { role: 'viewer' },
-                error: null
-              })
-            })
-          })
-        })
+                error: null,
+              }),
+            }),
+          }),
+        }),
       });
 
       // Execute
       const result = await WorkspaceService.updateWorkspace(
         mockWorkspaceId,
         mockUserId,
-        updateData
+        updateData,
       );
 
       // Assert
@@ -584,7 +584,7 @@ describe('WorkspaceService', () => {
       const permissionCheckSpy = vi.spyOn(WorkspaceService, 'checkPermission');
       permissionCheckSpy.mockResolvedValue({
         hasPermission: true,
-        role: 'owner'
+        role: 'owner',
       });
 
       // Mock delete repository
@@ -592,10 +592,10 @@ describe('WorkspaceService', () => {
         delete: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       });
 
       // Mock get current count
@@ -604,26 +604,26 @@ describe('WorkspaceService', () => {
           eq: vi.fn().mockReturnValue({
             maybeSingle: vi.fn().mockResolvedValue({
               data: { current_repository_count: 3 },
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       });
 
       // Mock update count
       vi.mocked(supabase.from).mockReturnValueOnce({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
-            error: null
-          })
-        })
+            error: null,
+          }),
+        }),
       });
 
       // Execute
       const result = await WorkspaceService.removeRepositoryFromWorkspace(
         mockWorkspaceId,
         mockRepositoryId,
-        mockUserId
+        mockUserId,
       );
 
       // Assert

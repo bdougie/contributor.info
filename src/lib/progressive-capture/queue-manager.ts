@@ -4,7 +4,16 @@ import { env } from '../env';
 
 export interface DataCaptureJob {
   id: string;
-  type: 'pr_details' | 'reviews' | 'comments' | 'commits' | 'recent_prs' | 'commit_pr_check' | 'ai_summary' | 'issues' | 'workspace_issues';
+  type:
+    | 'pr_details'
+    | 'reviews'
+    | 'comments'
+    | 'commits'
+    | 'recent_prs'
+    | 'commit_pr_check'
+    | 'ai_summary'
+    | 'issues'
+    | 'workspace_issues';
   priority: 'critical' | 'high' | 'medium' | 'low';
   repository_id: string;
   resource_id?: string; // PR number, commit SHA, issue number, etc.
@@ -29,11 +38,16 @@ export class DataCaptureQueueManager {
    */
   private getPriorityReason(priority: 'critical' | 'high' | 'medium' | 'low'): string {
     switch (priority) {
-      case 'critical': return 'popular_repo_stale_data';
-      case 'high': return 'regular_repo_stale_data';
-      case 'medium': return 'regular_repo_recent_data';
-      case 'low': return 'popular_repo_recent_data';
-      default: return 'unknown';
+      case 'critical':
+        return 'popular_repo_stale_data';
+      case 'high':
+        return 'regular_repo_stale_data';
+      case 'medium':
+        return 'regular_repo_recent_data';
+      case 'low':
+        return 'popular_repo_recent_data';
+      default:
+        return 'unknown';
     }
   }
 
@@ -47,8 +61,11 @@ export class DataCaptureQueueManager {
   /**
    * Queue jobs to fetch missing file changes for PRs with specific priority
    */
-  async queueMissingFileChangesWithPriority(repositoryId: string, limit: number = 200, priority: 'critical' | 'high' | 'medium' | 'low'): Promise<number> {
-
+  async queueMissingFileChangesWithPriority(
+    repositoryId: string,
+    limit: number = 200,
+    priority: 'critical' | 'high' | 'medium' | 'low',
+  ): Promise<number> {
     // Find PRs with missing file change data
     const { data: prsNeedingUpdate, error: _error } = await supabase
       .from('pull_requests')
@@ -73,27 +90,31 @@ export class DataCaptureQueueManager {
     }
 
     if (env.DEV) {
-      console.log('[Queue] Found %s PRs needing file changes (limit: %s, priority: %s)', prsNeedingUpdate.length, limit, priority);
+      console.log(
+        '[Queue] Found %s PRs needing file changes (limit: %s, priority: %s)',
+        prsNeedingUpdate.length,
+        limit,
+        priority,
+      );
     }
 
     // Queue jobs for each PR
     let queuedCount = 0;
     for (const pr of prsNeedingUpdate) {
       try {
-        const { error: _error: insertError } = await supabase
-          .from('_data_capture_queue')
-          .insert({
-            type: 'pr_details',
-            priority,
-            repository_id: pr.repository_id,
-            resource_id: pr.number.toString(),
-            estimated_api_calls: 1,
-            metadata: { pr_id: pr.id, reason: 'missing_file_changes' }
-          });
+        const { error: insertError } = await supabase.from('_data_capture_queue').insert({
+          type: 'pr_details',
+          priority,
+          repository_id: pr.repository_id,
+          resource_id: pr.number.toString(),
+          estimated_api_calls: 1,
+          metadata: { pr_id: pr.id, reason: 'missing_file_changes' },
+        });
 
         if (!insertError) {
           queuedCount++;
-        } else if (insertError.code !== '23505') { // Ignore duplicate key errors
+        } else if (insertError.code !== '23505') {
+          // Ignore duplicate key errors
           console.warn(`[Queue] Failed to queue PR ${pr.number}:`, insertError);
         }
       } catch (err) {
@@ -101,20 +122,22 @@ export class DataCaptureQueueManager {
       }
     }
 
-    
     // Show UI notification
     if (queuedCount > 0) {
       ProgressiveCaptureNotifications.showJobsQueued(queuedCount, 'file changes');
     }
-    
+
     return queuedCount;
   }
 
   /**
    * Queue jobs to analyze commits for PR associations (smart YOLO analysis)
    */
-  async queueCommitPRAnalysis(repositoryId: string, commitShas: string[], priority: 'high' | 'medium' | 'low' = 'medium'): Promise<number> {
-
+  async queueCommitPRAnalysis(
+    repositoryId: string,
+    commitShas: string[],
+    priority: 'high' | 'medium' | 'low' = 'medium',
+  ): Promise<number> {
     if (!commitShas || commitShas.length === 0) {
       return 0;
     }
@@ -123,24 +146,23 @@ export class DataCaptureQueueManager {
     let queuedCount = 0;
     for (const sha of commitShas) {
       try {
-        const { error: _error } = await supabase
-          .from('_data_capture_queue')
-          .insert({
-            type: 'commit_pr_check',
-            priority,
-            repository_id: repositoryId,
-            resource_id: sha,
-            estimated_api_calls: 1, // 1 call per commit - much more efficient
-            metadata: { 
-              commit_sha: sha, 
-              reason: 'direct_commit_analysis',
-              batch_id: `batch_${Date.now()}`
-            }
-          });
+        const { error: _error } = await supabase.from('_data_capture_queue').insert({
+          type: 'commit_pr_check',
+          priority,
+          repository_id: repositoryId,
+          resource_id: sha,
+          estimated_api_calls: 1, // 1 call per commit - much more efficient
+          metadata: {
+            commit_sha: sha,
+            reason: 'direct_commit_analysis',
+            batch_id: `batch_${Date.now()}`,
+          },
+        });
 
         if (!_error) {
           queuedCount++;
-        } else if (_error.code !== '23505') { // Ignore duplicate key errors
+        } else if (_error.code !== '23505') {
+          // Ignore duplicate key errors
           console.warn(`[Queue] Failed to queue commit ${sha}:`, _error);
         }
       } catch (err) {
@@ -148,12 +170,11 @@ export class DataCaptureQueueManager {
       }
     }
 
-    
     // Show UI notification
     if (queuedCount > 0) {
       ProgressiveCaptureNotifications.showJobsQueued(queuedCount, 'commit analysis');
     }
-    
+
     return queuedCount;
   }
 
@@ -164,7 +185,11 @@ export class DataCaptureQueueManager {
     return this.queueRecentCommitsAnalysisWithPriority(repositoryId, days, 'medium');
   }
 
-  async queueRecentCommitsAnalysisWithPriority(repositoryId: string, days: number = 90, priority: 'critical' | 'high' | 'medium' | 'low'): Promise<number> {
+  async queueRecentCommitsAnalysisWithPriority(
+    repositoryId: string,
+    days: number = 90,
+    priority: 'critical' | 'high' | 'medium' | 'low',
+  ): Promise<number> {
     try {
       // Find commits that need PR analysis (don't have is_direct_commit set)
       const { data: commitsNeedingAnalysis, error: _error } = await supabase
@@ -185,11 +210,11 @@ export class DataCaptureQueueManager {
         return 0;
       }
 
-      const commitShas = commitsNeedingAnalysis.map(c => c.sha);
+      const commitShas = commitsNeedingAnalysis.map((c) => c.sha);
       // Map critical to high for commit analysis (which only supports high/medium/low)
-      const commitPriority = priority === 'critical' ? 'high' : priority as 'high' | 'medium' | 'low';
+      const commitPriority =
+        priority === 'critical' ? 'high' : (priority as 'high' | 'medium' | 'low');
       return await this.queueCommitPRAnalysis(repositoryId, commitShas, commitPriority);
-
     } catch (_error) {
       console.error('[Queue] Error queuing recent commits analysis:', _error);
       return 0;
@@ -206,26 +231,32 @@ export class DataCaptureQueueManager {
   /**
    * Queue jobs to fetch recent PRs with specific priority
    */
-  async queueRecentPRsWithPriority(repositoryId: string, priority: 'critical' | 'high' | 'medium' | 'low'): Promise<boolean> {
+  async queueRecentPRsWithPriority(
+    repositoryId: string,
+    priority: 'critical' | 'high' | 'medium' | 'low',
+  ): Promise<boolean> {
     try {
-      const { error: _error } = await supabase
-        .from('_data_capture_queue')
-        .insert({
-          type: 'recent_prs',
-          priority,
-          repository_id: repositoryId,
-          estimated_api_calls: 10, // Estimate for fetching recent PRs
-          metadata: { reason: 'stale_data', days: 7, priority_reason: this.getPriorityReason(priority) }
-        });
+      const { error: _error } = await supabase.from('_data_capture_queue').insert({
+        type: 'recent_prs',
+        priority,
+        repository_id: repositoryId,
+        estimated_api_calls: 10, // Estimate for fetching recent PRs
+        metadata: {
+          reason: 'stale_data',
+          days: 7,
+          priority_reason: this.getPriorityReason(priority),
+        },
+      });
 
-      if (error && _error.code !== '23505') { // Ignore duplicate key errors
+      if (error && _error.code !== '23505') {
+        // Ignore duplicate key errors
         console.error('[Queue] Error queuing recent PRs:', _error);
         return false;
       }
 
       // Show UI notification
       ProgressiveCaptureNotifications.showJobsQueued(1, 'recent PRs');
-      
+
       return true;
     } catch (err) {
       console.error('[Queue] Error queuing recent PRs:', err);
@@ -263,7 +294,7 @@ export class DataCaptureQueueManager {
       .update({
         status: 'processing',
         started_at: new Date().toISOString(),
-        attempts: supabase.rpc('increment_attempts', { job_id: jobId })
+        attempts: supabase.rpc('increment_attempts', { job_id: jobId }),
       })
       .eq('id', jobId);
 
@@ -278,7 +309,7 @@ export class DataCaptureQueueManager {
       .from('_data_capture_queue')
       .update({
         status: 'completed',
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
       })
       .eq('id', jobId);
 
@@ -290,7 +321,7 @@ export class DataCaptureQueueManager {
    */
   async markJobFailed(jobId: string, _errorMessage: string): Promise<boolean> {
     // Get current job data
-    const { data: job, error: _error: fetchError } = await supabase
+    const { data: job, error: fetchError } = await supabase
       .from('_data_capture_queue')
       .select('attempts, max_attempts')
       .eq('id', jobId)
@@ -301,7 +332,7 @@ export class DataCaptureQueueManager {
     }
 
     const shouldRetry = job.attempts < job.max_attempts;
-    const nextRetryAt = shouldRetry 
+    const nextRetryAt = shouldRetry
       ? new Date(Date.now() + Math.pow(2, job.attempts) * 60 * 1000) // Exponential backoff
       : null;
 
@@ -310,7 +341,7 @@ export class DataCaptureQueueManager {
       .update({
         status: shouldRetry ? 'pending' : 'failed',
         last_error: errorMessage,
-        next_retry_at: nextRetryAt?.toISOString()
+        next_retry_at: nextRetryAt?.toISOString(),
       })
       .eq('id', jobId);
 
@@ -336,14 +367,17 @@ export class DataCaptureQueueManager {
       return { pending: 0, processing: 0, completed: 0, failed: 0, total: 0 };
     }
 
-    const stats = data.reduce((acc, job) => {
-      const status = job.status as keyof typeof acc;
-      if (status !== 'total' && status in acc) {
-        acc[status]++;
-      }
-      acc.total++;
-      return acc;
-    }, { pending: 0, processing: 0, completed: 0, failed: 0, total: 0 });
+    const stats = data.reduce(
+      (acc, job) => {
+        const status = job.status as keyof typeof acc;
+        if (status !== 'total' && status in acc) {
+          acc[status]++;
+        }
+        acc.total++;
+        return acc;
+      },
+      { pending: 0, processing: 0, completed: 0, failed: 0, total: 0 },
+    );
 
     return stats;
   }
@@ -367,7 +401,10 @@ export class DataCaptureQueueManager {
         // If rate limit tracking fails (permissions, etc), allow operations
         // This prevents blocking the queue when rate limit tracking has issues
         if (env.DEV) {
-          console.warn('[Queue] Rate limit tracking unavailable, allowing operations:', _error.code);
+          console.warn(
+            '[Queue] Rate limit tracking unavailable, allowing operations:',
+            _error.code,
+          );
         }
         return true; // Permissive approach when tracking is unavailable
       }
@@ -376,8 +413,8 @@ export class DataCaptureQueueManager {
       const callsRemaining = data?.calls_remaining || this.MAX_HOURLY_CALLS;
 
       // Check if we have enough calls remaining (with buffer)
-      const safeToMake = callsRemaining >= (estimatedCalls + this.RATE_LIMIT_BUFFER);
-      const withinHourlyLimit = (callsMade + estimatedCalls) <= this.MAX_HOURLY_CALLS;
+      const safeToMake = callsRemaining >= estimatedCalls + this.RATE_LIMIT_BUFFER;
+      const withinHourlyLimit = callsMade + estimatedCalls <= this.MAX_HOURLY_CALLS;
 
       return safeToMake && withinHourlyLimit;
     } catch (err) {
@@ -397,16 +434,17 @@ export class DataCaptureQueueManager {
     hourBucket.setMinutes(0, 0, 0);
 
     try {
-      const { error: _error } = await supabase
-        .from('rate_limit_tracking')
-        .upsert({
+      const { error: _error } = await supabase.from('rate_limit_tracking').upsert(
+        {
           hour_bucket: hourBucket.toISOString(),
           calls_made: callsMade,
           calls_remaining: callsRemaining,
-          reset_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 1 hour from now
-        }, {
-          onConflict: 'hour_bucket'
-        });
+          reset_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour from now
+        },
+        {
+          onConflict: 'hour_bucket',
+        },
+      );
 
       if (_error) {
         // Silently fail rate limit tracking updates - they're not critical for functionality
@@ -432,30 +470,34 @@ export class DataCaptureQueueManager {
   /**
    * Queue jobs to fetch reviews for PRs with specific priority
    */
-  async queueMissingReviewsWithPriority(repositoryId: string, limit: number = 200, priority: 'critical' | 'high' | 'medium' | 'low'): Promise<number> {
+  async queueMissingReviewsWithPriority(
+    repositoryId: string,
+    limit: number = 200,
+    priority: 'critical' | 'high' | 'medium' | 'low',
+  ): Promise<number> {
     // First, get PRs that already have reviews
-    const { data: prsWithReviews } = await supabase
-      .from('reviews')
-      .select('pull_request_id');
+    const { data: prsWithReviews } = await supabase.from('reviews').select('pull_request_id');
 
-    const existingPrIds = prsWithReviews?.map(r => r.pull_request_id) || [];
+    const existingPrIds = prsWithReviews?.map((r) => r.pull_request_id) || [];
 
     // Find PRs without reviews
     let query = supabase
       .from('pull_requests')
-      .select(`
+      .select(
+        `
         id,
         number,
         repository_id,
         github_id
-      `)
+      `,
+      )
       .eq('repository_id', repositoryId)
       .order('created_at', { ascending: false })
       .limit(limit);
 
     // Only add the not.in filter if we have existing IDs
     if (existingPrIds.length > 0) {
-      query = query.not('id', 'in', `(${existingPrIds.map(id => `'${id}'`).join(',')})`);
+      query = query.not('id', 'in', `(${existingPrIds.map((id) => `'${id}'`).join(',')})`);
     }
 
     const { data: prsNeedingReviews, error: _error } = await query;
@@ -473,27 +515,31 @@ export class DataCaptureQueueManager {
     }
 
     if (env.DEV) {
-      console.log('[Queue] Found %s PRs needing reviews (limit: %s, priority: %s)', prsNeedingReviews.length, limit, priority);
+      console.log(
+        '[Queue] Found %s PRs needing reviews (limit: %s, priority: %s)',
+        prsNeedingReviews.length,
+        limit,
+        priority,
+      );
     }
 
     // Queue jobs for each PR
     let queuedCount = 0;
     for (const pr of prsNeedingReviews) {
       try {
-        const { error: _error: insertError } = await supabase
-          .from('_data_capture_queue')
-          .insert({
-            type: 'reviews',
-            priority,
-            repository_id: pr.repository_id,
-            resource_id: pr.number.toString(),
-            estimated_api_calls: 1,
-            metadata: { pr_id: pr.id, pr_github_id: pr.github_id }
-          });
+        const { error: insertError } = await supabase.from('_data_capture_queue').insert({
+          type: 'reviews',
+          priority,
+          repository_id: pr.repository_id,
+          resource_id: pr.number.toString(),
+          estimated_api_calls: 1,
+          metadata: { pr_id: pr.id, pr_github_id: pr.github_id },
+        });
 
         if (!insertError) {
           queuedCount++;
-        } else if (insertError.code !== '23505') { // Ignore duplicate key errors
+        } else if (insertError.code !== '23505') {
+          // Ignore duplicate key errors
           console.warn(`[Queue] Failed to queue reviews for PR ${pr.number}:`, insertError);
         }
       } catch (err) {
@@ -501,12 +547,11 @@ export class DataCaptureQueueManager {
       }
     }
 
-    
     // Show UI notification
     if (queuedCount > 0) {
       ProgressiveCaptureNotifications.showJobsQueued(queuedCount, 'reviews');
     }
-    
+
     return queuedCount;
   }
 
@@ -515,28 +560,28 @@ export class DataCaptureQueueManager {
    */
   async queueMissingComments(repositoryId: string, limit: number = 200): Promise<number> {
     // First, get PRs that already have comments
-    const { data: prsWithComments } = await supabase
-      .from('comments')
-      .select('pull_request_id');
+    const { data: prsWithComments } = await supabase.from('comments').select('pull_request_id');
 
-    const existingPrIds = prsWithComments?.map(c => c.pull_request_id) || [];
+    const existingPrIds = prsWithComments?.map((c) => c.pull_request_id) || [];
 
     // Find PRs without comments
     let query = supabase
       .from('pull_requests')
-      .select(`
+      .select(
+        `
         id,
         number,
         repository_id,
         github_id
-      `)
+      `,
+      )
       .eq('repository_id', repositoryId)
       .order('created_at', { ascending: false })
       .limit(limit);
 
     // Only add the not.in filter if we have existing IDs
     if (existingPrIds.length > 0) {
-      query = query.not('id', 'in', `(${existingPrIds.map(id => `'${id}'`).join(',')})`);
+      query = query.not('id', 'in', `(${existingPrIds.map((id) => `'${id}'`).join(',')})`);
     }
 
     const { data: prsNeedingComments, error: _error } = await query;
@@ -554,27 +599,30 @@ export class DataCaptureQueueManager {
     }
 
     if (env.DEV) {
-      console.log('[Queue] Found %s PRs needing comments (limit: %s)', prsNeedingComments.length, limit);
+      console.log(
+        '[Queue] Found %s PRs needing comments (limit: %s)',
+        prsNeedingComments.length,
+        limit,
+      );
     }
 
     // Queue jobs for each PR
     let queuedCount = 0;
     for (const pr of prsNeedingComments) {
       try {
-        const { error: _error: insertError } = await supabase
-          .from('_data_capture_queue')
-          .insert({
-            type: 'comments',
-            priority: 'medium',
-            repository_id: pr.repository_id,
-            resource_id: pr.number.toString(),
-            estimated_api_calls: 2, // PR comments + issue comments
-            metadata: { pr_id: pr.id, pr_github_id: pr.github_id }
-          });
+        const { error: insertError } = await supabase.from('_data_capture_queue').insert({
+          type: 'comments',
+          priority: 'medium',
+          repository_id: pr.repository_id,
+          resource_id: pr.number.toString(),
+          estimated_api_calls: 2, // PR comments + issue comments
+          metadata: { pr_id: pr.id, pr_github_id: pr.github_id },
+        });
 
         if (!insertError) {
           queuedCount++;
-        } else if (insertError.code !== '23505') { // Ignore duplicate key errors
+        } else if (insertError.code !== '23505') {
+          // Ignore duplicate key errors
           console.warn(`[Queue] Failed to queue comments for PR ${pr.number}:`, insertError);
         }
       } catch (err) {
@@ -582,12 +630,11 @@ export class DataCaptureQueueManager {
       }
     }
 
-    
     // Show UI notification
     if (queuedCount > 0) {
       ProgressiveCaptureNotifications.showJobsQueued(queuedCount, 'comments');
     }
-    
+
     return queuedCount;
   }
 
@@ -597,10 +644,11 @@ export class DataCaptureQueueManager {
    */
   async queueWorkspaceIssues(workspaceId?: string, hoursBack: number = 24): Promise<number> {
     // Get workspace repositories that need issue syncing
-    const query = workspaceId 
+    const query = workspaceId
       ? supabase
           .from('workspace_tracked_repositories')
-          .select(`
+          .select(
+            `
             workspace_id,
             tracked_repository_id,
             priority_score,
@@ -613,14 +661,16 @@ export class DataCaptureQueueManager {
                 name
               )
             )
-          `)
+          `,
+          )
           .eq('workspace_id', workspaceId)
           .eq('is_active', true)
           .eq('fetch_issues', true)
           .lte('next_sync_at', new Date().toISOString())
       : supabase
           .from('workspace_tracked_repositories')
-          .select(`
+          .select(
+            `
             workspace_id,
             tracked_repository_id,
             priority_score,
@@ -633,7 +683,8 @@ export class DataCaptureQueueManager {
                 name
               )
             )
-          `)
+          `,
+          )
           .eq('is_active', true)
           .eq('fetch_issues', true)
           .lte('next_sync_at', new Date().toISOString())
@@ -665,43 +716,43 @@ export class DataCaptureQueueManager {
         // Access nested data - handle both object and array cases
         const trackedRepo = (repo as Record<string, unknown>).tracked_repositories;
         if (!trackedRepo) continue;
-        
+
         // Get the repositories data (handle both array and object)
-        const repositories = Array.isArray(trackedRepo) 
-          ? trackedRepo[0]?.repositories 
+        const repositories = Array.isArray(trackedRepo)
+          ? trackedRepo[0]?.repositories
           : (trackedRepo as Record<string, unknown>).repositories;
-          
+
         const repoData = Array.isArray(repositories) ? repositories[0] : repositories;
-        
+
         if (!repoData || typeof repoData !== 'object') continue;
-        
+
         // Extract repository fields
         const repoInfo = repoData as Record<string, unknown>;
         const repositoryId = repoInfo.id as string;
         const fullName = repoInfo.full_name as string;
-        
+
         if (!repositoryId || !fullName) continue;
 
-        const { error: _error: insertError } = await supabase
-          .from('_data_capture_queue')
-          .insert({
-            type: 'workspace_issues',
-            priority: repo.priority_score >= 70 ? 'high' : repo.priority_score >= 50 ? 'medium' : 'low',
-            repository_id: repositoryId,
-            resource_id: `${hoursBack}h`,
-            estimated_api_calls: 5, // Estimate for issues in time window
-            metadata: { 
-              workspace_id: repo.workspace_id,
-              tracked_repository_id: repo.tracked_repository_id,
-              repository_name: fullName,
-              hours_back: hoursBack,
-              reason: 'workspace_sync'
-            }
-          });
+        const { error: insertError } = await supabase.from('_data_capture_queue').insert({
+          type: 'workspace_issues',
+          priority:
+            repo.priority_score >= 70 ? 'high' : repo.priority_score >= 50 ? 'medium' : 'low',
+          repository_id: repositoryId,
+          resource_id: `${hoursBack}h`,
+          estimated_api_calls: 5, // Estimate for issues in time window
+          metadata: {
+            workspace_id: repo.workspace_id,
+            tracked_repository_id: repo.tracked_repository_id,
+            repository_name: fullName,
+            hours_back: hoursBack,
+            reason: 'workspace_sync',
+          },
+        });
 
         if (!insertError) {
           queuedCount++;
-        } else if (insertError.code !== '23505') { // Ignore duplicate key errors
+        } else if (insertError.code !== '23505') {
+          // Ignore duplicate key errors
           console.warn(`[Queue] Failed to queue issues for ${fullName}:`, insertError);
         }
       } catch (err) {

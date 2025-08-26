@@ -142,7 +142,7 @@ export function MaintainerManagement() {
       setLoading(true);
       setError(null);
       
-      const { data, error: _error: fetchError } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('contributor_roles')
         .select('*')
         .order('confidence_score', { ascending: false });
@@ -176,7 +176,7 @@ export function MaintainerManagement() {
 
     try {
       // Call the database function
-      const { error: _error: updateError } = await supabase.rpc('override_contributor_role', {
+      const { error: updateError } = await supabase.rpc('override_contributor_role', {
         p_user_id: contributor.user_id,
         p_repository_owner: contributor.repository_owner,
         p_repository_name: contributor.repository_name,
@@ -219,7 +219,7 @@ export function MaintainerManagement() {
     if (!adminGitHubId) return;
 
     try {
-      const { error: _error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('contributor_roles')
         .update({ 
           locked: !contributor.locked,

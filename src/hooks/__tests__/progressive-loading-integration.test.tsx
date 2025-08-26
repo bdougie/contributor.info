@@ -34,16 +34,18 @@ let observerInstance: {
   takeRecords: ReturnType<typeof vi.fn>;
 };
 
-const mockIntersectionObserver = vi.fn().mockImplementation((callback: IntersectionObserverCallback) => {
-  intersectionCallback = callback;
-  observerInstance = {
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-    takeRecords: vi.fn(() => []),
-  };
-  return observerInstance;
-});
+const mockIntersectionObserver = vi
+  .fn()
+  .mockImplementation((callback: IntersectionObserverCallback) => {
+    intersectionCallback = callback;
+    observerInstance = {
+      observe: vi.fn(),
+      unobserve: vi.fn(),
+      disconnect: vi.fn(),
+      takeRecords: vi.fn(() => []),
+    };
+    return observerInstance;
+  });
 
 const simulateIntersection = (isIntersecting: boolean) => {
   if (intersectionCallback) {
@@ -51,12 +53,14 @@ const simulateIntersection = (isIntersecting: boolean) => {
       isIntersecting,
       intersectionRatio: isIntersecting ? 1 : 0,
       boundingClientRect: { top: 0, left: 0, bottom: 100, right: 100, width: 100, height: 100 },
-      intersectionRect: isIntersecting ? { top: 0, left: 0, bottom: 100, right: 100, width: 100, height: 100 } : { top: 0, left: 0, bottom: 0, right: 0, width: 0, height: 0 },
+      intersectionRect: isIntersecting
+        ? { top: 0, left: 0, bottom: 100, right: 100, width: 100, height: 100 }
+        : { top: 0, left: 0, bottom: 0, right: 0, width: 0, height: 0 },
       rootBounds: { top: 0, left: 0, bottom: 1000, right: 1000, width: 1000, height: 1000 },
       target: document.createElement('div'),
       time: Date.now(),
     } as IntersectionObserverEntry;
-    
+
     intersectionCallback([mockEntry], observerInstance as any);
   }
 };
@@ -85,7 +89,7 @@ const mockPRData = [
   },
   {
     id: 2,
-    title: 'Test PR 2', 
+    title: 'Test PR 2',
     user: { login: 'user2', avatar_url: 'avatar2.jpg' },
     state: 'open',
   },
@@ -105,34 +109,38 @@ const mockLotteryFactor = {
 // Test component that combines both hooks
 function ProgressiveRepositoryView({ owner, repo }: { owner: string; repo: string }) {
   const progressiveData = useProgressiveRepoData(owner, repo, '90d', false);
-  
+
   const criticalReady = useDataStageReady(progressiveData, 'critical');
   const fullReady = useDataStageReady(progressiveData, 'full');
   const enhancementReady = useDataStageReady(progressiveData, 'enhancement');
   const complete = useDataStageReady(progressiveData, 'complete');
 
-  const { ref: enhancementRef, data: enhancementData, isLoading: enhancementLoading } = useIntersectionLoader(
+  const {
+    ref: enhancementRef,
+    data: enhancementData,
+    isLoading: enhancementLoading,
+  } = useIntersectionLoader(
     async () => {
       // Simulate loading additional enhancement data when scrolled into view
       // Using fake timers, so we need to control the promise resolution
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         setTimeout(() => resolve({ additionalMetrics: 'loaded via intersection' }), 100);
       });
     },
-    { rootMargin: '100px' }
+    { rootMargin: '100px' },
   );
 
   return (
     <div data-testid="progressive-repo-view">
       <div data-testid="loading-stage">{progressiveData.currentStage}</div>
-      
+
       {criticalReady && (
         <div data-testid="critical-data">
           <div data-testid="pr-count">{progressiveData.basicInfo?.prCount}</div>
           <div data-testid="contributor-count">{progressiveData.basicInfo?.contributorCount}</div>
         </div>
       )}
-      
+
       {fullReady && (
         <div data-testid="full-data">
           <div data-testid="pull-requests">{progressiveData.stats.pullRequests.length}</div>
@@ -141,7 +149,7 @@ function ProgressiveRepositoryView({ owner, repo }: { owner: string; repo: strin
           )}
         </div>
       )}
-      
+
       {enhancementReady && (
         <div data-testid="enhancement-data">
           {progressiveData.directCommitsData && (
@@ -149,21 +157,23 @@ function ProgressiveRepositoryView({ owner, repo }: { owner: string; repo: strin
           )}
         </div>
       )}
-      
+
       <div ref={enhancementRef} data-testid="intersection-trigger">
-        {enhancementLoading && <div data-testid="intersection-loading">Loading additional data...</div>}
+        {enhancementLoading && (
+          <div data-testid="intersection-loading">Loading additional data...</div>
+        )}
         {enhancementData && (
           <div data-testid="intersection-data">{enhancementData.additionalMetrics}</div>
         )}
       </div>
-      
+
       {complete && <div data-testid="complete-indicator">All data loaded</div>}
     </div>
   );
 }
 
 // Helper for consistent waitFor configuration
-const waitForWithTimeout = (callback: () => void, options = {}) => 
+const waitForWithTimeout = (callback: () => void, options = {}) =>
   waitFor(callback, { timeout: 10000, ...options });
 
 describe('Progressive Loading Integration Tests', () => {
@@ -175,14 +185,14 @@ describe('Progressive Loading Integration Tests', () => {
     vi.clearAllMocks();
     intersectionCallback = undefined as any;
     observerInstance = undefined as any;
-    
+
     // Set up default mock implementations
     fetchPRDataMock.mockResolvedValue({
       data: mockPRData,
       status: 'success',
       message: 'Data loaded successfully',
     });
-    
+
     fetchDirectCommitsMock.mockResolvedValue(mockDirectCommitsData);
     calculateLotteryFactorMock.mockReturnValue(mockLotteryFactor);
   });
@@ -195,7 +205,7 @@ describe('Progressive Loading Integration Tests', () => {
   describe('Full 3-stage progressive loading flow', () => {
     it('should complete all three stages in sequence', { timeout: 15000 }, async () => {
       const { getByTestId } = render(
-        <ProgressiveRepositoryView owner="testowner" repo="testrepo" />
+        <ProgressiveRepositoryView owner="testowner" repo="testrepo" />,
       );
 
       // Initial state
@@ -237,7 +247,7 @@ describe('Progressive Loading Integration Tests', () => {
 
     it('should trigger intersection loader when scrolled into view', async () => {
       const { getByTestId } = render(
-        <ProgressiveRepositoryView owner="testowner" repo="testrepo" />
+        <ProgressiveRepositoryView owner="testowner" repo="testrepo" />,
       );
 
       // Wait for progressive data to load
@@ -250,7 +260,9 @@ describe('Progressive Loading Integration Tests', () => {
 
       // Should show loading state
       await waitFor(() => {
-        expect(getByTestId('intersection-loading')).toHaveTextContent('Loading additional _data...');
+        expect(getByTestId('intersection-loading')).toHaveTextContent(
+          'Loading additional _data...',
+        );
       });
 
       // Should load intersection data
@@ -269,7 +281,7 @@ describe('Progressive Loading Integration Tests', () => {
       });
 
       const { getByTestId, queryByTestId } = render(
-        <ProgressiveRepositoryView owner="testowner" repo="testrepo" />
+        <ProgressiveRepositoryView owner="testowner" repo="testrepo" />,
       );
 
       // Should not progress beyond initial stage
@@ -283,18 +295,20 @@ describe('Progressive Loading Integration Tests', () => {
 
     it('should handle _errors at full stage but continue to enhancement', async () => {
       fetchPRDataMock
-        .mockResolvedValueOnce({ // Critical stage succeeds
+        .mockResolvedValueOnce({
+          // Critical stage succeeds
           data: mockPRData,
           status: 'success',
         })
-        .mockResolvedValueOnce({ // Full stage fails
+        .mockResolvedValueOnce({
+          // Full stage fails
           data: null,
           status: 'error',
           message: 'Database connection failed',
         });
 
       const { getByTestId, queryByTestId } = render(
-        <ProgressiveRepositoryView owner="testowner" repo="testrepo" />
+        <ProgressiveRepositoryView owner="testowner" repo="testrepo" />,
       );
 
       // Should load critical data
@@ -318,7 +332,7 @@ describe('Progressive Loading Integration Tests', () => {
 
     it('should handle intersection loader _errors without affecting progressive _data', async () => {
       const { getByTestId } = render(
-        <ProgressiveRepositoryView owner="testowner" repo="testrepo" />
+        <ProgressiveRepositoryView owner="testowner" repo="testrepo" />,
       );
 
       // Wait for progressive data to complete
@@ -328,7 +342,7 @@ describe('Progressive Loading Integration Tests', () => {
 
       // Mock intersection loader to fail
       vi.mocked(simulateIntersection);
-      
+
       // Even if intersection fails, progressive data should remain intact
       expect(getByTestId('critical-_data')).toBeInTheDocument();
       expect(getByTestId('full-_data')).toBeInTheDocument();
@@ -339,9 +353,9 @@ describe('Progressive Loading Integration Tests', () => {
   describe('Performance and timing', () => {
     it('should load critical data first, then full _data quickly', async () => {
       const startTime = Date.now();
-      
+
       const { getByTestId } = render(
-        <ProgressiveRepositoryView owner="testowner" repo="testrepo" />
+        <ProgressiveRepositoryView owner="testowner" repo="testrepo" />,
       );
 
       // Critical data should load quickly
@@ -373,7 +387,7 @@ describe('Progressive Loading Integration Tests', () => {
   describe('Data stage readiness utilities', () => {
     it('should correctly report stage readiness', async () => {
       const { getByTestId } = render(
-        <ProgressiveRepositoryView owner="testowner" repo="testrepo" />
+        <ProgressiveRepositoryView owner="testowner" repo="testrepo" />,
       );
 
       // Critical stage ready
@@ -414,7 +428,7 @@ describe('Progressive Loading Integration Tests', () => {
       });
 
       const { getByTestId } = render(
-        <ProgressiveRepositoryView owner="large-org" repo="large-repo" />
+        <ProgressiveRepositoryView owner="large-org" repo="large-repo" />,
       );
 
       await waitFor(() => {
@@ -434,9 +448,7 @@ describe('Progressive Loading Integration Tests', () => {
         message: 'No pull requests found',
       });
 
-      const { getByTestId } = render(
-        <ProgressiveRepositoryView owner="empty" repo="repo" />
-      );
+      const { getByTestId } = render(<ProgressiveRepositoryView owner="empty" repo="repo" />);
 
       await waitFor(() => {
         expect(getByTestId('pr-count')).toHaveTextContent('0');

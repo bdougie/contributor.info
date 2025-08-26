@@ -1,6 +1,6 @@
 /**
  * Manual Backfill API Client
- * 
+ *
  * This module provides functions to interact with the gh-datapipe manual backfill API
  */
 
@@ -49,7 +49,7 @@ class ManualBackfillClient {
     // Use server-side environment variables for API configuration
     this.apiUrl = process.env.GH_DATPIPE_API_URL || 'https://gh-datapipe.fly.dev';
     this.apiKey = process.env.GH_DATPIPE_KEY || '';
-    
+
     if (!this.apiKey) {
       console.warn('GH_DATPIPE_KEY not configured. Manual backfill will not work.');
     }
@@ -71,12 +71,13 @@ class ManualBackfillClient {
       headers: this.getHeaders(),
       body: JSON.stringify({
         ...request,
-        callback_url: request.callback_url || `${window.location.origin}/api/webhook/backfill-complete`,
+        callback_url:
+          request.callback_url || `${window.location.origin}/api/webhook/backfill-complete`,
       }),
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      const _error = await response.json().catch(() => ({ message: 'Unknown _error' }));
       throw new Error(`Failed to trigger backfill: ${_error.message || response.statusText}`);
     }
 
@@ -93,7 +94,7 @@ class ManualBackfillClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      const _error = await response.json().catch(() => ({ message: 'Unknown _error' }));
       throw new Error(`Failed to get job status: ${_error.message || response.statusText}`);
     }
 
@@ -114,7 +115,7 @@ class ManualBackfillClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      const _error = await response.json().catch(() => ({ message: 'Unknown _error' }));
       throw new Error(`Failed to list jobs: ${_error.message || response.statusText}`);
     }
 
@@ -131,7 +132,7 @@ class ManualBackfillClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      const _error = await response.json().catch(() => ({ message: 'Unknown _error' }));
       throw new Error(`Failed to cancel job: ${_error.message || response.statusText}`);
     }
 
@@ -146,7 +147,7 @@ class ManualBackfillClient {
     // Note: This is less secure than headers, but EventSource limitations require it
     const url = new URL(`${this.apiUrl}/api/backfill/events`);
     url.searchParams.append('api_key', this.apiKey);
-    
+
     return new EventSource(url.toString());
   }
 
@@ -156,7 +157,7 @@ class ManualBackfillClient {
   async checkHealth(): Promise<boolean> {
     try {
       const response = await fetch(`${this.apiUrl}/health`);
-      const data = await response.json();
+      const _data = await response.json();
       return data.status === 'healthy';
     } catch {
       return false;

@@ -15,10 +15,7 @@ interface ShortcutHandler {
  * @param shortcuts - Array of shortcut configurations
  * @param enabled - Whether shortcuts are enabled (default: true)
  */
-export function useKeyboardShortcuts(
-  shortcuts: ShortcutHandler[],
-  enabled = true
-) {
+export function useKeyboardShortcuts(shortcuts: ShortcutHandler[], enabled = true) {
   useEffect(() => {
     if (!enabled) return;
 
@@ -27,10 +24,10 @@ export function useKeyboardShortcuts(
       const target = event.target as HTMLElement;
       const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
       const isContentEditable = target.isContentEditable;
-      
+
       // Allow Cmd+K even in inputs since it's a global command
       const isGlobalShortcut = event.metaKey && event.key === 'k';
-      
+
       if ((isInput || isContentEditable) && !isGlobalShortcut) {
         return;
       }
@@ -42,13 +39,7 @@ export function useKeyboardShortcuts(
         const isAltMatch = shortcut.altKey ? event.altKey : !event.altKey;
         const isKeyMatch = event.key.toLowerCase() === shortcut.key.toLowerCase();
 
-        if (
-          isKeyMatch &&
-          isMetaMatch &&
-          isCtrlMatch &&
-          isShiftMatch &&
-          isAltMatch
-        ) {
+        if (isKeyMatch && isMetaMatch && isCtrlMatch && isShiftMatch && isAltMatch) {
           if (shortcut.preventDefault !== false) {
             event.preventDefault();
           }
@@ -100,7 +91,7 @@ export function formatShortcut(shortcut: Partial<ShortcutHandler>): string {
   if (shortcut.shiftKey) {
     parts.push(isMac ? '⇧' : 'Shift');
   }
-  
+
   if (shortcut.key) {
     parts.push(shortcut.key.toUpperCase());
   }

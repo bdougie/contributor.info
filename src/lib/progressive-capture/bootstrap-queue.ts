@@ -12,12 +12,11 @@ async function getHybridQueueManager() {
  * This should be run once to queue the most important missing data
  */
 export async function bootstrapDataCaptureQueue(): Promise<void> {
-
   try {
     const manager = await getHybridQueueManager();
-    
+
     // 1. Find repositories with stale data (older than 3 days)
-    const { data: staleRepos, error: _error: staleError } = await supabase
+    const { data: staleRepos, error: staleError } = await supabase
       .from('repositories')
       .select('id, owner, name')
       .lt('last_updated_at', new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString())
@@ -34,14 +33,16 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
     }
 
     // 2. Find repositories with missing file change data that need historical processing
-    const { data: activeRepos, error: _error: activeError } = await supabase
+    const { data: activeRepos, error: activeError } = await supabase
       .from('repositories')
-      .select(`
+      .select(
+        `
         id, 
         owner, 
         name,
         pull_requests!inner(id)
-      `)
+      `,
+      )
       .gte('last_updated_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
       .limit(5); // Start with 5 most active repositories
 
@@ -55,14 +56,16 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
     }
 
     // 3. Queue additional historical processing for repositories with commits
-    const { data: reposWithCommits, error: _error: commitsError } = await supabase
+    const { data: reposWithCommits, error: commitsError } = await supabase
       .from('repositories')
-      .select(`
+      .select(
+        `
         id,
         owner,
         name,
         commits!inner(id)
-      `)
+      `,
+      )
       .limit(3); // Start with 3 repositories for commit analysis
 
     if (commitsError) {
@@ -83,7 +86,7 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
         pending: stats.total.pending,
         processing: stats.total.processing,
         completed: stats.total.completed,
-        failed: stats.total.failed
+        failed: stats.total.failed,
       });
     }
 
@@ -109,7 +112,6 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
 3. Check detailed monitoring with: ProgressiveCapture.monitoring()
 4. View routing analysis with: ProgressiveCapture.routingAnalysis()
     `);
-
   } catch (_error) {
     console.error('[Bootstrap] Error during queue bootstrap:', _error);
   }
@@ -125,7 +127,6 @@ export async function analyzeDataGaps(): Promise<{
   emptyCommentsTable: boolean;
   emptyCommitsTable: boolean;
 }> {
-
   try {
     // Count repositories with stale data
     const { count: staleRepoCount } = await supabase
@@ -158,11 +159,10 @@ export async function analyzeDataGaps(): Promise<{
       prsWithoutFileChanges: prsWithoutChanges || 0,
       emptyReviewsTable: (reviewCount || 0) === 0,
       emptyCommentsTable: (commentCount || 0) === 0,
-      emptyCommitsTable: (commitCount || 0) === 0
+      emptyCommitsTable: (commitCount || 0) === 0,
     };
 
     return analysis;
-
   } catch (_error) {
     console.error('[Analysis] Error analyzing _data gaps:', _error);
     return {
@@ -170,7 +170,7 @@ export async function analyzeDataGaps(): Promise<{
       prsWithoutFileChanges: 0,
       emptyReviewsTable: true,
       emptyCommentsTable: true,
-      emptyCommitsTable: true
+      emptyCommitsTable: true,
     };
   }
 }

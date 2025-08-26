@@ -12,7 +12,7 @@ vi.mock('react-router-dom', async () => {
     Navigate: ({ to, replace }: { to: string; replace?: boolean }) => {
       mockNavigate(to, replace);
       return null;
-    }
+    },
   };
 });
 
@@ -29,7 +29,7 @@ describe('App Route Redirects', () => {
             <Route path="/signup" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<div>Login Page</div>} />
           </Routes>
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       expect(mockNavigate).toHaveBeenCalledWith('/login', true);
@@ -42,7 +42,7 @@ describe('App Route Redirects', () => {
             <Route path="/search/feedback" element={<Navigate to="/docs" replace />} />
             <Route path="/docs" element={<div>Docs Page</div>} />
           </Routes>
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       expect(mockNavigate).toHaveBeenCalledWith('/docs', true);
@@ -55,7 +55,7 @@ describe('App Route Redirects', () => {
             <Route path="/signup" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<div>Login Page</div>} />
           </Routes>
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       // Verify replace prop is used (true as second argument)
@@ -66,7 +66,7 @@ describe('App Route Redirects', () => {
   describe('404 Error Prevention', () => {
     it('should handle old signup route without 404', () => {
       const consoleSpy = vi.spyOn(console, '_error').mockImplementation(() => {});
-      
+
       render(
         <MemoryRouter initialEntries={['/signup']}>
           <Routes>
@@ -74,7 +74,7 @@ describe('App Route Redirects', () => {
             <Route path="/login" element={<div>Login Page</div>} />
             <Route path="*" element={<div>404 Not Found</div>} />
           </Routes>
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       // Should redirect to login, not show 404
@@ -86,7 +86,7 @@ describe('App Route Redirects', () => {
 
     it('should handle old search feedback route without 404', () => {
       const consoleSpy = vi.spyOn(console, '_error').mockImplementation(() => {});
-      
+
       render(
         <MemoryRouter initialEntries={['/search/feedback']}>
           <Routes>
@@ -94,7 +94,7 @@ describe('App Route Redirects', () => {
             <Route path="/docs" element={<div>Docs Page</div>} />
             <Route path="*" element={<div>404 Not Found</div>} />
           </Routes>
-        </MemoryRouter>
+        </MemoryRouter>,
       );
 
       // Should redirect to docs, not show 404
@@ -113,14 +113,14 @@ describe('App Route Redirects', () => {
 
       problematicRoutes.forEach((route, index) => {
         mockNavigate.mockClear();
-        
+
         render(
           <MemoryRouter initialEntries={[route]}>
             <Routes>
               <Route path="/signup" element={<Navigate to="/login" replace />} />
               <Route path="/search/feedback" element={<Navigate to="/docs" replace />} />
             </Routes>
-          </MemoryRouter>
+          </MemoryRouter>,
         );
 
         expect(mockNavigate).toHaveBeenCalledWith(expectedRedirects[index], true);

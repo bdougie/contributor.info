@@ -8,7 +8,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A compact badge component for indicating trending status with customizable variants and sizes. Can be used throughout the application to highlight trending repositories.',
+        component:
+          'A compact badge component for indicating trending status with customizable variants and sizes. Can be used throughout the application to highlight trending repositories.',
       },
     },
   },
@@ -180,9 +181,7 @@ export const InCard: Story = {
         <h3 className="font-semibold">Repository Name</h3>
         <TrendingBadge score={125.7} variant="hot" size="sm" />
       </div>
-      <p className="text-sm text-muted-foreground">
-        A trending repository with high activity
-      </p>
+      <p className="text-sm text-muted-foreground">A trending repository with high activity</p>
     </div>
   ),
 };
@@ -198,10 +197,10 @@ export const InList: Story = {
       ].map((repo, index) => (
         <div key={index} className="flex items-center justify-between p-3 border rounded">
           <span className="font-medium">{repo.name}</span>
-          <TrendingBadge 
-            score={repo.score} 
-            variant={repo.score > 100 ? 'hot' : 'default'} 
-            size="sm" 
+          <TrendingBadge
+            score={repo.score}
+            variant={repo.score > 100 ? 'hot' : 'default'}
+            size="sm"
           />
         </div>
       ))}

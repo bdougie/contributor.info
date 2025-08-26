@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState } from 'react';
 import { GithubIcon } from '@/components/ui/icon';
 import {
   Dialog,
@@ -6,8 +6,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 /**
  * Standalone page for testing the login dialog in isolation
@@ -28,8 +28,7 @@ export default function LoginDialogTest() {
 
       <div className="p-4 bg-muted rounded-md">
         <p>
-          Current dialog state:{" "}
-          <span className="font-bold">{dialogOpen ? "OPEN" : "CLOSED"}</span>
+          Current dialog state: <span className="font-bold">{dialogOpen ? 'OPEN' : 'CLOSED'}</span>
         </p>
       </div>
 
@@ -39,12 +38,12 @@ export default function LoginDialogTest() {
           <DialogHeader>
             <DialogTitle>Login Required</DialogTitle>
             <DialogDescription>
-              You need to log in to search for repositories. This helps avoid
-              rate limiting and provides access to more GitHub data.
+              You need to log in to search for repositories. This helps avoid rate limiting and
+              provides access to more GitHub data.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-center pt-4">
-            <Button onClick={() => console.log("Login clicked")}>
+            <Button onClick={() => console.log('Login clicked')}>
               <GithubIcon className="mr-2 h-4 w-4" />
               Login with GitHub
             </Button>

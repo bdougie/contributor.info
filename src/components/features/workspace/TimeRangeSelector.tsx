@@ -1,20 +1,15 @@
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
-import { Lock, Calendar } from "@/components/ui/icon";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import { Lock, Calendar } from '@/components/ui/icon';
+import { cn } from '@/lib/utils';
 
 export type TimeRange = '7d' | '30d' | '90d' | '1y' | 'all';
 
@@ -34,7 +29,7 @@ const timeRangeLabels: Record<TimeRange, string> = {
   '30d': 'Last 30 days',
   '90d': 'Last 90 days',
   '1y': 'Last year',
-  'all': 'All time',
+  all: 'All time',
 };
 
 const timeRangeTiers: Record<TimeRange, 'free' | 'pro' | 'enterprise'> = {
@@ -42,7 +37,7 @@ const timeRangeTiers: Record<TimeRange, 'free' | 'pro' | 'enterprise'> = {
   '30d': 'free',
   '90d': 'pro',
   '1y': 'pro',
-  'all': 'enterprise',
+  all: 'enterprise',
 };
 
 export function TimeRangeSelector({
@@ -72,7 +67,7 @@ export function TimeRangeSelector({
 
   if (variant === 'buttons') {
     return (
-      <div className={cn("flex items-center gap-1", className)}>
+      <div className={cn('flex items-center gap-1', className)}>
         {availableRanges.map((range) => {
           const available = isRangeAvailable(range);
           const isSelected = value === range;
@@ -80,14 +75,11 @@ export function TimeRangeSelector({
           const button = (
             <Button
               key={range}
-              variant={isSelected ? "default" : "outline"}
+              variant={isSelected ? 'default' : 'outline'}
               size="sm"
               onClick={() => handleRangeSelect(range)}
               disabled={disabled || !available}
-              className={cn(
-                "min-w-[80px]",
-                !available && "opacity-60"
-              )}
+              className={cn('min-w-[80px]', !available && 'opacity-60')}
             >
               <span className="flex items-center gap-1">
                 {timeRangeLabels[range]}
@@ -111,9 +103,7 @@ export function TimeRangeSelector({
             return (
               <TooltipProvider key={range}>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    {button}
-                  </TooltipTrigger>
+                  <TooltipTrigger asChild>{button}</TooltipTrigger>
                   <TooltipContent>
                     <div className="text-sm">
                       <p className="font-semibold mb-1">
@@ -139,7 +129,7 @@ export function TimeRangeSelector({
       onValueChange={(val) => handleRangeSelect(val as TimeRange)}
       disabled={disabled}
     >
-      <SelectTrigger className={cn("w-[180px]", className)}>
+      <SelectTrigger className={cn('w-[180px]', className)}>
         <Calendar className="h-4 w-4 mr-2" />
         <SelectValue placeholder="Select time range" />
       </SelectTrigger>
@@ -153,9 +143,7 @@ export function TimeRangeSelector({
               key={range}
               value={range}
               disabled={!available}
-              className={cn(
-                !available && "opacity-60"
-              )}
+              className={cn(!available && 'opacity-60')}
             >
               <div className="flex items-center justify-between w-full">
                 <span>{timeRangeLabels[range]}</span>
@@ -208,7 +196,7 @@ export function TimeRangeQuickSelect({
   className,
 }: Omit<TimeRangeSelectorProps, 'variant' | 'availableRanges'>) {
   const quickRanges: TimeRange[] = ['7d', '30d', '90d'];
-  
+
   return (
     <TimeRangeSelector
       value={value}

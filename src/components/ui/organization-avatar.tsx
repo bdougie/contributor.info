@@ -17,7 +17,7 @@ interface OrganizationAvatarProps {
 /**
  * Organization Avatar component with square design and rounded corners
  * Following GitHub's design language for organization/repository avatars
- * 
+ *
  * Features:
  * - Square aspect ratio with rounded corners
  * - Lazy loading with intersection observer
@@ -45,7 +45,7 @@ export function OrganizationAvatar({
   // Generate optimized organization avatar URLs with WebP support
   const generateAvatarUrls = (originalSrc?: string) => {
     if (!originalSrc) return { webp: undefined, fallback: undefined };
-    
+
     try {
       const url = new URL(originalSrc);
       if (url.hostname === 'avatars.githubusercontent.com') {
@@ -53,19 +53,19 @@ export function OrganizationAvatar({
         const optimizedUrl = `${url.origin}${url.pathname}?s=${size}&v=4`;
         return {
           webp: optimizedUrl,
-          fallback: optimizedUrl
+          fallback: optimizedUrl,
         };
       }
     } catch {
       // Invalid URL, fallback to original src
     }
-    
+
     // For other images, try to generate WebP version
     return {
-      webp: originalSrc.includes('?') 
+      webp: originalSrc.includes('?')
         ? `${originalSrc}&format=webp&quality=80`
         : `${originalSrc}?format=webp&quality=80`,
-      fallback: originalSrc
+      fallback: originalSrc,
     };
   };
 
@@ -86,7 +86,7 @@ export function OrganizationAvatar({
       },
       {
         rootMargin: '50px', // Start loading 50px before entering viewport
-      }
+      },
     );
 
     const currentRef = imgRef.current;
@@ -115,7 +115,7 @@ export function OrganizationAvatar({
   const generateFallback = () => {
     if (fallback) return fallback;
     if (_error) return '?';
-    
+
     const words = alt.split(' ');
     if (words.length >= 2) {
       return `${words[0][0]}${words[1][0]}`.toUpperCase();
@@ -139,7 +139,7 @@ export function OrganizationAvatar({
         size === 80 && 'h-20 w-20',
         size === 96 && 'h-24 w-24',
         size === 128 && 'h-32 w-32',
-        className
+        className,
       )}
       style={{
         // Prevent layout shift by setting explicit dimensions
@@ -158,11 +158,11 @@ export function OrganizationAvatar({
           onError={handleError}
           className={cn(
             'aspect-square h-full w-full object-cover transition-opacity duration-200',
-            isLoaded ? 'opacity-100' : 'opacity-0'
+            isLoaded ? 'opacity-100' : 'opacity-0',
           )}
         />
       )}
-      <AvatarPrimitive.Fallback 
+      <AvatarPrimitive.Fallback
         className={cn(
           'flex h-full w-full items-center justify-center rounded-md bg-muted text-sm font-medium',
           // Adjust text size based on avatar size
@@ -170,7 +170,7 @@ export function OrganizationAvatar({
           size <= 32 && 'text-xs',
           size >= 80 && 'text-base',
           // Show fallback when loading or on error
-          (!shouldLoad || _error || !isLoaded) ? 'opacity-100' : 'opacity-0'
+          !shouldLoad || _error || !isLoaded ? 'opacity-100' : 'opacity-0',
         )}
       >
         {generateFallback()}

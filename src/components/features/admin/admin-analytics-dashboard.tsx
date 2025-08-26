@@ -153,7 +153,7 @@ export function AdminAnalyticsDashboard() {
   const fetchShareMetrics = async () => {
     try {
       // Fetch recent share events with proper input validation
-      const { data: shareEvents, error: _error: eventsError } = await supabase
+      const { data: shareEvents, error: eventsError } = await supabase
         .from('share_events')
         .select('*')
         .order('created_at', { ascending: false })

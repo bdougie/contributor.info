@@ -35,50 +35,50 @@ export interface RepositoryData {
 class FAQService {
   // Increment this to bust the cache when FAQ generation changes
   private readonly CACHE_VERSION = 'v4-specific-answers';
-  
+
   private defaultQuestions: FAQQuestion[] = [
     {
       id: 'contributor-count',
       question: 'How many contributors does this project have?',
       category: 'contributors',
-      context: 'Repository contributors and community size'
+      context: 'Repository contributors and community size',
     },
     {
       id: 'top-contributors',
       question: 'Who are the top contributors to this project?',
-      category: 'contributors', 
-      context: 'Leading contributors by commit/PR count'
+      category: 'contributors',
+      context: 'Leading contributors by commit/PR count',
     },
     {
       id: 'commit-frequency',
       question: 'What is the commit frequency for this project?',
       category: 'activity',
-      context: 'Development velocity and activity patterns'
+      context: 'Development velocity and activity patterns',
     },
     {
       id: 'development-activity',
       question: 'How active is this project development?',
       category: 'activity',
-      context: 'Overall project health and development momentum'
+      context: 'Overall project health and development momentum',
     },
     {
       id: 'recent-changes',
       question: 'What are the recent changes in this project?',
       category: 'activity',
-      context: 'Latest pull requests and development work'
+      context: 'Latest pull requests and development work',
     },
     {
       id: 'contributor-diversity',
       question: 'How diverse is the contributor base?',
       category: 'contributors',
-      context: 'Community diversity and new contributor engagement'
+      context: 'Community diversity and new contributor engagement',
     },
     {
       id: 'pr-patterns',
       question: 'What are the pull request patterns?',
       category: 'development',
-      context: 'PR workflow, review patterns, and development practices'
-    }
+      context: 'PR workflow, review patterns, and development practices',
+    },
   ];
 
   /**
@@ -96,7 +96,7 @@ class FAQService {
     repo: string,
     timeRange: string,
     repositoryData: RepositoryData,
-    customQuestions?: string[]
+    customQuestions?: string[],
   ): Promise<FAQAnswer[]> {
     const cacheKey = this.buildCacheKey('faq', { owner, repo }, timeRange);
     const dataHash = this.generateDataHash({ repositoryData, timeRange });
@@ -109,7 +109,7 @@ class FAQService {
 
     try {
       const answers: FAQAnswer[] = [];
-      const questions = customQuestions 
+      const questions = customQuestions
         ? this.createCustomQuestions(customQuestions)
         : this.defaultQuestions;
 
@@ -120,9 +120,9 @@ class FAQService {
           owner,
           repo,
           timeRange,
-          repositoryData
+          repositoryData,
         );
-        
+
         if (answer) {
           answers.push(answer);
         }
@@ -146,7 +146,7 @@ class FAQService {
     owner: string,
     repo: string,
     timeRange: string,
-    repositoryData: RepositoryData
+    repositoryData: RepositoryData,
   ): Promise<FAQAnswer | null> {
     if (!this.isAvailable()) {
       return this.generateFallbackAnswer(question, owner, repo, timeRange, repositoryData);
@@ -154,14 +154,14 @@ class FAQService {
 
     try {
       const prompt = this.buildFAQPrompt(question, owner, repo, timeRange, repositoryData);
-      
+
       // Call OpenAI directly with FAQ-specific prompt
       const response = await this.callOpenAIForFAQ(prompt);
-      
+
       if (!response) {
         throw new Error('Failed to generate FAQ answer');
       }
-      
+
       // Extract sources from repository data
       const sources = this.extractSources(question.category, repositoryData);
 
@@ -171,7 +171,7 @@ class FAQService {
         answer: response,
         confidence: 0.85, // High confidence for LLM answers
         sources,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
     } catch (_error) {
       console.error(`Failed to generate LLM answer for ${question.id}:`, _error);
@@ -187,7 +187,7 @@ class FAQService {
     owner: string,
     repo: string,
     timeRange: string,
-    repositoryData: RepositoryData
+    repositoryData: RepositoryData,
   ): string {
     const timeRangeText = this.getTimeRangeText(timeRange);
     const contextData = this.prepareContextData(repositoryData, question.category);
@@ -219,25 +219,34 @@ Answer:`;
     const data: string[] = [];
 
     if (category === 'contributors' && repositoryData.pullRequests) {
-      const contributors = new Set(repositoryData.pullRequests.map((pr: unknown) => pr.author?.login || pr.user?.login || 'unknown')).size;
-      const contributorCounts = repositoryData.pullRequests.reduce((acc, pr) => {
-        const authorLogin = pr.author?.login || pr.user?.login || 'unknown';
-        acc[authorLogin] = (acc[authorLogin] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
+      const contributors = new Set(
+        repositoryData.pullRequests.map(
+          (pr: unknown) => pr.author?.login || pr.user?.login || 'unknown',
+        ),
+      ).size;
+      const contributorCounts = repositoryData.pullRequests.reduce(
+        (acc, pr) => {
+          const authorLogin = pr.author?.login || pr.user?.login || 'unknown';
+          acc[authorLogin] = (acc[authorLogin] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
+
       const topContributors = Object.entries(contributorCounts)
         .sort(([, a], [, b]) => (b as number) - (a as number))
         .slice(0, 5);
 
       data.push(`Total Contributors: ${contributors}`);
-      data.push(`Top Contributors: ${topContributors.map(([name, count]) => `${name} (${count})`).join(', ')}`);
+      data.push(
+        `Top Contributors: ${topContributors.map(([name, count]) => `${name} (${count})`).join(', ')}`,
+      );
     }
 
     if (category === 'activity' && repositoryData.pullRequests) {
       const totalPRs = repositoryData.pullRequests.length;
-      const merged = repositoryData.pullRequests.filter(pr => pr.merged_at).length;
-      const recentTitles = repositoryData.pullRequests.slice(0, 5).map(pr => pr.title);
+      const merged = repositoryData.pullRequests.filter((pr) => pr.merged_at).length;
+      const recentTitles = repositoryData.pullRequests.slice(0, 5).map((pr) => pr.title);
 
       data.push(`Total PRs: ${totalPRs}`);
       data.push(`Merged PRs: ${merged}`);
@@ -245,9 +254,15 @@ Answer:`;
     }
 
     if (category === 'development' && repositoryData.pullRequests) {
-      const avgTitleLength = repositoryData.pullRequests.reduce((sum, pr) => sum + pr.title.length, 0) / repositoryData.pullRequests.length;
-      const featCount = repositoryData.pullRequests.filter(pr => pr.title.toLowerCase().includes('feat')).length;
-      const fixCount = repositoryData.pullRequests.filter(pr => pr.title.toLowerCase().includes('fix')).length;
+      const avgTitleLength =
+        repositoryData.pullRequests.reduce((sum, pr) => sum + pr.title.length, 0) /
+        repositoryData.pullRequests.length;
+      const featCount = repositoryData.pullRequests.filter((pr) =>
+        pr.title.toLowerCase().includes('feat'),
+      ).length;
+      const fixCount = repositoryData.pullRequests.filter((pr) =>
+        pr.title.toLowerCase().includes('fix'),
+      ).length;
 
       data.push(`Average PR Title Length: ${avgTitleLength.toFixed(0)} characters`);
       data.push(`Feature PRs: ${featCount}`);
@@ -266,15 +281,15 @@ Answer:`;
    */
   private extractSources(category: string, repositoryData: RepositoryData): string[] {
     const sources = ['Repository pull request data'];
-    
+
     if (category === 'contributors') {
       sources.push('Contributor activity analysis');
     }
-    
+
     if (category === 'activity' && repositoryData.activity) {
       sources.push('Development velocity metrics');
     }
-    
+
     if (repositoryData.health) {
       sources.push('Repository health assessment');
     }
@@ -289,11 +304,13 @@ Answer:`;
     owner: string,
     repo: string,
     timeRange: string,
-    repositoryData: RepositoryData
+    repositoryData: RepositoryData,
   ): FAQAnswer[] {
-    return this.defaultQuestions.map(question => 
-      this.generateFallbackAnswer(question, owner, repo, timeRange, repositoryData)
-    ).filter(Boolean) as FAQAnswer[];
+    return this.defaultQuestions
+      .map((question) =>
+        this.generateFallbackAnswer(question, owner, repo, timeRange, repositoryData),
+      )
+      .filter(Boolean) as FAQAnswer[];
   }
 
   /**
@@ -304,7 +321,7 @@ Answer:`;
     owner: string,
     repo: string,
     timeRange: string,
-    repositoryData: RepositoryData
+    repositoryData: RepositoryData,
   ): FAQAnswer {
     let answer = '';
     const timeRangeText = this.getTimeRangeText(timeRange);
@@ -312,17 +329,20 @@ Answer:`;
     switch (question.id) {
       case 'contributor-count':
         if (repositoryData.pullRequests) {
-          const count = new Set(repositoryData.pullRequests.map(pr => pr.author)).size;
+          const count = new Set(repositoryData.pullRequests.map((pr) => pr.author)).size;
           answer = `${owner}/${repo} has ${count} unique contributors who have submitted pull requests ${timeRangeText}.`;
         }
         break;
       case 'top-contributors':
         if (repositoryData.pullRequests) {
-          const contributorCounts = repositoryData.pullRequests.reduce((acc, pr) => {
-            const authorLogin = pr.author?.login || pr.user?.login || 'unknown';
-        acc[authorLogin] = (acc[authorLogin] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
+          const contributorCounts = repositoryData.pullRequests.reduce(
+            (acc, pr) => {
+              const authorLogin = pr.author?.login || pr.user?.login || 'unknown';
+              acc[authorLogin] = (acc[authorLogin] || 0) + 1;
+              return acc;
+            },
+            {} as Record<string, number>,
+          );
           const top = Object.entries(contributorCounts)
             .sort(([, a], [, b]) => (b as number) - (a as number))
             .slice(0, 3)
@@ -340,7 +360,7 @@ Answer:`;
       answer: answer || 'Information not available at this time.',
       confidence: 0.6, // Lower confidence for fallback
       sources: ['Repository data analysis'],
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   }
 
@@ -352,7 +372,7 @@ Answer:`;
       id: `custom-${index}`,
       question: q,
       category: 'general',
-      context: 'Custom user question about repository'
+      context: 'Custom user question about repository',
     }));
   }
 
@@ -366,20 +386,20 @@ Answer:`;
       console.log('Embeddings generation skipped on client-side');
       return questions;
     }
-    
+
     try {
       // Dynamically import to avoid bundling heavy dependencies
       // Use a variable to prevent Vite from statically analyzing the import
       const embeddingsPath = '../../../app/services/embeddings';
       const { generateEmbedding } = await import(/* @vite-ignore */ embeddingsPath);
-      
+
       const questionsWithEmbeddings: FAQQuestion[] = [];
 
       for (const question of questions) {
         const embedding = await generateEmbedding(question.question + ' ' + question.context);
         questionsWithEmbeddings.push({
           ...question,
-          embedding
+          embedding,
         });
       }
 
@@ -397,36 +417,39 @@ Answer:`;
   async findSimilarQuestions(
     userQuestion: string,
     questions: FAQQuestion[],
-    threshold: number = 0.7
+    threshold: number = 0.7,
   ): Promise<FAQQuestion[]> {
     // Skip embeddings-based search on client-side
     if (typeof window !== 'undefined') {
       console.log('Embeddings-based search skipped on client-side');
       // Return basic keyword-based matches instead
       const lowerQuestion = userQuestion.toLowerCase();
-      return questions.filter(q => 
-        q.question.toLowerCase().includes(lowerQuestion) ||
-        q.context.toLowerCase().includes(lowerQuestion)
-      ).slice(0, 3);
+      return questions
+        .filter(
+          (q) =>
+            q.question.toLowerCase().includes(lowerQuestion) ||
+            q.context.toLowerCase().includes(lowerQuestion),
+        )
+        .slice(0, 3);
     }
-    
+
     try {
       // Dynamically import to avoid bundling heavy dependencies
       // Use a variable to prevent Vite from statically analyzing the import
       const embeddingsPath = '../../../app/services/embeddings';
       const { generateEmbedding } = await import(/* @vite-ignore */ embeddingsPath);
       const userEmbedding = await generateEmbedding(userQuestion);
-      
+
       const similarities = questions
-        .filter(q => q.embedding)
-        .map(q => ({
+        .filter((q) => q.embedding)
+        .map((q) => ({
           question: q,
-          similarity: this.cosineSimilarity(userEmbedding, q.embedding!)
+          similarity: this.cosineSimilarity(userEmbedding, q.embedding!),
         }))
-        .filter(s => s.similarity >= threshold)
+        .filter((s) => s.similarity >= threshold)
         .sort((a, b) => b.similarity - a.similarity);
 
-      return similarities.map(s => s.question);
+      return similarities.map((s) => s.question);
     } catch (_error) {
       console.error('Failed to find similar questions:', _error);
       return questions.slice(0, 3); // Return first 3 as fallback
@@ -438,14 +461,18 @@ Answer:`;
    */
   private async callOpenAIForFAQ(prompt: string): Promise<string | null> {
     const apiKey = import.meta.env?.VITE_OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
-    
+
     if (!apiKey) {
       console.error('OpenAI API key not configured');
       return null;
     }
 
     // Prevent real API calls in test environment
-    if (process.env.NODE_ENV === 'test' || apiKey === 'test-openai-key' || apiKey === 'test-key-for-ci') {
+    if (
+      process.env.NODE_ENV === 'test' ||
+      apiKey === 'test-openai-key' ||
+      apiKey === 'test-key-for-ci'
+    ) {
       return null;
     }
 
@@ -456,7 +483,7 @@ Answer:`;
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         signal: controller.signal,
@@ -465,12 +492,13 @@ Answer:`;
           messages: [
             {
               role: 'system',
-              content: 'You are a concise FAQ assistant. Answer the specific question asked using only the provided data. Maximum 50 words. Be direct and factual.'
+              content:
+                'You are a concise FAQ assistant. Answer the specific question asked using only the provided data. Maximum 50 words. Be direct and factual.',
             },
             {
               role: 'user',
-              content: prompt
-            }
+              content: prompt,
+            },
           ],
           max_tokens: 100,
           temperature: 0.3,
@@ -484,8 +512,8 @@ Answer:`;
         return null;
       }
 
-      const data = await response.json();
-      
+      const _data = await response.json();
+
       if (!data.choices || _data.choices.length === 0) {
         return null;
       }
@@ -514,18 +542,27 @@ Answer:`;
    */
   private getTimeRangeText(timeRange: string): string {
     switch (timeRange) {
-      case '30d': return 'in the last 30 days';
-      case '90d': return 'in the last 90 days';
-      case '6m': return 'in the last 6 months';
-      case '1y': return 'in the last year';
-      default: return 'in the selected time period';
+      case '30d':
+        return 'in the last 30 days';
+      case '90d':
+        return 'in the last 90 days';
+      case '6m':
+        return 'in the last 6 months';
+      case '1y':
+        return 'in the last year';
+      default:
+        return 'in the selected time period';
     }
   }
 
   /**
    * Build cache key with version for cache busting
    */
-  private buildCacheKey(type: string, repoInfo: { owner: string; repo: string }, timeRange: string): string {
+  private buildCacheKey(
+    type: string,
+    repoInfo: { owner: string; repo: string },
+    timeRange: string,
+  ): string {
     return `${type}:${repoInfo.owner}/${repoInfo.repo}:${timeRange}:${this.CACHE_VERSION}`;
   }
 
@@ -537,7 +574,7 @@ Answer:`;
     let hash = 0;
     for (let i = 0; i < _dataString.length; i++) {
       const char = dataString.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(36);

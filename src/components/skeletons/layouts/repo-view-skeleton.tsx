@@ -1,6 +1,6 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 interface RepoViewSkeletonProps {
   className?: string;
@@ -8,14 +8,14 @@ interface RepoViewSkeletonProps {
 
 /**
  * RepoViewSkeleton component for displaying placeholder layout for repository view pages
- * 
+ *
  * @param className - Additional CSS classes to apply
  * @returns A skeleton layout with search bar and main content areas
  */
 export function RepoViewSkeleton({ className }: RepoViewSkeletonProps) {
   return (
-    <div 
-      className={cn("container mx-auto py-2 skeleton-container", className)}
+    <div
+      className={cn('container mx-auto py-2 skeleton-container', className)}
       aria-label="Loading repository view..."
       aria-busy="true"
     >
@@ -51,7 +51,10 @@ export function RepoViewSkeleton({ className }: RepoViewSkeletonProps) {
           <CardContent>
             {/* Tabs skeleton */}
             <div className="space-y-4">
-              <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground grid grid-cols-4 w-full max-w-md" aria-label="Loading navigation tabs">
+              <div
+                className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground grid grid-cols-4 w-full max-w-md"
+                aria-label="Loading navigation tabs"
+              >
                 <Skeleton className="h-7 rounded-md mx-1" />
                 <Skeleton className="h-7 rounded-md mx-1" />
                 <Skeleton className="h-7 rounded-md mx-1" />
@@ -77,9 +80,7 @@ export function RepoViewSkeleton({ className }: RepoViewSkeletonProps) {
 function ContentAreaSkeleton() {
   return (
     <div className="space-y-4 animate-pulse" aria-label="Loading content area">
-      <div className="text-center text-muted-foreground">
-        Loading repository data...
-      </div>
+      <div className="text-center text-muted-foreground">Loading repository data...</div>
       {/* Feed-style skeleton to match expected content */}
       <div className="space-y-3">
         {Array.from({ length: 3 }).map((_, i) => (

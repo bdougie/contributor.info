@@ -12,7 +12,7 @@ global.fetch = vi.fn(() =>
     status: 200,
     json: () => Promise.resolve({}),
     text: () => Promise.resolve(''),
-  } as Response)
+  } as Response),
 );
 
 // Mock IntersectionObserver - simple and synchronous

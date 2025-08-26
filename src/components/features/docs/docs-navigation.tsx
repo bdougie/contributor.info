@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import { ChevronRight, FileText, Book } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -18,11 +18,11 @@ interface DocsNavigationProps {
   className?: string;
 }
 
-export function DocsNavigation({ 
-  entries, 
-  activeSection, 
+export function DocsNavigation({
+  entries,
+  activeSection,
   onSectionSelect,
-  className 
+  className,
 }: DocsNavigationProps) {
   // Check if we're on mobile (screen width < 1024px) and default to closed on mobile
   const [isOpen, setIsOpen] = useState(() => {
@@ -60,7 +60,7 @@ export function DocsNavigation({
   };
 
   const getCategoryColor = (category: 'feature' | 'insight') => {
-    return category === 'feature' 
+    return category === 'feature'
       ? 'bg-blue-500/10 text-blue-700 dark:text-blue-400'
       : 'bg-purple-500/10 text-purple-700 dark:text-purple-400';
   };
@@ -71,31 +71,28 @@ export function DocsNavigation({
   };
 
   // Group entries by category
-  const featureEntries = entries.filter(entry => entry.category === 'feature');
-  const insightEntries = entries.filter(entry => entry.category === 'insight');
+  const featureEntries = entries.filter((entry) => entry.category === 'feature');
+  const insightEntries = entries.filter((entry) => entry.category === 'insight');
 
   if (entries.length === 0) {
     return null;
   }
 
   return (
-    <div className={cn("w-full lg:w-64 bg-card border rounded-lg p-4", className)}>
+    <div className={cn('w-full lg:w-64 bg-card border rounded-lg p-4', className)}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="w-full justify-between p-0 h-auto font-semibold text-left"
           >
             <span>Documentation</span>
-            <ChevronRight 
-              className={cn(
-                "h-4 w-4 transition-transform duration-200",
-                isOpen && "rotate-90"
-              )} 
+            <ChevronRight
+              className={cn('h-4 w-4 transition-transform duration-200', isOpen && 'rotate-90')}
             />
           </Button>
         </CollapsibleTrigger>
-        
+
         <CollapsibleContent className="mt-4 space-y-4">
           {featureEntries.length > 0 && (
             <div className="space-y-2">
@@ -110,16 +107,16 @@ export function DocsNavigation({
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      "w-full justify-start px-2 py-1 h-auto text-left font-normal",
-                      currentActive === entry.title && "bg-accent text-accent-foreground"
+                      'w-full justify-start px-2 py-1 h-auto text-left font-normal',
+                      currentActive === entry.title && 'bg-accent text-accent-foreground',
                     )}
                     onClick={() => handleSectionClick(entry.title, entry.anchor)}
                   >
                     <div className="flex items-center justify-between w-full">
                       <span className="text-sm">{entry.title}</span>
-                      <Badge 
-                        variant="outline" 
-                        className={cn("text-xs", getCategoryColor(entry.category))}
+                      <Badge
+                        variant="outline"
+                        className={cn('text-xs', getCategoryColor(entry.category))}
                       >
                         {getCategoryIcon(entry.category)}
                       </Badge>
@@ -143,16 +140,16 @@ export function DocsNavigation({
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      "w-full justify-start px-2 py-1 h-auto text-left font-normal",
-                      currentActive === entry.title && "bg-accent text-accent-foreground"
+                      'w-full justify-start px-2 py-1 h-auto text-left font-normal',
+                      currentActive === entry.title && 'bg-accent text-accent-foreground',
                     )}
                     onClick={() => handleSectionClick(entry.title, entry.anchor)}
                   >
                     <div className="flex items-center justify-between w-full">
                       <span className="text-sm">{entry.title}</span>
-                      <Badge 
-                        variant="outline" 
-                        className={cn("text-xs", getCategoryColor(entry.category))}
+                      <Badge
+                        variant="outline"
+                        className={cn('text-xs', getCategoryColor(entry.category))}
                       >
                         {getCategoryIcon(entry.category)}
                       </Badge>

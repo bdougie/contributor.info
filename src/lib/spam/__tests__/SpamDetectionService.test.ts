@@ -175,7 +175,7 @@ describe('SpamDetectionService', () => {
     it('should process multiple PRs correctly', async () => {
       const prs = [
         createMockPR({ id: '1' }),
-        createMockPR({ 
+        createMockPR({
           id: '2',
           title: 'fix',
           body: '',
@@ -195,7 +195,7 @@ describe('SpamDetectionService', () => {
 
       expect(results).toHaveLength(3);
       expect(results[0].is_spam).toBe(false); // Legitimate PR
-      expect(results[1].is_spam).toBe(true);  // Spam PR
+      expect(results[1].is_spam).toBe(true); // Spam PR
       expect(results[2].is_spam).toBe(false); // Legitimate PR
     });
 
@@ -232,9 +232,9 @@ describe('SpamDetectionService', () => {
     it('should process PR within acceptable time limit', async () => {
       const pr = createMockPR();
       const startTime = Date.now();
-      
+
       await spamDetectionService.detectSpam(pr);
-      
+
       const processingTime = Date.now() - startTime;
       expect(processingTime).toBeLessThan(100); // Should be under 100ms
     });
@@ -242,9 +242,9 @@ describe('SpamDetectionService', () => {
     it('should handle large batch efficiently', async () => {
       const prs = Array.from({ length: 50 }, (_, i) => createMockPR({ id: i.toString() }));
       const startTime = Date.now();
-      
+
       await spamDetectionService.detectSpamBatch(prs);
-      
+
       const processingTime = Date.now() - startTime;
       expect(processingTime).toBeLessThan(5000); // Should handle 50 PRs in under 5 seconds
     });

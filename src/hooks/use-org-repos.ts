@@ -59,18 +59,18 @@ const MAX_CACHE_SIZE = 50; // Limit to prevent unbounded memory growth
 function cleanupOrgCache() {
   const now = Date.now();
   const entries = Object.entries(orgRepoCache);
-  
+
   // Remove expired entries
   entries.forEach(([org, cache]) => {
     if (now - cache.timestamp > CACHE_DURATION) {
       delete orgRepoCache[org];
     }
   });
-  
+
   // If still over size limit, remove oldest entries (LRU)
   const remainingEntries = Object.entries(orgRepoCache);
   if (remainingEntries.length > MAX_CACHE_SIZE) {
-    const sortedByTimestamp = remainingEntries.sort(([,a], [,b]) => a.timestamp - b.timestamp);
+    const sortedByTimestamp = remainingEntries.sort(([, a], [, b]) => a.timestamp - b.timestamp);
     const toRemove = sortedByTimestamp.slice(0, remainingEntries.length - MAX_CACHE_SIZE);
     toRemove.forEach(([org]) => delete orgRepoCache[org]);
   }
@@ -86,7 +86,7 @@ export function useOrgRepos(org?: string): UseOrgReposState {
     isLoading: true,
     error: null,
   });
-  
+
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -103,22 +103,22 @@ export function useOrgRepos(org?: string): UseOrgReposState {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
+
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
     const fetchOrgRepos = async () => {
       try {
-        setState(prev => ({ ...prev, isLoading: true, _error: null }));
-        
+        setState((prev) => ({ ...prev, isLoading: true, _error: null }));
+
         // Clean up old cache entries
         cleanupOrgCache();
-        
+
         // Check cache first
         const cachedData = orgRepoCache[org];
         const now = Date.now();
-        
-        if (cachedData && (now - cachedData.timestamp) < CACHE_DURATION) {
+
+        if (cachedData && now - cachedData.timestamp < CACHE_DURATION) {
           setState({
             repositories: cachedData.repositories,
             orgData: cachedData.orgData,
@@ -132,7 +132,7 @@ export function useOrgRepos(org?: string): UseOrgReposState {
         const octokit = new Octokit({
           auth: env.GITHUB_TOKEN,
         });
-        
+
         // Fetch organization data for avatar
         const [orgResponse, reposResponse] = await Promise.all([
           octokit.rest.orgs.get({ org }),
@@ -142,7 +142,7 @@ export function useOrgRepos(org?: string): UseOrgReposState {
             direction: 'desc',
             per_page: 30, // Fetch a few more than we need in case some are filtered out
             type: 'public',
-          })
+          }),
         ]);
 
         const { data: orgDetails } = orgResponse;
@@ -152,12 +152,12 @@ export function useOrgRepos(org?: string): UseOrgReposState {
 
         // Filter out archived, disabled repos, and repos with 0 stars and no activity
         const activeRepos = repos
-          .filter(repo => !repo.archived && !repo.disabled && (repo.stargazers_count || 0) > 0)
+          .filter((repo) => !repo.archived && !repo.disabled && (repo.stargazers_count || 0) > 0)
           .slice(0, 25); // Max 25 as per requirements
 
         // Check tracking status for each repository
-        const repoFullNames = activeRepos.map(repo => repo.full_name);
-        
+        const repoFullNames = activeRepos.map((repo) => repo.full_name);
+
         // Guard against empty array which would cause Supabase query to fail
         let trackedRepos: { full_name: string; last_updated: string | null }[] = [];
         if (repoFullNames.length > 0) {
@@ -171,9 +171,9 @@ export function useOrgRepos(org?: string): UseOrgReposState {
         if (signal.aborted) return;
 
         // Combine GitHub data with tracking status
-        const repositoriesWithTracking: RepositoryWithTracking[] = activeRepos.map(repo => {
-          const trackedRepo = trackedRepos.find(tr => tr.full_name === repo.full_name);
-          
+        const repositoriesWithTracking: RepositoryWithTracking[] = activeRepos.map((repo) => {
+          const trackedRepo = trackedRepos.find((tr) => tr.full_name === repo.full_name);
+
           return {
             id: repo.id,
             name: repo.name,
@@ -211,12 +211,11 @@ export function useOrgRepos(org?: string): UseOrgReposState {
           isLoading: false,
           error: null,
         });
-        
       } catch (_error) {
         if (signal.aborted) return;
-        
+
         // Error will be handled by setting error state below
-        
+
         // Handle specific error cases
         let errorMessage = 'Failed to fetch repositories';
         if (_error instanceof Error) {
@@ -228,7 +227,7 @@ export function useOrgRepos(org?: string): UseOrgReposState {
             errorMessage = error.message;
           }
         }
-        
+
         setState({
           repositories: [],
           isLoading: false,
@@ -256,9 +255,9 @@ export function useOrgRepos(org?: string): UseOrgReposState {
  */
 function isRecentlyUpdated(lastUpdated: string | null): boolean {
   if (!lastUpdated) return false;
-  
-  const oneHourAgo = Date.now() - (60 * 60 * 1000);
+
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
   const updateTime = new Date(lastUpdated).getTime();
-  
+
   return updateTime > oneHourAgo;
 }

@@ -156,11 +156,13 @@ export const githubRepositorySchema = z.object({
   pushed_at: z.string().datetime('Invalid pushed_at timestamp').nullable(),
   created_at: z.string().datetime('Invalid created_at timestamp'),
   updated_at: z.string().datetime('Invalid updated_at timestamp'),
-  permissions: z.object({
-    admin: z.boolean(),
-    push: z.boolean(),
-    pull: z.boolean(),
-  }).optional(),
+  permissions: z
+    .object({
+      admin: z.boolean(),
+      push: z.boolean(),
+      pull: z.boolean(),
+    })
+    .optional(),
   allow_rebase_merge: z.boolean().optional(),
   template_repository: z.object({}).nullable().optional(),
   temp_clone_token: z.string().optional(),
@@ -170,13 +172,16 @@ export const githubRepositorySchema = z.object({
   allow_merge_commit: z.boolean().optional(),
   subscribers_count: z.number().int().min(0).optional(),
   network_count: z.number().int().min(0).optional(),
-  license: z.object({
-    key: z.string(),
-    name: z.string(),
-    spdx_id: z.string().nullable(),
-    url: z.string().url().nullable(),
-    node_id: z.string(),
-  }).nullable().optional(),
+  license: z
+    .object({
+      key: z.string(),
+      name: z.string(),
+      spdx_id: z.string().nullable(),
+      url: z.string().url().nullable(),
+      node_id: z.string(),
+    })
+    .nullable()
+    .optional(),
 });
 
 /**
@@ -193,33 +198,40 @@ export const githubPullRequestSchema = z.object({
   title: z.string().min(1, 'Pull request title cannot be empty'),
   user: githubUserSchema,
   body: z.string().nullable(),
-  labels: z.array(z.object({
-    id: z.number().int(),
-    node_id: z.string(),
-    url: z.string().url(),
-    name: z.string(),
-    description: z.string().nullable(),
-    color: z.string(),
-    default: z.boolean(),
-  })).optional(),
-  milestone: z.object({
-    url: z.string().url(),
-    html_url: z.string().url(),
-    labels_url: z.string().url(),
-    id: z.number().int(),
-    node_id: z.string(),
-    number: z.number().int(),
-    state: z.enum(['open', 'closed']),
-    title: z.string(),
-    description: z.string().nullable(),
-    creator: githubUserSchema,
-    open_issues: z.number().int(),
-    closed_issues: z.number().int(),
-    created_at: z.string().datetime(),
-    updated_at: z.string().datetime(),
-    closed_at: z.string().datetime().nullable(),
-    due_on: z.string().datetime().nullable(),
-  }).nullable().optional(),
+  labels: z
+    .array(
+      z.object({
+        id: z.number().int(),
+        node_id: z.string(),
+        url: z.string().url(),
+        name: z.string(),
+        description: z.string().nullable(),
+        color: z.string(),
+        default: z.boolean(),
+      }),
+    )
+    .optional(),
+  milestone: z
+    .object({
+      url: z.string().url(),
+      html_url: z.string().url(),
+      labels_url: z.string().url(),
+      id: z.number().int(),
+      node_id: z.string(),
+      number: z.number().int(),
+      state: z.enum(['open', 'closed']),
+      title: z.string(),
+      description: z.string().nullable(),
+      creator: githubUserSchema,
+      open_issues: z.number().int(),
+      closed_issues: z.number().int(),
+      created_at: z.string().datetime(),
+      updated_at: z.string().datetime(),
+      closed_at: z.string().datetime().nullable(),
+      due_on: z.string().datetime().nullable(),
+    })
+    .nullable()
+    .optional(),
   active_lock_reason: z.string().nullable().optional(),
   created_at: z.string().datetime('Invalid created_at timestamp'),
   updated_at: z.string().datetime('Invalid updated_at timestamp'),
@@ -229,19 +241,23 @@ export const githubPullRequestSchema = z.object({
   assignee: githubUserSchema.nullable(),
   assignees: z.array(githubUserSchema).optional(),
   requested_reviewers: z.array(githubUserSchema).optional(),
-  requested_teams: z.array(z.object({
-    id: z.number().int(),
-    node_id: z.string(),
-    url: z.string().url(),
-    html_url: z.string().url(),
-    name: z.string(),
-    slug: z.string(),
-    description: z.string().nullable(),
-    privacy: z.enum(['open', 'closed', 'secret']),
-    permission: z.string(),
-    members_url: z.string().url(),
-    repositories_url: z.string().url(),
-  })).optional(),
+  requested_teams: z
+    .array(
+      z.object({
+        id: z.number().int(),
+        node_id: z.string(),
+        url: z.string().url(),
+        html_url: z.string().url(),
+        name: z.string(),
+        slug: z.string(),
+        description: z.string().nullable(),
+        privacy: z.enum(['open', 'closed', 'secret']),
+        permission: z.string(),
+        members_url: z.string().url(),
+        repositories_url: z.string().url(),
+      }),
+    )
+    .optional(),
   head: z.object({
     label: z.string(),
     ref: z.string(),
@@ -256,26 +272,30 @@ export const githubPullRequestSchema = z.object({
     user: githubUserSchema,
     repo: githubRepositorySchema,
   }),
-  _links: z.object({
-    self: z.object({ href: z.string().url() }),
-    html: z.object({ href: z.string().url() }),
-    issue: z.object({ href: z.string().url() }),
-    comments: z.object({ href: z.string().url() }),
-    review_comments: z.object({ href: z.string().url() }),
-    review_comment: z.object({ href: z.string().url() }),
-    commits: z.object({ href: z.string().url() }),
-    statuses: z.object({ href: z.string().url() }),
-  }).optional(),
-  author_association: z.enum([
-    'COLLABORATOR',
-    'CONTRIBUTOR',
-    'FIRST_TIMER',
-    'FIRST_TIME_CONTRIBUTOR',
-    'MANNEQUIN',
-    'MEMBER',
-    'NONE',
-    'OWNER',
-  ]).optional(),
+  _links: z
+    .object({
+      self: z.object({ href: z.string().url() }),
+      html: z.object({ href: z.string().url() }),
+      issue: z.object({ href: z.string().url() }),
+      comments: z.object({ href: z.string().url() }),
+      review_comments: z.object({ href: z.string().url() }),
+      review_comment: z.object({ href: z.string().url() }),
+      commits: z.object({ href: z.string().url() }),
+      statuses: z.object({ href: z.string().url() }),
+    })
+    .optional(),
+  author_association: z
+    .enum([
+      'COLLABORATOR',
+      'CONTRIBUTOR',
+      'FIRST_TIMER',
+      'FIRST_TIME_CONTRIBUTOR',
+      'MANNEQUIN',
+      'MEMBER',
+      'NONE',
+      'OWNER',
+    ])
+    .optional(),
   auto_merge: z.object({}).nullable().optional(),
   draft: z.boolean(),
   merged: z.boolean().optional(),
@@ -356,18 +376,20 @@ export const githubCommentSchema = z.object({
     'NONE',
     'OWNER',
   ]),
-  reactions: z.object({
-    url: z.string().url(),
-    total_count: z.number().int().min(0),
-    '+1': z.number().int().min(0),
-    '-1': z.number().int().min(0),
-    laugh: z.number().int().min(0),
-    hooray: z.number().int().min(0),
-    confused: z.number().int().min(0),
-    heart: z.number().int().min(0),
-    rocket: z.number().int().min(0),
-    eyes: z.number().int().min(0),
-  }).optional(),
+  reactions: z
+    .object({
+      url: z.string().url(),
+      total_count: z.number().int().min(0),
+      '+1': z.number().int().min(0),
+      '-1': z.number().int().min(0),
+      laugh: z.number().int().min(0),
+      hooray: z.number().int().min(0),
+      confused: z.number().int().min(0),
+      heart: z.number().int().min(0),
+      rocket: z.number().int().min(0),
+      eyes: z.number().int().min(0),
+    })
+    .optional(),
 });
 
 /**
@@ -405,18 +427,20 @@ export const githubReviewCommentSchema = z.object({
     html: z.object({ href: z.string().url() }),
     pull_request: z.object({ href: z.string().url() }),
   }),
-  reactions: z.object({
-    url: z.string().url(),
-    total_count: z.number().int().min(0),
-    '+1': z.number().int().min(0),
-    '-1': z.number().int().min(0),
-    laugh: z.number().int().min(0),
-    hooray: z.number().int().min(0),
-    confused: z.number().int().min(0),
-    heart: z.number().int().min(0),
-    rocket: z.number().int().min(0),
-    eyes: z.number().int().min(0),
-  }).optional(),
+  reactions: z
+    .object({
+      url: z.string().url(),
+      total_count: z.number().int().min(0),
+      '+1': z.number().int().min(0),
+      '-1': z.number().int().min(0),
+      laugh: z.number().int().min(0),
+      hooray: z.number().int().min(0),
+      confused: z.number().int().min(0),
+      heart: z.number().int().min(0),
+      rocket: z.number().int().min(0),
+      eyes: z.number().int().min(0),
+    })
+    .optional(),
 });
 
 /**
@@ -443,41 +467,59 @@ export const githubCommitSchema = z.object({
     }),
     url: z.string().url(),
     comment_count: z.number().int().min(0),
-    verification: z.object({
-      verified: z.boolean(),
-      reason: z.string(),
-      signature: z.string().nullable(),
-      payload: z.string().nullable(),
-    }).optional(),
+    verification: z
+      .object({
+        verified: z.boolean(),
+        reason: z.string(),
+        signature: z.string().nullable(),
+        payload: z.string().nullable(),
+      })
+      .optional(),
   }),
   url: z.string().url(),
   html_url: z.string().url(),
   comments_url: z.string().url(),
   author: githubUserSchema.nullable(),
   committer: githubUserSchema.nullable(),
-  parents: z.array(z.object({
-    sha: z.string().length(40),
-    url: z.string().url(),
-    html_url: z.string().url(),
-  })),
-  stats: z.object({
-    total: z.number().int().min(0),
-    additions: z.number().int().min(0),
-    deletions: z.number().int().min(0),
-  }).optional(),
-  files: z.array(z.object({
-    sha: z.string().nullable(),
-    filename: z.string(),
-    status: z.enum(['added', 'removed', 'modified', 'renamed', 'copied', 'changed', 'unchanged']),
-    additions: z.number().int().min(0),
-    deletions: z.number().int().min(0),
-    changes: z.number().int().min(0),
-    blob_url: z.string().url(),
-    raw_url: z.string().url(),
-    contents_url: z.string().url(),
-    patch: z.string().optional(),
-    previous_filename: z.string().optional(),
-  })).optional(),
+  parents: z.array(
+    z.object({
+      sha: z.string().length(40),
+      url: z.string().url(),
+      html_url: z.string().url(),
+    }),
+  ),
+  stats: z
+    .object({
+      total: z.number().int().min(0),
+      additions: z.number().int().min(0),
+      deletions: z.number().int().min(0),
+    })
+    .optional(),
+  files: z
+    .array(
+      z.object({
+        sha: z.string().nullable(),
+        filename: z.string(),
+        status: z.enum([
+          'added',
+          'removed',
+          'modified',
+          'renamed',
+          'copied',
+          'changed',
+          'unchanged',
+        ]),
+        additions: z.number().int().min(0),
+        deletions: z.number().int().min(0),
+        changes: z.number().int().min(0),
+        blob_url: z.string().url(),
+        raw_url: z.string().url(),
+        contents_url: z.string().url(),
+        patch: z.string().optional(),
+        previous_filename: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 // =====================================================
@@ -506,12 +548,16 @@ export const githubCommitsArraySchema = z.array(githubCommitSchema);
 export const githubErrorSchema = z.object({
   message: z.string(),
   documentation_url: z.string().url().optional(),
-  errors: z.array(z.object({
-    resource: z.string().optional(),
-    field: z.string().optional(),
-    code: z.string(),
-    message: z.string().optional(),
-  })).optional(),
+  errors: z
+    .array(
+      z.object({
+        resource: z.string().optional(),
+        field: z.string().optional(),
+        code: z.string(),
+        message: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 /**

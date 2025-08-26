@@ -16,14 +16,14 @@ interface UseIntersectionObserverReturn {
  * Optimized for Core Web Vitals performance
  */
 export function useIntersectionObserver(
-  options: UseIntersectionObserverOptions = {}
+  options: UseIntersectionObserverOptions = {},
 ): UseIntersectionObserverReturn {
-  const { 
+  const {
     threshold = 0,
-    root = null, 
+    root = null,
     rootMargin = '50px',
     triggerOnce = true,
-    delay = 0
+    delay = 0,
   } = options;
 
   const ref = useRef<HTMLDivElement>(null);
@@ -34,36 +34,39 @@ export function useIntersectionObserver(
   const hasIntersectedRef = useRef(false);
 
   // Use callback to memoize the observer callback
-  const handleIntersection = useCallback<IntersectionObserverCallback>((entries) => {
-    entries.forEach((entry) => {
-      const shouldLoad = entry.isIntersecting;
+  const handleIntersection = useCallback<IntersectionObserverCallback>(
+    (entries) => {
+      entries.forEach((entry) => {
+        const shouldLoad = entry.isIntersecting;
 
-      if (shouldLoad && delay > 0) {
-        // Apply delay if specified (useful for staggered loading)
-        timeoutRef.current = setTimeout(() => {
+        if (shouldLoad && delay > 0) {
+          // Apply delay if specified (useful for staggered loading)
+          timeoutRef.current = setTimeout(() => {
+            setIsIntersecting(true);
+            if (!hasIntersectedRef.current) {
+              hasIntersectedRef.current = true;
+              setHasIntersected(true);
+            }
+          }, delay);
+        } else if (shouldLoad) {
           setIsIntersecting(true);
           if (!hasIntersectedRef.current) {
             hasIntersectedRef.current = true;
             setHasIntersected(true);
           }
-        }, delay);
-      } else if (shouldLoad) {
-        setIsIntersecting(true);
-        if (!hasIntersectedRef.current) {
-          hasIntersectedRef.current = true;
-          setHasIntersected(true);
+        } else if (!triggerOnce) {
+          // Only update if not triggerOnce mode
+          setIsIntersecting(false);
         }
-      } else if (!triggerOnce) {
-        // Only update if not triggerOnce mode
-        setIsIntersecting(false);
-      }
 
-      // Disconnect after first intersection if triggerOnce
-      if (shouldLoad && triggerOnce && observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    });
-  }, [triggerOnce, delay]);
+        // Disconnect after first intersection if triggerOnce
+        if (shouldLoad && triggerOnce && observerRef.current) {
+          observerRef.current.disconnect();
+        }
+      });
+    },
+    [triggerOnce, delay],
+  );
 
   useEffect(() => {
     const element = ref.current;
@@ -98,7 +101,7 @@ export function useIntersectionObserver(
  */
 export function useLazyLoadData<T>(
   loadFn: () => Promise<T>,
-  options: UseIntersectionObserverOptions = {}
+  options: UseIntersectionObserverOptions = {},
 ) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
@@ -110,7 +113,7 @@ export function useLazyLoadData<T>(
     if (hasIntersected && !_data && !loadingRef.current) {
       loadingRef.current = true;
       setLoading(true);
-      
+
       loadFn()
         .then(setData)
         .catch(setError)
@@ -130,7 +133,7 @@ export function useLazyLoadData<T>(
 export function useProgressiveList<T>(
   items: T[],
   initialCount: number = 10,
-  incrementCount: number = 20
+  incrementCount: number = 20,
 ) {
   const [displayCount, setDisplayCount] = useState(initialCount);
   const { ref, hasIntersected } = useIntersectionObserver({
@@ -141,7 +144,7 @@ export function useProgressiveList<T>(
   useEffect(() => {
     if (hasIntersected && displayCount < items.length) {
       // Load more items
-      setDisplayCount(prev => Math.min(prev + incrementCount, items.length));
+      setDisplayCount((prev) => Math.min(prev + incrementCount, items.length));
     }
   }, [hasIntersected, displayCount, items.length, incrementCount]);
 

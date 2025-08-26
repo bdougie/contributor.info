@@ -1,9 +1,8 @@
-import { Card } from "@/components/ui/card";
-import { useGlobalStats } from "@/hooks/use-global-stats";
+import { Card } from '@/components/ui/card';
+import { useGlobalStats } from '@/hooks/use-global-stats';
 
 export default function HomeSocialCardWithData() {
-  const { totalRepositories, totalContributors, totalPullRequests, isLoading } =
-    useGlobalStats();
+  const { totalRepositories, totalContributors, totalPullRequests, isLoading } = useGlobalStats();
 
   // Format numbers for display
   const formatNumber = (num: number): string => {
@@ -24,9 +23,7 @@ export default function HomeSocialCardWithData() {
         </div>
 
         {/* Title */}
-        <h1 className="text-6xl font-bold text-center mb-4 relative z-10">
-          contributor.info
-        </h1>
+        <h1 className="text-6xl font-bold text-center mb-4 relative z-10">contributor.info</h1>
 
         {/* Tagline */}
         <p className="text-2xl text-muted-foreground text-center mb-12 relative z-10">
@@ -37,19 +34,19 @@ export default function HomeSocialCardWithData() {
         <div className="flex gap-12 relative z-10">
           <div className="text-center">
             <div className="text-4xl font-bold text-white">
-              {isLoading ? "..." : formatNumber(totalRepositories)}
+              {isLoading ? '...' : formatNumber(totalRepositories)}
             </div>
             <div className="text-lg text-muted-foreground">Repositories</div>
           </div>
           <div className="text-center">
             <div className="text-4xl font-bold text-white">
-              {isLoading ? "..." : formatNumber(totalContributors)}
+              {isLoading ? '...' : formatNumber(totalContributors)}
             </div>
             <div className="text-lg text-muted-foreground">Contributors</div>
           </div>
           <div className="text-center">
             <div className="text-4xl font-bold text-white">
-              {isLoading ? "..." : formatNumber(totalPullRequests)}
+              {isLoading ? '...' : formatNumber(totalPullRequests)}
             </div>
             <div className="text-lg text-muted-foreground">Pull Requests</div>
           </div>

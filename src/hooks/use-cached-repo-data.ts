@@ -34,25 +34,25 @@ const repoDataCache: RepoDataCache = {};
 function cleanupCache() {
   const now = Date.now();
   const cacheKeys = Object.keys(repoDataCache);
-  
+
   // First pass: Remove stale entries older than 30 minutes
-  cacheKeys.forEach(key => {
+  cacheKeys.forEach((key) => {
     const entry = repoDataCache[key];
     if (now - entry.timestamp > STALE_CACHE_DURATION) {
       delete repoDataCache[key];
     }
   });
-  
+
   // Second pass: If still over threshold, remove oldest entries
   const remainingKeys = Object.keys(repoDataCache);
   if (remainingKeys.length > MAX_CACHE_SIZE) {
-    const sortedKeys = remainingKeys.sort((a, b) => 
-      repoDataCache[a].timestamp - repoDataCache[b].timestamp
+    const sortedKeys = remainingKeys.sort(
+      (a, b) => repoDataCache[a].timestamp - repoDataCache[b].timestamp,
     );
-    
+
     // Remove oldest entries to get back to MAX_CACHE_SIZE
     const keysToRemove = sortedKeys.slice(0, remainingKeys.length - MAX_CACHE_SIZE);
-    keysToRemove.forEach(key => {
+    keysToRemove.forEach((key) => {
       delete repoDataCache[key];
     });
   }
@@ -66,10 +66,10 @@ function cleanupCache() {
  * @param includeBots - Whether to include bot accounts in analysis
  */
 export function useCachedRepoData(
-  owner: string | undefined, 
-  repo: string | undefined, 
-  timeRange: TimeRange, 
-  includeBots: boolean
+  owner: string | undefined,
+  repo: string | undefined,
+  timeRange: TimeRange,
+  includeBots: boolean,
 ) {
   const [stats, setStats] = useState<RepoStats>({
     pullRequests: [],
@@ -96,7 +96,7 @@ export function useCachedRepoData(
         route: `/${owner}/${repo}`,
         repository: `${owner}/${repo}`,
         timeRange: timeRange,
-        dataSource: 'cache'
+        dataSource: 'cache',
       });
 
       // Create cache key
@@ -105,7 +105,7 @@ export function useCachedRepoData(
       const cachedData = repoDataCache[cacheKey];
 
       // Check if we have valid cached data
-      if (cachedData && (now - cachedData.timestamp) < CACHE_DURATION) {
+      if (cachedData && now - cachedData.timestamp < CACHE_DURATION) {
         // Track cache hit
         trackCacheOperation(
           'repo-data-cache-hit',
@@ -119,8 +119,8 @@ export function useCachedRepoData(
             operation: 'get',
             cacheType: 'memory',
             key: cacheKey,
-            hit: true
-          }
+            hit: true,
+          },
         );
         return;
       }
@@ -138,8 +138,8 @@ export function useCachedRepoData(
               'repository.owner': owner,
               'repository.name': repo,
               'data.time_range': timeRange,
-              'data.include_bots': includeBots
-            }
+              'data.include_bots': includeBots,
+            },
           },
           async () => {
             // Update application context for database operations
@@ -147,24 +147,24 @@ export function useCachedRepoData(
               route: `/${owner}/${repo}`,
               repository: `${owner}/${repo}`,
               timeRange: timeRange,
-              dataSource: 'database'
+              dataSource: 'database',
             });
 
             // Use smart fetch for better UX - avoids problematic API fallback
             const useSmartFetch = true; // Feature flag for gradual rollout
-            
+
             if (useSmartFetch) {
               const [prDataResult, directCommits] = await Promise.all([
                 fetchPRDataSmart(owner, repo, { timeRange, showNotifications: false }),
                 fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
               ]);
-              
-              return { 
-                prs: prDataResult.data, 
+
+              return {
+                prs: prDataResult.data,
                 directCommits,
                 status: prDataResult.status,
                 message: prDataResult.message,
-                metadata: prDataResult.metadata
+                metadata: prDataResult.metadata,
               };
             } else {
               // Legacy fallback path
@@ -173,25 +173,25 @@ export function useCachedRepoData(
                 fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
               ]);
 
-              return { 
-                prs: prDataResult.data, 
+              return {
+                prs: prDataResult.data,
                 directCommits,
                 status: prDataResult.status,
-                message: prDataResult.message
+                message: prDataResult.message,
               };
             }
-          }
+          },
         );
 
         const { prs, directCommits, status, message, metadata } = fetchResult;
-        
+
         // Update data status for UI
         setDataStatus({
           status: status || 'success',
           message,
-          metadata
+          metadata,
         });
-        
+
         // Handle different data states gracefully
         if (status === 'pending' && prs.length === 0) {
           // Repository is being set up - show friendly loading state
@@ -204,7 +204,7 @@ export function useCachedRepoData(
           setDirectCommitsData(null);
           return; // Skip caching for pending state
         }
-        
+
         const newStats = { pullRequests: prs, loading: false, error: null };
         const newLotteryFactor = calculateLotteryFactor(prs, timeRange, includeBots);
         const newDirectCommitsData = {
@@ -229,8 +229,8 @@ export function useCachedRepoData(
             cacheType: 'memory',
             key: cacheKey,
             hit: false,
-            size: prs.length
-          }
+            size: prs.length,
+          },
         );
 
         // Perform enhanced cache cleanup when threshold is reached
@@ -249,13 +249,13 @@ export function useCachedRepoData(
           timeRange,
           includeBots,
           cacheKey,
-          error: error instanceof Error ? error.message : String(_error)
+          error: error instanceof Error ? error.message : String(_error),
         });
 
         const errorStats = {
           pullRequests: [],
           loading: false,
-          error: error instanceof Error ? error.message : "Failed to fetch data",
+          error: error instanceof Error ? error.message : 'Failed to fetch data',
         };
         setStats(_errorStats);
       } finally {

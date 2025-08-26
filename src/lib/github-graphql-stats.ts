@@ -8,7 +8,7 @@ const GITHUB_GRAPHQL_API = 'https://api.github.com/graphql';
 const VITE_GITHUB_TOKEN = env.GITHUB_TOKEN;
 
 // Create admin client for write operations if service role key is available
-const adminSupabase = serverEnv.SUPABASE_SERVICE_ROLE_KEY 
+const adminSupabase = serverEnv.SUPABASE_SERVICE_ROLE_KEY
   ? createClient(env.SUPABASE_URL, serverEnv.SUPABASE_SERVICE_ROLE_KEY)
   : null;
 
@@ -39,14 +39,14 @@ interface GraphQLResponse {
         createdAt: string;
         reviews: {
           totalCount: number;
-          nodes: Array<{ 
+          nodes: Array<{
             author: { login: string } | null;
             submittedAt: string;
           }>;
         };
         comments: {
           totalCount: number;
-          nodes: Array<{ 
+          nodes: Array<{
             author: { login: string } | null;
             createdAt: string;
           }>;
@@ -191,7 +191,9 @@ async function getGraphQLHeaders(): Promise<HeadersInit> {
   };
 
   // Try to get user's GitHub token from Supabase session
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
 
   // Use user's token if available, otherwise fall back to env token
@@ -208,10 +210,10 @@ async function getGraphQLHeaders(): Promise<HeadersInit> {
  */
 async function executeGraphQLQuery<T>(
   query: string,
-  variables: Record<string, string | number | null | undefined>
+  variables: Record<string, string | number | null | undefined>,
 ): Promise<T> {
   const headers = await getGraphQLHeaders();
-  
+
   const response = await fetch(GITHUB_GRAPHQL_API, {
     method: 'POST',
     headers,
@@ -226,7 +228,7 @@ async function executeGraphQLQuery<T>(
   }
 
   const result = await response.json();
-  
+
   if (result._errors) {
     throw new Error(`GraphQL errors: ${JSON.stringify(result._errors)}`);
   }
@@ -241,25 +243,22 @@ async function fetchAllPRReviews(
   owner: string,
   repo: string,
   prNumber: number,
-  sinceDate: Date
+  sinceDate: Date,
 ): Promise<Map<string, number>> {
   const reviewerCounts = new Map<string, number>();
   let cursor: string | null = null;
   let hasNextPage = true;
 
   while (hasNextPage) {
-    const data: ReviewsResponse = await executeGraphQLQuery<ReviewsResponse>(
-      GET_PR_REVIEWS_QUERY,
-      {
-        owner,
-        name: repo,
-        number: prNumber,
-        cursor,
-      }
-    );
+    const data: ReviewsResponse = await executeGraphQLQuery<ReviewsResponse>(GET_PR_REVIEWS_QUERY, {
+      owner,
+      name: repo,
+      number: prNumber,
+      cursor,
+    });
 
     const { reviews } = data.repository.pullRequest;
-    
+
     // Count reviews by author, filtering by date
     for (const review of reviews.nodes) {
       if (review.author?.login && new Date(review.submittedAt) >= sinceDate) {
@@ -282,7 +281,7 @@ async function fetchAllPRComments(
   owner: string,
   repo: string,
   prNumber: number,
-  sinceDate: Date
+  sinceDate: Date,
 ): Promise<Map<string, number>> {
   const commenterCounts = new Map<string, number>();
   let cursor: string | null = null;
@@ -296,11 +295,11 @@ async function fetchAllPRComments(
         name: repo,
         number: prNumber,
         cursor,
-      }
+      },
     );
 
     const { comments } = data.repository.pullRequest;
-    
+
     // Count comments by author, filtering by date
     for (const comment of comments.nodes) {
       if (comment.author?.login && new Date(comment.createdAt) >= sinceDate) {
@@ -321,15 +320,15 @@ async function fetchAllPRComments(
  */
 export async function fetchContributorStats(
   owner: string,
-  repo: string
+  repo: string,
 ): Promise<RepositoryContributorStats> {
   // Calculate date 30 days ago
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const sinceDate = thirtyDaysAgo.toISOString();
-  
+
   console.log('Fetching contributor stats for %s/%s since %s...', owner, repo, sinceDate);
-  
+
   const contributorMap = new Map<string, ContributorStats>();
   let cursor: string | null = null;
   let hasNextPage = true;
@@ -342,18 +341,18 @@ export async function fetchContributorStats(
           owner,
           name: repo,
           cursor,
-        }
+        },
       );
 
       const { pullRequests } = response.repository;
-      
+
       // Process each PR to collect contributor stats
       for (const pr of pullRequests.nodes) {
         // Skip PRs that haven't been updated in the last 30 days
         if (new Date(pr.updatedAt) < thirtyDaysAgo) {
           continue;
         }
-        
+
         // Count PR author only if PR was created in the last 30 days
         if (pr.author?.login && new Date(pr.createdAt) >= thirtyDaysAgo) {
           const login = pr.author.login;
@@ -386,12 +385,21 @@ export async function fetchContributorStats(
               contributorMap.get(login)!.reviewsCount += 1;
             }
           }
-          
+
           // If there are more than 100 reviews, fetch the rest
           if (pr.reviews.totalCount > 100) {
-            console.log('PR #%d has %d reviews, fetching remaining...', pr.number, pr.reviews.totalCount);
-            const additionalReviewerCounts = await fetchAllPRReviews(owner, repo, pr.number, thirtyDaysAgo);
-            
+            console.log(
+              'PR #%d has %d reviews, fetching remaining...',
+              pr.number,
+              pr.reviews.totalCount,
+            );
+            const additionalReviewerCounts = await fetchAllPRReviews(
+              owner,
+              repo,
+              pr.number,
+              thirtyDaysAgo,
+            );
+
             // Merge additional counts with existing counts
             for (const [login, count] of additionalReviewerCounts) {
               if (!contributorMap.has(login)) {
@@ -404,10 +412,10 @@ export async function fetchContributorStats(
               }
               // Note: We already counted first 100, so we add the full count from pagination
               // and subtract what we already counted to avoid double-counting
-              const existingCount = pr.reviews.nodes.filter(r => 
-                r.author?.login === login && new Date(r.submittedAt) >= thirtyDaysAgo
+              const existingCount = pr.reviews.nodes.filter(
+                (r) => r.author?.login === login && new Date(r.submittedAt) >= thirtyDaysAgo,
               ).length;
-              contributorMap.get(login)!.reviewsCount += (count - existingCount);
+              contributorMap.get(login)!.reviewsCount += count - existingCount;
             }
           }
         }
@@ -430,12 +438,21 @@ export async function fetchContributorStats(
               contributorMap.get(login)!.commentsCount += 1;
             }
           }
-          
+
           // If there are more than 100 comments, fetch the rest
           if (pr.comments.totalCount > 100) {
-            console.log('PR #%d has %d comments, fetching remaining...', pr.number, pr.comments.totalCount);
-            const additionalCommenterCounts = await fetchAllPRComments(owner, repo, pr.number, thirtyDaysAgo);
-            
+            console.log(
+              'PR #%d has %d comments, fetching remaining...',
+              pr.number,
+              pr.comments.totalCount,
+            );
+            const additionalCommenterCounts = await fetchAllPRComments(
+              owner,
+              repo,
+              pr.number,
+              thirtyDaysAgo,
+            );
+
             // Merge additional counts with existing counts
             for (const [login, count] of additionalCommenterCounts) {
               if (!contributorMap.has(login)) {
@@ -448,10 +465,10 @@ export async function fetchContributorStats(
               }
               // Note: We already counted first 100, so we add the full count from pagination
               // and subtract what we already counted to avoid double-counting
-              const existingCount = pr.comments.nodes.filter(c => 
-                c.author?.login === login && new Date(c.createdAt) >= thirtyDaysAgo
+              const existingCount = pr.comments.nodes.filter(
+                (c) => c.author?.login === login && new Date(c.createdAt) >= thirtyDaysAgo,
               ).length;
-              contributorMap.get(login)!.commentsCount += (count - existingCount);
+              contributorMap.get(login)!.commentsCount += count - existingCount;
             }
           }
         }
@@ -460,16 +477,24 @@ export async function fetchContributorStats(
       // Update pagination
       hasNextPage = pullRequests.pageInfo.hasNextPage;
       cursor = pullRequests.pageInfo.endCursor;
-      
-      console.log('Processed %d PRs, %d contributors found so far', pullRequests.nodes.length, contributorMap.size);
-      
+
+      console.log(
+        'Processed %d PRs, %d contributors found so far',
+        pullRequests.nodes.length,
+        contributorMap.size,
+      );
     } catch (_error) {
       console.error('Error fetching page:', _error);
       throw error;
     }
   }
 
-  console.log('Completed fetching stats for %s/%s: %d contributors', owner, repo, contributorMap.size);
+  console.log(
+    'Completed fetching stats for %s/%s: %d contributors',
+    owner,
+    repo,
+    contributorMap.size,
+  );
 
   return {
     owner,
@@ -482,19 +507,19 @@ export async function fetchContributorStats(
  * Update Supabase database with contributor statistics
  */
 export async function updateContributorStatsInDatabase(
-  stats: RepositoryContributorStats
+  stats: RepositoryContributorStats,
 ): Promise<void> {
   console.log('Updating _database for %s/%s...', stats.owner, stats.repo);
 
   // Use admin client if available for write operations
   const dbClient = adminSupabase || supabase;
-  
+
   if (!adminSupabase) {
     console.warn('⚠️  Using regular client - write operations may fail due to RLS policies');
   }
 
   // First, get the repository ID from Supabase
-  const { data: repoData, error: _error: repoError } = await dbClient
+  const { data: repoData, error: repoError } = await dbClient
     .from('repositories')
     .select('id')
     .eq('owner', stats.owner)
@@ -516,7 +541,7 @@ export async function updateContributorStatsInDatabase(
   for (const contributor of stats.contributors) {
     try {
       // First, ensure the contributor exists in the contributors table
-      const { data: existingContributor, error: _error: contributorError } = await dbClient
+      const { data: existingContributor, error: contributorError } = await dbClient
         .from('contributors')
         .select('id')
         .eq('username', contributor.login)
@@ -526,7 +551,7 @@ export async function updateContributorStatsInDatabase(
 
       if (contributorError && contributorError.code === 'PGRST116') {
         // Contributor doesn't exist, create them
-        const { data: newContributor, error: _error: insertError } = await dbClient
+        const { data: newContributor, error: insertError } = await dbClient
           .from('contributors')
           .insert({
             username: contributor.login,
@@ -552,9 +577,8 @@ export async function updateContributorStatsInDatabase(
       }
 
       // Update or insert monthly rankings
-      const { error: _error: upsertError } = await dbClient
-        .from('monthly_rankings')
-        .upsert({
+      const { error: upsertError } = await dbClient.from('monthly_rankings').upsert(
+        {
           month: currentMonth,
           year: currentYear,
           contributor_id: contributorId,
@@ -566,18 +590,25 @@ export async function updateContributorStatsInDatabase(
           weighted_score: calculateWeightedScore(
             contributor.pullRequestsCount,
             contributor.reviewsCount,
-            contributor.commentsCount
+            contributor.commentsCount,
           ),
-        }, {
+        },
+        {
           onConflict: 'month,year,contributor_id,repository_id',
-        });
+        },
+      );
 
       if (upsertError) {
         console.error('Failed to update stats for %s:', contributor.login, upsertError);
       } else {
-        console.log('Updated stats for %s: %d PRs, %d reviews, %d comments', contributor.login, contributor.pullRequestsCount, contributor.reviewsCount, contributor.commentsCount);
+        console.log(
+          'Updated stats for %s: %d PRs, %d reviews, %d comments',
+          contributor.login,
+          contributor.pullRequestsCount,
+          contributor.reviewsCount,
+          contributor.commentsCount,
+        );
       }
-
     } catch (_error) {
       console.error('Error processing contributor %s:', contributor.login, _error);
       continue;
@@ -597,30 +628,27 @@ function calculateWeightedScore(
   commentsCount: number,
   repositoriesCount: number = 1,
   linesAdded: number = 0,
-  linesRemoved: number = 0
+  linesRemoved: number = 0,
 ): number {
   return (
-    (pullRequestsCount * 10.0) +
-    (reviewsCount * 3.0) +
-    (commentsCount * 1.0) +
-    (repositoriesCount * 5.0) +
-    (Math.min(linesAdded + linesRemoved, 10000) * 0.01)
+    pullRequestsCount * 10.0 +
+    reviewsCount * 3.0 +
+    commentsCount * 1.0 +
+    repositoriesCount * 5.0 +
+    Math.min(linesAdded + linesRemoved, 10000) * 0.01
   );
 }
 
 /**
  * Fetch and update contributor statistics for a repository
  */
-export async function syncRepositoryContributorStats(
-  owner: string,
-  repo: string
-): Promise<void> {
+export async function syncRepositoryContributorStats(owner: string, repo: string): Promise<void> {
   try {
     console.log('Starting sync for %s/%s', owner, repo);
-    
+
     const stats = await fetchContributorStats(owner, repo);
     await updateContributorStatsInDatabase(stats);
-    
+
     console.log('Successfully synced contributor stats for %s/%s', owner, repo);
   } catch (_error) {
     console.error('Failed to sync contributor stats for %s/%s:', owner, repo, _error);

@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { useState } from "react";
+import type { Meta, StoryObj } from '@storybook/react';
+import { useState } from 'react';
 import {
   Select,
   SelectContent,
@@ -9,15 +9,15 @@ import {
   SelectTrigger,
   SelectValue,
   SelectSeparator,
-} from "./select";
+} from './select';
 
 const meta = {
-  title: "UI/Select",
+  title: 'UI/Select',
   component: Select,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   decorators: [
     (Story) => (
       <div className="w-[280px]">
@@ -87,7 +87,7 @@ export const WithGroups: Story = {
 export const Controlled: Story = {
   render: () => {
     const ControlledExample = () => {
-      const [value, setValue] = useState("");
+      const [value, setValue] = useState('');
 
       return (
         <div className="space-y-4">
@@ -103,9 +103,7 @@ export const Controlled: Story = {
               <SelectItem value="solid">Solid</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-sm text-muted-foreground">
-            Selected value: {value || "none"}
-          </p>
+          <p className="text-sm text-muted-foreground">Selected value: {value || 'none'}</p>
         </div>
       );
     };
@@ -258,7 +256,7 @@ export const InFormExample: Story = {
 
 // Position variants
 export const PositionPopper: Story = {
-  name: "Position: Popper (Default)",
+  name: 'Position: Popper (Default)',
   render: () => (
     <Select>
       <SelectTrigger>
@@ -274,7 +272,7 @@ export const PositionPopper: Story = {
 };
 
 export const PositionItemAligned: Story = {
-  name: "Position: Item Aligned",
+  name: 'Position: Item Aligned',
   render: () => (
     <Select>
       <SelectTrigger>
@@ -302,7 +300,7 @@ export const SelectInteraction: Story = {
         <SelectItem value="orange">Orange</SelectItem>
       </SelectContent>
     </Select>
-  )
+  ),
 };
 
 export const KeyboardNavigation: Story = {
@@ -322,7 +320,7 @@ export const KeyboardNavigation: Story = {
 
 export const ControlledSelect: Story = {
   render: () => {
-    const [value, setValue] = useState("");
+    const [value, setValue] = useState('');
 
     return (
       <div>

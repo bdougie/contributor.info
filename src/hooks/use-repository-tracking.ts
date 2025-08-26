@@ -24,15 +24,15 @@ export function useRepositoryTracking({
   owner,
   repo,
   enabled = true,
-  onTrackingComplete
+  onTrackingComplete,
 }: TrackingOptions) {
   const [state, setState] = useState<TrackingState>({
     status: 'checking',
     repository: null,
     message: null,
-    error: null
+    error: null,
   });
-  
+
   const { isLoggedIn } = useGitHubAuth();
 
   // Check if repository exists in database
@@ -42,13 +42,13 @@ export function useRepositoryTracking({
         status: 'checking',
         repository: null,
         message: null,
-        error: null
+        error: null,
       });
       return;
     }
 
     try {
-      setState(prev => ({ ...prev, status: 'checking', _error: null }));
+      setState((prev) => ({ ...prev, status: 'checking', _error: null }));
 
       // Check if repository exists
       const { data: repoData, error: _error } = await supabase
@@ -64,7 +64,7 @@ export function useRepositoryTracking({
           status: 'error',
           repository: null,
           message: null,
-          error: 'Failed to check repository status'
+          error: 'Failed to check repository status',
         });
         return;
       }
@@ -75,7 +75,7 @@ export function useRepositoryTracking({
           status: 'tracked',
           repository: repoData,
           message: null,
-          error: null
+          error: null,
         });
       } else {
         // Repository not tracked
@@ -83,7 +83,7 @@ export function useRepositoryTracking({
           status: 'not_tracked',
           repository: null,
           message: 'Repository not tracked yet',
-          error: null
+          error: null,
         });
       }
     } catch (_error) {
@@ -92,7 +92,7 @@ export function useRepositoryTracking({
         status: 'error',
         repository: null,
         message: null,
-        error: 'Something went wrong. Please try again.'
+        error: 'Something went wrong. Please try again.',
       });
     }
   }, [owner, repo]);
@@ -113,11 +113,11 @@ export function useRepositoryTracking({
       return { success: false, error: 'Please login to track repositories' };
     }
 
-    setState(prev => ({ 
-      ...prev, 
+    setState((prev) => ({
+      ...prev,
       status: 'tracking',
       message: 'Initiating repository tracking...',
-      error: null 
+      error: null,
     }));
 
     try {
@@ -128,7 +128,7 @@ export function useRepositoryTracking({
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ owner, repo })
+        body: JSON.stringify({ owner, repo }),
       });
 
       const result = await response.json();
@@ -141,15 +141,14 @@ export function useRepositoryTracking({
       pollForRepository(owner, repo);
 
       return { success: true, repositoryId: result.repositoryId };
-
     } catch (_error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to track repository';
-      
+
       setState({
         status: 'error',
         repository: null,
         message: null,
-        error: errorMessage
+        error: errorMessage,
       });
 
       return { success: false, error: errorMessage };
@@ -157,52 +156,56 @@ export function useRepositoryTracking({
   }, [owner, repo, isLoggedIn]);
 
   // Poll for repository creation after tracking
-  const pollForRepository = useCallback((owner: string, repo: string) => {
-    let pollCount = 0;
-    const maxPolls = 60; // 2 minutes max
+  const pollForRepository = useCallback(
+    (owner: string, repo: string) => {
+      let pollCount = 0;
+      const maxPolls = 60; // 2 minutes max
 
-    const pollInterval = setInterval(async () => {
-      pollCount++;
+      const pollInterval = setInterval(async () => {
+        pollCount++;
 
-      try {
-        const { data: repoData } = await supabase
-          .from('repositories')
-          .select('id, owner, name')
-          .eq('owner', owner)
-          .eq('name', repo)
-          .maybeSingle();
+        try {
+          const { data: repoData } = await supabase
+            .from('repositories')
+            .select('id, owner, name')
+            .eq('owner', owner)
+            .eq('name', repo)
+            .maybeSingle();
 
-        if (repoData) {
-          clearInterval(pollInterval);
-          
-          setState({
-            status: 'tracked',
-            repository: repoData,
-            message: 'Repository successfully tracked!',
-            error: null
-          });
+          if (repoData) {
+            clearInterval(pollInterval);
 
-          if (onTrackingComplete) {
-            onTrackingComplete(repoData.id);
+            setState({
+              status: 'tracked',
+              repository: repoData,
+              message: 'Repository successfully tracked!',
+              error: null,
+            });
+
+            if (onTrackingComplete) {
+              onTrackingComplete(repoData.id);
+            }
           }
-        }
 
-        if (pollCount >= maxPolls) {
-          clearInterval(pollInterval);
-          setState(prev => ({
-            ...prev,
-            status: 'timeout',
-            error: 'Tracking is taking longer than expected. The data sync is still running in the background.'
-          }));
+          if (pollCount >= maxPolls) {
+            clearInterval(pollInterval);
+            setState((prev) => ({
+              ...prev,
+              status: 'timeout',
+              error:
+                'Tracking is taking longer than expected. The data sync is still running in the background.',
+            }));
+          }
+        } catch (_error) {
+          console.error('Polling error:', _error);
         }
-      } catch (_error) {
-        console.error('Polling error:', _error);
-      }
-    }, 2000);
+      }, 2000);
 
-    // Clean up on unmount
-    return () => clearInterval(pollInterval);
-  }, [onTrackingComplete]);
+      // Clean up on unmount
+      return () => clearInterval(pollInterval);
+    },
+    [onTrackingComplete],
+  );
 
   // Check repository on mount and when owner/repo changes
   useEffect(() => {
@@ -224,10 +227,10 @@ export function useRepositoryTracking({
   }, [isLoggedIn, owner, repo, trackRepository]);
 
   const retryTracking = useCallback(() => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       status: 'idle',
-      error: null
+      error: null,
     }));
     trackRepository();
   }, [trackRepository]);
@@ -237,6 +240,6 @@ export function useRepositoryTracking({
     trackRepository,
     retryTracking,
     refreshStatus: checkRepository,
-    isLoggedIn
+    isLoggedIn,
   };
 }

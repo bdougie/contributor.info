@@ -1,7 +1,7 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
-import LoginPage from "./login-page";
-import { MemoryRouter } from "react-router-dom";
+import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from '@storybook/test';
+import LoginPage from './login-page';
+import { MemoryRouter } from 'react-router-dom';
 
 // Mock the GitHub auth hook
 const mockUseGitHubAuth = fn();
@@ -27,21 +27,21 @@ Object.defineProperty(global, 'window', {
 });
 
 const meta = {
-  title: "Features/Auth/LoginPage",
+  title: 'Features/Auth/LoginPage',
   component: LoginPage,
   parameters: {
-    layout: "fullscreen",
+    layout: 'fullscreen',
     docs: {
       description: {
         component:
-          "A full-page login interface with GitHub authentication, redirect handling, and security validation to prevent open redirect attacks."
-      }
-    }
+          'A full-page login interface with GitHub authentication, redirect handling, and security validation to prevent open redirect attacks.',
+      },
+    },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <MemoryRouter initialEntries={["/login"]}>
+      <MemoryRouter initialEntries={['/login']}>
         <Story />
       </MemoryRouter>
     ),
@@ -68,10 +68,10 @@ export const Default: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Default login page appearance for unauthenticated users."
-      }
-    }
-  }
+        story: 'Default login page appearance for unauthenticated users.',
+      },
+    },
+  },
 };
 
 export const WithRedirectParameter: Story = {
@@ -100,16 +100,16 @@ export const WithRedirectParameter: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Login page with redirect parameter that will redirect user after successful login."
-      }
-    }
-  }
+        story: 'Login page with redirect parameter that will redirect user after successful login.',
+      },
+    },
+  },
 };
 
 export const WithError: Story = {
   render: () => {
     mockUseGitHubAuth.mockReturnValue({
-      login: fn().mockRejectedValue(new Error("Authentication failed. Please try again.")),
+      login: fn().mockRejectedValue(new Error('Authentication failed. Please try again.')),
       isLoggedIn: false,
       user: null,
       logout: fn(),
@@ -122,10 +122,10 @@ export const WithError: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Login page showing error state when authentication fails."
-      }
-    }
-  }
+        story: 'Login page showing error state when authentication fails.',
+      },
+    },
+  },
 };
 
 export const AlreadyLoggedIn: Story = {
@@ -135,8 +135,8 @@ export const AlreadyLoggedIn: Story = {
       login: fn(),
       isLoggedIn: true,
       user: {
-        login: "test-user",
-        avatar_url: "https://avatars.githubusercontent.com/u/123?v=4",
+        login: 'test-user',
+        avatar_url: 'https://avatars.githubusercontent.com/u/123?v=4',
       },
       logout: fn(),
     });
@@ -151,7 +151,7 @@ export const AlreadyLoggedIn: Story = {
           <p className="text-green-800">
             ✅ User is already logged in - would redirect to home page
             <br />
-            Navigate called: {mockNavigate.mock.calls.length > 0 ? "Yes" : "No"}
+            Navigate called: {mockNavigate.mock.calls.length > 0 ? 'Yes' : 'No'}
           </p>
         </div>
       </div>
@@ -160,17 +160,17 @@ export const AlreadyLoggedIn: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Login page behavior when user is already authenticated (should redirect)."
-      }
-    }
-  }
+        story: 'Login page behavior when user is already authenticated (should redirect).',
+      },
+    },
+  },
 };
 
 export const LoadingState: Story = {
   render: () => {
     // Mock login function that takes time
     const mockLogin = fn().mockImplementation(
-      () => new Promise(resolve => setTimeout(resolve, 5000))
+      () => new Promise((resolve) => setTimeout(resolve, 5000)),
     );
 
     mockUseGitHubAuth.mockReturnValue({
@@ -186,9 +186,7 @@ export const LoadingState: Story = {
       <div>
         <LoginPage />
         <div className="fixed bottom-4 left-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
-          <p className="text-yellow-800">
-            ⏳ Click login button to simulate loading state
-          </p>
+          <p className="text-yellow-800">⏳ Click login button to simulate loading state</p>
         </div>
       </div>
     );
@@ -196,10 +194,10 @@ export const LoadingState: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Click the login button to see loading state during authentication."
-      }
-    }
-  }
+        story: 'Click the login button to see loading state during authentication.',
+      },
+    },
+  },
 };
 
 export const SecurityTest: Story = {
@@ -232,10 +230,10 @@ export const SecurityTest: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Tests security validation - malicious external redirect URLs should be rejected."
-      }
-    }
-  }
+        story: 'Tests security validation - malicious external redirect URLs should be rejected.',
+      },
+    },
+  },
 };
 
 export const MobileView: Story = {
@@ -251,12 +249,12 @@ export const MobileView: Story = {
   },
   parameters: {
     viewport: {
-      defaultViewport: "mobile1"
+      defaultViewport: 'mobile1',
     },
     docs: {
       description: {
-        story: "Login page appearance on mobile devices."
-      }
-    }
-  }
+        story: 'Login page appearance on mobile devices.',
+      },
+    },
+  },
 };

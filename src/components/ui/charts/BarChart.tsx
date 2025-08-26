@@ -78,7 +78,7 @@ export const BarChart(BarChartProps): JSX.Element = ({
           },
           paths: (u: unknown, seriesIdx: number, idx0: number, idx1: number) => {
             const fill = new Path2D();
-            const data = u.data[seriesIdx] as number[];
+            const _data = u.data[seriesIdx] as number[];
             const zeroY = u.valToPos(0, 'y', true);
             
             for (let i = idx0; i <= idx1; i++) {

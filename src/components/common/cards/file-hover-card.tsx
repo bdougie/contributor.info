@@ -1,10 +1,9 @@
-;
-import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
-import type { PullRequest } from "@/lib/types";
-import React from "react"
+import * as HoverCardPrimitive from '@radix-ui/react-hover-card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
+import type { PullRequest } from '@/lib/types';
+import React from 'react';
 import { File, GitPullRequest } from '@/components/ui/icon';
 
 interface FileTouched {
@@ -22,37 +21,32 @@ interface FileHoverCardProps {
 // Function to get file extension badge styling
 const getFileBadgeStyle = (extension: string) => {
   const extensionColorMap: Record<string, string> = {
-    ts: "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
-    tsx: "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
-    js: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400",
-    jsx: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400",
-    py: "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400",
-    go: "bg-teal-100 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400",
-    rs: "bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400",
-    java: "bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400",
-    kt: "bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400",
-    swift:
-      "bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400",
-    md: "bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400",
-    json: "bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400",
-    yml: "bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400",
-    yaml: "bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400",
-    css: "bg-pink-100 text-pink-700 dark:bg-pink-900/20 dark:text-pink-400",
-    scss: "bg-pink-100 text-pink-700 dark:bg-pink-900/20 dark:text-pink-400",
-    html: "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400",
+    ts: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+    tsx: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+    js: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
+    jsx: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
+    py: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400',
+    go: 'bg-teal-100 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400',
+    rs: 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400',
+    java: 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400',
+    kt: 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400',
+    swift: 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400',
+    md: 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400',
+    json: 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400',
+    yml: 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400',
+    yaml: 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400',
+    css: 'bg-pink-100 text-pink-700 dark:bg-pink-900/20 dark:text-pink-400',
+    scss: 'bg-pink-100 text-pink-700 dark:bg-pink-900/20 dark:text-pink-400',
+    html: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400',
   };
 
   return (
     extensionColorMap[extension] ||
-    "bg-slate-100 text-slate-700 dark:bg-slate-900/20 dark:text-slate-400"
+    'bg-slate-100 text-slate-700 dark:bg-slate-900/20 dark:text-slate-400'
   );
 };
 
-export function FileHoverCard({
-  pullRequest,
-  filesTouched,
-  children,
-}: FileHoverCardProps) {
+export function FileHoverCard({ pullRequest, filesTouched, children }: FileHoverCardProps) {
   // Sort files by total changes (additions + deletions)
   const sortedFiles = [...filesTouched].sort((a, b) => {
     const totalChangesA = a.additions + a.deletions;
@@ -63,19 +57,19 @@ export function FileHoverCard({
   return (
     <HoverCardPrimitive.Root openDelay={0} closeDelay={100}>
       <HoverCardPrimitive.Trigger asChild>
-        <div className="inline-block" style={{ pointerEvents: "auto" }}>
+        <div className="inline-block" style={{ pointerEvents: 'auto' }}>
           {children}
         </div>
       </HoverCardPrimitive.Trigger>
       <HoverCardPrimitive.Portal>
         <HoverCardPrimitive.Content
           className={cn(
-            "z-[100] w-96 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out",
-            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-            "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
-            "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
+            'z-[100] w-96 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none',
+            'data-[state=open]:animate-in data-[state=closed]:animate-out',
+            'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+            'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+            'data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2',
+            'data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
           )}
           side="top"
           align="center"
@@ -90,11 +84,8 @@ export function FileHoverCard({
           <div className="space-y-2">
             <div className="font-medium">{pullRequest.title}</div>
             <div className="text-xs text-muted-foreground">
-              #{pullRequest.number} by{" "}
-              {pullRequest.author?.login ||
-                pullRequest.user?.login ||
-                "Unknown"}{" "}
-              ·
+              #{pullRequest.number} by{' '}
+              {pullRequest.author?.login || pullRequest.user?.login || 'Unknown'} ·
               {(() => {
                 if (pullRequest.createdAt) {
                   return ` ${new Date(pullRequest.createdAt).toLocaleDateString()}`;
@@ -102,7 +93,7 @@ export function FileHoverCard({
                 if (pullRequest.created_at) {
                   return ` ${new Date(pullRequest.created_at).toLocaleDateString()}`;
                 }
-                return " Unknown date";
+                return ' Unknown date';
               })()}
             </div>
 
@@ -126,8 +117,7 @@ export function FileHoverCard({
               <File className="h-4 w-4" />
               <div className="text-sm font-medium">Files Touched</div>
               <Badge variant="outline" className="ml-auto text-xs">
-                {filesTouched.length}{" "}
-                {filesTouched.length === 1 ? "file" : "files"}
+                {filesTouched.length} {filesTouched.length === 1 ? 'file' : 'files'}
               </Badge>
             </div>
 
@@ -147,19 +137,13 @@ export function FileHoverCard({
                     <div className="flex items-center gap-2">
                       <Badge
                         variant="outline"
-                        className={`text-xs shrink-0 ${getFileBadgeStyle(
-                          file.name
-                        )}`}
+                        className={`text-xs shrink-0 ${getFileBadgeStyle(file.name)}`}
                       >
                         {file.name}
                       </Badge>
                       <div className="flex items-center gap-1 ml-auto">
-                        <span className="text-green-500 text-xs">
-                          +{file.additions}
-                        </span>
-                        <span className="text-red-500 text-xs">
-                          -{file.deletions}
-                        </span>
+                        <span className="text-green-500 text-xs">+{file.additions}</span>
+                        <span className="text-red-500 text-xs">-{file.deletions}</span>
                       </div>
                     </div>
                   </a>

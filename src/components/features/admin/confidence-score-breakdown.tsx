@@ -64,7 +64,7 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
         setLoading(true);
         setError(null);
 
-        const { data, error: _error: err } = await supabase
+        const { data, error: err } = await supabase
           .rpc('get_repository_confidence_breakdown', {
             p_repository_owner: owner,
             p_repository_name: repo

@@ -36,7 +36,7 @@ export const LongTimeRange: Story = {
 export const SmallProject: Story = {
   args: {
     owner: 'example',
-    repo: 'small-project', 
+    repo: 'small-project',
     timeRange: '90d',
   },
 };

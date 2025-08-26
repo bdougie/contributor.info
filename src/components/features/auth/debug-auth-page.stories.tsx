@@ -1,7 +1,7 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
-import DebugAuthPage from "./debug-auth-page";
-import { MemoryRouter } from "react-router-dom";
+import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from '@storybook/test';
+import DebugAuthPage from './debug-auth-page';
+import { MemoryRouter } from 'react-router-dom';
 
 // Mock Supabase client
 const mockSupabase = {
@@ -11,9 +11,9 @@ const mockSupabase = {
     signOut: fn(),
     refreshSession: fn(),
     onAuthStateChange: fn(() => ({
-      data: { subscription: { unsubscribe: fn() } }
-    }))
-  }
+      data: { subscription: { unsubscribe: fn() } },
+    })),
+  },
 };
 
 // Mock the GitHub auth hook
@@ -31,21 +31,21 @@ Object.defineProperty(import.meta, 'env', {
 });
 
 const meta = {
-  title: "Features/Auth/DebugAuthPage",
+  title: 'Features/Auth/DebugAuthPage',
   component: DebugAuthPage,
   parameters: {
-    layout: "fullscreen",
+    layout: 'fullscreen',
     docs: {
       description: {
         component:
-          "A comprehensive debugging page for authentication flows with session management, error logging, and environment information. Used for testing and troubleshooting authentication issues."
-      }
-    }
+          'A comprehensive debugging page for authentication flows with session management, error logging, and environment information. Used for testing and troubleshooting authentication issues.',
+      },
+    },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <MemoryRouter initialEntries={["/debug-auth"]}>
+      <MemoryRouter initialEntries={['/debug-auth']}>
         <Story />
       </MemoryRouter>
     ),
@@ -60,7 +60,7 @@ export const NotAuthenticated: Story = {
     // Mock unauthenticated state
     mockSupabase.auth.getSession.mockResolvedValue({
       data: { session: null },
-      error: null
+      error: null,
     });
 
     mockUseGitHubAuth.mockReturnValue({
@@ -72,33 +72,33 @@ export const NotAuthenticated: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Debug page showing unauthenticated state with sign-in options."
-      }
-    }
-  }
+        story: 'Debug page showing unauthenticated state with sign-in options.',
+      },
+    },
+  },
 };
 
 export const Authenticated: Story = {
   render: () => {
     const mockUser = {
-      id: "12345",
-      email: "test@example.com",
+      id: '12345',
+      email: 'test@example.com',
       app_metadata: {
-        provider: "github"
+        provider: 'github',
       },
-      created_at: "2024-01-15T10:30:00Z"
+      created_at: '2024-01-15T10:30:00Z',
     };
 
     const mockSession = {
       user: mockUser,
-      access_token: "mock-access-token",
-      refresh_token: "mock-refresh-token",
+      access_token: 'mock-access-token',
+      refresh_token: 'mock-refresh-token',
       expires_at: Date.now() + 3600000,
     };
 
     mockSupabase.auth.getSession.mockResolvedValue({
       data: { session: mockSession },
-      error: null
+      error: null,
     });
 
     mockUseGitHubAuth.mockReturnValue({
@@ -110,26 +110,26 @@ export const Authenticated: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Debug page showing authenticated state with user information and logout options."
-      }
-    }
-  }
+        story: 'Debug page showing authenticated state with user information and logout options.',
+      },
+    },
+  },
 };
 
 export const AuthenticationError: Story = {
   render: () => {
     mockSupabase.auth.getSession.mockResolvedValue({
       data: { session: null },
-      error: { message: "Failed to retrieve session" }
+      error: { message: 'Failed to retrieve session' },
     });
 
     mockSupabase.auth.signInWithOAuth.mockResolvedValue({
       data: null,
-      error: { message: "OAuth authentication failed" }
+      error: { message: 'OAuth authentication failed' },
     });
 
     mockUseGitHubAuth.mockReturnValue({
-      checkSession: fn().mockRejectedValue(new Error("Hook check session failed")),
+      checkSession: fn().mockRejectedValue(new Error('Hook check session failed')),
     });
 
     return <DebugAuthPage />;
@@ -137,34 +137,34 @@ export const AuthenticationError: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Debug page showing various authentication error states."
-      }
-    }
-  }
+        story: 'Debug page showing various authentication error states.',
+      },
+    },
+  },
 };
 
 export const SessionExpired: Story = {
   render: () => {
     const expiredSession = {
       user: {
-        id: "12345",
-        email: "test@example.com",
-        app_metadata: { provider: "github" },
-        created_at: "2024-01-15T10:30:00Z"
+        id: '12345',
+        email: 'test@example.com',
+        app_metadata: { provider: 'github' },
+        created_at: '2024-01-15T10:30:00Z',
       },
-      access_token: "expired-token",
-      refresh_token: "expired-refresh-token",
+      access_token: 'expired-token',
+      refresh_token: 'expired-refresh-token',
       expires_at: Date.now() - 3600000, // Expired 1 hour ago
     };
 
     mockSupabase.auth.getSession.mockResolvedValue({
       data: { session: expiredSession },
-      error: null
+      error: null,
     });
 
     mockSupabase.auth.refreshSession.mockResolvedValue({
       data: { session: null },
-      error: { message: "Refresh token expired" }
+      error: { message: 'Refresh token expired' },
     });
 
     mockUseGitHubAuth.mockReturnValue({
@@ -176,10 +176,10 @@ export const SessionExpired: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Debug page showing expired session state with refresh token errors."
-      }
-    }
-  }
+        story: 'Debug page showing expired session state with refresh token errors.',
+      },
+    },
+  },
 };
 
 export const EnvironmentIssues: Story = {
@@ -195,7 +195,7 @@ export const EnvironmentIssues: Story = {
 
     mockSupabase.auth.getSession.mockResolvedValue({
       data: { session: null },
-      error: null
+      error: null,
     });
 
     mockUseGitHubAuth.mockReturnValue({
@@ -207,22 +207,22 @@ export const EnvironmentIssues: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Debug page showing environment configuration issues (missing env vars)."
-      }
-    }
-  }
+        story: 'Debug page showing environment configuration issues (missing env vars).',
+      },
+    },
+  },
 };
 
 export const WithDebugLogs: Story = {
   render: () => {
     mockSupabase.auth.getSession.mockResolvedValue({
       data: { session: null },
-      error: null
+      error: null,
     });
 
     // Simulate auth state changes
     mockSupabase.auth.onAuthStateChange.mockReturnValue({
-      data: { subscription: { unsubscribe: fn() } }
+      data: { subscription: { unsubscribe: fn() } },
     });
 
     mockUseGitHubAuth.mockReturnValue({
@@ -234,17 +234,18 @@ export const WithDebugLogs: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Debug page with simulated authentication events to show debug logging functionality."
-      }
-    }
-  }
+        story:
+          'Debug page with simulated authentication events to show debug logging functionality.',
+      },
+    },
+  },
 };
 
 export const MobileView: Story = {
   render: () => {
     mockSupabase.auth.getSession.mockResolvedValue({
       data: { session: null },
-      error: null
+      error: null,
     });
 
     mockUseGitHubAuth.mockReturnValue({
@@ -255,12 +256,12 @@ export const MobileView: Story = {
   },
   parameters: {
     viewport: {
-      defaultViewport: "mobile1"
+      defaultViewport: 'mobile1',
     },
     docs: {
       description: {
-        story: "Debug page appearance on mobile devices."
-      }
-    }
-  }
+        story: 'Debug page appearance on mobile devices.',
+      },
+    },
+  },
 };

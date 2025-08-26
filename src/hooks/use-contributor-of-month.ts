@@ -1,8 +1,8 @@
-import { useMemo, useContext } from "react";
-import { RepoStatsContext } from "@/lib/repo-stats-context";
-import { ContributorActivity } from "@/lib/contributors/types";
-import { createContributorRankings } from "@/lib/contributors/calculator";
-import { PullRequest } from "@/lib/types";
+import { useMemo, useContext } from 'react';
+import { RepoStatsContext } from '@/lib/repo-stats-context';
+import { ContributorActivity } from '@/lib/contributors/types';
+import { createContributorRankings } from '@/lib/contributors/calculator';
+import { PullRequest } from '@/lib/types';
 
 export function useContributorOfMonth() {
   const { stats } = useContext(RepoStatsContext);
@@ -23,7 +23,7 @@ export function useContributorOfMonth() {
           id: userId,
           username,
           displayName: username, // PR user object doesn't have name field
-          avatarUrl: pr.user?.avatar_url || "",
+          avatarUrl: pr.user?.avatar_url || '',
           profileUrl: pr.html_url || `https://github.com/${username}`,
           pullRequests: 0,
           mergedPullRequests: 0,
@@ -36,10 +36,10 @@ export function useContributorOfMonth() {
       }
 
       const activity = activitiesMap.get(userId)!;
-      
+
       // Count PRs opened
       activity.pullRequests = (activity.pullRequests || 0) + 1;
-      
+
       // Count merged PRs separately for scoring
       if (pr.merged_at) {
         activity.mergedPullRequests = (activity.mergedPullRequests || 0) + 1;
@@ -66,8 +66,8 @@ export function useContributorOfMonth() {
     });
 
     // Convert to complete ContributorActivity objects
-    const activities: ContributorActivity[] = Array.from(activitiesMap.values())
-      .filter((activity): activity is ContributorActivity => {
+    const activities: ContributorActivity[] = Array.from(activitiesMap.values()).filter(
+      (activity): activity is ContributorActivity => {
         return !!(
           activity.id &&
           activity.username &&
@@ -82,7 +82,8 @@ export function useContributorOfMonth() {
           activity.latestContribution &&
           typeof activity.repositoriesContributed === 'number'
         );
-      });
+      },
+    );
 
     if (activities.length === 0) return null;
 

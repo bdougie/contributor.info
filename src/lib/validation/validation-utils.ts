@@ -56,7 +56,7 @@ export interface BulkValidationResult<T> {
 export function validateData<T>(
   schema: ZodSchema<T>,
   data: unknown,
-  context?: string
+  context?: string,
 ): ValidationResult<T> {
   try {
     const validatedData = schema.parse(_data);
@@ -69,16 +69,16 @@ export function validateData<T>(
       const validationErrors = formatZodErrors(_error);
       return {
         success: false,
-        error: context 
+        error: context
           ? `Validation failed for ${context}: ${validationErrors[0]?.message || 'Unknown error'}`
           : `Validation failed: ${validationErrors[0]?.message || 'Unknown error'}`,
         errors: validationErrors,
       };
     }
-    
+
     return {
       success: false,
-      error: context 
+      error: context
         ? `Unexpected validation error for ${context}: ${String(_error)}`
         : `Unexpected validation error: ${String(_error)}`,
     };
@@ -90,7 +90,7 @@ export function validateData<T>(
  */
 export function safeValidateData<T>(
   schema: ZodSchema<T>,
-  data: unknown
+  data: unknown,
 ): { success: true; data: T } | { success: false; error: ZodError } {
   return schema.safeParse(_data);
 }
@@ -101,7 +101,7 @@ export function safeValidateData<T>(
 export function validateBulkData<T>(
   schema: ZodSchema<T>,
   items: unknown[],
-  context?: string
+  context?: string,
 ): BulkValidationResult<T> {
   const validItems: T[] = [];
   const invalidItems: Array<{
@@ -112,19 +112,21 @@ export function validateBulkData<T>(
 
   items.forEach((item, index) => {
     const result = validateData(schema, item, `${context} item ${index}`);
-    
+
     if (result.success && result._data) {
       validItems.push(result._data);
     } else {
       invalidItems.push({
         index,
         item,
-        errors: result.errors || [{ 
-          field: 'unknown', 
-          message: result.error || 'Unknown validation error',
-          code: 'VALIDATION_ERROR',
-          received: item,
-        }],
+        errors: result.errors || [
+          {
+            field: 'unknown',
+            message: result.error || 'Unknown validation error',
+            code: 'VALIDATION_ERROR',
+            received: item,
+          },
+        ],
       });
     }
   });
@@ -147,7 +149,7 @@ export function transformAndValidate<TInput, TOutput>(
   outputSchema: ZodSchema<TOutput>,
   transformer: (input: TInput) => TOutput,
   data: unknown,
-  context?: string
+  context?: string,
 ): ValidationResult<TOutput> {
   // First validate input
   const inputResult = validateData(inputSchema, _data, `${context} input`);
@@ -162,7 +164,7 @@ export function transformAndValidate<TInput, TOutput>(
   // Transform data
   try {
     const transformedData = transformer(inputResult._data);
-    
+
     // Validate output
     return validateData(outputSchema, transformedData, `${context} output`);
   } catch (_error) {
@@ -196,27 +198,30 @@ export function createErrorMessage(_errors: ValidationIssue[]): string {
   if (_errors.length === 0) {
     return 'Unknown validation error';
   }
-  
+
   if (_errors.length === 1) {
-    const error = errors[0];
+    const _error = errors[0];
     return `${error.field}: ${error.message}`;
   }
-  
-  return `Multiple validation errors: ${errors.map(e => `${e.field}: ${e.message}`).join(', ')}`;
+
+  return `Multiple validation errors: ${errors.map((e) => `${e.field}: ${e.message}`).join(', ')}`;
 }
 
 /**
  * Groups validation errors by field for easier handling
  */
 export function groupErrorsByField(_errors: ValidationIssue[]): Record<string, ValidationIssue[]> {
-  return errors.reduce((acc, _error) => {
-    const field = error.field;
-    if (!acc[field]) {
-      acc[field] = [];
-    }
-    acc[field].push(_error);
-    return acc;
-  }, {} as Record<string, ValidationIssue[]>);
+  return errors.reduce(
+    (acc, _error) => {
+      const field = error.field;
+      if (!acc[field]) {
+        acc[field] = [];
+      }
+      acc[field].push(_error);
+      return acc;
+    },
+    {} as Record<string, ValidationIssue[]>,
+  );
 }
 
 // =====================================================
@@ -226,20 +231,14 @@ export function groupErrorsByField(_errors: ValidationIssue[]): Record<string, V
 /**
  * Creates a validation middleware function for use in data pipelines
  */
-export function createValidationMiddleware<T>(
-  schema: ZodSchema<T>,
-  context?: string
-) {
+export function createValidationMiddleware<T>(schema: ZodSchema<T>, context?: string) {
   return (_data: unknown): T => {
     const result = validateData(schema, _data, context);
-    
+
     if (!result.success || !result._data) {
-      throw new ValidationError(
-        result.error || 'Validation failed',
-        result.errors || []
-      );
+      throw new ValidationError(result.error || 'Validation failed', result.errors || []);
     }
-    
+
     return result.data;
   };
 }
@@ -249,7 +248,7 @@ export function createValidationMiddleware<T>(
  */
 export class ValidationError extends Error {
   public readonly validationErrors: ValidationIssue[];
-  
+
   constructor(message: string, _errors: ValidationIssue[] = []) {
     super(message);
     this.name = 'ValidationError';
@@ -268,62 +267,53 @@ export function sanitizeString(value: unknown): string | null {
   if (value === null || value === undefined) {
     return null;
   }
-  
+
   if (typeof value === 'string') {
     const trimmed = value.trim();
     return trimmed === '' ? null : trimmed;
   }
-  
+
   return String(value).trim() || null;
 }
 
 /**
  * Sanitizes numeric input and ensures it's within valid range
  */
-export function sanitizeNumber(
-  value: unknown,
-  min?: number,
-  max?: number
-): number | null {
+export function sanitizeNumber(value: unknown, min?: number, max?: number): number | null {
   if (value === null || value === undefined || value === '') {
     return null;
   }
-  
+
   const num = Number(value);
-  
+
   if (isNaN(num) || !isFinite(num)) {
     return null;
   }
-  
+
   if (min !== undefined && num < min) {
     return null;
   }
-  
+
   if (max !== undefined && num > max) {
     return null;
   }
-  
+
   return num;
 }
 
 /**
  * Sanitizes array input and filters out invalid items
  */
-export function sanitizeArray<T>(
-  value: unknown,
-  itemValidator?: (item: unknown) => T | null
-): T[] {
+export function sanitizeArray<T>(value: unknown, itemValidator?: (item: unknown) => T | null): T[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  
+
   if (!itemValidator) {
     return value as T[];
   }
-  
-  return value
-    .map(itemValidator)
-    .filter((item): item is T => item !== null);
+
+  return value.map(itemValidator).filter((item): item is T => item !== null);
 }
 
 /**
@@ -331,11 +321,11 @@ export function sanitizeArray<T>(
  */
 export function sanitizeUrl(value: unknown): string | null {
   const sanitized = sanitizeString(value);
-  
+
   if (!sanitized) {
     return null;
   }
-  
+
   try {
     new URL(sanitized);
     return sanitized;
@@ -349,11 +339,11 @@ export function sanitizeUrl(value: unknown): string | null {
  */
 export function sanitizeEmail(value: unknown): string | null {
   const sanitized = sanitizeString(value);
-  
+
   if (!sanitized) {
     return null;
   }
-  
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(sanitized) ? sanitized : null;
 }
@@ -369,7 +359,7 @@ export function isValidGitHubUsername(username: string): boolean {
   if (!username || username.length === 0 || username.length > 39) {
     return false;
   }
-  
+
   // GitHub usernames can contain alphanumeric characters and hyphens
   // but cannot start or end with hyphens
   const usernameRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/;
@@ -383,12 +373,12 @@ export function isValidRepositoryFullName(fullName: string): boolean {
   if (!fullName) {
     return false;
   }
-  
+
   const parts = fullName.split('/');
   if (parts.length !== 2) {
     return false;
   }
-  
+
   const [owner, repo] = parts;
   return isValidGitHubUsername(owner) && isValidRepositoryName(repo);
 }
@@ -400,7 +390,7 @@ export function isValidRepositoryName(name: string): boolean {
   if (!name || name.length === 0 || name.length > 100) {
     return false;
   }
-  
+
   // Repository names can contain alphanumeric characters, periods, hyphens, and underscores
   const repoRegex = /^[a-zA-Z0-9._-]+$/;
   return repoRegex.test(name);
@@ -421,23 +411,20 @@ export function isValidGitHubId(id: unknown): boolean {
 /**
  * Creates a memoized validator for better performance with repeated validation
  */
-export function createMemoizedValidator<T>(
-  schema: ZodSchema<T>,
-  maxCacheSize: number = 1000
-) {
+export function createMemoizedValidator<T>(schema: ZodSchema<T>, maxCacheSize: number = 1000) {
   const cache = new Map<string, ValidationResult<T>>();
-  
+
   return (_data: unknown, context?: string): ValidationResult<T> => {
     const cacheKey = JSON.stringify(_data);
-    
+
     // Check cache first
     if (cache.has(cacheKey)) {
       return cache.get(cacheKey)!;
     }
-    
+
     // Validate data
     const result = validateData(schema, _data, context);
-    
+
     // Add to cache (with size limit)
     if (cache.size >= maxCacheSize) {
       // Remove oldest entry
@@ -446,7 +433,7 @@ export function createMemoizedValidator<T>(
         cache.delete(firstKey);
       }
     }
-    
+
     cache.set(cacheKey, result);
     return result;
   };
@@ -455,21 +442,18 @@ export function createMemoizedValidator<T>(
 /**
  * Debounced validation for user input
  */
-export function createDebouncedValidator<T>(
-  schema: ZodSchema<T>,
-  delay: number = 300
-) {
+export function createDebouncedValidator<T>(schema: ZodSchema<T>, delay: number = 300) {
   let timeoutId: NodeJS.Timeout | null = null;
-  
+
   return (
     data: unknown,
     callback: (result: ValidationResult<T>) => void,
-    context?: string
+    context?: string,
   ): void => {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
-    
+
     timeoutId = setTimeout(() => {
       const result = validateData(schema, _data, context);
       callback(result);
@@ -492,35 +476,36 @@ export class ValidationStats {
     errorsByType: {} as Record<string, number>,
     averageValidationTime: 0,
   };
-  
+
   public recordValidation(success: boolean, duration: number, _errorType?: string): void {
     this.stats.totalValidations++;
-    
+
     if (success) {
       this.stats.successfulValidations++;
     } else {
       this.stats.failedValidations++;
-      
+
       if (_errorType) {
         this.stats.errorsByType[errorType] = (this.stats.errorsByType[_errorType] || 0) + 1;
       }
     }
-    
+
     // Update average validation time
-    this.stats.averageValidationTime = 
-      (this.stats.averageValidationTime * (this.stats.totalValidations - 1) + duration) / 
+    this.stats.averageValidationTime =
+      (this.stats.averageValidationTime * (this.stats.totalValidations - 1) + duration) /
       this.stats.totalValidations;
   }
-  
+
   public getStats() {
     return {
       ...this.stats,
-      successRate: this.stats.totalValidations > 0 
-        ? this.stats.successfulValidations / this.stats.totalValidations 
-        : 0,
+      successRate:
+        this.stats.totalValidations > 0
+          ? this.stats.successfulValidations / this.stats.totalValidations
+          : 0,
     };
   }
-  
+
   public reset(): void {
     this.stats = {
       totalValidations: 0,

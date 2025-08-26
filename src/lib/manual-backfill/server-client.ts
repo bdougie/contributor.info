@@ -1,6 +1,6 @@
 /**
  * Manual Backfill API Server Client
- * 
+ *
  * Server-side client for use in Netlify Functions and server environments
  */
 
@@ -14,7 +14,7 @@ class ManualBackfillServerClient {
     // Use process.env directly in server context
     this.apiUrl = process.env.GH_DATPIPE_API_URL || 'https://gh-datapipe.fly.dev';
     this.apiKey = process.env.GH_DATPIPE_KEY || '';
-    
+
     if (!this.apiKey) {
       console.error('[ManualBackfillServerClient] GH_DATPIPE_KEY not configured');
     }
@@ -35,7 +35,8 @@ class ManualBackfillServerClient {
       throw new Error('GH_DATPIPE_KEY not configured');
     }
 
-    const webhookUrl = request.callback_url || 
+    const webhookUrl =
+      request.callback_url ||
       (process.env.BASE_URL || 'https://contributor.info') + '/api/webhook/backfill-complete';
 
     const response = await fetch(`${this.apiUrl}/api/backfill/trigger`, {
@@ -48,13 +49,17 @@ class ManualBackfillServerClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      const _error = await response.json().catch(() => ({ message: 'Unknown _error' }));
       console.error('[ManualBackfillServerClient] Failed to trigger backfill:', _error);
       throw new Error(`Failed to trigger backfill: ${_error.message || response.statusText}`);
     }
 
     const result = await response.json();
-    console.log('[ManualBackfillServerClient] Triggered backfill job %s for %s', result.job_id, request.repository);
+    console.log(
+      '[ManualBackfillServerClient] Triggered backfill job %s for %s',
+      result.job_id,
+      request.repository,
+    );
     return result;
   }
 
@@ -72,7 +77,7 @@ class ManualBackfillServerClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      const _error = await response.json().catch(() => ({ message: 'Unknown _error' }));
       throw new Error(`Failed to get job status: ${_error.message || response.statusText}`);
     }
 
@@ -97,7 +102,7 @@ class ManualBackfillServerClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      const _error = await response.json().catch(() => ({ message: 'Unknown _error' }));
       throw new Error(`Failed to list jobs: ${_error.message || response.statusText}`);
     }
 
@@ -118,7 +123,7 @@ class ManualBackfillServerClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      const _error = await response.json().catch(() => ({ message: 'Unknown _error' }));
       throw new Error(`Failed to cancel job: ${_error.message || response.statusText}`);
     }
 
@@ -133,7 +138,7 @@ class ManualBackfillServerClient {
   async checkHealth(): Promise<boolean> {
     try {
       const response = await fetch(`${this.apiUrl}/health`);
-      const data = await response.json();
+      const _data = await response.json();
       return data.status === 'healthy';
     } catch (_error) {
       console.error('[ManualBackfillServerClient] Health check failed:', _error);

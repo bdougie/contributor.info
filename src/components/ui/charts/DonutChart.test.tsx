@@ -42,11 +42,11 @@ describe('DonutChart', () => {
   beforeEach(() => {
     // Setup canvas mock
     HTMLCanvasElement.prototype.getContext = vi.fn(() => mockContext) as any;
-    
+
     // Setup animation frame mocks
     global.requestAnimationFrame = mockRequestAnimationFrame as any;
     global.cancelAnimationFrame = mockCancelAnimationFrame;
-    
+
     // Setup ResizeObserver mock
     global.ResizeObserver = vi.fn().mockImplementation(() => ({
       observe: vi.fn(),
@@ -63,13 +63,7 @@ describe('DonutChart', () => {
   });
 
   it('should render canvas with proper dimensions', () => {
-    render(
-      <DonutChart
-        data={mockData}
-        width={400}
-        height={400}
-      />
-    );
+    render(<DonutChart data={mockData} width={400} height={400} />);
 
     const canvas = screen.getByRole('img');
     expect(canvas).toBeInTheDocument();
@@ -78,19 +72,13 @@ describe('DonutChart', () => {
   });
 
   it('should have proper accessibility attributes', () => {
-    render(
-      <DonutChart
-        data={mockData}
-        centerLabel="100"
-        centerSubLabel="Total"
-      />
-    );
+    render(<DonutChart data={mockData} centerLabel="100" centerSubLabel="Total" />);
 
     const canvas = screen.getByRole('img');
     expect(canvas).toHaveAttribute('tabIndex', '0');
     expect(canvas).toHaveAttribute('aria-label');
     expect(canvas).toHaveAttribute('aria-describedby', 'donut-chart-description');
-    
+
     const description = screen.getByText(/Use arrow keys to navigate/);
     expect(description).toBeInTheDocument();
     expect(description).toHaveClass('sr-only');
@@ -100,13 +88,7 @@ describe('DonutChart', () => {
     const onHover = vi.fn();
     const onClick = vi.fn();
 
-    render(
-      <DonutChart
-        data={mockData}
-        onHover={onHover}
-        onClick={onClick}
-      />
-    );
+    render(<DonutChart data={mockData} onHover={onHover} onClick={onClick} />);
 
     const canvas = screen.getByRole('img');
 
@@ -131,13 +113,7 @@ describe('DonutChart', () => {
     const onClick = vi.fn();
     const onHover = vi.fn();
 
-    render(
-      <DonutChart
-        data={mockData}
-        onClick={onClick}
-        onHover={onHover}
-      />
-    );
+    render(<DonutChart data={mockData} onClick={onClick} onHover={onHover} />);
 
     const canvas = screen.getByRole('img');
     canvas.focus();
@@ -148,7 +124,7 @@ describe('DonutChart', () => {
 
     // Select with Enter
     fireEvent.keyDown(canvas, { key: 'Enter' });
-    
+
     // Clear with Escape
     fireEvent.keyDown(canvas, { key: 'Escape' });
   });
@@ -158,7 +134,7 @@ describe('DonutChart', () => {
 
     // Check that animation was initiated
     expect(mockRequestAnimationFrame).toHaveBeenCalled();
-    
+
     // Wait for animation to progress
     await waitFor(() => {
       expect(mockContext.clearRect).toHaveBeenCalled();
@@ -200,53 +176,45 @@ describe('DonutChart', () => {
   });
 
   it('should handle responsive sizing', () => {
-    const { container } = render(
-      <DonutChart
-        data={mockData}
-        responsive={true}
-      />
-    );
+    const { container } = render(<DonutChart data={mockData} responsive={true} />);
 
     const wrapper = container.querySelector('.donut-chart');
     expect(wrapper).toHaveStyle({ width: '100%' });
   });
 
   it('should display center labels when provided', async () => {
-    render(
-      <DonutChart
-        data={mockData}
-        centerLabel="100"
-        centerSubLabel="Total PRs"
-      />
-    );
+    render(<DonutChart data={mockData} centerLabel="100" centerSubLabel="Total PRs" />);
 
     await waitFor(() => {
       // Check that fillText was called for center labels
-      expect(mockContext.fillText).toHaveBeenCalledWith('100', expect.any(Number), expect.any(Number));
-      expect(mockContext.fillText).toHaveBeenCalledWith('Total PRs', expect.any(Number), expect.any(Number));
+      expect(mockContext.fillText).toHaveBeenCalledWith(
+        '100',
+        expect.any(Number),
+        expect.any(Number),
+      );
+      expect(mockContext.fillText).toHaveBeenCalledWith(
+        'Total PRs',
+        expect.any(Number),
+        expect.any(Number),
+      );
     });
   });
 
   it('should handle canvas context _errors gracefully', () => {
     // Mock getContext to return null
     HTMLCanvasElement.prototype.getContext = vi.fn(() => null) as any;
-    
+
     const consoleSpy = vi.spyOn(console, '_error').mockImplementation(() => {});
 
     render(<DonutChart _data={mockData} />);
 
     expect(consoleSpy).toHaveBeenCalledWith('DonutChart: Unable to get 2D context from canvas');
-    
+
     consoleSpy.mockRestore();
   });
 
   it('should apply active segment styling', async () => {
-    render(
-      <DonutChart
-        data={mockData}
-        activeSegmentId="segment2"
-      />
-    );
+    render(<DonutChart data={mockData} activeSegmentId="segment2" />);
 
     await waitFor(() => {
       // Active segment should trigger stroke

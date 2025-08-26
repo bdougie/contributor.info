@@ -1,9 +1,9 @@
-import { 
-  PullRequestData, 
-  SpamDetectionResult, 
+import {
+  PullRequestData,
+  SpamDetectionResult,
   SpamFlags,
   DETECTION_WEIGHTS,
-  SPAM_THRESHOLDS 
+  SPAM_THRESHOLDS,
 } from './types';
 import { PRAnalysisService } from './PRAnalysisService';
 import { AccountAnalysisService } from './AccountAnalysisService';
@@ -38,13 +38,13 @@ export class SpamDetectionService {
 
       // Calculate composite spam score
       const spamScore = this.calculateSpamScore(flags);
-      
+
       // Determine if it's spam based on thresholds
       const isSpam = spamScore >= SPAM_THRESHOLDS.LIKELY_SPAM;
-      
+
       // Calculate confidence based on multiple factors
       const confidence = this.calculateConfidence(flags, spamScore);
-      
+
       // Generate human-readable reasons
       const reasons = this.generateReasons(flags, spamScore);
 
@@ -66,7 +66,7 @@ export class SpamDetectionService {
       return result;
     } catch (_error) {
       console.error('Error during spam detection:', _error);
-      
+
       // Return safe default on error
       return {
         spam_score: 0,
@@ -123,7 +123,7 @@ export class SpamDetectionService {
     // New account penalty
     if (accountFlags.is_new_account) {
       score += 50;
-      
+
       // Extra penalty for very new accounts
       if (accountFlags.account_age_days <= 7) {
         score += 25;
@@ -179,24 +179,20 @@ export class SpamDetectionService {
     let confidence = 0.5; // Base confidence
 
     // High confidence indicators
-    if (flags.template_match?.is_match && 
-        (flags.template_match.similarity_score || 0) > 0.9) {
+    if (flags.template_match?.is_match && (flags.template_match.similarity_score || 0) > 0.9) {
       confidence += 0.3;
     }
 
-    if (flags.account_flags?.is_new_account && 
-        !flags.account_flags.has_profile_data) {
+    if (flags.account_flags?.is_new_account && !flags.account_flags.has_profile_data) {
       confidence += 0.2;
     }
 
-    if (flags.content_quality && 
-        flags.content_quality.quality_score < 0.2) {
+    if (flags.content_quality && flags.content_quality.quality_score < 0.2) {
       confidence += 0.2;
     }
 
     // Moderate confidence indicators
-    if (flags.pr_characteristics && 
-        !flags.pr_characteristics.has_context) {
+    if (flags.pr_characteristics && !flags.pr_characteristics.has_context) {
       confidence += 0.1;
     }
 
@@ -303,18 +299,18 @@ export class SpamDetectionService {
    */
   async detectSpamBatch(prs: PullRequestData[]): Promise<SpamDetectionResult[]> {
     const results: SpamDetectionResult[] = [];
-    
+
     // Process in batches to avoid overwhelming the system
     const batchSize = 10;
     for (let i = 0; i < prs.length; i += batchSize) {
       const batch = prs.slice(i, i + batchSize);
-      const batchPromises = batch.map(pr => this.detectSpam(pr));
+      const batchPromises = batch.map((pr) => this.detectSpam(pr));
       const batchResults = await Promise.all(batchPromises);
       results.push(...batchResults);
 
       // Add small delay between batches to prevent overwhelming
       if (i + batchSize < prs.length) {
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
       }
     }
 
@@ -333,21 +329,20 @@ export class SpamDetectionService {
     by_threshold: Record<string, number>;
   } {
     const total = results.length;
-    const spamCount = results.filter(r => r.is_spam).length;
+    const spamCount = results.filter((r) => r.is_spam).length;
     const avgScore = results.reduce((sum, r) => sum + r.spam_score, 0) / total;
     const avgConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / total;
 
     const byThreshold = {
-      legitimate: results.filter(r => r.spam_score <= SPAM_THRESHOLDS.LEGITIMATE).length,
-      warning: results.filter(r => 
-        r.spam_score > SPAM_THRESHOLDS.LEGITIMATE && 
-        r.spam_score <= SPAM_THRESHOLDS.WARNING
+      legitimate: results.filter((r) => r.spam_score <= SPAM_THRESHOLDS.LEGITIMATE).length,
+      warning: results.filter(
+        (r) => r.spam_score > SPAM_THRESHOLDS.LEGITIMATE && r.spam_score <= SPAM_THRESHOLDS.WARNING,
       ).length,
-      likely_spam: results.filter(r => 
-        r.spam_score > SPAM_THRESHOLDS.WARNING && 
-        r.spam_score <= SPAM_THRESHOLDS.LIKELY_SPAM
+      likely_spam: results.filter(
+        (r) =>
+          r.spam_score > SPAM_THRESHOLDS.WARNING && r.spam_score <= SPAM_THRESHOLDS.LIKELY_SPAM,
       ).length,
-      definite_spam: results.filter(r => r.spam_score > SPAM_THRESHOLDS.LIKELY_SPAM).length,
+      definite_spam: results.filter((r) => r.spam_score > SPAM_THRESHOLDS.LIKELY_SPAM).length,
     };
 
     return {

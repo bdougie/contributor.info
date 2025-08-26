@@ -13,60 +13,60 @@ export const DEFAULT_CONFIGS: Record<string, EvaluationConfig> = {
     description: 'Standard maintainer classification evaluation with balanced thresholds',
     dataset_path: 'evals/datasets/maintainer_ground_truth.jsonl',
     confidence_thresholds: {
-      maintainer: 0.8
+      maintainer: 0.8,
     },
     evaluation_criteria: {
       min_accuracy: 0.85,
       min_samples: 1000,
-      max_execution_time_ms: 1000
+      max_execution_time_ms: 1000,
     },
     feature_weights: {
       merge_events: 0.25,
       push_events: 0.2,
       admin_actions: 0.3,
-      temporal_activity: 0.25
-    }
+      temporal_activity: 0.25,
+    },
   },
-  
+
   conservative: {
     name: 'conservative-maintainer-classification',
     description: 'Conservative classification with higher thresholds for precision',
     dataset_path: 'evals/datasets/maintainer_ground_truth.jsonl',
     confidence_thresholds: {
-      maintainer: 0.9
+      maintainer: 0.9,
     },
     evaluation_criteria: {
       min_accuracy: 0.8,
       min_samples: 1000,
-      max_execution_time_ms: 1000
+      max_execution_time_ms: 1000,
     },
     feature_weights: {
       merge_events: 0.3,
       push_events: 0.15,
       admin_actions: 0.4,
-      temporal_activity: 0.15
-    }
+      temporal_activity: 0.15,
+    },
   },
-  
+
   aggressive: {
     name: 'aggressive-maintainer-classification',
     description: 'Aggressive classification with lower thresholds for recall',
     dataset_path: 'evals/datasets/maintainer_ground_truth.jsonl',
     confidence_thresholds: {
-      maintainer: 0.7
+      maintainer: 0.7,
     },
     evaluation_criteria: {
       min_accuracy: 0.75,
       min_samples: 1000,
-      max_execution_time_ms: 1000
+      max_execution_time_ms: 1000,
     },
     feature_weights: {
       merge_events: 0.2,
       push_events: 0.25,
       admin_actions: 0.25,
-      temporal_activity: 0.3
-    }
-  }
+      temporal_activity: 0.3,
+    },
+  },
 };
 
 export async function runEvaluation(configName: keyof typeof DEFAULT_CONFIGS = 'standard') {
@@ -76,20 +76,18 @@ export async function runEvaluation(configName: keyof typeof DEFAULT_CONFIGS = '
   }
 
   const runner = new EvaluationRunner(config);
-  
+
   try {
     const results = await runner.runCompleteEvaluation();
-    
+
     // Export results
-    await runner.exportResults(
-      results.results,
-      results.metrics,
-      `./eval-outputs/${configName}`
-    );
-    
+    await runner.exportResults(results.results, results.metrics, `./eval-outputs/${configName}`);
+
     return results;
   } catch (_error) {
-    console.error(`Evaluation failed: ${error instanceof Error ? error.message : 'Unknown _error'}`);
+    console.error(
+      `Evaluation failed: ${error instanceof Error ? error.message : 'Unknown _error'}`,
+    );
     throw error;
   }
 }
@@ -97,7 +95,7 @@ export async function runEvaluation(configName: keyof typeof DEFAULT_CONFIGS = '
 export async function runBenchmark() {
   const configs = Object.values(DEFAULT_CONFIGS);
   const runner = new EvaluationRunner(configs[0]); // Use first config as base
-  
+
   return runner.runBenchmarkComparison(configs);
 }
 
@@ -108,7 +106,7 @@ async function main() {
   const configName = (args[1] as keyof typeof DEFAULT_CONFIGS) || 'standard';
 
   console.log('🚀 Maintainer Classification Evaluation Suite');
-  console.log('=' .repeat(50));
+  console.log('='.repeat(50));
 
   try {
     switch (command) {
@@ -116,19 +114,19 @@ async function main() {
         console.log('Running evaluation with config: %s', configName);
         await runEvaluation(configName);
         break;
-        
+
       case 'benchmark':
         console.log('Running benchmark across all configurations');
         await runBenchmark();
         break;
-        
+
       case 'list':
         console.log('Available configurations:');
         Object.entries(DEFAULT_CONFIGS).forEach(([name, config]) => {
           console.log('  %s: %s', name, config.description);
         });
         break;
-        
+
       default:
         console.log('Usage:');
         console.log('  npm run eval              # Run standard evaluation');
@@ -138,7 +136,10 @@ async function main() {
         break;
     }
   } catch (_error) {
-    console.error('❌ Evaluation failed:', error instanceof Error ? error.message : 'Unknown _error');
+    console.error(
+      '❌ Evaluation failed:',
+      error instanceof Error ? error.message : 'Unknown _error',
+    );
     process.exit(1);
   }
 }

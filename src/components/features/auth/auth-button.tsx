@@ -1,18 +1,18 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState } from 'react';
 import { GithubIcon, LogOut, MessageSquare, Shield, Settings } from '@/components/ui/icon';
-import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useNavigate } from "react-router-dom";
-import type { User } from "@supabase/supabase-js";
+} from '@/components/ui/dropdown-menu';
+import { useNavigate } from 'react-router-dom';
+import type { User } from '@supabase/supabase-js';
 
 export function AuthButton() {
   const navigate = useNavigate();
@@ -37,12 +37,13 @@ export function AuthButton() {
           return;
         }
 
-        const { data: isAdminResult, error: _error } = await supabase
-          .rpc('is_user_admin', { user_github_id: parseInt(githubId) });
+        const { data: isAdminResult, error: _error } = await supabase.rpc('is_user_admin', {
+          user_github_id: parseInt(githubId),
+        });
 
         if (_error) {
           console.warn('Failed to check admin status:', _error);
-          
+
           // Fallback: Try to create the user record if it doesn't exist
           if (_error.message?.includes('does not exist') || error.code === 'PGRST116') {
             try {
@@ -51,7 +52,7 @@ export function AuthButton() {
               const displayName = user.user_metadata?.full_name;
               const avatarUrl = user.user_metadata?.avatar_url;
               const email = user.email || user.user_metadata?.email;
-              
+
               if (githubUsername) {
                 await supabase.rpc('upsert_app_user', {
                   p_auth_user_id: user.id,
@@ -59,13 +60,15 @@ export function AuthButton() {
                   p_github_username: githubUsername,
                   p_display_name: displayName,
                   p_avatar_url: avatarUrl,
-                  p_email: email
+                  p_email: email,
                 });
-                
+
                 // Retry admin check after creating user record
-                const { data: retryResult, error: _error: retryError } = await supabase
-                  .rpc('is_user_admin', { user_github_id: parseInt(githubId) });
-                
+                const { data: retryResult, error: retryError } = await supabase.rpc(
+                  'is_user_admin',
+                  { user_github_id: parseInt(githubId) },
+                );
+
                 if (!retryError) {
                   setIsAdmin(retryResult === true);
                   return;
@@ -75,7 +78,7 @@ export function AuthButton() {
               console.warn('Failed to create user record fallback:', fallbackError);
             }
           }
-          
+
           // Log auth error to database for monitoring
           try {
             await supabase.rpc('log_auth_error', {
@@ -84,12 +87,12 @@ export function AuthButton() {
               p_github_username: user.user_metadata?.user_name,
               p_error_type: 'admin_check_failed',
               p_error_message: error.message,
-              p_error_code: error.code
+              p_error_code: error.code,
             });
           } catch (logError) {
             console.warn('Failed to log auth _error:', logError);
           }
-          
+
           setIsAdmin(false);
           return;
         }
@@ -114,7 +117,7 @@ export function AuthButton() {
         setLoading(false);
       })
       .catch(() => {
-        setError("Failed to get session");
+        setError('Failed to get session');
         setLoading(false);
       });
 
@@ -133,15 +136,15 @@ export function AuthButton() {
   const handleLogin = async () => {
     try {
       setError(null);
-      
+
       // Get the correct redirect URL for the current environment
       const redirectTo = window.location.origin + window.location.pathname;
-      
-      const { error: _error: signInError } = await supabase.auth.signInWithOAuth({
-        provider: "github",
+
+      const { error: signInError } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
         options: {
           redirectTo,
-          scopes: "public_repo read:user user:email",
+          scopes: 'public_repo read:user user:email',
         },
       });
 
@@ -149,20 +152,20 @@ export function AuthButton() {
         setError(signInError.message);
       }
     } catch (err) {
-      setError("Failed to initiate login");
+      setError('Failed to initiate login');
     }
   };
 
   const handleLogout = async () => {
     try {
       setError(null);
-      const { error: _error: signOutError } = await supabase.auth.signOut();
+      const { error: signOutError } = await supabase.auth.signOut();
 
       if (signOutError) {
         setError(signOutError.message);
       }
     } catch (err) {
-      setError("Failed to log out");
+      setError('Failed to log out');
     }
   };
 
@@ -192,13 +195,8 @@ export function AuthButton() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage
-              src={user.user_metadata.avatar_url}
-              alt={user.user_metadata.user_name}
-            />
-            <AvatarFallback>
-              {user.user_metadata.user_name?.charAt(0)}
-            </AvatarFallback>
+            <AvatarImage src={user.user_metadata.avatar_url} alt={user.user_metadata.user_name} />
+            <AvatarFallback>{user.user_metadata.user_name?.charAt(0)}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -213,23 +211,23 @@ export function AuthButton() {
             )}
           </div>
         </DropdownMenuItem>
-        
+
         {isAdmin && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/admin")}>
+            <DropdownMenuItem onClick={() => navigate('/admin')}>
               <Shield className="mr-2 h-4 w-4" />
               Admin Dashboard
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/dev")}>
+            <DropdownMenuItem onClick={() => navigate('/dev')}>
               <Settings className="mr-2 h-4 w-4" />
               Developer Tools
             </DropdownMenuItem>
           </>
         )}
-        
+
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate("/settings")}>
+        <DropdownMenuItem onClick={() => navigate('/settings')}>
           <Settings className="mr-2 h-4 w-4" />
           Settings
         </DropdownMenuItem>

@@ -12,15 +12,13 @@ export class ProgressiveCaptureNotifications {
    */
   static showJobsQueued(_jobCount: number, _jobType: string, repository?: string) {
     // Use user-friendly language following @docs/user-experience/ guidelines
-    const message = repository 
-      ? `Updating ${repository}...`
-      : 'Fetching data in the background...';
-    
+    const message = repository ? `Updating ${repository}...` : 'Fetching data in the background...';
+
     const description = 'We are fetching data in the background';
-    
+
     const toastId = toast.info(message, {
       description,
-      duration: 4000
+      duration: 4000,
     });
 
     return toastId;
@@ -30,42 +28,47 @@ export class ProgressiveCaptureNotifications {
    * Show notification when background processing starts
    */
   static showProcessingStarted(
-    repository: string, 
+    repository: string,
     processor?: 'inngest' | 'github_actions' | 'hybrid',
     estimatedTime?: number,
-    githubActionsUrl?: string
+    githubActionsUrl?: string,
   ) {
-    const processorText = processor === 'inngest'
-? 'Real-time processing' :
-                         processor === 'github_actions'
-? 'Bulk processing' :
-                         processor === 'hybrid'
-? 'Hybrid processing' :
-                         'Processing';
+    const processorText =
+      processor === 'inngest'
+        ? 'Real-time processing'
+        : processor === 'github_actions'
+          ? 'Bulk processing'
+          : processor === 'hybrid'
+            ? 'Hybrid processing'
+            : 'Processing';
 
-    const timeText = estimatedTime ? ` (~${Math.round(estimatedTime/1000)}s)` : '';
-    const completionTime = estimatedTime ? new Date(Date.now() + estimatedTime).toLocaleTimeString() : null;
-    
+    const timeText = estimatedTime ? ` (~${Math.round(estimatedTime / 1000)}s)` : '';
+    const completionTime = estimatedTime
+      ? new Date(Date.now() + estimatedTime).toLocaleTimeString()
+      : null;
+
     const toastId = toast.loading(`Updating ${repository}...`, {
       description: `${processorText}${timeText}${completionTime ? ` • Expected: ${completionTime}` : ''} • We are fetching data in the background`,
       duration: Infinity, // Keep open until processing complete
       action: githubActionsUrl
-? {
-        label: 'View Progress',
-        onClick: () => window.open(githubActionsUrl, '_blank')
-      }
-: undefined
+        ? {
+            label: 'View Progress',
+            onClick: () => window.open(githubActionsUrl, '_blank'),
+          }
+        : undefined,
     });
 
     this.notificationIds.set(`processing_${repository}`, toastId);
-    
+
     // Emit custom event for UI components with processor info
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('progressive-processing-started', {
-        detail: { repository, processor, estimatedTime, githubActionsUrl }
-      }));
+      window.dispatchEvent(
+        new CustomEvent('progressive-processing-started', {
+          detail: { repository, processor, estimatedTime, githubActionsUrl },
+        }),
+      );
     }
-    
+
     return toastId;
   }
 
@@ -74,9 +77,9 @@ export class ProgressiveCaptureNotifications {
    */
   static updateProcessingProgress(repository: string, processed: number, total: number) {
     const existingId = this.notificationIds.get(`processing_${repository}`);
-    
+
     if (existingId) {
-      const percent = Math.round((processed/total) * 100);
+      const percent = Math.round((processed / total) * 100);
       toast.loading(`Updating ${repository}...`, {
         id: existingId,
         description: `We are fetching data in the background (${percent}% complete)`,
@@ -88,12 +91,12 @@ export class ProgressiveCaptureNotifications {
    * Show success notification when processing completes
    */
   static showProcessingComplete(
-    repository: string, 
+    repository: string,
     updatedFeatures: string[],
-    processor?: 'inngest' | 'github_actions' | 'hybrid'
+    processor?: 'inngest' | 'github_actions' | 'hybrid',
   ) {
     const existingId = this.notificationIds.get(`processing_${repository}`);
-    
+
     // Dismiss the loading notification
     if (existingId) {
       toast.dismiss(existingId);
@@ -101,17 +104,16 @@ export class ProgressiveCaptureNotifications {
     }
 
     // Show success notification
-    const features = updatedFeatures.length > 0 
-      ? updatedFeatures.join(', ')
-      : 'repository data';
+    const features = updatedFeatures.length > 0 ? updatedFeatures.join(', ') : 'repository data';
 
-    const processorText = processor === 'inngest'
-? 'Real-time' :
-                         processor === 'github_actions'
-? 'Bulk' :
-                         processor === 'hybrid'
-? 'Hybrid' :
-                         '';
+    const processorText =
+      processor === 'inngest'
+        ? 'Real-time'
+        : processor === 'github_actions'
+          ? 'Bulk'
+          : processor === 'hybrid'
+            ? 'Hybrid'
+            : '';
 
     const processorSuffix = processorText ? ` • ${processorText} processing complete` : '';
 
@@ -120,15 +122,17 @@ export class ProgressiveCaptureNotifications {
       duration: 5000,
       action: {
         label: 'Refresh Page',
-        onClick: () => window.location.reload()
-      }
+        onClick: () => window.location.reload(),
+      },
     });
-    
+
     // Emit custom event for UI components with processor info
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('progressive-data-updated', {
-        detail: { repository, updatedFeatures, processor }
-      }));
+      window.dispatchEvent(
+        new CustomEvent('progressive-data-updated', {
+          detail: { repository, updatedFeatures, processor },
+        }),
+      );
     }
   }
 
@@ -137,7 +141,7 @@ export class ProgressiveCaptureNotifications {
    */
   static showProcessingError(repository: string, _error: string) {
     const existingId = this.notificationIds.get(`processing_${repository}`);
-    
+
     // Dismiss the loading notification
     if (existingId) {
       toast.dismiss(existingId);
@@ -151,9 +155,12 @@ export class ProgressiveCaptureNotifications {
       action: {
         label: 'Retry',
         onClick: () => {
-          console.log('Retry:', `Run ProgressiveCapture.quickFix('${repository.split('/')[0]}', '${repository.split('/')[1]}') in console`);
-        }
-      }
+          console.log(
+            'Retry:',
+            `Run ProgressiveCapture.quickFix('${repository.split('/')[0]}', '${repository.split('/')[1]}') in console`,
+          );
+        },
+      },
     });
   }
 
@@ -165,7 +172,7 @@ export class ProgressiveCaptureNotifications {
       // Subtle notification for background updates
       toast.info(`Updating ${repository}...`, {
         description: 'We are fetching data in the background',
-        duration: 4000
+        duration: 4000,
       });
     } else {
       toast.success(`Fresh data available!`, {
@@ -175,8 +182,8 @@ export class ProgressiveCaptureNotifications {
           label: 'Refresh',
           onClick: () => {
             window.location.reload();
-          }
-        }
+          },
+        },
       });
     }
   }
@@ -193,10 +200,10 @@ export class ProgressiveCaptureNotifications {
         onClick: () => {
           toast.info('Data is being updated', {
             description: 'Fresh information will be available shortly',
-            duration: 3000
+            duration: 3000,
           });
-        }
-      }
+        },
+      },
     });
   }
 
@@ -205,8 +212,9 @@ export class ProgressiveCaptureNotifications {
    */
   static showRateLimitWarning() {
     toast.warning('Using cached data', {
-      description: 'Fresh data will be available shortly. We are fetching updates in the background.',
-      duration: 6000
+      description:
+        'Fresh data will be available shortly. We are fetching updates in the background.',
+      duration: 6000,
     });
   }
 
@@ -215,16 +223,21 @@ export class ProgressiveCaptureNotifications {
    */
   static showWarning(message: string, duration: number = 6000) {
     toast.warning(message, {
-      duration
+      duration,
     });
   }
 
   /**
    * Show completion status when background work finishes
    */
-  static showQueueStatus(stats: { pending: number; processing: number; completed: number; failed: number }) {
+  static showQueueStatus(stats: {
+    pending: number;
+    processing: number;
+    completed: number;
+    failed: number;
+  }) {
     const { pending, processing, completed } = stats;
-    
+
     if (pending === 0 && processing === 0 && completed > 0) {
       // Only show completion notification if we actually processed something
       toast.success('Data updated!', {
@@ -232,14 +245,12 @@ export class ProgressiveCaptureNotifications {
         duration: 6000,
         action: {
           label: 'Refresh',
-          onClick: () => window.location.reload()
-        }
+          onClick: () => window.location.reload(),
+        },
       });
     }
     // Don't show progress notifications - they're too noisy for users
   }
-
-
 
   /**
    * Dismiss all progressive capture notifications
@@ -262,5 +273,5 @@ export const {
   showDataAvailable,
   showMissingDataNotification,
   showRateLimitWarning,
-  showQueueStatus
+  showQueueStatus,
 } = ProgressiveCaptureNotifications;

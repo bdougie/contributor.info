@@ -12,7 +12,7 @@ const mockBreakdown = {
   totalStargazers: 1250,
   totalForkers: 89,
   contributorCount: 45,
-  conversionRate: 3.6
+  conversionRate: 3.6,
 };
 
 // Mock data for different confidence scenarios
@@ -20,33 +20,37 @@ const mockConfidenceData = {
   intimidating: {
     score: 3,
     level: 'low' as const,
-    description: 'Your project can be Intimidating - Almost no stargazers and forkers come back later on to make a meaningful contribution'
+    description:
+      'Your project can be Intimidating - Almost no stargazers and forkers come back later on to make a meaningful contribution',
   },
   challenging: {
     score: 12,
     level: 'medium' as const,
-    description: 'Your project is challenging - Few stargazers and forkers come back later on to make a meaningful contribution'
+    description:
+      'Your project is challenging - Few stargazers and forkers come back later on to make a meaningful contribution',
   },
   approachable: {
     score: 25,
     level: 'medium' as const,
-    description: 'Your project is approachable! - Some stargazers and forkers come back later on to make a meaningful contribution'
+    description:
+      'Your project is approachable! - Some stargazers and forkers come back later on to make a meaningful contribution',
   },
   welcoming: {
     score: 42,
     level: 'high' as const,
-    description: 'Your project is welcoming! - Many stargazers and forkers come back later on to make a meaningful contribution'
+    description:
+      'Your project is welcoming! - Many stargazers and forkers come back later on to make a meaningful contribution',
   },
   perfect: {
     score: 50,
     level: 'high' as const,
-    description: 'Your project is welcoming! - Maximum confidence achieved'
+    description: 'Your project is welcoming! - Maximum confidence achieved',
   },
   none: {
     score: 0,
     level: 'low' as const,
-    description: 'Your project can be Intimidating - No confidence data available'
-  }
+    description: 'Your project can be Intimidating - No confidence data available',
+  },
 };
 
 const meta: Meta<typeof ContributorConfidenceCard> = {
@@ -56,47 +60,48 @@ const meta: Meta<typeof ContributorConfidenceCard> = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'Displays the contributor confidence score showing the likelihood of stargazers and forkers returning to make meaningful contributions. Features a semi-circle progress indicator that fills from left to right, with color-coded ranges and breakdown tooltips.'
-      }
-    }
+        component:
+          'Displays the contributor confidence score showing the likelihood of stargazers and forkers returning to make meaningful contributions. Features a semi-circle progress indicator that fills from left to right, with color-coded ranges and breakdown tooltips.',
+      },
+    },
   },
   argTypes: {
     confidenceScore: {
       control: { type: 'range', min: 0, max: 50, step: 0.5 },
-      description: 'The confidence score (0-50, scaled to 0-100% for display)'
+      description: 'The confidence score (0-50, scaled to 0-100% for display)',
     },
     loading: {
       control: 'boolean',
-      description: 'Loading state'
+      description: 'Loading state',
     },
     error: {
       control: 'text',
-      description: 'Error message'
+      description: 'Error message',
     },
     className: {
       control: 'text',
-      description: 'Additional CSS classes'
+      description: 'Additional CSS classes',
     },
     owner: {
       control: 'text',
-      description: 'Repository owner'
+      description: 'Repository owner',
     },
     repo: {
       control: 'text',
-      description: 'Repository name'
+      description: 'Repository name',
     },
     breakdown: {
       control: 'object',
-      description: 'Confidence breakdown data for tooltip'
-    }
+      description: 'Confidence breakdown data for tooltip',
+    },
   },
   decorators: [
     (Story) => (
       <div className="w-fit">
         <Story />
       </div>
-    )
-  ]
+    ),
+  ],
 };
 
 export default meta;
@@ -107,15 +112,16 @@ export const Intimidating: Story = {
     confidenceScore: mockConfidenceData.intimidating.score,
     breakdown: mockBreakdown,
     owner: 'example',
-    repo: 'intimidating-project'
+    repo: 'intimidating-project',
   },
   parameters: {
     docs: {
       description: {
-        story: 'Low confidence score (3%) - Project appears intimidating to potential contributors. Red progress indicator.'
-      }
-    }
-  }
+        story:
+          'Low confidence score (3%) - Project appears intimidating to potential contributors. Red progress indicator.',
+      },
+    },
+  },
 };
 
 export const Challenging: Story = {
@@ -123,15 +129,16 @@ export const Challenging: Story = {
     confidenceScore: mockConfidenceData.challenging.score,
     breakdown: mockBreakdown,
     owner: 'example',
-    repo: 'challenging-project'
+    repo: 'challenging-project',
   },
   parameters: {
     docs: {
       description: {
-        story: 'Low-medium confidence score (12%) - Project is challenging for contributors. Orange progress indicator.'
-      }
-    }
-  }
+        story:
+          'Low-medium confidence score (12%) - Project is challenging for contributors. Orange progress indicator.',
+      },
+    },
+  },
 };
 
 export const Approachable: Story = {
@@ -139,15 +146,16 @@ export const Approachable: Story = {
     confidenceScore: mockConfidenceData.approachable.score,
     breakdown: mockBreakdown,
     owner: 'example',
-    repo: 'approachable-project'
+    repo: 'approachable-project',
   },
   parameters: {
     docs: {
       description: {
-        story: 'Medium confidence score (25%) - Project is approachable for contributors. Blue progress indicator.'
-      }
-    }
-  }
+        story:
+          'Medium confidence score (25%) - Project is approachable for contributors. Blue progress indicator.',
+      },
+    },
+  },
 };
 
 export const Welcoming: Story = {
@@ -155,15 +163,16 @@ export const Welcoming: Story = {
     confidenceScore: mockConfidenceData.welcoming.score,
     breakdown: mockBreakdown,
     owner: 'example',
-    repo: 'welcoming-project'
+    repo: 'welcoming-project',
   },
   parameters: {
     docs: {
       description: {
-        story: 'High confidence score (42%) - Project is very welcoming to new contributors. Green progress indicator.'
-      }
-    }
-  }
+        story:
+          'High confidence score (42%) - Project is very welcoming to new contributors. Green progress indicator.',
+      },
+    },
+  },
 };
 
 export const Perfect: Story = {
@@ -171,15 +180,16 @@ export const Perfect: Story = {
     confidenceScore: mockConfidenceData.perfect.score,
     breakdown: mockBreakdown,
     owner: 'example',
-    repo: 'perfect-project'
+    repo: 'perfect-project',
   },
   parameters: {
     docs: {
       description: {
-        story: 'Perfect confidence score (50%) - Maximum confidence achieved. Full green semicircle.'
-      }
-    }
-  }
+        story:
+          'Perfect confidence score (50%) - Maximum confidence achieved. Full green semicircle.',
+      },
+    },
+  },
 };
 
 export const ZeroConfidence: Story = {
@@ -187,29 +197,29 @@ export const ZeroConfidence: Story = {
     confidenceScore: mockConfidenceData.none.score,
     breakdown: mockBreakdown,
     owner: 'example',
-    repo: 'zero-project'
+    repo: 'zero-project',
   },
   parameters: {
     docs: {
       description: {
-        story: 'No confidence (0%) - No progress shown, only background semicircle.'
-      }
-    }
-  }
+        story: 'No confidence (0%) - No progress shown, only background semicircle.',
+      },
+    },
+  },
 };
 
 export const LoadingState: Story = {
   args: {
     confidenceScore: 0,
-    loading: true
+    loading: true,
   },
   parameters: {
     docs: {
       description: {
-        story: 'Loading state with skeleton animation while confidence score is being calculated.'
-      }
-    }
-  }
+        story: 'Loading state with skeleton animation while confidence score is being calculated.',
+      },
+    },
+  },
 };
 
 export const ErrorState: Story = {
@@ -217,30 +227,30 @@ export const ErrorState: Story = {
     confidenceScore: null,
     error: 'Failed to calculate contributor confidence score',
     owner: 'example',
-    repo: 'error-project'
+    repo: 'error-project',
   },
   parameters: {
     docs: {
       description: {
-        story: 'Error state when confidence score cannot be calculated.'
-      }
-    }
-  }
+        story: 'Error state when confidence score cannot be calculated.',
+      },
+    },
+  },
 };
 
 export const WithoutBreakdown: Story = {
   args: {
     confidenceScore: 32,
     owner: 'example',
-    repo: 'simple-project'
+    repo: 'simple-project',
   },
   parameters: {
     docs: {
       description: {
-        story: 'Card without breakdown data tooltip.'
-      }
-    }
-  }
+        story: 'Card without breakdown data tooltip.',
+      },
+    },
+  },
 };
 
 export const Interactive: Story = {
@@ -248,75 +258,60 @@ export const Interactive: Story = {
   render: () => {
     const InteractiveDemo = () => {
       const [confidence, setConfidence] = useState(20);
-      
+
       return (
         <div className="space-y-4">
-          <ContributorConfidenceCard 
+          <ContributorConfidenceCard
             confidenceScore={confidence}
             breakdown={mockBreakdown}
             owner="example"
             repo="interactive-demo"
           />
-          
+
           <div className="flex gap-2 justify-center flex-wrap">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setConfidence(Math.max(0, confidence - 2))}
               disabled={confidence === 0}
             >
               -2%
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setConfidence(Math.min(50, confidence + 2))}
               disabled={confidence === 50}
             >
               +2%
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setConfidence(3)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setConfidence(3)}>
               Intimidating
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setConfidence(12)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setConfidence(12)}>
               Challenging
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setConfidence(25)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setConfidence(25)}>
               Approachable
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setConfidence(42)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setConfidence(42)}>
               Welcoming
             </Button>
           </div>
         </div>
       );
     };
-    
+
     return <InteractiveDemo />;
   },
   parameters: {
     docs: {
       description: {
-        story: 'Interactive demo allowing you to change the confidence score and see different states and colors.'
-      }
-    }
-  }
+        story:
+          'Interactive demo allowing you to change the confidence score and see different states and colors.',
+      },
+    },
+  },
 };
 
 export const AnimatedProgress: Story = {
@@ -324,7 +319,7 @@ export const AnimatedProgress: Story = {
   render: () => {
     const AnimatedDemo = () => {
       const [progress, setProgress] = useState(0);
-      
+
       useEffect(() => {
         const timer = setInterval(() => {
           setProgress((prev) => {
@@ -334,12 +329,12 @@ export const AnimatedProgress: Story = {
             return prev + 0.5;
           });
         }, 100);
-        
+
         return () => clearInterval(timer);
       }, []);
-      
+
       return (
-        <ContributorConfidenceCard 
+        <ContributorConfidenceCard
           confidenceScore={progress}
           breakdown={mockBreakdown}
           owner="example"
@@ -347,16 +342,17 @@ export const AnimatedProgress: Story = {
         />
       );
     };
-    
+
     return <AnimatedDemo />;
   },
   parameters: {
     docs: {
       description: {
-        story: 'Animated progress showing smooth transitions between confidence levels and color changes.'
-      }
-    }
-  }
+        story:
+          'Animated progress showing smooth transitions between confidence levels and color changes.',
+      },
+    },
+  },
 };
 
 export const ComparisonGrid: Story = {
@@ -365,37 +361,37 @@ export const ComparisonGrid: Story = {
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6 w-fit">
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-center">Intimidating (Red)</h3>
-        <ContributorConfidenceCard 
+        <ContributorConfidenceCard
           confidenceScore={3}
           breakdown={mockBreakdown}
           owner="example"
           repo="intimidating"
         />
       </div>
-      
+
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-center">Challenging (Orange)</h3>
-        <ContributorConfidenceCard 
+        <ContributorConfidenceCard
           confidenceScore={12}
           breakdown={mockBreakdown}
           owner="example"
           repo="challenging"
         />
       </div>
-      
+
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-center">Approachable (Blue)</h3>
-        <ContributorConfidenceCard 
+        <ContributorConfidenceCard
           confidenceScore={25}
           breakdown={mockBreakdown}
           owner="example"
           repo="approachable"
         />
       </div>
-      
+
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-center">Welcoming (Green)</h3>
-        <ContributorConfidenceCard 
+        <ContributorConfidenceCard
           confidenceScore={42}
           breakdown={mockBreakdown}
           owner="example"
@@ -407,10 +403,10 @@ export const ComparisonGrid: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Comparison showing all confidence levels and color coding side by side.'
-      }
-    }
-  }
+        story: 'Comparison showing all confidence levels and color coding side by side.',
+      },
+    },
+  },
 };
 
 export const EdgeCases: Story = {
@@ -420,19 +416,19 @@ export const EdgeCases: Story = {
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-center">Boundary Cases</h3>
         <div className="space-y-4">
-          <ContributorConfidenceCard 
+          <ContributorConfidenceCard
             confidenceScore={5}
             breakdown={mockBreakdown}
             owner="example"
             repo="boundary-low"
           />
-          <ContributorConfidenceCard 
+          <ContributorConfidenceCard
             confidenceScore={15}
             breakdown={mockBreakdown}
             owner="example"
             repo="boundary-medium"
           />
-          <ContributorConfidenceCard 
+          <ContributorConfidenceCard
             confidenceScore={35}
             breakdown={mockBreakdown}
             owner="example"
@@ -440,17 +436,17 @@ export const EdgeCases: Story = {
           />
         </div>
       </div>
-      
+
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-center">States</h3>
         <div className="space-y-4">
-          <ContributorConfidenceCard 
+          <ContributorConfidenceCard
             confidenceScore={null}
             loading={true}
             owner="example"
             repo="loading-state"
           />
-          <ContributorConfidenceCard 
+          <ContributorConfidenceCard
             confidenceScore={null}
             error="Network error"
             owner="example"
@@ -463,10 +459,10 @@ export const EdgeCases: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Edge cases including color boundary values and error states.'
-      }
-    }
-  }
+        story: 'Edge cases including color boundary values and error states.',
+      },
+    },
+  },
 };
 
 export const ResponsiveDemo: Story = {
@@ -474,15 +470,15 @@ export const ResponsiveDemo: Story = {
   render: () => (
     <div className="space-y-4">
       <h3 className="text-sm font-medium">Default Size</h3>
-      <ContributorConfidenceCard 
+      <ContributorConfidenceCard
         confidenceScore={30}
         breakdown={mockBreakdown}
         owner="example"
         repo="default-size"
       />
-      
+
       <h3 className="text-sm font-medium">With Custom Class</h3>
-      <ContributorConfidenceCard 
+      <ContributorConfidenceCard
         confidenceScore={30}
         breakdown={mockBreakdown}
         className="w-full max-w-sm"
@@ -494,10 +490,10 @@ export const ResponsiveDemo: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Responsive behavior with different container sizes.'
-      }
-    }
-  }
+        story: 'Responsive behavior with different container sizes.',
+      },
+    },
+  },
 };
 
 export const SemicircleShowcase: Story = {
@@ -509,18 +505,18 @@ export const SemicircleShowcase: Story = {
         <p className="text-sm text-muted-foreground mb-6">
           Progress fills from left to right with color-coded ranges:
           <br />
-          <span className="text-red-600">Red (0-5%)</span> • 
-          <span className="text-orange-600">Orange (6-15%)</span> • 
-          <span className="text-blue-600">Blue (16-35%)</span> • 
+          <span className="text-red-600">Red (0-5%)</span> •
+          <span className="text-orange-600">Orange (6-15%)</span> •
+          <span className="text-blue-600">Blue (16-35%)</span> •
           <span className="text-green-600">Green (36-50%)</span>
         </p>
       </div>
-      
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[0, 2, 8, 18, 30, 45].map((score) => (
           <div key={score} className="space-y-2">
             <h4 className="text-xs font-medium text-center">{score}% Score</h4>
-            <ContributorConfidenceCard 
+            <ContributorConfidenceCard
               confidenceScore={score}
               breakdown={mockBreakdown}
               owner="example"
@@ -534,8 +530,9 @@ export const SemicircleShowcase: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Showcase of the semi-circle progress indicator across different score ranges, demonstrating the left-to-right fill pattern and color transitions.'
-      }
-    }
-  }
+        story:
+          'Showcase of the semi-circle progress indicator across different score ranges, demonstrating the left-to-right fill pattern and color transitions.',
+      },
+    },
+  },
 };

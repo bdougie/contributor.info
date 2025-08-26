@@ -16,7 +16,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     // The service worker client handles registration internally
     // It will use sw-enhanced.js with aggressive caching strategies
-    
+
     // Set up connection change handler for offline support
     swClient.onConnectionChange((online) => {
       if (online) {
@@ -27,13 +27,13 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
         // Could show offline indicator
       }
     });
-    
+
     // Listen for cache updates
     swClient.on('CACHE_UPDATED', (event: { url: string }) => {
       console.log('Cache updated for:', event.url);
       // Could trigger a subtle UI update here
     });
-    
+
     // Listen for background sync
     swClient.on('BACKGROUND_SYNC', (event: { status: string }) => {
       console.log('Background sync:', event.status);
@@ -43,8 +43,8 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 
 // In development, unregister any existing service worker
 if ('serviceWorker' in navigator && !import.meta.env.PROD) {
-  navigator.serviceWorker.getRegistrations().then(registrations => {
-    registrations.forEach(registration => {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => {
       registration.unregister();
       console.log('SW unregistered for development');
     });
@@ -52,7 +52,6 @@ if ('serviceWorker' in navigator && !import.meta.env.PROD) {
 }
 
 // Web vitals tracking removed - was causing React hooks conflicts
-
 
 // Initialize app with proper provider pattern
 const rootElement = document.getElementById('root')!;
@@ -65,5 +64,5 @@ root.render(
       <SchemaMarkup />
       <App />
     </MetaTagsProvider>
-  </StrictMode>
+  </StrictMode>,
 );

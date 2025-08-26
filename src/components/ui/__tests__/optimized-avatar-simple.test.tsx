@@ -7,26 +7,26 @@ import { OptimizedAvatarSimple } from '../optimized-avatar-simple';
 class MockIntersectionObserver {
   callback: IntersectionObserverCallback;
   elements: Set<Element> = new Set();
-  
+
   constructor(callback: IntersectionObserverCallback) {
     this.callback = callback;
   }
-  
+
   observe(element: Element) {
     this.elements.add(element);
   }
-  
+
   unobserve(element: Element) {
     this.elements.delete(element);
   }
-  
+
   disconnect() {
     this.elements.clear();
   }
-  
+
   // Trigger intersection for testing
   triggerIntersection(isIntersecting: boolean) {
-    const entries = Array.from(this.elements).map(element => ({
+    const entries = Array.from(this.elements).map((element) => ({
       isIntersecting,
       target: element,
       intersectionRatio: isIntersecting ? 1 : 0,
@@ -55,11 +55,7 @@ afterEach(() => {
 describe('OptimizedAvatarSimple - Rendering', () => {
   it('renders with basic props', () => {
     render(
-      <OptimizedAvatarSimple
-        src="https://example.com/avatar.jpg"
-        alt="John Doe"
-        lazy={false}
-      />
+      <OptimizedAvatarSimple src="https://example.com/avatar.jpg" alt="John Doe" lazy={false} />,
     );
 
     const img = screen.getByRole('img', { name: 'John Doe' });
@@ -68,24 +64,13 @@ describe('OptimizedAvatarSimple - Rendering', () => {
   });
 
   it('renders with custom fallback text', () => {
-    render(
-      <OptimizedAvatarSimple
-        alt="John Doe"
-        fallback="JD"
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple alt="John Doe" fallback="JD" lazy={false} />);
 
     expect(screen.getByText('JD')).toBeInTheDocument();
   });
 
   it('generates fallback initials from alt text', () => {
-    render(
-      <OptimizedAvatarSimple
-        alt="Jane Smith"
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple alt="Jane Smith" lazy={false} />);
 
     expect(screen.getByText('JS')).toBeInTheDocument();
   });
@@ -97,7 +82,7 @@ describe('OptimizedAvatarSimple - Rendering', () => {
         alt="Test User"
         className="custom-class"
         lazy={false}
-      />
+      />,
     );
 
     const avatar = container.firstChild as HTMLElement;
@@ -111,7 +96,7 @@ describe('OptimizedAvatarSimple - Rendering', () => {
         alt="Test User"
         size={64}
         lazy={false}
-      />
+      />,
     );
 
     const avatar = container.firstChild as HTMLElement;
@@ -123,37 +108,37 @@ describe('OptimizedAvatarSimple - Rendering', () => {
 describe('OptimizedAvatarSimple - Image Loading', () => {
   it('calls onLoad when image loads successfully', () => {
     const onLoad = vi.fn();
-    
+
     render(
       <OptimizedAvatarSimple
         src="https://example.com/avatar.jpg"
         alt="Test User"
         onLoad={onLoad}
         lazy={false}
-      />
+      />,
     );
 
     const img = screen.getByRole('img');
     fireEvent.load(img);
-    
+
     expect(onLoad).toHaveBeenCalledOnce();
   });
 
   it('calls onError and shows fallback when image fails to load', () => {
     const onError = vi.fn();
-    
+
     render(
       <OptimizedAvatarSimple
         src="https://example.com/avatar.jpg"
         alt="Error User"
         onError={onError}
         lazy={false}
-      />
+      />,
     );
 
     const img = screen.getByRole('img');
     fireEvent.error(img);
-    
+
     expect(onError).toHaveBeenCalledOnce();
     expect(screen.getByText('?')).toBeInTheDocument();
   });
@@ -164,7 +149,7 @@ describe('OptimizedAvatarSimple - Image Loading', () => {
         src="https://example.com/avatar.jpg"
         alt="Loading User"
         lazy={false}
-      />
+      />,
     );
 
     // Fallback should be visible initially
@@ -178,12 +163,12 @@ describe('OptimizedAvatarSimple - Image Loading', () => {
         src="https://example.com/avatar.jpg"
         alt="Success User"
         lazy={false}
-      />
+      />,
     );
 
     const img = screen.getByRole('img');
     fireEvent.load(img);
-    
+
     // Fallback should be hidden after load
     expect(screen.getByText('SU')).toHaveClass('opacity-0');
   });
@@ -192,11 +177,7 @@ describe('OptimizedAvatarSimple - Image Loading', () => {
 describe('OptimizedAvatarSimple - Lazy Loading', () => {
   it('does not render image initially when lazy is true', () => {
     render(
-      <OptimizedAvatarSimple
-        src="https://example.com/avatar.jpg"
-        alt="Lazy User"
-        lazy={true}
-      />
+      <OptimizedAvatarSimple src="https://example.com/avatar.jpg" alt="Lazy User" lazy={true} />,
     );
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
@@ -210,7 +191,7 @@ describe('OptimizedAvatarSimple - Lazy Loading', () => {
         alt="Priority User"
         lazy={true}
         priority={true}
-      />
+      />,
     );
 
     const img = screen.getByRole('img');
@@ -224,7 +205,7 @@ describe('OptimizedAvatarSimple - Lazy Loading', () => {
         src="https://example.com/avatar.jpg"
         alt="Intersection User"
         lazy={true}
-      />
+      />,
     );
 
     // Initially no image
@@ -246,7 +227,7 @@ describe('OptimizedAvatarSimple - Lazy Loading', () => {
         alt="Loading Attr User"
         priority={false}
         lazy={false}
-      />
+      />,
     );
 
     let img = screen.getByRole('img');
@@ -258,7 +239,7 @@ describe('OptimizedAvatarSimple - Lazy Loading', () => {
         alt="Loading Attr User"
         priority={true}
         lazy={false}
-      />
+      />,
     );
 
     img = screen.getByRole('img');
@@ -274,7 +255,7 @@ describe('OptimizedAvatarSimple - URL Optimization', () => {
         alt="GitHub User"
         size={48}
         lazy={false}
-      />
+      />,
     );
 
     const img = screen.getByRole('img');
@@ -288,7 +269,7 @@ describe('OptimizedAvatarSimple - URL Optimization', () => {
         alt="External User"
         size={48}
         lazy={false}
-      />
+      />,
     );
 
     const img = screen.getByRole('img');
@@ -296,26 +277,14 @@ describe('OptimizedAvatarSimple - URL Optimization', () => {
   });
 
   it('handles invalid URLs gracefully', () => {
-    render(
-      <OptimizedAvatarSimple
-        src="not-a-valid-url"
-        alt="Invalid URL User"
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple src="not-a-valid-url" alt="Invalid URL User" lazy={false} />);
 
     const img = screen.getByRole('img');
     expect(img).toHaveAttribute('src', 'not-a-valid-url');
   });
 
   it('handles relative URLs', () => {
-    render(
-      <OptimizedAvatarSimple
-        src="/images/avatar.jpg"
-        alt="Relative URL User"
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple src="/images/avatar.jpg" alt="Relative URL User" lazy={false} />);
 
     const img = screen.getByRole('img');
     expect(img).toHaveAttribute('src', '/images/avatar.jpg');
@@ -324,25 +293,14 @@ describe('OptimizedAvatarSimple - URL Optimization', () => {
 
 describe('OptimizedAvatarSimple - Edge Cases', () => {
   it('handles undefined src gracefully', () => {
-    render(
-      <OptimizedAvatarSimple
-        alt="No Source User"
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple alt="No Source User" lazy={false} />);
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(screen.getByText('NS')).toBeInTheDocument();
   });
 
   it('handles empty alt text', () => {
-    render(
-      <OptimizedAvatarSimple
-        src="https://example.com/avatar.jpg"
-        alt=""
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple src="https://example.com/avatar.jpg" alt="" lazy={false} />);
 
     // Images with empty alt have role="presentation"
     const img = screen.getByRole('presentation');
@@ -350,40 +308,26 @@ describe('OptimizedAvatarSimple - Edge Cases', () => {
   });
 
   it('handles single character alt text', () => {
-    render(
-      <OptimizedAvatarSimple
-        alt="X"
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple alt="X" lazy={false} />);
 
     expect(screen.getByText('X')).toBeInTheDocument();
   });
 
   it('handles alt text with special characters', () => {
-    render(
-      <OptimizedAvatarSimple
-        alt="John-Paul O'Connor"
-        lazy={false}
-      />
-    );
+    render(<OptimizedAvatarSimple alt="John-Paul O'Connor" lazy={false} />);
 
     expect(screen.getByText('JO')).toBeInTheDocument();
   });
 
   it('cleans up intersection observer on unmount', () => {
     const { unmount } = render(
-      <OptimizedAvatarSimple
-        src="https://example.com/avatar.jpg"
-        alt="Cleanup User"
-        lazy={true}
-      />
+      <OptimizedAvatarSimple src="https://example.com/avatar.jpg" alt="Cleanup User" lazy={true} />,
     );
 
     const disconnectSpy = vi.spyOn(mockObserver!, 'unobserve');
-    
+
     unmount();
-    
+
     expect(disconnectSpy).toHaveBeenCalled();
   });
 });
@@ -395,7 +339,7 @@ describe('OptimizedAvatarSimple - Accessibility', () => {
         src="https://example.com/avatar.jpg"
         alt="Screen Reader User"
         lazy={false}
-      />
+      />,
     );
 
     const img = screen.getByRole('img', { name: 'Screen Reader User' });
@@ -409,7 +353,7 @@ describe('OptimizedAvatarSimple - Accessibility', () => {
         alt="Aspect Ratio User"
         size={64}
         lazy={false}
-      />
+      />,
     );
 
     const img = screen.getByRole('img');
@@ -425,7 +369,7 @@ describe('OptimizedAvatarSimple - Accessibility', () => {
         alt="CLS Prevention User"
         size={48}
         lazy={false}
-      />
+      />,
     );
 
     const avatar = container.firstChild as HTMLElement;
@@ -448,7 +392,7 @@ describe('OptimizedAvatarSimple - Custom Renderers', () => {
         alt="Custom Renderer User"
         renderAvatar={customRenderer}
         lazy={false}
-      />
+      />,
     );
 
     expect(screen.getByTestId('custom-avatar')).toBeInTheDocument();
@@ -466,7 +410,7 @@ describe('OptimizedAvatarSimple - Custom Renderers', () => {
         alt="Custom Image User"
         renderImage={customImageRenderer}
         lazy={false}
-      />
+      />,
     );
 
     expect(screen.getByTestId('custom-img')).toBeInTheDocument();
@@ -483,7 +427,7 @@ describe('OptimizedAvatarSimple - Custom Renderers', () => {
         alt="Custom Fallback User"
         renderFallback={customFallbackRenderer}
         lazy={false}
-      />
+      />,
     );
 
     expect(screen.getByTestId('custom-fallback')).toBeInTheDocument();

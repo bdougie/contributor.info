@@ -1,13 +1,8 @@
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect } from 'react';
 import { ExternalLink, Star, GitFork, Users, Clock, Eye } from '@/components/ui/icon';
-import { useParams, Link, useNavigate } from "react-router-dom";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -15,15 +10,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
-import { useOrgRepos } from "@/hooks/use-org-repos";
-import { humanizeNumber } from "@/lib/utils";
-import { OrganizationAvatar } from "@/components/ui/organization-avatar";
-import { Breadcrumbs } from "@/components/common/layout/breadcrumbs";
-import { avatarCache } from "@/lib/avatar-cache";
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
+import { useOrgRepos } from '@/hooks/use-org-repos';
+import { humanizeNumber } from '@/lib/utils';
+import { OrganizationAvatar } from '@/components/ui/organization-avatar';
+import { Breadcrumbs } from '@/components/common/layout/breadcrumbs';
+import { avatarCache } from '@/lib/avatar-cache';
 
 interface RepositoryWithTracking {
   id: number;
@@ -46,30 +41,40 @@ const MAX_DISPLAY_COUNT = 25;
 
 const getLanguageColor = (language: string): string => {
   const colors: { [key: string]: string } = {
-    TypeScript: "#3178c6",
-    JavaScript: "#f1e05a",
-    Python: "#3572A5",
-    Java: "#b07219",
-    "C#": "#239120",
-    Go: "#00ADD8",
-    Rust: "#dea584",
-    Ruby: "#701516",
-    PHP: "#4F5D95",
-    Swift: "#fa7343",
-    Kotlin: "#A97BFF",
-    Dart: "#00B4AB",
-    HTML: "#e34c26",
-    CSS: "#1572B6",
+    TypeScript: '#3178c6',
+    JavaScript: '#f1e05a',
+    Python: '#3572A5',
+    Java: '#b07219',
+    'C#': '#239120',
+    Go: '#00ADD8',
+    Rust: '#dea584',
+    Ruby: '#701516',
+    PHP: '#4F5D95',
+    Swift: '#fa7343',
+    Kotlin: '#A97BFF',
+    Dart: '#00B4AB',
+    HTML: '#e34c26',
+    CSS: '#1572B6',
   };
-  return colors[language] || "#6b7280";
+  return colors[language] || '#6b7280';
 };
 
 const getActivityLevel = (updatedAt: string): { level: string; color: string } => {
-  const daysSinceUpdate = Math.floor((Date.now() - new Date(updatedAt).getTime()) / (1000 * 60 * 60 * 24));
-  
-  if (daysSinceUpdate <= 7) return { level: "Active", color: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400" };
-  if (daysSinceUpdate <= 30) return { level: "Moderate", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400" };
-  return { level: "Low", color: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300" };
+  const daysSinceUpdate = Math.floor(
+    (Date.now() - new Date(updatedAt).getTime()) / (1000 * 60 * 60 * 24),
+  );
+
+  if (daysSinceUpdate <= 7)
+    return {
+      level: 'Active',
+      color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
+    };
+  if (daysSinceUpdate <= 30)
+    return {
+      level: 'Moderate',
+      color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+    };
+  return { level: 'Low', color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300' };
 };
 
 const TrackingStatusBadge = ({ repo }: { repo: RepositoryWithTracking }) => {
@@ -82,18 +87,13 @@ const TrackingStatusBadge = ({ repo }: { repo: RepositoryWithTracking }) => {
 
   if (repo.is_tracked) {
     return (
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="text-xs h-6 px-2"
-        onClick={handleViewRepo}
-      >
+      <Button variant="outline" size="sm" className="text-xs h-6 px-2" onClick={handleViewRepo}>
         <Eye className="w-3 h-3 mr-1" />
         View
       </Button>
     );
   }
-  
+
   if (repo.is_processing) {
     return (
       <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/20">
@@ -102,14 +102,9 @@ const TrackingStatusBadge = ({ repo }: { repo: RepositoryWithTracking }) => {
       </Badge>
     );
   }
-  
+
   return (
-    <Button 
-      variant="outline" 
-      size="sm" 
-      className="text-xs h-6 px-2"
-      onClick={handleViewRepo}
-    >
+    <Button variant="outline" size="sm" className="text-xs h-6 px-2" onClick={handleViewRepo}>
       Track
     </Button>
   );
@@ -123,7 +118,7 @@ const RepositoryRow = ({ repo }: { repo: RepositoryWithTracking }) => {
     <TableRow className="hover:bg-muted/50">
       <TableCell className="font-medium">
         <div className="flex flex-col">
-          <Link 
+          <Link
             to={`/${owner}/${repoName}`}
             className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
           >
@@ -143,19 +138,17 @@ const RepositoryRow = ({ repo }: { repo: RepositoryWithTracking }) => {
       </TableCell>
       <TableCell className="max-w-md">
         <p className="text-sm text-muted-foreground truncate">
-          {repo.description || "No description available"}
+          {repo.description || 'No description available'}
         </p>
       </TableCell>
       <TableCell>
-        <Badge className={activity.color}>
-          {activity.level}
-        </Badge>
+        <Badge className={activity.color}>{activity.level}</Badge>
       </TableCell>
       <TableCell>
         {repo.language && (
           <div className="flex items-center gap-2">
-            <div 
-              className="w-3 h-3 rounded-full" 
+            <div
+              className="w-3 h-3 rounded-full"
               style={{ backgroundColor: getLanguageColor(repo.language) }}
             />
             <span className="text-sm">{repo.language}</span>
@@ -173,9 +166,9 @@ const RequestMoreReposCTA = ({ org }: { org: string }) => {
   const handleRequestMoreRepos = () => {
     const discussionUrl = `https://github.com/bdougie/contributor.info/discussions/new?category=request-a-repo&title=Request%20more%20repositories%20for%20${encodeURIComponent(org)}&body=I'd%20like%20to%20request%20additional%20repositories%20from%20the%20${encodeURIComponent(org)}%20organization%20to%20be%20tracked%3A%0A%0A%5BList%20specific%20repositories%20or%20describe%20the%20type%20of%20repositories%20you're%20interested%20in%5D`;
     window.open(discussionUrl, '_blank', 'noopener,noreferrer');
-    
-    toast.success("Request submitted!", {
-      description: "Let us know which specific repositories you'd like to see tracked."
+
+    toast.success('Request submitted!', {
+      description: "Let us know which specific repositories you'd like to see tracked.",
     });
   };
 
@@ -186,7 +179,8 @@ const RequestMoreReposCTA = ({ org }: { org: string }) => {
           <div>
             <h3 className="text-lg font-semibold">Looking for specific repositories?</h3>
             <p className="text-muted-foreground">
-              We're showing the most active repositories for {org}. Request specific repos to be tracked.
+              We're showing the most active repositories for {org}. Request specific repos to be
+              tracked.
             </p>
           </div>
           <Button onClick={handleRequestMoreRepos} className="gap-2">
@@ -203,7 +197,7 @@ export default function OrgView() {
   const { username: org } = useParams<{ username: string }>();
   const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
   const [cachedAvatarUrl, setCachedAvatarUrl] = useState<string | null>(null);
-  
+
   const { repositories, orgData, isLoading, error: _error } = useOrgRepos(org);
 
   // Check for cached avatar URL on mount
@@ -226,7 +220,7 @@ export default function OrgView() {
       avatarCache.preload(orgData.avatar_url);
     }
   }, [orgData, org]);
-  
+
   const displayedRepos = useMemo(() => {
     return repositories.slice(0, displayCount);
   }, [repositories, displayCount]);
@@ -246,7 +240,8 @@ export default function OrgView() {
             <div className="text-center space-y-4">
               <h2 className="text-xl font-semibold text-destructive">Error Loading Organization</h2>
               <p className="text-muted-foreground">
-                {error.message || `Unable to load repositories for ${org}. Please check if the organization exists.`}
+                {error.message ||
+                  `Unable to load repositories for ${org}. Please check if the organization exists.`}
               </p>
               <Button asChild>
                 <Link to="/">Return to Home</Link>
@@ -262,14 +257,13 @@ export default function OrgView() {
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       {/* Breadcrumbs */}
       <Breadcrumbs />
-      
+
       {/* Header */}
       <div className="space-y-4 org-header">
         <div className="flex items-center gap-3">
           <div className="org-avatar-container">
             {/* Use cached avatar URL immediately if available, fall back to orgData */}
-            {(cachedAvatarUrl || orgData?.avatar_url) 
-              ? (
+            {cachedAvatarUrl || orgData?.avatar_url ? (
               <OrganizationAvatar
                 src={cachedAvatarUrl || orgData?.avatar_url || ''}
                 alt={orgData?.name || org || ''}
@@ -277,8 +271,7 @@ export default function OrgView() {
                 priority={true}
                 lazy={false} // Always load immediately for org avatar
               />
-            ) 
-              : (
+            ) : (
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md flex items-center justify-center text-white font-bold text-lg">
                 {org?.charAt(0)?.toUpperCase() || '?'}
               </div>
@@ -300,13 +293,9 @@ export default function OrgView() {
             <Users className="w-5 h-5" />
             Repositories
             <div className="ml-auto repo-count-badge">
-              {!isLoading
-? (
-                <Badge variant="secondary">
-                  {repositories.length} total
-                </Badge>
-              )
-: (
+              {!isLoading ? (
+                <Badge variant="secondary">{repositories.length} total</Badge>
+              ) : (
                 <div className="h-6 w-16 skeleton-loading rounded" />
               )}
             </div>
@@ -361,7 +350,7 @@ export default function OrgView() {
                 </div>
               );
             }
-            
+
             if (repositories.length > 0) {
               return (
                 <>
@@ -381,14 +370,10 @@ export default function OrgView() {
                       ))}
                     </TableBody>
                   </Table>
-                  
+
                   {canShowMore && (
                     <div className="mt-6 text-center">
-                      <Button 
-                        variant="outline" 
-                        onClick={showMoreRepos}
-                        className="gap-2"
-                      >
+                      <Button variant="outline" onClick={showMoreRepos} className="gap-2">
                         Show More Repositories
                         <span className="text-xs text-muted-foreground">
                           ({displayCount} of {Math.min(repositories.length, MAX_DISPLAY_COUNT)})
@@ -396,19 +381,22 @@ export default function OrgView() {
                       </Button>
                     </div>
                   )}
-                  
+
                   {hasMoreRepos && displayCount >= MAX_DISPLAY_COUNT && (
                     <div className="mt-4 text-center text-sm text-muted-foreground">
-                      Showing most active repositories. Use the request form below for specific repositories.
+                      Showing most active repositories. Use the request form below for specific
+                      repositories.
                     </div>
                   )}
                 </>
               );
             }
-            
+
             return (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">No repositories found for this organization.</p>
+                <p className="text-muted-foreground">
+                  No repositories found for this organization.
+                </p>
               </div>
             );
           })()}
@@ -417,9 +405,7 @@ export default function OrgView() {
 
       {/* Request More Repositories CTA */}
       <div className="org-cta-section">
-        {!isLoading && repositories.length > 0 && (
-          <RequestMoreReposCTA org={org || ""} />
-        )}
+        {!isLoading && repositories.length > 0 && <RequestMoreReposCTA org={org || ''} />}
       </div>
     </div>
   );

@@ -1,18 +1,18 @@
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect } from 'react';
 import { ChevronLeft, Users } from '@/components/ui/icon';
-import { ResponsiveContainer, Treemap, Tooltip } from "recharts";
-import { Button } from "@/components/ui/button";
-import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
-import { ProgressiveChart } from "@/components/ui/charts/ProgressiveChart";
-import { SkeletonChart } from "@/components/skeletons/base/skeleton-chart";
-import { supabaseAvatarCache } from "@/lib/supabase-avatar-cache";
-import type { QuadrantNode, HierarchicalData } from "@/hooks/use-hierarchical-distribution";
-import type { PullRequest } from "@/lib/types";
-import { getPrimaryLanguage } from "@/lib/language-utils";
+import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
+import { Button } from '@/components/ui/button';
+import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
+import { ProgressiveChart } from '@/components/ui/charts/ProgressiveChart';
+import { SkeletonChart } from '@/components/skeletons/base/skeleton-chart';
+import { supabaseAvatarCache } from '@/lib/supabase-avatar-cache';
+import type { QuadrantNode, HierarchicalData } from '@/hooks/use-hierarchical-distribution';
+import type { PullRequest } from '@/lib/types';
+import { getPrimaryLanguage } from '@/lib/language-utils';
 
 interface DistributionTreemapEnhancedProps {
   data: HierarchicalData | null;
-  currentView: "overview" | "quadrant" | "contributor";
+  currentView: 'overview' | 'quadrant' | 'contributor';
   selectedQuadrant: string | null;
   selectedContributor?: string | null;
   onDrillDown: (quadrantId: string) => void;
@@ -23,10 +23,10 @@ interface DistributionTreemapEnhancedProps {
 }
 
 const COLORS = {
-  refinement: "#4ade80",
-  new: "#60a5fa",
-  refactoring: "#f97316",
-  maintenance: "#a78bfa",
+  refinement: '#4ade80',
+  new: '#60a5fa',
+  refactoring: '#f97316',
+  maintenance: '#a78bfa',
 };
 
 export function DistributionTreemapEnhanced({
@@ -42,35 +42,38 @@ export function DistributionTreemapEnhanced({
 }: DistributionTreemapEnhancedProps) {
   const [hoveredPRs, setHoveredPRs] = useState<PullRequest[]>([]);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [viewAnimation, setViewAnimation] = useState<"drill-in" | "drill-out" | "">("");
+  const [viewAnimation, setViewAnimation] = useState<'drill-in' | 'drill-out' | ''>('');
   const [cachedAvatars, setCachedAvatars] = useState<Map<number, string>>(new Map());
-  
+
   // Load cached avatars for better performance
   useEffect(() => {
     const loadAvatars = async () => {
       if (!_data) return;
-      
+
       // Extract unique contributors with their GitHub IDs
       const contributors = new Map<number, string>();
-      
+
       const extractContributors = (node: unknown) => {
         if (node.login && node.avatar_url) {
           // Try to extract GitHub ID from avatar URL or use a hash
           const match = node.avatar_url.match(/u\/(\d+)/);
-          const githubId = match ? parseInt(match[1]) : 
-            // Fallback: use a deterministic hash based on login
-            Math.abs(node.login.split('').reduce((a: number, b: string) => {
-              a = ((a << 5) - a) + b.charCodeAt(0);
-              return a & a;
-            }, 0));
-          
+          const githubId = match
+            ? parseInt(match[1])
+            : // Fallback: use a deterministic hash based on login
+              Math.abs(
+                node.login.split('').reduce((a: number, b: string) => {
+                  a = (a << 5) - a + b.charCodeAt(0);
+                  return a & a;
+                }, 0),
+              );
+
           contributors.set(githubId, node.avatar_url);
         }
         if (node.children) {
           node.children.forEach(extractContributors);
         }
       };
-      
+
       if (_data.children) {
         data.children.forEach((quadrant: QuadrantNode) => {
           if (quadrant.children) {
@@ -78,19 +81,19 @@ export function DistributionTreemapEnhanced({
           }
         });
       }
-      
+
       // Load from cache
       const githubIds = Array.from(contributors.keys());
       if (githubIds.length > 0) {
         try {
           const cached = await supabaseAvatarCache.getAvatarUrls(
-            githubIds.map(id => ({
+            githubIds.map((id) => ({
               githubId: id,
               username: '',
-              fallbackUrl: contributors.get(id)
-            }))
+              fallbackUrl: contributors.get(id),
+            })),
           );
-          
+
           const avatarMap = new Map<number, string>();
           cached.forEach((result, githubId) => {
             avatarMap.set(githubId, result.url);
@@ -101,25 +104,25 @@ export function DistributionTreemapEnhanced({
         }
       }
     };
-    
+
     loadAvatars();
   }, [data]);
-  
+
   // Handle view transitions
   useEffect(() => {
-    if (currentView === "quadrant" || currentView === "contributor") {
-      setViewAnimation("drill-in");
+    if (currentView === 'quadrant' || currentView === 'contributor') {
+      setViewAnimation('drill-in');
       setIsTransitioning(true);
       const timer = setTimeout(() => {
         setIsTransitioning(false);
       }, 400);
       return () => clearTimeout(timer);
-    } else if (currentView === "overview" && viewAnimation === "drill-in") {
-      setViewAnimation("drill-out");
+    } else if (currentView === 'overview' && viewAnimation === 'drill-in') {
+      setViewAnimation('drill-out');
       setIsTransitioning(true);
       const timer = setTimeout(() => {
         setIsTransitioning(false);
-        setViewAnimation("");
+        setViewAnimation('');
       }, 400);
       return () => clearTimeout(timer);
     }
@@ -206,7 +209,7 @@ export function DistributionTreemapEnhanced({
       return [];
     }
 
-    if (currentView === "overview") {
+    if (currentView === 'overview') {
       // Return only quadrant data without children to show clean overview
       return data.children.map((quadrant: QuadrantNode) => ({
         id: quadrant.id,
@@ -215,36 +218,32 @@ export function DistributionTreemapEnhanced({
         color: quadrant.color,
         // Explicitly remove children to prevent avatars from showing
       }));
-    } else if (currentView === "quadrant") {
+    } else if (currentView === 'quadrant') {
       // Show contributors for the selected quadrant
-      const quadrant = data.children.find(
-        (q: QuadrantNode) => q.id === selectedQuadrant
-      );
+      const quadrant = data.children.find((q: QuadrantNode) => q.id === selectedQuadrant);
       return quadrant?.children || [];
-    } else if (currentView === "contributor") {
+    } else if (currentView === 'contributor') {
       // Show PRs for the selected contributor
-      const quadrant = data.children.find(
-        (q: QuadrantNode) => q.id === selectedQuadrant
-      );
-      const contributor = quadrant?.children?.find(
-        (c: unknown) => c.id === selectedContributor
-      );
-      
+      const quadrant = data.children.find((q: QuadrantNode) => q.id === selectedQuadrant);
+      const contributor = quadrant?.children?.find((c: unknown) => c.id === selectedContributor);
+
       // Transform PRs into treemap nodes
-      return contributor?.prs?.map((pr: PullRequest) => {
-        const language = getPrimaryLanguage(pr);
-        return {
-          id: `pr-${pr.id}`,
-          name: `#${pr.number}`,
-          title: pr.title,
-          value: Math.max(1, pr.additions + pr.deletions || 1), // Use PR size as value
-          language: language.name,
-          languageColor: language.color,
-          pr, // Store the full PR object for click handling
-        };
-      }) || [];
+      return (
+        contributor?.prs?.map((pr: PullRequest) => {
+          const language = getPrimaryLanguage(pr);
+          return {
+            id: `pr-${pr.id}`,
+            name: `#${pr.number}`,
+            title: pr.title,
+            value: Math.max(1, pr.additions + pr.deletions || 1), // Use PR size as value
+            language: language.name,
+            languageColor: language.color,
+            pr, // Store the full PR object for click handling
+          };
+        }) || []
+      );
     }
-    
+
     return [];
   };
 
@@ -283,10 +282,10 @@ export function DistributionTreemapEnhanced({
         language,
         languageColor,
       } = props;
-      const isQuadrant = currentView === "overview";
-      const isContributor = currentView === "quadrant";
-      const isPR = currentView === "contributor";
-      const isOthers = login === "others";
+      const isQuadrant = currentView === 'overview';
+      const isContributor = currentView === 'quadrant';
+      const isPR = currentView === 'contributor';
+      const isOthers = login === 'others';
       const showTransition = isTransitioning && (isContributor || isPR);
       const isHovered = nodeHoverStates[id] || false;
 
@@ -303,14 +302,14 @@ export function DistributionTreemapEnhanced({
       };
 
       const handleMouseEnter = () => {
-        setNodeHoverStates(prev => ({ ...prev, [id]: true }));
+        setNodeHoverStates((prev) => ({ ...prev, [id]: true }));
         if (isContributor && prs) {
           setHoveredPRs(prs.slice(0, 5));
         }
       };
 
       const handleMouseLeave = () => {
-        setNodeHoverStates(prev => ({ ...prev, [id]: false }));
+        setNodeHoverStates((prev) => ({ ...prev, [id]: false }));
         setHoveredPRs([]);
       };
 
@@ -326,14 +325,14 @@ export function DistributionTreemapEnhanced({
               fill: isQuadrant
                 ? color
                 : isPR && languageColor
-                ? languageColor
-                : COLORS[selectedQuadrant as keyof typeof COLORS],
-              stroke: "#ffffff",
+                  ? languageColor
+                  : COLORS[selectedQuadrant as keyof typeof COLORS],
+              stroke: '#ffffff',
               strokeWidth: 2,
               strokeOpacity: 0.8,
               opacity: isQuadrant ? (isHovered ? 1 : 0.92) : 1,
-              filter: isQuadrant && isHovered ? "brightness(1.1)" : "none",
-              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+              filter: isQuadrant && isHovered ? 'brightness(1.1)' : 'none',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
             onClick={handleClick}
             onMouseEnter={handleMouseEnter}
@@ -353,7 +352,7 @@ export function DistributionTreemapEnhanced({
                 fontSize={18}
                 fontWeight="bold"
                 className="distribution-treemap-text"
-                style={{ textShadow: "1px 1px 2px rgba(0,0,0,0.8)" }}
+                style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
               >
                 {name}
               </text>
@@ -371,7 +370,7 @@ export function DistributionTreemapEnhanced({
                   fontSize={14}
                   fontWeight="bold"
                   className="distribution-treemap-text"
-                  style={{ textShadow: "1px 1px 2px rgba(0,0,0,0.8)" }}
+                  style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
                 >
                   {name}
                 </text>
@@ -383,9 +382,9 @@ export function DistributionTreemapEnhanced({
                     fill="white"
                     fontSize={10}
                     className="distribution-treemap-text"
-                    style={{ textShadow: "1px 1px 2px rgba(0,0,0,0.8)" }}
+                    style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
                   >
-                    {title && title.length > 20 ? title.slice(0, 20) + "..." : title}
+                    {title && title.length > 20 ? title.slice(0, 20) + '...' : title}
                   </text>
                 )}
                 {width > 100 && height > 80 && language && (
@@ -396,7 +395,7 @@ export function DistributionTreemapEnhanced({
                     fill="white"
                     fontSize={8}
                     className="distribution-treemap-text"
-                    style={{ textShadow: "1px 1px 2px rgba(0,0,0,0.8)", opacity: 0.9 }}
+                    style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)', opacity: 0.9 }}
                   >
                     {language}
                   </text>
@@ -406,80 +405,99 @@ export function DistributionTreemapEnhanced({
           ) : (
             // Contributor nodes: Avatar-only
             <>
-              {isOthers ? (
-                // Others node with icon - not clickable since it represents multiple users
-                width > 40 && height > 40 && (
-                  <foreignObject
-                    x={x + width / 2 - 16}
-                    y={y + height / 2 - 16}
-                    width={32}
-                    height={32}
-                    style={{ pointerEvents: 'none' }}
-                  >
-                    <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-full">
-                      <Users className="w-5 h-5 text-white" />
-                    </div>
-                  </foreignObject>
-                )
-              ) : (
-                // Contributor avatar only
-                width > 30 && height > 30 && (
-                  <foreignObject
-                    x={x + width / 2 - Math.min(width, height) * 0.3}
-                    y={y + height / 2 - Math.min(width, height) * 0.3}
-                    width={Math.min(width, height) * 0.6}
-                    height={Math.min(width, height) * 0.6}
-                    className={`treemap-avatar-container ${showTransition ? "avatar-fade-in" : ""}`}
-                    style={{ 
-                      pointerEvents: 'auto', 
-                      cursor: 'pointer',
-                      background: 'transparent'
-                    }}
-                    onClick={handleClick}
-                    onMouseEnter={handleMouseEnter}
-                    onMouseLeave={handleMouseLeave}
-                  >
-                    <div style={{ background: 'transparent', width: '100%', height: '100%' }}>
-                      <OptimizedAvatar
-                        className="w-full h-full border-2 border-white cursor-pointer"
-                        src={(() => {
-                          // Try to get cached avatar URL
-                          if (avatar_url) {
-                            const match = avatar_url.match(/u\/(\d+)/);
-                            const githubId = match ? parseInt(match[1]) : 
-                              // Fallback: use a deterministic hash based on login
-                              Math.abs((login || '').split('').reduce((a: number, b: string) => {
-                                a = ((a << 5) - a) + b.charCodeAt(0);
-                                return a & a;
-                              }, 0));
-                            
-                            return cachedAvatars.get(githubId) || avatar_url;
-                          }
-                          return avatar_url;
-                        })()}
-                        alt={login || "Contributor"}
-                        fallback={(login || "U").slice(0, 2).toUpperCase()}
-                        size={Math.min(60, Math.min(width, height) * 0.6) as any}
-                        lazy={true}
-                        priority={false}
-                      />
-                    </div>
-                  </foreignObject>
-                )
-              )}
+              {isOthers
+                ? // Others node with icon - not clickable since it represents multiple users
+                  width > 40 &&
+                  height > 40 && (
+                    <foreignObject
+                      x={x + width / 2 - 16}
+                      y={y + height / 2 - 16}
+                      width={32}
+                      height={32}
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-full">
+                        <Users className="w-5 h-5 text-white" />
+                      </div>
+                    </foreignObject>
+                  )
+                : // Contributor avatar only
+                  width > 30 &&
+                  height > 30 && (
+                    <foreignObject
+                      x={x + width / 2 - Math.min(width, height) * 0.3}
+                      y={y + height / 2 - Math.min(width, height) * 0.3}
+                      width={Math.min(width, height) * 0.6}
+                      height={Math.min(width, height) * 0.6}
+                      className={`treemap-avatar-container ${showTransition ? 'avatar-fade-in' : ''}`}
+                      style={{
+                        pointerEvents: 'auto',
+                        cursor: 'pointer',
+                        background: 'transparent',
+                      }}
+                      onClick={handleClick}
+                      onMouseEnter={handleMouseEnter}
+                      onMouseLeave={handleMouseLeave}
+                    >
+                      <div style={{ background: 'transparent', width: '100%', height: '100%' }}>
+                        <OptimizedAvatar
+                          className="w-full h-full border-2 border-white cursor-pointer"
+                          src={(() => {
+                            // Try to get cached avatar URL
+                            if (avatar_url) {
+                              const match = avatar_url.match(/u\/(\d+)/);
+                              const githubId = match
+                                ? parseInt(match[1])
+                                : // Fallback: use a deterministic hash based on login
+                                  Math.abs(
+                                    (login || '').split('').reduce((a: number, b: string) => {
+                                      a = (a << 5) - a + b.charCodeAt(0);
+                                      return a & a;
+                                    }, 0),
+                                  );
+
+                              return cachedAvatars.get(githubId) || avatar_url;
+                            }
+                            return avatar_url;
+                          })()}
+                          alt={login || 'Contributor'}
+                          fallback={(login || 'U').slice(0, 2).toUpperCase()}
+                          size={Math.min(60, Math.min(width, height) * 0.6) as any}
+                          lazy={true}
+                          priority={false}
+                        />
+                      </div>
+                    </foreignObject>
+                  )}
             </>
           )}
         </g>
       );
     },
-    [currentView, selectedQuadrant, onDrillDown, onContributorClick, onPRClick, onNodeClick, isTransitioning, nodeHoverStates, cachedAvatars]
+    [
+      currentView,
+      selectedQuadrant,
+      onDrillDown,
+      onContributorClick,
+      onPRClick,
+      onNodeClick,
+      isTransitioning,
+      nodeHoverStates,
+      cachedAvatars,
+    ],
   );
 
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: any }> }) => {
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: Array<{ payload: any }>;
+  }) => {
     if (active && payload && payload[0]) {
-      const data = payload[0].payload;
-      const isContributor = currentView === "quadrant";
-      const isPR = currentView === "contributor";
+      const _data = payload[0].payload;
+      const isContributor = currentView === 'quadrant';
+      const isPR = currentView === 'contributor';
 
       // Only show tooltip for contributors and PRs in drill-down views
       if (!isContributor && !isPR) {
@@ -513,45 +531,34 @@ export function DistributionTreemapEnhanced({
                   <p className="text-xs text-muted-foreground">
                     {data.pr.user?.login} • {new Date(_data.pr.created_at).toLocaleDateString()}
                   </p>
-                  <p className="text-xs font-medium text-primary">
-                    Click to open PR →
-                  </p>
+                  <p className="text-xs font-medium text-primary">Click to open PR →</p>
                 </div>
               )}
             </>
           ) : (
             // Contributor tooltip
             <>
-              {data.login === "others"
-? (
+              {data.login === 'others' ? (
                 <>
                   <p className="font-semibold text-sm">{data.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {data.value} PRs from remaining contributors
                   </p>
                 </>
-              )
-: (
+              ) : (
                 <>
-                  <p className="font-semibold text-sm">{data.login || "Unknown"}</p>
+                  <p className="font-semibold text-sm">{data.login || 'Unknown'}</p>
                   <p className="text-xs text-muted-foreground mb-2">
-                    {data.value} PRs in{" "}
-                    {
-                      QUADRANT_INFO[selectedQuadrant as keyof typeof QUADRANT_INFO]
-                        ?.label
-                    }
+                    {data.value} PRs in{' '}
+                    {QUADRANT_INFO[selectedQuadrant as keyof typeof QUADRANT_INFO]?.label}
                   </p>
                   {hoveredPRs.length > 0 && (
                     <div className="space-y-1 pr-preview">
-                      <p className="text-xs font-medium text-muted-foreground">
-                        Recent PRs:
-                      </p>
+                      <p className="text-xs font-medium text-muted-foreground">Recent PRs:</p>
                       {hoveredPRs.map((pr) => (
                         <div key={pr.id} className="text-xs">
-                          <span className="text-muted-foreground">
-                            #{pr.number}
-                          </span>{" "}
-                          -<span className="ml-1 line-clamp-1">{pr.title}</span>
+                          <span className="text-muted-foreground">#{pr.number}</span> -
+                          <span className="ml-1 line-clamp-1">{pr.title}</span>
                         </div>
                       ))}
                       {data.prs && data.prs.length > 5 && (
@@ -561,9 +568,7 @@ export function DistributionTreemapEnhanced({
                       )}
                     </div>
                   )}
-                  <p className="text-xs font-medium text-primary mt-2">
-                    Click to view PRs →
-                  </p>
+                  <p className="text-xs font-medium text-primary mt-2">Click to view PRs →</p>
                 </>
               )}
             </>
@@ -580,48 +585,38 @@ export function DistributionTreemapEnhanced({
 
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2">
-        {currentView === "contributor" && selectedQuadrant && selectedContributor
-? (
+        {currentView === 'contributor' && selectedQuadrant && selectedContributor ? (
           <>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDrillUp}
-              className="gap-1"
-            >
+            <Button variant="ghost" size="sm" onClick={onDrillUp} className="gap-1">
               <ChevronLeft className="h-4 w-4" />
               Contributors
             </Button>
             <span className="text-muted-foreground">/</span>
             <span className="font-medium">
               {(() => {
-                const quadrant = data?.children?.find((q: QuadrantNode) => q.id === selectedQuadrant);
-                const contributor = quadrant?.children?.find((c: unknown) => c.id === selectedContributor);
-                return contributor?.login || "PRs";
+                const quadrant = data?.children?.find(
+                  (q: QuadrantNode) => q.id === selectedQuadrant,
+                );
+                const contributor = quadrant?.children?.find(
+                  (c: unknown) => c.id === selectedContributor,
+                );
+                return contributor?.login || 'PRs';
               })()}
             </span>
           </>
-        )
-: currentView === "quadrant" && selectedQuadrant
-? (
+        ) : currentView === 'quadrant' && selectedQuadrant ? (
           <>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDrillUp}
-              className="gap-1"
-            >
+            <Button variant="ghost" size="sm" onClick={onDrillUp} className="gap-1">
               <ChevronLeft className="h-4 w-4" />
               All Contributions
             </Button>
             <span className="text-muted-foreground">/</span>
             <span className="font-medium">
-              {QUADRANT_INFO[selectedQuadrant as keyof typeof QUADRANT_INFO]
-                ?.label || selectedQuadrant}
+              {QUADRANT_INFO[selectedQuadrant as keyof typeof QUADRANT_INFO]?.label ||
+                selectedQuadrant}
             </span>
           </>
-        )
-: (
+        ) : (
           <span className="font-medium">All Contributions</span>
         )}
       </div>
@@ -629,19 +624,15 @@ export function DistributionTreemapEnhanced({
       <div className="treemap-container">
         <div
           className={`treemap-view ${
-            viewAnimation === "drill-in"
-? "treemap-drill-in" : 
-            viewAnimation === "drill-out" ? "treemap-drill-out" : ""
+            viewAnimation === 'drill-in'
+              ? 'treemap-drill-in'
+              : viewAnimation === 'drill-out'
+                ? 'treemap-drill-out'
+                : ''
           }`}
         >
           <ProgressiveChart
-            skeleton={
-              <SkeletonChart 
-                variant="quadrant" 
-                height="lg"
-                showAxes={false}
-              />
-            }
+            skeleton={<SkeletonChart variant="quadrant" height="lg" showAxes={false} />}
             highFidelity={
               <ResponsiveContainer width="100%" height={420} minHeight={420}>
                 <Treemap
@@ -653,10 +644,10 @@ export function DistributionTreemapEnhanced({
                   animationDuration={300}
                   isAnimationActive={true}
                 >
-              {(currentView === "quadrant" || currentView === "contributor") && (
-                <Tooltip content={<CustomTooltip />} />
-              )}
-            </Treemap>
+                  {(currentView === 'quadrant' || currentView === 'contributor') && (
+                    <Tooltip content={<CustomTooltip />} />
+                  )}
+                </Treemap>
               </ResponsiveContainer>
             }
             priority={false}
@@ -670,8 +661,8 @@ export function DistributionTreemapEnhanced({
 }
 
 const QUADRANT_INFO = {
-  refinement: { label: "Refinement" },
-  new: { label: "New Features" },
-  refactoring: { label: "Refactoring" },
-  maintenance: { label: "Maintenance" },
+  refinement: { label: 'Refinement' },
+  new: { label: 'New Features' },
+  refactoring: { label: 'Refactoring' },
+  maintenance: { label: 'Maintenance' },
 };

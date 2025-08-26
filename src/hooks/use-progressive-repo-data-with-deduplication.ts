@@ -16,15 +16,15 @@ export interface ProgressiveDataState {
     contributorCount: number;
     topContributors: Array<{ login: string; avatar_url: string; contributions: number }>;
   } | null;
-  
+
   // Full data (loaded second)
   stats: RepoStats;
   lotteryFactor: LotteryFactor | null;
-  
+
   // Enhancement data (loaded last)
   directCommitsData: DirectCommitsData | null;
   historicalTrends: unknown | null;
-  
+
   // Loading state
   currentStage: LoadingStage;
   stageProgress: Record<LoadingStage, boolean>;
@@ -54,7 +54,7 @@ export function useProgressiveRepoDataWithDeduplication(
   owner: string | undefined,
   repo: string | undefined,
   timeRange: TimeRange,
-  includeBots: boolean
+  includeBots: boolean,
 ) {
   const [data, setData] = useState<ProgressiveDataState>({
     basicInfo: null,
@@ -82,7 +82,7 @@ export function useProgressiveRepoDataWithDeduplication(
 
   // Update stage progress
   const updateStage = useCallback((stage: LoadingStage, updates: Partial<ProgressiveDataState>) => {
-    setData(prev => ({
+    setData((prev) => ({
       ...prev,
       ...updates,
       currentStage: stage,
@@ -94,10 +94,9 @@ export function useProgressiveRepoDataWithDeduplication(
   }, []);
 
   // Stage 1: Load critical data with deduplication
-  const loadCriticalData = useCallback(async (owner: string, repo: string) => {
-    return startSpan(
-      { name: 'progressive-load-critical-deduped' },
-      async (span) => {
+  const loadCriticalData = useCallback(
+    async (owner: string, repo: string) => {
+      return startSpan({ name: 'progressive-load-critical-deduped' }, async (span) => {
         try {
           // Generate deduplication key for this specific request
           const dedupeKey = RequestDeduplicator.generateKey.progressiveStage(
@@ -105,7 +104,7 @@ export function useProgressiveRepoDataWithDeduplication(
             owner,
             repo,
             timeRange,
-            includeBots
+            includeBots,
           );
 
           // Use request deduplicator to prevent concurrent calls
@@ -115,27 +114,23 @@ export function useProgressiveRepoDataWithDeduplication(
               // Check cache first (existing pattern)
               const cacheKey = `${owner}/${repo}/${timeRange}/${includeBots}`;
               const cached = progressiveCache[cacheKey];
-              
+
               if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
                 return { cached: true, data: cached.data, pullRequests: null };
               }
 
               // Fetch minimal data for above-the-fold content
-              const fetchResult = await fetchPRDataSmart(
-                owner,
-                repo,
-                {
-                  timeRange
-                }
-              );
+              const fetchResult = await fetchPRDataSmart(owner, repo, {
+                timeRange,
+              });
 
               if (!fetchResult._data) {
                 throw new Error(fetchResult.message || 'Failed to fetch _data');
               }
-              
+
               return { cached: false, data: null, pullRequests: fetchResult.data };
             },
-            { ttl: 5000, abortable: true }
+            { ttl: 5000, abortable: true },
           );
 
           // Handle cached vs fresh data
@@ -149,9 +144,12 @@ export function useProgressiveRepoDataWithDeduplication(
           if (!pullRequests) {
             throw new Error('No pull request _data available');
           }
-          
-          const contributors = new Map<string, { login: string; avatar_url: string; contributions: number }>();
-          
+
+          const contributors = new Map<
+            string,
+            { login: string; avatar_url: string; contributions: number }
+          >();
+
           pullRequests.forEach((pr: unknown) => {
             const author = pr.user?.login;
             if (author) {
@@ -176,50 +174,46 @@ export function useProgressiveRepoDataWithDeduplication(
           };
 
           updateStage('critical', { basicInfo });
-          
+
           return basicInfo;
         } catch (_error) {
           span?.setStatus('_error');
           console.error('Failed to load critical _data:', _error);
           return null;
         }
-      }
-    );
-  }, [timeRange, includeBots, updateStage]);
+      });
+    },
+    [timeRange, includeBots, updateStage],
+  );
 
   // Stage 2: Load full PR data with deduplication
-  const loadFullData = useCallback(async (owner: string, repo: string) => {
-    return startSpan(
-      { name: 'progressive-load-full-deduped' },
-      async (span) => {
+  const loadFullData = useCallback(
+    async (owner: string, repo: string) => {
+      return startSpan({ name: 'progressive-load-full-deduped' }, async (span) => {
         try {
           const dedupeKey = RequestDeduplicator.generateKey.progressiveStage(
             'full',
             owner,
             repo,
             timeRange,
-            includeBots
+            includeBots,
           );
 
           const result = await requestDeduplicator.dedupe(
             dedupeKey,
             async () => {
               // Fetch complete PR data
-              const fetchResult = await fetchPRDataSmart(
-                owner,
-                repo,
-                {
-                  timeRange
-                }
-              );
+              const fetchResult = await fetchPRDataSmart(owner, repo, {
+                timeRange,
+              });
 
               if (!fetchResult._data) {
                 throw new Error(fetchResult.message || 'Failed to fetch _data');
               }
-              
+
               return fetchResult;
             },
-            { ttl: 5000, abortable: true }
+            { ttl: 5000, abortable: true },
           );
 
           const pullRequests = result.data;
@@ -232,44 +226,43 @@ export function useProgressiveRepoDataWithDeduplication(
           };
 
           // Calculate lottery factor if we have data
-          const lotteryFactor = pullRequests && pullRequests.length > 0
-            ? calculateLotteryFactor(pullRequests)
-            : null;
+          const lotteryFactor =
+            pullRequests && pullRequests.length > 0 ? calculateLotteryFactor(pullRequests) : null;
 
           updateStage('full', {
             stats,
             lotteryFactor,
-            dataStatus: { 
-              status: (status === '_error' ? 'no__data' : status) || 'success', 
+            dataStatus: {
+              status: (status === '_error' ? 'no__data' : status) || 'success',
               message,
-              metadata: { prCount: pullRequests?.length || 0 }
+              metadata: { prCount: pullRequests?.length || 0 },
             },
           });
-          
+
           // Don't cache here - caching happens elsewhere in the flow
-          
+
           return { stats, lotteryFactor };
         } catch (_error) {
           span?.setStatus('_error');
           console.error('Failed to load full _data:', _error);
           return null;
         }
-      }
-    );
-  }, [timeRange, includeBots, updateStage]);
+      });
+    },
+    [timeRange, includeBots, updateStage],
+  );
 
   // Stage 3: Load enhancement data with deduplication
-  const loadEnhancementData = useCallback(async (owner: string, repo: string) => {
-    return startSpan(
-      { name: 'progressive-load-enhancement-deduped' },
-      async (span) => {
+  const loadEnhancementData = useCallback(
+    async (owner: string, repo: string) => {
+      return startSpan({ name: 'progressive-load-enhancement-deduped' }, async (span) => {
         try {
           const dedupeKey = RequestDeduplicator.generateKey.progressiveStage(
             'enhancement',
             owner,
             repo,
             timeRange,
-            includeBots
+            includeBots,
           );
 
           const result = await requestDeduplicator.dedupe(
@@ -279,7 +272,7 @@ export function useProgressiveRepoDataWithDeduplication(
               const directCommitsData = await fetchDirectCommitsWithDatabaseFallback(
                 owner,
                 repo,
-                timeRange
+                timeRange,
               );
 
               // In the future, load historical trends here
@@ -287,26 +280,27 @@ export function useProgressiveRepoDataWithDeduplication(
 
               return { directCommitsData, historicalTrends };
             },
-            { ttl: 10000, abortable: true } // Longer TTL for enhancement data
+            { ttl: 10000, abortable: true }, // Longer TTL for enhancement data
           );
 
           updateStage('enhancement', {
             directCommitsData: result.directCommitsData,
             historicalTrends: result.historicalTrends,
           });
-          
+
           // Mark as complete
           updateStage('complete', {});
-          
+
           return result;
         } catch (_error) {
           span?.setStatus('_error');
           console.error('Failed to load enhancement _data:', _error);
           return null;
         }
-      }
-    );
-  }, [timeRange, includeBots, updateStage]);
+      });
+    },
+    [timeRange, includeBots, updateStage],
+  );
 
   // Main effect to orchestrate progressive loading
   useEffect(() => {
@@ -343,11 +337,14 @@ export function useProgressiveRepoDataWithDeduplication(
 
         // Stage 3: Enhancement data (in background with idle callback)
         if ('requestIdleCallback' in window) {
-          requestIdleCallback(() => {
-            if (!abortController.signal.aborted) {
-              loadEnhancementData(owner, repo);
-            }
-          }, { timeout: 5000 });
+          requestIdleCallback(
+            () => {
+              if (!abortController.signal.aborted) {
+                loadEnhancementData(owner, repo);
+              }
+            },
+            { timeout: 5000 },
+          );
         } else {
           // Fallback for browsers without requestIdleCallback
           setTimeout(() => {
@@ -369,17 +366,17 @@ export function useProgressiveRepoDataWithDeduplication(
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-      
+
       // Cancel any pending deduplicated requests for this component
       if (owner && repo) {
         const stages = ['critical', 'full', 'enhancement'];
-        stages.forEach(stage => {
+        stages.forEach((stage) => {
           const key = RequestDeduplicator.generateKey.progressiveStage(
             stage,
             owner,
             repo,
             timeRange,
-            includeBots
+            includeBots,
           );
           requestDeduplicator.cancel(key);
         });

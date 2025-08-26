@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
-import { OptimizedImage } from "@/components/ui/optimized-image";
-import type { BadgeConfig, WidgetData } from "./widget-types";
+import { cn } from '@/lib/utils';
+import { OptimizedImage } from '@/components/ui/optimized-image';
+import type { BadgeConfig, WidgetData } from './widget-types';
 
 interface BadgeGeneratorProps {
   config: BadgeConfig;
@@ -11,30 +11,30 @@ interface BadgeGeneratorProps {
 // Badge style configurations
 const BADGE_STYLES = {
   flat: {
-    containerClass: "rounded",
-    leftClass: "rounded-l",
-    rightClass: "rounded-r",
+    containerClass: 'rounded',
+    leftClass: 'rounded-l',
+    rightClass: 'rounded-r',
     height: 20,
     shadow: false,
   },
-  "flat-square": {
-    containerClass: "rounded-none",
-    leftClass: "rounded-none",
-    rightClass: "rounded-none", 
+  'flat-square': {
+    containerClass: 'rounded-none',
+    leftClass: 'rounded-none',
+    rightClass: 'rounded-none',
     height: 20,
     shadow: false,
   },
   plastic: {
-    containerClass: "rounded",
-    leftClass: "rounded-l",
-    rightClass: "rounded-r",
+    containerClass: 'rounded',
+    leftClass: 'rounded-l',
+    rightClass: 'rounded-r',
     height: 18,
     shadow: true,
   },
   social: {
-    containerClass: "rounded-md",
-    leftClass: "rounded-l-md",
-    rightClass: "rounded-r-md",
+    containerClass: 'rounded-md',
+    leftClass: 'rounded-l-md',
+    rightClass: 'rounded-r-md',
     height: 22,
     shadow: false,
   },
@@ -42,23 +42,23 @@ const BADGE_STYLES = {
 
 // Color schemes for badge metrics
 const COLORS = {
-  contributors: "#007ec6",
-  pullRequests: "#28a745",
+  contributors: '#007ec6',
+  pullRequests: '#28a745',
   mergeRate: {
-    high: "#28a745",    // > 80%
-    medium: "#ffc107",  // > 60%
-    low: "#dc3545"      // <= 60%
+    high: '#28a745', // > 80%
+    medium: '#ffc107', // > 60%
+    low: '#dc3545', // <= 60%
   },
   lotteryFactor: {
-    excellent: "#28a745",  // > 3
-    good: "#ffc107",       // > 2
-    poor: "#dc3545",       // <= 2
-    unavailable: "#6c757d" // N/A
+    excellent: '#28a745', // > 3
+    good: '#ffc107', // > 2
+    poor: '#dc3545', // <= 2
+    unavailable: '#6c757d', // N/A
   },
   activity: {
-    active: "#28a745",
-    low: "#ffc107"
-  }
+    active: '#28a745',
+    low: '#ffc107',
+  },
 };
 
 // Helper functions to determine colors
@@ -78,28 +78,28 @@ function getLotteryFactorColor(factor: number | undefined): string {
 // Predefined badge types with time context
 const BADGE_PRESETS = {
   contributors: (_data: WidgetData) => ({
-    label: "contributors (30d)",
+    label: 'contributors (30d)',
     message: data.stats.totalContributors.toString(),
     color: COLORS.contributors,
   }),
-  "pull-requests": (_data: WidgetData) => ({
-    label: "PRs (30d)", 
+  'pull-requests': (_data: WidgetData) => ({
+    label: 'PRs (30d)',
     message: data.stats.totalPRs.toString(),
     color: COLORS.pullRequests,
   }),
-  "merge-rate": (_data: WidgetData) => ({
-    label: "merge rate (30d)",
+  'merge-rate': (_data: WidgetData) => ({
+    label: 'merge rate (30d)',
     message: `${data.stats.mergeRate.toFixed(1)}%`,
     color: getMergeRateColor(_data.stats.mergeRate),
   }),
-  "lottery-factor": (_data: WidgetData) => ({
-    label: "lottery factor (30d)",
-    message: data.stats.lotteryFactor?.toFixed(1) || "N/A",
+  'lottery-factor': (_data: WidgetData) => ({
+    label: 'lottery factor (30d)',
+    message: data.stats.lotteryFactor?.toFixed(1) || 'N/A',
     color: getLotteryFactorColor(_data.stats.lotteryFactor),
   }),
   activity: (_data: WidgetData) => ({
-    label: "activity (7d)",
-    message: data.activity.recentActivity ? "active" : "low",
+    label: 'activity (7d)',
+    message: data.activity.recentActivity ? 'active' : 'low',
     color: data.activity.recentActivity ? COLORS.activity.active : COLORS.activity.low,
   }),
 };
@@ -120,21 +120,35 @@ function escapeXml(text: unknown): string {
 
 function sanitizeColor(color: string): string {
   const hexPattern = /^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
-  const rgbPattern = /^rgba?\(\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*(?:,\s*(?:0?\.?[0-9]+|1(?:\.0+)?|0))?\)$/;
-  const namedColors = ['red', 'green', 'blue', 'yellow', 'orange', 'purple', 'gray', 'black', 'white'];
-  
-  if (hexPattern.test(color) || rgbPattern.test(color) || namedColors.includes(color.toLowerCase())) {
+  const rgbPattern =
+    /^rgba?\(\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*,\s*(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\s*(?:,\s*(?:0?\.?[0-9]+|1(?:\.0+)?|0))?\)$/;
+  const namedColors = [
+    'red',
+    'green',
+    'blue',
+    'yellow',
+    'orange',
+    'purple',
+    'gray',
+    'black',
+    'white',
+  ];
+
+  if (
+    hexPattern.test(color) ||
+    rgbPattern.test(color) ||
+    namedColors.includes(color.toLowerCase())
+  ) {
     return color;
   }
-  
+
   return '#007ec6';
 }
-
 
 export function BadgeGenerator({ config, _data, className }: BadgeGeneratorProps) {
   const style = config.style || 'flat';
   const styleConfig = BADGE_STYLES[style];
-  
+
   // Get badge content
   let badgeContent;
   if (config.label && config.message) {
@@ -142,7 +156,7 @@ export function BadgeGenerator({ config, _data, className }: BadgeGeneratorProps
     badgeContent = {
       label: config.label,
       message: config.message,
-      color: config.color || "#007ec6",
+      color: config.color || '#007ec6',
     };
   } else {
     // Preset badge - infer from config or use first metric
@@ -159,7 +173,7 @@ export function BadgeGenerator({ config, _data, className }: BadgeGeneratorProps
     const safeLabel = escapeXml(label);
     const safeMessage = escapeXml(message);
     const safeColor = sanitizeColor(color);
-    
+
     // Calculate widths based on escaped content to prevent truncation
     const labelWidth = Math.max(safeLabel.length * 6.5 + 10, 50);
     const messageWidth = Math.max(safeMessage.length * 6.5 + 10, 30);
@@ -169,13 +183,15 @@ export function BadgeGenerator({ config, _data, className }: BadgeGeneratorProps
     return `
       <svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="${height}" viewBox="0 0 ${totalWidth} ${height}">
         <defs>
-          ${styleConfig.shadow
-? `
+          ${
+            styleConfig.shadow
+              ? `
             <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
               <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="rgba(0,0,0,0.2)"/>
             </filter>
           `
-: ''}
+              : ''
+          }
         </defs>
         
         <!-- Left background (label) -->
@@ -211,32 +227,35 @@ export function BadgeGenerator({ config, _data, className }: BadgeGeneratorProps
   if (config.format === 'svg') {
     // Return raw SVG for embedding
     return (
-      <div 
-        className={cn("embeddable-widget badge-svg", className)}
+      <div
+        className={cn('embeddable-widget badge-svg', className)}
         dangerouslySetInnerHTML={{ __html: generateSVG() }}
       />
     );
   }
 
   // Generate HTML badge with styles
-  const badgeUrl = `${window.location.origin}/api/widget/badge?` + new URLSearchParams({
-    owner: data.repository.owner,
-    repo: data.repository.repo,
-    type: config.metrics?.[0] || 'contributors',
-    style: config.style || 'flat',
-    label: config.label || '',
-    color: config.color || '',
-  }).toString();
+  const badgeUrl =
+    `${window.location.origin}/api/widget/badge?` +
+    new URLSearchParams({
+      owner: data.repository.owner,
+      repo: data.repository.repo,
+      type: config.metrics?.[0] || 'contributors',
+      style: config.style || 'flat',
+      label: config.label || '',
+      color: config.color || '',
+    }).toString();
 
-  const embedCode = config.format === 'html' 
-    ? `<img src="${badgeUrl}" alt="${data.repository.repo} badge" />`
-    : `![${data.repository.repo} badge](${badgeUrl})`;
+  const embedCode =
+    config.format === 'html'
+      ? `<img src="${badgeUrl}" alt="${data.repository.repo} badge" />`
+      : `![${data.repository.repo} badge](${badgeUrl})`;
 
   return (
-    <div className={cn("badge-generator", className)}>
+    <div className={cn('badge-generator', className)}>
       <div className="badge-preview mb-4">
-        <OptimizedImage 
-          src={badgeUrl} 
+        <OptimizedImage
+          src={badgeUrl}
           alt="Badge preview"
           width={200}
           height={28}
@@ -244,7 +263,7 @@ export function BadgeGenerator({ config, _data, className }: BadgeGeneratorProps
           className="inline-block"
         />
       </div>
-      
+
       <div className="embed-code p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
         <p className="text-sm font-medium mb-2">Embed Code:</p>
         <code className="text-xs break-all">{embedCode}</code>
@@ -255,14 +274,17 @@ export function BadgeGenerator({ config, _data, className }: BadgeGeneratorProps
 
 // Utility function to generate badge URL
 export function generateBadgeURL(config: BadgeConfig, _data: WidgetData): string {
-  return `${window.location.origin}/api/widget/badge?` + new URLSearchParams({
-    owner: data.repository.owner,
-    repo: data.repository.repo,
-    type: config.metrics?.[0] || 'contributors',
-    style: config.style || 'flat',
-    label: config.label || '',
-    color: config.color || '',
-  }).toString();
+  return (
+    `${window.location.origin}/api/widget/badge?` +
+    new URLSearchParams({
+      owner: data.repository.owner,
+      repo: data.repository.repo,
+      type: config.metrics?.[0] || 'contributors',
+      style: config.style || 'flat',
+      label: config.label || '',
+      color: config.color || '',
+    }).toString()
+  );
 }
 
 // Utility function to generate badge markdown

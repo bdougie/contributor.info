@@ -53,7 +53,7 @@ class GitHubAPIMonitoring {
   private async checkRateLimitStatus() {
     for (const [resource, rateLimit] of this.rateLimits) {
       const utilizationRate = (rateLimit.limit - rateLimit.remaining) / rateLimit.limit;
-      
+
       if (utilizationRate > this.RATE_LIMIT_WARNING_THRESHOLD) {
         // Simple error logging without analytics
         console.error(`GitHub API rate limit warning for ${resource}`, {
@@ -76,7 +76,7 @@ class GitHubAPIMonitoring {
   async wrapGitHubAPICall<T>(
     apiCall: () => Promise<Response>,
     endpoint: string,
-    method: string = 'GET'
+    method: string = 'GET',
   ): Promise<T> {
     const startTime = performance.now();
     const timestamp = new Date();
@@ -92,8 +92,9 @@ class GitHubAPIMonitoring {
       }
 
       // Check for cache hit
-      const cacheHit = response.headers.get('x-from-cache') === 'true' || 
-                      response.headers.get('x-cache') === 'HIT';
+      const cacheHit =
+        response.headers.get('x-from-cache') === 'true' ||
+        response.headers.get('x-cache') === 'HIT';
 
       // Log metrics
       const metrics: GitHubAPIMetrics = {
@@ -111,7 +112,7 @@ class GitHubAPIMonitoring {
       if (!response.ok) {
         const errorText = await response.text();
         metrics.errorMessage = `HTTP ${response.status}: ${errorText}`;
-        
+
         // Simple error logging without analytics
         console.error(new Error(metrics._errorMessage), {
           tags: {
@@ -147,12 +148,11 @@ class GitHubAPIMonitoring {
 
       // Parse and return response data
       if (response.ok) {
-        const data = await response.json();
+        const _data = await response.json();
         return data as T;
       } else {
         throw new Error(metrics._errorMessage);
       }
-
     } catch (_error) {
       const duration = performance.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -242,7 +242,7 @@ class GitHubAPIMonitoring {
 
   getPerformanceStats(timeWindowMinutes: number = 60): APIPerformanceStats {
     const cutoffTime = new Date(Date.now() - timeWindowMinutes * 60 * 1000);
-    const recentMetrics = this.apiMetrics.filter(m => m.timestamp > cutoffTime);
+    const recentMetrics = this.apiMetrics.filter((m) => m.timestamp > cutoffTime);
 
     if (recentMetrics.length === 0) {
       return {
@@ -257,28 +257,35 @@ class GitHubAPIMonitoring {
       };
     }
 
-    const successfulRequests = recentMetrics.filter(m => m.statusCode >= 200 && m.statusCode < 300);
-    const failedRequests = recentMetrics.filter(m => m.statusCode >= 400 || m.statusCode === 0);
-    const slowRequests = recentMetrics.filter(m => m.duration > this.SLOW_REQUEST_THRESHOLD);
-    const cachedRequests = recentMetrics.filter(m => m.cacheHit);
+    const successfulRequests = recentMetrics.filter(
+      (m) => m.statusCode >= 200 && m.statusCode < 300,
+    );
+    const failedRequests = recentMetrics.filter((m) => m.statusCode >= 400 || m.statusCode === 0);
+    const slowRequests = recentMetrics.filter((m) => m.duration > this.SLOW_REQUEST_THRESHOLD);
+    const cachedRequests = recentMetrics.filter((m) => m.cacheHit);
 
     // Calculate rate limit utilization (average across all resources)
-    const rateLimitUtilization = Array.from(this.rateLimits.values()).reduce((sum, rl) => {
-      return sum + ((rl.limit - rl.remaining) / rl.limit);
-    }, 0) / Math.max(this.rateLimits.size, 1);
+    const rateLimitUtilization =
+      Array.from(this.rateLimits.values()).reduce((sum, rl) => {
+        return sum + (rl.limit - rl.remaining) / rl.limit;
+      }, 0) / Math.max(this.rateLimits.size, 1);
 
     // Group errors by type
-    const errorsByType = failedRequests.reduce((_errors, metric) => {
-      const errorType = metric.statusCode === 0 ? 'Network Error' : `HTTP ${metric.statusCode}`;
-      errors[errorType] = (errors[_errorType] || 0) + 1;
-      return errors;
-    }, {} as Record<string, number>);
+    const errorsByType = failedRequests.reduce(
+      (_errors, metric) => {
+        const errorType = metric.statusCode === 0 ? 'Network Error' : `HTTP ${metric.statusCode}`;
+        errors[errorType] = (errors[_errorType] || 0) + 1;
+        return errors;
+      },
+      {} as Record<string, number>,
+    );
 
     return {
       totalRequests: recentMetrics.length,
       successfulRequests: successfulRequests.length,
       failedRequests: failedRequests.length,
-      averageResponseTime: recentMetrics.reduce((sum, m) => sum + m.duration, 0) / recentMetrics.length,
+      averageResponseTime:
+        recentMetrics.reduce((sum, m) => sum + m.duration, 0) / recentMetrics.length,
       rateLimitUtilization,
       cacheHitRate: cachedRequests.length / recentMetrics.length,
       errorsByType,
@@ -300,11 +307,7 @@ class GitHubAPIMonitoring {
       const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
       const method = options.method || 'GET';
 
-      return this.wrapGitHubAPICall(
-        () => fetch(url, options),
-        endpoint,
-        method
-      );
+      return this.wrapGitHubAPICall(() => fetch(url, options), endpoint, method);
     };
   }
 
@@ -335,7 +338,9 @@ class GitHubAPIMonitoring {
     if (rateLimits.size > 0) {
       report += 'Rate Limit Status:\n';
       rateLimits.forEach((limit, resource) => {
-        const utilizationPercent = ((limit.limit - limit.remaining) / limit.limit * 100).toFixed(1);
+        const utilizationPercent = (((limit.limit - limit.remaining) / limit.limit) * 100).toFixed(
+          1,
+        );
         const resetTime = new Date(limit.reset * 1000).toLocaleTimeString();
         report += `  ${resource}: ${limit.remaining}/${limit.limit} (${utilizationPercent}% used, resets at ${resetTime})\n`;
       });

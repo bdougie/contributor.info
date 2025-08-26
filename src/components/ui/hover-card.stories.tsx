@@ -1,9 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from './hover-card';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from './hover-card';
 import { Button } from './button';
 import { Avatar, AvatarFallback, AvatarImage } from './avatar';
 import { Badge } from './badge';
@@ -47,9 +43,7 @@ export const Default: Story = {
           </Avatar>
           <div className="space-y-1">
             <h4 className="text-sm font-semibold">@nextjs</h4>
-            <p className="text-sm">
-              The React Framework – created and maintained by @vercel.
-            </p>
+            <p className="text-sm">The React Framework – created and maintained by @vercel.</p>
             <div className="flex items-center pt-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -66,9 +60,7 @@ export const Default: Story = {
                 <rect width="20" height="14" x="2" y="3" rx="2" ry="2" />
                 <path d="m22 3-10 9L2 3" />
               </svg>
-              <span className="text-xs text-muted-foreground">
-                Joined December 2021
-              </span>
+              <span className="text-xs text-muted-foreground">Joined December 2021</span>
             </div>
           </div>
         </div>
@@ -98,13 +90,19 @@ export const UserProfile: Story = {
               <p className="text-sm text-muted-foreground">Product Manager</p>
             </div>
             <p className="text-sm">
-              Passionate about building great products that solve real problems.
-              Currently working on improving user experience.
+              Passionate about building great products that solve real problems. Currently working
+              on improving user experience.
             </p>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs">React</Badge>
-              <Badge variant="secondary" className="text-xs">TypeScript</Badge>
-              <Badge variant="secondary" className="text-xs">Design</Badge>
+              <Badge variant="secondary" className="text-xs">
+                React
+              </Badge>
+              <Badge variant="secondary" className="text-xs">
+                TypeScript
+              </Badge>
+              <Badge variant="secondary" className="text-xs">
+                Design
+              </Badge>
             </div>
             <div className="flex items-center text-xs text-muted-foreground">
               <svg
@@ -151,7 +149,7 @@ export const Repository: Story = {
             </div>
             <Badge className="bg-green-500">Public</Badge>
           </div>
-          
+
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
@@ -193,7 +191,7 @@ export const Repository: Story = {
               256
             </div>
           </div>
-          
+
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Updated 2 hours ago</span>
             <span>MIT License</span>
@@ -210,9 +208,9 @@ export const Product: Story = {
     <HoverCard>
       <HoverCardTrigger asChild>
         <div className="cursor-pointer p-2 border rounded-lg hover:bg-accent">
-          <img 
-            src="https://via.placeholder.com/100x100?text=Product" 
-            alt="Product" 
+          <img
+            src="https://via.placeholder.com/100x100?text=Product"
+            alt="Product"
             className="w-16 h-16 object-cover rounded"
           />
         </div>
@@ -220,9 +218,9 @@ export const Product: Story = {
       <HoverCardContent className="w-80">
         <div className="space-y-3">
           <div className="flex space-x-3">
-            <img 
-              src="https://via.placeholder.com/80x80?text=Product" 
-              alt="Product" 
+            <img
+              src="https://via.placeholder.com/80x80?text=Product"
+              alt="Product"
               className="w-20 h-20 object-cover rounded"
             />
             <div className="space-y-1 flex-1">
@@ -236,12 +234,12 @@ export const Product: Story = {
                     width="12"
                     height="12"
                     viewBox="0 0 24 24"
-                    fill={i < 4 ? "currentColor" : "none"}
+                    fill={i < 4 ? 'currentColor' : 'none'}
                     stroke="currentColor"
                     strokeWidth="1"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className={i < 4 ? "text-yellow-400" : "text-gray-300"}
+                    className={i < 4 ? 'text-yellow-400' : 'text-gray-300'}
                   >
                     <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
                   </svg>
@@ -250,16 +248,18 @@ export const Product: Story = {
               </div>
             </div>
           </div>
-          
+
           <p className="text-sm text-muted-foreground">
-            Premium wireless headphones with noise cancellation and 30-hour battery life.
-            Perfect for music lovers and professionals.
+            Premium wireless headphones with noise cancellation and 30-hour battery life. Perfect
+            for music lovers and professionals.
           </p>
-          
+
           <div className="flex items-center justify-between">
             <Badge className="bg-green-500">In Stock</Badge>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline">Add to Cart</Button>
+              <Button size="sm" variant="outline">
+                Add to Cart
+              </Button>
               <Button size="sm">Buy Now</Button>
             </div>
           </div>
@@ -306,20 +306,24 @@ export const DocumentPreview: Story = {
               <p className="text-xs text-muted-foreground">PDF • 2.4 MB</p>
             </div>
           </div>
-          
+
           <p className="text-sm text-muted-foreground">
-            Comprehensive quarterly financial report including revenue analysis, 
-            market insights, and strategic recommendations for Q1 2024.
+            Comprehensive quarterly financial report including revenue analysis, market insights,
+            and strategic recommendations for Q1 2024.
           </p>
-          
+
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Modified Dec 15, 2023</span>
             <span>12 pages</span>
           </div>
-          
+
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="flex-1">Preview</Button>
-            <Button size="sm" className="flex-1">Download</Button>
+            <Button size="sm" variant="outline" className="flex-1">
+              Preview
+            </Button>
+            <Button size="sm" className="flex-1">
+              Download
+            </Button>
           </div>
         </div>
       </HoverCardContent>
@@ -332,7 +336,7 @@ export const Contact: Story = {
   render: () => (
     <div className="p-4">
       <p className="text-sm mb-2">
-        For more information, contact{" "}
+        For more information, contact{' '}
         <HoverCard>
           <HoverCardTrigger asChild>
             <Button variant="link" className="p-0 h-auto font-normal text-blue-600">
@@ -386,8 +390,8 @@ export const Contact: Story = {
               </div>
             </div>
           </HoverCardContent>
-        </HoverCard>
-        {" "}for pricing details.
+        </HoverCard>{' '}
+        for pricing details.
       </p>
     </div>
   ),

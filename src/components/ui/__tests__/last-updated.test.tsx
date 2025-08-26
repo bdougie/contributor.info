@@ -11,7 +11,7 @@ vi.mock('@/hooks/use-time-formatter', () => ({
   useTimeFormatter: () => ({
     formatRelativeTime: mockFormatRelativeTime,
     formatDate: mockFormatDate,
-  })
+  }),
 }));
 
 describe('LastUpdated', () => {
@@ -24,14 +24,14 @@ describe('LastUpdated', () => {
 
   it('renders with default props', () => {
     render(<LastUpdated timestamp="2024-01-15T10:00:00Z" />);
-    
+
     const statusElement = screen.queryByRole('status');
     const lastUpdatedText = screen.queryByText(/Last updated:/);
     const timeAgoText = screen.queryByText('2 hours ago');
-    
+
     // Component should render something
     expect(statusElement || lastUpdatedText || timeAgoText).toBeTruthy();
-    
+
     if (statusElement && lastUpdatedText && timeAgoText) {
       expect(statusElement).toBeInTheDocument();
       expect(lastUpdatedText).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('LastUpdated', () => {
 
   it('excludes structured _data when specified', () => {
     render(<LastUpdated timestamp="2024-01-15T10:00:00Z" includeStructuredData={false} />);
-    
+
     // Simple check - component should render without errors
     const statusElement = screen.queryByRole('status');
     // Just verify the component rendered, don't check for absence of script tags
@@ -65,10 +65,10 @@ describe('LastUpdatedTime', () => {
 
   it('renders without label and icon', () => {
     render(<LastUpdatedTime timestamp="2024-01-15T10:00:00Z" />);
-    
+
     const timeAgoText = screen.queryByText('2 hours ago');
     const lastUpdatedLabel = screen.queryByText(/Last updated:/);
-    
+
     // Should render time but not label
     if (timeAgoText) {
       expect(timeAgoText).toBeInTheDocument();

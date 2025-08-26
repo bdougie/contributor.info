@@ -227,7 +227,7 @@ export function AddRepositoryModal({
     setRemovingRepoId(repoId);
     try {
       // Remove from workspace (RLS policies should also enforce ownership)
-      const { error: _error: removeError } = await supabase
+      const { error: removeError } = await supabase
         .from('workspace_repositories')
         .delete()
         .eq('workspace_id', workspaceId)
@@ -289,7 +289,7 @@ export function AddRepositoryModal({
         }
 
         // If not, create it
-        const { data: newRepo, error: _error: createError } = await supabase
+        const { data: newRepo, error: createError } = await supabase
           .from('repositories')
           .insert({
             github_id: repo.id,

@@ -8,7 +8,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'An area chart component built on uPlot with stacking support and theme support.',
+        component:
+          'An area chart component built on uPlot with stacking support and theme support.',
       },
     },
   },

@@ -1,6 +1,6 @@
 /**
  * Client-safe wrapper for sending Inngest events
- * 
+ *
  * This module provides a safe way to send events to Inngest from both
  * client and server environments. In the browser, it uses the Supabase Edge Function
  * to avoid exposing the event key. On the server, it sends directly.
@@ -35,16 +35,16 @@ const RESET_TIMEOUT = 60000; // Try again after 60 seconds
  */
 function shouldAttemptEndpoint(endpointName: string): boolean {
   const breaker = circuitBreakers.get(endpointName);
-  
+
   if (!breaker) {
     // No breaker state, endpoint is available
     return true;
   }
-  
+
   if (breaker.state === 'closed') {
     return true;
   }
-  
+
   if (breaker.state === 'open') {
     // Check if enough time has passed to try again
     const timeSinceLastFailure = Date.now() - breaker.lastFailureTime;
@@ -56,7 +56,7 @@ function shouldAttemptEndpoint(endpointName: string): boolean {
     }
     return false;
   }
-  
+
   // Half-open state - allow the attempt
   return true;
 }
@@ -66,7 +66,7 @@ function shouldAttemptEndpoint(endpointName: string): boolean {
  */
 function recordSuccess(endpointName: string): void {
   const breaker = circuitBreakers.get(endpointName);
-  
+
   if (breaker && breaker.state === 'half-open') {
     // Reset to closed state after successful call in half-open state
     circuitBreakers.delete(endpointName);
@@ -80,28 +80,28 @@ function recordFailure(endpointName: string): void {
   const breaker = circuitBreakers.get(endpointName) || {
     failures: 0,
     lastFailureTime: 0,
-    state: 'closed' as const
+    state: 'closed' as const,
   };
-  
+
   breaker.failures++;
   breaker.lastFailureTime = Date.now();
-  
+
   if (breaker.failures >= FAILURE_THRESHOLD) {
     breaker.state = 'open';
     console.warn('Circuit breaker opened for %s after %s failures', endpointName, breaker.failures);
   }
-  
+
   circuitBreakers.set(endpointName, breaker);
 }
 
 /**
  * Send an event to Inngest in a client-safe way
- * 
+ *
  * @param event - The event to send with name and data
  * @returns Promise that resolves when the event is sent
  */
 export async function sendInngestEvent<T extends { name: string; data: any }>(
-  event: T
+  event: T,
 ): Promise<{ ids?: string[] }> {
   // In browser context, use the API endpoint
   if (typeof window !== 'undefined') {
@@ -111,78 +111,76 @@ export async function sendInngestEvent<T extends { name: string; data: any }>(
         url: `${SUPABASE_URL}/functions/v1/queue-event`,
         headers: {
           'Content-Type': 'application/json',
-          ...(SUPABASE_ANON_KEY ? { 'apikey': SUPABASE_ANON_KEY } : {}),
-          ...(SUPABASE_ANON_KEY ? { 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } : {})
+          ...(SUPABASE_ANON_KEY ? { apikey: SUPABASE_ANON_KEY } : {}),
+          ...(SUPABASE_ANON_KEY ? { Authorization: `Bearer ${SUPABASE_ANON_KEY}` } : {}),
         },
-        name: 'Supabase Edge Function'
+        name: 'Supabase Edge Function',
       },
       {
         url: '/api/queue-event',
         headers: {
           'Content-Type': 'application/json',
         },
-        name: 'Netlify Function'
-      }
+        name: 'Netlify Function',
+      },
     ];
 
     let lastError: Error | null = null;
     let attemptedEndpoints = 0;
-    
+
     for (const endpoint of endpoints) {
       // Check circuit breaker before attempting
       if (!shouldAttemptEndpoint(endpoint.name)) {
         console.debug('Circuit breaker open for %s, skipping', endpoint.name);
         continue;
       }
-      
+
       attemptedEndpoints++;
-      
+
       try {
         const response = await fetch(endpoint.url, {
           method: 'POST',
           headers: endpoint.headers,
           body: JSON.stringify({
             eventName: event.name,
-            data: event.data
-          })
+            data: event.data,
+          }),
         });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.message || `Failed to queue event: ${response.statusText}`
-          );
+          throw new Error(errorData.message || `Failed to queue event: ${response.statusText}`);
         }
-        
+
         const result = await response.json();
         console.log('Event sent successfully via %s', endpoint.name);
-        
+
         // Record success for circuit breaker
         recordSuccess(endpoint.name);
-        
+
         return { ids: result.eventId ? [result.eventId] : result.eventIds || [] };
       } catch (_error) {
         console.warn('Failed to send event via %s:', endpoint.name, _error);
         lastError = error as Error;
-        
+
         // Record failure for circuit breaker
         recordFailure(endpoint.name);
-        
+
         // Continue to next endpoint
       }
     }
-    
+
     // Check if all endpoints were skipped due to circuit breakers
     if (attemptedEndpoints === 0) {
       console.error('All endpoints are unavailable due to circuit breakers');
       throw new Error('All event endpoints are temporarily unavailable. Please try again later.');
     }
-    
+
     // If all endpoints failed, throw the last error
     console.error('All endpoints failed to send event');
     throw lastError || new Error('Failed to send event to any endpoint');
   }
-  
+
   // Server-side: send directly to Inngest
   return inngest.send(event);
 }

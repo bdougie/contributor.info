@@ -13,7 +13,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'A React error boundary component that catches JavaScript errors in child components, logs them, and displays a fallback UI instead of crashing the entire app.',
+        component:
+          'A React error boundary component that catches JavaScript errors in child components, logs them, and displays a fallback UI instead of crashing the entire app.',
       },
     },
   },
@@ -34,10 +35,12 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div style={{ 
-        minWidth: '400px',
-        padding: designTokens.spacing[4],
-      }}>
+      <div
+        style={{
+          minWidth: '400px',
+          padding: designTokens.spacing[4],
+        }}
+      >
         <Story />
       </div>
     ),
@@ -146,7 +149,7 @@ export const WithErrorCallback: Story = {
       <div style={{ display: 'flex', flexDirection: 'column', gap: designTokens.spacing[4] }}>
         <ErrorBoundary
           onError={(_error, _errorInfo) => {
-            setErrorLog(prev => [...prev, `Error: ${_error.message}`]);
+            setErrorLog((prev) => [...prev, `Error: ${_error.message}`]);
             console.log('Error logged:', _error, _errorInfo);
           }}
         >
@@ -160,7 +163,9 @@ export const WithErrorCallback: Story = {
             <CardContent>
               <ul>
                 {errorLog.map((log, index) => (
-                  <li key={index} className="text-sm text-muted-foreground">{log}</li>
+                  <li key={index} className="text-sm text-muted-foreground">
+                    {log}
+                  </li>
                 ))}
               </ul>
             </CardContent>
@@ -182,14 +187,14 @@ export const Interactive: Story = {
   render: () => <InteractiveErrorComponent />,
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    
+
     // Initially should show working component
     expect(canvas.getByText('Working Component')).toBeInTheDocument();
     expect(canvas.getByText('This component is working correctly.')).toBeInTheDocument();
-    
+
     // Click button to break component
     const breakButton = canvas.getByRole('button', { name: /Break Component/i });
-    
+
     // Should now show error UI
   },
   parameters: {
@@ -213,7 +218,7 @@ export const NestedBoundaries: Story = {
             <p>This parent component has its own error boundary.</p>
           </CardContent>
         </Card>
-        
+
         <ErrorBoundary
           fallback={
             <Card className="border-blue-200 bg-blue-50">
@@ -225,7 +230,7 @@ export const NestedBoundaries: Story = {
         >
           <BrokenComponent shouldBreak={true} />
         </ErrorBoundary>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Sibling Component</CardTitle>
@@ -240,7 +245,8 @@ export const NestedBoundaries: Story = {
   parameters: {
     docs: {
       description: {
-        story: 'Shows how nested error boundaries can isolate failures to specific parts of the UI.',
+        story:
+          'Shows how nested error boundaries can isolate failures to specific parts of the UI.',
       },
     },
   },

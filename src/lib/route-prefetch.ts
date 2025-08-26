@@ -19,7 +19,10 @@ const isValidRoute = (route: string): boolean => {
 /**
  * Safely import a module with error handling
  */
-const validateImport = async (importFn: () => Promise<any>, moduleName: string): Promise<boolean> => {
+const validateImport = async (
+  importFn: () => Promise<any>,
+  moduleName: string,
+): Promise<boolean> => {
   try {
     await importFn();
     return true;
@@ -62,7 +65,7 @@ export const prefetchRoute = (routePath: string) => {
   // Use requestIdleCallback for non-critical loading
   const prefetchFn = async () => {
     let success = false;
-    
+
     // Map routes to their lazy-loaded chunks with validation
     switch (routePath) {
       case '/':
@@ -72,49 +75,49 @@ export const prefetchRoute = (routePath: string) => {
       case '/changelog':
         success = await validateImport(
           () => import('@/components/features/changelog/changelog-page'),
-          'changelog-page'
+          'changelog-page',
         );
         break;
       case '/docs':
         success = await validateImport(
           () => import('@/components/features/docs/docs-list'),
-          'docs-list'
+          'docs-list',
         );
         break;
       case '/feed':
         success = await validateImport(
           () => import('@/components/features/feed/feed-page'),
-          'feed-page'
+          'feed-page',
         );
         break;
       case '/settings':
         success = await validateImport(
           () => import('@/components/features/settings/settings-page'),
-          'settings-page'
+          'settings-page',
         );
         break;
       case '/login':
         success = await validateImport(
           () => import('@/components/features/auth/login-page'),
-          'login-page'
+          'login-page',
         );
         break;
       case '/privacy':
         success = await validateImport(
           () => import('@/components/features/privacy/privacy-policy-page'),
-          'privacy-policy-page'
+          'privacy-policy-page',
         );
         break;
       case '/terms':
         success = await validateImport(
           () => import('@/components/features/privacy/terms-page'),
-          'terms-page'
+          'terms-page',
         );
         break;
       case '/data-request':
         success = await validateImport(
           () => import('@/components/features/privacy/_data-request-page'),
-          'data-request-page'
+          'data-request-page',
         );
         break;
       default:
@@ -122,15 +125,12 @@ export const prefetchRoute = (routePath: string) => {
         if (routePath.match(/^\/[\w-]+\/[\w-]+$/)) {
           success = await validateImport(
             () => import('@/components/features/repository/repo-view'),
-            'repo-view'
+            'repo-view',
           );
         }
         // For org routes
         else if (routePath.match(/^\/orgs\/[\w-]+$/)) {
-          success = await validateImport(
-            () => import('@/pages/org-view'),
-            'org-view'
-          );
+          success = await validateImport(() => import('@/pages/org-view'), 'org-view');
         }
         break;
     }
@@ -154,7 +154,7 @@ export const prefetchRoute = (routePath: string) => {
  * Useful for prefetching common navigation targets
  */
 export const prefetchRoutes = (routes: string[]) => {
-  routes.forEach(route => prefetchRoute(route));
+  routes.forEach((route) => prefetchRoute(route));
 };
 
 /**
@@ -179,17 +179,16 @@ export const usePrefetchOnIntent = (route: string) => {
  */
 export const prefetchCriticalRoutes = () => {
   // Wait for main thread to be idle
-  const criticalRoutes = [
-    '/changelog',
-    '/docs',
-    '/feed',
-  ];
+  const criticalRoutes = ['/changelog', '/docs', '/feed'];
 
   // Delay prefetching to avoid competing with initial render
   if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      prefetchRoutes(criticalRoutes);
-    }, { timeout: 5000 });
+    requestIdleCallback(
+      () => {
+        prefetchRoutes(criticalRoutes);
+      },
+      { timeout: 5000 },
+    );
   } else {
     setTimeout(() => {
       prefetchRoutes(criticalRoutes);

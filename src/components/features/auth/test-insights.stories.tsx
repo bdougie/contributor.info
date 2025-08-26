@@ -1,6 +1,6 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
-import TestInsights from "./test-insights";
+import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from '@storybook/test';
+import TestInsights from './test-insights';
 
 // Mock the insights analyzePullRequests function
 // TODO: Mock @/lib/insights/pullRequests using Storybook's approach
@@ -22,18 +22,18 @@ Object.defineProperty(import.meta, 'env', {
 });
 
 const meta = {
-  title: "Features/Auth/TestInsights",
+  title: 'Features/Auth/TestInsights',
   component: TestInsights,
   parameters: {
-    layout: "centered",
+    layout: 'centered',
     docs: {
       description: {
         component:
-          "A comprehensive testing interface for debugging and validating insights functionality. Includes testing for both legacy Supabase functions and new local implementations, with interactive component previews."
-      }
-    }
+          'A comprehensive testing interface for debugging and validating insights functionality. Includes testing for both legacy Supabase functions and new local implementations, with interactive component previews.',
+      },
+    },
   },
-  tags: ["autodocs"],
+  tags: ['autodocs'],
 } satisfies Meta<typeof TestInsights>;
 
 export default meta;
@@ -48,17 +48,17 @@ export const Default: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Default testing interface showing all tabs for insights testing."
-      }
-    }
-  }
+        story: 'Default testing interface showing all tabs for insights testing.',
+      },
+    },
+  },
 };
 
 export const LocalImplementationSuccess: Story = {
   render: () => {
     // Mock successful local implementation
     // TODO: Mock @/lib/insights/pullRequests using Storybook's approach
-// Original vi.mock replaced - needs manual review;
+    // Original vi.mock replaced - needs manual review;
 
     return (
       <div className="w-[900px] p-4">
@@ -69,17 +69,17 @@ export const LocalImplementationSuccess: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Testing interface with successful local implementation results."
-      }
-    }
-  }
+        story: 'Testing interface with successful local implementation results.',
+      },
+    },
+  },
 };
 
 export const LocalImplementationError: Story = {
   render: () => {
     // Mock failed local implementation
     // TODO: Mock @/lib/insights/pullRequests using Storybook's approach
-// Original vi.mock replaced - needs manual review;
+    // Original vi.mock replaced - needs manual review;
 
     return (
       <div className="w-[900px] p-4">
@@ -90,10 +90,10 @@ export const LocalImplementationError: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Testing interface showing error handling for failed analysis."
-      }
-    }
-  }
+        story: 'Testing interface showing error handling for failed analysis.',
+      },
+    },
+  },
 };
 
 export const SupabaseFunctionTest: Story = {
@@ -103,19 +103,20 @@ export const SupabaseFunctionTest: Story = {
       ok: true,
       status: 200,
       headers: new Headers({
-        'content-type': 'application/json'
+        'content-type': 'application/json',
       }),
-      json: () => Promise.resolve({
-        success: true,
-        data: {
-          totalPRs: 30,
-          averageTimeToMerge: 40,
-          prMergeTimesByAuthor: {
-            "maintainer1": [24, 12, 36],
-            "contributor1": [48, 60, 72]
-          }
-        }
-      })
+      json: () =>
+        Promise.resolve({
+          success: true,
+          data: {
+            totalPRs: 30,
+            averageTimeToMerge: 40,
+            prMergeTimesByAuthor: {
+              maintainer1: [24, 12, 36],
+              contributor1: [48, 60, 72],
+            },
+          },
+        }),
     });
 
     return (
@@ -127,10 +128,10 @@ export const SupabaseFunctionTest: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Testing interface for legacy Supabase function with successful response."
-      }
-    }
-  }
+        story: 'Testing interface for legacy Supabase function with successful response.',
+      },
+    },
+  },
 };
 
 export const SupabaseFunctionError: Story = {
@@ -140,11 +141,12 @@ export const SupabaseFunctionError: Story = {
       ok: false,
       status: 429,
       headers: new Headers({
-        'content-type': 'application/json'
+        'content-type': 'application/json',
       }),
-      json: () => Promise.resolve({
-        error: "Rate limit exceeded"
-      })
+      json: () =>
+        Promise.resolve({
+          error: 'Rate limit exceeded',
+        }),
     });
 
     return (
@@ -156,10 +158,10 @@ export const SupabaseFunctionError: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Testing interface showing error handling for Supabase function failures."
-      }
-    }
-  }
+        story: 'Testing interface showing error handling for Supabase function failures.',
+      },
+    },
+  },
 };
 
 export const ComponentPreview: Story = {
@@ -171,25 +173,32 @@ export const ComponentPreview: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Focus on the component preview tab showing how insights look in the actual UI."
-      }
-    }
-  }
+        story: 'Focus on the component preview tab showing how insights look in the actual UI.',
+      },
+    },
+  },
 };
 
 export const LoadingStates: Story = {
   render: () => {
     // Mock slow loading for demonstration
     // TODO: Mock @/lib/insights/pullRequests using Storybook's approach
-// Original vi.mock replaced - needs manual review;
+    // Original vi.mock replaced - needs manual review;
 
     global.fetch = fn().mockImplementation(
-      () => new Promise(resolve => setTimeout(() => resolve({
-        ok: true,
-        status: 200,
-        headers: new Headers(),
-        json: () => Promise.resolve({ success: true, _data: {} })
-      }), 5000))
+      () =>
+        new Promise((resolve) =>
+          setTimeout(
+            () =>
+              resolve({
+                ok: true,
+                status: 200,
+                headers: new Headers(),
+                json: () => Promise.resolve({ success: true, _data: {} }),
+              }),
+            5000,
+          ),
+        ),
     );
 
     return (
@@ -204,10 +213,10 @@ export const LoadingStates: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Testing interface demonstrating loading states for all operations."
-      }
-    }
-  }
+        story: 'Testing interface demonstrating loading states for all operations.',
+      },
+    },
+  },
 };
 
 export const MobileView: Story = {
@@ -218,12 +227,12 @@ export const MobileView: Story = {
   ),
   parameters: {
     viewport: {
-      defaultViewport: "mobile1"
+      defaultViewport: 'mobile1',
     },
     docs: {
       description: {
-        story: "Testing interface on mobile devices."
-      }
-    }
-  }
+        story: 'Testing interface on mobile devices.',
+      },
+    },
+  },
 };

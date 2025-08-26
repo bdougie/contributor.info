@@ -35,7 +35,10 @@ export const classifyRepositorySize = inngest.createFunction(
   ],
   async ({ step }) => {
     // Initialize classifier
-    const githubToken = import.meta.env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
+    const githubToken =
+      import.meta.env?.VITE_GITHUB_TOKEN ||
+      process.env.VITE_GITHUB_TOKEN ||
+      process.env.GITHUB_TOKEN;
     if (!githubToken) {
       throw new NonRetriableError('GitHub token not configured');
     }
@@ -65,7 +68,8 @@ export const classifyRepositorySize = inngest.createFunction(
     const highPriorityRepos = await step.run('get-high-priority-repos', async () => {
       const { data, error: _error } = await supabase
         .from('tracked_repositories')
-        .select(`
+        .select(
+          `
           id,
           repository_id,
           repositories!inner(
@@ -73,7 +77,8 @@ export const classifyRepositorySize = inngest.createFunction(
             owner,
             name
           )
-        `)
+        `,
+        )
         .eq('priority', 'high')
         .eq('tracking_enabled', true);
 
@@ -83,12 +88,14 @@ export const classifyRepositorySize = inngest.createFunction(
 
       // Cast the data to the expected shape
       const typedData = data as unknown as TrackedRepositoryWithRepo[];
-      
-      return typedData?.map((item) => ({
-        id: item.id,
-        owner: item.repositories.owner,
-        name: item.repositories.name
-      })) || [];
+
+      return (
+        typedData?.map((item) => ({
+          id: item.id,
+          owner: item.repositories.owner,
+          name: item.repositories.name,
+        })) || []
+      );
     });
 
     // Step 5: Reclassify high-priority repos if they're older than 7 days
@@ -100,15 +107,18 @@ export const classifyRepositorySize = inngest.createFunction(
         const { data, error: _error } = await supabase
           .from('tracked_repositories')
           .select('id, size_calculated_at')
-          .in('id', highPriorityRepos.map(r => r.id))
+          .in(
+            'id',
+            highPriorityRepos.map((r) => r.id),
+          )
           .or(`size_calculated_at.is.null,size_calculated_at.lt.${cutoffDate.toISOString()}`);
 
         if (_error) {
           throw error;
         }
 
-        const reposToReclassify = highPriorityRepos.filter(repo => 
-          data?.some(d => d.id === repo.id)
+        const reposToReclassify = highPriorityRepos.filter((repo) =>
+          data?.some((d) => d.id === repo.id),
         );
 
         if (reposToReclassify.length > 0) {
@@ -121,9 +131,9 @@ export const classifyRepositorySize = inngest.createFunction(
     return {
       unclassifiedCount: unclassifiedRepos.length,
       highPriorityCount: highPriorityRepos.length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-  }
+  },
 );
 
 /**
@@ -138,15 +148,20 @@ export const classifySingleRepository = inngest.createFunction(
   { event: 'classify/repository.single' },
   async ({ event, step }) => {
     const { repositoryId, owner, repo } = event.data;
-    
+
     // Validate required fields
     if (!repositoryId || !owner || !repo) {
       console.error('Missing required fields in event data:', event._data);
-      throw new NonRetriableError(`Missing required fields: repositoryId=${repositoryId}, owner=${owner}, repo=${repo}`);
+      throw new NonRetriableError(
+        `Missing required fields: repositoryId=${repositoryId}, owner=${owner}, repo=${repo}`,
+      );
     }
 
     // Initialize classifier
-    const githubToken = import.meta.env?.VITE_GITHUB_TOKEN || process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
+    const githubToken =
+      import.meta.env?.VITE_GITHUB_TOKEN ||
+      process.env.VITE_GITHUB_TOKEN ||
+      process.env.GITHUB_TOKEN;
     if (!githubToken) {
       throw new NonRetriableError('GitHub token not configured');
     }
@@ -161,7 +176,7 @@ export const classifySingleRepository = inngest.createFunction(
     return {
       repositoryId,
       size,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-  }
+  },
 );

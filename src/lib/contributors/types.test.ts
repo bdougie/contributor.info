@@ -30,14 +30,14 @@ describe('Activity Constants', () => {
       REVIEWS: 3,
       PULL_REQUESTS: 1,
     });
-    
+
     // Verify the object is frozen (if Object.freeze was used)
     expect(Object.isFrozen(ACTIVITY_WEIGHTS)).toBe(false); // as const doesn't freeze at runtime
   });
 
   test('ActivityType should include all weight keys', () => {
     const keys: ActivityType[] = ['COMMENTS', 'REVIEWS', 'PULL_REQUESTS'];
-    keys.forEach(key => {
+    keys.forEach((key) => {
       expect(ACTIVITY_WEIGHTS[key]).toBeDefined();
       expect(typeof ACTIVITY_WEIGHTS[key]).toBe('number');
     });
@@ -121,13 +121,13 @@ describe('Type Structure Validation', () => {
     expect(mockRanking.scoreBreakdown.mergedPullRequestsScore).toBe(2);
     expect(mockRanking.scoreBreakdown.commentsScore).toBe(18);
     expect(mockRanking.scoreBreakdown.reviewsScore).toBe(12);
-    
+
     // Verify total matches weighted score (using merged PRs for actual scoring)
-    const totalFromBreakdown = 
+    const totalFromBreakdown =
       mockRanking.scoreBreakdown.mergedPullRequestsScore +
       mockRanking.scoreBreakdown.commentsScore +
       mockRanking.scoreBreakdown.reviewsScore;
-    
+
     expect(totalFromBreakdown).toBe(mockRanking.weightedScore);
   });
 

@@ -2,25 +2,29 @@
  * React hook for cached GitHub API access with performance monitoring
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { createCachedGitHubClient, ApiCallOptions, ApiResponse } from '@/lib/cache/github-api-wrapper'
-import { supabase } from '@/lib/supabase'
+import { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  createCachedGitHubClient,
+  ApiCallOptions,
+  ApiResponse,
+} from '@/lib/cache/github-api-wrapper';
+import { supabase } from '@/lib/supabase';
 
 export interface CachedApiState<T> {
-  data: T | null
-  loading: boolean
-  error: string | null
-  fromCache: boolean
-  responseTime: number
-  refetch: () => Promise<void>
-  clearCache: () => Promise<void>
+  data: T | null;
+  loading: boolean;
+  error: string | null;
+  fromCache: boolean;
+  responseTime: number;
+  refetch: () => Promise<void>;
+  clearCache: () => Promise<void>;
 }
 
 export interface UseCachedGitHubApiOptions extends ApiCallOptions {
-  enabled?: boolean
-  onSuccess?: (_data: unknown) => void
-  onError?: (_error: string) => void
-  refreshInterval?: number
+  enabled?: boolean;
+  onSuccess?: (_data: unknown) => void;
+  onError?: (_error: string) => void;
+  refreshInterval?: number;
 }
 
 /**
@@ -29,139 +33,140 @@ export interface UseCachedGitHubApiOptions extends ApiCallOptions {
 export function useCachedGitHubApi<T>(
   endpoint: string,
   params: Record<string, unknown> = {},
-  options: UseCachedGitHubApiOptions = {}
+  options: UseCachedGitHubApiOptions = {},
 ): CachedApiState<T> {
-  const [session, setSession] = useState<any>(null)
+  const [session, setSession] = useState<any>(null);
   const [state, setState] = useState<{
-    data: T | null
-    loading: boolean
-    error: string | null
-    fromCache: boolean
-    responseTime: number
+    data: T | null;
+    loading: boolean;
+    error: string | null;
+    fromCache: boolean;
+    responseTime: number;
   }>({
     data: null,
     loading: false,
     error: null,
     fromCache: false,
-    responseTime: 0
-  })
+    responseTime: 0,
+  });
 
-  const clientRef = useRef(createCachedGitHubClient(session?.provider_token))
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const clientRef = useRef(createCachedGitHubClient(session?.provider_token));
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const {
-    enabled = true,
-    onSuccess,
-    onError,
-    refreshInterval,
-    ...apiOptions
-  } = options
+  const { enabled = true, onSuccess, onError, refreshInterval, ...apiOptions } = options;
 
-  const fetchData = useCallback(async (forceRefresh = false) => {
-    if (!enabled) return
+  const fetchData = useCallback(
+    async (forceRefresh = false) => {
+      if (!enabled) return;
 
-    setState(prev => ({ ...prev, loading: true, _error: null }))
+      setState((prev) => ({ ...prev, loading: true, _error: null }));
 
-    try {
-      const result: ApiResponse<T> = await clientRef.current.makeRequest<T>(
-        endpoint,
-        params,
-        { ...apiOptions, forceRefresh }
-      )
+      try {
+        const result: ApiResponse<T> = await clientRef.current.makeRequest<T>(endpoint, params, {
+          ...apiOptions,
+          forceRefresh,
+        });
 
-      if (result.success) {
-        setState({
-          data: result.data,
-          loading: false,
-          error: null,
-          fromCache: result.fromCache,
-          responseTime: result.responseTime
-        })
-        onSuccess?.(result._data)
-      } else {
-        setState(prev => ({
+        if (result.success) {
+          setState({
+            data: result.data,
+            loading: false,
+            error: null,
+            fromCache: result.fromCache,
+            responseTime: result.responseTime,
+          });
+          onSuccess?.(result._data);
+        } else {
+          setState((prev) => ({
+            ...prev,
+            loading: false,
+            error: result.error || 'Unknown error occurred',
+          }));
+          onError?.(result.error || 'Unknown _error occurred');
+        }
+      } catch (_error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        setState((prev) => ({
           ...prev,
           loading: false,
-          error: result.error || 'Unknown error occurred'
-        }))
-        onError?.(result.error || 'Unknown _error occurred')
+          error: errorMessage,
+        }));
+        onError?.(_errorMessage);
       }
-    } catch (_error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: errorMessage
-      }))
-      onError?.(_errorMessage)
-    }
-  }, [endpoint, params, enabled, apiOptions, onSuccess, onError])
+    },
+    [endpoint, params, enabled, apiOptions, onSuccess, onError],
+  );
 
   const refetch = useCallback(async () => {
-    await fetchData(true)
-  }, [fetchData])
+    await fetchData(true);
+  }, [fetchData]);
 
   const clearCache = useCallback(async () => {
-    await clientRef.current.clearCache()
-    await fetchData(true)
-  }, [fetchData])
+    await clientRef.current.clearCache();
+    await fetchData(true);
+  }, [fetchData]);
 
   // Initial fetch
   useEffect(() => {
     if (enabled) {
-      fetchData()
+      fetchData();
     }
-  }, [fetchData, enabled])
+  }, [fetchData, enabled]);
 
   // Setup refresh interval
   useEffect(() => {
     if (refreshInterval && enabled) {
       refreshIntervalRef.current = setInterval(() => {
-        fetchData()
-      }, refreshInterval)
+        fetchData();
+      }, refreshInterval);
 
       return () => {
         if (refreshIntervalRef.current) {
-          clearInterval(refreshIntervalRef.current)
+          clearInterval(refreshIntervalRef.current);
         }
-      }
+      };
     }
-  }, [refreshInterval, enabled, fetchData])
+  }, [refreshInterval, enabled, fetchData]);
 
   // Get session on mount
   useEffect(() => {
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-    }
-    getSession()
-  }, [])
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setSession(session);
+    };
+    getSession();
+  }, []);
 
   // Update client token when session changes
   useEffect(() => {
-    clientRef.current = createCachedGitHubClient(session?.provider_token)
-  }, [session?.provider_token])
+    clientRef.current = createCachedGitHubClient(session?.provider_token);
+  }, [session?.provider_token]);
 
   return {
     ...state,
     refetch,
-    clearCache
-  }
+    clearCache,
+  };
 }
 
 /**
  * Hook for repository data with specialized caching
  */
-export function useCachedRepository(owner: string, repo: string, options: UseCachedGitHubApiOptions = {}) {
-
+export function useCachedRepository(
+  owner: string,
+  repo: string,
+  options: UseCachedGitHubApiOptions = {},
+) {
   return useCachedGitHubApi(
     `/repos/${owner}/${repo}`,
     {},
     {
       cacheTtl: 15 * 60 * 1000, // 15 minutes
-      ...options
-    }
-  )
+      ...options,
+    },
+  );
 }
 
 /**
@@ -173,9 +178,9 @@ export function useCachedUser(username: string, options: UseCachedGitHubApiOptio
     {},
     {
       cacheTtl: 30 * 60 * 1000, // 30 minutes
-      ...options
-    }
-  )
+      ...options,
+    },
+  );
 }
 
 /**
@@ -185,16 +190,12 @@ export function useCachedPullRequests(
   owner: string,
   repo: string,
   queryParams: Record<string, unknown> = {},
-  options: UseCachedGitHubApiOptions = {}
+  options: UseCachedGitHubApiOptions = {},
 ) {
-  return useCachedGitHubApi(
-    `/repos/${owner}/${repo}/pulls`,
-    queryParams,
-    {
-      cacheTtl: 5 * 60 * 1000, // 5 minutes
-      ...options
-    }
-  )
+  return useCachedGitHubApi(`/repos/${owner}/${repo}/pulls`, queryParams, {
+    cacheTtl: 5 * 60 * 1000, // 5 minutes
+    ...options,
+  });
 }
 
 /**
@@ -204,16 +205,12 @@ export function useCachedRepositoryEvents(
   owner: string,
   repo: string,
   queryParams: Record<string, unknown> = {},
-  options: UseCachedGitHubApiOptions = {}
+  options: UseCachedGitHubApiOptions = {},
 ) {
-  return useCachedGitHubApi(
-    `/repos/${owner}/${repo}/events`,
-    queryParams,
-    {
-      cacheTtl: 2 * 60 * 1000, // 2 minutes for events
-      ...options
-    }
-  )
+  return useCachedGitHubApi(`/repos/${owner}/${repo}/events`, queryParams, {
+    cacheTtl: 2 * 60 * 1000, // 2 minutes for events
+    ...options,
+  });
 }
 
 /**
@@ -221,74 +218,74 @@ export function useCachedRepositoryEvents(
  */
 export function useCachedBatchRequests<T>(
   requests: Array<{ endpoint: string; params?: Record<string, unknown>; options?: ApiCallOptions }>,
-  options: UseCachedGitHubApiOptions = {}
+  options: UseCachedGitHubApiOptions = {},
 ) {
   const [state, setState] = useState<{
-    data: ApiResponse<T>[] | null
-    loading: boolean
-    error: string | null
+    data: ApiResponse<T>[] | null;
+    loading: boolean;
+    error: string | null;
   }>({
     data: null,
     loading: false,
-    error: null
-  })
+    error: null,
+  });
 
-  const clientRef = useRef(createCachedGitHubClient())
+  const clientRef = useRef(createCachedGitHubClient());
 
   const fetchBatch = useCallback(async () => {
-    if (!options.enabled || requests.length === 0) return
+    if (!options.enabled || requests.length === 0) return;
 
-    setState(prev => ({ ...prev, loading: true, _error: null }))
+    setState((prev) => ({ ...prev, loading: true, _error: null }));
 
     try {
-      const results = await clientRef.current.batchRequest<T>(requests)
+      const results = await clientRef.current.batchRequest<T>(requests);
       setState({
         data: results,
         loading: false,
-        error: null
-      })
+        error: null,
+      });
     } catch (_error) {
-      const errorMessage = error instanceof Error ? error.message : 'Batch request failed'
-      setState(prev => ({
+      const errorMessage = error instanceof Error ? error.message : 'Batch request failed';
+      setState((prev) => ({
         ...prev,
         loading: false,
-        error: errorMessage
-      }))
+        error: errorMessage,
+      }));
     }
-  }, [requests, options.enabled])
+  }, [requests, options.enabled]);
 
   useEffect(() => {
-    fetchBatch()
-  }, [fetchBatch])
+    fetchBatch();
+  }, [fetchBatch]);
 
   return {
     ...state,
-    refetch: fetchBatch
-  }
+    refetch: fetchBatch,
+  };
 }
 
 /**
  * Hook for monitoring cache performance
  */
 export function useCacheStats() {
-  const [stats, setStats] = useState<any>(null)
-  const clientRef = useRef(createCachedGitHubClient())
+  const [stats, setStats] = useState<any>(null);
+  const clientRef = useRef(createCachedGitHubClient());
 
   const refreshStats = useCallback(() => {
-    const currentStats = clientRef.current.getCacheStats()
-    setStats(currentStats)
-  }, [])
+    const currentStats = clientRef.current.getCacheStats();
+    setStats(currentStats);
+  }, []);
 
   useEffect(() => {
-    refreshStats()
-    
+    refreshStats();
+
     // Refresh stats every 30 seconds
-    const interval = setInterval(refreshStats, 30000)
-    return () => clearInterval(interval)
-  }, [refreshStats])
+    const interval = setInterval(refreshStats, 30000);
+    return () => clearInterval(interval);
+  }, [refreshStats]);
 
   return {
     stats,
-    refresh: refreshStats
-  }
+    refresh: refreshStats,
+  };
 }

@@ -46,10 +46,10 @@ export class SyncService {
   static async syncRepository(
     owner: string,
     name: string,
-    options: SyncOptions = {}
+    options: SyncOptions = {},
   ): Promise<SyncResult> {
     const repository = `${owner}/${name}`;
-    
+
     // Check if repository is tracked
     const { data: repo } = await supabase
       .from('repositories')
@@ -57,11 +57,11 @@ export class SyncService {
       .eq('owner', owner)
       .eq('name', name)
       .maybeSingle();
-    
+
     if (!repo?.is_tracked) {
       throw new Error('Repository is not tracked. Please track it first.');
     }
-    
+
     // Determine routing strategy
     if (USE_HYBRID_ROUTING) {
       // Use hybrid router that intelligently chooses
@@ -78,30 +78,30 @@ export class SyncService {
       });
     }
   }
-  
+
   /**
    * Sync using GraphQL (more efficient for large repos)
    */
   static async syncRepositoryGraphQL(
     owner: string,
     name: string,
-    options: SyncOptions = {}
+    options: SyncOptions = {},
   ): Promise<SyncResult> {
     const repository = `${owner}/${name}`;
-    
+
     // GraphQL sync is always better for large operations
     if (LARGE_REPOS.has(repository) || options.fullSync) {
-      return this.callSupabaseFunction('repository-sync-graphql', { 
-        owner, 
-        name, 
-        ...options 
+      return this.callSupabaseFunction('repository-sync-graphql', {
+        owner,
+        name,
+        ...options,
       });
     }
-    
+
     // Use hybrid router for intelligent routing
     return this.callHybridRouter('sync-graphql', repository, options);
   }
-  
+
   /**
    * Batch process PR details
    */
@@ -109,10 +109,10 @@ export class SyncService {
     owner: string,
     name: string,
     prNumbers: number[],
-    options: Partial<SyncOptions> = {}
+    options: Partial<SyncOptions> = {},
   ): Promise<SyncResult> {
     const repository = `${owner}/${name}`;
-    
+
     // Large batches go to Supabase
     if (prNumbers.length > 50) {
       return this.callSupabaseFunction('pr-details-batch', {
@@ -121,29 +121,25 @@ export class SyncService {
         ...options,
       });
     }
-    
+
     // Small batches can use Netlify
-    return this.callHybridRouter('batch-pr', repository, { 
-      ...options, 
-      prNumbers 
+    return this.callHybridRouter('batch-pr', repository, {
+      ...options,
+      prNumbers,
     });
   }
-  
+
   /**
    * Resume a partial sync
    */
-  static async resumeSync(
-    owner: string,
-    name: string,
-    cursor: string
-  ): Promise<SyncResult> {
+  static async resumeSync(owner: string, name: string, cursor: string): Promise<SyncResult> {
     // Check if there's a saved progress
     const { data: progress } = await supabase
       .from('sync_progress')
       .select('*')
       .eq('repository_id', `${owner}/${name}`)
       .maybeSingle();
-    
+
     if (progress) {
       // Resume with Supabase (since it was a long operation)
       return this.callSupabaseFunction('repository-sync-graphql', {
@@ -152,15 +148,18 @@ export class SyncService {
         cursor: progress.last_cursor || cursor,
       });
     }
-    
+
     // Start fresh sync
     return this.syncRepository(owner, name);
   }
-  
+
   /**
    * Check sync status
    */
-  static async getSyncStatus(owner: string, name: string): Promise<{
+  static async getSyncStatus(
+    owner: string,
+    name: string,
+  ): Promise<{
     issyncing: boolean;
     lastSync?: Date;
     progress?: number;
@@ -171,26 +170,26 @@ export class SyncService {
       .eq('owner', owner)
       .eq('name', name)
       .maybeSingle();
-    
+
     const { data: progress } = await supabase
       .from('sync_progress')
       .select('prs_processed, status')
       .eq('repository_id', `${owner}/${name}`)
       .maybeSingle();
-    
+
     return {
       issyncing: repo?.sync_status === 'syncing' || progress?.status === 'partial',
       lastSync: repo?.last_synced_at ? new Date(repo.last_synced_at) : undefined,
       progress: progress?.prs_processed,
     };
   }
-  
+
   // Private helper methods
-  
+
   private static shouldUseSupabase(
     repository: string,
     sizeClass?: string,
-    options?: SyncOptions
+    options?: SyncOptions,
   ): boolean {
     if (options?.forceSupabase) return true;
     if (options?.forceNetlify) return false;
@@ -200,102 +199,103 @@ export class SyncService {
     if (options?.daysLimit && options.daysLimit > 90) return true;
     return false;
   }
-  
+
   private static async callHybridRouter(
     action: string,
     repository: string,
-    options: SyncOptions
+    options: SyncOptions,
   ): Promise<SyncResult> {
     const response = await fetch('/.netlify/functions/sync-router', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, repository, options }),
     });
-    
+
     if (!response.ok) {
       // Try to parse error as JSON, but handle non-JSON responses
-      const error = await response.json().catch(() => ({ 
-        error: `HTTP ${response.status}: ${response.statusText}` 
+      const _error = await response.json().catch(() => ({
+        error: `HTTP ${response.status}: ${response.statusText}`,
       }));
       throw new Error(error._error || 'Sync failed');
     }
-    
+
     return response.json();
   }
-  
+
   private static async callSupabaseFunction(
     functionName: string,
-    payload: any
+    payload: any,
   ): Promise<SyncResult> {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       console.warn('Supabase functions not configured. This is expected in deploy previews.');
       return {
         success: false,
         message: 'Supabase functions not configured yet',
-        router: 'supabase'
+        router: 'supabase',
       };
     }
-    
-    const response = await fetch(
-      `${SUPABASE_URL}/functions/v1/${functionName}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify(payload),
-      }
-    );
-    
+
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
     if (!response.ok) {
       // Handle 404 gracefully - function not deployed yet
       if (response.status === 404) {
-        console.warn(`Supabase function ${functionName} not found. Deploy it with: supabase functions deploy ${functionName}`);
+        console.warn(
+          `Supabase function ${functionName} not found. Deploy it with: supabase functions deploy ${functionName}`,
+        );
         return {
           success: false,
           message: `Function not deployed. Run: supabase functions deploy ${functionName}`,
-          router: 'supabase'
+          router: 'supabase',
         };
       }
-      
+
       // Try to parse error as JSON, but handle non-JSON responses
-      const result = await response.json().catch(() => ({ 
-        error: `HTTP ${response.status}: ${response.statusText}` 
+      const result = await response.json().catch(() => ({
+        error: `HTTP ${response.status}: ${response.statusText}`,
       }));
       throw new Error(result._error || 'Supabase function failed');
     }
-    
+
     const result = await response.json();
-    
+
     return { ...result, router: 'supabase' };
   }
-  
+
   private static async callNetlifyFunction(
     functionName: string,
-    payload: any
+    payload: any,
   ): Promise<SyncResult> {
     const response = await fetch(`/.netlify/functions/${functionName}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    
+
     if (!response.ok) {
       // Handle 404 gracefully in development/preview environments
       if (response.status === 404) {
-        console.warn(`Function ${functionName} not found. This is expected in deploy previews before the PR is merged.`);
+        console.warn(
+          `Function ${functionName} not found. This is expected in deploy previews before the PR is merged.`,
+        );
         return {
           success: false,
           message: 'Function not deployed yet. This is expected in deploy previews.',
-          router: 'inngest'
+          router: 'inngest',
         };
       }
-      
-      const error = await response.json().catch(() => ({ error: 'Unknown _error' }));
+
+      const _error = await response.json().catch(() => ({ error: 'Unknown _error' }));
       throw new Error(error._error || 'Netlify function failed');
     }
-    
+
     const result = await response.json();
     return { ...result, router: 'inngest' };
   }

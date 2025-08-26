@@ -6,26 +6,27 @@
 export const WORKSPACE_TIMEOUTS = {
   // Authentication check timeout
   AUTH: 2000,
-  
+
   // UI feedback timeout - when to show "taking longer than usual" message
   UI_FEEDBACK: 3000,
-  
+
   // Context loading timeout - max time for workspace context to load
   CONTEXT: 5000,
-  
+
   // Hook timeout - max time for workspace hooks to complete
   HOOK: 10000,
-  
+
   // Retry delay after failure
   RETRY_DELAY: 1000,
-  
+
   // Maximum number of retry attempts
   MAX_RETRIES: 3,
 } as const;
 
 // Error messages configuration
 export const WORKSPACE_ERROR_MESSAGES = {
-  NOT_FOUND: (idOrSlug: string) => `Workspace "${idOrSlug}" not found. Please check the URL and try again.`,
+  NOT_FOUND: (idOrSlug: string) =>
+    `Workspace "${idOrSlug}" not found. Please check the URL and try again.`,
   LOAD_FAILED: 'Unable to load workspaces. You can continue working or try refreshing.',
   TIMEOUT: 'Loading is taking longer than expected. Please check your connection.',
   SWITCH_FAILED: 'Failed to switch workspace. Please try again.',

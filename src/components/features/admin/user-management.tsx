@@ -58,7 +58,7 @@ export function UserManagement() {
       setLoading(true);
       setError(null);
       
-      const { data, error: _error: fetchError } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('app_users')
         .select('*')
         .order('last_login_at', { ascending: false, nullsFirst: false })
@@ -83,7 +83,7 @@ export function UserManagement() {
     try {
       const newAdminStatus = !user.is_admin;
       
-      const { error: _error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('app_users')
         .update({ 
           is_admin: newAdminStatus,

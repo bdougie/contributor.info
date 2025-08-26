@@ -27,7 +27,8 @@ const meta = {
     layout: 'centered',
     docs: {
       description: {
-        component: 'Displays a menu to the user — such as a set of actions or functions — triggered by a button.',
+        component:
+          'Displays a menu to the user — such as a set of actions or functions — triggered by a button.',
       },
     },
   },
@@ -67,7 +68,7 @@ export const Default: Story = {
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const trigger = canvas.getByRole('button', { name: /open menu/i });
-    
+
     // Simple synchronous test - just verify button exists
     expect(trigger).toBeInTheDocument();
     expect(trigger).toHaveTextContent('Open Menu');
@@ -109,7 +110,7 @@ export const WithLabels: Story = {
   play: ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const trigger = canvas.getByRole('button', { name: /account/i });
-    
+
     // Simple synchronous test
     expect(trigger).toBeInTheDocument();
     expect(trigger).toHaveTextContent('Account');
@@ -341,22 +342,13 @@ export const WithCheckboxItems: Story = {
         <DropdownMenuContent className="w-56">
           <DropdownMenuLabel>Appearance</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuCheckboxItem
-            checked={showStatusBar}
-            onCheckedChange={setShowStatusBar}
-          >
+          <DropdownMenuCheckboxItem checked={showStatusBar} onCheckedChange={setShowStatusBar}>
             Status Bar
           </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={showActivityBar}
-            onCheckedChange={setShowActivityBar}
-          >
+          <DropdownMenuCheckboxItem checked={showActivityBar} onCheckedChange={setShowActivityBar}>
             Activity Bar
           </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={showPanel}
-            onCheckedChange={setShowPanel}
-          >
+          <DropdownMenuCheckboxItem checked={showPanel} onCheckedChange={setShowPanel}>
             Panel
           </DropdownMenuCheckboxItem>
         </DropdownMenuContent>
@@ -452,9 +444,7 @@ export const UserMenu: Story = {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">John Doe</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              john@example.com
-            </p>
+            <p className="text-xs leading-none text-muted-foreground">john@example.com</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -903,10 +893,7 @@ export const Complex: Story = {
             Show Bookmarks
             <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
           </DropdownMenuCheckboxItem>
-          <DropdownMenuCheckboxItem
-            checked={urlsChecked}
-            onCheckedChange={setUrlsChecked}
-          >
+          <DropdownMenuCheckboxItem checked={urlsChecked} onCheckedChange={setUrlsChecked}>
             Show Full URLs
           </DropdownMenuCheckboxItem>
           <DropdownMenuSeparator />

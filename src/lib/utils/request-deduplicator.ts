@@ -1,10 +1,10 @@
 /**
  * Request Deduplicator Utility
- * 
+ *
  * Prevents duplicate API calls when multiple components mount concurrently
  * and request the same data. Extends the existing progressive cache patterns
  * with sophisticated promise sharing and cleanup.
- * 
+ *
  * Philosophy: Invisible to users, seamless integration with existing patterns
  */
 
@@ -32,7 +32,7 @@ interface RequestOptions {
 export class RequestDeduplicator {
   private pending = new Map<string, PendingRequest>();
   private readonly DEFAULT_TTL = 5000; // 5 seconds - aligns with existing patterns
-  
+
   /**
    * Deduplicate concurrent requests for the same resource
    * @param key Unique identifier for the request
@@ -42,16 +42,16 @@ export class RequestDeduplicator {
   async dedupe<T>(
     key: string,
     fetcher: (signal?: AbortSignal) => Promise<T>,
-    options: RequestOptions = {}
+    options: RequestOptions = {},
   ): Promise<T> {
     const { ttl = this.DEFAULT_TTL, abortable = true } = options;
-    
+
     // Check for existing pending request
     const existing = this.pending.get(key);
     if (existing && this.isRequestValid(existing, ttl)) {
       // Increment subscriber count
       existing.subscribers++;
-      
+
       try {
         return await existing.promise;
       } finally {
@@ -64,14 +64,14 @@ export class RequestDeduplicator {
     // Create new request
     const abortController = abortable ? new AbortController() : undefined;
     const signal = abortController?.signal;
-    
+
     // Cancel previous request if it exists and is abortable
     if (existing?.abortController && !existing.abortController.signal.aborted) {
       existing.abortController.abort();
     }
 
     const promise = this.createManagedPromise(key, fetcher, signal);
-    
+
     const pendingRequest: PendingRequest<T> = {
       key,
       promise,
@@ -95,20 +95,24 @@ export class RequestDeduplicator {
    */
   static generateKey = {
     /** Generate key for repository-based requests */
-    repository: (owner: string, repo: string, ...params: unknown[]): string => 
+    repository: (owner: string, repo: string, ...params: unknown[]): string =>
       `repo:${owner}/${repo}:${params.join(':')}`,
-    
+
     /** Generate key for user-based requests */
     user: (username: string, ...params: unknown[]): string =>
       `user:${username}:${params.join(':')}`,
-    
+
     /** Generate key for progressive loading stages */
-    progressiveStage: (stage: string, owner: string, repo: string, timeRange: string, includeBots: boolean): string =>
-      `progressive:${stage}:${owner}/${repo}:${timeRange}:${includeBots}`,
-    
+    progressiveStage: (
+      stage: string,
+      owner: string,
+      repo: string,
+      timeRange: string,
+      includeBots: boolean,
+    ): string => `progressive:${stage}:${owner}/${repo}:${timeRange}:${includeBots}`,
+
     /** Generate custom key with prefix */
-    custom: (prefix: string, ...params: unknown[]): string =>
-      `${prefix}:${params.join(':')}`,
+    custom: (prefix: string, ...params: unknown[]): string => `${prefix}:${params.join(':')}`,
   };
 
   /**
@@ -142,17 +146,17 @@ export class RequestDeduplicator {
   getStats() {
     const now = Date.now();
     const requests = Array.from(this.pending.values());
-    
+
     return {
       totalPending: requests.length,
       totalSubscribers: requests.reduce((sum, req) => sum + req.subscribers, 0),
-      oldestRequestAge: requests.length > 0 
-        ? now - Math.min(...requests.map(req => req.timestamp))
-        : 0,
-      averageAge: requests.length > 0
-        ? (now - requests.reduce((sum, req) => sum + req.timestamp, 0) / requests.length)
-        : 0,
-      pendingRequests: requests.map(req => ({
+      oldestRequestAge:
+        requests.length > 0 ? now - Math.min(...requests.map((req) => req.timestamp)) : 0,
+      averageAge:
+        requests.length > 0
+          ? now - requests.reduce((sum, req) => sum + req.timestamp, 0) / requests.length
+          : 0,
+      pendingRequests: requests.map((req) => ({
         key: req.key,
         age: now - req.timestamp,
         subscribers: req.subscribers,
@@ -163,7 +167,7 @@ export class RequestDeduplicator {
   private async createManagedPromise<T>(
     key: string,
     fetcher: (signal?: AbortSignal) => Promise<T>,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<T> {
     try {
       const result = await fetcher(signal);
@@ -210,15 +214,11 @@ export function useRequestDeduplication() {
 export function withRequestDeduplication<TArgs extends any[], TResult>(
   fetcher: (...args: TArgs) => Promise<TResult>,
   keyGenerator: (...args: TArgs) => string,
-  options: RequestOptions = {}
+  options: RequestOptions = {},
 ) {
   return async (...args: TArgs): Promise<TResult> => {
     const key = keyGenerator(...args);
-    return requestDeduplicator.dedupe(
-      key,
-      () => fetcher(...args),
-      options
-    );
+    return requestDeduplicator.dedupe(key, () => fetcher(...args), options);
   };
 }
 

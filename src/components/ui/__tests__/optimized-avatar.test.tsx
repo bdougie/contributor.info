@@ -18,12 +18,12 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
 vi.mock('@/components/ui/avatar', () => {
   const React = require('react');
   return {
-    Avatar: React.forwardRef(({ children, className, style }: unknown, ref: unknown) => 
-      React.createElement('div', { ref, className, style }, children)
+    Avatar: React.forwardRef(({ children, className, style }: unknown, ref: unknown) =>
+      React.createElement('div', { ref, className, style }, children),
     ),
-    AvatarImage: ({ src, alt, onLoad, onError, className }: unknown) => 
+    AvatarImage: ({ src, alt, onLoad, onError, className }: unknown) =>
       React.createElement('img', { src, alt, onLoad, onError, className }),
-    AvatarFallback: ({ children, className }: unknown) => 
+    AvatarFallback: ({ children, className }: unknown) =>
       React.createElement('div', { className }, children),
   };
 });
@@ -41,7 +41,7 @@ describe('OptimizedAvatar', () => {
         alt="John Doe"
         fallback="JD"
         lazy={false}
-      />
+      />,
     );
 
     // The fallback is rendered inside the AvatarFallback component
@@ -57,7 +57,7 @@ describe('OptimizedAvatar', () => {
         alt="GitHub User"
         size={64}
         lazy={false}
-      />
+      />,
     );
 
     // Check if the optimized URL is used (we need to check the component's internal state)
@@ -67,11 +67,7 @@ describe('OptimizedAvatar', () => {
 
   it('generates fallback initials from alt text', async () => {
     const { container } = render(
-      <OptimizedAvatar
-        src="invalid-url"
-        alt="Jane Smith"
-        lazy={false}
-      />
+      <OptimizedAvatar src="invalid-url" alt="Jane Smith" lazy={false} />,
     );
 
     // Should show fallback initials immediately since image will fail to load
@@ -88,7 +84,7 @@ describe('OptimizedAvatar', () => {
         alt="Test User"
         size={96}
         lazy={false}
-      />
+      />,
     );
 
     const avatar = container.firstChild as HTMLElement;
@@ -103,7 +99,7 @@ describe('OptimizedAvatar', () => {
         alt="Test User"
         priority={true}
         lazy={false}
-      />
+      />,
     );
 
     // Component should render with priority settings
@@ -117,7 +113,7 @@ describe('OptimizedAvatar', () => {
         alt="External User"
         size={48}
         lazy={false}
-      />
+      />,
     );
 
     // Should render the component
@@ -131,7 +127,7 @@ describe('OptimizedAvatar', () => {
         alt="Test User"
         className="custom-class"
         lazy={false}
-      />
+      />,
     );
 
     const avatar = container.firstChild as HTMLElement;

@@ -31,10 +31,9 @@ export class BackgroundProcessor {
       return;
     }
 
-    
     // Process immediately, then on interval
     this.processNextBatch();
-    
+
     this.intervalId = setInterval(() => {
       this.processNextBatch();
     }, this.PROCESS_INTERVAL);
@@ -60,33 +59,35 @@ export class BackgroundProcessor {
 
     try {
       this.isProcessing = true;
-      
+
       // Get queue statistics
       const stats = await queueManager.getQueueStats();
-      
+
       if (stats.pending === 0) {
         return; // Nothing to process
       }
-
 
       // Process up to MAX_JOBS_PER_BATCH jobs
       let processed = 0;
       let failures = 0;
 
-      for (let i = 0; i < this.MAX_JOBS_PER_BATCH && processed + failures < this.MAX_JOBS_PER_BATCH; i++) {
+      for (
+        let i = 0;
+        i < this.MAX_JOBS_PER_BATCH && processed + failures < this.MAX_JOBS_PER_BATCH;
+        i++
+      ) {
         try {
           const job = await ProgressiveCaptureTrigger.processNext();
-          
+
           if (job) {
             processed++;
           } else {
             // No more jobs to process
             break;
           }
-          
+
           // Small delay between jobs to be nice to GitHub API
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         } catch (_error) {
           failures++;
           console.error('[Background Processor] Error processing job:', _error);
@@ -96,17 +97,19 @@ export class BackgroundProcessor {
       // Show completion notification if we processed anything
       if (processed > 0) {
         const updatedStats = await queueManager.getQueueStats();
-        
+
         if (updatedStats.pending === 0) {
           // All jobs complete - show success notification
           ProgressiveCaptureNotifications.showQueueStatus(updatedStats);
         } else {
           // Show progress notification
-          console.log('🔄 Background processor: %s jobs completed, %s pending', processed, updatedStats.pending);
+          console.log(
+            '🔄 Background processor: %s jobs completed, %s pending',
+            processed,
+            updatedStats.pending,
+          );
         }
       }
-
-
     } catch (_error) {
       console.error('[Background Processor] Error in batch processing:', _error);
     } finally {
@@ -127,7 +130,7 @@ export class BackgroundProcessor {
   getStatus(): { isRunning: boolean; isProcessing: boolean } {
     return {
       isRunning: this.isRunning(),
-      isProcessing: this.isProcessing
+      isProcessing: this.isProcessing,
     };
   }
 }
@@ -139,15 +142,15 @@ export function startBackgroundProcessing(): void {
   if (typeof window !== 'undefined') {
     // Only run in browser environment
     const processor = BackgroundProcessor.getInstance();
-    
+
     // Start after a short delay to let the app initialize
     setTimeout(async () => {
       processor.start();
-      
+
       if (import.meta.env?.DEV) {
         console.log('🔄 Background job processor started');
       }
-      
+
       // Silently check for pending jobs - no user notification needed
       try {
         const stats = await queueManager.getQueueStats();
@@ -165,7 +168,9 @@ export function startBackgroundProcessing(): void {
     });
 
     // Expose processor to global scope for debugging
-    (window as unknown as Window & { BackgroundProcessor: typeof BackgroundProcessor }).BackgroundProcessor = BackgroundProcessor;
+    (
+      window as unknown as Window & { BackgroundProcessor: typeof BackgroundProcessor }
+    ).BackgroundProcessor = BackgroundProcessor;
   }
 }
 
