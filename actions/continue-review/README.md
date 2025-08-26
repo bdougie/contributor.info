@@ -70,7 +70,7 @@ jobs:
       # Generate GitHub App token for secure authentication
       - name: Generate App Token
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # v2.0.0
         with:
           app-id: ${{ vars.CONTINUE_APP_ID }}
           private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY }}
@@ -134,7 +134,7 @@ You can limit the App token permissions:
 ```yaml
 - name: Generate App Token
   id: app-token
-  uses: actions/create-github-app-token@v1
+  uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # v2.0.0
   with:
     app-id: ${{ vars.CONTINUE_APP_ID }}
     private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY }}
@@ -151,7 +151,7 @@ For organizations with many repositories:
 ```yaml
 - name: Generate App Token
   id: app-token
-  uses: actions/create-github-app-token@v1
+  uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # v2.0.0
   with:
     app-id: ${{ vars.CONTINUE_APP_ID }}
     private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY }}
