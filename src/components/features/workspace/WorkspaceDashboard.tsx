@@ -3,6 +3,7 @@ import { MetricCard } from "./MetricCard";
 import { TrendChart } from "./TrendChart";
 import { ActivityChart, type ActivityDataPoint } from "./ActivityChart";
 import { RepositoryList, type Repository } from "./RepositoryList";
+import { TimeRange } from "./TimeRangeSelector";
 import { 
   Star, 
   GitPullRequest, 
@@ -40,12 +41,23 @@ export interface WorkspaceDashboardProps {
   repositories: Repository[];
   loading?: boolean;
   tier?: 'free' | 'pro' | 'enterprise';
+  timeRange?: TimeRange;
   onAddRepository?: () => void;
+  onRemoveRepository?: (repo: Repository) => void;
   onRepositoryClick?: (repo: Repository) => void;
   onSettingsClick?: () => void;
   onUpgradeClick?: () => void;
   className?: string;
 }
+
+// Time range labels for trend comparison
+const timeRangeComparisonLabels: Record<TimeRange, string> = {
+  '7d': 'vs previous 7 days',
+  '30d': 'vs previous 30 days', 
+  '90d': 'vs previous 90 days',
+  '1y': 'vs previous year',
+  'all': 'vs previous period',
+};
 
 export function WorkspaceDashboard({
   workspaceId: _workspaceId,
@@ -56,7 +68,9 @@ export function WorkspaceDashboard({
   repositories,
   loading = false,
   tier: _tier = 'free',
+  timeRange = '30d',
   onAddRepository,
+  onRemoveRepository,
   onRepositoryClick,
   onSettingsClick: _onSettingsClick,
   onUpgradeClick: _onUpgradeClick,
@@ -66,6 +80,9 @@ export function WorkspaceDashboard({
     new Set(repositories.filter(r => r.is_pinned).map(r => r.id))
   );
   const [expandedChart, setExpandedChart] = useState<'trends' | 'activity' | null>(null);
+  
+  // Get the trend comparison label based on selected time range
+  const trendLabel = timeRangeComparisonLabels[timeRange];
 
   const handlePinToggle = (repo: Repository) => {
     setPinnedRepos(prev => {
@@ -96,7 +113,7 @@ export function WorkspaceDashboard({
           icon={<Star className="h-4 w-4" />}
           trend={{
             value: metrics.starsTrend,
-            label: "vs last period"
+            label: trendLabel
           }}
           format="compact"
           color="gray"
@@ -111,7 +128,7 @@ export function WorkspaceDashboard({
           icon={<GitPullRequest className="h-4 w-4" />}
           trend={{
             value: metrics.prsTrend,
-            label: "vs last period"
+            label: trendLabel
           }}
           format="number"
           color="green"
@@ -126,7 +143,7 @@ export function WorkspaceDashboard({
           icon={<Users className="h-4 w-4" />}
           trend={{
             value: metrics.contributorsTrend,
-            label: "vs last period"
+            label: trendLabel
           }}
           format="number"
           color="blue"
@@ -141,7 +158,7 @@ export function WorkspaceDashboard({
           icon={<GitCommit className="h-4 w-4" />}
           trend={{
             value: metrics.commitsTrend,
-            label: "vs last period"
+            label: trendLabel
           }}
           format="compact"
           color="purple"
@@ -198,6 +215,7 @@ export function WorkspaceDashboard({
         loading={loading}
         onRepositoryClick={onRepositoryClick}
         onPinToggle={handlePinToggle}
+        onRemove={onRemoveRepository}
         onAddRepository={onAddRepository}
         emptyMessage={
           repositories.length === 0 

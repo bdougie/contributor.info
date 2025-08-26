@@ -444,6 +444,7 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
           closed_at: pr.closed_at,
           additions: details.additions,
           deletions: details.deletions,
+          changed_files: details.changed_files,
           repository_owner: owner,
           repository_name: repo,
           html_url: pr.html_url,

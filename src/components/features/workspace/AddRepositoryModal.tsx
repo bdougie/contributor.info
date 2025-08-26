@@ -31,10 +31,41 @@ const WorkspaceService = (typeof window !== 'undefined' && (window as any).__moc
   ? (window as any).__mockWorkspaceService
   : DefaultWorkspaceService;
 
+// Tier configuration
+const TIER_LIMITS = {
+  free: 4,
+  pro: 10,
+  enterprise: 100
+} as const;
+
 interface StagedRepository extends GitHubRepository {
   notes?: string;
   tags?: string[];
   is_pinned?: boolean;
+}
+
+// Extend existing GitHubRepository type for workspace context
+interface ExistingRepository extends Omit<GitHubRepository, 'id' | 'owner' | 'private' | 'pushed_at'> {
+  id: string; // Database stores ID as string
+  owner: string; // Simplified from GitHubRepository's owner object
+  workspace_repo_id?: string;
+  is_pinned?: boolean;
+}
+
+// Type for workspace repository query result
+interface WorkspaceRepoQueryResult {
+  repository_id: string;
+  is_pinned: boolean;
+  repositories: {
+    id: string;
+    full_name: string;
+    name: string;
+    owner: string;
+    description: string | null;
+    language: string | null;
+    stargazers_count: number;
+    forks_count: number;
+  } | null;
 }
 
 export interface AddRepositoryModalProps {
@@ -54,14 +85,19 @@ export function AddRepositoryModal({
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [stagedRepos, setStagedRepos] = useState<StagedRepository[]>([]);
   const [existingRepoIds, setExistingRepoIds] = useState<Set<string>>(new Set());
+  const [existingRepos, setExistingRepos] = useState<ExistingRepository[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [removingRepoId, setRemovingRepoId] = useState<string | null>(null);
 
   // Calculate limits
   const isFreeTier = workspace?.tier === 'free';
-  const maxRepos = workspace?.max_repositories || 4; // Default to free tier limit
-  const currentRepoCount = workspace?.current_repository_count || 0;
+  // Use the correct limits based on tier from configuration
+  const tier = workspace?.tier || 'free';
+  const maxRepos = TIER_LIMITS[tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.free;
+  // Use the actual count of existing repos instead of relying on database field
+  const currentRepoCount = existingRepos.length;
   const remainingSlots = maxRepos - currentRepoCount;
   const canAddMore = stagedRepos.length < remainingSlots;
 
@@ -94,27 +130,41 @@ export function AddRepositoryModal({
           setWorkspace(workspaceData);
         }
 
-        // Get existing repositories in workspace
-        const { data: existingRepos } = await supabase
+        // Get existing repositories in workspace with full details
+        const { data: existingWorkspaceRepos } = await supabase
           .from('workspace_repositories')
-          .select('repository_id')
+          .select(`
+            repository_id,
+            is_pinned,
+            repositories (
+              id,
+              full_name,
+              name,
+              owner,
+              description,
+              language,
+              stargazers_count,
+              forks_count
+            )
+          `)
           .eq('workspace_id', workspaceId);
 
-        if (existingRepos) {
-          // We need to map GitHub IDs to our internal IDs
-          // For now, we'll track by full_name
-          const { data: repoData } = await supabase
-            .from('repositories')
-            .select('id, full_name')
-            .in('id', existingRepos.map((r: { repository_id: string }) => r.repository_id));
-
-          if (repoData) {
-            setExistingRepoIds(new Set(repoData.map((r: { full_name: string }) => r.full_name)));
-          }
+        if (existingWorkspaceRepos) {
+          const repos = (existingWorkspaceRepos as WorkspaceRepoQueryResult[])
+            .filter((r) => r.repositories)
+            .map((r): ExistingRepository => ({
+              ...r.repositories!,
+              workspace_repo_id: r.repository_id,
+              is_pinned: r.is_pinned
+            }));
+          
+          setExistingRepos(repos);
+          setExistingRepoIds(new Set(repos.map((r) => r.full_name)));
         }
       } catch (err) {
         console.error('Error initializing modal:', err);
-        setError('Failed to load workspace details');
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        setError(`Failed to load workspace details: ${errorMessage}`);
       } finally {
         setLoading(false);
       }
@@ -126,30 +176,89 @@ export function AddRepositoryModal({
   const handleSelectRepository = useCallback((repo: GitHubRepository) => {
     // Check if already in workspace
     if (existingRepoIds.has(repo.full_name)) {
-      toast.warning(`${repo.full_name} is already in this workspace`);
+      setError(`${repo.full_name} is already in this workspace`);
+      setTimeout(() => setError(null), 3000);
       return;
     }
 
     // Check if already staged
     if (stagedRepos.some(r => r.full_name === repo.full_name)) {
-      toast.info(`${repo.full_name} is already in your cart`);
+      setError(`${repo.full_name} is already in your selection`);
+      setTimeout(() => setError(null), 3000);
       return;
     }
 
     // Check if we have room
     if (!canAddMore) {
-      toast.error(`Repository limit reached. Maximum ${maxRepos} repositories allowed.`);
+      setError(`Repository limit reached. Maximum ${maxRepos} repositories allowed for ${workspace?.tier || 'free'} tier.`);
       return;
     }
 
     // Add to staging
     setStagedRepos([...stagedRepos, repo]);
-    toast.success(`Added ${repo.full_name} to cart`);
-  }, [stagedRepos, existingRepoIds, canAddMore, maxRepos]);
+    toast.success(`Added ${repo.full_name} to selection`);
+  }, [stagedRepos, existingRepoIds, canAddMore, maxRepos, workspace?.tier]);
 
   const handleRemoveFromStaging = useCallback((fullName: string) => {
     setStagedRepos(stagedRepos.filter(r => r.full_name !== fullName));
   }, [stagedRepos]);
+
+  const handleRemoveFromWorkspace = useCallback(async (repoId: string, repoName: string) => {
+    if (!user?.id) {
+      setError('You must be logged in to remove repositories');
+      return;
+    }
+
+    // Verify user is workspace owner
+    if (workspace?.owner_id !== user.id) {
+      setError('Only workspace owners can remove repositories');
+      return;
+    }
+
+    // Confirm removal with user
+    const confirmed = window.confirm(
+      `Are you sure you want to remove ${repoName} from this workspace? This action cannot be undone.`
+    );
+    
+    if (!confirmed) {
+      return;
+    }
+
+    setRemovingRepoId(repoId);
+    try {
+      // Remove from workspace (RLS policies should also enforce ownership)
+      const { error: removeError } = await supabase
+        .from('workspace_repositories')
+        .delete()
+        .eq('workspace_id', workspaceId)
+        .eq('repository_id', repoId);
+
+      if (removeError) {
+        throw removeError;
+      }
+
+      // Update local state only after successful removal
+      setExistingRepos(prevRepos => prevRepos.filter(r => r.id !== repoId));
+      setExistingRepoIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(repoName);
+        return newSet;
+      });
+
+      toast.success(`Removed ${repoName} from workspace`);
+      
+      // Call success callback to refresh parent
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (err) {
+      console.error('Error removing repository:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      toast.error(`Failed to remove ${repoName}: ${errorMessage}`);
+    } finally {
+      setRemovingRepoId(null);
+    }
+  }, [user, workspace, workspaceId, onSuccess]);
 
   const handleSubmit = useCallback(async () => {
     if (!user?.id) {
@@ -158,7 +267,7 @@ export function AddRepositoryModal({
     }
 
     if (stagedRepos.length === 0) {
-      toast.warning('Please add at least one repository to your cart');
+      setError('Please add at least one repository to your selection');
       return;
     }
 
@@ -275,16 +384,16 @@ export function AddRepositoryModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Add Repositories to Workspace
+            Manage Workspace Repositories
           </DialogTitle>
           <DialogDescription>
-            Search for repositories on GitHub and add them to your workspace. 
+            Add new repositories or remove existing ones from your workspace. 
             {isFreeTier && ` Free tier is limited to ${maxRepos} repositories.`}
           </DialogDescription>
         </DialogHeader>
 
         {/* Tier Limit Display */}
-        <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+        <div className="flex items-center justify-between p-3 bg-muted rounded-lg" role="status" aria-live="polite">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">Repository Slots:</span>
             <Badge variant={remainingSlots <= 2 ? 'destructive' : 'secondary'}>
@@ -306,12 +415,77 @@ export function AddRepositoryModal({
             placeholder="Search for repositories (e.g., facebook/react)"
             onSearch={(query) => {
               // This is for manual search submission
-              console.log('Manual search:', query);
+              console.log('%s', `Manual search: ${query}`);
             }}
             onSelect={handleSelectRepository}
             showButton={false}
           />
         </div>
+
+        {/* Existing Repositories Section */}
+        {loading ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span className="ml-2 text-sm text-muted-foreground">Loading repositories...</span>
+          </div>
+        ) : existingRepos.length > 0 && (
+          <>
+            <Separator />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">Current Workspace Repositories</h3>
+                <Badge variant="outline">{existingRepos.length} repositories</Badge>
+              </div>
+              <ScrollArea className="h-[150px] pr-4">
+                <div className="space-y-2">
+                  {existingRepos.map((repo) => (
+                    <div
+                      key={repo.id}
+                      className="flex items-start justify-between p-2 rounded-lg border bg-muted/30"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium truncate">
+                            {repo.full_name}
+                          </span>
+                          {repo.is_pinned && (
+                            <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1">
+                          {repo.language && (
+                            <span className="text-xs text-muted-foreground">
+                              {repo.language}
+                            </span>
+                          )}
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Star className="h-3 w-3" />
+                            {repo.stargazers_count?.toLocaleString() || 0}
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveFromWorkspace(repo.id, repo.full_name)}
+                        disabled={removingRepoId === repo.id || removingRepoId !== null}
+                        className="ml-2 text-destructive hover:text-destructive"
+                        aria-label={`Remove ${repo.full_name} from workspace`}
+                        title={`Remove ${repo.full_name} from workspace`}
+                      >
+                        {removingRepoId === repo.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          </>
+        )}
 
         <Separator />
 
@@ -382,6 +556,8 @@ export function AddRepositoryModal({
                       size="sm"
                       onClick={() => handleRemoveFromStaging(repo.full_name)}
                       className="ml-2"
+                      aria-label={`Remove ${repo.full_name} from selection`}
+                      title="Remove from selection"
                     >
                       <X className="h-4 w-4" />
                     </Button>

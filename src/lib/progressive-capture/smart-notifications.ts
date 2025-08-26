@@ -364,20 +364,35 @@ export class SmartDataNotifications {
 export function setupSmartNotifications(): void {
   // Listen for route changes to check repositories
   if (typeof window !== 'undefined') {
-    const checkCurrentRepository = () => {
+    const checkCurrentRoute = () => {
       const path = window.location.pathname;
       
       if (import.meta.env?.DEV) {
         console.log(`🔍 Route detection checking path: ${path}`);
       }
       
+      // Check for workspace routes first
+      const workspaceMatch = path.match(/^\/i\/([^\/]+)/);
+      if (workspaceMatch) {
+        const [, workspaceSlug] = workspaceMatch;
+        if (import.meta.env?.DEV) {
+          console.log(`📁 Workspace detected: ${workspaceSlug} - skipping repository detection`);
+        }
+        // Don't try to detect repositories for workspace routes
+        return;
+      }
+      
       // Match patterns like /kubernetes/kubernetes or /owner/repo/contributions
       const match = path.match(/\/([^\/]+)\/([^\/]+)(?:\/|$)/);
       
-      // Exclude non-repository routes
-      const excludedPrefixes = ['login', 'debug', 'admin', 'dev', 'api', 'auth', 'oauth'];
+      // Exclude non-repository routes using Set for better performance
+      const EXCLUDED_ROUTE_PREFIXES = new Set([
+        'login', 'debug', 'admin', 'dev', 'api', 
+        'auth', 'oauth', 'settings', 'privacy', 'terms', 
+        'changelog', 'docs', 'widgets', 'trending'
+      ]);
       
-      if (match && !excludedPrefixes.includes(match[1])) {
+      if (match && !EXCLUDED_ROUTE_PREFIXES.has(match[1])) {
         const [, owner, repo] = match;
         
         if (import.meta.env?.DEV) {
@@ -396,10 +411,10 @@ export function setupSmartNotifications(): void {
     };
 
     // Check on initial load
-    checkCurrentRepository();
+    checkCurrentRoute();
 
     // Check on navigation
-    window.addEventListener('popstate', checkCurrentRepository);
+    window.addEventListener('popstate', checkCurrentRoute);
     
     // Listen for pushstate/replacestate (React Router navigation)
     const originalPushState = history.pushState;
@@ -407,12 +422,12 @@ export function setupSmartNotifications(): void {
     
     history.pushState = function(...args) {
       originalPushState.apply(history, args);
-      setTimeout(checkCurrentRepository, 100);
+      setTimeout(checkCurrentRoute, 100);
     };
     
     history.replaceState = function(...args) {
       originalReplaceState.apply(history, args);
-      setTimeout(checkCurrentRepository, 100);
+      setTimeout(checkCurrentRoute, 100);
     };
 
     if (import.meta.env?.DEV) {

@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 import { generateWorkspaceSlug, getWorkspaceUrl } from '@/lib/workspace-utils';
+import { WORKSPACE_TIMEOUTS, WORKSPACE_ERROR_MESSAGES, WORKSPACE_STORAGE_KEYS, WORKSPACE_LIMITS } from '@/lib/workspace-config';
 
 // Extend WorkspacePreviewData to include additional fields that might be needed
 interface Workspace extends Omit<WorkspacePreviewData, 'slug'> {
@@ -20,13 +21,10 @@ interface WorkspaceContextValue {
   recentWorkspaces: string[];
   addToRecent: (id: string) => void;
   error: string | null;
+  retry: () => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined);
-
-const RECENT_WORKSPACES_KEY = 'contributor_info_recent_workspaces';
-const ACTIVE_WORKSPACE_KEY = 'contributor_info_active_workspace';
-const MAX_RECENT_WORKSPACES = 5;
 
 interface WorkspaceProviderProps {
   children: ReactNode;
@@ -34,7 +32,7 @@ interface WorkspaceProviderProps {
 
 export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const navigate = useNavigate();
-  const { workspaces: rawWorkspaces, loading: workspacesLoading } = useUserWorkspaces();
+  const { workspaces: rawWorkspaces, loading: workspacesLoading, error: workspacesError, refetch } = useUserWorkspaces();
   
   // Add slugs to workspaces
   const workspaces = rawWorkspaces.map(ws => ({
@@ -45,14 +43,14 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(() => {
     // Initialize from localStorage
     if (typeof window !== 'undefined') {
-      return localStorage.getItem(ACTIVE_WORKSPACE_KEY);
+      return localStorage.getItem(WORKSPACE_STORAGE_KEYS.ACTIVE);
     }
     return null;
   });
   const [recentWorkspaces, setRecentWorkspaces] = useState<string[]>(() => {
     // Initialize recent workspaces from localStorage
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(RECENT_WORKSPACES_KEY);
+      const stored = localStorage.getItem(WORKSPACE_STORAGE_KEYS.RECENT);
       if (stored) {
         try {
           return JSON.parse(stored);
@@ -65,6 +63,9 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasTimedOut, setHasTimedOut] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryCountRef = useRef(0);
 
   // Find active workspace from the list (support both ID and slug)
   const activeWorkspace = workspaces.find((w: Workspace) => 
@@ -74,23 +75,23 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   // Persist active workspace to localStorage
   useEffect(() => {
     if (activeWorkspaceId) {
-      localStorage.setItem(ACTIVE_WORKSPACE_KEY, activeWorkspaceId);
+      localStorage.setItem(WORKSPACE_STORAGE_KEYS.ACTIVE, activeWorkspaceId);
     } else {
-      localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
+      localStorage.removeItem(WORKSPACE_STORAGE_KEYS.ACTIVE);
     }
   }, [activeWorkspaceId]);
 
   // Persist recent workspaces to localStorage
   useEffect(() => {
-    localStorage.setItem(RECENT_WORKSPACES_KEY, JSON.stringify(recentWorkspaces));
+    localStorage.setItem(WORKSPACE_STORAGE_KEYS.RECENT, JSON.stringify(recentWorkspaces));
   }, [recentWorkspaces]);
 
   // Broadcast workspace changes across tabs
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === ACTIVE_WORKSPACE_KEY && e.newValue) {
+      if (e.key === WORKSPACE_STORAGE_KEYS.ACTIVE && e.newValue) {
         setActiveWorkspaceId(e.newValue);
-      } else if (e.key === RECENT_WORKSPACES_KEY && e.newValue) {
+      } else if (e.key === WORKSPACE_STORAGE_KEYS.RECENT && e.newValue) {
         try {
           setRecentWorkspaces(JSON.parse(e.newValue));
         } catch {
@@ -106,15 +107,53 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   // Auto-select first workspace if none selected but workspaces exist
   useEffect(() => {
     if (!activeWorkspaceId && workspaces.length > 0 && !workspacesLoading) {
+      console.log('[WorkspaceContext] Auto-selecting first workspace');
       setActiveWorkspaceId(workspaces[0].id);
     }
   }, [activeWorkspaceId, workspaces, workspacesLoading]);
+
+  // Set up loading timeout to prevent infinite loading states with proper cleanup
+  useEffect(() => {
+    if (workspacesLoading) {
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      timeoutRef.current = setTimeout(() => {
+        // Double-check if still loading to avoid race condition
+        if (workspacesLoading) {
+          console.error('[WorkspaceContext] Workspace loading timed out');
+          setHasTimedOut(true);
+        }
+      }, WORKSPACE_TIMEOUTS.CONTEXT);
+      
+      return () => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+      };
+    } else {
+      setHasTimedOut(false);
+      // Reset retry count on successful load
+      retryCountRef.current = 0;
+    }
+  }, [workspacesLoading]);
+
+  // Log workspace errors
+  useEffect(() => {
+    if (workspacesError) {
+      console.error('[WorkspaceContext] Workspace loading error:', workspacesError);
+      setError(workspacesError.message);
+    }
+  }, [workspacesError]);
 
   const addToRecent = useCallback((id: string): void => {
     setRecentWorkspaces(prev => {
       // Remove if already exists, then add to front
       const filtered = prev.filter(wId => wId !== id);
-      const newRecent = [id, ...filtered].slice(0, MAX_RECENT_WORKSPACES);
+      const newRecent = [id, ...filtered].slice(0, WORKSPACE_LIMITS.MAX_RECENT);
       return newRecent;
     });
   }, []);
@@ -127,8 +166,9 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     // Find the workspace by ID or slug
     const workspace = findWorkspace(idOrSlug);
     if (!workspace) {
-      console.error(`Workspace not found: ${idOrSlug}`);
-      setError(`Workspace not found: ${idOrSlug}`);
+      const errorMsg = WORKSPACE_ERROR_MESSAGES.NOT_FOUND(idOrSlug);
+      console.error(errorMsg);
+      setError(errorMsg);
       return;
     }
     
@@ -149,13 +189,13 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       navigate(url);
       
       // Broadcast change to other tabs via storage event
-      localStorage.setItem(ACTIVE_WORKSPACE_KEY, workspace.id);
+      localStorage.setItem(WORKSPACE_STORAGE_KEYS.ACTIVE, workspace.id);
       
       // Preload workspace data if needed (the hooks will handle this)
       // In the future, we could add preloading logic here
       
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to switch workspace';
+      const errorMessage = error instanceof Error ? error.message : WORKSPACE_ERROR_MESSAGES.SWITCH_FAILED;
       console.error('Failed to switch workspace:', errorMessage);
       setError(errorMessage);
       throw new Error(errorMessage);
@@ -164,15 +204,33 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     }
   }, [activeWorkspaceId, navigate, addToRecent, findWorkspace]);
 
+  // Add retry functionality
+  const retry = useCallback(() => {
+    if (retryCountRef.current >= WORKSPACE_TIMEOUTS.MAX_RETRIES) {
+      setError(WORKSPACE_ERROR_MESSAGES.GENERIC);
+      return;
+    }
+    
+    retryCountRef.current += 1;
+    setError(null);
+    setHasTimedOut(false);
+    
+    // Trigger refetch if available
+    if (refetch) {
+      refetch();
+    }
+  }, [refetch]);
+
   const value: WorkspaceContextValue = {
     activeWorkspace,
     workspaces: workspaces as Workspace[],
     switchWorkspace,
     findWorkspace,
-    isLoading: isLoading || workspacesLoading,
+    isLoading: isLoading || (workspacesLoading && !hasTimedOut),
     recentWorkspaces,
     addToRecent,
-    error,
+    error: error || (hasTimedOut ? WORKSPACE_ERROR_MESSAGES.TIMEOUT : null),
+    retry,
   };
 
   return (

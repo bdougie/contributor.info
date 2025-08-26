@@ -1,19 +1,9 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Lock, Loader2, AlertCircle } from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
-import {
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell
-} from 'recharts';
 
 interface RepositoryTrackingCardProps {
   owner: string;
@@ -32,24 +22,6 @@ export function RepositoryTrackingCard({
   const [isTracking, setIsTracking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Generate mock scatter plot data
-  const mockData = useMemo(() => {
-    const data = [];
-    const contributors = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank'];
-    
-    // Generate 30 mock PR data points
-    for (let i = 0; i < 30; i++) {
-      data.push({
-        x: Math.floor(Math.random() * 30), // Days ago
-        y: Math.floor(Math.random() * 200) + 10, // Lines changed
-        contributor: contributors[Math.floor(Math.random() * contributors.length)],
-        opacity: 0.3 + Math.random() * 0.4 // Varying opacity for blur effect
-      });
-    }
-    
-    return data.sort((a, b) => a.x - b.x);
-  }, []);
 
   const handleLogin = async () => {
     // Store the repository path so we can auto-track after login
@@ -205,58 +177,61 @@ export function RepositoryTrackingCard({
         <div className="space-y-1">
           <h2 className="text-xl font-semibold">{owner}/{repo}</h2>
           <p className="text-sm text-muted-foreground">
-            Track this repository to get analysis of recent pull requests
+            This repository hasn't been tracked yet
           </p>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Mock scatter plot with blur effect */}
-        <div className="relative h-[200px] w-full">
-          {/* Blur overlay */}
-          <div className="absolute inset-0 backdrop-blur-[1px] bg-background/10 z-10 rounded-lg" />
+      <CardContent className="space-y-6">
+        {/* Primary Call-to-Action section */}
+        <div className="text-center py-8">
+          <BarChart3 className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-2">Start tracking this repository</h3>
+          <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+            Unlock contributor analytics, PR visualizations, and community health metrics. 
+            We'll analyze the repository and provide insights into contribution patterns.
+          </p>
           
-          {/* Mock chart */}
-          <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart
-              margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis 
-                dataKey="x" 
-                domain={[0, 30]}
-                ticks={[0, 7, 14, 21, 30]}
-                tickFormatter={(value) => `${value}d`}
-                className="text-xs"
-                stroke="currentColor"
-                opacity={0.5}
-              />
-              <YAxis 
-                dataKey="y"
-                domain={[0, 250]}
-                className="text-xs"
-                stroke="currentColor"
-                opacity={0.5}
-                label={{ value: 'Lines', angle: -90, position: 'insideLeft', className: 'text-xs' }}
-              />
-              <Tooltip 
-                content={() => null} // Hide tooltip for mock data
-              />
-              <Scatter 
-                data={mockData} 
-                fill="#3b82f6"
+          {/* Primary tracking button - more prominent placement */}
+          <div className="flex justify-center mb-3">
+            {!isLoggedIn ? (
+              <Button 
+                onClick={handleLogin}
+                size="lg"
+                variant="default"
+                className="bg-orange-500 hover:bg-orange-600 text-white"
               >
-                {mockData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill="#3b82f6" 
-                    fillOpacity={entry.opacity}
-                  />
-                ))}
-              </Scatter>
-            </ScatterChart>
-          </ResponsiveContainer>
+                <Lock className="mr-2 h-4 w-4" />
+                Login to Track Repository
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleTrackRepository}
+                disabled={isTracking}
+                size="lg"
+                variant="default"
+                className="bg-orange-500 hover:bg-orange-600 text-white disabled:bg-orange-300"
+              >
+                {isTracking ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Setting up tracking...
+                  </>
+                ) : (
+                  <>
+                    <BarChart3 className="mr-2 h-4 w-4" />
+                    Track This Repository
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+          
+          <p className="text-xs text-muted-foreground">
+            Setup takes 1-2 minutes • Data refreshes automatically
+          </p>
         </div>
 
+        {/* Error display */}
         {error && (
           <div className="space-y-2">
             <div className="flex items-start gap-2 text-sm text-destructive">
@@ -264,7 +239,7 @@ export function RepositoryTrackingCard({
               <span>{error}</span>
             </div>
             {error.includes('longer than expected') && (
-              <div className="flex gap-2">
+              <div className="flex gap-2 justify-center">
                 <Button
                   size="sm"
                   variant="outline"
@@ -287,54 +262,6 @@ export function RepositoryTrackingCard({
           </div>
         )}
 
-        {/* Tracking prompt box similar to "Need complete data faster?" */}
-        <div className="p-4 rounded-lg border bg-black dark:bg-white">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-white dark:text-black">
-                Start tracking <strong>{owner}/{repo}</strong>
-              </p>
-              <p className="text-xs text-white/70 dark:text-black/70 mt-1">
-                Get contributor analytics, PR visualizations, and community health metrics. 
-                We'll analyze the repository and provide insights into contribution patterns.
-              </p>
-              <p className="text-xs text-white/60 dark:text-black/60 mt-2">
-                Takes 1-2 minutes
-              </p>
-            </div>
-            <div className="flex flex-col items-center sm:items-end">
-              {!isLoggedIn ? (
-                <Button 
-                  onClick={handleLogin}
-                  variant="default"
-                  className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto"
-                >
-                  <Lock className="mr-2 h-4 w-4" />
-                  Login to Track
-                </Button>
-              ) : (
-                <Button 
-                  onClick={handleTrackRepository}
-                  disabled={isTracking}
-                  variant="default"
-                  className="bg-orange-500 hover:bg-orange-600 text-white disabled:bg-orange-300 w-full sm:w-auto"
-                >
-                  {isTracking ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Tracking...
-                    </>
-                  ) : (
-                    <>
-                      <BarChart3 className="mr-2 h-4 w-4" />
-                      Track This Repo
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

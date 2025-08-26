@@ -318,7 +318,7 @@ async function postReview(
       body = '**✅ Review Complete**\n\n';
     }
     body += review;
-    body += `\n\n---\n*${timestamp} | Powered by [Continue](https://continue.dev)*`;
+    body += `\n\n---\n<!-- ${timestamp} | Powered by Continue (https://continue.dev) -->`;
   }
   
   body = `${marker}\n${body}`;

@@ -1,6 +1,7 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import { WorkspacePullRequestsTable, type PullRequest } from '@/components/features/workspace/WorkspacePullRequestsTable';
@@ -28,6 +29,7 @@ import {
 import { TimeRangeSelector, type TimeRange } from '@/components/features/workspace/TimeRangeSelector';
 import type { WorkspaceMetrics, WorkspaceTrendData, Repository, ActivityDataPoint } from '@/components/features/workspace';
 import type { Workspace } from '@/types/workspace';
+import { WorkspaceService } from '@/services/workspace.service';
 
 interface WorkspaceRepository {
   id: string;
@@ -45,6 +47,7 @@ interface WorkspaceRepository {
   };
 }
 
+
 interface MergedPR {
   merged_at: string;
   additions: number;
@@ -54,19 +57,34 @@ interface MergedPR {
 }
 
 // Generate mock metrics for now
-const generateMockMetrics = (repos: Repository[]): WorkspaceMetrics => {
+const generateMockMetrics = (repos: Repository[], timeRange: TimeRange): WorkspaceMetrics => {
   const totalStars = repos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
   const totalContributors = repos.reduce((sum, repo) => sum + (repo.contributors || 0), 0);
+  
+  // Generate time-range aware trend percentages
+  // Shorter time ranges typically show more volatile changes
+  const getTimeRangeMultiplier = (range: TimeRange): number => {
+    switch (range) {
+      case '7d': return 1.0;    // More volatile for 7 days
+      case '30d': return 0.7;   // Moderate for 30 days  
+      case '90d': return 0.5;   // Less volatile for 90 days
+      case '1y': return 0.3;    // Even less for 1 year
+      case 'all': return 0.2;   // Least volatile for all time
+      default: return 0.7;
+    }
+  };
+  
+  const multiplier = getTimeRangeMultiplier(timeRange);
   
   return {
     totalStars,
     totalPRs: Math.floor(Math.random() * 500) + 100,
     totalContributors,
     totalCommits: Math.floor(Math.random() * 10000) + 1000,
-    starsTrend: (Math.random() - 0.5) * 20,
-    prsTrend: (Math.random() - 0.5) * 15,
-    contributorsTrend: (Math.random() - 0.5) * 10,
-    commitsTrend: (Math.random() - 0.5) * 25,
+    starsTrend: (Math.random() - 0.5) * 20 * multiplier,
+    prsTrend: (Math.random() - 0.5) * 15 * multiplier,
+    contributorsTrend: (Math.random() - 0.5) * 10 * multiplier,
+    commitsTrend: (Math.random() - 0.5) * 25 * multiplier,
   };
 };
 
@@ -223,24 +241,53 @@ function WorkspacePRs({ repositories, selectedRepositories }: { repositories: Re
           setPullRequests([]);
         } else {
           // Transform data to match PullRequest interface
-          const transformedPRs: PullRequest[] = (data || []).map(pr => ({
+          // Note: Supabase returns single objects for relationships when using !inner
+          type PRData = {
+            id: string;
+            github_id: number;
+            number: number;
+            title: string;
+            state: string;
+            created_at: string;
+            updated_at: string;
+            closed_at: string | null;
+            merged_at: string | null;
+            additions: number | null;
+            deletions: number | null;
+            changed_files: number | null;
+            commits: number | null;
+            html_url: string;
+            repository_id: string;
+            repositories?: {
+              id: string;
+              name: string;
+              owner: string;
+              full_name: string;
+            };
+            contributors?: {
+              username: string;
+              avatar_url: string;
+            };
+          };
+          
+          const transformedPRs: PullRequest[] = ((data || []) as unknown as PRData[]).map((pr) => ({
             id: pr.id,
             number: pr.number,
             title: pr.title,
             state: pr.merged_at ? 'merged' : pr.state === 'closed' ? 'closed' : 'open',
             repository: {
-              name: (pr.repositories as any)?.name || 'unknown',
-              owner: (pr.repositories as any)?.owner || 'unknown',
-              avatar_url: `https://avatars.githubusercontent.com/${(pr.repositories as any)?.owner || 'unknown'}`,
+              name: pr.repositories?.name || 'unknown',
+              owner: pr.repositories?.owner || 'unknown',
+              avatar_url: `https://avatars.githubusercontent.com/${pr.repositories?.owner || 'unknown'}`,
             },
             author: {
-              username: (pr.contributors as any)?.username || 'unknown',
-              avatar_url: (pr.contributors as any)?.avatar_url || '',
+              username: pr.contributors?.username || 'unknown',
+              avatar_url: pr.contributors?.avatar_url || '',
             },
             created_at: pr.created_at,
             updated_at: pr.updated_at,
-            closed_at: pr.closed_at,
-            merged_at: pr.merged_at,
+            closed_at: pr.closed_at || undefined,
+            merged_at: pr.merged_at || undefined,
             comments_count: 0, // We don't have this data yet
             commits_count: pr.commits || 0,
             additions: pr.additions || 0,
@@ -281,10 +328,18 @@ function WorkspacePRs({ repositories, selectedRepositories }: { repositories: Re
   );
 }
 
+// Type definitions for Issue labels
+interface IssueLabel {
+  name: string;
+  color: string;
+  id?: number;
+}
+
 // Issues tab component
 function WorkspaceIssues({ repositories, selectedRepositories }: { repositories: Repository[], selectedRepositories: string[] }) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -302,6 +357,8 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
           : repositories;
         
         const repoIds = filteredRepos.map(r => r.id);
+        
+        // Fetch issues with count for potential future pagination
         const { data, error } = await supabase
           .from('issues')
           .select(`
@@ -309,13 +366,15 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
             github_id,
             number,
             title,
+            body,
             state,
             created_at,
             updated_at,
             closed_at,
-            html_url,
+            labels,
+            comments_count,
             repository_id,
-            repositories!inner(
+            repositories(
               id,
               name,
               owner,
@@ -325,36 +384,75 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
               username,
               avatar_url
             )
-          `)
+          `, { count: 'exact' })
           .in('repository_id', repoIds)
           .order('updated_at', { ascending: false })
-          .limit(100);
+          .range(0, 99); // Fetch first 100 issues (0-indexed)
 
         if (error) {
-          console.error('Error fetching issues:', error);
+          console.error('Failed to fetch workspace issues:', {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+          });
+          // Improved error handling with user-friendly message
+          setError('Failed to load issues. Please try again later.');
           setIssues([]);
         } else {
           // Transform data to match Issue interface
-          const transformedIssues: Issue[] = (data || []).map(issue => ({
+          interface IssueQueryResult {
+            id: string;
+            github_id: number;
+            number: number;
+            title: string;
+            body: string | null;
+            state: string;
+            created_at: string;
+            updated_at: string;
+            closed_at: string | null;
+            labels: IssueLabel[] | null;
+            comments_count: number | null;
+            repository_id: string;
+            repositories?: {
+              id: string;
+              name: string;
+              owner: string;
+              full_name: string;
+            };
+            contributors?: {
+              username: string;
+              avatar_url: string;
+            };
+          }
+          
+          const transformedIssues: Issue[] = ((data || []) as unknown as IssueQueryResult[]).map((issue) => ({
             id: issue.id,
             number: issue.number,
             title: issue.title,
             state: issue.state as 'open' | 'closed',
             repository: {
-              name: (issue.repositories as any)?.name || 'unknown',
-              owner: (issue.repositories as any)?.owner || 'unknown',
-              avatar_url: `https://avatars.githubusercontent.com/${(issue.repositories as any)?.owner || 'unknown'}`,
+              name: issue.repositories?.name || 'unknown',
+              owner: issue.repositories?.owner || 'unknown',
+              avatar_url: `https://avatars.githubusercontent.com/${issue.repositories?.owner || 'unknown'}`,
             },
             author: {
-              username: (issue.contributors as any)?.username || 'unknown',
-              avatar_url: (issue.contributors as any)?.avatar_url || '',
+              username: issue.contributors?.username || 'unknown',
+              avatar_url: issue.contributors?.avatar_url || '',
             },
             created_at: issue.created_at,
             updated_at: issue.updated_at,
-            closed_at: issue.closed_at,
-            comments_count: 0, // We don't have this data yet
-            labels: [], // We don't have this data yet
-            url: issue.html_url,
+            closed_at: issue.closed_at || undefined,
+            comments_count: issue.comments_count || 0,
+            labels: Array.isArray(issue.labels) 
+              ? (issue.labels as IssueLabel[]).map(label => ({
+                  name: label.name,
+                  color: label.color || '000000'
+                })).filter(l => l.name) // Filter out labels without names
+              : [],
+            // Improved URL construction with validation
+            url: issue.repositories?.full_name && issue.number
+              ? `https://github.com/${issue.repositories.full_name}/issues/${issue.number}`
+              : '', // Empty string when repository data is missing to prevent broken links
           }));
           setIssues(transformedIssues);
         }
@@ -370,12 +468,31 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
   }, [repositories, selectedRepositories]);
 
   const handleIssueClick = (issue: Issue) => {
-    window.open(issue.url, '_blank');
+    // Only open if URL exists
+    if (issue.url) {
+      window.open(issue.url, '_blank');
+    }
   };
 
   const handleRepositoryClick = (owner: string, name: string) => {
     navigate(`/${owner}/${name}`);
   };
+
+  // Display error message if there's an error
+  if (error) {
+    return (
+      <div className="container max-w-7xl mx-auto p-6">
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Error Loading Issues</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>{error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <WorkspaceIssuesTable
@@ -387,8 +504,7 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
   );
 }
 
-function WorkspaceContributors({ repositories, selectedRepositories }: { repositories: Repository[]; selectedRepositories: string[] }) {
-  const { workspaceId } = useParams<{ workspaceId: string }>();
+function WorkspaceContributors({ repositories, selectedRepositories, workspaceId }: { repositories: Repository[]; selectedRepositories: string[]; workspaceId: string }) {
   const navigate = useNavigate();
   const [showAddContributors, setShowAddContributors] = useState(false);
   const [selectedContributorsToAdd, setSelectedContributorsToAdd] = useState<string[]>([]);
@@ -405,7 +521,7 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
     addContributorsToWorkspace,
     removeContributorFromWorkspace,
   } = useWorkspaceContributors({
-    workspaceId: workspaceId!,
+    workspaceId: workspaceId,
     repositories,
     selectedRepositories,
   });
@@ -1068,6 +1184,8 @@ export default function WorkspacePage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [selectedRepositories, setSelectedRepositories] = useState<string[]>([]);
   const [addRepositoryModalOpen, setAddRepositoryModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
 
   // Determine active tab from URL
   const pathSegments = location.pathname.split('/');
@@ -1082,13 +1200,27 @@ export default function WorkspacePage() {
       }
 
       try {
-        // Fetch workspace details
-        const { data: workspaceData, error: wsError } = await supabase
-          .from('workspaces')
-          .select('*')
-          .eq('id', workspaceId)
-          .eq('is_active', true)
-          .single();
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        setCurrentUser(user);
+
+        // Check if workspaceId is a UUID or a slug
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workspaceId);
+        
+        // Fetch workspace details using either id or slug
+        const { data: workspaceData, error: wsError } = isUUID 
+          ? await supabase
+              .from('workspaces')
+              .select('*')
+              .eq('is_active', true)
+              .eq('id', workspaceId)
+              .single()
+          : await supabase
+              .from('workspaces')
+              .select('*')
+              .eq('is_active', true)
+              .eq('slug', workspaceId)
+              .single();
 
         if (wsError || !workspaceData) {
           setError('Workspace not found');
@@ -1096,7 +1228,14 @@ export default function WorkspacePage() {
           return;
         }
 
-        // Fetch repositories with their details
+        // Check if current user is the workspace owner
+        if (user && workspaceData.owner_id === user.id) {
+          setIsWorkspaceOwner(true);
+        } else {
+          setIsWorkspaceOwner(false);
+        }
+
+        // Fetch repositories with their details (use the actual workspace ID)
         const { data: repoData, error: repoError } = await supabase
           .from('workspace_repositories')
           .select(`
@@ -1113,7 +1252,7 @@ export default function WorkspacePage() {
               open_issues_count
             )
           `)
-          .eq('workspace_id', workspaceId);
+          .eq('workspace_id', workspaceData.id);
 
         if (repoError) {
           console.error('Error fetching repositories:', repoError);
@@ -1168,7 +1307,7 @@ export default function WorkspacePage() {
           '1y': 365,
           'all': 730
         };
-        const mockMetrics = generateMockMetrics(transformedRepos);
+        const mockMetrics = generateMockMetrics(transformedRepos, timeRange);
         const mockTrendData = generateMockTrendData(timeRangeDays[timeRange]);
         const activityDataPoints = generateActivityDataFromPRs(mergedPRs);
         
@@ -1217,13 +1356,31 @@ export default function WorkspacePage() {
     );
   }
 
-  const handleAddRepository = () => {
+  const handleAddRepository = async () => {
+    // Check if user is logged in first
+    if (!currentUser) {
+      // Trigger GitHub OAuth flow
+      const redirectTo = window.location.origin + window.location.pathname;
+      const { error: signInError } = await supabase.auth.signInWithOAuth({
+        provider: "github",
+        options: {
+          redirectTo: redirectTo,
+          scopes: "read:user user:email public_repo"
+        }
+      });
+      
+      if (signInError) {
+        toast.error('Failed to initiate sign in');
+        console.error('Auth error:', signInError);
+      }
+      return;
+    }
     setAddRepositoryModalOpen(true);
   };
 
   const handleAddRepositorySuccess = async () => {
     // Refresh the repositories list after adding
-    if (!workspaceId) return;
+    if (!workspace) return;
 
     try {
       // Fetch repositories with their details
@@ -1243,7 +1400,7 @@ export default function WorkspacePage() {
             open_issues_count
           )
         `)
-        .eq('workspace_id', workspaceId);
+        .eq('workspace_id', workspace.id);
 
       if (!repoError && repoData) {
         const formattedRepos: Repository[] = repoData
@@ -1270,12 +1427,44 @@ export default function WorkspacePage() {
         setSelectedRepositories(formattedRepos.map(r => r.id));
         
         // Update metrics with new repository data
-        const newMetrics = generateMockMetrics(formattedRepos);
+        const newMetrics = generateMockMetrics(formattedRepos, timeRange);
         setMetrics(newMetrics);
       }
     } catch (error) {
       console.error('Error refreshing repositories:', error);
       toast.error('Failed to refresh repositories');
+    }
+  };
+
+  const handleRemoveRepository = async (repo: Repository) => {
+    if (!workspace || !currentUser) return;
+
+    try {
+      const result = await WorkspaceService.removeRepositoryFromWorkspace(
+        workspace.id,
+        currentUser.id,
+        repo.id
+      );
+
+      if (result.success) {
+        // Remove the repository from the local state immediately
+        setRepositories(prev => prev.filter(r => r.id !== repo.id));
+        
+        // Also remove from selected repositories if it was selected
+        setSelectedRepositories(prev => prev.filter(id => id !== repo.id));
+        
+        // Update metrics after removing repository
+        const updatedRepos = repositories.filter(r => r.id !== repo.id);
+        const newMetrics = generateMockMetrics(updatedRepos, timeRange);
+        setMetrics(newMetrics);
+        
+        toast.success('Repository removed from workspace');
+      } else {
+        toast.error(result.error || 'Failed to remove repository');
+      }
+    } catch (error) {
+      console.error('Error removing repository:', error);
+      toast.error('Failed to remove repository from workspace');
     }
   };
 
@@ -1330,14 +1519,6 @@ export default function WorkspacePage() {
                 className="w-[200px]"
               />
               <Button
-                onClick={handleAddRepository}
-                size="sm"
-                variant="outline"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Repository
-              </Button>
-              <Button
                 onClick={handleSettingsClick}
                 size="sm"
                 variant="outline"
@@ -1391,7 +1572,9 @@ export default function WorkspacePage() {
             activityData={activityData}
             repositories={repositories}
             tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
-            onAddRepository={handleAddRepository}
+            timeRange={timeRange}
+            onAddRepository={isWorkspaceOwner ? handleAddRepository : undefined}
+            onRemoveRepository={isWorkspaceOwner ? handleRemoveRepository : undefined}
             onRepositoryClick={handleRepositoryClick}
             onSettingsClick={handleSettingsClick}
             onUpgradeClick={handleUpgradeClick}
@@ -1408,7 +1591,7 @@ export default function WorkspacePage() {
         </TabsContent>
 
         <TabsContent value="contributors" className="mt-6">
-          <WorkspaceContributors repositories={repositories} selectedRepositories={selectedRepositories} />
+          <WorkspaceContributors repositories={repositories} selectedRepositories={selectedRepositories} workspaceId={workspace.id} />
         </TabsContent>
 
         <TabsContent value="activity" className="mt-6">
@@ -1453,11 +1636,11 @@ export default function WorkspacePage() {
       )}
       
       {/* Add Repository Modal */}
-      {workspaceId && (
+      {workspace && (
         <AddRepositoryModal
           open={addRepositoryModalOpen}
           onOpenChange={setAddRepositoryModalOpen}
-          workspaceId={workspaceId}
+          workspaceId={workspace.id}
           onSuccess={handleAddRepositorySuccess}
         />
       )}

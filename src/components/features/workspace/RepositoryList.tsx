@@ -23,7 +23,7 @@ import {
   ExternalLink,
   Target,
   MoreHorizontal,
-  Plus,
+  Settings,
 } from "@/components/ui/icon";
 import {
   DropdownMenu,
@@ -389,8 +389,9 @@ export function RepositoryList({
                 variant="outline"
                 onClick={onAddRepository}
                 className="h-7"
+                title="Manage repositories"
               >
-                <Plus className="h-3 w-3" />
+                <Settings className="h-3 w-3" />
               </Button>
             )}
           </div>
