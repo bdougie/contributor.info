@@ -72,7 +72,9 @@ async function fetchPRDetailsFromGitHub(owner, name, prNumber, retries = 3) {
         throw new Error(`GitHub API error: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      return response.json();
+      // Await JSON parsing to catch potential parse errors in this try-catch
+      const data = await response.json();
+      return data;
     } catch (error) {
       if (attempt === retries) {
         throw error;
