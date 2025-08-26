@@ -163,7 +163,7 @@ export class SmartCommitAnalyzer {
    * Process a commit analysis job from the queue
    */
   async processCommitAnalysisJob(
-    job: { repository_id: string; resource_id: string; meta_data: any },
+    job: { repository_id: string; resource_id: string; meta_data: Record<string, unknown> | null },
     repoInfo: { owner: string; name: string },
   ): Promise<void> {
     const commitSha = job.resource_id;

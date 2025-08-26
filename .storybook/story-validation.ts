@@ -32,7 +32,7 @@ export const defaultValidationConfig: StoryValidationConfig = {
 /**
  * Validates story structure and configuration
  */
-export function validateStory(storyExports: any, config: StoryValidationConfig = defaultValidationConfig): {
+export function validateStory(storyExports: Record<string, unknown>, config: StoryValidationConfig = defaultValidationConfig): {
   isValid: boolean;
   errors: string[];
   warnings: string[];
@@ -134,7 +134,7 @@ export function validateStory(storyExports: any, config: StoryValidationConfig =
 /**
  * Validates story accessibility requirements
  */
-export function validateAccessibility(storyExports: any): {
+export function validateAccessibility(storyExports: Record<string, unknown>): {
   isValid: boolean;
   errors: string[];
   warnings: string[];
@@ -174,7 +174,7 @@ export function validateAccessibility(storyExports: any): {
 /**
  * Validates story performance considerations
  */
-export function validatePerformance(storyExports: any): {
+export function validatePerformance(storyExports: Record<string, unknown>): {
   isValid: boolean;
   errors: string[];
   warnings: string[];
@@ -210,7 +210,7 @@ export function validatePerformance(storyExports: any): {
 /**
  * Comprehensive story validation
  */
-export function validateStoryFile(storyExports: any, config: StoryValidationConfig = defaultValidationConfig) {
+export function validateStoryFile(storyExports: Record<string, unknown>, config: StoryValidationConfig = defaultValidationConfig) {
   const structureValidation = validateStory(storyExports, config);
   const accessibilityValidation = validateAccessibility(storyExports);
   const performanceValidation = validatePerformance(storyExports);
@@ -230,7 +230,7 @@ export function validateStoryFile(storyExports: any, config: StoryValidationConf
 /**
  * Story quality scoring
  */
-export function scoreStoryQuality(storyExports: any): {
+export function scoreStoryQuality(storyExports: Record<string, unknown>): {
   score: number; // 0-100
   breakdown: {
     structure: number;

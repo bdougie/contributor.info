@@ -27,6 +27,32 @@ export interface SyncResult {
   message?: string;
 }
 
+interface RepositorySyncPayload {
+  owner: string;
+  name: string;
+  fullSync?: boolean;
+  daysLimit?: number;
+  prNumbers?: number[];
+  forceSupabase?: boolean;
+  forceNetlify?: boolean;
+  cursor?: string;
+}
+
+interface PRBatchPayload {
+  repository: string;
+  prNumbers: number[];
+  fullSync?: boolean;
+  daysLimit?: number;
+  forceSupabase?: boolean;
+  forceNetlify?: boolean;
+}
+
+interface NetlifyFunctionPayload {
+  action: string;
+  repository: string;
+  options: SyncOptions;
+}
+
 // Known large repositories that need Supabase Edge Functions
 const LARGE_REPOS = new Set([
   'pytorch/pytorch',
@@ -224,7 +250,7 @@ export class SyncService {
 
   private static async callSupabaseFunction(
     functionName: string,
-    payload: any,
+    payload: RepositorySyncPayload | PRBatchPayload,
   ): Promise<SyncResult> {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       console.warn('Supabase functions not configured. This is expected in deploy previews.');
@@ -271,7 +297,7 @@ export class SyncService {
 
   private static async callNetlifyFunction(
     functionName: string,
-    payload: any,
+    payload: NetlifyFunctionPayload,
   ): Promise<SyncResult> {
     const response = await fetch(`/.netlify/functions/${functionName}`, {
       method: 'POST',

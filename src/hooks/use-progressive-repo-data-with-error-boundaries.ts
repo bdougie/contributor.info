@@ -532,7 +532,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
 function createGenericLoadingError(
   error: unknown,
   stage: LoadingStage,
-  context?: any,
+  context?: Record<string, unknown>,
 ): LoadingError {
   const message = error instanceof Error ? error.message : String(error);
 

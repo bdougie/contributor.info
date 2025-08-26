@@ -5,9 +5,29 @@
 
 import { env } from './env';
 
+// PostHog types
+interface PostHogInstance {
+  init: (apiKey: string, config: unknown) => void;
+  identify: (distinctId: string) => void;
+  capture: (eventName: string, properties?: Record<string, unknown>) => void;
+  people: {
+    set: (properties: Record<string, unknown>) => void;
+  };
+  opt_out_capturing: () => void;
+  opt_in_capturing: () => void;
+}
+
+// Navigator extensions for performance data
+interface ExtendedNavigator extends Navigator {
+  connection?: {
+    effectiveType: string;
+  };
+  deviceMemory?: number;
+}
+
 // PostHog instance cache
-let posthogInstance: unknown = null;
-let posthogLoadPromise: Promise<any> | null = null;
+let posthogInstance: PostHogInstance | null = null;
+let posthogLoadPromise: Promise<PostHogInstance | null> | null = null;
 
 // Rate limiting for events
 const rateLimiter = {
@@ -125,7 +145,7 @@ function shouldEnablePostHog(): boolean {
 /**
  * Lazy load PostHog library
  */
-async function loadPostHog(): Promise<any> {
+async function loadPostHog(): Promise<PostHogInstance | null> {
   if (!shouldEnablePostHog()) {
     return null;
   }
@@ -154,7 +174,7 @@ async function loadPostHog(): Promise<any> {
       return posthog;
     })
     .catch((error) => {
-      console.error(, error);
+      console.error('[PostHog] Error loading PostHog:', error);
       posthogLoadPromise = null; // Reset so we can retry
       return null;
     });
@@ -210,8 +230,8 @@ export async function trackWebVitals(metrics: {
       page_url: window.location.href,
       page_path: window.location.pathname,
       // Performance context
-      connection_type: (navigator as any).connection?.effectiveType,
-      device_memory: (navigator as any).deviceMemory,
+      connection_type: (navigator as ExtendedNavigator).connection?.effectiveType,
+      device_memory: (navigator as ExtendedNavigator).deviceMemory,
       hardware_concurrency: navigator.hardwareConcurrency,
       // Timestamp
       timestamp: new Date().toISOString(),
@@ -226,7 +246,7 @@ export async function trackWebVitals(metrics: {
   } catch (error) {
     // Silently fail - we don't want tracking errors to impact the app
     if (env.DEV) {
-      console.error(, error);
+      console.error('[PostHog] Error tracking web vitals:', error);
     }
   }
 }
@@ -260,7 +280,7 @@ export async function trackPerformanceMetric(
     });
   } catch (error) {
     if (env.DEV) {
-      console.error(, error);
+      console.error('[PostHog] Error tracking performance metric:', error);
     }
   }
 }
@@ -309,7 +329,7 @@ export async function batchTrackWebVitals(
     posthog.capture('web_vitals_batch', summary);
   } catch (error) {
     if (env.DEV) {
-      console.error(, error);
+      console.error('[PostHog] Error batch tracking web vitals:', error);
     }
   }
 }
@@ -357,7 +377,7 @@ export async function optInToPostHog(): Promise<void> {
 /**
  * Get PostHog instance (if loaded)
  */
-export function getPostHogInstance(): any {
+export function getPostHogInstance(): PostHogInstance | null {
   return posthogInstance;
 }
 

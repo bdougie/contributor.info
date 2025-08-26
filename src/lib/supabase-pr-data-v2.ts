@@ -21,6 +21,65 @@ interface TrackedRepositoryInfo {
   size_calculated_at: string | null;
 }
 
+interface DatabasePullRequest {
+  id: string;
+  github_id: number;
+  number: number;
+  title: string;
+  body: string | null;
+  state: string;
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+  merged_at: string | null;
+  merged: boolean;
+  base_branch: string;
+  head_branch: string;
+  additions: number | null;
+  deletions: number | null;
+  changed_files: number | null;
+  commits: number | null;
+  html_url: string;
+  repository_id: string;
+  author_id: string;
+  contributors?: {
+    github_id: number;
+    username: string;
+    avatar_url: string;
+    is_bot: boolean;
+  };
+  reviews?: DatabaseReview[];
+  comments?: DatabaseComment[];
+}
+
+interface DatabaseReview {
+  id: string;
+  github_id: number;
+  state: string;
+  body: string | null;
+  submitted_at: string;
+  contributors?: {
+    github_id: number;
+    username: string;
+    avatar_url: string;
+    is_bot: boolean;
+  };
+}
+
+interface DatabaseComment {
+  id: string;
+  github_id: number;
+  body: string | null;
+  created_at: string;
+  comment_type: string;
+  contributors?: {
+    github_id: number;
+    username: string;
+    avatar_url: string;
+    is_bot: boolean;
+  };
+}
+
 /**
  * Smart PR data fetching with size-based strategies
  * No hardcoded protection - all repositories are accessible with appropriate limits
@@ -45,7 +104,7 @@ export async function fetchPRDataWithSmartStrategy(
           .select('id, repository_id, size, priority, size_calculated_at')
           .eq('organization_name', owner)
           .eq('repository_name', repo)
-          .maybeSingle()) as { data: TrackedRepositoryInfo | null; error: any };
+          .maybeSingle()) as { data: TrackedRepositoryInfo | null; error: Error | null };
 
         // Get repository ID (fallback to repositories table if not tracked)
         let repositoryId: string | null = null;
@@ -389,8 +448,8 @@ export async function fetchPRDataWithSmartStrategy(
 /**
  * Transform database PR records to PullRequest format
  */
-function transformDatabasePRs(dbPRs: unknown[], owner: string, repo: string): PullRequest[] {
-  return dbPRs.map((dbPR: unknown) => ({
+function transformDatabasePRs(dbPRs: DatabasePullRequest[], owner: string, repo: string): PullRequest[] {
+  return dbPRs.map((dbPR: DatabasePullRequest) => ({
     id: dbPR.github_id,
     number: dbPR.number,
     title: dbPR.title,
@@ -420,7 +479,7 @@ function transformDatabasePRs(dbPRs: unknown[], owner: string, repo: string): Pu
     html_url: dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
     repository_owner: owner,
     repository_name: repo,
-    reviews: (dbPR.reviews || []).map((review: unknown) => ({
+    reviews: (dbPR.reviews || []).map((review: DatabaseReview) => ({
       id: review.github_id,
       state: review.state,
       body: review.body,
@@ -430,7 +489,7 @@ function transformDatabasePRs(dbPRs: unknown[], owner: string, repo: string): Pu
         avatar_url: review.contributors?.avatar_url || '',
       },
     })),
-    comments: (dbPR.comments || []).map((comment: unknown) => ({
+    comments: (dbPR.comments || []).map((comment: DatabaseComment) => ({
       id: comment.github_id,
       body: comment.body,
       created_at: comment.created_at,

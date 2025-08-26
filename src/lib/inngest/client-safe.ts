@@ -100,7 +100,7 @@ function recordFailure(endpointName: string): void {
  * @param event - The event to send with name and data
  * @returns Promise that resolves when the event is sent
  */
-export async function sendInngestEvent<T extends { name: string; data: any }>(
+export async function sendInngestEvent<T extends { name: string; data: Record<string, unknown> }>(
   event: T,
 ): Promise<{ ids?: string[] }> {
   // In browser context, use the API endpoint

@@ -22,6 +22,18 @@ interface DistributionTreemapEnhancedProps {
   onNodeClick?: (nodeId: string) => void;
 }
 
+interface TooltipPayload {
+  id?: string;
+  name?: string;
+  login?: string;
+  value?: number;
+  language?: string;
+  languageColor?: string;
+  title?: string;
+  pr?: PullRequest;
+  prs?: PullRequest[];
+}
+
 const COLORS = {
   refinement: '#4ade80',
   new: '#60a5fa',
@@ -492,7 +504,7 @@ export function DistributionTreemapEnhanced({
     payload,
   }: {
     active?: boolean;
-    payload?: Array<{ payload: any }>;
+    payload?: Array<{ payload: TooltipPayload }>;
   }) => {
     if (active && payload && payload[0]) {
       const _ = payload[0].payload;

@@ -53,7 +53,7 @@ const mockClient = {
     }),
     rpc: () => Promise.resolve({ data: null, error: null })
   }),
-  rpc: (functionName: string, params?: any) => {
+  rpc: (functionName: string, params?: Record<string, unknown>) => {
     // Mock responses for specific RPC calls
     if (functionName === 'calculate_self_selection_rate') {
       return Promise.resolve({

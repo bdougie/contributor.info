@@ -13,7 +13,7 @@ export const useSearchParams = () => {
 };
 
 export const useNavigate = () => {
-  return (to: string | number, options?: any) => {
+  return (to: string | number, options?: { replace?: boolean; state?: unknown }) => {
     console.log('Storybook: navigate called with:', to, options);
   };
 };
@@ -40,11 +40,11 @@ export const MemoryRouter = ({ children }: { children: React.ReactNode }) => {
   return children;
 };
 
-export const Link = ({ children, to, ...props }: { children: React.ReactNode; to: string; [key: string]: any }) => {
+export const Link = ({ children, to, ...props }: { children: React.ReactNode; to: string; [key: string]: unknown }) => {
   return React.createElement('a', { href: to, ...props }, children);
 };
 
-export const NavLink = ({ children, to, ...props }: { children: React.ReactNode; to: string; [key: string]: any }) => {
+export const NavLink = ({ children, to, ...props }: { children: React.ReactNode; to: string; [key: string]: unknown }) => {
   return React.createElement('a', { href: to, ...props }, children);
 };
 
