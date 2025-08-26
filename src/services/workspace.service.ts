@@ -603,8 +603,8 @@ export class WorkspaceService {
    */
   static async removeRepositoryFromWorkspace(
     workspaceId: string,
-    repositoryId: string,
-    userId: string
+    userId: string,
+    repositoryId: string
   ): Promise<ServiceResponse<void>> {
     try {
       // Check permissions
@@ -654,6 +654,63 @@ export class WorkspaceService {
       return {
         success: false,
         error: 'Failed to remove repository from workspace',
+        statusCode: 500
+      };
+    }
+  }
+
+  /**
+   * Update workspace repository settings
+   */
+  static async updateWorkspaceRepository(
+    workspaceId: string,
+    userId: string,
+    repositoryId: string,
+    updates: {
+      notes?: string | null;
+      tags?: string[];
+      is_pinned?: boolean;
+    }
+  ): Promise<ServiceResponse<WorkspaceRepository>> {
+    try {
+      // Check permissions
+      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'admin', 'editor']);
+      if (!permission.hasPermission) {
+        return {
+          success: false,
+          error: 'Insufficient permissions to update repository settings',
+          statusCode: 403
+        };
+      }
+
+      // Update the repository settings
+      const { data, error } = await supabase
+        .from('workspace_repositories')
+        .update({
+          notes: updates.notes,
+          tags: updates.tags,
+          is_pinned: updates.is_pinned,
+          updated_at: new Date().toISOString()
+        })
+        .eq('workspace_id', workspaceId)
+        .eq('repository_id', repositoryId)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      return {
+        success: true,
+        data,
+        statusCode: 200
+      };
+    } catch (error) {
+      console.error('Update workspace repository error:', error);
+      return {
+        success: false,
+        error: 'Failed to update repository settings',
         statusCode: 500
       };
     }
