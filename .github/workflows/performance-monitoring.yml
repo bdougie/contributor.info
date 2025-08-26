@@ -83,7 +83,7 @@ jobs:
             
             ${status}
             
-            **Last Updated:** ${new Date().toISOString()}
+            <!-- Last Updated: ${new Date().toISOString()} -->
             **Commit:** ${context.sha.substring(0, 7)}
             
             See the [workflow summary](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for detailed bundle sizes.`;
@@ -345,7 +345,7 @@ jobs:
             - Check the workflow summary for detailed metrics
             - Address any performance warnings or errors
             
-            **Last Updated:** ${new Date().toISOString()}
+            <!-- Last Updated: ${new Date().toISOString()} -->
             **Commit:** ${context.sha.substring(0, 7)}
             
             [View Full Workflow Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
