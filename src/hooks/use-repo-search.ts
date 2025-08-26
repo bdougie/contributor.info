@@ -20,7 +20,7 @@ export function useRepoSearch({ isHomeView = false } = {}) {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const match = searchInput.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+    const match = searchInput.match(/(?:github\.com/)?([^/]+)/([^/]+)/);
 
     if (match) {
       const [, newOwner, newRepo] = match;
@@ -47,7 +47,7 @@ export function useRepoSearch({ isHomeView = false } = {}) {
     setSearchInput(repo);
 
     // Extract owner and repo name
-    const match = repo.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+    const match = repo.match(/(?:github\.com/)?([^/]+)/([^/]+)/);
 
     if (match) {
       const [, newOwner, newRepo] = match;

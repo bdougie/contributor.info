@@ -45,7 +45,7 @@ export class GitHubActionsQueueManager {
 
       if (!response.ok) {
         const error = await response.text();
-        console.error(, error);
+        console.error("Error:", error);
         return { success: false, error };
       }
 
@@ -71,7 +71,7 @@ export class GitHubActionsQueueManager {
 
       return { success: true };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return { success: false, error: String(error) };
     }
   }
@@ -94,7 +94,7 @@ export class GitHubActionsQueueManager {
         })
         .eq('id', jobId);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -120,7 +120,7 @@ export class GitHubActionsQueueManager {
         await this.checkJobStatus(job);
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -185,7 +185,7 @@ export class GitHubActionsQueueManager {
         }
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -242,7 +242,7 @@ export class GitHubActionsQueueManager {
         { pending: 0, processing: 0, completed: 0, failed: 0 },
       );
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return { pending: 0, processing: 0, completed: 0, failed: 0 };
     }
   }

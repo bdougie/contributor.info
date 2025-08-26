@@ -56,7 +56,7 @@ export async function generateFAQSitemapEntries(limit: number = 100): Promise<FA
 
     return faqEntries;
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     return [];
   }
 }
@@ -131,7 +131,7 @@ export async function updateMainSitemapWithFAQs(): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     return false;
   }
 }

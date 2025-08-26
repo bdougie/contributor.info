@@ -32,7 +32,7 @@ class MockResizeObserver {
   }
 }
 
-global.ResizeObserver = MockResizeObserver as any;
+global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
 
 describe('Chart Components', () => {
   const mockLineData = {

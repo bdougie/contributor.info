@@ -31,7 +31,7 @@ export function PWAInstallPrompt({ className, onInstall, onDismiss }: PWAInstall
     const checkIfStandalone = () => {
       return (
         window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone === true ||
+        (window.navigator as Navigator & { standalone?: boolean }).standalone === true ||
         document.referrer.includes('android-app://')
       );
     };
@@ -90,7 +90,7 @@ export function PWAInstallPrompt({ className, onInstall, onDismiss }: PWAInstall
       setDeferredPrompt(null);
       setShowPrompt(false);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     } finally {
       setIsInstalling(false);
     }
@@ -214,7 +214,7 @@ export function usePWAInstall() {
 
       return choiceResult.outcome === 'accepted';
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return false;
     } finally {
       setIsInstalling(false);

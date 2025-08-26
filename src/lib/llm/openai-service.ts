@@ -94,7 +94,7 @@ class OpenAIService {
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
   }
@@ -127,7 +127,7 @@ class OpenAIService {
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
   }
@@ -156,7 +156,7 @@ class OpenAIService {
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
   }

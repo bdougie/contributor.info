@@ -152,7 +152,7 @@ export function BulkAddRepos() {
           }
         }
       } catch (error) {
-        console.error(, error);
+        console.error("Error:", error);
         batch.forEach((repo) => result.errors.push(repo));
       }
 
@@ -228,7 +228,7 @@ export function BulkAddRepos() {
                   console.error('Failed to create progressive backfill:', backfillError);
                 }
               } catch (error) {
-                console.error(, error);
+                console.error("Error:", error);
               }
             }
           }
@@ -285,7 +285,7 @@ export function BulkAddRepos() {
                 variant: 'default',
               });
             } catch (error) {
-              console.error(, error);
+              console.error("Error:", error);
               toast({
                 title: 'Backfill failed to start',
                 description: "Repositories were added but backfill couldn't be started",

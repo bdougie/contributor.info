@@ -50,7 +50,7 @@ class ManualBackfillServerClient {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-      console.error(, error);
+      console.error("Error:", error);
       throw new Error(`Failed to trigger backfill: ${error.message || response.statusText}`);
     }
 
@@ -141,7 +141,7 @@ class ManualBackfillServerClient {
       const _ = await response.json();
       return data.status === 'healthy';
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return false;
     }
   }

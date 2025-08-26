@@ -288,7 +288,7 @@ class WebVitalsMonitor {
       });
     } catch (error) {
       if (this.debugMode) {
-        console.error(, error);
+        console.error("Error:", error);
       }
     }
   }
@@ -298,7 +298,7 @@ class WebVitalsMonitor {
       try {
         callback(metric);
       } catch (error) {
-        console.error(, error);
+        console.error("Error:", error);
       }
     });
   }

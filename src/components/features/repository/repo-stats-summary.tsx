@@ -177,7 +177,7 @@ export function RepoStatsSummary({ owner, repo }: RepoStatsSummaryProps) {
       toast.success(`Refreshing _data${sizeInfo}...`);
       
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       toast.error('Failed to refresh _data');
       setIsRefreshing(false);
     }

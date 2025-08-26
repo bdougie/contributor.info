@@ -15,7 +15,7 @@ describe('ManualBackfill', () => {
       render(<ManualBackfill repository="owner/repo" />);
 
       expect(screen.getByText('Manual Data Backfill')).toBeDefined();
-      expect(screen.getByText(/owner\/repo/)).toBeDefined();
+      expect(screen.getByText(/owner/repo/)).toBeDefined();
     });
 
     it('should render trigger button', () => {
@@ -80,7 +80,7 @@ describe('ManualBackfill', () => {
         onComplete: vi.fn(),
       };
 
-      expect(props.repository).toMatch(/^[^/]+\/[^/]+$/);
+      expect(props.repository).toMatch(/^[^/]+/[^/]+$/);
       expect(typeof props.onComplete).toBe('function');
     });
 

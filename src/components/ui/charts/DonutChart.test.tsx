@@ -41,10 +41,10 @@ describe('DonutChart', () => {
 
   beforeEach(() => {
     // Setup canvas mock
-    HTMLCanvasElement.prototype.getContext = vi.fn(() => mockContext) as any;
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => mockContext) as unknown as HTMLCanvasElement['getContext'];
 
     // Setup animation frame mocks
-    global.requestAnimationFrame = mockRequestAnimationFrame as any;
+    global.requestAnimationFrame = mockRequestAnimationFrame as unknown as typeof requestAnimationFrame;
     global.cancelAnimationFrame = mockCancelAnimationFrame;
 
     // Setup ResizeObserver mock
@@ -202,7 +202,7 @@ describe('DonutChart', () => {
 
   it('should handle canvas context errors gracefully', () => {
     // Mock getContext to return null
-    HTMLCanvasElement.prototype.getContext = vi.fn(() => null) as any;
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => null) as unknown as HTMLCanvasElement['getContext'];
 
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 

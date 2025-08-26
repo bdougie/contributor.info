@@ -80,7 +80,7 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
       `);
       
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -206,7 +206,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
       `);
       
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -255,7 +255,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
           if (result.success) {
             importedCount++;
           } else {
-            console.warn(`Failed to store PR #${pr.number}: ${result.error: _error}`);
+            console.warn(`Failed to store PR #${pr.number}: ${result.error}`);
           }
         } catch (prError) {
           console.warn(`Error storing PR #${pr.number}:`, prError);
@@ -266,7 +266,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
       return { success: true };
 
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
@@ -349,7 +349,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
       
       return report;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -370,7 +370,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
       
       return stats;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -398,7 +398,7 @@ ${routing.suggestions.map(s => `  • ${s}`).join('\n')}`
       
       return routing;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -417,7 +417,7 @@ ${routing.suggestions.map(s => `  • ${s}`).join('\n')}`
       
       console.log('✅ All job tracking updated and smart notifications reset');
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 }

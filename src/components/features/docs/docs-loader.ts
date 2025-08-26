@@ -135,7 +135,7 @@ export async function fetchDocsContent(filename: string): Promise<string> {
 
     return content;
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     throw error;
   }
 }
@@ -152,7 +152,7 @@ export async function fetchAllDocs(): Promise<Map<string, string>> {
       const content = await fetchDocsContent(doc.file);
       contentMap.set(doc.file, content);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       // Continue loading other docs even if one fails
     }
   });

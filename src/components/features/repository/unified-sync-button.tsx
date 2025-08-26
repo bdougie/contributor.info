@@ -251,7 +251,7 @@ export function UnifiedSyncButton({
       // Start polling for completion
       startPollingForCompletion(repoId);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to initiate sync';
 
       if (!isAutomatic) {

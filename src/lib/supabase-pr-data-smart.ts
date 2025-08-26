@@ -220,7 +220,7 @@ export async function fetchPRDataSmart(
             });
           }
         } catch (error) {
-          console.error(, error);
+          console.error("Error:", error);
         }
       }
 

@@ -229,7 +229,7 @@ export async function calculatePrActivityMetrics(
       repositoryName: prDataResult.repositoryName,
     };
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     // Return default metrics on error
     return {
       totalPRs: 0,

@@ -131,7 +131,7 @@ export class QueuePrioritizationService {
         .maybeSingle();
 
       if (error || !_data) {
-        console.error(, error);
+        console.error("Error:", error);
         return null;
       }
 
@@ -143,7 +143,7 @@ export class QueuePrioritizationService {
         metrics: data.metrics,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
   }
@@ -202,7 +202,7 @@ export class QueuePrioritizationService {
 
       console.log('[QueuePrioritization] Prioritized %s jobs', jobsWithScores.length);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -226,7 +226,7 @@ export class QueuePrioritizationService {
 
       return nextJob;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
   }
@@ -286,7 +286,7 @@ export class QueuePrioritizationService {
         }
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 }

@@ -71,7 +71,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
       const historical = await loadHistoricalData();
       setHistoricalData(historical);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     } finally {
       setLoading(false);
     }

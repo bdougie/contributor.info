@@ -64,7 +64,7 @@ export function SettingsPage() {
           });
         }
       } catch (error) {
-        console.error(, error);
+        console.error("Error:", error);
       } finally {
         setLoading(false);
       }
@@ -91,7 +91,7 @@ export function SettingsPage() {
         description: 'Your email preferences have been updated.',
       });
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       toast({
         title: 'Error',
         description: 'Failed to save your preferences. Please try again.',

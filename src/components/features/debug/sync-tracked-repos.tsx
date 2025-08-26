@@ -86,7 +86,7 @@ export function SyncTrackedRepos() {
         .map((repo) => repo.repository_id);
       setSelectedRepos(new Set(neverSynced));
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       toast({
         title: 'Error',
         description: 'Failed to load tracked repositories',
@@ -216,7 +216,7 @@ export function SyncTrackedRepos() {
 
             result.synced.push(fullName);
           } catch (error) {
-            console.error(, error);
+            console.error("Error:", error);
             result.failed.push(fullName);
           }
         });
@@ -253,7 +253,7 @@ export function SyncTrackedRepos() {
         loadTrackedRepos();
       }, 2000);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       toast({
         title: 'Sync failed',
         description: 'An error occurred while syncing repositories',

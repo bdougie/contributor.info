@@ -47,7 +47,7 @@ export function SpamTestTool() {
   const { toast } = useToast();
 
   const parsePRUrl = (url: string) => {
-    const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/);
+    const match = url.match(/github\.com/([^/]+)/([^/]+)/pull/(\d+)/);
     if (!match) throw new Error('Invalid GitHub PR URL format');
     return {
       owner: match[1],

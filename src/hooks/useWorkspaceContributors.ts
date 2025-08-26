@@ -195,7 +195,7 @@ export function useWorkspaceContributors({
         .eq('workspace_id', workspaceId);
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         throw error;
       }
 
@@ -235,7 +235,7 @@ export function useWorkspaceContributors({
         .insert(contributorsToAdd);
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         throw error;
       }
 
@@ -261,7 +261,7 @@ export function useWorkspaceContributors({
         .eq('contributor_id', contributorId);
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         throw error;
       }
 

@@ -92,7 +92,7 @@ export function useGlobalStats(): GlobalStats {
         };
         localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
       } catch (error) {
-        console.error(, error);
+        console.error("Error:", error);
         setStats((prev) => ({
           ...prev,
           isLoading: false,

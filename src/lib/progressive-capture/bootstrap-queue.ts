@@ -113,7 +113,7 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
 4. View routing analysis with: ProgressiveCapture.routingAnalysis()
     `);
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
   }
 }
 
@@ -164,7 +164,7 @@ export async function analyzeDataGaps(): Promise<{
 
     return analysis;
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     return {
       repositoriesWithStaleData: 0,
       prsWithoutFileChanges: 0,

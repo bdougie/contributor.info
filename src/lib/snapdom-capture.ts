@@ -827,7 +827,7 @@ export class SnapDOMCaptureService {
       await navigator.clipboard.write([clipboardItem]);
       console.log('Successfully copied blob to clipboard');
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       throw error;
     }
   }
@@ -912,7 +912,7 @@ export class SnapDOMCaptureService {
         console.log('SnapDOM works with simple content - issue may be chart-specific');
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     } finally {
       document.body.removeChild(testElement);
     }

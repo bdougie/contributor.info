@@ -8,6 +8,14 @@ import {
   ApiCallOptions,
   ApiResponse,
 } from '@/lib/cache/github-api-wrapper';
+import type { AuthSession } from '@supabase/supabase-js';
+
+interface CacheStats {
+  github: unknown;
+  repository: unknown;
+  user: unknown;
+  contributor: unknown;
+}
 import { supabase } from '@/lib/supabase';
 
 export interface CachedApiState<T> {
@@ -35,7 +43,7 @@ export function useCachedGitHubApi<T>(
   params: Record<string, unknown> = {},
   options: UseCachedGitHubApiOptions = {},
 ): CachedApiState<T> {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<AuthSession | null>(null);
   const [state, setState] = useState<{
     data: T | null;
     loading: boolean;
@@ -268,7 +276,7 @@ export function useCachedBatchRequests<T>(
  * Hook for monitoring cache performance
  */
 export function useCacheStats() {
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<CacheStats | null>(null);
   const clientRef = useRef(createCachedGitHubClient());
 
   const refreshStats = useCallback(() => {

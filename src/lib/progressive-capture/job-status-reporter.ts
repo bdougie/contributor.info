@@ -101,7 +101,7 @@ export class JobStatusReporter {
         .eq('id', update.jobId);
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         throw error;
       }
 
@@ -112,7 +112,7 @@ export class JobStatusReporter {
 
       console.log('[JobStatusReporter] Updated job %s status to %s', update.jobId, update.status);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       throw error;
     }
   }
@@ -139,10 +139,10 @@ export class JobStatusReporter {
       );
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -208,7 +208,7 @@ export class JobStatusReporter {
 
       return metrics;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
   }
@@ -244,7 +244,7 @@ export class JobStatusReporter {
         error: job.error,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
   }
@@ -306,7 +306,7 @@ export class JobStatusReporter {
         }),
       );
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return [];
     }
   }
@@ -325,7 +325,7 @@ export class JobStatusReporter {
 
       console.log('[JobStatusReporter] Bulk updated %s job statuses', updates.length);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       throw error;
     }
   }

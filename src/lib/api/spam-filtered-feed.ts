@@ -51,7 +51,7 @@ export async function fetchFilteredPullRequests(
     const { data, error } = await query;
 
     if (error) {
-      console.error(, error);
+      console.error("Error:", error);
       throw new Error(`Failed to fetch pull requests: ${error.message}`);
     }
 
@@ -77,7 +77,7 @@ export async function fetchFilteredPullRequests(
     // Return only the requested number of results
     return filtered.slice(0, limit);
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     throw error;
   }
 }
@@ -162,7 +162,7 @@ export async function getRepositorySpamStats(owner: string, repo: string) {
       distribution,
     };
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     throw error;
   }
 }

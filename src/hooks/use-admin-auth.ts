@@ -90,7 +90,7 @@ export function useAdminAuth(): AdminAuthState {
         });
 
         if (error) {
-          console.error(, error);
+          console.error("Error:", error);
 
           // Fallback: Try to create the user record if it doesn't exist
           if (error.message?.includes('does not exist') || error.code === 'PGRST116') {

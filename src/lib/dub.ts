@@ -154,7 +154,7 @@ export async function createShortUrl({
       image: data.image,
     };
   } catch (error: unknown) {
-    console.error(, error);
+    console.error("Error:", error);
     return null;
   }
 }
@@ -180,12 +180,12 @@ async function trackShortUrlCreation(dubData: unknown) {
     });
 
     if (error) {
-      console.error(, error);
+      console.error("Error:", error);
     } else {
       console.log('Short URL tracked in Supabase analytics');
     }
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
   }
 }
 
@@ -207,13 +207,13 @@ export async function getUrlAnalytics(linkId: string) {
       .maybeSingle();
 
     if (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
 
     return data;
   } catch (error: unknown) {
-    console.error(, error);
+    console.error("Error:", error);
     return null;
   }
 }
@@ -226,13 +226,13 @@ function getCustomKey(url: string): string | undefined {
     const urlPath = new URL(url).pathname;
 
     // ex: /owner/repo (repository pages)
-    const repoMatch = urlPath.match(/^\/([^\/]+)\/([^\/]+)(?:\/.*)?$/);
+    const repoMatch = urlPath.match(/^/([^/]+)/([^/]+)(?:/.*)?$/);
     if (repoMatch) {
       return `${repoMatch[1]}/${repoMatch[2]}`;
     }
 
     // ex: /u/username or /user/username
-    const userMatch = urlPath.match(/^\/(u|user)\/(.+)$/);
+    const userMatch = urlPath.match(/^/(u|user)/(.+)$/);
     if (userMatch) {
       return userMatch[2];
     }

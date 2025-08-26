@@ -176,7 +176,7 @@ export async function searchGitHubRepositories(
         // Simple error logging without analytics
         console.error('GitHub search error:', _error, { query, limit });
 
-        console.error(, error);
+        console.error("Error:", error);
         throw error;
       }
     },
@@ -580,7 +580,7 @@ export async function fetchRepositoryInfo(
       private: repoData.private,
     };
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     return null;
   }
 }
@@ -626,7 +626,7 @@ export async function fetchRepositoryStargazers(
       starred_at: star.starred_at || new Date().toISOString(), // Fallback if no timestamp
     }));
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     return [];
   }
 }
@@ -711,7 +711,7 @@ export async function fetchRepositoryCommitActivity(
       recentCommits,
     };
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     return { totalCommits: 0, commitFrequency: 0, uniqueCommitters: 0, recentCommits: [] };
   }
 }

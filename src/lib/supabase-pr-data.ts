@@ -380,7 +380,7 @@ export async function fetchPRDataWithFallback(
                 delete globalWindow.__discoveryInProgress[discoveryKey];
               }, 5000);
             } catch (error) {
-              console.error(, error);
+              console.error("Error:", error);
               delete globalWindow.__discoveryInProgress[discoveryKey];
             }
           } else {

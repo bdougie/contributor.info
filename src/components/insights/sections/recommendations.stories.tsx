@@ -220,7 +220,7 @@ export const Interactive: Story = {
     await expect(canvas.getByText('85% confident')).toBeInTheDocument();
 
     // Check repository info is displayed
-    await expect(canvas.getByText(/facebook\/react/)).toBeInTheDocument();
+    await expect(canvas.getByText(/facebook/react/)).toBeInTheDocument();
   },
 };
 

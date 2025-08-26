@@ -299,7 +299,7 @@ export async function detectPrAttention(
 
     return { alerts: alerts.slice(0, 10), metrics }; // Limit to top 10 alerts
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     return {
       alerts: [],
       metrics: {
@@ -323,7 +323,7 @@ export async function getCriticalPrCount(owner: string, repo: string): Promise<n
     const { metrics } = await detectPrAttention(owner, repo);
     return metrics.criticalCount + metrics.highCount;
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     return 0;
   }
 }

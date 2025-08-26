@@ -13,6 +13,11 @@ import { RepoStatsContext } from '@/lib/repo-stats-context';
 import { SelfSelectionRate } from '@/components/features/contributor/self-selection-rate';
 import { ContributorConfidenceCard } from './contributor-confidence-card';
 import { calculateRepositoryConfidence, ConfidenceBreakdown } from '@/lib/insights/health-metrics';
+
+interface RepositoryConfidenceData {
+  avg_confidence_score: number;
+  contributor_count: number;
+}
 import { useOnDemandSync } from '@/hooks/use-on-demand-sync';
 
 export function RepositoryHealthCard() {
@@ -65,18 +70,19 @@ export function RepositoryHealthCard() {
 
       if (error) throw error;
 
-      if (data && (_data as any).avg_confidence_score !== null) {
-        setConfidenceScore(Number((_data as any).avg_confidence_score));
+      if (data && (data as RepositoryConfidenceData).avg_confidence_score !== null) {
+        const confidenceData = data as RepositoryConfidenceData;
+        setConfidenceScore(Number(confidenceData.avg_confidence_score));
         // Create a basic breakdown for tooltip compatibility
         setConfidenceBreakdown({
-          starForkConfidence: Number((_data as any).avg_confidence_score) * 0.35,
-          engagementConfidence: Number((_data as any).avg_confidence_score) * 0.25,
-          retentionConfidence: Number((_data as any).avg_confidence_score) * 0.25,
-          qualityConfidence: Number((_data as any).avg_confidence_score) * 0.15,
+          starForkConfidence: Number(confidenceData.avg_confidence_score) * 0.35,
+          engagementConfidence: Number(confidenceData.avg_confidence_score) * 0.25,
+          retentionConfidence: Number(confidenceData.avg_confidence_score) * 0.25,
+          qualityConfidence: Number(confidenceData.avg_confidence_score) * 0.15,
           totalStargazers: 0,
           totalForkers: 0,
-          contributorCount: (_data as any).contributor_count || 0,
-          conversionRate: Number((_data as any).avg_confidence_score),
+          contributorCount: confidenceData.contributor_count || 0,
+          conversionRate: Number(confidenceData.avg_confidence_score),
         });
       } else {
         // Fallback to the original algorithm if no data in the new system
@@ -93,7 +99,7 @@ export function RepositoryHealthCard() {
         setConfidenceBreakdown(result.breakdown);
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       setConfidenceError(
         'Repository _data not available. This repository may need to be synced first.',
       );

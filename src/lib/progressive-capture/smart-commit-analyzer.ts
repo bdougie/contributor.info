@@ -73,7 +73,7 @@ export class SmartCommitAnalyzer {
         analyzed_at: new Date().toISOString(),
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       throw error;
     }
   }
@@ -154,7 +154,7 @@ export class SmartCommitAnalyzer {
           console.warn(`[Smart Commit] Failed to update commit ${result.sha}:`, updateError);
         }
       } catch (error) {
-        console.error(, error);
+        console.error("Error:", error);
       }
     }
   }
@@ -175,7 +175,7 @@ export class SmartCommitAnalyzer {
       // Store the result in database
       await this.storeAnalysisResults(job.repository_id, [result]);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       throw error;
     }
   }
@@ -220,7 +220,7 @@ export class SmartCommitAnalyzer {
         .order('authored_at', { ascending: false });
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return { hasYoloCoders: false, yoloCoderStats: [] };
       }
 
@@ -236,7 +236,7 @@ export class SmartCommitAnalyzer {
         yoloCoderStats: contributorStats,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return { hasYoloCoders: false, yoloCoderStats: [] };
     }
   }

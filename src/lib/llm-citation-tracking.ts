@@ -103,7 +103,7 @@ class LLMCitationTracker {
         console.log('[LLM Citation Tracker] Page view tracked:', event);
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -206,7 +206,7 @@ class LLMCitationTracker {
    */
   private extractRepositoryFromPath(path: string): string | undefined {
     // Match patterns like /owner/repo or /owner/repo/anything
-    const match = path.match(/^\/([^\/]+\/[^\/]+)/);
+    const match = path.match(/^/([^/]+/[^/]+)/);
     return match ? match[1] : undefined;
   }
 
@@ -283,7 +283,7 @@ class LLMCitationTracker {
       const { error } = await supabase.from('referral_traffic').insert([event]);
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
       }
     } catch (err) {
       console.error('[LLM Citation Tracker] Error sending referral event:', err);
@@ -298,7 +298,7 @@ class LLMCitationTracker {
       const { error } = await supabase.from('citation_alerts').insert([alert]);
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
       }
     } catch (err) {
       console.error('[LLM Citation Tracker] Error tracking citation alert:', err);
@@ -374,7 +374,7 @@ class LLMCitationTracker {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return null;
       }
 

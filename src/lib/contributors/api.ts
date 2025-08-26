@@ -505,7 +505,7 @@ export async function fetchContributorActivity(
           }
         }
       } catch (error) {
-        console.error(, error);
+        console.error("Error:", error);
         // Continue with other repositories
       }
     }

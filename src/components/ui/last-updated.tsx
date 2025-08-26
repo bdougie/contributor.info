@@ -57,7 +57,7 @@ function validateTimestamp(timestamp: string | Date): Date | null {
       /javascript:/i,
       /on\w+\s*=/i,
       /<\w+/,
-      /[\x00-\x08\x0B\x0C\x0E-\x1F]/, // Control characters
+      /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/, // Control characters
     ];
 
     if (suspiciousPatterns.some((pattern) => pattern.test(sanitized))) {
@@ -146,7 +146,7 @@ export function LastUpdated({
           /javascript:/i,
           /on\w+\s*=/i,
           /<\w+/,
-          /[\x00-\x08\x0B\x0C\x0E-\x1F]/,
+          /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/,
         ];
 
         if (suspiciousPatterns.some((pattern) => pattern.test(sanitized))) {

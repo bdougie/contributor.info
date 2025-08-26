@@ -125,7 +125,7 @@ export function useRepositoryValidation(
           }
         }
       } catch (error) {
-        console.error(, error);
+        console.error("Error:", error);
 
         const errorResult: ValidationResult = {
           status: 'error',
@@ -173,7 +173,7 @@ async function trackRepository(owner: string, repo: string): Promise<void> {
       if (error.code === '23505') {
         console.log('Repository already tracked');
       } else {
-        console.error(, error);
+        console.error("Error:", error);
       }
     } else {
       console.log('Successfully tracked repository: %s/%s', owner, repo);
@@ -191,7 +191,7 @@ async function trackRepository(owner: string, repo: string): Promise<void> {
       }
     }
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
   }
 }
 
@@ -208,7 +208,7 @@ export function isRepositoryPath(pathname: string): {
   repo?: string;
 } {
   // Remove leading slash and any trailing slashes
-  const cleanPath = pathname.replace(/^\/+|\/+$/g, '');
+  const cleanPath = pathname.replace(/^/+|/+$/g, '');
 
   // Check if it matches the pattern: owner/repo (with optional sub-paths)
   const parts = cleanPath.split('/');

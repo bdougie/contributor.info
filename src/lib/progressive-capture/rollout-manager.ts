@@ -97,13 +97,13 @@ export class HybridRolloutManager {
       });
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return false;
       }
 
       return data as boolean;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return false;
     }
   }
@@ -119,7 +119,7 @@ export class HybridRolloutManager {
       });
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return null;
       }
 
@@ -137,7 +137,7 @@ export class HybridRolloutManager {
 
       return category as RepositoryCategory;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
   }
@@ -156,13 +156,13 @@ export class HybridRolloutManager {
 
       if (error && error.code !== 'PGRST116') {
         // PGRST116 is "not found"
-        console.error(, error);
+        console.error("Error:", error);
         return null;
       }
 
       return data as RolloutConfiguration;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
   }
@@ -221,7 +221,7 @@ export class HybridRolloutManager {
       );
       return true;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return false;
     }
   }
@@ -269,7 +269,7 @@ export class HybridRolloutManager {
       console.log('[RolloutManager] Emergency stop activated: %s', reason);
       return true;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return false;
     }
   }
@@ -296,7 +296,7 @@ export class HybridRolloutManager {
         .eq('id', config.id);
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return false;
       }
 
@@ -319,7 +319,7 @@ export class HybridRolloutManager {
       console.log('[RolloutManager] Added %s repositories to whitelist', repositoryIds.length);
       return true;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return false;
     }
   }
@@ -348,7 +348,7 @@ export class HybridRolloutManager {
         .eq('id', config.id);
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return false;
       }
 
@@ -371,7 +371,7 @@ export class HybridRolloutManager {
       console.log('[RolloutManager] Removed %s repositories from whitelist', repositoryIds.length);
       return true;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return false;
     }
   }
@@ -458,7 +458,7 @@ export class HybridRolloutManager {
         }
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -545,7 +545,7 @@ export class HybridRolloutManager {
         processor_distribution: processorDistribution,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
   }
@@ -588,7 +588,7 @@ export class HybridRolloutManager {
 
       return false;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return false;
     }
   }

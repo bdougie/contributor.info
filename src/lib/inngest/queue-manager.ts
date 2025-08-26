@@ -379,7 +379,7 @@ export class InngestQueueManager {
 
       return queuedCount;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return 0;
     }
   }

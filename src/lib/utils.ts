@@ -37,11 +37,11 @@ export function validateRepositoryPath(path: string): string | null {
   }
 
   // Remove any leading/trailing whitespace and slashes
-  const trimmedPath = path.trim().replace(/^\/+|\/+$/g, '');
+  const trimmedPath = path.trim().replace(/^/+|/+$/g, '');
 
   // Repository path should be in format "owner/repo"
   // Allow alphanumeric characters, hyphens, underscores, and dots
-  const repoPathRegex = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
+  const repoPathRegex = /^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$/;
 
   if (!repoPathRegex.test(trimmedPath)) {
     return null;

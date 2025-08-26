@@ -154,7 +154,7 @@ export function ShareableCard({
         }
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       toast.error('Failed to capture chart');
     } finally {
       setIsCapturing(false);
@@ -174,8 +174,8 @@ export function ShareableCard({
         chart_type: chartType,
         repository: contextInfo?.repository,
         page_path: location.pathname,
-        action: action as any,
-        share_type: type as any,
+        action,
+        share_type: type,
         domain: dubConfig.isDev ? 'dub.co' : 'oss.fyi',
         metadata: {
           title,
@@ -184,7 +184,7 @@ export function ShareableCard({
         },
       });
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   };
 

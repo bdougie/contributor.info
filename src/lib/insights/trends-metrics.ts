@@ -274,7 +274,7 @@ export async function calculateTrendMetrics(
 
     return trends;
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     // Return empty trends on error to prevent component crashes
     return getEmptyTrends(
       'period',

@@ -409,7 +409,7 @@ class SupabaseAvatarCache {
               return { githubId, username: parsed.username, avatarUrl: parsed.avatarUrl };
             }
           } catch (error) {
-            console.error(, error);
+            console.error("Error:", error);
           }
         }
         return null;

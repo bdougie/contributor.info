@@ -86,7 +86,7 @@ class RolloutConsoleManager implements RolloutConsole {
         if (envEmergencyStop) console.log('   HYBRID_EMERGENCY_STOP: %s', envEmergencyStop);
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -121,7 +121,7 @@ class RolloutConsoleManager implements RolloutConsole {
         console.log('   %s: %s jobs', processor, count);
       });
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -149,7 +149,7 @@ class RolloutConsoleManager implements RolloutConsole {
         console.log('   Avg Activity Score: %s', stat.average_activity_score.toFixed(1));
       });
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -175,7 +175,7 @@ class RolloutConsoleManager implements RolloutConsole {
         console.log('❌ Failed to update rollout percentage');
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -194,7 +194,7 @@ class RolloutConsoleManager implements RolloutConsole {
         console.log('❌ Failed to activate emergency stop');
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -219,14 +219,14 @@ class RolloutConsoleManager implements RolloutConsole {
         .eq('id', config.id);
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return;
       }
 
       console.log('✅ Rollout resumed');
       console.log('   Current rollout percentage: %s%', config.rollout_percentage);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -247,7 +247,7 @@ class RolloutConsoleManager implements RolloutConsole {
         console.log('❌ Failed to add repositories to whitelist');
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -268,7 +268,7 @@ class RolloutConsoleManager implements RolloutConsole {
         console.log('❌ Failed to remove repositories from whitelist');
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -302,7 +302,7 @@ class RolloutConsoleManager implements RolloutConsole {
         });
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -315,7 +315,7 @@ class RolloutConsoleManager implements RolloutConsole {
       await repositoryCategorizer.categorizeAll();
       console.log('✅ Repository categorization completed');
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -332,7 +332,7 @@ class RolloutConsoleManager implements RolloutConsole {
         console.log('❌ Failed to mark repository %s as test', repositoryId);
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -349,7 +349,7 @@ class RolloutConsoleManager implements RolloutConsole {
         console.log('❌ Failed to unmark repository %s as test', repositoryId);
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -370,7 +370,7 @@ class RolloutConsoleManager implements RolloutConsole {
         console.log('❌ Failed to rollback');
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -401,13 +401,13 @@ class RolloutConsoleManager implements RolloutConsole {
         .eq('id', config.id);
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return;
       }
 
       console.log('✅ Auto rollback enabled');
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -431,13 +431,13 @@ class RolloutConsoleManager implements RolloutConsole {
         .eq('id', config.id);
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return;
       }
 
       console.log('✅ Auto rollback disabled');
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -460,7 +460,7 @@ class RolloutConsoleManager implements RolloutConsole {
       // Show current stats
       await this.stats();
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -476,7 +476,7 @@ class RolloutConsoleManager implements RolloutConsole {
       // Implementation depends on specific metrics needed
       console.log('ℹ️  Detailed metrics implementation pending');
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -614,7 +614,7 @@ class RolloutConsoleManager implements RolloutConsole {
       console.log(`\n🔄 Refresh monitoring with: rollout.monitorPhase4()`);
       console.log(`🆘 Emergency stop with: rollout.emergencyStop("reason")`);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -689,7 +689,7 @@ EXAMPLES:
         window.location.reload();
       }, 500);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 }

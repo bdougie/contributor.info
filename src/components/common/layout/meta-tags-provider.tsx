@@ -76,8 +76,8 @@ export function SocialMetaTags({
 
       if (isRepoCard) {
         // For repo cards, try to extract owner/repo from URL
-        const urlPath = currentUrl.replace(/^https?:\/\/[^/]+/, '');
-        const pathMatch = urlPath.match(/\/([^/]+)\/([^/]+)/);
+        const urlPath = currentUrl.replace(/^https?:/\/[^/]+/, '');
+        const pathMatch = urlPath.match(/\/([^/]+)/([^/]+)/);
 
         if (pathMatch) {
           const [, owner, repo] = pathMatch;
@@ -87,8 +87,8 @@ export function SocialMetaTags({
         }
       } else if (isUserCard) {
         // For user cards, extract username from URL
-        const urlPath = currentUrl.replace(/^https?:\/\/[^/]+/, '');
-        const userMatch = urlPath.match(/\/user\/([^/]+)/);
+        const urlPath = currentUrl.replace(/^https?:/\/[^/]+/, '');
+        const userMatch = urlPath.match(/\/user/([^/]+)/);
 
         if (userMatch) {
           const [, username] = userMatch;

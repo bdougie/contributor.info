@@ -64,7 +64,7 @@ class LLMService {
 
       return insight;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
 
       if (this.options.enableFallbacks) {
         return this.generateFallbackHealthInsight(healthData);
@@ -107,7 +107,7 @@ class LLMService {
 
       return insight;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
 
       if (this.options.enableFallbacks) {
         return this.generateFallbackRecommendations(_data);
@@ -150,7 +150,7 @@ class LLMService {
 
       return insight;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
 
       if (this.options.enableFallbacks) {
         return this.generateFallbackPatternInsight(prData);

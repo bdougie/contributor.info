@@ -63,7 +63,7 @@ export function useRepositoryDiscovery({
 
         if (error) {
           // Real error occurred
-          console.error(, error);
+          console.error("Error:", error);
           setState({
             status: 'error',
             repository: null,
@@ -102,7 +102,7 @@ export function useRepositoryDiscovery({
         // Just set the state to indicate it needs tracking
         // The user will use the new tracking card instead
       } catch (error) {
-        console.error(, error);
+        console.error("Error:", error);
         setState({
           status: 'error',
           repository: null,
@@ -150,7 +150,7 @@ export function useRepositoryDiscovery({
         startPolling(owner, repo);
 
       } catch (error) {
-        console.error(, error);
+        console.error("Error:", error);
         
         setState({
           status: 'error',

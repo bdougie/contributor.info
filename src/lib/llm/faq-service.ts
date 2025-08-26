@@ -133,7 +133,7 @@ class FAQService {
 
       return answers;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return this.generateFallbackAnswers(owner, repo, timeRange, repositoryData);
     }
   }
@@ -174,7 +174,7 @@ class FAQService {
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return this.generateFallbackAnswer(question, owner, repo, timeRange, repositoryData);
     }
   }
@@ -405,7 +405,7 @@ Answer:`;
 
       return questionsWithEmbeddings;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return questions; // Return without embeddings on failure
     }
   }
@@ -451,7 +451,7 @@ Answer:`;
 
       return similarities.map((s) => s.question);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return questions.slice(0, 3); // Return first 3 as fallback
     }
   }
@@ -520,7 +520,7 @@ Answer:`;
 
       return data.choices[0].message.content.trim();
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     } finally {
       clearTimeout(timeoutId);

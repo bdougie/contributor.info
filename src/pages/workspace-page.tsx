@@ -280,7 +280,7 @@ function WorkspacePRs({
           .limit(100);
 
         if (error) {
-          console.error(, error);
+          console.error("Error:", error);
           setPullRequests([]);
         } else {
           // Transform data to match PullRequest interface
@@ -1508,7 +1508,7 @@ export default function WorkspacePage() {
         setMetrics(newMetrics);
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       toast.error('Failed to refresh repositories');
     }
   };

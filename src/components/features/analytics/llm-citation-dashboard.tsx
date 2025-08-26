@@ -51,7 +51,7 @@ export function LLMCitationDashboard() {
       const _ = await tracker.getCitationMetrics(dateRange);
       setMetrics(_data);
     } catch (error) {
-      console.error(, error);
+      console.error('LLM citation metrics loading error:', error);
       setMetrics(null);
     } finally {
       setIsLoading(false);

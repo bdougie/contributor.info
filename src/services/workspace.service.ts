@@ -173,7 +173,7 @@ export class WorkspaceService {
         statusCode: 201,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return {
         success: false,
         error: 'Failed to create workspace',
@@ -254,7 +254,7 @@ export class WorkspaceService {
         statusCode: 200,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return {
         success: false,
         error: 'Failed to update workspace',
@@ -309,7 +309,7 @@ export class WorkspaceService {
         statusCode: 200,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return {
         success: false,
         error: 'Failed to delete workspace',
@@ -380,7 +380,7 @@ export class WorkspaceService {
         statusCode: 200,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return {
         success: false,
         error: 'Failed to get workspace',
@@ -465,7 +465,7 @@ export class WorkspaceService {
         statusCode: 200,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return {
         success: false,
         error: 'Failed to list workspaces',
@@ -499,7 +499,7 @@ export class WorkspaceService {
         role: member.role as WorkspaceRole,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return { hasPermission: false };
     }
   }
@@ -599,7 +599,7 @@ export class WorkspaceService {
         statusCode: 201,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return {
         success: false,
         error: 'Failed to add repository to workspace',
@@ -664,7 +664,7 @@ export class WorkspaceService {
         statusCode: 200,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return {
         success: false,
         error: 'Failed to remove repository from workspace',
@@ -779,7 +779,7 @@ export class WorkspaceService {
         statusCode: 200,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return {
         success: false,
         error: 'Failed to list workspace repositories',

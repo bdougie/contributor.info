@@ -133,7 +133,7 @@ export class RepositorySizeClassifier {
         activeContributors: Math.min(activeContributors, contributors.length),
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       throw error;
     }
   }
@@ -334,7 +334,7 @@ export class RepositorySizeClassifier {
       console.log('Repository %s/%s classified as %s', owner, repo, size);
       return size;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       throw error;
     }
   }

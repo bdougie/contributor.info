@@ -58,7 +58,7 @@ async function ensureContributorExists(githubUser: unknown): Promise<string | nu
     .maybeSingle();
 
   if (error) {
-    console.error(, error);
+    console.error("Error:", error);
     return null;
   }
 

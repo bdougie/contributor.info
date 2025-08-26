@@ -418,7 +418,7 @@ export class AutoRetryService {
         },
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return {
         totalRetries: 0,
         successfulRetries: 0,

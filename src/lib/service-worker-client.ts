@@ -88,7 +88,7 @@ class ServiceWorkerClient {
       await navigator.serviceWorker.ready;
       this.sw = navigator.serviceWorker.controller;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -189,7 +189,7 @@ class ServiceWorkerClient {
           break;
         default:
           // For dynamic routes, prefetch the main route chunk
-          if (route.match(/^\/[\w-]+\/[\w-]+$/)) {
+          if (route.match(/^/[\w-]+/[\w-]+$/)) {
             resources.push('/js/repo-view.js');
           }
       }

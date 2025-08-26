@@ -178,7 +178,7 @@ export function useProgressiveRepoDataWithDeduplication(
           return basicInfo;
         } catch (error) {
           span?.setStatus('error');
-          console.error(, error);
+          console.error("Error:", error);
           return null;
         }
       });
@@ -244,7 +244,7 @@ export function useProgressiveRepoDataWithDeduplication(
           return { stats, lotteryFactor };
         } catch (error) {
           span?.setStatus('error');
-          console.error(, error);
+          console.error("Error:", error);
           return null;
         }
       });
@@ -294,7 +294,7 @@ export function useProgressiveRepoDataWithDeduplication(
           return result;
         } catch (error) {
           span?.setStatus('error');
-          console.error(, error);
+          console.error("Error:", error);
           return null;
         }
       });
@@ -354,7 +354,7 @@ export function useProgressiveRepoDataWithDeduplication(
           }, 2000);
         }
       } catch (error) {
-        console.error(, error);
+        console.error("Error:", error);
       } finally {
         fetchingRef.current = false;
       }

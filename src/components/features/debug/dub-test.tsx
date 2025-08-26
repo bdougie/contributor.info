@@ -19,7 +19,7 @@ export function DubTest() {
       setResult(`✅ Success! Short URL: ${shortUrl}`);
     } catch (error: unknown) {
       setResult(`❌ Error: ${error.message}`);
-      console.error(, error);
+      console.error("Error:", error);
     } finally {
       setLoading(false);
     }

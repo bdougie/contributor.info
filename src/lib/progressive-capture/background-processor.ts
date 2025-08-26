@@ -90,7 +90,7 @@ export class BackgroundProcessor {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         } catch (error) {
           failures++;
-          console.error(, error);
+          console.error("Error:", error);
         }
       }
 
@@ -111,7 +111,7 @@ export class BackgroundProcessor {
         }
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     } finally {
       this.isProcessing = false;
     }

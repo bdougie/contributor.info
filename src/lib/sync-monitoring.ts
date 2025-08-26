@@ -56,7 +56,7 @@ export class SyncMonitoring {
         created_at: metrics.timestamp.toISOString(),
       });
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
 
     // Log to console for immediate visibility

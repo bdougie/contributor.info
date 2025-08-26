@@ -39,7 +39,7 @@ export async function trackShareEvent(event: ShareEvent): Promise<void> {
     ]);
 
     if (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   } catch (err) {
     console.error('Error tracking share event:', err);
@@ -78,7 +78,7 @@ export async function getRepositoryShareAnalytics(repository: string) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return [];
     }
 
@@ -117,7 +117,7 @@ export async function getShareMetrics(filters: {
     const { data, error } = await query;
 
     if (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
 
@@ -179,7 +179,7 @@ export async function getTopSharedRepositories(limit: number = 10) {
       .not('repository', 'is', null);
 
     if (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return [];
     }
 
@@ -214,7 +214,7 @@ export async function getShareRate(repository: string, viewsCount?: number): Pro
       .eq('action', 'share');
 
     if (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return 0;
     }
 

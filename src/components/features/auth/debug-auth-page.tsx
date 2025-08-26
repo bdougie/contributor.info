@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
+import type { AuthSession, User } from '@supabase/supabase-js';
 import {
   Card,
   CardContent,
@@ -14,9 +15,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 
 export default function DebugAuthPage() {
-  const [sessionInfo, setSessionInfo] = useState<any>(null);
+  const [sessionInfo, setSessionInfo] = useState<{session: AuthSession | null} | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [userInfo, setUserInfo] = useState<any>(null);
+  const [userInfo, setUserInfo] = useState<User | null>(null);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const navigate = useNavigate();
   const { checkSession: hookCheckSession } = useGitHubAuth();

@@ -49,7 +49,7 @@ describe('ManualBackfillClient', () => {
         callback_url: 'https://example.com/webhook',
       };
 
-      expect(request.repository).toMatch(/^[^/]+\/[^/]+$/);
+      expect(request.repository).toMatch(/^[^/]+/[^/]+$/);
       expect(request.days).toBeGreaterThan(0);
       expect(request.days).toBeLessThanOrEqual(365);
       expect(typeof request.force).toBe('boolean');
@@ -60,11 +60,11 @@ describe('ManualBackfillClient', () => {
       const invalidRepos = ['justowner', '/repo', 'owner/', 'owner/repo/extra'];
 
       validRepos.forEach((repo) => {
-        expect(repo).toMatch(/^[^/]+\/[^/]+$/);
+        expect(repo).toMatch(/^[^/]+/[^/]+$/);
       });
 
       invalidRepos.forEach((repo) => {
-        expect(repo).not.toMatch(/^[^/]+\/[^/]+$/);
+        expect(repo).not.toMatch(/^[^/]+/[^/]+$/);
       });
     });
   });
@@ -84,7 +84,7 @@ describe('ManualBackfillClient', () => {
       expect(['queued', 'running', 'completed', 'failed', 'cancelled']).toContain(
         mockResponse.status,
       );
-      expect(mockResponse.repository).toMatch(/^[^/]+\/[^/]+$/);
+      expect(mockResponse.repository).toMatch(/^[^/]+/[^/]+$/);
       expect(mockResponse.days).toBeGreaterThan(0);
     });
 

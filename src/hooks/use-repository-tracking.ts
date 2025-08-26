@@ -59,7 +59,7 @@ export function useRepositoryTracking({
         .maybeSingle();
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         setState({
           status: 'error',
           repository: null,
@@ -87,7 +87,7 @@ export function useRepositoryTracking({
         });
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       setState({
         status: 'error',
         repository: null,
@@ -197,7 +197,7 @@ export function useRepositoryTracking({
             }));
           }
         } catch (error) {
-          console.error(, error);
+          console.error("Error:", error);
         }
       }, 2000);
 

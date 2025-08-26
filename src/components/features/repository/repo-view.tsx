@@ -81,7 +81,7 @@ export default function RepoView() {
   });
 
   const handleSelectExample = (repo: string) => {
-    const match = repo.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+    const match = repo.match(/(?:github\.com/)?([^/]+)/([^/]+)/);
     if (match) {
       const [, newOwner, newRepo] = match;
 
@@ -178,7 +178,7 @@ export default function RepoView() {
               <GitHubSearchInput
                 placeholder="Search another repository (e.g., facebook/react)"
                 onSearch={(repositoryPath) => {
-                  const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+                  const match = repositoryPath.match(/(?:github\.com/)?([^/]+)/([^/]+)/);
                   if (match) {
                     const [, newOwner, newRepo] = match;
                     navigate(`/${newOwner}/${newRepo}`);
@@ -249,7 +249,7 @@ export default function RepoView() {
             <GitHubSearchInput
               placeholder="Search another repository (e.g., facebook/react)"
               onSearch={(repositoryPath) => {
-                const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+                const match = repositoryPath.match(/(?:github\.com/)?([^/]+)/([^/]+)/);
                 if (match) {
                   const [, newOwner, newRepo] = match;
 

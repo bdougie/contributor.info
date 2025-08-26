@@ -32,7 +32,7 @@ beforeEach(() => {
   global.IntersectionObserver = vi.fn().mockImplementation((callback) => {
     mockObserver = new MockIntersectionObserver(callback);
     return mockObserver;
-  }) as any;
+  }) as unknown as typeof IntersectionObserver;
 });
 
 afterEach(() => {

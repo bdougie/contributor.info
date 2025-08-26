@@ -392,7 +392,7 @@ export async function fetchUserOrganizationsWithValidation(
       validationErrors,
     };
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     return {
       organizations: [],
       validationErrors: [{ error: String(error), rawData: null }],
@@ -448,7 +448,7 @@ export async function fetchRepositoryWithValidation(
       validationErrors,
     };
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     return {
       repository: null,
       validationErrors: [{ error: String(error), rawData: null }],

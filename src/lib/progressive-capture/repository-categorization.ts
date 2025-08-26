@@ -44,7 +44,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         .select('id, name, owner');
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return;
       }
 
@@ -73,7 +73,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
 
       console.log('[RepositoryCategorization] Bulk categorization completed');
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -107,7 +107,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         `);
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return [];
       }
 
@@ -164,7 +164,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
 
       return stats;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return [];
     }
   }
@@ -318,13 +318,13 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         .order('priority_level', { ascending: false });
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return [];
     }
   }

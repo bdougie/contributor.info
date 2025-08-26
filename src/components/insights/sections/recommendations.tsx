@@ -64,7 +64,7 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
         loadLLMRecommendations(healthData, activityData, trendsData);
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
 
       // Fallback recommendations
       setRecommendations(getFallbackRecommendations());
@@ -89,7 +89,7 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
       const insight = await llmService.generateRecommendations(combinedData, { owner, repo });
       setLlmInsight(insight);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       setLlmInsight(null);
     } finally {
       setLlmLoading(false);

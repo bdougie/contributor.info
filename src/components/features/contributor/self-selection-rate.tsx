@@ -69,8 +69,8 @@ export function SelfSelectionRate({
 
       // Check if we got meaningful data
       const hasRealData = currentData && (
-        (currentData as any).total_contributors > 0 || 
-        (currentData as any).total_prs > 0
+        (currentData as SelfSelectionStats).total_contributors > 0 || 
+        (currentData as SelfSelectionStats).total_prs > 0
       )
 
       if (hasRealData) {

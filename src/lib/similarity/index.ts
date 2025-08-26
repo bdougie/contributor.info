@@ -162,7 +162,7 @@ export function findSimilarItemsByEmbedding<T extends { embedding?: number[] }>(
         });
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -212,7 +212,7 @@ export function findAllSimilarPairs<T extends { embedding?: number[] }>(
           }
         }
       } catch (error) {
-        console.error(, error);
+        console.error("Error:", error);
       }
     }
   }

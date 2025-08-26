@@ -242,7 +242,7 @@ export async function calculateHealthMetrics(
       recommendations: recommendations.slice(0, 3), // Limit to top 3 recommendations
     };
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
 
     // Return default metrics on error
     return {
@@ -552,7 +552,7 @@ export async function calculateRepositoryConfidence(
     setCache(cacheKey, finalScore);
     return finalScore;
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     // Return fallback based on available data
     return await calculateBasicFallback(owner, repo, timeRange);
   }
@@ -903,7 +903,7 @@ async function calculateBasicFallback(
       daysBack,
     );
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     return 0;
   }
 }

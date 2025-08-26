@@ -131,7 +131,7 @@ class WebVitalsAnalytics {
 
   private extractRepository(pathname: string): string | undefined {
     // Extract repository from path like /owner/repo
-    const match = pathname.match(/^\/([^\/]+)\/([^\/]+)/);
+    const match = pathname.match(/^/([^/]+)/([^/]+)/);
     return match ? `${match[1]}/${match[2]}` : undefined;
   }
 
@@ -214,7 +214,7 @@ class WebVitalsAnalytics {
       const { error } = await supabase.from('web_vitals_events').insert(events);
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
       }
     } catch (err) {
       console.error('Error sending Web Vitals to Supabase:', err);
@@ -241,7 +241,7 @@ class WebVitalsAnalytics {
     } catch (error) {
       // Silently fail in production, log in development
       if (import.meta.env?.DEV) {
-        console.error(, error);
+        console.error("Error:", error);
       }
     }
   }
@@ -299,7 +299,7 @@ class WebVitalsAnalytics {
       const { error } = await supabase.from('performance_alerts').insert([alert]);
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
       }
     } catch (err) {
       console.error('Error sending performance alert:', err);
@@ -334,7 +334,7 @@ class WebVitalsAnalytics {
       const { data, error } = await query.order('timestamp', { ascending: false });
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return [];
       }
 

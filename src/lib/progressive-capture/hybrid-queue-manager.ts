@@ -175,7 +175,7 @@ export class HybridQueueManager {
       // Consider "newly tracked" if tracked within last 24 hours
       return hoursSinceTracked < 24;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return false;
     }
   }
@@ -345,7 +345,7 @@ export class HybridQueueManager {
         
         console.log('[HybridQueue] Event queued successfully via client-safe API for', eventData.repositoryId);
       } catch (error) {
-        console.error(, error);
+        console.error("Error:", error);
         throw new Error(`Failed to queue event: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       return;
@@ -404,7 +404,7 @@ export class HybridQueueManager {
 
     if (!result.success) {
       await this.updateJobStatus(jobId, 'failed', result.error);
-      throw new Error(`Failed to dispatch GitHub Actions workflow: ${result.error: _error}`);
+      throw new Error(`Failed to dispatch GitHub Actions workflow: ${result.error}`);
     }
   }
 
@@ -516,7 +516,7 @@ export class HybridQueueManager {
         // This could integrate with Sentry, PostHog, or other monitoring tools
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -556,7 +556,7 @@ export class HybridQueueManager {
         }
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -654,13 +654,13 @@ export class HybridQueueManager {
         .maybeSingle();
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
   }

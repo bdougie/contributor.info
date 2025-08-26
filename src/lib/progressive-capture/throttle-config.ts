@@ -8,9 +8,9 @@ const getEnvNumber = (key: string, defaultValue: number): number => {
   if (typeof process !== 'undefined' && process.env[key]) {
     return Number(process.env[key]);
   }
-  // @ts-ignore - import.meta.env may not exist in all environments
+  // @ts-expect-error - import.meta.env may not exist in all environments
   if (typeof import.meta !== 'undefined' && import.meta.env?.[key]) {
-    // @ts-ignore
+    // @ts-expect-error - import.meta.env type access
     return Number(import.meta.env[key]);
   }
   return defaultValue;

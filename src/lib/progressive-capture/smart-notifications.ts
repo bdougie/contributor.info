@@ -80,7 +80,7 @@ export class SmartDataNotifications {
 
       this.checkedRepositories.add(repoKey);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -169,7 +169,7 @@ export class SmartDataNotifications {
         }
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
 
     return missing;
@@ -197,7 +197,7 @@ export class SmartDataNotifications {
         ProgressiveCaptureNotifications.showDataAvailable(repoName, _dataType);
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }
 
@@ -399,7 +399,7 @@ export function setupSmartNotifications(): void {
       }
 
       // Check for workspace routes first
-      const workspaceMatch = path.match(/^\/i\/([^\/]+)/);
+      const workspaceMatch = path.match(/^/i\/([^/]+)/);
       if (workspaceMatch) {
         const [, workspaceSlug] = workspaceMatch;
         if (import.meta.env?.DEV) {
@@ -410,7 +410,7 @@ export function setupSmartNotifications(): void {
       }
 
       // Match patterns like /kubernetes/kubernetes or /owner/repo/contributions
-      const match = path.match(/\/([^\/]+)\/([^\/]+)(?:\/|$)/);
+      const match = path.match(/\/([^/]+)/([^/]+)(?:/|$)/);
 
       // Exclude non-repository routes using Set for better performance
       const EXCLUDED_ROUTE_PREFIXES = new Set([

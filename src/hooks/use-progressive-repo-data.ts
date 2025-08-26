@@ -168,7 +168,7 @@ export function useProgressiveRepoData(
           return basicInfo;
         } catch (error) {
           span?.setStatus('error');
-          console.error(, error);
+          console.error("Error:", error);
           updateStage('critical', { basicInfo: null });
           return null;
         }
@@ -238,7 +238,7 @@ export function useProgressiveRepoData(
           return { stats, lotteryFactor };
         } catch (error) {
           span?.setStatus('error');
-          console.error(, error);
+          console.error("Error:", error);
           updateStage('full', {
             stats: {
               pullRequests: [],
@@ -284,7 +284,7 @@ export function useProgressiveRepoData(
           return { directCommitsData, historicalTrends };
         } catch (error) {
           span?.setStatus('error');
-          console.error(, error);
+          console.error("Error:", error);
           updateStage('enhancement', {
             directCommitsData: null,
             historicalTrends: null,
@@ -335,7 +335,7 @@ export function useProgressiveRepoData(
           }, 2000);
         }
       } catch (error) {
-        console.error(, error);
+        console.error("Error:", error);
       } finally {
         fetchingRef.current = false;
       }

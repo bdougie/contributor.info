@@ -36,7 +36,7 @@ export function InsightsHealth({ owner, repo, timeRange }: RepositoryHealthProps
         loadLLMInsight(metrics);
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       setHealth(null);
     } finally {
       setLoading(false);
@@ -52,7 +52,7 @@ export function InsightsHealth({ owner, repo, timeRange }: RepositoryHealthProps
       });
       setLlmInsight(insight);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       setLlmInsight(null);
     } finally {
       setLlmLoading(false);

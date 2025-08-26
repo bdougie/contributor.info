@@ -140,7 +140,7 @@ export class ReviewCommentProcessor {
 
       return { success: true };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -296,7 +296,7 @@ export class ReviewCommentProcessor {
 
       return { success: true };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }

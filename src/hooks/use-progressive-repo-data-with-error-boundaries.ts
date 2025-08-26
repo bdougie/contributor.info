@@ -446,7 +446,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
           }, 2000);
         }
       } catch (error) {
-        console.error(, error);
+        console.error("Error:", error);
       } finally {
         fetchingRef.current = false;
       }

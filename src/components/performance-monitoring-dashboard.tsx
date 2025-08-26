@@ -99,7 +99,7 @@ export function PerformanceMonitoringDashboard() {
         github: githubHealth.status === 'fulfilled' ? githubHealth.value : null,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return { main: null, database: null, github: null };
     }
   }, []);
@@ -135,7 +135,7 @@ export function PerformanceMonitoringDashboard() {
         });
       }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }, []);
 
@@ -183,7 +183,7 @@ export function PerformanceMonitoringDashboard() {
       setAlerts(alertsResult._data || []);
       setLastRefresh(new Date());
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     } finally {
       setLoading(false);
     }
@@ -194,7 +194,7 @@ export function PerformanceMonitoringDashboard() {
       await supabase.rpc('create_performance_snapshot');
       await loadMetrics();
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }, [loadMetrics]);
 

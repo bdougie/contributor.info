@@ -37,7 +37,7 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
     {
       enableRetry: true,
       enableGracefulDegradation: true,
-      onError: (_error, stage) => {
+      onError: (error, stage) => {
         trackError(error, {
           repository: `${owner}/${repo}`,
           timeRange,
@@ -67,7 +67,7 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
         stage="critical"
         enableGracefulDegradation={false} // Critical data is required
         onRetry={() => handleManualRetry('critical')}
-        onError={(error) => console.error(, error)}
+        onError={(error) => console.error('Critical stage error:', error)}
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>

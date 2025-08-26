@@ -35,7 +35,7 @@ export class AISummaryProcessor {
 
       if (error && error.code !== '23505') {
         // Ignore duplicate key errors
-        console.error(, error);
+        console.error("Error:", error);
         return false;
       }
 
@@ -277,7 +277,7 @@ export class AISummaryProcessor {
 
       return generatedAt < fourteenDaysAgo;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return false; // Conservative approach
     }
   }

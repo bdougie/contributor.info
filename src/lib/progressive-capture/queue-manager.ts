@@ -78,7 +78,7 @@ export class DataCaptureQueueManager {
       .limit(limit);
 
     if (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return 0;
     }
 
@@ -202,7 +202,7 @@ export class DataCaptureQueueManager {
         .limit(100); // Analyze up to 100 recent commits
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return 0;
       }
 
@@ -216,7 +216,7 @@ export class DataCaptureQueueManager {
         priority === 'critical' ? 'high' : (priority as 'high' | 'medium' | 'low');
       return await this.queueCommitPRAnalysis(repositoryId, commitShas, commitPriority);
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return 0;
     }
   }
@@ -250,7 +250,7 @@ export class DataCaptureQueueManager {
 
       if (error && error.code !== '23505') {
         // Ignore duplicate key errors
-        console.error(, error);
+        console.error("Error:", error);
         return false;
       }
 
@@ -503,7 +503,7 @@ export class DataCaptureQueueManager {
     const { data: prsNeedingReviews, error } = await query;
 
     if (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return 0;
     }
 
@@ -587,7 +587,7 @@ export class DataCaptureQueueManager {
     const { data: prsNeedingComments, error } = await query;
 
     if (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return 0;
     }
 
@@ -694,7 +694,7 @@ export class DataCaptureQueueManager {
     const { data: workspaceRepos, error } = await query;
 
     if (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return 0;
     }
 

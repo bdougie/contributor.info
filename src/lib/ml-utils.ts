@@ -41,7 +41,7 @@ export async function generateIssueEmbedding(
     // Generate embeddings - the output is a Tensor
     const output = await embedder(content, {
       pooling: 'mean',
-      // @ts-ignore - Transformers.js types are not fully accurate
+      // @ts-expect-error - Transformers.js types are not fully accurate
       normalize: true,
     });
 
@@ -52,7 +52,7 @@ export async function generateIssueEmbedding(
     // Convert to array and return
     return Array.from(embeddings);
   } catch (error) {
-    console.error(, error);
+    console.error("Error:", error);
     throw error;
   }
 }

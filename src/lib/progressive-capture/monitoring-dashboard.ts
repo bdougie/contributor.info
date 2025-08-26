@@ -74,7 +74,7 @@ export class HybridMonitoringDashboard {
         .gte('created_at', twentyFourHoursAgo.toISOString());
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         throw error;
       }
 
@@ -107,7 +107,7 @@ export class HybridMonitoringDashboard {
         combined: combinedMetrics,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       const emptyMetrics: JobMetrics = {
         total: 0,
         successful: 0,
@@ -239,7 +239,7 @@ export class HybridMonitoringDashboard {
         .eq('status', 'completed');
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         throw error;
       }
 
@@ -285,7 +285,7 @@ export class HybridMonitoringDashboard {
         },
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return {
         inngest: { estimatedCost: 0, jobsProcessed: 0, costPerJob: 0 },
         github_actions: { estimatedCost: 0, jobsProcessed: 0, costPerJob: 0 },
@@ -312,7 +312,7 @@ export class HybridMonitoringDashboard {
         .gte('created_at', twentyFourHoursAgo.toISOString());
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         throw error;
       }
 
@@ -361,7 +361,7 @@ export class HybridMonitoringDashboard {
         suggestions,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return {
         correctRouting: 0,
         suboptimalRouting: 0,
@@ -397,7 +397,7 @@ export class HybridMonitoringDashboard {
         .limit(limit);
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         throw error;
       }
 
@@ -448,7 +448,7 @@ export class HybridMonitoringDashboard {
         topErrors,
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return {
         errors: [],
         errorSummary: {},

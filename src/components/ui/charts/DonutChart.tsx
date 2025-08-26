@@ -191,7 +191,7 @@ const DonutChartComponent = ({
       }
     }
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
     }
   }, [data, dimensions, innerRadius, outerRadius, activeSegmentId, showLabel, centerLabel, centerSubLabel, calculateSegments]);
 

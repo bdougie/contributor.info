@@ -81,7 +81,7 @@ describe('Home Component', () => {
 
     expect(screen.getByText('Analyze GitHub Repository Contributors')).toBeInTheDocument();
     expect(
-      screen.getByText(/Enter a GitHub repository URL or owner\/repo to visualize/),
+      screen.getByText(/Enter a GitHub repository URL or owner/repo to visualize/),
     ).toBeInTheDocument();
     expect(screen.getByTestId('social-meta-tags')).toBeInTheDocument();
     expect(screen.getByTestId('github-search-input')).toBeInTheDocument();

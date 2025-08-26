@@ -462,7 +462,7 @@ export class PRTemplateService {
       } catch (error) {
         const errorMsg = `${repo.owner}/${repo.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
         results.errors.push(errorMsg);
-        console.error(, error);
+        console.error("Error:", error);
       }
     }
 

@@ -145,7 +145,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     } catch (error) {
       // Log error to monitoring service in production
       if (process.env.NODE_ENV === 'development') {
-        console.error(, error);
+        console.error('Metrics and trends loading error:', error);
       }
       setTrends([]);
       setMetrics(null);

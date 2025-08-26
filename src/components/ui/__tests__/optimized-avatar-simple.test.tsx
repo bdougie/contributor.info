@@ -35,7 +35,7 @@ class MockIntersectionObserver {
       rootBounds: null,
       time: Date.now(),
     }));
-    this.callback(entries, this as any);
+    this.callback(entries, this as IntersectionObserver);
   }
 }
 
@@ -45,7 +45,7 @@ beforeEach(() => {
   global.IntersectionObserver = vi.fn().mockImplementation((callback) => {
     mockObserver = new MockIntersectionObserver(callback);
     return mockObserver;
-  }) as any;
+  }) as unknown as typeof IntersectionObserver;
 });
 
 afterEach(() => {

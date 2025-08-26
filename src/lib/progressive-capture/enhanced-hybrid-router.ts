@@ -88,7 +88,7 @@ export class EnhancedHybridRouter {
 
       return decision;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
 
       // Default to Inngest on error
       return {
@@ -219,13 +219,13 @@ export class EnhancedHybridRouter {
         .maybeSingle();
 
       if (error) {
-        console.error(, error);
+        console.error("Error:", error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
   }
@@ -248,7 +248,7 @@ export class EnhancedHybridRouter {
 
       return data;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
   }
@@ -277,7 +277,7 @@ export class EnhancedHybridRouter {
         actionsLoad: Math.min(actionsCount / 100, 1),
       };
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return { inngestLoad: 0.5, actionsLoad: 0.5 };
     }
   }
@@ -350,7 +350,7 @@ export class EnhancedHybridRouter {
 
       return stats;
     } catch (error) {
-      console.error(, error);
+      console.error("Error:", error);
       return null;
     }
   }
