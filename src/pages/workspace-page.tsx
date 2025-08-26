@@ -55,19 +55,34 @@ interface MergedPR {
 }
 
 // Generate mock metrics for now
-const generateMockMetrics = (repos: Repository[]): WorkspaceMetrics => {
+const generateMockMetrics = (repos: Repository[], timeRange: TimeRange): WorkspaceMetrics => {
   const totalStars = repos.reduce((sum, repo) => sum + (repo.stars || 0), 0);
   const totalContributors = repos.reduce((sum, repo) => sum + (repo.contributors || 0), 0);
+  
+  // Generate time-range aware trend percentages
+  // Shorter time ranges typically show more volatile changes
+  const getTimeRangeMultiplier = (range: TimeRange): number => {
+    switch (range) {
+      case '7d': return 1.0;    // More volatile for 7 days
+      case '30d': return 0.7;   // Moderate for 30 days  
+      case '90d': return 0.5;   // Less volatile for 90 days
+      case '1y': return 0.3;    // Even less for 1 year
+      case 'all': return 0.2;   // Least volatile for all time
+      default: return 0.7;
+    }
+  };
+  
+  const multiplier = getTimeRangeMultiplier(timeRange);
   
   return {
     totalStars,
     totalPRs: Math.floor(Math.random() * 500) + 100,
     totalContributors,
     totalCommits: Math.floor(Math.random() * 10000) + 1000,
-    starsTrend: (Math.random() - 0.5) * 20,
-    prsTrend: (Math.random() - 0.5) * 15,
-    contributorsTrend: (Math.random() - 0.5) * 10,
-    commitsTrend: (Math.random() - 0.5) * 25,
+    starsTrend: (Math.random() - 0.5) * 20 * multiplier,
+    prsTrend: (Math.random() - 0.5) * 15 * multiplier,
+    contributorsTrend: (Math.random() - 0.5) * 10 * multiplier,
+    commitsTrend: (Math.random() - 0.5) * 25 * multiplier,
   };
 };
 
@@ -1277,7 +1292,7 @@ export default function WorkspacePage() {
           '1y': 365,
           'all': 730
         };
-        const mockMetrics = generateMockMetrics(transformedRepos);
+        const mockMetrics = generateMockMetrics(transformedRepos, timeRange);
         const mockTrendData = generateMockTrendData(timeRangeDays[timeRange]);
         const activityDataPoints = generateActivityDataFromPRs(mergedPRs);
         
@@ -1379,7 +1394,7 @@ export default function WorkspacePage() {
         setSelectedRepositories(formattedRepos.map(r => r.id));
         
         // Update metrics with new repository data
-        const newMetrics = generateMockMetrics(formattedRepos);
+        const newMetrics = generateMockMetrics(formattedRepos, timeRange);
         setMetrics(newMetrics);
       }
     } catch (error) {
@@ -1500,6 +1515,7 @@ export default function WorkspacePage() {
             activityData={activityData}
             repositories={repositories}
             tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
+            timeRange={timeRange}
             onAddRepository={handleAddRepository}
             onRepositoryClick={handleRepositoryClick}
             onSettingsClick={handleSettingsClick}
