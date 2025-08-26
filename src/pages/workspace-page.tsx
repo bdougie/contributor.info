@@ -339,13 +339,16 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
             github_id,
             number,
             title,
+            body,
             state,
             created_at,
             updated_at,
             closed_at,
+            labels,
+            comments_count,
             html_url,
             repository_id,
-            repositories!inner(
+            repositories(
               id,
               name,
               owner,
@@ -370,11 +373,14 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
             github_id: number;
             number: number;
             title: string;
+            body: string | null;
             state: string;
             created_at: string;
             updated_at: string;
             closed_at: string | null;
-            html_url: string;
+            labels: any;
+            comments_count: number | null;
+            html_url: string | null;
             repository_id: string;
             repositories?: {
               id: string;
@@ -405,9 +411,14 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
             created_at: issue.created_at,
             updated_at: issue.updated_at,
             closed_at: issue.closed_at || undefined,
-            comments_count: 0, // We don't have this data yet
-            labels: [], // We don't have this data yet
-            url: issue.html_url,
+            comments_count: issue.comments_count || 0,
+            labels: Array.isArray(issue.labels) 
+              ? issue.labels.map((label: any) => ({
+                  name: label.name || '',
+                  color: label.color || '000000'
+                })).filter((l: any) => l.name) // Filter out labels without names
+              : [],
+            url: issue.html_url || `https://github.com/${issue.repositories?.full_name}/issues/${issue.number}`,
           }));
           setIssues(transformedIssues);
         }
