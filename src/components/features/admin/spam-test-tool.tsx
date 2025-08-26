@@ -123,7 +123,7 @@ export function SpamTestTool() {
           throw new Error(`Failed to create repository: ${insertError.message}`);
         }
         repository = {
-          ...newRepo,
+          id: newRepo!.id,
           pr_template_content: null,
           pr_template_fetched_at: null
         };
