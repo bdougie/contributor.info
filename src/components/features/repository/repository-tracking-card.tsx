@@ -1,19 +1,9 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Lock, Loader2, AlertCircle } from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
-import {
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell
-} from 'recharts';
 
 interface RepositoryTrackingCardProps {
   owner: string;
@@ -32,24 +22,6 @@ export function RepositoryTrackingCard({
   const [isTracking, setIsTracking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Generate mock scatter plot data
-  const mockData = useMemo(() => {
-    const data = [];
-    const contributors = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank'];
-    
-    // Generate 30 mock PR data points
-    for (let i = 0; i < 30; i++) {
-      data.push({
-        x: Math.floor(Math.random() * 30), // Days ago
-        y: Math.floor(Math.random() * 200) + 10, // Lines changed
-        contributor: contributors[Math.floor(Math.random() * contributors.length)],
-        opacity: 0.3 + Math.random() * 0.4 // Varying opacity for blur effect
-      });
-    }
-    
-    return data.sort((a, b) => a.x - b.x);
-  }, []);
 
   const handleLogin = async () => {
     // Store the repository path so we can auto-track after login
@@ -290,78 +262,6 @@ export function RepositoryTrackingCard({
           </div>
         )}
 
-        {/* Preview section with blurred chart */}
-        <div className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground">Preview of what you'll get:</h4>
-          
-          {/* Mock scatter plot with blur effect */}
-          <div className="relative h-[200px] w-full">
-            {/* Blur overlay */}
-            <div className="absolute inset-0 backdrop-blur-sm bg-background/30 z-10 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <Lock className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-                <p className="text-sm font-medium text-muted-foreground">Track repository to unlock</p>
-              </div>
-            </div>
-            
-            {/* Mock chart */}
-            <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart
-                margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="x" 
-                  domain={[0, 30]}
-                  ticks={[0, 7, 14, 21, 30]}
-                  tickFormatter={(value) => `${value}d`}
-                  className="text-xs"
-                  stroke="currentColor"
-                  opacity={0.3}
-                />
-                <YAxis 
-                  dataKey="y"
-                  domain={[0, 250]}
-                  className="text-xs"
-                  stroke="currentColor"
-                  opacity={0.3}
-                  label={{ value: 'Lines', angle: -90, position: 'insideLeft', className: 'text-xs' }}
-                />
-                <Tooltip 
-                  content={() => null} // Hide tooltip for mock data
-                />
-                <Scatter 
-                  data={mockData} 
-                  fill="#3b82f6"
-                >
-                  {mockData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill="#3b82f6" 
-                      fillOpacity={entry.opacity * 0.3}
-                    />
-                  ))}
-                </Scatter>
-              </ScatterChart>
-            </ResponsiveContainer>
-          </div>
-          
-          {/* Feature list */}
-          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <span className="text-green-500">✓</span> Contributor analytics
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-green-500">✓</span> PR visualizations
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-green-500">✓</span> Health metrics
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-green-500">✓</span> Activity trends
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
