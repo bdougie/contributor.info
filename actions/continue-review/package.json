@@ -1,0 +1,24 @@
+{
+  "name": "continue-review-action",
+  "version": "1.0.0",
+  "description": "GitHub Action for Continue code reviews",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@actions/core": "^1.10.1",
+    "@actions/github": "^6.0.0",
+    "@actions/exec": "^1.1.1",
+    "@continuedev/cli": "latest",
+    "@octokit/rest": "^20.0.0",
+    "js-yaml": "^4.1.0",
+    "glob": "^10.3.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0"
+  }
+}

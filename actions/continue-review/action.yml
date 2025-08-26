@@ -7,7 +7,7 @@ inputs:
     description: 'API key for Continue service'
     required: true
   github-token:
-    description: 'GitHub token for API access'
+    description: 'GitHub token for API access (use output from actions/create-github-app-token for App authentication)'
     required: true
   continue-org:
     description: 'Continue organization/username from Continue Hub'
@@ -28,9 +28,11 @@ runs:
       shell: bash
       run: |
         echo "Installing Continue CLI..."
-        npm install -g @continuedev/cli@latest || {
-          echo "Warning: Could not install Continue CLI globally"
-        }
+        # Install locally in action directory
+        cd ${{ github.action_path }}
+        npm install @continuedev/cli@latest
+        # Add to PATH
+        echo "${{ github.action_path }}/node_modules/.bin" >> $GITHUB_PATH
 
     - name: Install action dependencies
       shell: bash
@@ -38,7 +40,7 @@ runs:
       run: |
         echo "Installing action dependencies..."
         npm init -y
-        npm install @actions/core @actions/github @actions/exec js-yaml glob
+        npm install @actions/core @actions/github @actions/exec js-yaml glob @octokit/rest
         npm install --save-dev @types/js-yaml @types/node typescript tsx
 
     - name: Run Continue Review
