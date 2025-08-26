@@ -91,7 +91,7 @@ export class HybridRolloutManager {
       }
 
       // Use database function for eligibility check
-      const { data, error: _error } = await supabase.rpc('is_repository_eligible_for_rollout', {
+      const { data, error } = await supabase.rpc('is_repository_eligible_for_rollout', {
         repo_id: repositoryId,
         feature_name: this.featureName,
       });
@@ -102,7 +102,7 @@ export class HybridRolloutManager {
       }
 
       return data as boolean;
-    } catch (_error) {
+    } catch () {
       console.error(`[RolloutManager] Exception checking eligibility for ${repositoryId}:`, _error);
       return false;
     }
@@ -114,7 +114,7 @@ export class HybridRolloutManager {
   async categorizeRepository(repositoryId: string): Promise<RepositoryCategory | null> {
     try {
       // Use database function to categorize repository
-      const { error: _error } = await supabase.rpc('categorize_repository', {
+      const { error } = await supabase.rpc('categorize_repository', {
         repo_id: repositoryId,
       });
 
@@ -136,7 +136,7 @@ export class HybridRolloutManager {
       }
 
       return category as RepositoryCategory;
-    } catch (_error) {
+    } catch () {
       console.error(`[RolloutManager] Exception categorizing repository ${repositoryId}:`, _error);
       return null;
     }
@@ -147,7 +147,7 @@ export class HybridRolloutManager {
    */
   async getRolloutConfiguration(): Promise<RolloutConfiguration | null> {
     try {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('rollout_configuration')
         .select('*')
         .eq('feature_name', this.featureName)
@@ -161,7 +161,7 @@ export class HybridRolloutManager {
       }
 
       return data as RolloutConfiguration;
-    } catch (_error) {
+    } catch () {
       console.error(`[RolloutManager] Exception fetching rollout configuration:`, _error);
       return null;
     }
@@ -220,7 +220,7 @@ export class HybridRolloutManager {
         percentage,
       );
       return true;
-    } catch (_error) {
+    } catch () {
       console.error(`[RolloutManager] Exception updating rollout percentage:`, _error);
       return false;
     }
@@ -268,7 +268,7 @@ export class HybridRolloutManager {
 
       console.log('[RolloutManager] Emergency stop activated: %s', reason);
       return true;
-    } catch (_error) {
+    } catch () {
       console.error(`[RolloutManager] Exception during emergency stop:`, _error);
       return false;
     }
@@ -287,7 +287,7 @@ export class HybridRolloutManager {
 
       const updatedWhitelist = [...new Set([...config.target_repositories, ...repositoryIds])];
 
-      const { error: _error } = await supabase
+      const { error } = await supabase
         .from('rollout_configuration')
         .update({
           target_repositories: updatedWhitelist,
@@ -318,7 +318,7 @@ export class HybridRolloutManager {
 
       console.log('[RolloutManager] Added %s repositories to whitelist', repositoryIds.length);
       return true;
-    } catch (_error) {
+    } catch () {
       console.error(`[RolloutManager] Exception adding to whitelist:`, _error);
       return false;
     }
@@ -339,7 +339,7 @@ export class HybridRolloutManager {
         (id) => !repositoryIds.includes(id),
       );
 
-      const { error: _error } = await supabase
+      const { error } = await supabase
         .from('rollout_configuration')
         .update({
           target_repositories: updatedWhitelist,
@@ -370,7 +370,7 @@ export class HybridRolloutManager {
 
       console.log('[RolloutManager] Removed %s repositories from whitelist', repositoryIds.length);
       return true;
-    } catch (_error) {
+    } catch () {
       console.error(`[RolloutManager] Exception removing from whitelist:`, _error);
       return false;
     }
@@ -457,7 +457,7 @@ export class HybridRolloutManager {
           console.error(`[RolloutManager] Error inserting metrics:`, insertError);
         }
       }
-    } catch (_error) {
+    } catch () {
       console.error(`[RolloutManager] Exception recording metrics:`, _error);
     }
   }
@@ -544,7 +544,7 @@ export class HybridRolloutManager {
         categories: categoryDistribution,
         processor_distribution: processorDistribution,
       };
-    } catch (_error) {
+    } catch () {
       console.error(`[RolloutManager] Exception getting rollout stats:`, _error);
       return null;
     }
@@ -587,7 +587,7 @@ export class HybridRolloutManager {
       }
 
       return false;
-    } catch (_error) {
+    } catch () {
       console.error(`[RolloutManager] Exception during auto rollback check:`, _error);
       return false;
     }

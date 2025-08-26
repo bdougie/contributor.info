@@ -268,7 +268,7 @@ export function ProgressiveCaptureButton({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-center">
-            <p className="text-sm text-red-500 mb-4">{error: _error}</p>
+            <p className="text-sm text-red-500 mb-4">{error}</p>
             <Button 
               onClick={handleTriggerCapture}
               variant="outline"

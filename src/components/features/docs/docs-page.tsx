@@ -226,7 +226,7 @@ export function DocsPage() {
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle>Error Loading Documentation</CardTitle>
-            <CardDescription>{error: _error}</CardDescription>
+            <CardDescription>{error}</CardDescription>
           </CardHeader>
         </Card>
       </div>

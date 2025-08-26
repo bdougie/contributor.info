@@ -172,7 +172,7 @@ export class WorkspaceService {
         data: workspace,
         statusCode: 201,
       };
-    } catch (_error) {
+    } catch () {
       console.error('Create workspace error:', _error);
       return {
         success: false,
@@ -253,7 +253,7 @@ export class WorkspaceService {
         data: workspace,
         statusCode: 200,
       };
-    } catch (_error) {
+    } catch () {
       console.error('Update workspace error:', _error);
       return {
         success: false,
@@ -308,7 +308,7 @@ export class WorkspaceService {
         success: true,
         statusCode: 200,
       };
-    } catch (_error) {
+    } catch () {
       console.error('Delete workspace error:', _error);
       return {
         success: false,
@@ -327,7 +327,7 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<WorkspaceWithStats>> {
     try {
       // Get workspace with member check
-      const { data: workspace, error: _error } = await supabase
+      const { data: workspace, error } = await supabase
         .from('workspaces')
         .select(
           `
@@ -379,7 +379,7 @@ export class WorkspaceService {
         data: workspaceWithStats,
         statusCode: 200,
       };
-    } catch (_error) {
+    } catch () {
       console.error('Get workspace error:', _error);
       return {
         success: false,
@@ -436,7 +436,7 @@ export class WorkspaceService {
         query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
       }
 
-      const { data: workspaces, error: _error, count } = await query;
+      const { data: workspaces, error, count } = await query;
 
       if (_error) {
         throw error;
@@ -464,7 +464,7 @@ export class WorkspaceService {
         },
         statusCode: 200,
       };
-    } catch (_error) {
+    } catch () {
       console.error('List workspaces error:', _error);
       return {
         success: false,
@@ -498,7 +498,7 @@ export class WorkspaceService {
         hasPermission: requiredRoles.includes(member.role as WorkspaceRole),
         role: member.role as WorkspaceRole,
       };
-    } catch (_error) {
+    } catch () {
       console.error('Check permission error:', _error);
       return { hasPermission: false };
     }
@@ -598,7 +598,7 @@ export class WorkspaceService {
         data: workspaceRepo,
         statusCode: 201,
       };
-    } catch (_error) {
+    } catch () {
       console.error('Add repository to workspace error:', _error);
       return {
         success: false,
@@ -663,7 +663,7 @@ export class WorkspaceService {
         success: true,
         statusCode: 200,
       };
-    } catch (_error) {
+    } catch () {
       console.error('Remove repository from workspace error:', _error);
       return {
         success: false,
@@ -759,7 +759,7 @@ export class WorkspaceService {
 
       query = query.range(offset, offset + limit - 1);
 
-      const { data: repositories, error: _error, count } = await query;
+      const { data: repositories, error, count } = await query;
 
       if (_error) {
         throw error;
@@ -778,7 +778,7 @@ export class WorkspaceService {
         },
         statusCode: 200,
       };
-    } catch (_error) {
+    } catch () {
       console.error('List workspace repositories error:', _error);
       return {
         success: false,

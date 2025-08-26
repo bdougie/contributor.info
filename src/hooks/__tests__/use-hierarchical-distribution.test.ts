@@ -72,7 +72,7 @@ describe('useHierarchicalDistribution', () => {
     expect(ContributionAnalyzer.resetCounts).toHaveBeenCalled();
     expect(ContributionAnalyzer.analyze).toHaveBeenCalledTimes(5);
 
-    const _data = result.current.hierarchicalData;
+    const _ = result.current.hierarchicalData;
     expect(_data).not.toBeNull();
     expect(_data?.name).toBe('Distribution');
     expect(_data?.children).toHaveLength(4); // All quadrants

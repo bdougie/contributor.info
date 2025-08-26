@@ -22,7 +22,7 @@ export class AISummaryProcessor {
     priority: 'high' | 'medium' | 'low' = 'medium',
   ): Promise<boolean> {
     try {
-      const { error: _error } = await supabase.from('_data_capture_queue').insert({
+      const { error } = await supabase.from('_data_capture_queue').insert({
         type: 'ai_summary' as const, // Type extension for AI summaries
         priority,
         repository_id: repositoryId,
@@ -74,7 +74,7 @@ export class AISummaryProcessor {
       const repositoryData = await trackDatabaseOperation(
         'fetchRepositoryForSummary',
         async () => {
-          const { data, error: _error } = await supabase
+          const { data, error } = await supabase
             .from('repositories')
             .select('*, pull_requests(*)')
             .eq('id', job.repository_id)
@@ -98,7 +98,7 @@ export class AISummaryProcessor {
       const result = await trackCacheOperation(
         'generateAISummary',
         async () => {
-          const { data, error: _error } = await supabase.functions.invoke('repository-summary', {
+          const { data, error } = await supabase.functions.invoke('repository-summary', {
             body: {
               repository: repositoryData,
               pullRequests: repositoryData.pull_requests || [],
@@ -142,7 +142,7 @@ export class AISummaryProcessor {
       });
 
       return true;
-    } catch (_error) {
+    } catch () {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       // Track failed generation
@@ -176,7 +176,7 @@ export class AISummaryProcessor {
     try {
       const staleDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-      const { data: staleRepos, error: _error } = await supabase
+      const { data: staleRepos, error } = await supabase
         .from('repositories')
         .select('id, full_name')
         .or(`summary_generated_at.is.null,summary_generated_at.lt.${staleDate.toISOString()}`)
@@ -205,7 +205,7 @@ export class AISummaryProcessor {
       });
 
       return queuedCount;
-    } catch (_error) {
+    } catch () {
       // Simple error logging without analytics
       console.error('AI Summary error:', _error, {
         tags: { component: 'ai-summary-processor' },
@@ -226,7 +226,7 @@ export class AISummaryProcessor {
     averageAge: number;
   }> {
     try {
-      const { data: stats, error: _error } = await supabase.rpc('analyze_ai_summary_coverage');
+      const { data: stats, error } = await supabase.rpc('analyze_ai_summary_coverage');
 
       if (_error) throw error;
 
@@ -239,7 +239,7 @@ export class AISummaryProcessor {
           averageAge: 0,
         }
       );
-    } catch (_error) {
+    } catch () {
       // Simple error logging without analytics
       console.error('AI Summary error:', _error, {
         tags: { component: 'ai-summary-processor' },
@@ -261,7 +261,7 @@ export class AISummaryProcessor {
    */
   static async needsSummaryRegeneration(repositoryId: string): Promise<boolean> {
     try {
-      const { data: repo, error: _error } = await supabase
+      const { data: repo, error } = await supabase
         .from('repositories')
         .select('summary_generated_at, recent_activity_hash')
         .eq('id', repositoryId)
@@ -276,7 +276,7 @@ export class AISummaryProcessor {
       const generatedAt = new Date(repo.summary_generated_at);
 
       return generatedAt < fourteenDaysAgo;
-    } catch (_error) {
+    } catch () {
       console.error('[AI Summary] Error checking regeneration need:', _error);
       return false; // Conservative approach
     }

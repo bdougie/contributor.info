@@ -211,7 +211,7 @@ export function useOrgRepos(org?: string): UseOrgReposState {
           isLoading: false,
           error: null,
         });
-      } catch (_error) {
+      } catch () {
         if (signal.aborted) return;
 
         // Error will be handled by setting error state below

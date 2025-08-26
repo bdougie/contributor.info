@@ -198,7 +198,7 @@ export function HybridQueueStatus({
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-red-500 mb-4">{error: _error}</p>
+            <p className="text-red-500 mb-4">{error}</p>
             <Button onClick={fetchStats} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry

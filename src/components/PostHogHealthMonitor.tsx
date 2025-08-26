@@ -32,7 +32,7 @@ export function PostHogHealthMonitor() {
           configured: !!env.POSTHOG_KEY,
           rateLimits: stats,
         });
-      } catch (_error) {
+      } catch {
         setHealth({
           enabled: false,
           configured: !!env.POSTHOG_KEY,

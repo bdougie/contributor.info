@@ -32,7 +32,7 @@ export class MaintainerClassifier {
         correct: prediction === expected,
         execution_time_ms: executionTime,
       };
-    } catch (_error) {
+    } catch () {
       return {
         sample_id: sampleId,
         prediction: 'contributor', // Default fallback

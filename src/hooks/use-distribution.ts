@@ -134,7 +134,7 @@ export function useDistribution(pullRequests: PullRequest[]) {
       // Transform data for chart visualization
       const totalContributions = Object.values(newCounts).reduce((sum, count) => sum + count, 0);
 
-      const _data = Object.entries(newCounts).map(([key, value]) => {
+      const _ = Object.entries(newCounts).map(([key, value]) => {
         const info = quadrantInfo[key as keyof typeof quadrantInfo];
         return {
           id: key,

@@ -45,7 +45,7 @@ export async function getGitHubHeaders(): Promise<Record<string, string>> {
     } else {
       console.warn('No GitHub token available, using unauthenticated requests');
     }
-  } catch (_error) {
+  } catch () {
     console.warn('Error getting GitHub session token:', _error);
     console.warn('No GitHub token available, using unauthenticated requests');
   }
@@ -86,19 +86,19 @@ export function getOctokit() {
     rest: {
       pulls: {
         get: async (params: { owner: string; repo: string; pull_number: number }) => {
-          const _data = await makeGitHubRequest(
+          const _ = await makeGitHubRequest(
             `/repos/${params.owner}/${params.repo}/pulls/${params.pull_number}`,
           );
           return { data };
         },
         listReviews: async (params: { owner: string; repo: string; pull_number: number }) => {
-          const _data = await makeGitHubRequest(
+          const _ = await makeGitHubRequest(
             `/repos/${params.owner}/${params.repo}/pulls/${params.pull_number}/reviews`,
           );
           return { data };
         },
         listComments: async (params: { owner: string; repo: string; pull_number: number }) => {
-          const _data = await makeGitHubRequest(
+          const _ = await makeGitHubRequest(
             `/repos/${params.owner}/${params.repo}/pulls/${params.pull_number}/comments`,
           );
           return { data };
@@ -106,7 +106,7 @@ export function getOctokit() {
       },
       issues: {
         listComments: async (params: { owner: string; repo: string; issue_number: number }) => {
-          const _data = await makeGitHubRequest(
+          const _ = await makeGitHubRequest(
             `/repos/${params.owner}/${params.repo}/issues/${params.issue_number}/comments`,
           );
           return { data };

@@ -82,7 +82,7 @@ export const capturePrComments = inngest.createFunction(
 
     // Step 1: Get repository details
     const repository = await step.run('get-repository', async () => {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
@@ -275,7 +275,7 @@ export const capturePrComments = inngest.createFunction(
       }
 
       // Batch insert comments
-      const { error: _error } = await supabase.from('comments').upsert(allComments, {
+      const { error } = await supabase.from('comments').upsert(allComments, {
         onConflict: 'github_id',
         ignoreDuplicates: false,
       });
@@ -294,7 +294,7 @@ export const capturePrComments = inngest.createFunction(
 
     // Step 4: Update PR timestamp (comment counts are tracked via foreign key relationships)
     await step.run('update-pr-stats', async () => {
-      const { error: _error } = await supabase
+      const { error } = await supabase
         .from('pull_requests')
         .update({
           updated_at: new Date().toISOString(),

@@ -72,7 +72,7 @@ export class SmartCommitAnalyzer {
         isDirectCommit,
         analyzed_at: new Date().toISOString(),
       };
-    } catch (_error) {
+    } catch () {
       console.error(`[Smart Commit] Failed to analyze commit ${sha}:`, _error);
       throw error;
     }
@@ -102,7 +102,7 @@ export class SmartCommitAnalyzer {
 
           // Small delay between individual API calls to be respectful
           await this.delay(200); // 200ms between calls = max 5 calls/second
-        } catch (_error) {
+        } catch () {
           errors.push({
             sha,
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -153,7 +153,7 @@ export class SmartCommitAnalyzer {
         if (updateError) {
           console.warn(`[Smart Commit] Failed to update commit ${result.sha}:`, updateError);
         }
-      } catch (_error) {
+      } catch () {
         console.error(`[Smart Commit] Error storing result for commit ${result.sha}:`, _error);
       }
     }
@@ -174,7 +174,7 @@ export class SmartCommitAnalyzer {
 
       // Store the result in database
       await this.storeAnalysisResults(job.repository_id, [result]);
-    } catch (_error) {
+    } catch () {
       console.error(`[Smart Commit] Failed to process job for commit ${commitSha}:`, _error);
       throw error;
     }
@@ -201,7 +201,7 @@ export class SmartCommitAnalyzer {
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
       // Query database for commit analysis (no GitHub API calls needed!)
-      const { data: commits, error: _error } = await supabase
+      const { data: commits, error } = await supabase
         .from('commits')
         .select(
           `
@@ -235,7 +235,7 @@ export class SmartCommitAnalyzer {
         hasYoloCoders: contributorStats.length > 0,
         yoloCoderStats: contributorStats,
       };
-    } catch (_error) {
+    } catch () {
       console.error('[Smart Commit] Error getting direct commits from _database:', _error);
       return { hasYoloCoders: false, yoloCoderStats: [] };
     }

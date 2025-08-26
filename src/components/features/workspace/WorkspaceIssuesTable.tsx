@@ -109,11 +109,15 @@ export function WorkspaceIssuesTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               State
-              {column.getIsSorted() === 'asc' ? (
+              {column.getIsSorted() === 'asc'
+? (
                 <ChevronUp className="ml-2 h-4 w-4" />
-              ) : column.getIsSorted() === 'desc' ? (
+              )
+: column.getIsSorted() === 'desc'
+? (
                 <ChevronDown className="ml-2 h-4 w-4" />
-              ) : (
+              )
+: (
                 <ChevronsUpDown className="ml-2 h-4 w-4" />
               )}
             </Button>
@@ -122,9 +126,11 @@ export function WorkspaceIssuesTable({
             const state = row.original.state;
             return (
               <div className="flex items-center">
-                {state === 'open' ? (
+                {state === 'open'
+? (
                   <Circle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                ) : (
+                )
+: (
                   <CheckCircle2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                 )}
                 <span className="ml-2 capitalize">{state}</span>
@@ -145,7 +151,8 @@ export function WorkspaceIssuesTable({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      {issue.url ? (
+                      {issue.url
+? (
                         <a
                           href={issue.url}
                           target="_blank"
@@ -161,7 +168,8 @@ export function WorkspaceIssuesTable({
                           <span className="line-clamp-1">{truncatedTitle}</span>
                           <span className="text-muted-foreground">#{issue.number}</span>
                         </a>
-                      ) : (
+                      )
+: (
                         <span className="font-medium text-muted-foreground text-left inline-flex items-center gap-1">
                           <span className="line-clamp-1">{truncatedTitle}</span>
                           <span className="text-muted-foreground">#{issue.number}</span>
@@ -295,11 +303,15 @@ export function WorkspaceIssuesTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               <MessageSquare className="h-4 w-4" />
-              {column.getIsSorted() === 'asc' ? (
+              {column.getIsSorted() === 'asc'
+? (
                 <ChevronUp className="ml-1 h-4 w-4" />
-              ) : column.getIsSorted() === 'desc' ? (
+              )
+: column.getIsSorted() === 'desc'
+? (
                 <ChevronDown className="ml-1 h-4 w-4" />
-              ) : (
+              )
+: (
                 <ChevronsUpDown className="ml-1 h-4 w-4" />
               )}
             </Button>
@@ -322,11 +334,15 @@ export function WorkspaceIssuesTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               Created
-              {column.getIsSorted() === 'asc' ? (
+              {column.getIsSorted() === 'asc'
+? (
                 <ChevronUp className="ml-2 h-4 w-4" />
-              ) : column.getIsSorted() === 'desc' ? (
+              )
+: column.getIsSorted() === 'desc'
+? (
                 <ChevronDown className="ml-2 h-4 w-4" />
-              ) : (
+              )
+: (
                 <ChevronsUpDown className="ml-2 h-4 w-4" />
               )}
             </Button>
@@ -347,11 +363,15 @@ export function WorkspaceIssuesTable({
               onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             >
               Updated
-              {column.getIsSorted() === 'asc' ? (
+              {column.getIsSorted() === 'asc'
+? (
                 <ChevronUp className="ml-2 h-4 w-4" />
-              ) : column.getIsSorted() === 'desc' ? (
+              )
+: column.getIsSorted() === 'desc'
+? (
                 <ChevronDown className="ml-2 h-4 w-4" />
-              ) : (
+              )
+: (
                 <ChevronsUpDown className="ml-2 h-4 w-4" />
               )}
             </Button>
@@ -366,7 +386,8 @@ export function WorkspaceIssuesTable({
         columnHelper.display({
           id: 'actions',
           cell: ({ row }) =>
-            row.original.url ? (
+            row.original.url
+? (
               <a
                 href={row.original.url}
                 target="_blank"
@@ -376,7 +397,8 @@ export function WorkspaceIssuesTable({
               >
                 <ExternalLink className="h-4 w-4" />
               </a>
-            ) : (
+            )
+: (
               <span className="text-muted-foreground/30" title="GitHub link unavailable">
                 <ExternalLink className="h-4 w-4" />
               </span>

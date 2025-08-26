@@ -221,7 +221,7 @@ export async function fetchPRDataWithFallback(
           } else {
           }
         }
-      } catch (_error) {}
+      } catch () {}
 
       // Fallback to GitHub API - STRICTLY LIMITED to prevent resource exhaustion
       // Only fetch basic repository info, never attempt to fetch all PRs for unknown repos
@@ -379,7 +379,7 @@ export async function fetchPRDataWithFallback(
               setTimeout(() => {
                 delete globalWindow.__discoveryInProgress[discoveryKey];
               }, 5000);
-            } catch (_error) {
+            } catch () {
               console.error('Failed to trigger repository discovery:', _error);
               delete globalWindow.__discoveryInProgress[discoveryKey];
             }
@@ -528,7 +528,7 @@ export async function hasRecentPRData(
   try {
     const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
 
-    const { data, error: _error } = await supabase
+    const { data, error } = await supabase
       .from('pull_requests')
       .select('updated_at')
       .eq('repositories.owner', owner)
@@ -537,7 +537,7 @@ export async function hasRecentPRData(
       .limit(1);
 
     return !error && data && data.length > 0;
-  } catch (_error) {
+  } catch () {
     return false;
   }
 }

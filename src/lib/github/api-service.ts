@@ -77,7 +77,7 @@ export async function fetchFromGitHub<T = unknown>(
     throw new Error(`GitHub API error: ${response.status} ${response.statusText}. ${_errorBody}`);
   }
 
-  const _data = (await response.json()) as T;
+  const _ = (await response.json()) as T;
   return { data, rateLimit };
 }
 

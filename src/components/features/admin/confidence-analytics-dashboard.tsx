@@ -157,7 +157,7 @@ export function ConfidenceAnalyticsDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground mb-4">{error: _error}</p>
+            <p className="text-muted-foreground mb-4">{error}</p>
             <Button onClick={fetchAnalytics} className="flex items-center gap-2">
               <RefreshCw className="h-4 w-4" />
               Retry

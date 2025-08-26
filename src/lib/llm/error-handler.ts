@@ -241,7 +241,7 @@ export const withErrorHandling = <T extends any[], R>(
     while (attemptCount <= llmErrorHandler['config'].maxRetries) {
       try {
         return await fn(...args);
-      } catch (_error) {
+      } catch () {
         const llmError = llmErrorHandler.handleError(__error, context);
 
         if (llmErrorHandler.shouldRetry(llmError, attemptCount)) {

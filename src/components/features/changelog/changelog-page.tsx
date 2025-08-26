@@ -116,7 +116,7 @@ export function ChangelogPage() {
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle>Error Loading Changelog</CardTitle>
-            <CardDescription>{error: _error}</CardDescription>
+            <CardDescription>{error}</CardDescription>
           </CardHeader>
         </Card>
       </div>

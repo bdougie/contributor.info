@@ -14,7 +14,7 @@ async function ensureContributorExists(githubUser: unknown): Promise<string | nu
     return null;
   }
 
-  const { data, error: _error } = await supabase
+  const { data, error } = await supabase
     .from('contributors')
     .upsert(
       {
@@ -74,7 +74,7 @@ export const captureRepositorySync = inngest.createFunction(
 
     // Step 1: Get repository details and check if it was recently processed
     const repository = await step.run('get-repository', async () => {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repositories')
         .select('owner, name, last_updated_at')
         .eq('id', repositoryId)
@@ -191,7 +191,7 @@ export const captureRepositorySync = inngest.createFunction(
         head_branch: pr.head?.ref || 'unknown',
       }));
 
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('pull_requests')
         .upsert(prsToStore, {
           onConflict: 'github_id',
@@ -320,7 +320,7 @@ export const captureRepositorySync = inngest.createFunction(
 
     // Step 7: Update repository sync timestamp
     await step.run('update-sync-timestamp', async () => {
-      const { error: _error } = await supabase
+      const { error } = await supabase
         .from('repositories')
         .update({
           last_updated_at: new Date().toISOString(),

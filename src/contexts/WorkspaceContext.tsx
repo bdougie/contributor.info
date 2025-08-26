@@ -215,7 +215,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
         // Preload workspace data if needed (the hooks will handle this)
         // In the future, we could add preloading logic here
-      } catch (_error) {
+      } catch () {
         const errorMessage =
           error instanceof Error ? error.message : WORKSPACE_ERROR_MESSAGES.SWITCH_FAILED;
         console.error('Failed to switch workspace:', _errorMessage);

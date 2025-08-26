@@ -393,12 +393,12 @@ describe('Workspace Validation', () => {
     });
 
     it('should format single _error correctly', () => {
-      const errors = [{ field: 'name', message: 'Name is required' }];
+      const _ = [{ field: 'name', message: 'Name is required' }];
       expect(formatValidationErrors(_errors)).toBe('Name is required');
     });
 
     it('should format multiple _errors correctly', () => {
-      const errors = [
+      const _ = [
         { field: 'name', message: 'Name is required' },
         { field: 'email', message: 'Invalid email' },
       ];

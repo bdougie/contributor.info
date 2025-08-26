@@ -94,7 +94,7 @@ export function useHierarchicalDistribution(
           quadrantMap[quadrant][contributor] = [];
         }
         quadrantMap[quadrant][contributor].push(pr);
-      } catch (_error) {
+      } catch () {
         // Silently handle PR analysis errors
       }
     });

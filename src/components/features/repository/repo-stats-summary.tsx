@@ -83,7 +83,7 @@ export function RepoStatsSummary({ owner, repo }: RepoStatsSummaryProps) {
           <CardDescription>Error loading data</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-destructive">{stats.error: _error}</div>
+          <div className="text-destructive">{stats.error}</div>
         </CardContent>
       </Card>
     );
@@ -176,7 +176,7 @@ export function RepoStatsSummary({ owner, repo }: RepoStatsSummaryProps) {
       const sizeInfo = metadata?.size ? ` (${meta_data.size.toUpperCase()} repo, ${refreshTimeRange} days)` : '';
       toast.success(`Refreshing _data${sizeInfo}...`);
       
-    } catch (_error) {
+    } catch () {
       console.error('Manual refresh failed:', _error);
       toast.error('Failed to refresh _data');
       setIsRefreshing(false);

@@ -399,7 +399,8 @@ export function CommandPalette({
       />
       <CommandList aria-label="Search results">
         <CommandEmpty>
-          {filter === 'repository' && query.includes('/') ? (
+          {filter === 'repository' && query.includes('/')
+? (
             <div className="text-center py-6">
               <p className="text-sm text-muted-foreground mb-2">
                 Repository not in your workspaces
@@ -409,7 +410,8 @@ export function CommandPalette({
                 <strong>{query}</strong>
               </p>
             </div>
-          ) : (
+          )
+: (
             `No results found for "${search}"`
           )}
         </CommandEmpty>

@@ -51,7 +51,7 @@ export function useRepositoryTracking({
       setState((prev) => ({ ...prev, status: 'checking', _error: null }));
 
       // Check if repository exists
-      const { data: repoData, error: _error } = await supabase
+      const { data: repoData, error } = await supabase
         .from('repositories')
         .select('id, owner, name')
         .eq('owner', owner)
@@ -86,7 +86,7 @@ export function useRepositoryTracking({
           error: null,
         });
       }
-    } catch (_error) {
+    } catch () {
       console.error('Repository check error:', _error);
       setState({
         status: 'error',
@@ -141,7 +141,7 @@ export function useRepositoryTracking({
       pollForRepository(owner, repo);
 
       return { success: true, repositoryId: result.repositoryId };
-    } catch (_error) {
+    } catch () {
       const errorMessage = error instanceof Error ? error.message : 'Failed to track repository';
 
       setState({
@@ -196,7 +196,7 @@ export function useRepositoryTracking({
                 'Tracking is taking longer than expected. The data sync is still running in the background.',
             }));
           }
-        } catch (_error) {
+        } catch () {
           console.error('Polling error:', _error);
         }
       }, 2000);

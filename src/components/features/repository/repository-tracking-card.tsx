@@ -35,7 +35,7 @@ export function RepositoryTrackingCard({
 
   // Generate mock scatter plot data
   const mockData = useMemo(() => {
-    const _data = [];
+    const _ = [];
     const contributors = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank'];
     
     // Generate 30 mock PR data points
@@ -159,7 +159,7 @@ export function RepositoryTrackingCard({
       try {
         // Check if repository now has data
         const response = await fetch(`/api/repository-status?owner=${owner}&repo=${repo}`);
-        const _data = await response.json();
+        const _ = await response.json();
 
         if (_data.hasData) {
           if (pollIntervalRef.current) {
@@ -261,7 +261,7 @@ export function RepositoryTrackingCard({
           <div className="space-y-2">
             <div className="flex items-start gap-2 text-sm text-destructive">
               <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-              <span>{error: _error}</span>
+              <span>{error}</span>
             </div>
             {error.includes('longer than expected') && (
               <div className="flex gap-2">

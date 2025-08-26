@@ -268,7 +268,7 @@ describe('useRepoStats', () => {
 
     const timeRange = '30';
 
-    const _data = await result.current.fetchRepoData('testorg', 'testrepo', timeRange, true);
+    const _ = await result.current.fetchRepoData('testorg', 'testrepo', timeRange, true);
 
     // Verify API calls
     expect(fetchPRDataWithFallback).toHaveBeenCalledWith('testorg', 'testrepo', timeRange);

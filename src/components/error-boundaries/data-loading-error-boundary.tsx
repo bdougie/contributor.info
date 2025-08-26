@@ -53,7 +53,7 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
     };
   }
 
-  static getDerivedStateFromError(_error: Error): Partial<State> {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     // Check if this is a LoadingError, otherwise create a generic one
     const loadingError = error as LoadingError;
 
@@ -210,8 +210,8 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
 
       // Retry after cache clear
       this.handleRetry();
-    } catch (_error) {
-      console.error('Failed to clear cache:', _error);
+    } catch () {
+      console.error('Failed to clear cache:', error);
     }
   };
 
@@ -220,8 +220,8 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
       // Use window.location for auth refresh instead of dynamic imports
       // which can cause issues in production builds
       window.location.href = '/login';
-    } catch (_error) {
-      console.error('Failed to refresh auth:', _error);
+    } catch () {
+      console.error('Failed to refresh auth:', error);
     }
   };
 

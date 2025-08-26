@@ -147,7 +147,7 @@ export default function PRActivity() {
         <PullRequestActivityFeed
           activities={visibleActivities}
           loading={loading}
-          error={error: _error}
+          error={error}
           selectedTypes={selectedTypes}
         />
 

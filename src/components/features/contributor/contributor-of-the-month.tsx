@@ -33,11 +33,11 @@ export function ContributorOfTheMonth({
     );
   }
 
-  if (_error) {
+  if (error) {
     return (
       <ContributorEmptyState
         type="loading_error"
-        message={error: _error}
+        message={error}
         className={className}
       />
     );

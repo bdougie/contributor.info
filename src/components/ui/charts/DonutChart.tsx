@@ -190,7 +190,7 @@ const DonutChartComponent(DonutChartProps): JSX.Element = ({
         ctx.fillText(centerSubLabel, centerX, centerY + 15);
       }
     }
-    } catch (_error) {
+    } catch () {
       console.error('DonutChart: Error during canvas rendering', _error);
     }
   }, [data, dimensions, innerRadius, outerRadius, activeSegmentId, showLabel, centerLabel, centerSubLabel, calculateSegments]);

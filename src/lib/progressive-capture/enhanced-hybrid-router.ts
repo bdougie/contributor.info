@@ -87,7 +87,7 @@ export class EnhancedHybridRouter {
       const decision = this.makeRoutingDecision(factors);
 
       return decision;
-    } catch (_error) {
+    } catch () {
       console.error('[EnhancedHybridRouter] Error routing job:', _error);
 
       // Default to Inngest on error
@@ -203,7 +203,7 @@ export class EnhancedHybridRouter {
    */
   private async getRepositoryMetadata(repositoryId: string) {
     try {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repositories')
         .select(
           `
@@ -224,7 +224,7 @@ export class EnhancedHybridRouter {
       }
 
       return data;
-    } catch (_error) {
+    } catch () {
       console.error('[EnhancedHybridRouter] Exception fetching repository:', _error);
       return null;
     }
@@ -235,7 +235,7 @@ export class EnhancedHybridRouter {
    */
   private async getBackfillState(repositoryId: string): Promise<BackfillState | null> {
     try {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('progressive_backfill_state')
         .select('*')
         .eq('repository_id', repositoryId)
@@ -247,7 +247,7 @@ export class EnhancedHybridRouter {
       }
 
       return data;
-    } catch (_error) {
+    } catch () {
       console.error('[EnhancedHybridRouter] Error fetching backfill state:', _error);
       return null;
     }
@@ -276,7 +276,7 @@ export class EnhancedHybridRouter {
         inngestLoad: Math.min(inngestCount / 100, 1),
         actionsLoad: Math.min(actionsCount / 100, 1),
       };
-    } catch (_error) {
+    } catch () {
       console.error('[EnhancedHybridRouter] Error getting load balance:', _error);
       return { inngestLoad: 0.5, actionsLoad: 0.5 };
     }
@@ -349,7 +349,7 @@ export class EnhancedHybridRouter {
       }
 
       return stats;
-    } catch (_error) {
+    } catch () {
       console.error('[EnhancedHybridRouter] Error getting routing stats:', _error);
       return null;
     }

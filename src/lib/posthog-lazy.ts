@@ -223,7 +223,7 @@ export async function trackWebVitals(metrics: {
       [`latest_${metrics.name.toLowerCase()}_rating`]: metrics.rating,
       last_web_vitals_update: new Date().toISOString(),
     });
-  } catch (_error) {
+  } catch () {
     // Silently fail - we don't want tracking errors to impact the app
     if (env.DEV) {
       console.error('Failed to track Web Vitals in PostHog:', _error);
@@ -258,7 +258,7 @@ export async function trackPerformanceMetric(
       ...metadata,
       timestamp: new Date().toISOString(),
     });
-  } catch (_error) {
+  } catch () {
     if (env.DEV) {
       console.error('Failed to track performance metric:', _error);
     }
@@ -307,7 +307,7 @@ export async function batchTrackWebVitals(
 
     // Send as a single batch event
     posthog.capture('web_vitals_batch', summary);
-  } catch (_error) {
+  } catch () {
     if (env.DEV) {
       console.error('Failed to batch track Web Vitals:', _error);
     }

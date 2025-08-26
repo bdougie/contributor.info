@@ -63,7 +63,7 @@ class LLMService {
       }
 
       return insight;
-    } catch (_error) {
+    } catch () {
       console.error('LLM health insight failed:', _error);
 
       if (this.options.enableFallbacks) {
@@ -106,7 +106,7 @@ class LLMService {
       }
 
       return insight;
-    } catch (_error) {
+    } catch () {
       console.error('LLM recommendations failed:', _error);
 
       if (this.options.enableFallbacks) {
@@ -149,7 +149,7 @@ class LLMService {
       }
 
       return insight;
-    } catch (_error) {
+    } catch () {
       console.error('LLM pattern analysis failed:', _error);
 
       if (this.options.enableFallbacks) {

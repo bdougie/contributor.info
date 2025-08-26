@@ -63,7 +63,7 @@ export function SettingsPage() {
             transactional_emails: data.transactional_emails,
           });
         }
-      } catch (_error) {
+      } catch () {
         console.error('Failed to fetch preferences:', _error);
       } finally {
         setLoading(false);
@@ -78,7 +78,7 @@ export function SettingsPage() {
 
     setSaving(true);
     try {
-      const { error: _error } = await supabase.from('user_email_preferences').upsert({
+      const { error } = await supabase.from('user_email_preferences').upsert({
         user_id: user.id,
         ...preferences,
         updated_at: new Date().toISOString(),
@@ -90,7 +90,7 @@ export function SettingsPage() {
         title: 'Settings saved',
         description: 'Your email preferences have been updated.',
       });
-    } catch (_error) {
+    } catch () {
       console.error('Failed to save preferences:', _error);
       toast({
         title: 'Error',

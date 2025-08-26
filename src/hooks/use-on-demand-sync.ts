@@ -104,7 +104,7 @@ export function useOnDemandSync({
       ) {
         triggerSync();
       }
-    } catch (_error) {
+    } catch () {
       // Silently handle data check errors
     }
   }, [owner, repo, enabled, autoTriggerOnEmpty]);
@@ -170,7 +170,7 @@ export function useOnDemandSync({
       startPolling();
 
       return result;
-    } catch (_error) {
+    } catch () {
       const errorMessage = error instanceof Error ? error.message : 'Sync failed';
 
       setSyncStatus((prev) => ({
@@ -192,7 +192,7 @@ export function useOnDemandSync({
 
     pollIntervalRef.current = setInterval(async () => {
       try {
-        const { data: syncData, error: _error } = await supabase
+        const { data: syncData, error } = await supabase
           .from('github_sync_status')
           .select('*')
           .eq('repository_owner', owner)
@@ -228,7 +228,7 @@ export function useOnDemandSync({
             }
           }
         }
-      } catch (_error) {
+      } catch () {
         // Silently handle polling errors
       }
     }, 10000); // Poll every 10 seconds (reduced frequency)

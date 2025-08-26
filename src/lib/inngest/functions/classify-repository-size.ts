@@ -66,7 +66,7 @@ export const classifyRepositorySize = inngest.createFunction(
 
     // Step 4: Update high-priority repositories more frequently
     const highPriorityRepos = await step.run('get-high-priority-repos', async () => {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('tracked_repositories')
         .select(
           `
@@ -104,7 +104,7 @@ export const classifyRepositorySize = inngest.createFunction(
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - 7);
 
-        const { data, error: _error } = await supabase
+        const { data, error } = await supabase
           .from('tracked_repositories')
           .select('id, size_calculated_at')
           .in(

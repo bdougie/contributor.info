@@ -35,7 +35,7 @@ export function InsightsHealth({ owner, repo, timeRange }: RepositoryHealthProps
       if (metrics && llmService.isAvailable()) {
         loadLLMInsight(metrics);
       }
-    } catch (_error) {
+    } catch () {
       console.error('Failed to load health metrics:', _error);
       setHealth(null);
     } finally {
@@ -51,7 +51,7 @@ export function InsightsHealth({ owner, repo, timeRange }: RepositoryHealthProps
         repo,
       });
       setLlmInsight(insight);
-    } catch (_error) {
+    } catch () {
       console.error('Failed to load LLM insight:', _error);
       setLlmInsight(null);
     } finally {
@@ -110,13 +110,16 @@ export function InsightsHealth({ owner, repo, timeRange }: RepositoryHealthProps
             )}
           </div>
 
-          {llmLoading ? (
+          {llmLoading
+? (
             <div className="space-y-2">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-4/5" />
               <Skeleton className="h-4 w-3/4" />
             </div>
-          ) : llmInsight ? (
+          )
+: llmInsight
+? (
             <div className="space-y-3">
               <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
                 {llmInsight.content}
@@ -125,7 +128,8 @@ export function InsightsHealth({ owner, repo, timeRange }: RepositoryHealthProps
                 Generated {new Date(llmInsight.timestamp).toLocaleTimeString()}
               </p>
             </div>
-          ) : null}
+          )
+: null}
         </Card>
       )}
       {/* Recommendations */}

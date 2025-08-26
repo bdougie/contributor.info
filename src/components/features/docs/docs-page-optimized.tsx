@@ -136,7 +136,7 @@ export function DocsPageOptimized() {
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle className="text-destructive">Error Loading Documentation</CardTitle>
-            <CardDescription>{error: _error}</CardDescription>
+            <CardDescription>{error}</CardDescription>
           </CardHeader>
         </Card>
       </div>

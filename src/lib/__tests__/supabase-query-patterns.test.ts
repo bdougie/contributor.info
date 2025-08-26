@@ -23,7 +23,7 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
 
       (supabase.from as any).mockReturnValue(mockQuery);
 
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repositories')
         .select('*')
         .eq('owner', 'non-existent')
@@ -44,7 +44,7 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
 
       (supabase.from as any).mockReturnValue(mockQuery);
 
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('contributors')
         .select('*')
         .eq('github_id', 999999999)
@@ -63,7 +63,7 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
 
       (supabase.from as any).mockReturnValue(mockQuery);
 
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('pull_requests')
         .select('*')
         .eq('github_id', 'non-existent-pr')
@@ -82,7 +82,7 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
 
       (supabase.from as any).mockReturnValue(mockQuery);
 
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('progressive_backfill_state')
         .select('status')
         .eq('repository_id', 'test-repo-id')
@@ -111,7 +111,7 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
 
       (supabase.from as any).mockReturnValue(mockQuery);
 
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repositories')
         .select('*')
         .eq('owner', 'test')
@@ -140,7 +140,7 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
 
       (supabase.from as any).mockReturnValue(mockQuery);
 
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('contributors')
         .upsert(
           {
@@ -170,7 +170,7 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
 
       (supabase.from as any).mockReturnValue(mockQuery);
 
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('restricted_table')
         .upsert({ some__data: 'value' })
         .select()
@@ -192,7 +192,7 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
 
       (supabase.from as any).mockReturnValue(mockQuery);
 
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repositories')
         .select('*')
         .eq('id', 'non-existent')
@@ -217,7 +217,7 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
 
       (supabase.from as any).mockReturnValue(mockQuery);
 
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repositories')
         .select('*')
         .eq('id', 'test')
@@ -338,7 +338,7 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
 
       (supabase.from as any).mockReturnValue(mockQuery);
 
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repositories')
         .select('*')
         .eq('is_active', true)

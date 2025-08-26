@@ -115,7 +115,7 @@ export default function NotFound() {
 
       setPopularRepos(popular || []);
       setRecentRepos(recent || []);
-    } catch (_error) {
+    } catch () {
       console.error('Error loading repository _data:', _error);
       // Fallback to hardcoded examples if database fails
       const fallbackRepos = [

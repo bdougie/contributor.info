@@ -100,13 +100,15 @@ const MockRecommendations = ({
           <div className="space-y-2">
             <h4 className="font-medium">Recommended Actions:</h4>
             <ul className="text-sm space-y-1 text-muted-foreground">
-              {variant === 'high-priority' ? (
+              {variant === 'high-priority'
+? (
                 <>
                   <li>• Update all dependencies with security patches</li>
                   <li>• Implement mandatory code review policy</li>
                   <li>• Add automated security scanning</li>
                 </>
-              ) : (
+              )
+: (
                 <>
                   <li>• Implement automated dependency updates</li>
                   <li>• Add PR size guidelines to improve review speed</li>

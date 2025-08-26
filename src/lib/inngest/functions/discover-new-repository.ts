@@ -127,7 +127,7 @@ export const discoverNewRepository = inngest.createFunction(
 
     // Step 3: Create repository record
     const repository = await step.run('create-repository', async () => {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repositories')
         .insert({
           github_id: githubData.id,
@@ -185,7 +185,7 @@ export const discoverNewRepository = inngest.createFunction(
 
     // Step 4: Add to tracked repositories
     await step.run('add-to-tracking', async () => {
-      const { error: _error } = await supabase.from('tracked_repositories').insert({
+      const { error } = await supabase.from('tracked_repositories').insert({
         repository_id: repository.id,
         organization_name: owner,
         repository_name: repo,

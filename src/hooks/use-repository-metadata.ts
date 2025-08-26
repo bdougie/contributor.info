@@ -78,7 +78,7 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
       // Get most recent data update from pull_requests
       let prData = null;
       try {
-        const { data, error: _error } = await supabase
+        const { data, error } = await supabase
           .from('pull_requests')
           .select('created_at')
           .eq('repository_id', repoData.id)

@@ -398,7 +398,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
  * Useful for showing a single workspace preview on homepage
  */
 export function usePrimaryWorkspace() {
-  const { workspaces, loading, error: _error, refetch } = useUserWorkspaces();
+  const { workspaces, loading, error, refetch } = useUserWorkspaces();
 
   return {
     workspace: workspaces[0] || null,

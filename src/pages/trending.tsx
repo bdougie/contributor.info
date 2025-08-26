@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from '@/components/ui/icon';
 
 export function TrendingPageRoute() {
-  const { repositories, loading, error: _error, refetch } = useTrendingRepositories();
+  const { repositories, loading, error, refetch } = useTrendingRepositories();
 
   return (
     <>

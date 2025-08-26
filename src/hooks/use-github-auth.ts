@@ -26,7 +26,7 @@ export function useGitHubAuth() {
 
           if (accessToken && refreshToken) {
             // Set the session manually using the extracted tokens
-            const { error: _error } = await supabase.auth.setSession({
+            const { error } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
             });
@@ -113,7 +113,7 @@ export function useGitHubAuth() {
           authSubscription.data.subscription.unsubscribe();
         }
       };
-    } catch (_error) {
+    } catch () {
       return () => {}; // Empty cleanup function
     }
   }, [showLoginDialog, navigate]);
@@ -130,7 +130,7 @@ export function useGitHubAuth() {
       }
       // Start the login flow with the correct redirect URL
       // Redirect back to the current page after login
-      const { error: _error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
           redirectTo: window.location.href, // Redirect back to current page

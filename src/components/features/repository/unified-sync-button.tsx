@@ -250,7 +250,7 @@ export function UnifiedSyncButton({
 
       // Start polling for completion
       startPollingForCompletion(repoId);
-    } catch (_error) {
+    } catch () {
       console.error('Unified sync error:', _error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to initiate sync';
 
@@ -340,11 +340,15 @@ export function UnifiedSyncButton({
 
   const buttonContent = (
     <>
-      {isSyncing ? (
+      {isSyncing
+? (
         <Loader2 className={showLabel ? 'mr-2 h-4 w-4 animate-spin' : 'h-4 w-4 animate-spin'} />
-      ) : isLoggedIn ? (
+      )
+: isLoggedIn
+? (
         <RefreshCw className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
-      ) : (
+      )
+: (
         <Lock className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
       )}
       {showLabel && (

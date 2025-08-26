@@ -12,7 +12,7 @@ import { useGitHubAuth } from '@/hooks/use-github-auth'
 export function GitHubSyncDebug() {
   const [owner, setOwner] = useState('continuedev')
   const [repo, setRepo] = useState('continue')
-  const [syncResponse, setSyncResponse] = useState<any>(null)
+  const [syncResponse, setSyncResponse] = useState<Record<string, unknown> | null>(null)
   const [syncError, setSyncError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [logs, setLogs] = useState<string[]>([])
@@ -54,14 +54,14 @@ export function GitHubSyncDebug() {
         systemToken: result.hasSystemToken || false,
         error: result.error
       }
-    } catch (_error) {
-      addLog(`Error checking tokens: ${_error}`)
-      return { userToken: false, systemToken: false, error: _error instanceof Error ? _error.message : String(_error) }
+    } catch () {
+      addLog(`Error checking tokens: ${error}`)
+      return { userToken: false, systemToken: false, error: error instanceof Error ? error.message : String(error) }
     }
   }
 
   const checkDatabaseState = async () => {
-    addLog(`Checking _database state for ${owner}/${repo}...`)
+    addLog(`Checking database state for ${owner}/${repo}...`)
     
     try {
       // Check repositories table
@@ -135,8 +135,8 @@ export function GitHubSyncDebug() {
         syncStatus,
         rolesCount: rolesData?.length || 0
       }
-    } catch (_error) {
-      addLog(`Error checking _database: ${error: __error}`)
+    } catch () {
+      addLog(`Error checking database: ${error instanceof Error ? error.message : String(error)}`)
       return null
     }
   }
@@ -181,7 +181,7 @@ export function GitHubSyncDebug() {
       addLog(`Response: ${JSON.stringify(result, null, 2)}`)
       
       if (!response.ok) {
-        setSyncError(result._error || `HTTP ${response.status}`)
+        setSyncError(result.error || `HTTP ${response.status}`)
       } else {
         setSyncResponse(result)
         
@@ -192,10 +192,10 @@ export function GitHubSyncDebug() {
         addLog('=== Database state after sync ===')
         await checkDatabaseState()
       }
-    } catch (_error) {
+    } catch () {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      setSyncError(_errorMessage)
-      addLog(`Error: ${_errorMessage}`)
+      setSyncError(errorMessage)
+      addLog(`Error: ${errorMessage}`)
     } finally {
       setIsLoading(false)
     }
@@ -205,7 +205,7 @@ export function GitHubSyncDebug() {
     addLog(`Attempting to track repository ${owner}/${repo}...`)
     
     try {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('tracked_repositories')
         .insert({
           organization_name: owner,
@@ -215,14 +215,14 @@ export function GitHubSyncDebug() {
         .select()
         .maybeSingle()
       
-      if (_error) {
-        addLog(`Error tracking repository: ${_error.message}`)
-        addLog(`Error details: ${JSON.stringify(__error, null, 2)}`)
+      if (error) {
+        addLog(`Error tracking repository: ${error.message}`)
+        addLog(`Error details: ${JSON.stringify(error, null, 2)}`)
       } else {
-        addLog(`Successfully tracked repository: ${JSON.stringify(_data, null, 2)}`)
+        addLog(`Successfully tracked repository: ${JSON.stringify(data, null, 2)}`)
       }
-    } catch (_error) {
-      addLog(`Unexpected error: ${error: __error}`)
+    } catch () {
+      addLog(`Unexpected error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 

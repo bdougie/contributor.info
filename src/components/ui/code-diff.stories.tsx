@@ -189,10 +189,10 @@ export const MultiLineWithLineNumbers: Story = {
           },
           { type: 'unchanged', content: '', lineNumber: 3 },
           { type: 'unchanged', content: 'export function MyComponent() {', lineNumber: 4 },
-          { type: 'deletion', content: '  const _data = oldHook();', lineNumber: 5 },
+          { type: 'deletion', content: '  const _ = oldHook();', lineNumber: 5 },
           {
             type: 'addition',
-            content: '  const _data = useOptimizedHook({ cache: true });',
+            content: '  const _ = useOptimizedHook({ cache: true });',
             lineNumber: 5,
           },
           { type: 'unchanged', content: '  return <div>{data}</div>;', lineNumber: 6 },

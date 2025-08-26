@@ -41,11 +41,15 @@ export function AvgTimeCard({
           : `${(averageMergeTime / 24).toFixed(1)}d`}
       </p>
       <div className="flex items-center gap-1">
-        {averageMergeTimeTrend === 'down' ? (
+        {averageMergeTimeTrend === 'down'
+? (
           <TrendingDown className="h-3 w-3 text-green-500" />
-        ) : averageMergeTimeTrend === 'up' ? (
+        )
+: averageMergeTimeTrend === 'up'
+? (
           <TrendingUp className="h-3 w-3 text-red-500" />
-        ) : null}
+        )
+: null}
         <p className="text-xs text-muted-foreground truncate">to merge</p>
       </div>
     </Card>

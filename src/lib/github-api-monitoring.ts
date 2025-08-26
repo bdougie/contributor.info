@@ -110,7 +110,7 @@ class GitHubAPIMonitoring {
 
       // Handle errors
       if (!response.ok) {
-        const errorText = await response.text();
+        const _ = await response.text();
         metrics.errorMessage = `HTTP ${response.status}: ${errorText}`;
 
         // Simple error logging without analytics
@@ -148,12 +148,12 @@ class GitHubAPIMonitoring {
 
       // Parse and return response data
       if (response.ok) {
-        const _data = await response.json();
+        const _ = await response.json();
         return data as T;
       } else {
         throw new Error(metrics._errorMessage);
       }
-    } catch (_error) {
+    } catch () {
       const duration = performance.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 

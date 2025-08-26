@@ -53,7 +53,7 @@ export function SyncTrackedRepos() {
   const loadTrackedRepos = async () => {
     setIsLoading(true);
     try {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('tracked_repositories')
         .select(
           `
@@ -85,7 +85,7 @@ export function SyncTrackedRepos() {
         .filter((repo) => !repo.last_sync_at)
         .map((repo) => repo.repository_id);
       setSelectedRepos(new Set(neverSynced));
-    } catch (_error) {
+    } catch () {
       console.error('Error loading tracked repos:', _error);
       toast({
         title: 'Error',
@@ -215,7 +215,7 @@ export function SyncTrackedRepos() {
             }
 
             result.synced.push(fullName);
-          } catch (_error) {
+          } catch () {
             console.error(`Failed to sync ${fullName}:`, _error);
             result.failed.push(fullName);
           }
@@ -252,7 +252,7 @@ export function SyncTrackedRepos() {
       setTimeout(() => {
         loadTrackedRepos();
       }, 2000);
-    } catch (_error) {
+    } catch () {
       console.error('Sync error:', _error);
       toast({
         title: 'Sync failed',
@@ -322,18 +322,22 @@ export function SyncTrackedRepos() {
 
         {/* Repository List */}
         <div className="space-y-2 max-h-96 overflow-y-auto border rounded-lg p-4">
-          {isLoading ? (
+          {isLoading
+? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
-          ) : trackedRepos.length === 0 ? (
+          )
+: trackedRepos.length === 0
+? (
             <div className="text-center py-8 text-muted-foreground">
               No tracked repositories found
             </div>
-          ) : (
+          )
+: (
             trackedRepos.map((repo) => {
               const fullName = `${repo.repositories.owner}/${repo.repositories.name}`;
-              const status = getSyncStatus(repo.last_sync_at);
+              const _ = getSyncStatus(repo.last_sync_at);
               const isSelected = selectedRepos.has(repo.repository_id);
 
               return (
@@ -405,12 +409,14 @@ export function SyncTrackedRepos() {
             disabled={isSyncing || selectedRepos.size === 0}
             className="flex-1"
           >
-            {isSyncing ? (
+            {isSyncing
+? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Syncing...
               </>
-            ) : (
+            )
+: (
               <>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Sync {selectedRepos.size} Selected Repositories

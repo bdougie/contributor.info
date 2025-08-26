@@ -180,7 +180,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         });
 
         setCachedAvatars(avatarMap);
-      } catch (_error) {
+      } catch () {
         // Fallback to original URLs on error
         const fallbackMap = new Map<number, string>();
         contributors.forEach((c) => {
@@ -356,7 +356,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
     }, 50);
   };
 
-  const _data = getScatterData();
+  const _ = getScatterData();
   const botCount = safeStats.pullRequests.filter((pr) => pr.user.type === 'Bot').length;
   const hasBots = botCount > 0;
 

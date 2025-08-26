@@ -151,7 +151,7 @@ export function BulkAddRepos() {
             result.added.push(...batch);
           }
         }
-      } catch (_error) {
+      } catch () {
         console.error('Batch processing error:', _error);
         batch.forEach((repo) => result._errors.push(repo));
       }
@@ -227,7 +227,7 @@ export function BulkAddRepos() {
                 if (backfillError) {
                   console.error('Failed to create progressive backfill:', backfillError);
                 }
-              } catch (_error) {
+              } catch () {
                 console.error('Error creating backfill:', _error);
               }
             }
@@ -284,7 +284,7 @@ export function BulkAddRepos() {
                 description: `Fetching up to ${Math.min(maxPRs, 150)} PRs from the last ${backfillDays} days for ${backfillEvents.length} repositories`,
                 variant: 'default',
               });
-            } catch (_error) {
+            } catch () {
               console.error('Failed to trigger backfill:', _error);
               toast({
                 title: 'Backfill failed to start',
@@ -303,7 +303,7 @@ export function BulkAddRepos() {
         description: successMessage,
         variant: result.errors.length > 0 ? 'destructive' : 'default',
       });
-    } catch (_error) {
+    } catch () {
       toast({
         title: 'Processing failed',
         description: error instanceof Error ? error.message : 'Unknown error occurred',

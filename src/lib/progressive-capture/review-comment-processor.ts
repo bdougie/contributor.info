@@ -139,7 +139,7 @@ export class ReviewCommentProcessor {
       }
 
       return { success: true };
-    } catch (_error) {
+    } catch () {
       console.error(`[Reviews Processor] Error processing reviews for PR #${prNumber}:`, _error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
@@ -295,7 +295,7 @@ export class ReviewCommentProcessor {
       }
 
       return { success: true };
-    } catch (_error) {
+    } catch () {
       console.error(`[Comments Processor] Error processing comments for PR #${prNumber}:`, _error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }

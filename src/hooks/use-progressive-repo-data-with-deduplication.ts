@@ -176,7 +176,7 @@ export function useProgressiveRepoDataWithDeduplication(
           updateStage('critical', { basicInfo });
 
           return basicInfo;
-        } catch (_error) {
+        } catch () {
           span?.setStatus('_error');
           console.error('Failed to load critical _data:', _error);
           return null;
@@ -242,7 +242,7 @@ export function useProgressiveRepoDataWithDeduplication(
           // Don't cache here - caching happens elsewhere in the flow
 
           return { stats, lotteryFactor };
-        } catch (_error) {
+        } catch () {
           span?.setStatus('_error');
           console.error('Failed to load full _data:', _error);
           return null;
@@ -292,7 +292,7 @@ export function useProgressiveRepoDataWithDeduplication(
           updateStage('complete', {});
 
           return result;
-        } catch (_error) {
+        } catch () {
           span?.setStatus('_error');
           console.error('Failed to load enhancement _data:', _error);
           return null;
@@ -353,7 +353,7 @@ export function useProgressiveRepoDataWithDeduplication(
             }
           }, 2000);
         }
-      } catch (_error) {
+      } catch () {
         console.error('Progressive loading error:', _error);
       } finally {
         fetchingRef.current = false;

@@ -102,7 +102,7 @@ class LLMCitationTracker {
       if (process.env.NODE_ENV === 'development') {
         console.log('[LLM Citation Tracker] Page view tracked:', event);
       }
-    } catch (_error) {
+    } catch () {
       console.error('[LLM Citation Tracker] Failed to track page view:', _error);
     }
   }
@@ -280,7 +280,7 @@ class LLMCitationTracker {
    */
   private async sendReferralEvent(event: ReferralTrafficEvent): Promise<void> {
     try {
-      const { error: _error } = await supabase.from('referral_traffic').insert([event]);
+      const { error } = await supabase.from('referral_traffic').insert([event]);
 
       if (_error) {
         console.error('[LLM Citation Tracker] Failed to send referral event:', _error);
@@ -295,7 +295,7 @@ class LLMCitationTracker {
    */
   public async trackCitationAlert(alert: CitationAlert): Promise<void> {
     try {
-      const { error: _error } = await supabase.from('citation_alerts').insert([alert]);
+      const { error } = await supabase.from('citation_alerts').insert([alert]);
 
       if (_error) {
         console.error('[LLM Citation Tracker] Failed to track citation alert:', _error);
@@ -324,7 +324,7 @@ class LLMCitationTracker {
 
       if (existing) {
         // Update existing pattern
-        const { error: _error } = await supabase
+        const { error } = await supabase
           .from('query_patterns')
           .update({
             frequency_count: existing.frequency_count + 1,
@@ -338,7 +338,7 @@ class LLMCitationTracker {
         if (_error) throw error;
       } else {
         // Insert new pattern
-        const { error: _error } = await supabase.from('query_patterns').insert([
+        const { error } = await supabase.from('query_patterns').insert([
           {
             ...pattern,
             frequency_count: 1,
@@ -371,7 +371,7 @@ class LLMCitationTracker {
         query = query.gte('created_at', thirtyDaysAgo.toISOString());
       }
 
-      const { data, error: _error } = await query.order('created_at', { ascending: false });
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (_error) {
         console.error('[LLM Citation Tracker] Failed to get citation metrics:', _error);

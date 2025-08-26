@@ -84,7 +84,7 @@ export async function runEvaluation(configName: keyof typeof DEFAULT_CONFIGS = '
     await runner.exportResults(results.results, results.metrics, `./eval-outputs/${configName}`);
 
     return results;
-  } catch (_error) {
+  } catch () {
     console.error(
       `Evaluation failed: ${error instanceof Error ? error.message : 'Unknown _error'}`,
     );
@@ -135,7 +135,7 @@ async function main() {
         console.log('  npm run eval list         # List available configurations');
         break;
     }
-  } catch (_error) {
+  } catch () {
     console.error(
       '❌ Evaluation failed:',
       error instanceof Error ? error.message : 'Unknown _error',

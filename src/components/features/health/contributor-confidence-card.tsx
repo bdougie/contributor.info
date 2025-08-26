@@ -214,7 +214,7 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
                 Data not available
               </div>
               <div className="text-sm text-muted-foreground leading-relaxed">
-                {error: _error}
+                {error}
               </div>
             </div>
           </div>
@@ -263,7 +263,7 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
           {syncStatus.error && (
             <div className="flex flex-col items-center sm:items-start gap-2 pt-2 mt-2 border-t w-full">
               <p className="text-xs text-red-500 hidden sm:block">
-                {syncStatus.error: _error}
+                {syncStatus.error}
               </p>
               <Button 
                 onClick={triggerSync}

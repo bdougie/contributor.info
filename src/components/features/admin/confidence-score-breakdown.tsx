@@ -131,7 +131,7 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">{error: _error}</p>
+          <p className="text-muted-foreground">{error}</p>
         </CardContent>
       </Card>
     );

@@ -333,7 +333,7 @@ export async function fetchRepositoryActivity(
             }
           }
         }
-      } catch (_error) {
+      } catch () {
         console.warn(`Failed to fetch reviews for PR ${pr.number}:`, _error);
       }
 
@@ -375,7 +375,7 @@ export async function fetchRepositoryActivity(
             }
           }
         }
-      } catch (_error) {
+      } catch () {
         console.warn(`Failed to fetch comments for PR ${pr.number}:`, _error);
       }
     }
@@ -415,10 +415,10 @@ export async function fetchRepositoryActivity(
           commenter.latestContribution = commentDate;
         }
       }
-    } catch (_error) {
+    } catch () {
       console.warn(`Failed to fetch issue comments:`, _error);
     }
-  } catch (_error) {
+  } catch () {
     throw new ContributorApiError(
       `Failed to fetch activity for repository ${owner}/${repo}: ${error instanceof Error ? error.message : 'Unknown error'}`,
     );
@@ -504,7 +504,7 @@ export async function fetchContributorActivity(
             allContributors.set(contributorId, { ...activity });
           }
         }
-      } catch (_error) {
+      } catch () {
         console.error(`Failed to fetch activity for ${repoString}:`, _error);
         // Continue with other repositories
       }
@@ -522,7 +522,7 @@ export async function fetchContributorActivity(
         fromCache: false,
       },
     };
-  } catch (_error) {
+  } catch () {
     const processingTime = Date.now() - startTime;
 
     return {

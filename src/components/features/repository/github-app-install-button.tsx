@@ -54,7 +54,7 @@ export function GitHubAppInstallButton({
 
         const response = await fetch(endpoint);
         if (response.ok) {
-          const _data = await response.json();
+          const _ = await response.json();
           setIsInstalled(_data.installed);
           return;
         } else if (response.status === 404) {
@@ -96,7 +96,7 @@ export function GitHubAppInstallButton({
         console.debug('Error checking app installation status:', dbError);
         setIsInstalled(false);
       }
-    } catch (_error) {
+    } catch () {
       // Silently fail and assume not installed
       setIsInstalled(false);
     } finally {
@@ -136,7 +136,7 @@ export function GitHubAppInstallButton({
         // Failed to fetch repo permissions - user may not have access
         setCanInstall(false);
       }
-    } catch (_error) {
+    } catch () {
       // Silently fail and assume user cannot install
       setCanInstall(false);
     }

@@ -241,7 +241,7 @@ export async function calculateHealthMetrics(
       factors,
       recommendations: recommendations.slice(0, 3), // Limit to top 3 recommendations
     };
-  } catch (_error) {
+  } catch () {
     console.error('Error calculating health metrics:', _error);
 
     // Return default metrics on error
@@ -551,7 +551,7 @@ export async function calculateRepositoryConfidence(
     // Store simple score in memory cache
     setCache(cacheKey, finalScore);
     return finalScore;
-  } catch (_error) {
+  } catch () {
     console.error('Error calculating repository confidence:', _error);
     // Return fallback based on available data
     return await calculateBasicFallback(owner, repo, timeRange);
@@ -902,7 +902,7 @@ async function calculateBasicFallback(
       uniqueContributors,
       daysBack,
     );
-  } catch (_error) {
+  } catch () {
     console.error('Basic fallback failed:', _error);
     return 0;
   }
@@ -951,7 +951,7 @@ async function getCachedConfidenceScore(
   timeRangeDays: number,
 ): Promise<{ score: number; calculatedAt: Date; calculationTimeMs?: number } | null> {
   try {
-    const { data, error: _error } = await supabase
+    const { data, error } = await supabase
       .from('repository_confidence_cache')
       .select('confidence_score, expires_at, calculated_at, calculation_time_ms')
       .eq('repository_owner', owner)
@@ -976,7 +976,7 @@ async function getCachedConfidenceScore(
       calculatedAt: new Date(_data.calculated_at),
       calculationTimeMs: data.calculation_time_ms,
     };
-  } catch (_error) {
+  } catch () {
     console.warn('[Confidence Cache] Error reading cache:', _error);
     return null;
   }
@@ -1017,7 +1017,7 @@ async function cacheConfidenceScore(
       data_version: 1, // Current algorithm version
     };
 
-    const { error: _error } = await supabase
+    const { error } = await supabase
       .from('repository_confidence_cache')
       .upsert(cacheEntry, {
         onConflict: 'repository_owner,repository_name,time_range_days',
@@ -1033,7 +1033,7 @@ async function cacheConfidenceScore(
         Math.round(baseTTL / 3600),
       );
     }
-  } catch (_error) {
+  } catch () {
     console.warn('[Confidence Cache] Error caching score:', _error);
   }
 }
@@ -1078,14 +1078,14 @@ export async function invalidateConfidenceCache(
       query = query.eq('time_range_days', timeRangeDays);
     }
 
-    const { error: _error } = await query;
+    const { error } = await query;
 
     if (_error) {
       console.warn(`[Confidence Cache] Error invalidating cache for ${owner}/${repo}:`, _error);
     } else {
       console.log('[Confidence Cache] Invalidated cache for %s/%s', owner, repo);
     }
-  } catch (_error) {
+  } catch () {
     console.warn('[Confidence Cache] Error invalidating cache:', _error);
   }
 }

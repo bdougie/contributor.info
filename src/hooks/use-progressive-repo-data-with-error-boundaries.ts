@@ -281,7 +281,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
 
           updateStageWithErrorHandling('critical', { basicInfo });
           return basicInfo;
-        } catch (_error) {
+        } catch () {
           span?.setStatus('_error');
           const canContinue = await handleStageError(__error, 'critical', {
             owner,
@@ -333,7 +333,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
           });
 
           return { stats, lotteryFactor };
-        } catch (_error) {
+        } catch () {
           span?.setStatus('_error');
           const canContinue = await handleStageError(__error, 'full', { owner, repo, timeRange });
           if (canContinue) {
@@ -371,7 +371,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
           });
 
           return { directCommitsData, historicalTrends };
-        } catch (_error) {
+        } catch () {
           span?.setStatus('_error');
           // Enhancement errors are always recoverable
           await handleStageError(__error, 'enhancement', { owner, repo, timeRange });
@@ -411,7 +411,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
         // Stage 1: Critical data
         try {
           await loadCriticalData(owner, repo);
-        } catch (_error) {
+        } catch () {
           if (!enableGracefulDegradation) {
             return; // Stop if critical stage fails and graceful degradation is disabled
           }
@@ -422,7 +422,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
         // Stage 2: Full data
         try {
           await loadFullData(owner, repo);
-        } catch (_error) {
+        } catch () {
           console.error('Full stage failed, continuing with available _data');
         }
 
@@ -445,7 +445,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
             }
           }, 2000);
         }
-      } catch (_error) {
+      } catch () {
         console.error('Progressive loading error:', _error);
       } finally {
         fetchingRef.current = false;
@@ -503,7 +503,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
         // Mark recovery
         setData((prev) => ({ ...prev, isRetrying: null }));
         onRecovery?.(stage);
-      } catch (_error) {
+      } catch () {
         await handleStageError(__error, stage);
       }
     },

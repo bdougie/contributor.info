@@ -50,7 +50,7 @@ export const waitForPortalElement = async (
       },
       { timeout },
     );
-  } catch (_error) {
+  } catch () {
     logTestError('waitForPortalElement', _error as Error, { role, name, timeout });
     throw error;
   }
@@ -93,7 +93,7 @@ export const waitForModalOpen = async (timeout = 5000) => {
       },
       { timeout },
     );
-  } catch (_error) {
+  } catch () {
     logTestError('waitForModalOpen', _error as Error, { timeout });
     throw error;
   }
@@ -142,7 +142,7 @@ export const waitForSelectOpen = async (timeout = 5000) => {
       },
       { timeout },
     );
-  } catch (_error) {
+  } catch () {
     logTestError('waitForSelectOpen', _error as Error, { timeout });
     throw error;
   }
@@ -165,7 +165,7 @@ export const waitForFocus = async (element: HTMLElement, timeout = 2000) => {
       },
       { timeout },
     );
-  } catch (_error) {
+  } catch () {
     logTestError('waitForFocus', error as Error, {
       expectedElement: { tagName: element.tagName, id: element.id, className: element.className },
       actualElement: {
@@ -193,7 +193,7 @@ export const waitForBlur = async (element: HTMLElement, timeout = 2000) => {
       },
       { timeout },
     );
-  } catch (_error) {
+  } catch () {
     logTestError('waitForBlur', error as Error, {
       element: { tagName: element.tagName, id: element.id, className: element.className },
       timeout,
@@ -224,7 +224,7 @@ export const waitForTextContent = async (
       },
       { timeout },
     );
-  } catch (_error) {
+  } catch () {
     logTestError('waitForTextContent', error as Error, {
       element: { tagName: element.tagName, id: element.id, textContent: element.textContent },
       expectedText,
@@ -252,7 +252,7 @@ export const waitForElementToDisappear = async (
       },
       { timeout },
     );
-  } catch (_error) {
+  } catch () {
     const element = getElement();
     logTestError('waitForElementToDisappear', error as Error, {
       element: element
@@ -283,7 +283,7 @@ export const withRetry = async <T>(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
-    } catch (_error) {
+    } catch () {
       lastError = error as Error;
 
       if (attempt < maxRetries) {

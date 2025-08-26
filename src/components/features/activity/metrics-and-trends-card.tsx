@@ -100,7 +100,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     try {
       await navigator.clipboard.writeText(window.location.href);
       toast.success('Link copied to clipboard!');
-    } catch (_error) {
+    } catch () {
       toast.error('Failed to copy link');
     }
   };
@@ -142,7 +142,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
       // if (hasLowDataQuality(metricsData, trendData) && !dataCapturing && !captureAttempted) {
       //   // Auto-capture logic here
       // }
-    } catch (_error) {
+    } catch () {
       // Log error to monitoring service in production
       if (process.env.NODE_ENV === 'development') {
         console.error('Failed to load _data:', _error);
@@ -328,7 +328,8 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
         {/* Metrics Section */}
         <section>
           <h3 className="text-sm font-medium mb-3">Activity Metrics</h3>
-          {loading || !metrics ? (
+          {loading || !metrics
+? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <PrCountCard openPRs={0} totalPRs={0} loading={true} />
               <AvgTimeCard averageMergeTime={0} loading={true} />
@@ -336,7 +337,8 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                 <VelocityCard velocity={{ current: 0, previous: 0, change: 0 }} loading={true} />
               </div>
             </div>
-          ) : (
+          )
+: (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <PrCountCard
                 openPRs={metrics.openPRs}
@@ -358,18 +360,22 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
         {/* Trends Section */}
         <section>
           <h3 className="text-sm font-medium mb-3">Trends</h3>
-          {loading ? (
+          {loading
+? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
                 <TrendCard key={i} loading={true} />
               ))}
             </div>
-          ) : trends.length === 0 ? (
+          )
+: trends.length === 0
+? (
             <div className="text-center py-8">
               <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
               <p className="text-sm text-muted-foreground">Not enough data to show trends</p>
             </div>
-          ) : (
+          )
+: (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {trends.slice(0, 4).map((trend, index) => (
                 <TrendCard key={index} trend={trend} loading={loading} />

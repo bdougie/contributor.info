@@ -48,7 +48,7 @@ export async function fetchFilteredPullRequests(
       .order('created_at', { ascending: false })
       .limit(fetchLimit);
 
-    const { data, error: _error } = await query;
+    const { data, error } = await query;
 
     if (_error) {
       console.error('Error fetching PRs:', _error);
@@ -76,7 +76,7 @@ export async function fetchFilteredPullRequests(
 
     // Return only the requested number of results
     return filtered.slice(0, limit);
-  } catch (_error) {
+  } catch () {
     console.error('Error in fetchFilteredPullRequests:', _error);
     throw error;
   }
@@ -161,7 +161,7 @@ export async function getRepositorySpamStats(owner: string, repo: string) {
       averageScore: Math.round(averageScore * 10) / 10,
       distribution,
     };
-  } catch (_error) {
+  } catch () {
     console.error('Error fetching spam stats:', _error);
     throw error;
   }

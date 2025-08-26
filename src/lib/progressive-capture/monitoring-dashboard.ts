@@ -68,7 +68,7 @@ export class HybridMonitoringDashboard {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     try {
-      const { data: jobs, error: _error } = await supabase
+      const { data: jobs, error } = await supabase
         .from('progressive_capture_jobs')
         .select('*')
         .gte('created_at', twentyFourHoursAgo.toISOString());
@@ -106,7 +106,7 @@ export class HybridMonitoringDashboard {
         github_actions: githubActionsMetrics,
         combined: combinedMetrics,
       };
-    } catch (_error) {
+    } catch () {
       console.error('[Monitoring] Error getting processor metrics:', _error);
       const emptyMetrics: JobMetrics = {
         total: 0,
@@ -232,7 +232,7 @@ export class HybridMonitoringDashboard {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     try {
-      const { data: jobs, error: _error } = await supabase
+      const { data: jobs, error } = await supabase
         .from('progressive_capture_jobs')
         .select('processor_type, status')
         .gte('created_at', twentyFourHoursAgo.toISOString())
@@ -284,7 +284,7 @@ export class HybridMonitoringDashboard {
           percentageSaving,
         },
       };
-    } catch (_error) {
+    } catch () {
       console.error('[Monitoring] Error calculating cost analysis:', _error);
       return {
         inngest: { estimatedCost: 0, jobsProcessed: 0, costPerJob: 0 },
@@ -306,7 +306,7 @@ export class HybridMonitoringDashboard {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     try {
-      const { data: jobs, error: _error } = await supabase
+      const { data: jobs, error } = await supabase
         .from('progressive_capture_jobs')
         .select('processor_type, time_range_days, meta_data')
         .gte('created_at', twentyFourHoursAgo.toISOString());
@@ -360,7 +360,7 @@ export class HybridMonitoringDashboard {
         routingAccuracy,
         suggestions,
       };
-    } catch (_error) {
+    } catch () {
       console.error('[Monitoring] Error getting routing effectiveness:', _error);
       return {
         correctRouting: 0,
@@ -388,7 +388,7 @@ export class HybridMonitoringDashboard {
     topErrors: Array<{ error: string; count: number }>;
   }> {
     try {
-      const { data: failedJobs, error: _error } = await supabase
+      const { data: failedJobs, error } = await supabase
         .from('progressive_capture_jobs')
         .select('*')
         .eq('status', 'failed')
@@ -447,7 +447,7 @@ export class HybridMonitoringDashboard {
         errorSummary,
         topErrors,
       };
-    } catch (_error) {
+    } catch () {
       console.error('[Monitoring] Error fetching job errors:', _error);
       return {
         errors: [],

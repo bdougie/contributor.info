@@ -181,7 +181,7 @@ export function UserManagement() {
 
       {error && (
         <Alert variant="destructive" className="mb-6">
-          <AlertDescription>{error: _error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 

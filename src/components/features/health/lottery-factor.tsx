@@ -126,7 +126,7 @@ export function LotteryFactorContent({
       if (!owner || !repo) return;
 
       try {
-        const { data, error: _error } = await supabase
+        const { data, error } = await supabase
           .from('contributor_roles')
           .select('user_id, role')
           .eq('repository_owner', owner)
@@ -142,7 +142,7 @@ export function LotteryFactorContent({
           rolesMap.set(user_id, role);
         });
         setContributorRoles(rolesMap);
-      } catch (_error) {
+      } catch () {
         console.warn('Error fetching contributor roles:', _error);
       }
     }
@@ -406,7 +406,8 @@ export function LotteryFactorContent({
                     </TooltipTrigger>
                     <TooltipContent>
                       <div className="flex items-center gap-2">
-                        {segment.contributor ? (
+                        {segment.contributor
+? (
                           <>
                             <OptimizedAvatar
                               src={segment.contributor.avatar_url}
@@ -421,7 +422,8 @@ export function LotteryFactorContent({
                               ({Math.round(segment.contributor.percentage)}%)
                             </span>
                           </>
-                        ) : (
+                        )
+: (
                           <>
                             <Users className="w-4 h-4" />
                             <span>Other contributors</span>

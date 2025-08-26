@@ -244,7 +244,7 @@ function WorkspacePRs({
             : repositories;
 
         const repoIds = filteredRepos.map((r) => r.id);
-        const { data, error: _error } = await supabase
+        const { error } = await supabase
           .from('pull_requests')
           .select(
             `
@@ -411,7 +411,7 @@ function WorkspaceIssues({
         const repoIds = filteredRepos.map((r) => r.id);
 
         // Fetch issues with count for potential future pagination
-        const { data, error: _error } = await supabase
+        const { error } = await supabase
           .from('issues')
           .select(
             `
@@ -977,7 +977,8 @@ function WorkspaceContributors({
                   ))}
                 </thead>
                 <tbody>
-                  {addTable.getRowModel().rows.length > 0 ? (
+                  {addTable.getRowModel().rows.length > 0
+? (
                     addTable.getRowModel().rows.map((row) => (
                       <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
                         {row.getVisibleCells().map((cell) => (
@@ -994,7 +995,8 @@ function WorkspaceContributors({
                         ))}
                       </tr>
                     ))
-                  ) : (
+                  )
+: (
                     <tr>
                       <td
                         colSpan={addColumns.length}
@@ -1120,7 +1122,8 @@ function WorkspaceContributors({
                       ))}
                     </thead>
                     <tbody>
-                      {viewTable.getRowModel().rows.length > 0 ? (
+                      {viewTable.getRowModel().rows.length > 0
+? (
                         viewTable.getRowModel().rows.map((row) => (
                           <tr
                             key={row.id}
@@ -1141,7 +1144,8 @@ function WorkspaceContributors({
                             ))}
                           </tr>
                         ))
-                      ) : (
+                      )
+: (
                         <tr>
                           <td
                             colSpan={viewColumns.length}
@@ -1503,7 +1507,7 @@ export default function WorkspacePage() {
         const newMetrics = generateMockMetrics(formattedRepos, timeRange);
         setMetrics(newMetrics);
       }
-    } catch (_error) {
+    } catch () {
       console.error('Error refreshing repositories:', _error);
       toast.error('Failed to refresh repositories');
     }

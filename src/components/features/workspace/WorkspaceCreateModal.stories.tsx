@@ -191,7 +191,7 @@ export const FormInteractive: Story = {
           onSubmit={handleSubmit}
           onCancel={() => console.log('Cancelled')}
           loading={loading}
-          error={error: _error}
+          error={error}
         />
       </div>
     );

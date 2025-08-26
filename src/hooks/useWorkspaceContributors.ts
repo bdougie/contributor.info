@@ -189,7 +189,7 @@ export function useWorkspaceContributors({
   // Fetch workspace contributors from database
   const fetchWorkspaceContributors = async () => {
     try {
-      const { data: workspaceContributors, error: _error } = await supabase
+      const { data: workspaceContributors, error } = await supabase
         .from('workspace_contributors')
         .select('contributor_id')
         .eq('workspace_id', workspaceId);
@@ -230,7 +230,7 @@ export function useWorkspaceContributors({
         added_by: userId,
       }));
 
-      const { error: _error } = await supabase
+      const { error } = await supabase
         .from('workspace_contributors')
         .insert(contributorsToAdd);
 
@@ -254,7 +254,7 @@ export function useWorkspaceContributors({
   // Remove contributor from workspace
   const removeContributorFromWorkspace = async (contributorId: string) => {
     try {
-      const { error: _error } = await supabase
+      const { error } = await supabase
         .from('workspace_contributors')
         .delete()
         .eq('workspace_id', workspaceId)

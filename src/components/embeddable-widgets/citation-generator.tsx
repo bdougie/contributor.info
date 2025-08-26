@@ -60,7 +60,7 @@ export function CitationGenerator({ _data, permalinkConfig }: CitationGeneratorP
       setCopiedFormat(format);
       toast.success(`${format.toUpperCase()} citation copied to clipboard`);
       setTimeout(() => setCopiedFormat(null), 2000);
-    } catch (_error) {
+    } catch {
       toast.error('Failed to copy to clipboard');
     }
   };

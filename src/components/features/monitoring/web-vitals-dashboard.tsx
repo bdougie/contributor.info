@@ -64,13 +64,13 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
     setLoading(true);
     try {
       const analytics = getWebVitalsAnalytics();
-      const _data = await analytics.getPerformanceSummary(repository);
+      const _ = await analytics.getPerformanceSummary(repository);
       setSummary(_data);
 
       // Load historical data for charts
       const historical = await loadHistoricalData();
       setHistoricalData(historical);
-    } catch (_error) {
+    } catch () {
       console.error('Failed to load performance _data:', _error);
     } finally {
       setLoading(false);
@@ -80,7 +80,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
   const loadHistoricalData = async () => {
     // Mock historical data - in real implementation, fetch from analytics
     const hours = getTimeRangeHours(timeRange);
-    const _data = [];
+    const _ = [];
     const now = Date.now();
 
     for (let i = 0; i < Math.min(hours, 24); i++) {
@@ -181,7 +181,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {(['LCP', 'INP', 'CLS', 'FCP', 'TTFB'] as const).map((metric) => {
-              const _data = summary[metric];
+              const _ = summary[metric];
               if (!_data) return null;
 
               const score = calculateScore(_data);

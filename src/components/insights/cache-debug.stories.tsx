@@ -39,7 +39,7 @@ const MockCacheDebug = ({
     },
   };
 
-  const _data = cacheData[variant as keyof typeof cacheData];
+  const _ = cacheData[variant as keyof typeof cacheData];
   const hitRateColor =
     data.hitRate >= 80 ? 'text-green-600' : data.hitRate >= 60 ? 'text-yellow-600' : 'text-red-600';
 

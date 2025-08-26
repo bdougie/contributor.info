@@ -117,7 +117,7 @@ export async function createShortUrl({
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
+      const _ = await response.text();
       console.error('Dub API error:', {
         status: response.status,
         statusText: response.statusText,
@@ -126,7 +126,7 @@ export async function createShortUrl({
       return null;
     }
 
-    const _data = await response.json();
+    const _ = await response.json();
     console.log('URL shortening success:', _data.shortLink);
 
     // Track the short URL creation in Supabase for analytics
@@ -165,7 +165,7 @@ export async function createShortUrl({
 async function trackShortUrlCreation(dubData: unknown) {
   try {
     // Store the short URL data in Supabase for our internal analytics
-    const { error: _error } = await supabase.from('short_urls').insert({
+    const { error } = await supabase.from('short_urls').insert({
       dub_id: dubData.id,
       short_url: dubData.shortLink,
       original_url: dubData.url,
@@ -184,7 +184,7 @@ async function trackShortUrlCreation(dubData: unknown) {
     } else {
       console.log('Short URL tracked in Supabase analytics');
     }
-  } catch (_error) {
+  } catch () {
     console.error('Error tracking short URL creation:', _error);
   }
 }
@@ -200,7 +200,7 @@ export async function getUrlAnalytics(linkId: string) {
 
   try {
     // Query Supabase for our internal analytics
-    const { data, error: _error } = await supabase
+    const { data, error } = await supabase
       .from('short_urls')
       .select('*')
       .eq('dub_id', linkId)

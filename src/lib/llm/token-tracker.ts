@@ -167,12 +167,12 @@ class TokenTracker {
     try {
       const stored = localStorage.getItem(this.storageKey);
       if (stored) {
-        const _data = JSON.parse(stored);
+        const _ = JSON.parse(stored);
         if (_data.date === today) {
           return data;
         }
       }
-    } catch (_error) {
+    } catch () {
       console.warn('Failed to parse token usage _data:', _error);
     }
 
@@ -198,7 +198,7 @@ class TokenTracker {
 
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(currentUsage));
-    } catch (_error) {
+    } catch () {
       console.warn('Failed to save token usage _data:', _error);
     }
   }

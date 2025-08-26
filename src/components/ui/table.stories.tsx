@@ -324,7 +324,7 @@ export const SimpleTable: Story = {
 export const LargeDataset: Story = {
   args: {},
   render: () => {
-    const _data = Array.from({ length: 20 }, (_, i) => ({
+    const _ = Array.from({ length: 20 }, (_, i) => ({
       id: `ID-${String(i + 1).padStart(3, '0')}`,
       name: `User ${i + 1}`,
       email: `user${i + 1}@example.com`,

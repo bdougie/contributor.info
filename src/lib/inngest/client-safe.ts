@@ -159,7 +159,7 @@ export async function sendInngestEvent<T extends { name: string; data: any }>(
         recordSuccess(endpoint.name);
 
         return { ids: result.eventId ? [result.eventId] : result.eventIds || [] };
-      } catch (_error) {
+      } catch () {
         console.warn('Failed to send event via %s:', endpoint.name, _error);
         lastError = error as Error;
 

@@ -578,7 +578,7 @@ export function AddRepositoryModal({
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="whitespace-pre-line">{error: _error}</AlertDescription>
+            <AlertDescription className="whitespace-pre-line">{error}</AlertDescription>
           </Alert>
         )}
 

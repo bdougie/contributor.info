@@ -70,7 +70,7 @@ export class GitHubActionsQueueManager {
       }
 
       return { success: true };
-    } catch (_error) {
+    } catch () {
       console.error('[GitHubActions] Error dispatching workflow:', _error);
       return { success: false, error: String(_error) };
     }
@@ -93,7 +93,7 @@ export class GitHubActionsQueueManager {
           }),
         })
         .eq('id', jobId);
-    } catch (_error) {
+    } catch () {
       console.error('[GitHubActions] Error recording job dispatch:', _error);
     }
   }
@@ -119,7 +119,7 @@ export class GitHubActionsQueueManager {
       for (const job of processingJobs) {
         await this.checkJobStatus(job);
       }
-    } catch (_error) {
+    } catch () {
       console.error('[GitHubActions] Error checking job statuses:', _error);
     }
   }
@@ -149,7 +149,7 @@ export class GitHubActionsQueueManager {
         return;
       }
 
-      const _data = await response.json();
+      const _ = await response.json();
 
       // Try to find a run that matches our job
       // This is a heuristic - in production, you might want to pass a unique identifier
@@ -162,7 +162,7 @@ export class GitHubActionsQueueManager {
       );
 
       if (matchingRun) {
-        const status = this.mapGitHubStatusToJobStatus(matchingRun.status, matchingRun.conclusion);
+        const _ = this.mapGitHubStatusToJobStatus(matchingRun.status, matchingRun.conclusion);
 
         // Use the job status reporter for consistent updates
         await jobStatusReporter.reportStatus({
@@ -184,7 +184,7 @@ export class GitHubActionsQueueManager {
           await jobStatusReporter.calculateMetrics(job.id);
         }
       }
-    } catch (_error) {
+    } catch () {
       console.error(`[GitHubActions] Error checking status for job ${job.id}:`, _error);
     }
   }
@@ -233,7 +233,7 @@ export class GitHubActionsQueueManager {
 
       return data.reduce(
         (acc, job) => {
-          const status = job.status as keyof typeof acc;
+          const _ = job.status as keyof typeof acc;
           if (status in acc) {
             acc[status]++;
           }
@@ -241,7 +241,7 @@ export class GitHubActionsQueueManager {
         },
         { pending: 0, processing: 0, completed: 0, failed: 0 },
       );
-    } catch (_error) {
+    } catch () {
       console.error('[GitHubActions] Error getting stats:', _error);
       return { pending: 0, processing: 0, completed: 0, failed: 0 };
     }

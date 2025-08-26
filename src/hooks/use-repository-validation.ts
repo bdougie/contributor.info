@@ -91,7 +91,7 @@ export function useRepositoryValidation(
           throw new Error(`Validation failed: ${response.statusText}`);
         }
 
-        const _data = await response.json();
+        const _ = await response.json();
 
         // Process the validation result
         const validationResult: ValidationResult = {
@@ -124,7 +124,7 @@ export function useRepositoryValidation(
             }, 1000); // Small delay to allow tracking to complete
           }
         }
-      } catch (_error) {
+      } catch () {
         console.error('Repository validation error:', _error);
 
         const errorResult: ValidationResult = {
@@ -155,7 +155,7 @@ async function trackRepository(owner: string, repo: string): Promise<void> {
     } = await supabase.auth.getSession();
 
     // Insert the repository into tracked_repositories
-    const { error: _error } = await supabase
+    const { error } = await supabase
       .from('tracked_repositories')
       .insert({
         full_name: `${owner}/${repo}`,
@@ -190,7 +190,7 @@ async function trackRepository(owner: string, repo: string): Promise<void> {
         console.error('Error dispatching tracking event:', e);
       }
     }
-  } catch (_error) {
+  } catch () {
     console.error('Error in trackRepository:', _error);
   }
 }

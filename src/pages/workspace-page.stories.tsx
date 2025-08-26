@@ -186,7 +186,8 @@ function ContributorsTableView({
                 <span className="font-medium">{contributions.issues}</span>
               </div>
             </div>
-            {displayOwners.length > 0 ? (
+            {displayOwners.length > 0
+? (
               <div className="flex items-center gap-1.5">
                 <div className="flex -space-x-1.5">
                   {displayOwners.map((owner, i) => (
@@ -203,7 +204,8 @@ function ContributorsTableView({
                   <span className="text-xs text-muted-foreground">+{remainingCount}</span>
                 )}
               </div>
-            ) : (
+            )
+: (
               <div className="text-xs text-muted-foreground">
                 {repoCount} {repoCount === 1 ? 'repo' : 'repos'}
               </div>

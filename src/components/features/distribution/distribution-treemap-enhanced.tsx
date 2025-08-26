@@ -99,7 +99,7 @@ export function DistributionTreemapEnhanced({
             avatarMap.set(githubId, result.url);
           });
           setCachedAvatars(avatarMap);
-        } catch (_error) {
+        } catch () {
           console.error('Failed to load cached avatars:', _error);
         }
       }
@@ -495,7 +495,7 @@ export function DistributionTreemapEnhanced({
     payload?: Array<{ payload: any }>;
   }) => {
     if (active && payload && payload[0]) {
-      const _data = payload[0].payload;
+      const _ = payload[0].payload;
       const isContributor = currentView === 'quadrant';
       const isPR = currentView === 'contributor';
 
@@ -538,14 +538,16 @@ export function DistributionTreemapEnhanced({
           ) : (
             // Contributor tooltip
             <>
-              {data.login === 'others' ? (
+              {data.login === 'others'
+? (
                 <>
                   <p className="font-semibold text-sm">{data.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {data.value} PRs from remaining contributors
                   </p>
                 </>
-              ) : (
+              )
+: (
                 <>
                   <p className="font-semibold text-sm">{data.login || 'Unknown'}</p>
                   <p className="text-xs text-muted-foreground mb-2">
@@ -585,7 +587,8 @@ export function DistributionTreemapEnhanced({
 
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2">
-        {currentView === 'contributor' && selectedQuadrant && selectedContributor ? (
+        {currentView === 'contributor' && selectedQuadrant && selectedContributor
+? (
           <>
             <Button variant="ghost" size="sm" onClick={onDrillUp} className="gap-1">
               <ChevronLeft className="h-4 w-4" />
@@ -604,7 +607,9 @@ export function DistributionTreemapEnhanced({
               })()}
             </span>
           </>
-        ) : currentView === 'quadrant' && selectedQuadrant ? (
+        )
+: currentView === 'quadrant' && selectedQuadrant
+? (
           <>
             <Button variant="ghost" size="sm" onClick={onDrillUp} className="gap-1">
               <ChevronLeft className="h-4 w-4" />
@@ -616,7 +621,8 @@ export function DistributionTreemapEnhanced({
                 selectedQuadrant}
             </span>
           </>
-        ) : (
+        )
+: (
           <span className="font-medium">All Contributions</span>
         )}
       </div>

@@ -69,8 +69,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
       // Force a hard reload
       window.location.reload();
-    } catch (_error) {
-      console.error('Failed to clear cache:', _error);
+    } catch () {
+      console.error('Failed to clear cache:', error);
       // Fallback to just reloading
       window.location.reload();
     }

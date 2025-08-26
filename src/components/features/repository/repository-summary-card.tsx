@@ -18,7 +18,7 @@ export function RepositorySummaryCard({
   pullRequests = [],
   className = ""
 }: RepositorySummaryCardProps) {
-  const { summary, loading, error: _error, refetch } = useRepositorySummary(owner, repo, pullRequests);
+  const { summary, loading, error, refetch } = useRepositorySummary(owner, repo, pullRequests);
 
   if (loading) {
     return (
@@ -51,7 +51,7 @@ export function RepositorySummaryCard({
         </CardHeader>
         <CardContent>
           <div className="text-sm text-muted-foreground mb-3">
-            Unable to generate AI summary: {error: _error}
+            Unable to generate AI summary: {error}
           </div>
           <Button 
             variant="outline" 

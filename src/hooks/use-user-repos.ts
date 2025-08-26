@@ -227,7 +227,7 @@ export function useUserRepos(username?: string): UseUserReposState {
           isLoading: false,
           error: null,
         });
-      } catch (_error) {
+      } catch () {
         if (signal.aborted) return;
 
         let errorMessage = 'Failed to fetch repositories';

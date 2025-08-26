@@ -14,7 +14,7 @@ export class SyncLogger {
   ): Promise<string> {
     console.log('[SyncLogger] Starting sync log for %s on repository %s', syncType, repositoryId);
 
-    const { data, error: _error } = await supabase
+    const { data, error } = await supabase
       .from('sync_logs')
       .insert({
         sync_type: syncType,
@@ -50,7 +50,7 @@ export class SyncLogger {
       return;
     }
 
-    const { error: _error } = await supabase
+    const { error } = await supabase
       .from('sync_logs')
       .update(updates)
       .eq('id', this.syncLogId);
@@ -74,7 +74,7 @@ export class SyncLogger {
       return;
     }
 
-    const { error: _error } = await supabase
+    const { error } = await supabase
       .from('sync_logs')
       .update({
         status: 'completed',
@@ -105,7 +105,7 @@ export class SyncLogger {
       return;
     }
 
-    const { error: _error } = await supabase
+    const { error } = await supabase
       .from('sync_logs')
       .update({
         status: 'failed',

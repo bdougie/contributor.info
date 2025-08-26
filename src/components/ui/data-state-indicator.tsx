@@ -159,7 +159,8 @@ export function DataStateIndicator({
         </div>
         {(onRefresh || (metadata?.owner && meta_data?.repo)) &&
           status !== 'pending' &&
-          (metadata?.owner && metadata?.repo ? (
+          (metadata?.owner && metadata?.repo
+? (
             <UnifiedSyncButton
               owner={metadata.owner}
               repo={metadata.repo}
@@ -171,12 +172,15 @@ export function DataStateIndicator({
               showLabel={true}
               autoTriggerOnLoad={false}
             />
-          ) : onRefresh ? (
+          )
+: onRefresh
+? (
             <Button variant="ghost" size="sm" onClick={onRefresh} className="ml-4">
               <RefreshCw className="h-3 w-3 mr-1" />
               Refresh
             </Button>
-          ) : null)}
+          )
+: null)}
       </div>
       {status === 'partial_data' &&
         metadata?.dataCompleteness !== undefined &&

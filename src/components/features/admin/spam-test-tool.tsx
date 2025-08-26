@@ -57,7 +57,7 @@ export function SpamTestTool() {
   };
 
   const checkRepositoryTracking = async (owner: string, repo: string) => {
-    const { data: trackedRepo, error: _error } = await supabase
+    const { data: trackedRepo, error } = await supabase
       .from('tracked_repositories')
       .select('*')
       .eq('organization_name', owner)
@@ -68,7 +68,7 @@ export function SpamTestTool() {
   };
 
   const addRepositoryToTracking = async (owner: string, repo: string) => {
-    const { error: _error } = await supabase
+    const { error } = await supabase
       .from('tracked_repositories')
       .insert({
         organization_name: owner,
@@ -153,7 +153,7 @@ export function SpamTestTool() {
       }
 
       return template;
-    } catch (_error) {
+    } catch () {
       setAdminGuidance(prev => [...prev, {
         type: 'error',
         title: 'Template Sync Failed',
@@ -267,7 +267,7 @@ export function SpamTestTool() {
           });
 
           if (!syncResponse.ok) {
-            const errorText = await syncResponse.text();
+            const _ = await syncResponse.text();
             throw new Error(`GitHub sync failed: ${syncResponse.status} ${_errorText}`);
           }
 
@@ -577,7 +577,7 @@ export function SpamTestTool() {
 
       {error && (
         <Alert variant="destructive" className="mb-6">
-          <AlertDescription>{error: _error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 

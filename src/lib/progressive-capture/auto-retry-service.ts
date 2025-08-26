@@ -84,7 +84,7 @@ export class AutoRetryService {
       for (const job of failedJobs) {
         await this.processFailedJob(job);
       }
-    } catch (_error) {
+    } catch () {
       console.error('[AutoRetry] ❌ Critical error checking failed jobs:', {
         error,
         timestamp: new Date().toISOString(),
@@ -182,7 +182,7 @@ export class AutoRetryService {
           final_retry_count: retryCount + 1,
         },
       });
-    } catch (_error) {
+    } catch () {
       console.error(`[AutoRetry] ❌ Error processing failed job ${job.id}:`, {
         jobId: job.id,
         jobType: job.job_type,
@@ -269,7 +269,7 @@ export class AutoRetryService {
           originalJob.id,
         );
 
-        const { data: repo, error: _error } = await supabase
+        const { data: repo, error } = await supabase
           .from('repositories')
           .select('owner, name')
           .eq('id', originalJob.repository_id)
@@ -417,7 +417,7 @@ export class AutoRetryService {
           jobsRecoveredViaFetch,
         },
       };
-    } catch (_error) {
+    } catch () {
       console.error('[AutoRetry] Error getting retry stats:', _error);
       return {
         totalRetries: 0,

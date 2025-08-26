@@ -53,9 +53,11 @@ export function DocsSidebar({ className }: DocsSidebarProps) {
             onClick={() => setFeaturesExpanded(!featuresExpanded)}
             className="flex items-center gap-2 px-3 mb-2 w-full hover:opacity-80 transition-opacity"
           >
-            {featuresExpanded ? (
+            {featuresExpanded
+? (
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
+            )
+: (
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             )}
             <FileText className="h-4 w-4 text-muted-foreground" />
@@ -97,9 +99,11 @@ export function DocsSidebar({ className }: DocsSidebarProps) {
             onClick={() => setInsightsExpanded(!insightsExpanded)}
             className="flex items-center gap-2 px-3 mb-2 w-full hover:opacity-80 transition-opacity"
           >
-            {insightsExpanded ? (
+            {insightsExpanded
+? (
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
+            )
+: (
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             )}
             <TrendingUp className="h-4 w-4 text-muted-foreground" />

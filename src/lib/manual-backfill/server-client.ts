@@ -138,9 +138,9 @@ class ManualBackfillServerClient {
   async checkHealth(): Promise<boolean> {
     try {
       const response = await fetch(`${this.apiUrl}/health`);
-      const _data = await response.json();
+      const _ = await response.json();
       return data.status === 'healthy';
-    } catch (_error) {
+    } catch () {
       console.error('[ManualBackfillServerClient] Health check failed:', _error);
       return false;
     }

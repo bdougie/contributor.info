@@ -47,7 +47,7 @@ export function WorkspaceSwitcher({
     switchWorkspace,
     isLoading,
     recentWorkspaces,
-    error: _error,
+    error,
     retry,
   } = useWorkspaceContext();
   const [open, setOpen] = useState(false);

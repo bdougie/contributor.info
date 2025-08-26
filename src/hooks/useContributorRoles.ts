@@ -154,7 +154,7 @@ function getDaysSinceLastActive(lastVerified: string): number {
 
 // Hook to get role for a specific contributor
 export function useContributorRole(owner: string, repo: string, userId: string) {
-  const { roles, loading, error: _error } = useContributorRoles(owner, repo);
+  const { roles, loading, error } = useContributorRoles(owner, repo);
   const role = roles.find((r) => r.user_id === userId);
 
   return { role, loading, error };
@@ -162,7 +162,7 @@ export function useContributorRole(owner: string, repo: string, userId: string) 
 
 // Hook to get role statistics
 export function useRoleStatistics(owner: string, repo: string) {
-  const { roles, loading, error: _error } = useContributorRoles(owner, repo);
+  const { roles, loading, error } = useContributorRoles(owner, repo);
 
   const stats = {
     total: roles.length,

@@ -135,9 +135,11 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
               onClick={() => setIsCollapsed(!isCollapsed)}
               aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
-              {isCollapsed ? (
+              {isCollapsed
+? (
                 <ChevronLeft className="h-4 w-4" />
-              ) : (
+              )
+: (
                 <ChevronRight className="h-4 w-4" />
               )}
             </Button>

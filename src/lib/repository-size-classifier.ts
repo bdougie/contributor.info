@@ -132,7 +132,7 @@ export class RepositorySizeClassifier {
         monthlyCommits,
         activeContributors: Math.min(activeContributors, contributors.length),
       };
-    } catch (_error) {
+    } catch () {
       console.error('Error calculating repository metrics:', _error);
       throw error;
     }
@@ -318,7 +318,7 @@ export class RepositorySizeClassifier {
       };
 
       // Update in database
-      const { error: _error } = await supabase
+      const { error } = await supabase
         .from('tracked_repositories')
         .update({
           size,
@@ -333,7 +333,7 @@ export class RepositorySizeClassifier {
 
       console.log('Repository %s/%s classified as %s', owner, repo, size);
       return size;
-    } catch (_error) {
+    } catch () {
       console.error(`Error classifying repository ${owner}/${repo}:`, _error);
       throw error;
     }
@@ -359,7 +359,7 @@ export class RepositorySizeClassifier {
    * Get all unclassified repositories
    */
   async getUnclassifiedRepositories(): Promise<Array<{ id: string; owner: string; name: string }>> {
-    const { data, error: _error } = await supabase
+    const { data, error } = await supabase
       .from('tracked_repositories')
       .select(
         `
@@ -398,7 +398,7 @@ export class RepositorySizeClassifier {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
-    const { data, error: _error } = await supabase
+    const { data, error } = await supabase
       .from('tracked_repositories')
       .select(
         `

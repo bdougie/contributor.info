@@ -77,7 +77,7 @@ export default function FilteredPRActivity() {
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
-            <AlertDescription>{error: _error}</AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         </CardContent>
       </Card>

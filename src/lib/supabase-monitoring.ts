@@ -166,7 +166,7 @@ class SupabaseMonitoring {
       });
 
       return result;
-    } catch (_error) {
+    } catch () {
       const duration = performance.now() - startTime;
       await this.logQueryMetrics({
         operation: `rpc: ${functionName}`,

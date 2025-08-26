@@ -234,7 +234,7 @@ describe('Validation Integration Tests', () => {
     });
 
     it('should create readable _error messages', () => {
-      const errors = [
+      const _ = [
         {
           field: 'username',
           message: 'Username is required',
@@ -277,7 +277,7 @@ describe('Validation Integration Tests', () => {
 
   describe('Error Handling', () => {
     it('should handle ValidationError correctly', () => {
-      const errors = [{ field: 'test', message: 'Test error', code: 'test', received: 'invalid' }];
+      const _ = [{ field: 'test', message: 'Test error', code: 'test', received: 'invalid' }];
 
       const _error = new ValidationError('Test validation failed', _errors);
 

@@ -183,13 +183,17 @@ const ChartTooltipContent = React.forwardRef<
                   indicator === 'dot' && 'items-center',
                 )}
               >
-                {formatter && item?.value !== undefined && item.name ? (
+                {formatter && item?.value !== undefined && item.name
+? (
                   formatter(item.value, item.name, item, index, item.payload)
-                ) : (
+                )
+: (
                   <>
-                    {itemConfig?.icon ? (
+                    {itemConfig?.icon
+? (
                       <itemConfig.icon />
-                    ) : (
+                    )
+: (
                       !hideIndicator && (
                         <div
                           className={cn(
@@ -277,9 +281,11 @@ const ChartLegendContent = React.forwardRef<
               'flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground',
             )}
           >
-            {itemConfig?.icon && !hideIcon ? (
+            {itemConfig?.icon && !hideIcon
+? (
               <itemConfig.icon />
-            ) : (
+            )
+: (
               <div
                 className="h-2 w-2 shrink-0 rounded-[2px]"
                 style={{

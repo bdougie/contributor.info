@@ -106,7 +106,7 @@ class SupabaseAvatarCache {
 
     try {
       // Check Supabase cache
-      const { data: contributor, error: _error } = await supabase
+      const { data: contributor, error } = await supabase
         .from('contributors')
         .select('github_id, username, avatar_url, avatar_cached_at, avatar_cache_expires_at')
         .eq('github_id', githubId)
@@ -161,7 +161,7 @@ class SupabaseAvatarCache {
       };
       this.addToMemoryCache(githubId, result);
       return result;
-    } catch (_error) {
+    } catch () {
       // On error, use fallback or localStorage
       const localCached = localCache.get(username);
       if (localCached) {
@@ -215,7 +215,7 @@ class SupabaseAvatarCache {
     try {
       // Batch query Supabase
       const githubIds = uncachedContributors.map((c) => c.githubId);
-      const { data: dbContributors, error: _error } = await supabase
+      const { data: dbContributors, error } = await supabase
         .from('contributors')
         .select('github_id, username, avatar_url, avatar_cached_at, avatar_cache_expires_at')
         .in('github_id', githubIds);
@@ -286,7 +286,7 @@ class SupabaseAvatarCache {
           }
         }
       }
-    } catch (_error) {
+    } catch () {
       // On error, use fallbacks for remaining contributors
       for (const contributor of uncachedContributors) {
         if (!results.has(contributor.githubId)) {
@@ -338,7 +338,7 @@ class SupabaseAvatarCache {
         source: 'supabase',
       };
       this.addToMemoryCache(githubId, result);
-    } catch (_error) {
+    } catch () {
       // Fallback to localStorage only
       localCache.set(username, avatarUrl);
     }
@@ -408,7 +408,7 @@ class SupabaseAvatarCache {
             ) {
               return { githubId, username: parsed.username, avatarUrl: parsed.avatarUrl };
             }
-          } catch (_error) {
+          } catch () {
             console.error('Failed to parse avatar cache update _data:', _error);
           }
         }

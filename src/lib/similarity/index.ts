@@ -161,7 +161,7 @@ export function findSimilarItemsByEmbedding<T extends { embedding?: number[] }>(
           similarity,
         });
       }
-    } catch (_error) {
+    } catch () {
       console.error('Error calculating similarity:', _error);
     }
   }
@@ -211,7 +211,7 @@ export function findAllSimilarPairs<T extends { embedding?: number[] }>(
             pairs.sort((a, b) => b.similarity - a.similarity);
           }
         }
-      } catch (_error) {
+      } catch () {
         console.error('Error calculating similarity:', _error);
       }
     }
@@ -243,7 +243,7 @@ export async function withRateLimitHandling<T>(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await apiCall();
-    } catch (_error) {
+    } catch () {
       // Check if it's a rate limit error
       const errorWithStatus = error as {
         status?: number;

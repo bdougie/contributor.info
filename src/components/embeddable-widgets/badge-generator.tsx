@@ -77,27 +77,27 @@ function getLotteryFactorColor(factor: number | undefined): string {
 
 // Predefined badge types with time context
 const BADGE_PRESETS = {
-  contributors: (_data: WidgetData) => ({
+  contributors: (data: WidgetData) => ({
     label: 'contributors (30d)',
     message: data.stats.totalContributors.toString(),
     color: COLORS.contributors,
   }),
-  'pull-requests': (_data: WidgetData) => ({
+  'pull-requests': (data: WidgetData) => ({
     label: 'PRs (30d)',
     message: data.stats.totalPRs.toString(),
     color: COLORS.pullRequests,
   }),
-  'merge-rate': (_data: WidgetData) => ({
+  'merge-rate': (data: WidgetData) => ({
     label: 'merge rate (30d)',
     message: `${data.stats.mergeRate.toFixed(1)}%`,
-    color: getMergeRateColor(_data.stats.mergeRate),
+    color: getMergeRateColor(data.stats.mergeRate),
   }),
-  'lottery-factor': (_data: WidgetData) => ({
+  'lottery-factor': (data: WidgetData) => ({
     label: 'lottery factor (30d)',
     message: data.stats.lotteryFactor?.toFixed(1) || 'N/A',
-    color: getLotteryFactorColor(_data.stats.lotteryFactor),
+    color: getLotteryFactorColor(data.stats.lotteryFactor),
   }),
-  activity: (_data: WidgetData) => ({
+  activity: (data: WidgetData) => ({
     label: 'activity (7d)',
     message: data.activity.recentActivity ? 'active' : 'low',
     color: data.activity.recentActivity ? COLORS.activity.active : COLORS.activity.low,
@@ -115,6 +115,7 @@ function escapeXml(text: unknown): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;')
+    // eslint-disable-next-line no-control-regex
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 }
 
@@ -273,7 +274,7 @@ export function BadgeGenerator({ config, _data, className }: BadgeGeneratorProps
 }
 
 // Utility function to generate badge URL
-export function generateBadgeURL(config: BadgeConfig, _data: WidgetData): string {
+export function generateBadgeURL(config: BadgeConfig, data: WidgetData): string {
   return (
     `${window.location.origin}/api/widget/badge?` +
     new URLSearchParams({

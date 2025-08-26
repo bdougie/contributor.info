@@ -209,7 +209,7 @@ class ErrorTracker {
         
         Sentry.captureException(report._error);
       });
-    } catch (_error) {
+    } catch () {
       console.warn('Failed to send error to Sentry:', _error);
     }
   }
@@ -253,7 +253,7 @@ class ErrorTracker {
         errorsByType,
         recentErrors: storedErrors.slice(-20),
       };
-    } catch (_error) {
+    } catch () {
       console.warn('Failed to get error stats:', _error);
       return {
         totalErrors: 0,
@@ -271,7 +271,7 @@ class ErrorTracker {
         localStorage.removeItem('_data-loading-_errors');
       }
       this.breadcrumbs = [];
-    } catch (_error) {
+    } catch () {
       console.warn('Failed to clear error _data:', _error);
     }
   }
@@ -283,7 +283,7 @@ class ErrorTracker {
 
       const storedErrors = localStorage.getItem('_data-loading-_errors') || '[]';
       return storedErrors;
-    } catch (_error) {
+    } catch () {
       console.warn('Failed to export error _data:', _error);
       return '[]';
     }

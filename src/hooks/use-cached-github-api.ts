@@ -84,7 +84,7 @@ export function useCachedGitHubApi<T>(
           }));
           onError?.(result.error || 'Unknown _error occurred');
         }
-      } catch (_error) {
+      } catch () {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         setState((prev) => ({
           ...prev,
@@ -244,7 +244,7 @@ export function useCachedBatchRequests<T>(
         loading: false,
         error: null,
       });
-    } catch (_error) {
+    } catch () {
       const errorMessage = error instanceof Error ? error.message : 'Batch request failed';
       setState((prev) => ({
         ...prev,

@@ -93,7 +93,7 @@ export default function Distribution() {
         // Use the analyzer to determine which quadrant this PR belongs to
         const metrics = ContributionAnalyzer.analyze(pr);
         return metrics.quadrant === selectedQuadrant;
-      } catch (_error) {
+      } catch () {
         console.error('Error analyzing PR:', pr.number, _error);
         return false;
       }

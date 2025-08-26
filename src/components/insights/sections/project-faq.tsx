@@ -84,7 +84,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
         // Fallback to static FAQ generation
         generateStaticFAQs();
       }
-    } catch (_error) {
+    } catch () {
       console.error('Failed to generate AI FAQs, falling back to static:', _error);
       setUseAI(false);
       generateStaticFAQs();
@@ -416,9 +416,11 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
                 onClick={() => toggleExpanded(faq.id)}
               >
                 <span className="text-sm font-medium pr-2 flex-1">{faq.question}</span>
-                {expandedItems.has(faq.id) ? (
+                {expandedItems.has(faq.id)
+? (
                   <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                ) : (
+                )
+: (
                   <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 )}
               </Button>

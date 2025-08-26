@@ -55,7 +55,7 @@ export class SyncMonitoring {
         router: metrics.router,
         created_at: metrics.timestamp.toISOString(),
       });
-    } catch (_error) {
+    } catch () {
       console.error('Failed to record sync metrics:', _error);
     }
 

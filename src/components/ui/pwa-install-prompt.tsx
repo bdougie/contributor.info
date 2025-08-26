@@ -89,7 +89,7 @@ export function PWAInstallPrompt({ className, onInstall, onDismiss }: PWAInstall
       // Clean up
       setDeferredPrompt(null);
       setShowPrompt(false);
-    } catch (_error) {
+    } catch () {
       console.error('Error during install:', _error);
     } finally {
       setIsInstalling(false);
@@ -137,12 +137,14 @@ export function PWAInstallPrompt({ className, onInstall, onDismiss }: PWAInstall
               disabled={isInstalling}
               className="text-xs h-8 px-3"
             >
-              {isInstalling ? (
+              {isInstalling
+? (
                 <>
                   <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
                   Installing...
                 </>
-              ) : (
+              )
+: (
                 <>
                   <Download className="w-3 h-3 mr-1" />
                   Install
@@ -211,7 +213,7 @@ export function usePWAInstall() {
       setCanInstall(false);
 
       return choiceResult.outcome === 'accepted';
-    } catch (_error) {
+    } catch () {
       console.error('Error during install:', _error);
       return false;
     } finally {

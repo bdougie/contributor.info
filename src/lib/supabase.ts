@@ -43,6 +43,6 @@ export const supabase = createSupabaseClient();
 
 // Helper to debug authentication issues
 export const debugAuthSession = async () => {
-  const { data, error: _error } = await supabase.auth.getSession();
+  const { data, error } = await supabase.auth.getSession();
   return { session: data.session, error };
 };

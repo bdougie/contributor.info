@@ -92,7 +92,7 @@ export class GitHubCacheService {
 
       this.recordMiss(performance.now() - startTime);
       return null;
-    } catch (_error) {
+    } catch () {
       this.recordMiss(performance.now() - startTime);
       return null;
     }
@@ -117,7 +117,7 @@ export class GitHubCacheService {
       }
 
       this.updateStats();
-    } catch (_error) {
+    } catch () {
       // Silently handle cache set errors
     }
   }
@@ -133,7 +133,7 @@ export class GitHubCacheService {
     if (this.config.persistenceEnabled) {
       try {
         localStorage.removeItem(this.getStorageKey(key));
-      } catch (_error) {
+      } catch () {
         // Silently handle localStorage removal errors
       }
     }
@@ -155,7 +155,7 @@ export class GitHubCacheService {
             localStorage.removeItem(key);
           }
         });
-      } catch (_error) {
+      } catch () {
         // Silently handle localStorage clearing errors
       }
     }
@@ -175,7 +175,7 @@ export class GitHubCacheService {
    * Check if key exists in cache and is valid
    */
   async has(key: string): Promise<boolean> {
-    const _data = await this.get(key);
+    const _ = await this.get(key);
     return data !== null;
   }
 
@@ -268,7 +268,7 @@ export class GitHubCacheService {
       }
 
       return entry.data;
-    } catch (_error) {
+    } catch () {
       return null;
     }
   }
@@ -290,7 +290,7 @@ export class GitHubCacheService {
       };
 
       localStorage.setItem(this.getStorageKey(key), JSON.stringify(entry));
-    } catch (_error) {
+    } catch () {
       // If storage is full, try to clear some space
       if (error instanceof DOMException && _error.name === 'QuotaExceededError') {
         this.cleanupStorage();
@@ -345,7 +345,7 @@ export class GitHubCacheService {
       for (let i = 0; i < toRemove; i++) {
         localStorage.removeItem(entries[i].key);
       }
-    } catch (_error) {
+    } catch () {
       // Silently handle storage cleanup errors
     }
   }
@@ -391,7 +391,7 @@ export class GitHubCacheService {
             }
           }
         });
-      } catch (_error) {
+      } catch () {
         // Silently handle expired storage cleanup errors
       }
     }

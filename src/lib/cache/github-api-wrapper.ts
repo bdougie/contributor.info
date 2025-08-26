@@ -91,7 +91,7 @@ export class CachedGitHubApiClient {
         fromCache: false,
         responseTime: performance.now() - startTime,
       };
-    } catch (_error) {
+    } catch () {
       return {
         data: null,
         success: false,
@@ -336,7 +336,7 @@ export class CachedGitHubApiClient {
 
       clearTimeout(timeoutId);
       return result;
-    } catch (_error) {
+    } catch () {
       clearTimeout(timeoutId);
       throw error;
     }

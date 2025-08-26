@@ -241,7 +241,7 @@ export function useCachedRepoData(
         setStats(newStats);
         setLotteryFactor(newLotteryFactor);
         setDirectCommitsData(newDirectCommitsData);
-      } catch (_error) {
+      } catch () {
         // Simple error logging without analytics
         console.error('Repository fetch error:', {
           owner,

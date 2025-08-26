@@ -79,9 +79,11 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {!progressiveData.basicInfo ? (
+                {!progressiveData.basicInfo
+? (
                   <Skeleton className="h-8 w-20" />
-                ) : (
+                )
+: (
                   <div className="flex items-center gap-2">
                     {progressiveData.basicInfo?.prCount || 0}
                     {progressiveData.stageErrors.critical && (
@@ -102,9 +104,11 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {!progressiveData.basicInfo ? (
+                {!progressiveData.basicInfo
+? (
                   <Skeleton className="h-8 w-20" />
-                ) : (
+                )
+: (
                   progressiveData.basicInfo?.contributorCount || 0
                 )}
               </div>
@@ -116,13 +120,15 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
               <CardTitle className="text-sm font-medium">Top Contributors</CardTitle>
             </CardHeader>
             <CardContent>
-              {!progressiveData.basicInfo ? (
+              {!progressiveData.basicInfo
+? (
                 <div className="flex -space-x-2">
                   {[...Array(5)].map((_, i) => (
                     <Skeleton key={i} className="h-8 w-8 rounded-full" />
                   ))}
                 </div>
-              ) : (
+              )
+: (
                 <div className="flex -space-x-2">
                   {progressiveData.basicInfo?.topContributors.map(
                     (contributor: unknown, i: number) => (
@@ -174,13 +180,15 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {progressiveData.stats.loading ? (
+              {progressiveData.stats.loading
+? (
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-3/4" />
                   <Skeleton className="h-4 w-1/2" />
                 </div>
-              ) : (
+              )
+: (
                 <div>
                   <p className="text-sm text-muted-foreground">
                     {progressiveData.stats?.pullRequests.length || 0} pull requests in the last{' '}
@@ -250,12 +258,15 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!progressiveData.stageProgress.enhancement && !progressiveData.directCommitsData ? (
+              {!progressiveData.stageProgress.enhancement && !progressiveData.directCommitsData
+? (
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-3/4" />
                 </div>
-              ) : progressiveData.directCommitsData ? (
+              )
+: progressiveData.directCommitsData
+? (
                 <div>
                   <p className="text-sm text-muted-foreground">
                     {progressiveData.directCommitsData?.hasYoloCoders
@@ -291,7 +302,8 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
                     </div>
                   )}
                 </div>
-              ) : (
+              )
+: (
                 <div className="text-sm text-muted-foreground">Loading advanced analytics...</div>
               )}
             </CardContent>

@@ -137,7 +137,7 @@ export class HybridQueueManager {
       console.log('[HybridQueue] Successfully queued %s job to %s (job_id: %s, rollout: %s)', jobType, processor, job.id, rolloutApplied);
       
       return job;
-    } catch (_error) {
+    } catch () {
       // Record error metrics for rollout monitoring
       await hybridRolloutManager.recordMetrics(
         data.repositoryId,
@@ -159,7 +159,7 @@ export class HybridQueueManager {
    */
   private async isNewlyTrackedRepository(repositoryId: string): Promise<boolean> {
     try {
-      const { data: repo, error: _error } = await supabase
+      const { data: repo, error } = await supabase
         .from('repositories')
         .select('first_tracked_at')
         .eq('id', repositoryId)
@@ -174,7 +174,7 @@ export class HybridQueueManager {
       
       // Consider "newly tracked" if tracked within last 24 hours
       return hoursSinceTracked < 24;
-    } catch (_error) {
+    } catch () {
       console.error('[HybridQueue] Error checking if repository is newly tracked:', _error);
       return false;
     }
@@ -222,7 +222,7 @@ export class HybridQueueManager {
    * Create a job record in the database
    */
   private async createJobRecord(jobType: string, _data: JobData, processor: 'inngest' | 'github_actions', rolloutApplied: boolean = false): Promise<HybridJob> {
-    const { data: job, error: _error } = await supabase
+    const { data: job, error } = await supabase
       .from('progressive_capture_jobs')
       .insert({
         job_type: jobType,
@@ -344,7 +344,7 @@ export class HybridQueueManager {
         });
         
         console.log('[HybridQueue] Event queued successfully via client-safe API for', eventData.repositoryId);
-      } catch (_error) {
+      } catch () {
         console.error('[HybridQueue] Failed to queue event via client-safe API:', _error);
         throw new Error(`Failed to queue event: ${error instanceof Error ? error.message : 'Unknown _error'}`);
       }
@@ -515,7 +515,7 @@ export class HybridQueueManager {
         // Optionally notify monitoring systems or send alerts
         // This could integrate with Sentry, PostHog, or other monitoring tools
       }
-    } catch (_error) {
+    } catch () {
       console.error('[HybridQueue] Error checking rollout health:', _error);
     }
   }
@@ -555,7 +555,7 @@ export class HybridQueueManager {
           }
         }
       }
-    } catch (_error) {
+    } catch () {
       console.error('[HybridQueue] Error syncing Inngest job statuses:', _error);
     }
   }
@@ -647,7 +647,7 @@ export class HybridQueueManager {
    */
   private async getRepositoryInfo(repositoryId: string) {
     try {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repositories')
         .select('id, owner, name, pull_request_count')
         .eq('id', repositoryId)
@@ -659,7 +659,7 @@ export class HybridQueueManager {
       }
 
       return data;
-    } catch (_error) {
+    } catch () {
       console.error('[HybridQueue] Exception fetching repository info:', _error);
       return null;
     }

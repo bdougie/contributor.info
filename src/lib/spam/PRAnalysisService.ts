@@ -257,7 +257,7 @@ export class PRAnalysisService {
           }
         }
       }
-    } catch (_error) {
+    } catch () {
       console.warn('Failed to check repository-specific patterns:', _error);
     }
 

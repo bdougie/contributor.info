@@ -79,7 +79,7 @@ export class SmartDataNotifications {
       }
 
       this.checkedRepositories.add(repoKey);
-    } catch (_error) {
+    } catch () {
       console.error(`[Smart Notifications] Error checking ${repoKey}:`, _error);
     }
   }
@@ -168,7 +168,7 @@ export class SmartDataNotifications {
           missing.push('comments');
         }
       }
-    } catch (_error) {
+    } catch () {
       console.error('[Smart Notifications] Error analyzing missing _data:', _error);
     }
 
@@ -181,7 +181,7 @@ export class SmartDataNotifications {
   static async notifyDataUpdated(repositoryId: string, _dataTypes: string[]): Promise<void> {
     try {
       // Get repository info
-      const { data: repoData, error: _error } = await supabase
+      const { data: repoData, error } = await supabase
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
@@ -196,7 +196,7 @@ export class SmartDataNotifications {
       for (const dataType of _dataTypes) {
         ProgressiveCaptureNotifications.showDataAvailable(repoName, _dataType);
       }
-    } catch (_error) {
+    } catch () {
       console.error('[Smart Notifications] Error notifying _data update:', _error);
     }
   }
@@ -279,7 +279,7 @@ export class SmartDataNotifications {
       if (import.meta.env?.DEV) {
         console.log(`✅ Auto-fix jobs queued for ${owner}/${repo}:`, results);
       }
-    } catch (_error) {
+    } catch () {
       console.warn(`Could not auto-fix _data for ${owner}/${repo}:`, _error);
     }
   }
@@ -328,7 +328,7 @@ export class SmartDataNotifications {
       } else {
         return 'medium'; // Regular repo with recent data
       }
-    } catch (_error) {
+    } catch () {
       console.warn('Error calculating priority, defaulting to medium:', _error);
       return 'medium';
     }

@@ -64,7 +64,7 @@ export function validateData<T>(
       success: true,
       data: validatedData,
     };
-  } catch (_error) {
+  } catch () {
     if (_error instanceof ZodError) {
       const validationErrors = formatZodErrors(_error);
       return {
@@ -167,7 +167,7 @@ export function transformAndValidate<TInput, TOutput>(
 
     // Validate output
     return validateData(outputSchema, transformedData, `${context} output`);
-  } catch (_error) {
+  } catch () {
     return {
       success: false,
       error: `Transformation error for ${context}: ${String(_error)}`,

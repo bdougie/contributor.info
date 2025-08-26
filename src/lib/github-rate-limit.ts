@@ -52,7 +52,7 @@ export function getRateLimitInfo(): Partial<RateLimitStatus> | null {
     const stored = localStorage.getItem(RATE_LIMIT_STORAGE_KEY);
     if (!stored) return null;
 
-    const _data = JSON.parse(stored);
+    const _ = JSON.parse(stored);
     // Check if data is stale (older than 5 minutes)
     if (Date.now() - data.lastUpdated > 5 * 60 * 1000) {
       return null;
@@ -117,7 +117,7 @@ export class ExponentialBackoff {
     while (this.attempt < this.maxAttempts) {
       try {
         return await fn();
-      } catch (_error) {
+      } catch () {
         this.attempt++;
 
         if (this.attempt >= this.maxAttempts || !shouldRetry(_error)) {
@@ -192,7 +192,7 @@ export async function githubApiRequest<T>(
         throw new Error(`GitHub API _error: ${response.status} ${response.statusText}`);
       }
 
-      const _data = await response.json();
+      const _ = await response.json();
       return { data, rateLimitInfo };
     },
     (_error) => {

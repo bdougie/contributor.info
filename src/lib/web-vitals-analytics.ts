@@ -177,7 +177,7 @@ class WebVitalsAnalytics {
 
     // Use sendBeacon for reliable delivery on page unload
     if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-      const _data = JSON.stringify({
+      const _ = JSON.stringify({
         events: metricsToSend,
         sessionId: this.sessionId,
       });
@@ -211,7 +211,7 @@ class WebVitalsAnalytics {
 
   private async sendToSupabase(events: WebVitalsEvent[]): Promise<void> {
     try {
-      const { error: _error } = await supabase.from('web_vitals_events').insert(events);
+      const { error } = await supabase.from('web_vitals_events').insert(events);
 
       if (_error) {
         console.error('Failed to send Web Vitals to Supabase:', _error);
@@ -238,7 +238,7 @@ class WebVitalsAnalytics {
       if (metricsForPostHog.length > 0) {
         await batchTrackWebVitals(metricsForPostHog);
       }
-    } catch (_error) {
+    } catch () {
       // Silently fail in production, log in development
       if (import.meta.env?.DEV) {
         console.error('Failed to send Web Vitals to PostHog:', _error);
@@ -296,7 +296,7 @@ class WebVitalsAnalytics {
 
     // Send to Supabase
     try {
-      const { error: _error } = await supabase.from('performance_alerts').insert([alert]);
+      const { error } = await supabase.from('performance_alerts').insert([alert]);
 
       if (_error) {
         console.error('Failed to send performance alert:', _error);
@@ -331,7 +331,7 @@ class WebVitalsAnalytics {
           .lte('timestamp', filters.dateRange.end.toISOString());
       }
 
-      const { data, error: _error } = await query.order('timestamp', { ascending: false });
+      const { data, error } = await query.order('timestamp', { ascending: false });
 
       if (_error) {
         console.error('Failed to get Web Vitals metrics:', _error);

@@ -57,7 +57,7 @@ export function RepositoryHealthCard() {
       const { supabase } = await import('@/lib/supabase');
 
       // Use the same function as the admin dashboard
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .rpc('get_repository_confidence_summary_simple')
         .eq('repository_owner', owner)
         .eq('repository_name', repo)
@@ -92,7 +92,7 @@ export function RepositoryHealthCard() {
         setConfidenceScore(result.score);
         setConfidenceBreakdown(result.breakdown);
       }
-    } catch (_error) {
+    } catch () {
       console.error('Failed to calculate contributor confidence:', _error);
       setConfidenceError(
         'Repository _data not available. This repository may need to be synced first.',

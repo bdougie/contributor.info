@@ -63,7 +63,7 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
       if (llmService.isAvailable()) {
         loadLLMRecommendations(healthData, activityData, trendsData);
       }
-    } catch (_error) {
+    } catch () {
       console.error('Failed to load recommendations:', _error);
 
       // Fallback recommendations
@@ -88,7 +88,7 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
 
       const insight = await llmService.generateRecommendations(combinedData, { owner, repo });
       setLlmInsight(insight);
-    } catch (_error) {
+    } catch () {
       console.error('Failed to load LLM recommendations:', _error);
       setLlmInsight(null);
     } finally {
@@ -356,13 +356,16 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
             )}
           </div>
 
-          {llmLoading ? (
+          {llmLoading
+? (
             <div className="space-y-2">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-4/5" />
               <Skeleton className="h-4 w-3/4" />
             </div>
-          ) : llmInsight ? (
+          )
+: llmInsight
+? (
             <div className="space-y-3">
               <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
                 {llmInsight.content}
@@ -371,7 +374,8 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
                 Generated {new Date(llmInsight.timestamp).toLocaleTimeString()}
               </p>
             </div>
-          ) : null}
+          )
+: null}
         </Card>
       )}
 

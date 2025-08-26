@@ -122,7 +122,7 @@ export function WorkspaceCreateModal({
           onSubmit={handleWorkspaceSubmit}
           onCancel={handleCancel}
           loading={loading}
-          error={error: _error}
+          error={error}
           mode={mode}
           initialValues={initialValues}
         />

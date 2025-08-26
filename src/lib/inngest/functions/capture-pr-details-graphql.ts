@@ -105,7 +105,7 @@ async function ensureContributorExists(
   }
 
   try {
-    const { data, error: _error } = await supabase
+    const { data, error } = await supabase
       .from('contributors')
       .upsert(
         {
@@ -184,7 +184,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
 
     // Step 1: Get repository details
     const repository = await step.run('get-repository', async () => {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
@@ -213,7 +213,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           result.rateLimit?.cost || 'unknown',
         );
         return result;
-      } catch (_error) {
+      } catch () {
         // Log GraphQL-specific errors
         const errorMessage = error instanceof Error ? error.message : String(_error);
         if (_errorMessage.includes('rate limit')) {

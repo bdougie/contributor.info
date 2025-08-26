@@ -189,7 +189,7 @@ export function SelfSelectionRate({
               Not enough pull request data available
             </p>
             {error && (
-              <p className="text-xs text-red-500 mt-2">{error: _error}</p>
+              <p className="text-xs text-red-500 mt-2">{error}</p>
             )}
           </div>
           <div className="space-y-2">
@@ -248,7 +248,7 @@ export function SelfSelectionRate({
           {syncStatus.error && (
             <div className="flex flex-col items-center gap-2 pt-4 border-t">
               <p className="text-sm text-red-500 text-center">
-                {syncStatus.error: _error}
+                {syncStatus.error}
               </p>
               <Button 
                 onClick={triggerSync}

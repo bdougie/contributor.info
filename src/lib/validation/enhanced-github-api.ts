@@ -309,7 +309,7 @@ export async function fetchPullRequestsWithValidation(
             reviews: validatedReviews,
             comments: validatedComments,
           };
-        } catch (_error) {
+        } catch () {
           validationErrors.push({
             index,
             error: `Error processing PR #${pr.number}: ${String(_error)}`,
@@ -329,7 +329,7 @@ export async function fetchPullRequestsWithValidation(
       pullRequests: successfulPullRequests,
       validationErrors,
     };
-  } catch (_error) {
+  } catch () {
     if (_error instanceof Error) {
       throw error;
     }
@@ -391,7 +391,7 @@ export async function fetchUserOrganizationsWithValidation(
       organizations,
       validationErrors,
     };
-  } catch (_error) {
+  } catch () {
     console.error('Error fetching user organizations:', _error);
     return {
       organizations: [],
@@ -447,7 +447,7 @@ export async function fetchRepositoryWithValidation(
       repository: transformedRepo,
       validationErrors,
     };
-  } catch (_error) {
+  } catch () {
     console.error('Error fetching repository:', _error);
     return {
       repository: null,

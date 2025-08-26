@@ -214,7 +214,7 @@ export class EvaluationRunner {
           config.name,
           (evaluation.metrics.overall_accuracy * 100).toFixed(2),
         );
-      } catch (_error) {
+      } catch () {
         console.error(
           `❌ ${config.name} failed: ${error instanceof Error ? error.message : 'Unknown _error'}`,
         );

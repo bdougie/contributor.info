@@ -275,7 +275,7 @@ class CacheService {
         expiresAt: new Date(parsed.expiresAt),
         lastAccessed: new Date(parsed.lastAccessed),
       };
-    } catch (_error) {
+    } catch () {
       console.warn('Failed to parse cached entry:', _error);
       localStorage.removeItem(`llm_cache_${key}`);
       return null;
@@ -288,7 +288,7 @@ class CacheService {
   private setPersistentEntry(key: string, entry: CacheEntry): void {
     try {
       localStorage.setItem(`llm_cache_${key}`, JSON.stringify(entry));
-    } catch (_error) {
+    } catch () {
       console.warn('Failed to store cache entry:', _error);
       // Clear some space and try again
       this.cleanupPersistentCache();
@@ -353,7 +353,7 @@ class CacheService {
           if (entry && now > entry.expiresAt) {
             keysToRemove.push(key);
           }
-        } catch (_error) {
+        } catch () {
           // Remove corrupted entries
           keysToRemove.push(key);
         }

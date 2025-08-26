@@ -167,7 +167,7 @@ export function createRateLimiter(config: RateLimitConfig) {
         statusText: response.statusText,
         headers: newHeaders,
       });
-    } catch (_error) {
+    } catch () {
       // Optionally don't count failed requests
       if (skipFailedRequests) {
         store.reset(key);

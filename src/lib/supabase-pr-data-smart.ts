@@ -219,7 +219,7 @@ export async function fetchPRDataSmart(
               duration: 5000,
             });
           }
-        } catch (_error) {
+        } catch () {
           console.error('Failed to trigger background sync:', _error);
         }
       }
@@ -301,7 +301,7 @@ export async function hasAnyPRData(owner: string, repo: string): Promise<boolean
       .eq('repository_id', repoData.id);
 
     return (count || 0) > 0;
-  } catch (_error) {
+  } catch () {
     return false;
   }
 }

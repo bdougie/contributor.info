@@ -98,7 +98,7 @@ export function PerformanceMonitoringDashboard() {
         database: databaseHealth.status === 'fulfilled' ? databaseHealth.value : null,
         github: githubHealth.status === 'fulfilled' ? githubHealth.value : null,
       };
-    } catch (_error) {
+    } catch () {
       console.error('Error fetching health endpoints:', _error);
       return { main: null, database: null, github: null };
     }
@@ -107,7 +107,7 @@ export function PerformanceMonitoringDashboard() {
   const loadCDNMetrics = useCallback(async () => {
     try {
       // Get social cards storage metrics
-      const { data: files, error: _error } = await supabase.storage.from('social-cards').list('', {
+      const { data: files, error } = await supabase.storage.from('social-cards').list('', {
         limit: 1000,
         sortBy: { column: 'created_at', order: 'desc' },
       });
@@ -134,7 +134,7 @@ export function PerformanceMonitoringDashboard() {
           performanceScore,
         });
       }
-    } catch (_error) {
+    } catch () {
       console.error('Error loading CDN metrics:', _error);
     }
   }, []);
@@ -182,7 +182,7 @@ export function PerformanceMonitoringDashboard() {
 
       setAlerts(alertsResult._data || []);
       setLastRefresh(new Date());
-    } catch (_error) {
+    } catch () {
       console.error('Error loading performance metrics:', _error);
     } finally {
       setLoading(false);
@@ -193,7 +193,7 @@ export function PerformanceMonitoringDashboard() {
     try {
       await supabase.rpc('create_performance_snapshot');
       await loadMetrics();
-    } catch (_error) {
+    } catch () {
       console.error('Error creating performance snapshot:', _error);
     }
   }, [loadMetrics]);
@@ -400,7 +400,8 @@ export function PerformanceMonitoringDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {healthData.main ? (
+                {healthData.main
+? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Status</span>
@@ -418,7 +419,8 @@ export function PerformanceMonitoringDashboard() {
                       Updated: {new Date(healthData.main.timestamp).toLocaleTimeString()}
                     </div>
                   </div>
-                ) : (
+                )
+: (
                   <div className="text-sm text-muted-foreground">No data available</div>
                 )}
               </CardContent>
@@ -432,7 +434,8 @@ export function PerformanceMonitoringDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {healthData.database ? (
+                {healthData.database
+? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Status</span>
@@ -457,7 +460,8 @@ export function PerformanceMonitoringDashboard() {
                       Updated: {new Date(healthData._database.timestamp).toLocaleTimeString()}
                     </div>
                   </div>
-                ) : (
+                )
+: (
                   <div className="text-sm text-muted-foreground">No data available</div>
                 )}
               </CardContent>
@@ -471,7 +475,8 @@ export function PerformanceMonitoringDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {healthData.github ? (
+                {healthData.github
+? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Status</span>
@@ -490,7 +495,8 @@ export function PerformanceMonitoringDashboard() {
                       Updated: {new Date(healthData.github.timestamp).toLocaleTimeString()}
                     </div>
                   </div>
-                ) : (
+                )
+: (
                   <div className="text-sm text-muted-foreground">No data available</div>
                 )}
               </CardContent>
@@ -655,7 +661,8 @@ export function PerformanceMonitoringDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {cdnMetrics ? (
+                {cdnMetrics
+? (
                   <>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Performance Score</span>
@@ -691,7 +698,8 @@ export function PerformanceMonitoringDashboard() {
                       <Progress value={cdnMetrics.cacheHitRate} className="h-2" />
                     </div>
                   </>
-                ) : (
+                )
+: (
                   <div className="text-sm text-muted-foreground">Loading CDN metrics...</div>
                 )}
               </CardContent>
@@ -702,7 +710,8 @@ export function PerformanceMonitoringDashboard() {
                 <CardTitle>Storage Metrics</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {cdnMetrics ? (
+                {cdnMetrics
+? (
                   <>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
@@ -730,7 +739,8 @@ export function PerformanceMonitoringDashboard() {
                       </AlertDescription>
                     </Alert>
                   </>
-                ) : (
+                )
+: (
                   <div className="text-sm text-muted-foreground">Loading storage metrics...</div>
                 )}
               </CardContent>
@@ -784,7 +794,8 @@ export function PerformanceMonitoringDashboard() {
         </TabsContent>
 
         <TabsContent value="alerts" className="space-y-4">
-          {alerts.length > 0 ? (
+          {alerts.length > 0
+? (
             <div className="space-y-4">
               {alerts.map((alert) => (
                 <Alert
@@ -813,7 +824,8 @@ export function PerformanceMonitoringDashboard() {
                 </Alert>
               ))}
             </div>
-          ) : (
+          )
+: (
             <Card>
               <CardContent className="flex items-center justify-center py-2">
                 <div className="text-center">

@@ -61,7 +61,7 @@ export default function FeedPage() {
               <h2 className="text-2xl font-semibold text-destructive mb-2">
                 Error
               </h2>
-              <p className="text-muted-foreground">{stats.error: _error}</p>
+              <p className="text-muted-foreground">{stats.error}</p>
             </div>
           </CardContent>
         </Card>

@@ -74,7 +74,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
 
             {error && (
               <div className="text-red-500 text-sm mt-2 text-center">
-                {error: _error}
+                {error}
               </div>
             )}
           </div>

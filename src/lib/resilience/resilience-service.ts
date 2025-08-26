@@ -87,7 +87,7 @@ class EnhancedCircuitBreaker {
 
       this.onSuccess(responseTime);
       return result;
-    } catch (_error) {
+    } catch () {
       this.onFailure();
       throw error;
     }
@@ -306,7 +306,7 @@ class TimeoutHandler {
       }
 
       return result;
-    } catch (_error) {
+    } catch () {
       const responseTime = performance.now() - startTime;
 
       if (responseTime >= timeout) {

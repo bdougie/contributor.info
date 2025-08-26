@@ -483,7 +483,7 @@ export async function fetchContributorStats(
         pullRequests.nodes.length,
         contributorMap.size,
       );
-    } catch (_error) {
+    } catch () {
       console.error('Error fetching page:', _error);
       throw error;
     }
@@ -609,7 +609,7 @@ export async function updateContributorStatsInDatabase(
           contributor.commentsCount,
         );
       }
-    } catch (_error) {
+    } catch () {
       console.error('Error processing contributor %s:', contributor.login, _error);
       continue;
     }
@@ -650,7 +650,7 @@ export async function syncRepositoryContributorStats(owner: string, repo: string
     await updateContributorStatsInDatabase(stats);
 
     console.log('Successfully synced contributor stats for %s/%s', owner, repo);
-  } catch (_error) {
+  } catch () {
     console.error('Failed to sync contributor stats for %s/%s:', owner, repo, _error);
     throw error;
   }

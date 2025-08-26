@@ -30,9 +30,11 @@ export function CriticalDataFallback({ message, partialData }: FallbackProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {partialData?.prCount !== undefined ? (
+            {partialData?.prCount !== undefined
+? (
               <div className="text-2xl font-bold">{partialData.prCount}</div>
-            ) : (
+            )
+: (
               <Skeleton className="h-8 w-16" />
             )}
           </CardContent>
@@ -46,9 +48,11 @@ export function CriticalDataFallback({ message, partialData }: FallbackProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {partialData?.contributorCount !== undefined ? (
+            {partialData?.contributorCount !== undefined
+? (
               <div className="text-2xl font-bold">{partialData.contributorCount}</div>
-            ) : (
+            )
+: (
               <Skeleton className="h-8 w-16" />
             )}
           </CardContent>
@@ -59,7 +63,8 @@ export function CriticalDataFallback({ message, partialData }: FallbackProps) {
             <CardTitle className="text-sm font-medium">Top Contributors</CardTitle>
           </CardHeader>
           <CardContent>
-            {partialData?.topContributors?.length > 0 ? (
+            {partialData?.topContributors?.length > 0
+? (
               <div className="flex -space-x-2">
                 {partialData.topContributors.slice(0, 5).map((contributor: unknown, i: number) => (
                   <div
@@ -70,7 +75,8 @@ export function CriticalDataFallback({ message, partialData }: FallbackProps) {
                   </div>
                 ))}
               </div>
-            ) : (
+            )
+: (
               <div className="flex -space-x-2">
                 {[...Array(5)].map((_, i) => (
                   <Skeleton key={i} className="h-8 w-8 rounded-full" />
@@ -109,7 +115,8 @@ export function FullDataFallback({ message, partialData }: FallbackProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {partialData?.stats ? (
+          {partialData?.stats
+? (
             <div>
               <p className="text-sm text-gray-600">
                 Showing {partialData.stats.pullRequests?.length || 0} pull requests
@@ -120,7 +127,8 @@ export function FullDataFallback({ message, partialData }: FallbackProps) {
                 </p>
               )}
             </div>
-          ) : (
+          )
+: (
             <div className="space-y-2">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-3/4" />
@@ -172,7 +180,8 @@ export function EnhancementDataFallback({ message, showPartialData, partialData 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {partialData?.directCommitsData ? (
+          {partialData?.directCommitsData
+? (
             <div>
               <p className="text-sm text-gray-600">
                 {partialData.directCommitsData.hasYoloCoders
@@ -185,7 +194,8 @@ export function EnhancementDataFallback({ message, showPartialData, partialData 
                 </p>
               )}
             </div>
-          ) : (
+          )
+: (
             <div className="space-y-2">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-2/3" />
@@ -199,13 +209,15 @@ export function EnhancementDataFallback({ message, showPartialData, partialData 
           <CardTitle>Historical Trends</CardTitle>
         </CardHeader>
         <CardContent>
-          {showPartialData ? (
+          {showPartialData
+? (
             <div className="space-y-2">
               <div className="h-32 bg-gray-100 rounded-lg flex items-center justify-center">
                 <p className="text-sm text-gray-500">Chart data loading...</p>
               </div>
             </div>
-          ) : (
+          )
+: (
             <Skeleton className="h-32 w-full" />
           )}
         </CardContent>

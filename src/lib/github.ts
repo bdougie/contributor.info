@@ -155,7 +155,7 @@ export async function searchGitHubRepositories(
           throw new Error(`GitHub API error: ${_error.message || response.statusText}`);
         }
 
-        const _data = await response.json();
+        const _ = await response.json();
         const results = data.items || [];
 
         span.setAttributes({
@@ -167,7 +167,7 @@ export async function searchGitHubRepositories(
         console.log('Repository search completed: %s results for "%s"', results.length, query);
 
         return results;
-      } catch (_error) {
+      } catch () {
         span.setAttributes({
           'github.success': false,
           'error.type': error instanceof Error ? error.constructor.name : 'Unknown',
@@ -200,7 +200,7 @@ export async function fetchUserOrganizations(
       login: org.login,
       avatar_url: org.avatar_url,
     }));
-  } catch (_error) {
+  } catch () {
     return [];
   }
 }
@@ -226,7 +226,7 @@ async function fetchPRReviews(owner: string, repo: string, prNumber: number, hea
       },
       submitted_at: review.submitted_at,
     }));
-  } catch (_error) {
+  } catch () {
     return [];
   }
 }
@@ -256,7 +256,7 @@ async function fetchPRComments(
       },
       created_at: comment.created_at,
     }));
-  } catch (_error) {
+  } catch () {
     return [];
   }
 }
@@ -407,7 +407,7 @@ export async function fetchPullRequests(
                   break; // No point in fetching older PRs
                 }
               }
-            } catch (_error) {
+            } catch () {
               // If this is the first page and we get an error, it's likely a 404 or auth issue
               if (page === 1) {
                 throw error; // Re-throw the error for proper handling
@@ -495,7 +495,7 @@ export async function fetchPullRequests(
         console.log('Successfully fetched %s PRs for %s/%s', detailedPRs.length, owner, repo);
 
         return detailedPRs;
-      } catch (_error) {
+      } catch () {
         span.setAttributes({
           'github.success': false,
           'error.type': error instanceof Error ? error.constructor.name : 'Unknown',
@@ -579,7 +579,7 @@ export async function fetchRepositoryInfo(
       disabled: repoData.disabled,
       private: repoData.private,
     };
-  } catch (_error) {
+  } catch () {
     console.error('Error fetching repository info:', _error);
     return null;
   }
@@ -625,7 +625,7 @@ export async function fetchRepositoryStargazers(
       avatar_url: star.user?.avatar_url || star.avatar_url,
       starred_at: star.starred_at || new Date().toISOString(), // Fallback if no timestamp
     }));
-  } catch (_error) {
+  } catch () {
     console.error('Error fetching stargazers:', _error);
     return [];
   }
@@ -710,7 +710,7 @@ export async function fetchRepositoryCommitActivity(
       uniqueCommitters: uniqueCommitters.size,
       recentCommits,
     };
-  } catch (_error) {
+  } catch () {
     console.error('Error fetching commit activity:', _error);
     return { totalCommits: 0, commitFrequency: 0, uniqueCommitters: 0, recentCommits: [] };
   }
@@ -825,7 +825,7 @@ export async function fetchDirectCommits(
               prCommitsResponse.statusText,
             );
           }
-        } catch (_error) {
+        } catch () {
           if (NODE_ENV === 'development') {
             console.log('YOLO Debug - Error fetching commits for PR #%s:', pr.number, _error);
           }
@@ -960,7 +960,7 @@ export async function fetchDirectCommits(
       hasYoloCoders: directCommits.length > 0,
       yoloCoderStats,
     };
-  } catch (_error) {
+  } catch () {
     return {
       directCommits: [],
       hasYoloCoders: false,

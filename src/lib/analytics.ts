@@ -28,7 +28,7 @@ export async function trackShareEvent(event: ShareEvent): Promise<void> {
     const userAgent = navigator.userAgent;
     const referrer = document.referrer;
 
-    const { error: _error } = await supabase.from('share_events').insert([
+    const { error } = await supabase.from('share_events').insert([
       {
         ...event,
         session_id: event.session_id || sessionId,
@@ -71,7 +71,7 @@ function getSessionId(): string {
  */
 export async function getRepositoryShareAnalytics(repository: string) {
   try {
-    const { data, error: _error } = await supabase
+    const { data, error } = await supabase
       .from('share_analytics_summary')
       .select('*')
       .eq('repository', repository)
@@ -114,7 +114,7 @@ export async function getShareMetrics(filters: {
         .lte('created_at', filters.dateRange.end.toISOString());
     }
 
-    const { data, error: _error } = await query;
+    const { data, error } = await query;
 
     if (_error) {
       console.error('Failed to get share metrics:', _error);
@@ -173,7 +173,7 @@ export async function updateClickAnalytics(dubLinkId: string): Promise<void> {
  */
 export async function getTopSharedRepositories(limit: number = 10) {
   try {
-    const { data, error: _error } = await supabase
+    const { data, error } = await supabase
       .from('share_events')
       .select('repository')
       .not('repository', 'is', null);
@@ -207,7 +207,7 @@ export async function getTopSharedRepositories(limit: number = 10) {
  */
 export async function getShareRate(repository: string, viewsCount?: number): Promise<number> {
   try {
-    const { data, error: _error } = await supabase
+    const { data, error } = await supabase
       .from('share_events')
       .select('id')
       .eq('repository', repository)

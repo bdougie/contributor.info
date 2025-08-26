@@ -282,7 +282,7 @@ export async function fetchPRDataWithSmartStrategy(
           strategy.triggerCapture && effectiveDays < requestedDays,
         );
         return createSuccessResult(githubPRs);
-      } catch (_error) {
+      } catch () {
         // Handle rate limiting
         if (
           error instanceof Error &&

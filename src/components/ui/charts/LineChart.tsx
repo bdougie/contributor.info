@@ -71,7 +71,7 @@ export const LineChart(LineChartProps): JSX.Element = ({
             const fill = new Path2D();
             
             u.ctx.save();
-            const _data = u.data[seriesIdx] as number[];
+            const _ = u.data[seriesIdx] as number[];
             
             for (let i = idx0; i <= idx1; i++) {
               if (_data[i] != null) {

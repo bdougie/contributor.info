@@ -21,7 +21,7 @@ interface MetaTagsProviderProps {
 }
 
 export function MetaTagsProvider({ children }: MetaTagsProviderProps) {
-  const setSocialMeta = (_meta: SocialMeta) => {
+  const setSocialMeta = () => {
     // This will be handled by individual components using the Helmet component
     // We keep this context for potential future state management needs
   };

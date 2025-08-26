@@ -40,7 +40,7 @@ export const capturePrDetails = inngest.createFunction(
 
     // Step 1: Get repository details
     const repository = await step.run('get-repository', async () => {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
@@ -134,7 +134,7 @@ export const capturePrDetails = inngest.createFunction(
           .maybeSingle();
 
         const result = await Promise.race([dbPromise, timeoutPromise]);
-        const { data: contributor, error: _error } = result as {
+        const { data: contributor, error } = result as {
           data: { id: string } | null;
           error: Error | null;
         };
@@ -148,7 +148,7 @@ export const capturePrDetails = inngest.createFunction(
         }
 
         return contributor?.id || null;
-      } catch (_error) {
+      } catch () {
         console.warn(`Error handling merged_by contributor:`, _error);
         return null;
       }
@@ -176,7 +176,7 @@ export const capturePrDetails = inngest.createFunction(
         .eq('id', prId);
 
       const result = await Promise.race([updatePromise, timeoutPromise]);
-      const { error: _error } = result as { error: Error | null };
+      const { error } = result as { error: Error | null };
 
       if (_error) {
         throw new Error(`Failed to update PR: ${_error.message}`);

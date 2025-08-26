@@ -85,7 +85,7 @@ function ProgressiveDataComponent({
   repo: string;
   shouldThrowInRender?: boolean;
 }) {
-  const _data = useProgressiveRepoData(owner, repo, '90d', false);
+  const _ = useProgressiveRepoData(owner, repo, '90d', false);
 
   if (shouldThrowInRender && _data.currentStage === 'full') {
     throw new Error('Render _error during full stage');
@@ -105,7 +105,7 @@ function IntersectionLoaderComponent({ shouldFailLoad = false }: { shouldFailLoa
   const {
     ref,
     data,
-    error: _error,
+    error,
     isLoading,
   } = useIntersectionLoader(
     async () => {

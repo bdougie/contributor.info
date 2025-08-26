@@ -286,7 +286,7 @@ class WebVitalsMonitor {
               ?.effectiveType || 'unknown',
         }),
       });
-    } catch (_error) {
+    } catch () {
       if (this.debugMode) {
         console.error('[Web Vitals] Failed to send metrics:', _error);
       }
@@ -297,7 +297,7 @@ class WebVitalsMonitor {
     this.callbacks.forEach((callback) => {
       try {
         callback(metric);
-      } catch (_error) {
+      } catch () {
         console.error('[Web Vitals] Callback error:', _error);
       }
     });

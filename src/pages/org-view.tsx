@@ -198,7 +198,7 @@ export default function OrgView() {
   const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
   const [cachedAvatarUrl, setCachedAvatarUrl] = useState<string | null>(null);
 
-  const { repositories, orgData, isLoading, error: _error } = useOrgRepos(org);
+  const { repositories, orgData, isLoading, error } = useOrgRepos(org);
 
   // Check for cached avatar URL on mount
   useEffect(() => {
@@ -293,9 +293,11 @@ export default function OrgView() {
             <Users className="w-5 h-5" />
             Repositories
             <div className="ml-auto repo-count-badge">
-              {!isLoading ? (
+              {!isLoading
+? (
                 <Badge variant="secondary">{repositories.length} total</Badge>
-              ) : (
+              )
+: (
                 <div className="h-6 w-16 skeleton-loading rounded" />
               )}
             </div>

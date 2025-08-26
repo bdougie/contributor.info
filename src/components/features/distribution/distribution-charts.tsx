@@ -667,7 +667,8 @@ function DistributionCharts({
         <>
           {/* Desktop: Grid layout */}
           <div className="hidden md:block">
-            {selectedQuadrant ? (
+            {selectedQuadrant
+? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <Card>
                   <CardContent className="p-6">
@@ -677,7 +678,8 @@ function DistributionCharts({
                 </Card>
                 {renderPRList()}
               </div>
-            ) : (
+            )
+: (
               <Card>
                 <CardContent className="p-6">
                   {chartType === 'donut' && renderDonutChart()}

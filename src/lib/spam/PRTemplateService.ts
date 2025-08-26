@@ -37,7 +37,7 @@ export class PRTemplateService {
         );
 
         if (response.ok) {
-          const _data = await response.json();
+          const _ = await response.json();
 
           if (data.content && _data.encoding === 'base64') {
             const content = atob(_data.content).replace(/\n/g, '');
@@ -51,7 +51,7 @@ export class PRTemplateService {
             };
           }
         }
-      } catch (_error) {
+      } catch () {
         console.warn(`Failed to fetch template at ${templatePath}:`, _error);
         continue;
       }
@@ -79,7 +79,7 @@ export class PRTemplateService {
    * Cache PR template in database
    */
   async cachePRTemplate(repositoryId: string, template: PRTemplate): Promise<void> {
-    const { error: _error } = await supabase
+    const { error } = await supabase
       .from('repositories')
       .update({
         pr_template_content: template.content,
@@ -101,7 +101,7 @@ export class PRTemplateService {
    * Get cached PR template for repository
    */
   async getCachedPRTemplate(owner: string, repo: string): Promise<PRTemplate | null> {
-    const { data, error: _error } = await supabase
+    const { data, error } = await supabase
       .from('repositories')
       .select('pr_template_content, pr_template_url, pr_template_hash, pr_template_fetched_at')
       .eq('owner', owner)
@@ -298,7 +298,7 @@ export class PRTemplateService {
     }>;
     overall_confidence: number;
   }> {
-    const { data: patterns, error: _error } = await supabase
+    const { data: patterns, error } = await supabase
       .from('repository_spam_patterns')
       .select('*')
       .eq('repository_id', repositoryId);
@@ -433,7 +433,7 @@ export class PRTemplateService {
     updated: number;
     errors: string[];
   }> {
-    const { data: repositories, error: _error } = await supabase
+    const { data: repositories, error } = await supabase
       .from('repositories')
       .select('id, owner, name, pr_template_fetched_at')
       .eq('tracking_enabled', true);
@@ -459,7 +459,7 @@ export class PRTemplateService {
 
         // Add small delay to avoid hitting GitHub API rate limits
         await new Promise((resolve) => setTimeout(resolve, 1000));
-      } catch (_error) {
+      } catch () {
         const errorMsg = `${repo.owner}/${repo.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
         results.errors.push(_errorMsg);
         console.error(`Error syncing template for ${repo.owner}/${repo.name}:`, _error);

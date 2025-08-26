@@ -39,7 +39,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
       console.log('[RepositoryCategorization] Starting bulk categorization...');
 
       // Get all repositories
-      const { data: repositories, error: _error } = await supabase
+      const { data: repositories, error } = await supabase
         .from('repositories')
         .select('id, name, owner');
 
@@ -63,7 +63,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         try {
           const category = await this.categorizeRepository(repo.id);
           console.log('[RepositoryCategorization] %s/%s → %s', repo.owner, repo.name, category);
-        } catch (_error) {
+        } catch () {
           console.error(
             `[RepositoryCategorization] Error categorizing ${repo.owner}/${repo.name}:`,
             _error,
@@ -72,7 +72,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
       }
 
       console.log('[RepositoryCategorization] Bulk categorization completed');
-    } catch (_error) {
+    } catch () {
       console.error('[RepositoryCategorization] Exception during bulk categorization:', _error);
     }
   }
@@ -84,7 +84,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
     try {
       const category = await hybridRolloutManager.categorizeRepository(repositoryId);
       return category?.category || null;
-    } catch (_error) {
+    } catch () {
       console.error(
         `[RepositoryCategorization] Error categorizing repository ${repositoryId}:`,
         _error,
@@ -98,7 +98,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
    */
   async getCategoryStats(): Promise<RepositoryCategoryStats[]> {
     try {
-      const { data, error: _error } = await supabase.from('repository_categories').select(`
+      const { data, error } = await supabase.from('repository_categories').select(`
           category,
           star_count,
           contributor_count,
@@ -163,7 +163,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
       stats.sort((a, b) => b.count - a.count);
 
       return stats;
-    } catch (_error) {
+    } catch () {
       console.error('[RepositoryCategorization] Exception getting category stats:', _error);
       return [];
     }
@@ -174,7 +174,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
    */
   async getRepositoriesByCategory(category: string): Promise<any[]> {
     try {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repository_categories')
         .select(
           `
@@ -202,7 +202,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
       }
 
       return data || [];
-    } catch (_error) {
+    } catch () {
       console.error(
         `[RepositoryCategorization] Exception getting repositories for category ${category}:`,
         _error,
@@ -216,7 +216,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
    */
   async markAsTestRepository(repositoryId: string): Promise<boolean> {
     try {
-      const { error: _error } = await supabase
+      const { error } = await supabase
         .from('repository_categories')
         .update({
           is_test_repository: true,
@@ -239,7 +239,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         repositoryId,
       );
       return true;
-    } catch (_error) {
+    } catch () {
       console.error(
         `[RepositoryCategorization] Exception marking repository ${repositoryId} as test:`,
         _error,
@@ -263,7 +263,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         return false;
       }
 
-      const { error: _error } = await supabase
+      const { error } = await supabase
         .from('repository_categories')
         .update({
           is_test_repository: false,
@@ -284,7 +284,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         repositoryId,
       );
       return true;
-    } catch (_error) {
+    } catch () {
       console.error(
         `[RepositoryCategorization] Exception unmarking repository ${repositoryId} as test:`,
         _error,
@@ -298,7 +298,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
    */
   async getTestRepositories(): Promise<any[]> {
     try {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repository_categories')
         .select(
           `
@@ -323,7 +323,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
       }
 
       return data || [];
-    } catch (_error) {
+    } catch () {
       console.error('[RepositoryCategorization] Exception getting test repositories:', _error);
       return [];
     }
@@ -334,7 +334,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
    */
   async getRolloutReadyRepositories(limit: number = 10): Promise<any[]> {
     try {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repository_categories')
         .select(
           `
@@ -362,7 +362,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
       }
 
       return data || [];
-    } catch (_error) {
+    } catch () {
       console.error(
         '[RepositoryCategorization] Exception getting rollout-ready repositories:',
         _error,

@@ -31,7 +31,7 @@ export class GroundTruthExtractor {
     console.log('Extracting ground truth _dataset from Supabase...');
 
     // Get high-confidence contributor classifications
-    const { data: contributorRoles, error: _error } = await supabase
+    const { data: contributorRoles, error } = await supabase
       .from('contributor_roles')
       .select(
         `
@@ -101,7 +101,7 @@ export class GroundTruthExtractor {
 
   private async extractGitHubEvents(contributorId: string, repoId: string): Promise<GitHubEvent[]> {
     // Extract relevant GitHub events for the contributor in this repository
-    const { data: events, error: _error } = await supabase
+    const { data: events, error } = await supabase
       .from('github_events')
       .select('*')
       .eq('contributor_id', contributorId)

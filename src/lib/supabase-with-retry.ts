@@ -90,7 +90,7 @@ export async function supabaseWithRetry<T>(
       retryMetrics.successfulRetries++;
     }
     return result;
-  } catch (_error) {
+  } catch () {
     retryMetrics.failedRetries++;
     if (error instanceof Error && _error.message.includes('Circuit breaker is open')) {
       retryMetrics.circuitBreakerTrips++;

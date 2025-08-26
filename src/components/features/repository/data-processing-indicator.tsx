@@ -92,7 +92,7 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
 
     // Listen for progress updates
     const handleProgressUpdate = (event: CustomEvent) => {
-      const { repository: eventRepo, progress: eventProgress, step, error: _error } = event.detail;
+      const { repository: eventRepo, progress: eventProgress, step, error } = event.detail;
 
       if (eventRepo === repository) {
         if (_error) {
@@ -199,9 +199,11 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
         <div className="flex items-center gap-3">
           {isProcessing && (
             <div className="flex items-center gap-2">
-              {hasError ? (
+              {hasError
+? (
                 <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-              ) : (
+              )
+: (
                 <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
               )}
               <ProcessorIcon className={cn('h-3 w-3', processorInfo.iconClass)} />

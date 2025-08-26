@@ -201,7 +201,7 @@ export default function UserView() {
   const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
   const [cachedAvatarUrl, setCachedAvatarUrl] = useState<string | null>(null);
 
-  const { repositories, userData, isLoading, error: _error } = useUserRepos(username);
+  const { repositories, userData, isLoading, error } = useUserRepos(username);
 
   // Check for cached avatar URL on mount
   useEffect(() => {
@@ -296,9 +296,11 @@ export default function UserView() {
             <User className="w-5 h-5" />
             Collaborative Repositories
             <div className="ml-auto repo-count-badge">
-              {!isLoading ? (
+              {!isLoading
+? (
                 <Badge variant="secondary">{repositories.length} collaborative</Badge>
-              ) : (
+              )
+: (
                 <div className="h-6 w-16 skeleton-loading rounded" />
               )}
             </div>

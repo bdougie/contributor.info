@@ -109,7 +109,7 @@ describe('ManualBackfill', () => {
         cancelled: 'text-gray-500',
       };
 
-      Object.entries(statusIconMap).forEach(([_status, className]) => {
+      Object.entries(statusIconMap).forEach(([, className]) => {
         expect(className).toContain('text-');
         expect(className).toContain('-500');
       });

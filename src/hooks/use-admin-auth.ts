@@ -85,7 +85,7 @@ export function useAdminAuth(): AdminAuthState {
         }
 
         // Check admin status in database using RPC to bypass RLS
-        const { data: isAdminResult, error: _error } = await supabase.rpc('is_user_admin', {
+        const { data: isAdminResult, error } = await supabase.rpc('is_user_admin', {
           user_github_id: parseInt(githubId),
         });
 

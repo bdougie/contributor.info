@@ -14,34 +14,34 @@ const METRIC_CONFIG = {
   contributors: {
     icon: Users,
     label: 'Contributors',
-    getValue: (_data: WidgetData) => data.stats.totalContributors,
+    getValue: (data: WidgetData) => data.stats.totalContributors,
     getSubtext: undefined,
     color: 'text-blue-600 dark:text-blue-400',
   },
   'pull-requests': {
     icon: GitPullRequest,
     label: 'Pull Requests',
-    getValue: (_data: WidgetData) => data.stats.totalPRs,
+    getValue: (data: WidgetData) => data.stats.totalPRs,
     getSubtext: undefined,
     color: 'text-green-600 dark:text-green-400',
   },
   'lottery-factor': {
     icon: Target,
     label: 'Lottery Factor',
-    getValue: (_data: WidgetData) => data.stats.lotteryFactor?.toFixed(1) || 'N/A',
-    getSubtext: (_data: WidgetData) => data.stats.lotteryRating,
+    getValue: (data: WidgetData) => data.stats.lotteryFactor?.toFixed(1) || 'N/A',
+    getSubtext: (data: WidgetData) => data.stats.lotteryRating,
     color: 'text-orange-600 dark:text-orange-400',
   },
   'merge-rate': {
     icon: TrendingUp,
     label: 'Merge Rate',
-    getValue: (_data: WidgetData) => `${data.stats.mergeRate.toFixed(1)}%`,
+    getValue: (data: WidgetData) => `${data.stats.mergeRate.toFixed(1)}%`,
     getSubtext: undefined,
     color: 'text-purple-600 dark:text-purple-400',
   },
 };
 
-export function StatCard({ config, _data, className }: StatCardProps) {
+export function StatCard({ config, data, className }: StatCardProps) {
   const metrics = config.metrics || ['contributors', 'pull-requests', 'lottery-factor'];
   const theme = config.theme || 'light';
   const size = config.size || 'medium';
@@ -113,7 +113,11 @@ export function StatCard({ config, _data, className }: StatCardProps) {
                   className={cn(
                     'flex-shrink-0',
                     metricConfig.color,
-                    size === 'small' ? 'h-3 w-3' : size === 'large' ? 'h-6 w-6' : 'h-4 w-4',
+                    {
+                      small: 'h-3 w-3',
+                      large: 'h-6 w-6',
+                      medium: 'h-4 w-4',
+                    }[size],
                   )}
                 />
                 <div className="min-w-0">

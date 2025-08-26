@@ -124,7 +124,7 @@ export class QueuePrioritizationService {
    */
   async getRepositoryMetadata(repositoryId: string): Promise<RepositoryMetadata | null> {
     try {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('tracked_repositories')
         .select('id, repository_name, organization_name, size, priority, metrics')
         .eq('repository_id', repositoryId)
@@ -142,7 +142,7 @@ export class QueuePrioritizationService {
         priority: data.priority || 'low',
         metrics: data.metrics,
       };
-    } catch (_error) {
+    } catch () {
       console.error('[QueuePrioritization] Error getting repository meta_data:', _error);
       return null;
     }
@@ -201,7 +201,7 @@ export class QueuePrioritizationService {
       );
 
       console.log('[QueuePrioritization] Prioritized %s jobs', jobsWithScores.length);
-    } catch (_error) {
+    } catch () {
       console.error('[QueuePrioritization] Error prioritizing queue:', _error);
     }
   }
@@ -225,7 +225,7 @@ export class QueuePrioritizationService {
         .maybeSingle();
 
       return nextJob;
-    } catch (_error) {
+    } catch () {
       console.error('[QueuePrioritization] Error getting next job:', _error);
       return null;
     }
@@ -285,7 +285,7 @@ export class QueuePrioritizationService {
           console.log('[QueuePrioritization] Rebalanced %s jobs', jobsToMove.length);
         }
       }
-    } catch (_error) {
+    } catch () {
       console.error('[QueuePrioritization] Error rebalancing queue:', _error);
     }
   }

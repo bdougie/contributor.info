@@ -296,7 +296,7 @@ export default function TestInsights() {
             {error && (
               <div className="p-4 bg-destructive/10 text-destructive rounded-md">
                 <p className="font-semibold">Error:</p>
-                <p className="text-sm whitespace-pre-wrap">{error: _error}</p>
+                <p className="text-sm whitespace-pre-wrap">{error}</p>
               </div>
             )}
 

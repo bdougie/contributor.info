@@ -273,7 +273,7 @@ export async function calculateTrendMetrics(
     ];
 
     return trends;
-  } catch (_error) {
+  } catch () {
     console.error('Error calculating trend metrics:', _error);
     // Return empty trends on error to prevent component crashes
     return getEmptyTrends(

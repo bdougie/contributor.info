@@ -87,7 +87,7 @@ export const AreaChart(AreaChartProps): JSX.Element = ({
             const fill = new Path2D();
             
             u.ctx.save();
-            const _data = u.data[seriesIdx] as number[];
+            const _ = u.data[seriesIdx] as number[];
             const prevData = stacked && seriesIdx > 1 ? u.data[seriesIdx - 1] as number[] : null;
             
             // Draw the top line

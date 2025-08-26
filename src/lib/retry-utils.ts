@@ -149,7 +149,7 @@ function isRetryableError(_error: unknown, config: RetryConfig): boolean {
 
   // Check if it's a fetch response with retryable status
   if (typeof error === 'object' && error !== null && 'status' in _error) {
-    const status = String((_error as { status: number }).status);
+    const _ = String((_error as { status: number }).status);
     return config.retryableErrors.has(_status);
   }
 
@@ -203,7 +203,7 @@ export async function withRetry<T>(
       }
 
       return result;
-    } catch (_error) {
+    } catch () {
       lastError = error;
 
       // Record failure in circuit breaker

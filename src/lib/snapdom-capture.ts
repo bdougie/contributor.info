@@ -755,7 +755,7 @@ export class SnapDOMCaptureService {
       if (wrapper.parentNode) {
         wrapper.parentNode.removeChild(wrapper);
       }
-    } catch (_error) {
+    } catch () {
       console.warn('Failed to cleanup SnapDOM wrapper:', _error);
     }
   }
@@ -826,7 +826,7 @@ export class SnapDOMCaptureService {
       const clipboardItem = new ClipboardItem({ 'image/png': blob });
       await navigator.clipboard.write([clipboardItem]);
       console.log('Successfully copied blob to clipboard');
-    } catch (_error) {
+    } catch () {
       console.error('Failed to copy blob to clipboard:', _error);
       throw error;
     }
@@ -911,7 +911,7 @@ export class SnapDOMCaptureService {
       } else {
         console.log('SnapDOM works with simple content - issue may be chart-specific');
       }
-    } catch (_error) {
+    } catch () {
       console.error('SnapDOM basic test failed:', _error);
     } finally {
       document.body.removeChild(testElement);

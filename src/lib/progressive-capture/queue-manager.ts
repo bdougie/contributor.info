@@ -67,7 +67,7 @@ export class DataCaptureQueueManager {
     priority: 'critical' | 'high' | 'medium' | 'low',
   ): Promise<number> {
     // Find PRs with missing file change data
-    const { data: prsNeedingUpdate, error: _error } = await supabase
+    const { data: prsNeedingUpdate, error } = await supabase
       .from('pull_requests')
       .select('id, number, repository_id')
       .eq('repository_id', repositoryId)
@@ -146,7 +146,7 @@ export class DataCaptureQueueManager {
     let queuedCount = 0;
     for (const sha of commitShas) {
       try {
-        const { error: _error } = await supabase.from('_data_capture_queue').insert({
+        const { error } = await supabase.from('_data_capture_queue').insert({
           type: 'commit_pr_check',
           priority,
           repository_id: repositoryId,
@@ -192,7 +192,7 @@ export class DataCaptureQueueManager {
   ): Promise<number> {
     try {
       // Find commits that need PR analysis (don't have is_direct_commit set)
-      const { data: commitsNeedingAnalysis, error: _error } = await supabase
+      const { data: commitsNeedingAnalysis, error } = await supabase
         .from('commits')
         .select('sha')
         .eq('repository_id', repositoryId)
@@ -215,7 +215,7 @@ export class DataCaptureQueueManager {
       const commitPriority =
         priority === 'critical' ? 'high' : (priority as 'high' | 'medium' | 'low');
       return await this.queueCommitPRAnalysis(repositoryId, commitShas, commitPriority);
-    } catch (_error) {
+    } catch () {
       console.error('[Queue] Error queuing recent commits analysis:', _error);
       return 0;
     }
@@ -236,7 +236,7 @@ export class DataCaptureQueueManager {
     priority: 'critical' | 'high' | 'medium' | 'low',
   ): Promise<boolean> {
     try {
-      const { error: _error } = await supabase.from('_data_capture_queue').insert({
+      const { error } = await supabase.from('_data_capture_queue').insert({
         type: 'recent_prs',
         priority,
         repository_id: repositoryId,
@@ -268,7 +268,7 @@ export class DataCaptureQueueManager {
    * Get the next job to process based on priority
    */
   async getNextJob(): Promise<DataCaptureJob | null> {
-    const { data, error: _error } = await supabase
+    const { data, error } = await supabase
       .from('_data_capture_queue')
       .select('*')
       .eq('status', 'pending')
@@ -289,7 +289,7 @@ export class DataCaptureQueueManager {
    * Mark a job as processing
    */
   async markJobProcessing(jobId: string): Promise<boolean> {
-    const { error: _error } = await supabase
+    const { error } = await supabase
       .from('_data_capture_queue')
       .update({
         status: 'processing',
@@ -305,7 +305,7 @@ export class DataCaptureQueueManager {
    * Mark a job as completed
    */
   async markJobCompleted(jobId: string): Promise<boolean> {
-    const { error: _error } = await supabase
+    const { error } = await supabase
       .from('_data_capture_queue')
       .update({
         status: 'completed',
@@ -336,7 +336,7 @@ export class DataCaptureQueueManager {
       ? new Date(Date.now() + Math.pow(2, job.attempts) * 60 * 1000) // Exponential backoff
       : null;
 
-    const { error: _error } = await supabase
+    const { error } = await supabase
       .from('_data_capture_queue')
       .update({
         status: shouldRetry ? 'pending' : 'failed',
@@ -358,7 +358,7 @@ export class DataCaptureQueueManager {
     failed: number;
     total: number;
   }> {
-    const { data, error: _error } = await supabase
+    const { data, error } = await supabase
       .from('_data_capture_queue')
       .select('status')
       .order('created_at', { ascending: false });
@@ -369,7 +369,7 @@ export class DataCaptureQueueManager {
 
     const stats = data.reduce(
       (acc, job) => {
-        const status = job.status as keyof typeof acc;
+        const _ = job.status as keyof typeof acc;
         if (status !== 'total' && status in acc) {
           acc[status]++;
         }
@@ -391,7 +391,7 @@ export class DataCaptureQueueManager {
       const hourBucket = new Date();
       hourBucket.setMinutes(0, 0, 0);
 
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('rate_limit_tracking')
         .select('calls_made, calls_remaining')
         .eq('hour_bucket', hourBucket.toISOString())
@@ -434,7 +434,7 @@ export class DataCaptureQueueManager {
     hourBucket.setMinutes(0, 0, 0);
 
     try {
-      const { error: _error } = await supabase.from('rate_limit_tracking').upsert(
+      const { error } = await supabase.from('rate_limit_tracking').upsert(
         {
           hour_bucket: hourBucket.toISOString(),
           calls_made: callsMade,
@@ -500,7 +500,7 @@ export class DataCaptureQueueManager {
       query = query.not('id', 'in', `(${existingPrIds.map((id) => `'${id}'`).join(',')})`);
     }
 
-    const { data: prsNeedingReviews, error: _error } = await query;
+    const { data: prsNeedingReviews, error } = await query;
 
     if (_error) {
       console.error('[Queue] Error finding PRs needing reviews:', _error);
@@ -584,7 +584,7 @@ export class DataCaptureQueueManager {
       query = query.not('id', 'in', `(${existingPrIds.map((id) => `'${id}'`).join(',')})`);
     }
 
-    const { data: prsNeedingComments, error: _error } = await query;
+    const { data: prsNeedingComments, error } = await query;
 
     if (_error) {
       console.error('[Queue] Error finding PRs needing comments:', _error);
@@ -691,7 +691,7 @@ export class DataCaptureQueueManager {
           .order('priority_score', { ascending: false })
           .limit(10);
 
-    const { data: workspaceRepos, error: _error } = await query;
+    const { data: workspaceRepos, error } = await query;
 
     if (_error) {
       console.error('[Queue] Error finding workspace repos needing issues:', _error);

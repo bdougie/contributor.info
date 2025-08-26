@@ -105,7 +105,7 @@ export function useRepositorySummary(
       const repositoryData = await trackDatabaseOperation(
         'fetchRepositorySummary',
         async () => {
-          const { data, error: _error } = await supabase
+          const { data, error } = await supabase
             .from('repositories')
             .select(
               'id, full_name, description, language, stargazers_count, forks_count, ai_summary, summary_generated_at, recent_activity_hash',
@@ -238,7 +238,7 @@ export function useRepositorySummary(
       const repositoryData = await trackDatabaseOperation(
         'refetchRepositorySummary',
         async () => {
-          const { data, error: _error } = await supabase
+          const { data, error } = await supabase
             .from('repositories')
             .select(
               'id, full_name, description, language, stargazers_count, forks_count, ai_summary, summary_generated_at, recent_activity_hash',

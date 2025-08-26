@@ -164,7 +164,7 @@ export function AnalyticsDashboard() {
       <div className="container mx-auto py-8 px-4">
         <div className="max-w-6xl mx-auto">
           <Card className="p-6 text-center">
-            <p className="text-red-500 mb-4">{error: _error}</p>
+            <p className="text-red-500 mb-4">{error}</p>
             <Button onClick={fetchAnalytics} className="gap-2">
               <RefreshCw className="h-4 w-4" />
               Retry

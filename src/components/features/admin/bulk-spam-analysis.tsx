@@ -206,7 +206,7 @@ export function BulkSpamAnalysis() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
+        const _ = await response.text();
         throw new Error(`Analysis failed: ${response.status} ${_errorText}`);
       }
 
@@ -311,7 +311,7 @@ export function BulkSpamAnalysis() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
+        const _ = await response.text();
         throw new Error(`Bulk analysis failed: ${response.status} ${_errorText}`);
       }
 
@@ -432,7 +432,7 @@ export function BulkSpamAnalysis() {
 
       {error && (
         <Alert variant="destructive" className="mb-6">
-          <AlertDescription>{error: _error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 

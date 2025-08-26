@@ -79,7 +79,7 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
   3. Check rate limits with: ProgressiveCaptureTrigger.rateLimits()
       `);
       
-    } catch (_error) {
+    } catch () {
       console.error('❌ Bootstrap failed:', _error);
     }
   }
@@ -176,7 +176,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
     try {
       // Find repository ID
       const { supabase } = await import('../supabase');
-      const { data: repoData, error: _error } = await supabase
+      const { data: repoData, error } = await supabase
         .from('repositories')
         .select('id')
         .eq('owner', owner)
@@ -205,7 +205,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
   • Use ProgressiveCapture.processNext() to process manually
       `);
       
-    } catch (_error) {
+    } catch () {
       console.error(`❌ Commit analysis failed for ${owner}/${repo}:`, _error);
     }
   }
@@ -265,7 +265,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
       console.log(`✅ Imported ${importedCount}/${recentPRs.length} recent PRs for ${repo.owner}/${repo.name}`);
       return { success: true };
 
-    } catch (_error) {
+    } catch () {
       console.error(`❌ Error processing recent PRs job:`, _error);
       return { 
         success: false, 
@@ -282,7 +282,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
     try {
       // Find repository ID  
       const { supabase } = await import('../supabase');
-      const { data: repoData, error: _error } = await supabase
+      const { data: repoData, error } = await supabase
         .from('repositories')
         .select('id')
         .eq('owner', owner)
@@ -333,7 +333,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
         `);
       }
       
-    } catch (_error) {
+    } catch () {
       console.error('❌ Quick fix failed for %s/%s:', owner, repo, _error);
     }
   }
@@ -348,7 +348,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
       console.log(report);
       
       return report;
-    } catch (_error) {
+    } catch () {
       console.error('❌ Error generating monitoring report:', _error);
     }
   }
@@ -369,7 +369,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
       console.log('Cost Analysis:', stats.cost);
       
       return stats;
-    } catch (_error) {
+    } catch () {
       console.error('❌ Error getting system stats:', _error);
     }
   }
@@ -397,7 +397,7 @@ ${routing.suggestions.map(s => `  • ${s}`).join('\n')}`
       `);
       
       return routing;
-    } catch (_error) {
+    } catch () {
       console.error('❌ Error analyzing routing:', _error);
     }
   }
@@ -416,7 +416,7 @@ ${routing.suggestions.map(s => `  • ${s}`).join('\n')}`
       SmartDataNotifications.reset();
       
       console.log('✅ All job tracking updated and smart notifications reset');
-    } catch (_error) {
+    } catch () {
       console.error('❌ Error clearing jobs:', _error);
     }
   }

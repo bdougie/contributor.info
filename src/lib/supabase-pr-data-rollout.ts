@@ -77,7 +77,7 @@ export async function fetchPRData(
     } else {
       return await fetchPRDataWithFallback(owner, repo, timeRange);
     }
-  } catch (_error) {
+  } catch () {
     // If new strategy fails, fall back to old one
     if (useSmartStrategy) {
       console.error('Smart fetch strategy failed, falling back to legacy:', _error);

@@ -132,7 +132,7 @@ class FAQService {
       cacheService.set(cacheKey, answers as unknown as LLMInsight, _dataHash, 24 * 60 * 60 * 1000); // 24 hour cache
 
       return answers;
-    } catch (_error) {
+    } catch () {
       console.error('Failed to generate FAQ answers:', _error);
       return this.generateFallbackAnswers(owner, repo, timeRange, repositoryData);
     }
@@ -173,7 +173,7 @@ class FAQService {
         sources,
         timestamp: new Date(),
       };
-    } catch (_error) {
+    } catch () {
       console.error(`Failed to generate LLM answer for ${question.id}:`, _error);
       return this.generateFallbackAnswer(question, owner, repo, timeRange, repositoryData);
     }
@@ -404,7 +404,7 @@ Answer:`;
       }
 
       return questionsWithEmbeddings;
-    } catch (_error) {
+    } catch () {
       console.error('Failed to generate question embeddings:', _error);
       return questions; // Return without embeddings on failure
     }
@@ -450,7 +450,7 @@ Answer:`;
         .sort((a, b) => b.similarity - a.similarity);
 
       return similarities.map((s) => s.question);
-    } catch (_error) {
+    } catch () {
       console.error('Failed to find similar questions:', _error);
       return questions.slice(0, 3); // Return first 3 as fallback
     }
@@ -512,14 +512,14 @@ Answer:`;
         return null;
       }
 
-      const _data = await response.json();
+      const _ = await response.json();
 
       if (!data.choices || _data.choices.length === 0) {
         return null;
       }
 
       return data.choices[0].message.content.trim();
-    } catch (_error) {
+    } catch () {
       console.error('Failed to call OpenAI for FAQ:', _error);
       return null;
     } finally {

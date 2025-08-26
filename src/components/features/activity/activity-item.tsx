@@ -29,7 +29,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
   // Fetch organizations data
   useEffect(() => {
     const fetchContributorData = async () => {
-      const dataWithOrgs = await createContributorStatsWithOrgs(
+      const _ = await createContributorStatsWithOrgs(
         stats.pullRequests,
         user.name,
         user.avatar,

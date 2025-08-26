@@ -87,7 +87,7 @@ class ServiceWorkerClient {
       // Wait for service worker to be ready
       await navigator.serviceWorker.ready;
       this.sw = navigator.serviceWorker.controller;
-    } catch (_error) {
+    } catch () {
       console.error('[SW Client] Registration failed:', _error);
     }
   }

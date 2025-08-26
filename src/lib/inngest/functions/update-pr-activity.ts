@@ -44,7 +44,7 @@ export const updatePrActivity = inngest.createFunction(
       }
 
       // Find open PRs or recently closed PRs that might have new comments/reviews
-      const { data: prs, error: _error } = await supabase
+      const { data: prs, error } = await supabase
         .from('pull_requests')
         .select(
           `

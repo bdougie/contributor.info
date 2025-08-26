@@ -167,7 +167,7 @@ export function ProfileRouter() {
             <div className="text-center space-y-4">
               <h2 className="text-xl font-semibold text-destructive">Profile Not Found</h2>
               <p className="text-muted-foreground">
-                {state.error: _error}
+                {state.error}
               </p>
               <Button asChild>
                 <Link to="/">Return to Home</Link>

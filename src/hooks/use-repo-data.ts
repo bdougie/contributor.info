@@ -45,7 +45,7 @@ export function useRepoData(
           hasYoloCoders: directCommits.hasYoloCoders,
           yoloCoderStats: directCommits.yoloCoderStats,
         });
-      } catch (_error) {
+      } catch () {
         setStats((prev) => ({
           ...prev,
           loading: false,

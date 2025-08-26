@@ -42,7 +42,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
       try {
         const response = await fetch(`/api/backfill/status/${currentJob.job_id}`);
         if (response.ok) {
-          const status = await response.json();
+          const _ = await response.json();
           setJobStatus(_status);
 
           if (status.status === 'completed') {
@@ -102,7 +102,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
 
       sse.onmessage = (event) => {
         try {
-          const _data = JSON.parse(event._data);
+          const _ = JSON.parse(event._data);
           if (_data.job_id === job.job_id) {
             setJobStatus((prev) => ({
               ...prev!,
@@ -236,21 +236,25 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
         )}
 
         <div className="flex gap-2">
-          {!isJobActive ? (
+          {!isJobActive
+? (
             <Button onClick={handleTriggerBackfill} disabled={isLoading} className="w-full">
-              {isLoading ? (
+              {isLoading
+? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Triggering...
                 </>
-              ) : (
+              )
+: (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Trigger Backfill
                 </>
               )}
             </Button>
-          ) : (
+          )
+: (
             <Button onClick={handleCancelJob} variant="outline" className="w-full">
               Cancel Job
             </Button>

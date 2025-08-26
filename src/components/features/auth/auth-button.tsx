@@ -37,7 +37,7 @@ export function AuthButton() {
           return;
         }
 
-        const { data: isAdminResult, error: _error } = await supabase.rpc('is_user_admin', {
+        const { data: isAdminResult, error } = await supabase.rpc('is_user_admin', {
           user_github_id: parseInt(githubId),
         });
 

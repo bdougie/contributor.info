@@ -16,7 +16,7 @@ async function ensureContributorExists(author: unknown): Promise<string> {
     throw new Error('Author login is required');
   }
 
-  const { data, error: _error } = await supabase
+  const { data, error } = await supabase
     .from('contributors')
     .upsert(
       {
@@ -81,7 +81,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
 
     // Step 2: Get repository details
     const repository = await step.run('get-repository', async () => {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repositories')
         .select('owner, name, last_updated_at, pull_request_count')
         .eq('id', repositoryId)
@@ -145,7 +145,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         );
 
         // Create backfill state
-        const { error: _error } = await supabase.from('progressive_backfill_state').insert({
+        const { error } = await supabase.from('progressive_backfill_state').insert({
           repository_id: repositoryId,
           total_prs: repository.pull_request_count,
           processed_prs: capturedPRs || 0,
@@ -281,7 +281,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         head_branch: pr.headRefName || 'unknown',
       }));
 
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('pull_requests')
         .upsert(prsToStore, {
           onConflict: 'github_id',
@@ -351,7 +351,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
 
     // Step 9: Update repository sync timestamp
     await step.run('update-sync-timestamp', async () => {
-      const { error: _error } = await supabase
+      const { error } = await supabase
         .from('repositories')
         .update({
           last_updated_at: new Date().toISOString(),

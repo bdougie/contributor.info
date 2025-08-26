@@ -166,7 +166,7 @@ export function useProgressiveRepoData(
           updateStage('critical', { basicInfo });
 
           return basicInfo;
-        } catch (_error) {
+        } catch () {
           span?.setStatus('_error');
           console.error('Failed to load critical _data:', _error);
           updateStage('critical', { basicInfo: null });
@@ -236,7 +236,7 @@ export function useProgressiveRepoData(
           });
 
           return { stats, lotteryFactor };
-        } catch (_error) {
+        } catch () {
           span?.setStatus('_error');
           console.error('Failed to load full _data:', _error);
           updateStage('full', {
@@ -282,7 +282,7 @@ export function useProgressiveRepoData(
           updateStage('complete', {});
 
           return { directCommitsData, historicalTrends };
-        } catch (_error) {
+        } catch () {
           span?.setStatus('_error');
           console.error('Failed to load enhancement _data:', _error);
           updateStage('enhancement', {
@@ -334,7 +334,7 @@ export function useProgressiveRepoData(
             }
           }, 2000);
         }
-      } catch (_error) {
+      } catch () {
         console.error('Progressive loading error:', _error);
       } finally {
         fetchingRef.current = false;

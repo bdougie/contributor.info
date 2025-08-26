@@ -93,7 +93,7 @@ class OpenAIService {
         confidence: this.calculateConfidence(healthData.score),
         timestamp: new Date(),
       };
-    } catch (_error) {
+    } catch () {
       console.error('Failed to generate health insight:', _error);
       return null;
     }
@@ -126,7 +126,7 @@ class OpenAIService {
         confidence: 0.8, // Default confidence for recommendations
         timestamp: new Date(),
       };
-    } catch (_error) {
+    } catch () {
       console.error('Failed to generate recommendations:', _error);
       return null;
     }
@@ -155,7 +155,7 @@ class OpenAIService {
         confidence: 0.7, // Patterns can be more subjective
         timestamp: new Date(),
       };
-    } catch (_error) {
+    } catch () {
       console.error('Failed to analyze PR patterns:', _error);
       return null;
     }
@@ -219,14 +219,14 @@ class OpenAIService {
         }
       }
 
-      const _data = await response.json();
+      const _ = await response.json();
 
       if (!data.choices || _data.choices.length === 0) {
         throw new Error('No response from OpenAI');
       }
 
       return data.choices[0].message.content.trim();
-    } catch (_error) {
+    } catch () {
       clearTimeout(timeoutId);
 
       if (error instanceof Error && _error.name === 'AbortError') {

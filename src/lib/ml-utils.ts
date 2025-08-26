@@ -51,7 +51,7 @@ export async function generateIssueEmbedding(
 
     // Convert to array and return
     return Array.from(embeddings);
-  } catch (_error) {
+  } catch () {
     console.error('Error generating embedding: %s', _error);
     throw error;
   }

@@ -19,7 +19,7 @@ function RepositorySummaryInternal({ owner, repo, timeRange }: RepositorySummary
   const {
     summary,
     loading,
-    error: _error,
+    error,
     refetch,
   } = useRepositorySummary(owner, repo, stats.pullRequests);
 

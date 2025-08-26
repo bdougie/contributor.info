@@ -22,7 +22,7 @@ export class InngestQueueManager {
       await inngest.send(event);
       console.log('✅ [Inngest] Event sent successfully:', event.name);
       return true;
-    } catch (_error) {
+    } catch () {
       console.warn('❌ [Inngest] Failed to send event:', _error);
       return false;
     }
@@ -47,7 +47,7 @@ export class InngestQueueManager {
     const effectiveLimit = Math.min(limit, RATE_LIMIT_CONFIG.MAX_JOBS_PER_BATCH);
 
     // Find PRs with missing file change data
-    const { data: prsNeedingUpdate, error: _error } = await supabase
+    const { data: prsNeedingUpdate, error } = await supabase
       .from('pull_requests')
       .select('id, number, repository_id')
       .eq('repository_id', repositoryId)
@@ -223,7 +223,7 @@ export class InngestQueueManager {
       query = query.not('id', 'in', limitedIds);
     }
 
-    const { data: prsNeedingReviews, error: _error } = await query;
+    const { data: prsNeedingReviews, error } = await query;
 
     if (_error || !prsNeedingReviews || prsNeedingReviews.length === 0) {
       return 0;
@@ -290,7 +290,7 @@ export class InngestQueueManager {
       query = query.not('id', 'in', limitedIds);
     }
 
-    const { data: prsNeedingComments, error: _error } = await query;
+    const { data: prsNeedingComments, error } = await query;
 
     if (_error || !prsNeedingComments || prsNeedingComments.length === 0) {
       return 0;
@@ -338,7 +338,7 @@ export class InngestQueueManager {
   ): Promise<number> {
     try {
       // Find commits that need PR analysis
-      const { data: commitsNeedingAnalysis, error: _error } = await supabase
+      const { data: commitsNeedingAnalysis, error } = await supabase
         .from('commits')
         .select('sha')
         .eq('repository_id', repositoryId)
@@ -378,7 +378,7 @@ export class InngestQueueManager {
       }
 
       return queuedCount;
-    } catch (_error) {
+    } catch () {
       console.error('[Queue] Error queuing recent commits analysis:', _error);
       return 0;
     }

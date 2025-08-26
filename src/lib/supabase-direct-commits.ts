@@ -73,7 +73,7 @@ export async function fetchDirectCommitsWithDatabaseFallback(
         });
 
         return result;
-      } catch (_error) {
+      } catch () {
         // Simple error logging without analytics
         console.error('Direct commits error:', {
           owner,

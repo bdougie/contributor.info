@@ -62,7 +62,7 @@ export const capturePrReviews = inngest.createFunction(
 
     // Step 1: Get repository details
     const repository = await step.run('get-repository', async () => {
-      const { data, error: _error } = await supabase
+      const { data, error } = await supabase
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
@@ -183,7 +183,7 @@ export const capturePrReviews = inngest.createFunction(
       }
 
       // Batch insert reviews
-      const { error: _error } = await supabase.from('reviews').upsert(reviews.reviews, {
+      const { error } = await supabase.from('reviews').upsert(reviews.reviews, {
         onConflict: 'github_id',
         ignoreDuplicates: false,
       });
@@ -202,7 +202,7 @@ export const capturePrReviews = inngest.createFunction(
 
     // Step 4: Update PR timestamp (review counts are tracked via foreign key relationships)
     await step.run('update-pr-stats', async () => {
-      const { error: _error } = await supabase
+      const { error } = await supabase
         .from('pull_requests')
         .update({
           updated_at: new Date().toISOString(),
