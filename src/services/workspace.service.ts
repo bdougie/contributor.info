@@ -695,10 +695,18 @@ export class WorkspaceService {
         .eq('workspace_id', workspaceId)
         .eq('repository_id', repositoryId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         throw error;
+      }
+
+      if (!data) {
+        return {
+          success: false,
+          error: 'Repository not found in workspace',
+          statusCode: 404
+        };
       }
 
       return {
