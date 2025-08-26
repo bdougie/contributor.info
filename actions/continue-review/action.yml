@@ -7,7 +7,7 @@ inputs:
     description: 'API key for Continue service'
     required: true
   github-token:
-    description: 'GitHub token for API access (or App installation token)'
+    description: 'GitHub token for API access (use output from actions/create-github-app-token for App authentication)'
     required: true
   continue-org:
     description: 'Continue organization/username from Continue Hub'
@@ -40,7 +40,7 @@ runs:
       run: |
         echo "Installing action dependencies..."
         npm init -y
-        npm install @actions/core @actions/github @actions/exec js-yaml glob @octokit/auth-app @octokit/rest
+        npm install @actions/core @actions/github @actions/exec js-yaml glob @octokit/rest
         npm install --save-dev @types/js-yaml @types/node typescript tsx
 
     - name: Run Continue Review

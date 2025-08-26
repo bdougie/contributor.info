@@ -1,4 +1,4 @@
-# Continue Agent Review Action (TypeScript)
+# Continue Agent Review Action
 
 A GitHub Action that performs AI-powered code reviews using Continue Agent on pull requests.
 
@@ -10,19 +10,33 @@ A GitHub Action that performs AI-powered code reviews using Continue Agent on pu
 - 🎯 **Context-Aware** - Applies only relevant rules based on changed files
 - 📊 **Sticky Comments** - Single comment that updates with progress and results
 - ✅ **TypeScript Implementation** - Type-safe and linted code
+- 🔐 **GitHub App Authentication** - Secure authentication via GitHub Apps
 
 ## Setup
 
 ### Prerequisites
 
-1. **Continue Hub Account** - Sign up at [hub.continue.dev](https://hub.continue.dev)
-2. **Continue Assistant** - Create an assistant following the Continue documentation
-3. **Continue API Key** - Get from your Hub account settings
+1. **GitHub App** - Create a GitHub App with these permissions:
+   - **Repository permissions:**
+     - Contents: Read
+     - Issues: Write  
+     - Pull requests: Write
+   - Generate a private key and note the App ID
 
-### GitHub Secrets Required
+2. **Continue Hub Account** - Sign up at [hub.continue.dev](https://hub.continue.dev)
 
+3. **Continue Assistant** - Create an assistant following the Continue documentation
+
+### GitHub Configuration
+
+Store these as secrets/variables in your repository or organization:
+
+**Variables:**
+- `CONTINUE_APP_ID` - Your GitHub App ID
+
+**Secrets:**
+- `CONTINUE_APP_PRIVATE_KEY` - Your GitHub App private key
 - `CONTINUE_API_KEY` - Your Continue API key
-- `GITHUB_TOKEN` - Automatically provided by GitHub Actions
 
 ### Workflow Configuration
 
@@ -31,9 +45,14 @@ name: Continue Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, ready_for_review]
   issue_comment:
     types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 
 jobs:
   review:
@@ -45,13 +64,25 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Continue Review
-        uses: ./actions/continue-review
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      
+      # Generate GitHub App token for secure authentication
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.CONTINUE_APP_ID }}
+          private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY }}
+      
+      # Run Continue Review with App token
+      - name: Continue Review
+        uses: bdougie/contributor.info/actions/continue-review@main
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
           continue-api-key: ${{ secrets.CONTINUE_API_KEY }}
-          continue-config: 'your-username/assistant-name'
+          continue-org: 'your-org'
+          continue-config: 'your-org/assistant-name'
 ```
 
 ## How It Works
@@ -93,6 +124,58 @@ Trigger specific reviews with PR comments:
 @continue-agent review the TypeScript types
 @continue-agent suggest performance improvements
 ```
+
+## Advanced Configuration
+
+### Token Permission Scoping
+
+You can limit the App token permissions:
+
+```yaml
+- name: Generate App Token
+  id: app-token
+  uses: actions/create-github-app-token@v1
+  with:
+    app-id: ${{ vars.CONTINUE_APP_ID }}
+    private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY }}
+    permissions: |
+      contents: read
+      pull-requests: write
+      issues: write
+```
+
+### Multiple Repository Support
+
+For organizations with many repositories:
+
+```yaml
+- name: Generate App Token
+  id: app-token
+  uses: actions/create-github-app-token@v1
+  with:
+    app-id: ${{ vars.CONTINUE_APP_ID }}
+    private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY }}
+    repositories: |
+      repo1
+      repo2
+      repo3
+```
+
+## Troubleshooting
+
+### App Not Installed
+- Verify the App is installed on the repository
+- Check App installation settings in GitHub
+
+### Authentication Failures
+- Verify the App ID is correct
+- Check the private key secret is properly formatted
+- Ensure the private key hasn't expired
+
+### Token Permission Issues
+- Review the App's permission configuration
+- Check if permissions are limited in the workflow
+- Verify repository settings allow App access
 
 ## Implementation Details
 
