@@ -74,10 +74,20 @@ SELECT * FROM pr_status;
 
 ### 1. Smart Throttling System
 The updated throttle configuration now properly handles different sync reasons:
-- `manual`: 5 minutes (user-initiated)
-- `auto-fix`: 1 hour (automatic recovery)
-- `scheduled`: 24 hours (regular updates)
-- `automatic`: 4 hours (auto-tracking)
+- `manual`: 5 minutes (user-initiated, allows quick retries when users actively fix issues)
+- `auto-fix`: 1 hour (automatic recovery - balanced between fixing corrupted data quickly and avoiding API quota exhaustion)
+- `scheduled`: 24 hours (regular updates for tracked repositories)
+- `automatic`: 4 hours (auto-tracking for newly discovered repositories)
+
+#### Rate Limit Rationale
+
+**Auto-fix (1 hour)**: This rate limit was chosen to balance several concerns:
+1. **API Quota Management**: GitHub API has rate limits (5000 requests/hour for authenticated requests). Running auto-fix more frequently could exhaust quotas for large repositories.
+2. **Data Recovery Speed**: 1 hour is frequent enough to fix corrupted data within a reasonable timeframe without user intervention.
+3. **System Load**: Prevents excessive database writes and background job processing that could impact performance.
+4. **Cost Efficiency**: Reduces Supabase Edge Function invocations and Netlify Function execution time.
+
+The original 15-minute auto-fix rate was too aggressive and could trigger GitHub's secondary rate limits during high activity periods. The 1-hour interval provides a sustainable recovery mechanism that works within API constraints.
 
 ### 2. Data Completeness Checking
 The sync functions now check for data completeness and adjust throttling accordingly:

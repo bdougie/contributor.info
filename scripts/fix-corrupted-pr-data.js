@@ -11,35 +11,90 @@ import { config } from 'dotenv';
 // Load environment variables
 config();
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 const GITHUB_TOKEN = process.env.VITE_GITHUB_TOKEN;
 
+if (!SUPABASE_URL) {
+  console.error('❌ Missing VITE_SUPABASE_URL environment variable');
+  console.error('Please set VITE_SUPABASE_URL to your Supabase project URL');
+  process.exit(1);
+}
+
 if (!SUPABASE_ANON_KEY) {
   console.error('❌ Missing VITE_SUPABASE_ANON_KEY environment variable');
+  console.error('Please set VITE_SUPABASE_ANON_KEY to your Supabase anonymous key');
   process.exit(1);
 }
 
 if (!GITHUB_TOKEN) {
   console.error('❌ Missing VITE_GITHUB_TOKEN environment variable');
+  console.error('Please set VITE_GITHUB_TOKEN to your GitHub personal access token');
   process.exit(1);
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-async function fetchPRDetailsFromGitHub(owner, name, prNumber) {
-  const response = await fetch(`https://api.github.com/repos/${owner}/${name}/pulls/${prNumber}`, {
-    headers: {
-      'Authorization': `Bearer ${GITHUB_TOKEN}`,
-      'Accept': 'application/vnd.github.v3+json',
+async function fetchPRDetailsFromGitHub(owner, name, prNumber, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(`https://api.github.com/repos/${owner}/${name}/pulls/${prNumber}`, {
+        headers: {
+          'Authorization': `Bearer ${GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json',
+        }
+      });
+
+      if (response.status === 429 || (response.status === 403 && response.headers.get('x-ratelimit-remaining') === '0')) {
+        // Rate limit hit - check retry-after header
+        const retryAfter = response.headers.get('retry-after');
+        const rateLimitReset = response.headers.get('x-ratelimit-reset');
+        
+        let waitTime;
+        if (retryAfter) {
+          // retry-after can be seconds or a date
+          const retryAfterNum = parseInt(retryAfter);
+          if (!isNaN(retryAfterNum)) {
+            waitTime = retryAfterNum * 1000; // Convert seconds to milliseconds
+          } else {
+            // It's a date string
+            waitTime = new Date(retryAfter).getTime() - Date.now();
+          }
+        } else if (rateLimitReset) {
+          // x-ratelimit-reset is a Unix timestamp in seconds
+          waitTime = (parseInt(rateLimitReset) * 1000) - Date.now();
+        } else {
+          waitTime = 60000; // Default to 1 minute
+        }
+        
+        // Ensure wait time is positive and reasonable
+        waitTime = Math.max(1000, Math.min(waitTime, 300000)); // Min 1 sec, max 5 min
+        
+        console.log(`⏳ Rate limited. Waiting ${Math.round(waitTime / 1000)} seconds before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`GitHub API error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      // Await JSON parsing to catch potential parse errors in this try-catch
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      if (attempt === retries) {
+        throw error;
+      }
+      
+      // Exponential backoff for transient errors
+      const backoffTime = Math.min(1000 * Math.pow(2, attempt), 10000);
+      console.log(`⚠️ Attempt ${attempt} failed for PR #${prNumber}: ${error.message}`);
+      console.log(`⏳ Retrying in ${backoffTime / 1000} seconds...`);
+      await new Promise(resolve => setTimeout(resolve, backoffTime));
     }
-  });
-
-  if (!response.ok) {
-    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
   }
-
-  return response.json();
 }
 
 async function fixCorruptedPRs() {
@@ -66,13 +121,29 @@ async function fixCorruptedPRs() {
 
   let fixed = 0;
   let failed = 0;
+  let skipped = 0;
+  const errors = { rateLimit: 0, notFound: 0, database: 0, other: 0 };
+  
+  // Progress reporting
+  const total = corruptedPRs.length;
+  const startTime = Date.now();
 
-  for (const pr of corruptedPRs) {
+  for (let i = 0; i < corruptedPRs.length; i++) {
+    const pr = corruptedPRs[i];
+    const progress = Math.round(((i + 1) / total) * 100);
+    const elapsedTime = Math.round((Date.now() - startTime) / 1000);
     try {
-      console.log(`Fixing PR #${pr.number}...`);
+      console.log(`\n[${i + 1}/${total}] (${progress}%) - Processing PR #${pr.number} - Elapsed: ${elapsedTime}s`);
       
       // Fetch fresh data from GitHub
       const prData = await fetchPRDetailsFromGitHub('continuedev', 'continue', pr.number);
+      
+      // Check if data is actually corrupted
+      if (prData.additions === 0 && prData.deletions === 0 && prData.changed_files === 0) {
+        console.log(`⏭️ Skipping PR #${pr.number} - Legitimately has zero changes`);
+        skipped++;
+        continue;
+      }
       
       // Update the PR with correct data
       const { error: updateError } = await supabase
@@ -94,7 +165,8 @@ async function fixCorruptedPRs() {
         .eq('id', pr.id);
 
       if (updateError) {
-        console.error(`❌ Failed to update PR #${pr.number}:`, updateError);
+        console.error(`❌ Database update failed for PR #${pr.number}:`, updateError);
+        errors.database++;
         failed++;
       } else {
         console.log(`✅ Fixed PR #${pr.number}: +${prData.additions} -${prData.deletions} (${prData.changed_files} files, ${prData.commits} commits)`);
@@ -105,14 +177,34 @@ async function fixCorruptedPRs() {
       await new Promise(resolve => setTimeout(resolve, 100));
       
     } catch (err) {
-      console.error(`❌ Error fixing PR #${pr.number}:`, err.message);
+      // Categorize errors
+      if (err.message.includes('429') || err.message.includes('Rate limit')) {
+        errors.rateLimit++;
+        console.error(`⏳ Rate limit error for PR #${pr.number}`);
+      } else if (err.message.includes('404')) {
+        errors.notFound++;
+        console.error(`🔍 PR #${pr.number} not found on GitHub (may have been deleted)`);
+      } else {
+        errors.other++;
+        console.error(`❌ Unexpected error for PR #${pr.number}: ${err.message}`);
+      }
       failed++;
     }
   }
 
-  console.log(`\n📊 Summary:`);
+  const totalTime = Math.round((Date.now() - startTime) / 1000);
+  console.log(`\n📊 Summary (completed in ${totalTime}s):`);
   console.log(`  ✅ Fixed: ${fixed} PRs`);
+  console.log(`  ⏭️ Skipped: ${skipped} PRs (legitimately zero changes)`);
   console.log(`  ❌ Failed: ${failed} PRs`);
+  
+  if (failed > 0) {
+    console.log(`\n📈 Error breakdown:`);
+    if (errors.rateLimit > 0) console.log(`  ⏳ Rate limit errors: ${errors.rateLimit}`);
+    if (errors.notFound > 0) console.log(`  🔍 Not found errors: ${errors.notFound}`);
+    if (errors.database > 0) console.log(`  💾 Database errors: ${errors.database}`);
+    if (errors.other > 0) console.log(`  ⚠️ Other errors: ${errors.other}`);
+  }
   
   // Verify the fix
   const { data: checkPR } = await supabase
