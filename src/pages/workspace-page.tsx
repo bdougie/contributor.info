@@ -387,8 +387,7 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
   );
 }
 
-function WorkspaceContributors({ repositories, selectedRepositories }: { repositories: Repository[]; selectedRepositories: string[] }) {
-  const { workspaceId } = useParams<{ workspaceId: string }>();
+function WorkspaceContributors({ repositories, selectedRepositories, workspaceId }: { repositories: Repository[]; selectedRepositories: string[]; workspaceId: string }) {
   const navigate = useNavigate();
   const [showAddContributors, setShowAddContributors] = useState(false);
   const [selectedContributorsToAdd, setSelectedContributorsToAdd] = useState<string[]>([]);
@@ -405,7 +404,7 @@ function WorkspaceContributors({ repositories, selectedRepositories }: { reposit
     addContributorsToWorkspace,
     removeContributorFromWorkspace,
   } = useWorkspaceContributors({
-    workspaceId: workspaceId!,
+    workspaceId: workspaceId,
     repositories,
     selectedRepositories,
   });
@@ -1082,13 +1081,23 @@ export default function WorkspacePage() {
       }
 
       try {
-        // Fetch workspace details
-        const { data: workspaceData, error: wsError } = await supabase
-          .from('workspaces')
-          .select('*')
-          .eq('id', workspaceId)
-          .eq('is_active', true)
-          .single();
+        // Check if workspaceId is a UUID or a slug
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workspaceId);
+        
+        // Fetch workspace details using either id or slug
+        const { data: workspaceData, error: wsError } = isUUID 
+          ? await supabase
+              .from('workspaces')
+              .select('*')
+              .eq('is_active', true)
+              .eq('id', workspaceId)
+              .single()
+          : await supabase
+              .from('workspaces')
+              .select('*')
+              .eq('is_active', true)
+              .eq('slug', workspaceId)
+              .single();
 
         if (wsError || !workspaceData) {
           setError('Workspace not found');
@@ -1096,7 +1105,7 @@ export default function WorkspacePage() {
           return;
         }
 
-        // Fetch repositories with their details
+        // Fetch repositories with their details (use the actual workspace ID)
         const { data: repoData, error: repoError } = await supabase
           .from('workspace_repositories')
           .select(`
@@ -1113,7 +1122,7 @@ export default function WorkspacePage() {
               open_issues_count
             )
           `)
-          .eq('workspace_id', workspaceId);
+          .eq('workspace_id', workspaceData.id);
 
         if (repoError) {
           console.error('Error fetching repositories:', repoError);
@@ -1223,7 +1232,7 @@ export default function WorkspacePage() {
 
   const handleAddRepositorySuccess = async () => {
     // Refresh the repositories list after adding
-    if (!workspaceId) return;
+    if (!workspace) return;
 
     try {
       // Fetch repositories with their details
@@ -1243,7 +1252,7 @@ export default function WorkspacePage() {
             open_issues_count
           )
         `)
-        .eq('workspace_id', workspaceId);
+        .eq('workspace_id', workspace.id);
 
       if (!repoError && repoData) {
         const formattedRepos: Repository[] = repoData
@@ -1408,7 +1417,7 @@ export default function WorkspacePage() {
         </TabsContent>
 
         <TabsContent value="contributors" className="mt-6">
-          <WorkspaceContributors repositories={repositories} selectedRepositories={selectedRepositories} />
+          <WorkspaceContributors repositories={repositories} selectedRepositories={selectedRepositories} workspaceId={workspace.id} />
         </TabsContent>
 
         <TabsContent value="activity" className="mt-6">
@@ -1453,11 +1462,11 @@ export default function WorkspacePage() {
       )}
       
       {/* Add Repository Modal */}
-      {workspaceId && (
+      {workspace && (
         <AddRepositoryModal
           open={addRepositoryModalOpen}
           onOpenChange={setAddRepositoryModalOpen}
-          workspaceId={workspaceId}
+          workspaceId={workspace.id}
           onSuccess={handleAddRepositorySuccess}
         />
       )}
