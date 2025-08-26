@@ -333,6 +333,7 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
         
         const repoIds = filteredRepos.map(r => r.id);
         
+        // Fetch issues with count for potential future pagination
         const { data, error } = await supabase
           .from('issues')
           .select(`
@@ -358,17 +359,21 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
               username,
               avatar_url
             )
-          `)
+          `, { count: 'exact' })
           .in('repository_id', repoIds)
           .order('updated_at', { ascending: false })
-          .limit(100);
+          .range(0, 99); // Fetch first 100 issues (0-indexed)
 
         if (error) {
-          console.error('Error fetching issues:', error);
+          console.error('Failed to fetch workspace issues:', {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+          });
           setIssues([]);
         } else {
           // Transform data to match Issue interface
-          type IssueData = {
+          interface IssueQueryResult {
             id: string;
             github_id: number;
             number: number;
@@ -378,7 +383,7 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
             created_at: string;
             updated_at: string;
             closed_at: string | null;
-            labels: any;
+            labels: Array<{ name: string; color: string; id?: number }> | null;
             comments_count: number | null;
             repository_id: string;
             repositories?: {
@@ -391,9 +396,9 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
               username: string;
               avatar_url: string;
             };
-          };
+          }
           
-          const transformedIssues: Issue[] = ((data || []) as unknown as IssueData[]).map((issue) => ({
+          const transformedIssues: Issue[] = ((data || []) as unknown as IssueQueryResult[]).map((issue) => ({
             id: issue.id,
             number: issue.number,
             title: issue.title,
@@ -417,7 +422,9 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
                   color: label.color || '000000'
                 })).filter((l: any) => l.name) // Filter out labels without names
               : [],
-            url: `https://github.com/${issue.repositories?.full_name}/issues/${issue.number}`,
+            url: issue.repositories?.full_name 
+              ? `https://github.com/${issue.repositories.full_name}/issues/${issue.number}`
+              : '#', // Fallback URL when repository data is missing
           }));
           setIssues(transformedIssues);
         }
