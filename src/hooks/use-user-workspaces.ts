@@ -45,6 +45,8 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const isFetchingRef = useRef(false);
+  const hasInitialLoadRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchUserWorkspaces = useCallback(async () => {
     // Prevent concurrent fetches
@@ -52,58 +54,94 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       return;
     }
     
+    // Cancel any existing requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+    
     isFetchingRef.current = true;
     try {
       setLoading(true);
       setError(null);
 
-      // Check if user is authenticated - with timeout and retry on auth error
+      // Check if user is authenticated - with AbortController timeout
       let user = null;
       
-      // Add timeout to auth check to prevent hanging
-      const authTimeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Auth check timeout')), 5000)
-      );
+      // Add timeout using AbortSignal
+      const authTimeoutId = setTimeout(() => {
+        abortControllerRef.current?.abort();
+      }, 2000);
       
       try {
-        const authResult = await Promise.race([
-          supabase.auth.getUser(),
-          authTimeout
-        ]) as { data: { user: any } | null; error: any };
+        console.log('[Workspace] Checking auth status...');
+        
+        // Check if aborted
+        if (signal.aborted) {
+          throw new Error('Request aborted');
+        }
+        
+        const authResult = await supabase.auth.getUser();
+        clearTimeout(authTimeoutId);
         
         const { data: authData, error: authError } = authResult;
         
-        // If auth error, try to refresh session
+        // If auth error, try to get session as fallback
         if (authError) {
+          console.log('[Workspace] Auth error, checking session:', authError.message);
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) {
+            console.log('[Workspace] No session found, user is not authenticated');
             setWorkspaces([]);
             setLoading(false);
+            hasInitialLoadRef.current = true;
             return;
           }
-          // Retry getting user after session refresh
-          const { data: { user: refreshedUser } } = await supabase.auth.getUser();
-          user = refreshedUser;
+          user = session.user;
         } else {
           user = authData?.user;
         }
       } catch (timeoutError) {
+        clearTimeout(authTimeoutId);
+        
+        if (signal.aborted) {
+          console.warn('[Workspace] Auth check aborted or timed out, using session fallback');
+        }
+        
         // Try to get session directly as fallback
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          user = session.user;
-        } else {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            user = session.user;
+          } else {
+            console.log('[Workspace] No session in fallback, setting empty workspaces');
+            setWorkspaces([]);
+            setLoading(false);
+            hasInitialLoadRef.current = true;
+            return;
+          }
+        } catch (sessionError) {
+          console.error('[Workspace] Failed to get session:', sessionError);
           setWorkspaces([]);
           setLoading(false);
+          setError(new Error('Unable to verify authentication'));
+          hasInitialLoadRef.current = true;
           return;
         }
       }
       
       if (!user) {
+        console.log('[Workspace] No user found after auth check');
         setWorkspaces([]);
         setLoading(false);
+        hasInitialLoadRef.current = true;
         return;
       }
+      
+      console.log('[Workspace] User authenticated, fetching workspaces...');
 
       // Fetch workspaces where user is owner or member
       // First try to get workspaces where user is the owner
@@ -133,10 +171,14 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       }
       
       if (workspaceIds.size === 0) {
+        console.log('[Workspace] User has no workspaces');
         setWorkspaces([]);
         setLoading(false);
+        hasInitialLoadRef.current = true;
         return;
       }
+      
+      console.log('[Workspace] Found %d workspace(s) for user', workspaceIds.size);
       
       const workspaceIdsArray = Array.from(workspaceIds);
       
@@ -270,11 +312,15 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         })
       );
 
+      console.log('[Workspace] Successfully loaded %d workspace(s)', enrichedWorkspaces.length);
       setWorkspaces(enrichedWorkspaces);
+      hasInitialLoadRef.current = true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch workspaces';
+      console.error('[Workspace] Error fetching workspaces:', errorMessage);
       setError(new Error(errorMessage));
       setWorkspaces([]);
+      hasInitialLoadRef.current = true;
     } finally {
       setLoading(false);
       isFetchingRef.current = false;
@@ -288,13 +334,15 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
     const initFetch = async () => {
       if (!mounted) return;
       
-      // Add a timeout to prevent infinite loading state
+      // Add a shorter timeout to prevent infinite loading state
       loadingTimeout = setTimeout(() => {
-        if (loading && mounted) {
+        if (loading && mounted && !hasInitialLoadRef.current) {
+          console.error('[Workspace] Loading timed out after 10 seconds');
           setLoading(false);
           setError(new Error('Workspace loading timed out. Please refresh the page.'));
+          hasInitialLoadRef.current = true;
         }
-      }, 15000);
+      }, 10000);
 
       await fetchUserWorkspaces();
       clearTimeout(loadingTimeout);
@@ -317,6 +365,11 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       mounted = false;
       subscription.unsubscribe();
       if (loadingTimeout) clearTimeout(loadingTimeout);
+      // Cancel any pending requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
     };
   }, []); // Empty dependency array - only run once on mount
 

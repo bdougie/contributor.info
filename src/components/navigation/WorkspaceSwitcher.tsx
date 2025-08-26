@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { ChevronDown, Plus, Package, Clock, GitBranch, Search } from '@/components/ui/icon';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { ChevronDown, Plus, Package, Clock, GitBranch, Search, RefreshCw } from '@/components/ui/icon';
 import { useWorkspaceContext, type Workspace } from '@/contexts/WorkspaceContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { WORKSPACE_TIMEOUTS } from '@/lib/workspace-config';
 
 // Define proper types for workspace tiers
 type WorkspaceTier = 'free' | 'pro' | 'enterprise';
@@ -28,8 +29,42 @@ interface WorkspaceSwitcherProps {
 
 export function WorkspaceSwitcher({ className, showFullName = true, onOpenCommandPalette }: WorkspaceSwitcherProps) {
   const navigate = useNavigate();
-  const { activeWorkspace, workspaces, switchWorkspace, isLoading, recentWorkspaces } = useWorkspaceContext();
+  const { activeWorkspace, workspaces, switchWorkspace, isLoading, recentWorkspaces, error, retry } = useWorkspaceContext();
   const [open, setOpen] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Set up loading timeout for UI feedback with proper cleanup
+  useEffect(() => {
+    if (isLoading) {
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      timeoutRef.current = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, WORKSPACE_TIMEOUTS.UI_FEEDBACK);
+      
+      return () => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+      };
+    } else {
+      setLoadingTimeout(false);
+    }
+  }, [isLoading]);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   // Separate recent and other workspaces
   const { recentWorkspacesList, otherWorkspaces } = useMemo(() => {
@@ -109,25 +144,72 @@ export function WorkspaceSwitcher({ className, showFullName = true, onOpenComman
   }
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn('gap-2 justify-between', className)}
-          disabled={isLoading}
-        >
-          <div className="flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            {showFullName && (
-              <span className="truncate max-w-[200px]">
-                {isLoading ? 'Loading...' : (activeWorkspace?.name || (workspaces.length > 0 ? 'Select Workspace' : 'No Workspaces'))}
-              </span>
-            )}
-          </div>
-          <ChevronDown className="h-4 w-4 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
+    <>
+      {/* Accessibility live region for loading states */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {isLoading && !loadingTimeout && 'Loading workspaces...'}
+        {loadingTimeout && 'Loading is taking longer than usual...'}
+        {error && 'Error loading workspaces. Please try again.'}
+      </div>
+      
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn('gap-2 justify-between', className)}
+            disabled={isLoading}
+            aria-label={`Select workspace. Current: ${activeWorkspace?.name || 'None selected'}`}
+            aria-expanded={open}
+            aria-haspopup="menu"
+          >
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              {showFullName && (
+                <span className="truncate max-w-[200px]">
+                  {isLoading && !loadingTimeout ? (
+                    'Loading...'
+                  ) : error ? (
+                    'Error loading'
+                  ) : loadingTimeout ? (
+                    'Taking longer than usual...'
+                  ) : (
+                    activeWorkspace?.name || (workspaces.length > 0 ? 'Select Workspace' : 'No Workspaces')
+                  )}
+                </span>
+              )}
+            </div>
+            <ChevronDown className="h-4 w-4 opacity-50" />
+          </Button>
+        </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[320px]">
+        {error && (
+          <>
+            <DropdownMenuLabel>
+              <div className="flex flex-col space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-destructive">Unable to load workspaces</p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      retry();
+                    }}
+                    className="h-6 px-2 text-xs"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Retry
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  You can continue working or try refreshing.
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+          </>
+        )}
         {activeWorkspace && (
           <>
             <DropdownMenuLabel className="font-normal">
@@ -248,5 +330,6 @@ export function WorkspaceSwitcher({ className, showFullName = true, onOpenComman
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    </>
   );
 }
