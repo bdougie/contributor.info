@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn, humanizeNumber } from "@/lib/utils";
 import { MonthlyContributor } from "@/lib/types";
 import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
 import { Badge } from "@/components/ui/badge";
@@ -109,25 +109,34 @@ export function ContributorCard({
             )}
           </div>
           
-          <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <GitPullRequest className="h-3 w-3" />
-              <span>{activity.pullRequests}</span>
+          <div className="grid grid-cols-3 gap-2 mt-3">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1">
+                <GitPullRequest className="h-3 w-3 text-muted-foreground" />
+                <span className="text-sm font-medium">{humanizeNumber(activity.pullRequests)}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">PRs</p>
             </div>
-            <div className="flex items-center gap-1">
-              <GitPullRequestDraft className="h-3 w-3" />
-              <span>{activity.reviews}</span>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1">
+                <GitPullRequestDraft className="h-3 w-3 text-muted-foreground" />
+                <span className="text-sm font-medium">{humanizeNumber(activity.reviews)}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Reviews</p>
             </div>
-            <div className="flex items-center gap-1">
-              <MessageSquare className="h-3 w-3" />
-              <span>{activity.comments}</span>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1">
+                <MessageSquare className="h-3 w-3 text-muted-foreground" />
+                <span className="text-sm font-medium">{humanizeNumber(activity.comments)}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Comments</p>
             </div>
           </div>
-          
-          <div className="mt-2">
-            <span className="text-xs font-medium">
+
+          <div className="flex items-center justify-end pt-3 border-t mt-3">
+            <Badge variant="secondary" className="text-xs">
               Score: {activity.totalScore}
-            </span>
+            </Badge>
           </div>
         </div>
       </div>
