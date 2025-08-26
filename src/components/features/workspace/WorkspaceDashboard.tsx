@@ -43,6 +43,7 @@ export interface WorkspaceDashboardProps {
   tier?: 'free' | 'pro' | 'enterprise';
   timeRange?: TimeRange;
   onAddRepository?: () => void;
+  onRemoveRepository?: (repo: Repository) => void;
   onRepositoryClick?: (repo: Repository) => void;
   onSettingsClick?: () => void;
   onUpgradeClick?: () => void;
@@ -69,6 +70,7 @@ export function WorkspaceDashboard({
   tier: _tier = 'free',
   timeRange = '30d',
   onAddRepository,
+  onRemoveRepository,
   onRepositoryClick,
   onSettingsClick: _onSettingsClick,
   onUpgradeClick: _onUpgradeClick,
@@ -213,6 +215,7 @@ export function WorkspaceDashboard({
         loading={loading}
         onRepositoryClick={onRepositoryClick}
         onPinToggle={handlePinToggle}
+        onRemove={onRemoveRepository}
         onAddRepository={onAddRepository}
         emptyMessage={
           repositories.length === 0 
