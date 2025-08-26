@@ -147,21 +147,28 @@ export function WorkspaceIssuesTable({
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <a
-                      href={issue.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => {
-                        if (onIssueClick) {
-                          e.preventDefault();
-                          onIssueClick(issue);
-                        }
-                      }}
-                      className="font-medium hover:text-primary transition-colors text-left inline-flex items-center gap-1"
-                    >
-                      <span className="line-clamp-1">{truncatedTitle}</span>
-                      <span className="text-muted-foreground">#{issue.number}</span>
-                    </a>
+                    {issue.url ? (
+                      <a
+                        href={issue.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          if (onIssueClick) {
+                            e.preventDefault();
+                            onIssueClick(issue);
+                          }
+                        }}
+                        className="font-medium hover:text-primary transition-colors text-left inline-flex items-center gap-1"
+                      >
+                        <span className="line-clamp-1">{truncatedTitle}</span>
+                        <span className="text-muted-foreground">#{issue.number}</span>
+                      </a>
+                    ) : (
+                      <span className="font-medium text-muted-foreground text-left inline-flex items-center gap-1">
+                        <span className="line-clamp-1">{truncatedTitle}</span>
+                        <span className="text-muted-foreground">#{issue.number}</span>
+                      </span>
+                    )}
                   </TooltipTrigger>
                   <TooltipContent className="max-w-md">
                     <p>{issue.title} #{issue.number}</p>
@@ -361,16 +368,22 @@ export function WorkspaceIssuesTable({
       }),
       columnHelper.display({
         id: 'actions',
-        cell: ({ row }) => (
-          <a
-            href={row.original.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </a>
-        ),
+        cell: ({ row }) => 
+          row.original.url ? (
+            <a
+              href={row.original.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              title="Open in GitHub"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          ) : (
+            <span className="text-muted-foreground/30" title="GitHub link unavailable">
+              <ExternalLink className="h-4 w-4" />
+            </span>
+          ),
         size: 50,
       }),
     ] as ColumnDef<Issue>[]),

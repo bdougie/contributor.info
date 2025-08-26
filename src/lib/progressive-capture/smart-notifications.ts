@@ -385,10 +385,14 @@ export function setupSmartNotifications(): void {
       // Match patterns like /kubernetes/kubernetes or /owner/repo/contributions
       const match = path.match(/\/([^\/]+)\/([^\/]+)(?:\/|$)/);
       
-      // Exclude non-repository routes
-      const excludedPrefixes = ['login', 'debug', 'admin', 'dev', 'api', 'auth', 'oauth', 'settings', 'privacy', 'terms', 'changelog', 'docs', 'widgets', 'trending'];
+      // Exclude non-repository routes using Set for better performance
+      const EXCLUDED_ROUTE_PREFIXES = new Set([
+        'login', 'debug', 'admin', 'dev', 'api', 
+        'auth', 'oauth', 'settings', 'privacy', 'terms', 
+        'changelog', 'docs', 'widgets', 'trending'
+      ]);
       
-      if (match && !excludedPrefixes.includes(match[1])) {
+      if (match && !EXCLUDED_ROUTE_PREFIXES.has(match[1])) {
         const [, owner, repo] = match;
         
         if (import.meta.env?.DEV) {

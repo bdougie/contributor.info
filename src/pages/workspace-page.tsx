@@ -311,10 +311,18 @@ function WorkspacePRs({ repositories, selectedRepositories }: { repositories: Re
   );
 }
 
+// Type definitions for Issue labels
+interface IssueLabel {
+  name: string;
+  color: string;
+  id?: number;
+}
+
 // Issues tab component
 function WorkspaceIssues({ repositories, selectedRepositories }: { repositories: Repository[], selectedRepositories: string[] }) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -370,6 +378,8 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
             code: error.code,
             details: error.details,
           });
+          // Improved error handling with user-friendly message
+          setError('Failed to load issues. Please try again later.');
           setIssues([]);
         } else {
           // Transform data to match Issue interface
@@ -383,7 +393,7 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
             created_at: string;
             updated_at: string;
             closed_at: string | null;
-            labels: Array<{ name: string; color: string; id?: number }> | null;
+            labels: IssueLabel[] | null;
             comments_count: number | null;
             repository_id: string;
             repositories?: {
@@ -417,14 +427,15 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
             closed_at: issue.closed_at || undefined,
             comments_count: issue.comments_count || 0,
             labels: Array.isArray(issue.labels) 
-              ? issue.labels.map((label: any) => ({
-                  name: label.name || '',
+              ? (issue.labels as IssueLabel[]).map(label => ({
+                  name: label.name,
                   color: label.color || '000000'
-                })).filter((l: any) => l.name) // Filter out labels without names
+                })).filter(l => l.name) // Filter out labels without names
               : [],
-            url: issue.repositories?.full_name 
+            // Improved URL construction with validation
+            url: issue.repositories?.full_name && issue.number
               ? `https://github.com/${issue.repositories.full_name}/issues/${issue.number}`
-              : '#', // Fallback URL when repository data is missing
+              : '', // Empty string when repository data is missing to prevent broken links
           }));
           setIssues(transformedIssues);
         }
@@ -440,12 +451,31 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
   }, [repositories, selectedRepositories]);
 
   const handleIssueClick = (issue: Issue) => {
-    window.open(issue.url, '_blank');
+    // Only open if URL exists
+    if (issue.url) {
+      window.open(issue.url, '_blank');
+    }
   };
 
   const handleRepositoryClick = (owner: string, name: string) => {
     navigate(`/${owner}/${name}`);
   };
+
+  // Display error message if there's an error
+  if (error) {
+    return (
+      <div className="container max-w-7xl mx-auto p-6">
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Error Loading Issues</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>{error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <WorkspaceIssuesTable
