@@ -47,4 +47,4 @@ jobs:
           continue-api-key: ${{ secrets.CONTINUE_API_KEY }}
           github-token: ${{ steps.app-token.outputs.token }}
           continue-org: 'continuedev'  # Continue's organization
-          continue-config: 'continuedev/review-bot'  # Continue's review bot assistant
+          continue-config: 'continuedev/bdougie-test'  # Continue's review bot assistant
