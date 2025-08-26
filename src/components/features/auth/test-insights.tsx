@@ -115,7 +115,7 @@ export default function TestInsights() {
           errorMessage =
             "Server error: The service is currently unavailable. Please try again later.";
         }
-        throw new Error(_errorMessage);
+        throw new Error(errorMessage);
       }
 
       setResponse(result);
@@ -135,8 +135,8 @@ export default function TestInsights() {
           err instanceof Error ? err.message : "An unknown error occurred";
       }
 
-      setError(`${_errorMessage}\n\nPlease check the console for more details.`);
-      console.error("Test function _error:", err);
+      setError(`${errorMessage}\n\nPlease check the console for more details.`);
+      console.error("Test function error:", err);
     } finally {
       setLoading(false);
     }
@@ -161,8 +161,8 @@ export default function TestInsights() {
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "An unknown error occurred";
-      setLocalError(_errorMessage);
-      console.error("Local analysis _error:", err);
+      setLocalError(errorMessage);
+      console.error("Local analysis error:", err);
     } finally {
       setLocalLoading(false);
     }
@@ -191,7 +191,7 @@ export default function TestInsights() {
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "An unknown error occurred";
-      setLocalError(_errorMessage);
+      setLocalError(errorMessage);
     } finally {
       setLocalLoading(false);
     }

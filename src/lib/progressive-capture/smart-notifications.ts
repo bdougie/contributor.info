@@ -79,8 +79,8 @@ export class SmartDataNotifications {
       }
 
       this.checkedRepositories.add(repoKey);
-    } catch () {
-      console.error(`[Smart Notifications] Error checking ${repoKey}:`, _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -168,8 +168,8 @@ export class SmartDataNotifications {
           missing.push('comments');
         }
       }
-    } catch () {
-      console.error('[Smart Notifications] Error analyzing missing _data:', _error);
+    } catch (error) {
+      console.error(, error);
     }
 
     return missing;
@@ -187,7 +187,7 @@ export class SmartDataNotifications {
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (_error || !repoData) {
+      if (error || !repoData) {
         return;
       }
 
@@ -196,8 +196,8 @@ export class SmartDataNotifications {
       for (const dataType of _dataTypes) {
         ProgressiveCaptureNotifications.showDataAvailable(repoName, _dataType);
       }
-    } catch () {
-      console.error('[Smart Notifications] Error notifying _data update:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -279,8 +279,8 @@ export class SmartDataNotifications {
       if (import.meta.env?.DEV) {
         console.log(`✅ Auto-fix jobs queued for ${owner}/${repo}:`, results);
       }
-    } catch () {
-      console.warn(`Could not auto-fix _data for ${owner}/${repo}:`, _error);
+    } catch (error) {
+      console.warn(`Could not auto-fix _data for ${owner}/${repo}:`, error);
     }
   }
 
@@ -328,8 +328,8 @@ export class SmartDataNotifications {
       } else {
         return 'medium'; // Regular repo with recent data
       }
-    } catch () {
-      console.warn('Error calculating priority, defaulting to medium:', _error);
+    } catch (error) {
+      console.warn('Error calculating priority, defaulting to medium:', error);
       return 'medium';
     }
   }

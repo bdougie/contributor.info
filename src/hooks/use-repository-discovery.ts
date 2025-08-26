@@ -61,9 +61,9 @@ export function useRepositoryDiscovery({
           .eq('name', repo)
           .maybeSingle();
 
-        if (_error) {
+        if (error) {
           // Real error occurred
-          console.error('Error checking repository:', _error);
+          console.error(, error);
           setState({
             status: 'error',
             repository: null,
@@ -101,8 +101,8 @@ export function useRepositoryDiscovery({
 
         // Just set the state to indicate it needs tracking
         // The user will use the new tracking card instead
-      } catch () {
-        console.error('Repository check error:', _error);
+      } catch (error) {
+        console.error(, error);
         setState({
           status: 'error',
           repository: null,
@@ -149,8 +149,8 @@ export function useRepositoryDiscovery({
         // Start polling for repository creation
         startPolling(owner, repo);
 
-      } catch () {
-        console.error('Failed to initiate discovery:', _error);
+      } catch (error) {
+        console.error(, error);
         
         setState({
           status: 'error',

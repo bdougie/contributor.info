@@ -114,7 +114,7 @@ export function useRepositorySummary(
             .eq('name', repo)
             .maybeSingle();
 
-          if (_error) throw error;
+          if (error) throw error;
           return data;
         },
         {
@@ -183,8 +183,8 @@ export function useRepositorySummary(
             throw new Error(`Failed to generate summary: ${functionError.message}`);
           }
 
-          if (_data._error) {
-            throw new Error(_data._error);
+          if (_data.error) {
+            throw new Error(_data.error);
           }
 
           setSummary(_data.summary);
@@ -201,7 +201,7 @@ export function useRepositorySummary(
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
 
       // Fallback to local generation if Edge Function fails
-      if (_errorMessage.includes('500') || errorMessage.includes('non-2xx')) {
+      if (errorMessage.includes('500') || errorMessage.includes('non-2xx')) {
         console.log('Edge Function failed, generating summary locally');
         try {
           // Get repository data from the beginning of the function
@@ -220,8 +220,8 @@ export function useRepositorySummary(
           console.error('Local summary generation failed:', fallbackErr);
         }
       } else {
-        setError(_errorMessage);
-        console.error('AI summary error:', _errorMessage, { owner, repo });
+        setError(errorMessage);
+        console.error('AI summary error:', errorMessage, { owner, repo });
       }
     } finally {
       setLoading(false);
@@ -247,7 +247,7 @@ export function useRepositorySummary(
             .eq('name', repo)
             .maybeSingle();
 
-          if (_error) throw error;
+          if (error) throw error;
           return data;
         },
         {
@@ -287,8 +287,8 @@ export function useRepositorySummary(
             throw new Error(`Failed to generate summary: ${functionError.message}`);
           }
 
-          if (_data._error) {
-            throw new Error(_data._error);
+          if (_data.error) {
+            throw new Error(_data.error);
           }
 
           return data.summary;
@@ -305,10 +305,10 @@ export function useRepositorySummary(
       setSummary(result);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
-      setError(_errorMessage);
+      setError(errorMessage);
 
       // Simple error logging without analytics
-      console.error('AI summary refresh error:', _errorMessage, { owner, repo });
+      console.error('AI summary refresh error:', errorMessage, { owner, repo });
     } finally {
       setLoading(false);
     }

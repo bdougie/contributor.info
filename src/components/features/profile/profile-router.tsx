@@ -39,7 +39,7 @@ export function ProfileRouter() {
 
     const detectProfileType = async () => {
       try {
-        setState(prev => ({ ...prev, isLoading: true, _error: null }));
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         // Check cache first
         const cached = profileTypeCache[username];
@@ -98,11 +98,11 @@ export function ProfileRouter() {
             throw userError;
           }
         }
-      } catch (_error: unknown) {
+      } catch (error: unknown) {
         let errorMessage = 'Failed to determine profile type';
-        if (error?.status === 403 || (error instanceof Error && _error.message.includes('403'))) {
+        if (error?.status === 403 || (error instanceof Error && error.message.includes('403'))) {
           errorMessage = 'Rate limit exceeded. Please try again later.';
-        } else if (_error instanceof Error) {
+        } else if (error instanceof Error) {
           errorMessage = error.message;
         }
         
@@ -159,7 +159,7 @@ export function ProfileRouter() {
   }
 
   // Error state
-  if (state._error) {
+  if (state.error) {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <Card>

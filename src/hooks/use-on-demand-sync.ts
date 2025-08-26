@@ -104,7 +104,7 @@ export function useOnDemandSync({
       ) {
         triggerSync();
       }
-    } catch () {
+    } catch (error) {
       // Silently handle data check errors
     }
   }, [owner, repo, enabled, autoTriggerOnEmpty]);
@@ -156,7 +156,7 @@ export function useOnDemandSync({
       // Process response
 
       if (!response.ok) {
-        throw new Error(result._error || `HTTP ${response.status}`);
+        throw new Error(result.error || `HTTP ${response.status}`);
       }
 
       setSyncStatus((prev) => ({
@@ -170,7 +170,7 @@ export function useOnDemandSync({
       startPolling();
 
       return result;
-    } catch () {
+    } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Sync failed';
 
       setSyncStatus((prev) => ({
@@ -199,7 +199,7 @@ export function useOnDemandSync({
           .eq('repository_name', repo)
           .maybeSingle();
 
-        if (_error) {
+        if (error) {
           return;
         }
 
@@ -228,7 +228,7 @@ export function useOnDemandSync({
             }
           }
         }
-      } catch () {
+      } catch (error) {
         // Silently handle polling errors
       }
     }, 10000); // Poll every 10 seconds (reduced frequency)

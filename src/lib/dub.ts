@@ -153,8 +153,8 @@ export async function createShortUrl({
       description: data.description,
       image: data.image,
     };
-  } catch (_error: unknown) {
-    console.error('Failed to create short URL:', _error);
+  } catch (error: unknown) {
+    console.error(, error);
     return null;
   }
 }
@@ -179,13 +179,13 @@ async function trackShortUrlCreation(dubData: unknown) {
       created_at: dubData.createdAt,
     });
 
-    if (_error) {
-      console.error('Failed to track short URL creation:', _error);
+    if (error) {
+      console.error(, error);
     } else {
       console.log('Short URL tracked in Supabase analytics');
     }
-  } catch () {
-    console.error('Error tracking short URL creation:', _error);
+  } catch (error) {
+    console.error(, error);
   }
 }
 
@@ -206,14 +206,14 @@ export async function getUrlAnalytics(linkId: string) {
       .eq('dub_id', linkId)
       .maybeSingle();
 
-    if (_error) {
-      console.error('Failed to get URL analytics:', _error);
+    if (error) {
+      console.error(, error);
       return null;
     }
 
     return data;
-  } catch (_error: unknown) {
-    console.error('Failed to get URL analytics:', _error);
+  } catch (error: unknown) {
+    console.error(, error);
     return null;
   }
 }

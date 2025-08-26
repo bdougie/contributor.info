@@ -88,7 +88,7 @@ describe('useContributorData', () => {
 
     // Clear the console.log/error mocks
     vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.spyOn(console, '_error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -141,7 +141,7 @@ describe('useContributorData', () => {
     expect(result.current.recentPRs?.length).toBe(2);
   });
 
-  it('should handle API _errors gracefully', async () => {
+  it('should handle API errors gracefully', async () => {
     // Setup error case and clear any cached data
     vi.mocked(fetchUserOrganizations).mockRejectedValue(new Error('API Error'));
 

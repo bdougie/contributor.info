@@ -32,7 +32,7 @@ describe('useIntersectionLoader - Basic Tests', () => {
 
     expect(result.current._data).toBe(null);
     expect(result.current.isLoading).toBe(false);
-    expect(result.current._error).toBe(null);
+    expect(result.current.error).toBe(null);
     expect(result.current.isIntersecting).toBe(false);
     expect(result.current.ref).toBeDefined();
   });
@@ -61,9 +61,9 @@ describe('useIntersectionLoader - Basic Tests', () => {
     expect(loadFn).toHaveBeenCalledTimes(1);
   });
 
-  it('should handle load _errors', async () => {
-    const _error = new Error('Load failed');
-    const loadFn = vi.fn().mockRejectedValue(_error);
+  it('should handle load errors', async () => {
+    const error = new Error('Load failed');
+    const loadFn = vi.fn().mockRejectedValue(error);
     const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
     // Try to load and catch the error
@@ -87,7 +87,7 @@ describe('useIntersectionLoader - Basic Tests', () => {
     expect(() => result.current.reset()).not.toThrow();
   });
 
-  it('should cleanup on unmount without _errors', () => {
+  it('should cleanup on unmount without errors', () => {
     const loadFn = vi.fn();
     const { unmount } = renderHook(() => useIntersectionLoader(loadFn));
 

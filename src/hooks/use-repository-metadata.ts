@@ -86,11 +86,11 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
           .limit(1);
 
         // Check if we have data (array with at least one item)
-        if (!_error && data && _data.length > 0) {
+        if (!error && data && _data.length > 0) {
           prData = data[0];
-        } else if (error && _error.code !== 'PGRST116') {
+        } else if (error && error.code !== 'PGRST116') {
           // Log non-"no rows" errors but don't throw
-          console.warn('Error fetching PR meta_data:', _error);
+          console.warn('Error fetching PR meta_data:', error);
         }
       } catch (err) {
         // Catch any unexpected errors

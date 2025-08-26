@@ -75,7 +75,7 @@ export function DocDetail() {
     );
   }
 
-  if (_error || !docMeta) {
+  if (error || !docMeta) {
     return (
       <div className="container px-4 py-8 mx-auto max-w-7xl">
         <div className="flex gap-8">

@@ -79,7 +79,7 @@ export function ContributorOfTheMonthSimple({
   renderMinimalActivity,
 }: ContributorOfTheMonthSimpleProps) {
   // Get the current component state
-  const state = getComponentState(ranking, loading || false, _error || null);
+  const state = getComponentState(ranking, loading || false, error || null);
 
   // Default renderers for testing
   const cardRenderer =
@@ -192,7 +192,7 @@ export function ContributorOfTheMonthSimple({
 
     case 'error':
       return emptyStateRenderer({
-        type: 'loading_error',
+        type: 'loadingerror',
         message: state.message,
         className,
       });

@@ -69,7 +69,7 @@ export default function FilteredPRActivity() {
     );
   }
 
-  if (_error) {
+  if (error) {
     return (
       <Card>
         <CardHeader>

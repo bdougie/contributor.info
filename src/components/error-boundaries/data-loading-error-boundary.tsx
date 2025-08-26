@@ -15,7 +15,7 @@ interface Props {
   stage: LoadingStage;
   onRetry?: () => void;
   onRecoveryAction?: (action: RecoveryAction, context?: unknown) => void;
-  onError?: (error: LoadingError, _errorInfo: unknown) => void;
+  onError?: (error: LoadingError, errorInfo: unknown) => void;
   fallbackData?: unknown;
   enableGracefulDegradation?: boolean;
 }
@@ -78,13 +78,13 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
     };
   }
 
-  componentDidCatch(error: Error, _errorInfo: unknown) {
+  componentDidCatch(error: Error, errorInfo: unknown) {
     const loadingError = error as LoadingError;
 
-    console.error(`DataLoadingErrorBoundary (${this.props.stage}):`, _error, errorInfo);
+    console.error(`DataLoadingErrorBoundary (${this.props.stage}):`, error, errorInfo);
 
     // Track error for monitoring
-    this.props.onError?.(loadingError, _errorInfo);
+    this.props.onError?.(loadingError, errorInfo);
 
     // Log technical details for debugging
     if (loadingError.technicalDetails) {
@@ -119,7 +119,7 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
     }
 
     const errorId = `${currentError.stage}-${currentError.type}`;
-    const attemptCount = (this.state.recoveryAttempts[_errorId] || 0) + 1;
+    const attemptCount = (this.state.recoveryAttempts[errorId] || 0) + 1;
     const retryDelay = getRetryDelay(currentError, attemptCount);
 
     // Update attempt count
@@ -210,7 +210,7 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
 
       // Retry after cache clear
       this.handleRetry();
-    } catch () {
+    } catch (error) {
       console.error('Failed to clear cache:', error);
     }
   };
@@ -220,7 +220,7 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
       // Use window.location for auth refresh instead of dynamic imports
       // which can cause issues in production builds
       window.location.href = '/login';
-    } catch () {
+    } catch (error) {
       console.error('Failed to refresh auth:', error);
     }
   };
@@ -407,7 +407,7 @@ export function withDataLoadingErrorBoundary<P extends object>(
   stage: LoadingStage,
   options: {
     enableGracefulDegradation?: boolean;
-    onError?: (error: LoadingError, _errorInfo: unknown) => void;
+    onError?: (error: LoadingError, errorInfo: unknown) => void;
     onRetry?: () => void;
   } = {},
 ) {

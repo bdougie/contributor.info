@@ -94,7 +94,7 @@ const PrivacyPolicyPage = lazy(() =>
   })),
 );
 const DataRequestPage = lazy(() =>
-  import('@/components/features/privacy/_data-request-page').then((m) => ({
+  import('@/components/features/privacy/data-request-page').then((m) => ({
     default: m.DataRequestPage,
   })),
 );
@@ -336,7 +336,7 @@ function App() {
         import('@/components/features/repository/repo-view'),
         import('@/components/features/auth/login-page'),
         import('@/lib/supabase'), // Critical for data loading
-        import('@/hooks/use-cached-repo-_data'),
+        import('@/hooks/use-cached-repo-data'),
       ];
 
       // Start critical loads immediately

@@ -188,33 +188,33 @@ vi.mock('d3-interpolate', () => ({
 vi.mock('../lib/supabase', () => ({
   createSupabaseClient: vi.fn(() => ({
     auth: {
-      getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, _error: null })),
-      getUser: vi.fn(() => Promise.resolve({ _data: { user: null }, _error: null })),
-      signInWithOAuth: vi.fn(() => Promise.resolve({ _data: {}, _error: null })),
-      signOut: vi.fn(() => Promise.resolve({ _error: null })),
+      getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, error: null })),
+      getUser: vi.fn(() => Promise.resolve({ _data: { user: null }, error: null })),
+      signInWithOAuth: vi.fn(() => Promise.resolve({ _data: {}, error: null })),
+      signOut: vi.fn(() => Promise.resolve({ error: null })),
     },
     from: vi.fn(() => ({
-      select: vi.fn(() => ({ _data: [], _error: null })),
-      insert: vi.fn(() => ({ _data: [], _error: null })),
-      update: vi.fn(() => ({ _data: [], _error: null })),
-      delete: vi.fn(() => ({ _data: [], _error: null })),
+      select: vi.fn(() => ({ _data: [], error: null })),
+      insert: vi.fn(() => ({ _data: [], error: null })),
+      update: vi.fn(() => ({ _data: [], error: null })),
+      delete: vi.fn(() => ({ _data: [], error: null })),
     })),
   })),
   supabase: {
     auth: {
-      getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, _error: null })),
-      getUser: vi.fn(() => Promise.resolve({ _data: { user: null }, _error: null })),
-      signInWithOAuth: vi.fn(() => Promise.resolve({ _data: {}, _error: null })),
-      signOut: vi.fn(() => Promise.resolve({ _error: null })),
+      getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, error: null })),
+      getUser: vi.fn(() => Promise.resolve({ _data: { user: null }, error: null })),
+      signInWithOAuth: vi.fn(() => Promise.resolve({ _data: {}, error: null })),
+      signOut: vi.fn(() => Promise.resolve({ error: null })),
     },
     from: vi.fn(() => ({
-      select: vi.fn(() => ({ _data: [], _error: null })),
-      insert: vi.fn(() => ({ _data: [], _error: null })),
-      update: vi.fn(() => ({ _data: [], _error: null })),
-      delete: vi.fn(() => ({ _data: [], _error: null })),
+      select: vi.fn(() => ({ _data: [], error: null })),
+      insert: vi.fn(() => ({ _data: [], error: null })),
+      update: vi.fn(() => ({ _data: [], error: null })),
+      delete: vi.fn(() => ({ _data: [], error: null })),
     })),
   },
-  debugAuthSession: vi.fn(() => Promise.resolve({ session: null, _error: null })),
+  debugAuthSession: vi.fn(() => Promise.resolve({ session: null, error: null })),
 }));
 
 // Mock env module to provide test environment variables
@@ -287,7 +287,7 @@ global.fetch = vi.fn(() =>
     ok: false,
     status: 500,
     statusText: 'Internal Server Error',
-    json: () => Promise.resolve({ _error: 'Network call blocked in tests' }),
+    json: () => Promise.resolve({ error: 'Network call blocked in tests' }),
     text: () => Promise.resolve('Network call blocked in tests'),
   } as Response),
 );

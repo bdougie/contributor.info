@@ -113,7 +113,7 @@ describe('calculateRepositoryConfidence', () => {
             ...mockStarEvents.data.map((d: unknown) => ({ ...d, event_type: 'WatchEvent' })),
             ...mockForkEvents.data.map((d: unknown) => ({ ...d, event_type: 'ForkEvent' }))
           ];
-          return createChainableMock({ _data: allEvents, _error: null });
+          return createChainableMock({ _data: allEvents, error: null });
         }
         if (table === 'pull_requests') {
           return createChainableMock(mockContributors);
@@ -123,14 +123,14 @@ describe('calculateRepositoryConfidence', () => {
         }
         if (table === 'repository_confidence_cache') {
           // For cache queries, return no cached data (which should make the function calculate fresh)
-          const mock = createChainableMock({ _data: null, _error: null });
-          mock.delete = vi.fn().mockReturnValue(createChainableMock({ _data: null, _error: null }));
+          const mock = createChainableMock({ _data: null, error: null });
+          mock.delete = vi.fn().mockReturnValue(createChainableMock({ _data: null, error: null }));
           return mock;
         }
         if (table === 'github_sync_status') {
-          return createChainableMock({ _data: null, _error: null });
+          return createChainableMock({ _data: null, error: null });
         }
-        return createChainableMock({ _data: [], _error: null });
+        return createChainableMock({ _data: [], error: null });
       });
 
       const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
@@ -197,7 +197,7 @@ describe('calculateRepositoryConfidence', () => {
             ...mockStarEvents.data.map((d: unknown) => ({ ...d, event_type: 'WatchEvent' })),
             ...mockForkEvents.data.map((d: unknown) => ({ ...d, event_type: 'ForkEvent' }))
           ];
-          return createChainableMock({ _data: allEvents, _error: null });
+          return createChainableMock({ _data: allEvents, error: null });
         }
         if (table === 'pull_requests') {
           return createChainableMock(mockContributors);
@@ -207,14 +207,14 @@ describe('calculateRepositoryConfidence', () => {
         }
         if (table === 'repository_confidence_cache') {
           // For cache queries, return no cached data (which should make the function calculate fresh)
-          const mock = createChainableMock({ _data: null, _error: null });
-          mock.delete = vi.fn().mockReturnValue(createChainableMock({ _data: null, _error: null }));
+          const mock = createChainableMock({ _data: null, error: null });
+          mock.delete = vi.fn().mockReturnValue(createChainableMock({ _data: null, error: null }));
           return mock;
         }
         if (table === 'github_sync_status') {
-          return createChainableMock({ _data: null, _error: null });
+          return createChainableMock({ _data: null, error: null });
         }
-        return createChainableMock({ _data: [], _error: null });
+        return createChainableMock({ _data: [], error: null });
       });
 
       const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
@@ -244,27 +244,27 @@ describe('calculateRepositoryConfidence', () => {
         }
         if (table === 'github_events_cache') {
           // Return empty array for star/fork events (no engagement)
-          return createChainableMock({ _data: [], _error: null });
+          return createChainableMock({ _data: [], error: null });
         }
         if (table === 'pull_requests') {
           // Return empty array for pull requests (no contributors)
-          return createChainableMock({ _data: [], _error: null });
+          return createChainableMock({ _data: [], error: null });
         }
         if (table === 'contributors') {
           // Return empty array for contributors
-          return createChainableMock({ _data: [], _error: null });
+          return createChainableMock({ _data: [], error: null });
         }
         if (table === 'repository_confidence_cache') {
           // For cache queries, return no cached data (which should make the function calculate fresh)
-          const mock = createChainableMock({ _data: null, _error: null });
-          mock.delete = vi.fn().mockReturnValue(createChainableMock({ _data: null, _error: null }));
+          const mock = createChainableMock({ _data: null, error: null });
+          mock.delete = vi.fn().mockReturnValue(createChainableMock({ _data: null, error: null }));
           return mock;
         }
         if (table === 'github_sync_status') {
-          return createChainableMock({ _data: null, _error: null });
+          return createChainableMock({ _data: null, error: null });
         }
         // Default: empty data for all other tables
-        return createChainableMock({ _data: [], _error: null });
+        return createChainableMock({ _data: [], error: null });
       });
 
       const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
@@ -277,13 +277,13 @@ describe('calculateRepositoryConfidence', () => {
       expect(result).toBeGreaterThanOrEqual(0); // Should not be negative
     });
 
-    it('should handle _database _errors gracefully', async () => {
+    it('should handle _database errors gracefully', async () => {
       const { supabase } = await import('@/lib/supabase');
       
       supabase.from = vi.fn().mockImplementation(() => {
         return createChainableMock({
           data: null,
-          error: new Error('Database _error')
+          error: new Error('Database error')
         });
       });
 
@@ -320,11 +320,11 @@ describe('calculateRepositoryConfidence', () => {
         }
         if (table === 'repository_confidence_cache') {
           // For cache queries, return no cached data (which should make the function calculate fresh)
-          const mock = createChainableMock({ _data: null, _error: null });
-          mock.delete = vi.fn().mockReturnValue(createChainableMock({ _data: null, _error: null }));
+          const mock = createChainableMock({ _data: null, error: null });
+          mock.delete = vi.fn().mockReturnValue(createChainableMock({ _data: null, error: null }));
           return mock;
         }
-        return createChainableMock({ _data: [], _error: null });
+        return createChainableMock({ _data: [], error: null });
       });
 
       const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
@@ -355,7 +355,7 @@ describe('calculateRepositoryConfidence', () => {
           return createChainableMock(mockRepo);
         }
         if (table === 'github_events_cache') {
-          const mock = createChainableMock({ _data: [], _error: null });
+          const mock = createChainableMock({ _data: [], error: null });
           // Override gte to capture the date filter
           mock.gte = vi.fn().mockImplementation((field: string, value: string) => {
             if (field === 'created_at') {
@@ -365,8 +365,8 @@ describe('calculateRepositoryConfidence', () => {
           });
           return mock;
         }
-        const mock = createChainableMock({ _data: [], _error: null });
-        mock.delete = vi.fn().mockReturnValue(createChainableMock({ _data: null, _error: null }));
+        const mock = createChainableMock({ _data: [], error: null });
+        mock.delete = vi.fn().mockReturnValue(createChainableMock({ _data: null, error: null }));
         return mock;
       });
 
@@ -421,12 +421,12 @@ describe('calculateRepositoryConfidence', () => {
         }
         if (table === 'repository_confidence_cache') {
           // For cache queries, return no cached data (which should make the function calculate fresh)
-          const mock = createChainableMock({ _data: null, _error: null });
-          mock.delete = vi.fn().mockReturnValue(createChainableMock({ _data: null, _error: null }));
+          const mock = createChainableMock({ _data: null, error: null });
+          mock.delete = vi.fn().mockReturnValue(createChainableMock({ _data: null, error: null }));
           return mock;
         }
         // Return empty data for all event queries
-        return createChainableMock({ _data: [], _error: null });
+        return createChainableMock({ _data: [], error: null });
       });
 
       const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
@@ -436,3 +436,4 @@ describe('calculateRepositoryConfidence', () => {
       expect(result).toBeLessThan(100);
     });
   });
+});

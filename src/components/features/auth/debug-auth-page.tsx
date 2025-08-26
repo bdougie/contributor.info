@@ -30,9 +30,9 @@ export default function DebugAuthPage() {
     try {
       addLog('Checking session...');
       const { data, error } = await supabase.auth.getSession();
-      if (_error) {
-        setAuthError(_error.message);
-        addLog(`Session error: ${_error.message}`);
+      if (error) {
+        setAuthError(error.message);
+        addLog(`Session error: ${error.message}`);
       } else {
         setSessionInfo(_data);
         if (_data.session?.user) {
@@ -45,8 +45,8 @@ export default function DebugAuthPage() {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to check session';
-      setAuthError(_errorMessage);
-      addLog(`Session check error: ${_errorMessage}`);
+      setAuthError(errorMessage);
+      addLog(`Session check error: ${errorMessage}`);
     }
   };
 
@@ -68,14 +68,14 @@ export default function DebugAuthPage() {
 
       if (signInError) {
         setAuthError(signInError.message);
-        addLog(`Login _error: ${signInError.message}`);
+        addLog(`Login error: ${signInError.message}`);
       } else {
         addLog('Login initiated, waiting for redirect...');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to initiate login';
-      setAuthError(_errorMessage);
-      addLog(`Login error: ${_errorMessage}`);
+      setAuthError(errorMessage);
+      addLog(`Login error: ${errorMessage}`);
     }
   };
 
@@ -87,7 +87,7 @@ export default function DebugAuthPage() {
 
       if (signOutError) {
         setAuthError(signOutError.message);
-        addLog(`Logout _error: ${signOutError.message}`);
+        addLog(`Logout error: ${signOutError.message}`);
       } else {
         // Clear state on successful logout
         setUserInfo(null);
@@ -96,8 +96,8 @@ export default function DebugAuthPage() {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to log out';
-      setAuthError(_errorMessage);
-      addLog(`Logout error: ${_errorMessage}`);
+      setAuthError(errorMessage);
+      addLog(`Logout error: ${errorMessage}`);
     }
   };
 
@@ -106,9 +106,9 @@ export default function DebugAuthPage() {
     try {
       addLog('Forcing session refresh...');
       const { data, error } = await supabase.auth.refreshSession();
-      if (_error) {
-        addLog(`Refresh error: ${_error.message}`);
-        setAuthError(_error.message);
+      if (error) {
+        addLog(`Refresh error: ${error.message}`);
+        setAuthError(error.message);
       } else {
         addLog('Session refreshed successfully');
         if (_data.session) {
@@ -121,8 +121,8 @@ export default function DebugAuthPage() {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to refresh session';
-      setAuthError(_errorMessage);
-      addLog(`Refresh error: ${_errorMessage}`);
+      setAuthError(errorMessage);
+      addLog(`Refresh error: ${errorMessage}`);
     }
   };
 
@@ -141,7 +141,7 @@ export default function DebugAuthPage() {
       addLog(`Hook session check result: ${isActive ? 'Active session' : 'No active session'}`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed with hook check session';
-      addLog(`Hook session check error: ${_errorMessage}`);
+      addLog(`Hook session check error: ${errorMessage}`);
     }
   };
 

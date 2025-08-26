@@ -203,14 +203,14 @@ describe('useDistribution', () => {
       expect(ContributionAnalyzer.analyze).not.toHaveBeenCalled();
     });
 
-    it('should handle _errors during analysis', () => {
+    it('should handle errors during analysis', () => {
       // Mock ContributionAnalyzer to throw an error
       vi.mocked(ContributionAnalyzer.analyze).mockImplementation(() => {
         throw new Error('Analysis failed');
       });
 
       // Directly test the error handling
-      const _error = null;
+      const error = null;
       try {
         ContributionAnalyzer.resetCounts();
         mockPullRequests.forEach((pr) => {
@@ -220,8 +220,8 @@ describe('useDistribution', () => {
         error = err;
       }
 
-      expect(_error).toBeInstanceOf(Error);
-      expect((_error as Error).message).toBe('Analysis failed');
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toBe('Analysis failed');
     });
   });
 });

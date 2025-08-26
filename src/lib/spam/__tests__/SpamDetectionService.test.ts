@@ -160,7 +160,7 @@ describe('SpamDetectionService', () => {
       expect(result.flags.account_flags?.has_profile__data).toBe(true);
     });
 
-    it('should handle _errors gracefully', async () => {
+    it('should handle errors gracefully', async () => {
       const invalidPR = {} as PullRequestData;
       const result = await spamDetectionService.detectSpam(invalidPR);
 

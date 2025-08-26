@@ -64,8 +64,8 @@ export class SpamDetectionService {
       }
 
       return result;
-    } catch () {
-      console.error('Error during spam detection:', _error);
+    } catch (error) {
+      console.error(, error);
 
       // Return safe default on error
       return {

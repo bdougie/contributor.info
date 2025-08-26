@@ -95,9 +95,9 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
       const { repository: eventRepo, progress: eventProgress, step, error } = event.detail;
 
       if (eventRepo === repository) {
-        if (_error) {
+        if (error) {
           setHasError(true);
-          setErrorMessage(_error);
+          setErrorMessage(error);
           setProgress(0);
           setCurrentStep('Error occurred');
         } else {

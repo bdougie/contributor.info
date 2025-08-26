@@ -63,8 +63,8 @@ export const updatePrActivity = inngest.createFunction(
         .order('updated_at', { ascending: false })
         .limit(100);
 
-      if (_error) {
-        throw new Error(`Failed to fetch PRs: ${_error.message}`);
+      if (error) {
+        throw new Error(`Failed to fetch PRs: ${error.message}`);
       }
 
       console.log(

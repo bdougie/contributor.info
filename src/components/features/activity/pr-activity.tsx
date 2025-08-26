@@ -41,7 +41,7 @@ export default function PRActivity() {
 
   // Combined loading state and error
   const loading = effectiveLoading || activityLoading;
-  const _error = activityError || (effectiveError ? new Error(effectiveError) : null);
+  const error = activityError || (effectiveError ? new Error(effectiveError) : null);
 
   // Check if there are any bot activities
   useEffect(() => {

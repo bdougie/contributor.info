@@ -21,7 +21,7 @@ describe('Workspace Validation', () => {
       validNames.forEach((name) => {
         const result = validateWorkspaceName(name);
         expect(result.valid).toBe(true);
-        expect(result._errors).toHaveLength(0);
+        expect(result.errors).toHaveLength(0);
       });
     });
 
@@ -35,11 +35,11 @@ describe('Workspace Validation', () => {
         { name: 'workspace!', error: 'Name contains invalid characters' },
       ];
 
-      invalidCases.forEach(({ name, _error }) => {
+      invalidCases.forEach(({ name, error }) => {
         const result = validateWorkspaceName(name);
         expect(result.valid).toBe(false);
         expect(
-          result.errors.some((e) => e.message.includes(_error.split(' ').slice(0, 3).join(' '))),
+          result.errors.some((e) => e.message.includes(error.split(' ').slice(0, 3).join(' '))),
         ).toBe(true);
       });
     });
@@ -52,18 +52,18 @@ describe('Workspace Validation', () => {
       validDescriptions.forEach((desc) => {
         const result = validateWorkspaceDescription(desc);
         expect(result.valid).toBe(true);
-        expect(result._errors).toHaveLength(0);
+        expect(result.errors).toHaveLength(0);
       });
     });
 
     it('should reject invalid descriptions', () => {
       const result1 = validateWorkspaceDescription('a'.repeat(501));
       expect(result1.valid).toBe(false);
-      expect(result1._errors[0].message).toContain('500 characters');
+      expect(result1.errors[0].message).toContain('500 characters');
 
       const result2 = validateWorkspaceDescription(123 as unknown);
       expect(result2.valid).toBe(false);
-      expect(result2._errors[0].message).toContain('must be a string');
+      expect(result2.errors[0].message).toContain('must be a string');
     });
   });
 
@@ -77,7 +77,7 @@ describe('Workspace Validation', () => {
     it('should reject invalid visibility values', () => {
       const result = validateWorkspaceVisibility('internal' as unknown);
       expect(result.valid).toBe(false);
-      expect(result._errors[0].message).toContain('public" or "private');
+      expect(result.errors[0].message).toContain('public" or "private');
     });
   });
 
@@ -106,7 +106,7 @@ describe('Workspace Validation', () => {
       validSettings.forEach((settings) => {
         const result = validateWorkspaceSettings(settings as unknown);
         expect(result.valid).toBe(true);
-        expect(result._errors).toHaveLength(0);
+        expect(result.errors).toHaveLength(0);
       });
     });
 
@@ -138,10 +138,10 @@ describe('Workspace Validation', () => {
         },
       ];
 
-      invalidCases.forEach(({ settings, _error }) => {
+      invalidCases.forEach(({ settings, error }) => {
         const result = validateWorkspaceSettings(settings);
         expect(result.valid).toBe(false);
-        expect(result.errors.some((e) => e.message.includes(_error))).toBe(true);
+        expect(result.errors.some((e) => e.message.includes(error))).toBe(true);
       });
     });
   });
@@ -159,7 +159,7 @@ describe('Workspace Validation', () => {
 
       const result = validateCreateWorkspace(validRequest);
       expect(result.valid).toBe(true);
-      expect(result._errors).toHaveLength(0);
+      expect(result.errors).toHaveLength(0);
     });
 
     it('should reject invalid create workspace request', () => {
@@ -174,11 +174,11 @@ describe('Workspace Validation', () => {
 
       const result = validateCreateWorkspace(invalidRequest);
       expect(result.valid).toBe(false);
-      expect(result._errors.length).toBeGreaterThan(0);
-      expect(result._errors.some((e) => e.field === 'name')).toBe(true);
-      expect(result._errors.some((e) => e.field === 'description')).toBe(true);
-      expect(result._errors.some((e) => e.field === 'visibility')).toBe(true);
-      expect(result._errors.some((e) => e.field === 'settings.theme')).toBe(true);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors.some((e) => e.field === 'name')).toBe(true);
+      expect(result.errors.some((e) => e.field === 'description')).toBe(true);
+      expect(result.errors.some((e) => e.field === 'visibility')).toBe(true);
+      expect(result.errors.some((e) => e.field === 'settings.theme')).toBe(true);
     });
   });
 
@@ -201,7 +201,7 @@ describe('Workspace Validation', () => {
       validUpdates.forEach((update) => {
         const result = validateUpdateWorkspace(update);
         expect(result.valid).toBe(true);
-        expect(result._errors).toHaveLength(0);
+        expect(result.errors).toHaveLength(0);
       });
     });
 
@@ -213,8 +213,8 @@ describe('Workspace Validation', () => {
 
       const result = validateUpdateWorkspace(invalidRequest);
       expect(result.valid).toBe(false);
-      expect(result._errors.some((e) => e.field === 'name')).toBe(true);
-      expect(result._errors.some((e) => e.field === 'visibility')).toBe(true);
+      expect(result.errors.some((e) => e.field === 'name')).toBe(true);
+      expect(result.errors.some((e) => e.field === 'visibility')).toBe(true);
     });
   });
 
@@ -225,7 +225,7 @@ describe('Workspace Validation', () => {
       validEmails.forEach((email) => {
         const result = validateEmail(email);
         expect(result.valid).toBe(true);
-        expect(result._errors).toHaveLength(0);
+        expect(result.errors).toHaveLength(0);
       });
     });
 
@@ -243,7 +243,7 @@ describe('Workspace Validation', () => {
       invalidEmails.forEach((email) => {
         const result = validateEmail(email);
         expect(result.valid).toBe(false);
-        expect(result._errors.length).toBeGreaterThan(0);
+        expect(result.errors.length).toBeGreaterThan(0);
       });
     });
   });
@@ -255,20 +255,20 @@ describe('Workspace Validation', () => {
       validRoles.forEach((role) => {
         const result = validateWorkspaceRole(role);
         expect(result.valid).toBe(true);
-        expect(result._errors).toHaveLength(0);
+        expect(result.errors).toHaveLength(0);
       });
     });
 
     it('should accept owner role when allowed', () => {
       const result = validateWorkspaceRole('owner', true);
       expect(result.valid).toBe(true);
-      expect(result._errors).toHaveLength(0);
+      expect(result.errors).toHaveLength(0);
     });
 
     it('should reject owner role when not allowed', () => {
       const result = validateWorkspaceRole('owner', false);
       expect(result.valid).toBe(false);
-      expect(result._errors[0].message).toContain('admin, editor, viewer');
+      expect(result.errors[0].message).toContain('admin, editor, viewer');
     });
 
     it('should reject invalid roles', () => {
@@ -277,7 +277,7 @@ describe('Workspace Validation', () => {
       invalidRoles.forEach((role) => {
         const result = validateWorkspaceRole(role as unknown);
         expect(result.valid).toBe(false);
-        expect(result._errors.length).toBeGreaterThan(0);
+        expect(result.errors.length).toBeGreaterThan(0);
       });
     });
   });
@@ -300,7 +300,7 @@ describe('Workspace Validation', () => {
       validRequests.forEach((request) => {
         const result = validateAddRepository(request);
         expect(result.valid).toBe(true);
-        expect(result._errors).toHaveLength(0);
+        expect(result.errors).toHaveLength(0);
       });
     });
 
@@ -332,10 +332,10 @@ describe('Workspace Validation', () => {
         },
       ];
 
-      invalidCases.forEach(({ request, _error }) => {
+      invalidCases.forEach(({ request, error }) => {
         const result = validateAddRepository(request);
         expect(result.valid).toBe(false);
-        expect(result.errors.some((e) => e.message.includes(_error))).toBe(true);
+        expect(result.errors.some((e) => e.message.includes(error))).toBe(true);
       });
     });
   });
@@ -355,7 +355,7 @@ describe('Workspace Validation', () => {
       validRequests.forEach((request) => {
         const result = validateInviteMember(request);
         expect(result.valid).toBe(true);
-        expect(result._errors).toHaveLength(0);
+        expect(result.errors).toHaveLength(0);
       });
     });
 
@@ -379,30 +379,30 @@ describe('Workspace Validation', () => {
         },
       ];
 
-      invalidCases.forEach(({ request, _error }) => {
+      invalidCases.forEach(({ request, error }) => {
         const result = validateInviteMember(request);
         expect(result.valid).toBe(false);
-        expect(result.errors.some((e) => e.message.includes(_error))).toBe(true);
+        expect(result.errors.some((e) => e.message.includes(error))).toBe(true);
       });
     });
   });
 
   describe('formatValidationErrors', () => {
-    it('should format no _errors correctly', () => {
+    it('should format no errors correctly', () => {
       expect(formatValidationErrors([])).toBe('');
     });
 
-    it('should format single _error correctly', () => {
+    it('should format single error correctly', () => {
       const _ = [{ field: 'name', message: 'Name is required' }];
-      expect(formatValidationErrors(_errors)).toBe('Name is required');
+      expect(formatValidationErrors(errors)).toBe('Name is required');
     });
 
-    it('should format multiple _errors correctly', () => {
+    it('should format multiple errors correctly', () => {
       const _ = [
         { field: 'name', message: 'Name is required' },
         { field: 'email', message: 'Invalid email' },
       ];
-      expect(formatValidationErrors(_errors)).toBe(
+      expect(formatValidationErrors(errors)).toBe(
         'Validation failed: name: Name is required, email: Invalid email',
       );
     });

@@ -30,7 +30,7 @@ export function AdminRoute({ children, fallback }: AdminRouteProps) {
   }
 
   // Show error state
-  if (_error) {
+  if (error) {
     return (
       <Card className="max-w-md mx-auto mt-8">
         <CardHeader>

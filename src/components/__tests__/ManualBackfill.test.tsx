@@ -117,7 +117,7 @@ describe('ManualBackfill', () => {
   });
 
   describe('Error Handling', () => {
-    it('should show _error alert structure', () => {
+    it('should show error alert structure', () => {
       render(<ManualBackfill repository="owner/repo" />);
 
       // Check that error alert container exists (even if hidden)

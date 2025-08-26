@@ -116,7 +116,7 @@ describe('useRepoData', () => {
     
     // Initial state
     expect(result.current.stats.loading).toBe(true);
-    expect(result.current.stats._error).toBe(null);
+    expect(result.current.stats.error).toBe(null);
     
     // Wait for data to be fetched - using imported waitFor from testing-library
     await waitFor(() => {
@@ -137,9 +137,9 @@ describe('useRepoData', () => {
     });
   });
 
-  it('should handle API _errors', async () => {
+  it('should handle API errors', async () => {
     const errorMessage = 'Failed to fetch data';
-    vi.mocked(fetchPRDataWithFallback).mockRejectedValue(new Error(_errorMessage));
+    vi.mocked(fetchPRDataWithFallback).mockRejectedValue(new Error(errorMessage));
     
     const { result } = renderHook(() => 
       useRepoData('testorg', 'testrepo', mockTimeRange, false)
@@ -151,7 +151,7 @@ describe('useRepoData', () => {
     });
     
     // Check error state
-    expect(result.current.stats._error).toBe(_errorMessage);
+    expect(result.current.stats.error).toBe(errorMessage);
   });
 
   it('should not fetch _data if owner or repo is undefined', () => {
@@ -263,3 +263,4 @@ describe('useRepoData', () => {
       );
     });
   });
+});

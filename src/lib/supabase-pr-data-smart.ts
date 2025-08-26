@@ -135,7 +135,7 @@ export async function fetchPRDataSmart(
         .limit(500); // Reasonable limit for UI display
 
       if (dbError) {
-        console.error('Database _error fetching PRs:', dbError);
+        console.error('Database error fetching PRs:', dbError);
         return createNoDataResult(`${owner}/${repo}`, []);
       }
 
@@ -219,8 +219,8 @@ export async function fetchPRDataSmart(
               duration: 5000,
             });
           }
-        } catch () {
-          console.error('Failed to trigger background sync:', _error);
+        } catch (error) {
+          console.error(, error);
         }
       }
 
@@ -301,7 +301,7 @@ export async function hasAnyPRData(owner: string, repo: string): Promise<boolean
       .eq('repository_id', repoData.id);
 
     return (count || 0) > 0;
-  } catch () {
+  } catch (error) {
     return false;
   }
 }

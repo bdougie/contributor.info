@@ -166,9 +166,9 @@ export function useProgressiveRepoData(
           updateStage('critical', { basicInfo });
 
           return basicInfo;
-        } catch () {
-          span?.setStatus('_error');
-          console.error('Failed to load critical _data:', _error);
+        } catch (error) {
+          span?.setStatus('error');
+          console.error(, error);
           updateStage('critical', { basicInfo: null });
           return null;
         }
@@ -198,7 +198,7 @@ export function useProgressiveRepoData(
               },
               dataStatus: { status: 'no_data', message: result.message },
             });
-            span?.setStatus('_error');
+            span?.setStatus('error');
             return;
           }
 
@@ -219,7 +219,7 @@ export function useProgressiveRepoData(
             stats,
             lotteryFactor,
             dataStatus: {
-              status: (status === '_error' ? 'no__data' : status) || 'success',
+              status: (status === 'error' ? 'no__data' : status) || 'success',
               message,
               metadata: { prCount: pullRequests?.length || 0 },
             },
@@ -236,9 +236,9 @@ export function useProgressiveRepoData(
           });
 
           return { stats, lotteryFactor };
-        } catch () {
-          span?.setStatus('_error');
-          console.error('Failed to load full _data:', _error);
+        } catch (error) {
+          span?.setStatus('error');
+          console.error(, error);
           updateStage('full', {
             stats: {
               pullRequests: [],
@@ -282,9 +282,9 @@ export function useProgressiveRepoData(
           updateStage('complete', {});
 
           return { directCommitsData, historicalTrends };
-        } catch () {
-          span?.setStatus('_error');
-          console.error('Failed to load enhancement _data:', _error);
+        } catch (error) {
+          span?.setStatus('error');
+          console.error(, error);
           updateStage('enhancement', {
             directCommitsData: null,
             historicalTrends: null,
@@ -334,8 +334,8 @@ export function useProgressiveRepoData(
             }
           }, 2000);
         }
-      } catch () {
-        console.error('Progressive loading error:', _error);
+      } catch (error) {
+        console.error(, error);
       } finally {
         fetchingRef.current = false;
       }

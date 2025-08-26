@@ -5,7 +5,7 @@ import { Button } from './button';
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
-  onError?: (error: Error, _errorInfo: ErrorInfo) => void;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
 interface State {
@@ -19,17 +19,17 @@ export class ErrorBoundary extends Component<Props, State> {
     error: null,
   };
 
-  public static getDerivedStateFromError(_error: Error): State {
+  public static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, _errorInfo: ErrorInfo) {
-    console.error('Error boundary caught:', _error, _errorInfo);
-    this.props.onError?.(_error, _errorInfo);
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Error boundary caught:', error, errorInfo);
+    this.props.onError?.(error, errorInfo);
   }
 
   private handleReset = () => {
-    this.setState({ hasError: false, _error: null });
+    this.setState({ hasError: false, error: null });
   };
 
   public render() {

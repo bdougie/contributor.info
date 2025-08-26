@@ -4,7 +4,7 @@
  */
 
 export interface LLMError {
-  type: 'api_error' | 'network_error' | 'rate_limit' | 'auth_error' | 'timeout' | 'unknown';
+  type: 'apierror' | 'networkerror' | 'rate_limit' | 'autherror' | 'timeout' | 'unknown';
   message: string;
   code?: string | number;
   retryable: boolean;
@@ -39,8 +39,8 @@ class LLMErrorHandler {
   /**
    * Process and categorize errors from LLM operations
    */
-  handleError(_error: unknown, context: string): LLMError {
-    const llmError = this.categorizeError(__error, context);
+  handleError(error: unknown, context: string): LLMError {
+    const llmError = this.categorizeError(_error, context);
 
     if (this.config.logErrors) {
       this.logError(llmError);
@@ -52,11 +52,11 @@ class LLMErrorHandler {
   /**
    * Categorize error based on type and provide appropriate handling
    */
-  private categorizeError(_error: unknown, context: string): LLMError {
+  private categorizeError(error: unknown, context: string): LLMError {
     const timestamp = new Date();
 
     // OpenAI API specific errors
-    if (_error.message?.includes('rate limit')) {
+    if (error.message?.includes('rate limit')) {
       return {
         type: 'rate_limit',
         message: `Rate limit exceeded in ${context}`,
@@ -69,9 +69,9 @@ class LLMErrorHandler {
       };
     }
 
-    if (_error.message?.includes('Invalid OpenAI API key') || error.message?.includes('401')) {
+    if (error.message?.includes('Invalid OpenAI API key') || error.message?.includes('401')) {
       return {
-        type: 'auth_error',
+        type: 'autherror',
         message: `Authentication failed in ${context}`,
         code: 401,
         retryable: false,
@@ -82,7 +82,7 @@ class LLMErrorHandler {
       };
     }
 
-    if (_error.message?.includes('timeout') || error.name === 'AbortError') {
+    if (error.message?.includes('timeout') || error.name === 'AbortError') {
       return {
         type: 'timeout',
         message: `Request timeout in ${context}`,
@@ -96,9 +96,9 @@ class LLMErrorHandler {
     }
 
     // Network errors
-    if (_error.message?.includes('network') || error.message?.includes('fetch')) {
+    if (error.message?.includes('network') || error.message?.includes('fetch')) {
       return {
-        type: 'network_error',
+        type: 'networkerror',
         message: `Network error in ${context}: ${error.message}`,
         retryable: true,
         fallbackAvailable: true,
@@ -108,9 +108,9 @@ class LLMErrorHandler {
     }
 
     // API errors (non-auth, non-rate-limit)
-    if (error.message?.includes('API _error') || (error.code && _error.code >= 400)) {
+    if (error.message?.includes('API error') || (error.code && error.code >= 400)) {
       return {
-        type: 'api_error',
+        type: 'apierror',
         message: `API error in ${context}: ${error.message}`,
         code: error.code,
         retryable: error.code >= 500, // Server errors are retryable
@@ -134,7 +134,7 @@ class LLMErrorHandler {
   /**
    * Log error for debugging and monitoring
    */
-  private logError(_error: LLMError): void {
+  private logError(error: LLMError): void {
     console.error('LLM Error:', {
       type: error.type,
       message: error.message,
@@ -144,8 +144,8 @@ class LLMErrorHandler {
     });
 
     // Keep last 50 errors for debugging
-    this.errorLog.push(_error);
-    if (this._errorLog.length > 50) {
+    this.errorLog.push(error);
+    if (this.errorLog.length > 50) {
       this.errorLog.shift();
     }
   }
@@ -153,7 +153,7 @@ class LLMErrorHandler {
   /**
    * Check if error should trigger a retry
    */
-  shouldRetry(_error: LLMError, attemptCount: number): boolean {
+  shouldRetry(error: LLMError, attemptCount: number): boolean {
     if (!this.config.enableRetry || attemptCount >= this.config.maxRetries) {
       return false;
     }
@@ -180,11 +180,11 @@ class LLMErrorHandler {
     const now = new Date();
     const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    const recentErrors = this.errorLog.filter((error) => _error.timestamp > last24Hours);
+    const recentErrors = this.errorLog.filter((error) => error.timestamp > last24Hours);
 
     const errorsByType = this.errorLog.reduce(
-      (acc, _error) => {
-        acc[error.type] = (acc[_error.type] || 0) + 1;
+      (acc, error) => {
+        acc[error.type] = (acc[error.type] || 0) + 1;
         return acc;
       },
       {} as Record<string, number>,
@@ -208,14 +208,14 @@ class LLMErrorHandler {
   /**
    * Generate user-friendly error message for UI
    */
-  getUserMessage(_error: LLMError): string {
+  getUserMessage(error: LLMError): string {
     return error.userMessage;
   }
 
   /**
    * Check if fallback should be used
    */
-  shouldUseFallback(_error: LLMError): boolean {
+  shouldUseFallback(error: LLMError): boolean {
     return this.config.enableFallbacks && error.fallbackAvailable;
   }
 }
@@ -225,8 +225,8 @@ export const llmErrorHandler = new LLMErrorHandler();
 
 // Export utilities for components
 export const createErrorBoundaryProps = () => ({
-  onError: (_error: Error) => {
-    llmErrorHandler.handleError(__error, 'React Error Boundary');
+  onError: (error: Error) => {
+    llmErrorHandler.handleError(_error, 'React Error Boundary');
   },
 });
 
@@ -241,8 +241,8 @@ export const withErrorHandling = <T extends any[], R>(
     while (attemptCount <= llmErrorHandler['config'].maxRetries) {
       try {
         return await fn(...args);
-      } catch () {
-        const llmError = llmErrorHandler.handleError(__error, context);
+      } catch (error) {
+        const llmError = llmErrorHandler.handleError(_error, context);
 
         if (llmErrorHandler.shouldRetry(llmError, attemptCount)) {
           attemptCount++;

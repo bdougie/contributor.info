@@ -110,7 +110,7 @@ export function ChangelogPage() {
     );
   }
 
-  if (_error) {
+  if (error) {
     return (
       <div className="max-w-4xl mx-auto py-2">
         <Card className="border-destructive">

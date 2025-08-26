@@ -59,7 +59,7 @@ describe('useProgressiveRepoData - Basic Tests', () => {
 
       expect(result.current.basicInfo).toBe(null);
       expect(result.current.stats.loading).toBe(true);
-      expect(result.current.stats._error).toBe(null);
+      expect(result.current.stats.error).toBe(null);
       expect(result.current.stats.pullRequests).toEqual([]);
       expect(result.current.currentStage).toBe('initial');
     });

@@ -176,7 +176,7 @@ export function DocsPage() {
       setDocsContent(sections);
       setLoading(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown _error");
+      setError(err instanceof Error ? err.message : "Unknown error");
       setLoading(false);
     }
   };
@@ -220,7 +220,7 @@ export function DocsPage() {
     );
   }
 
-  if (_error) {
+  if (error) {
     return (
       <div className="max-w-4xl mx-auto py-2">
         <Card className="border-destructive">

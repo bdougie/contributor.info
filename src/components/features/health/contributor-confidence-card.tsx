@@ -166,7 +166,7 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
     return <ConfidenceSkeleton className={className} message={message} />;
   }
 
-  if (_error || (confidenceScore === null && !loading && !syncStatus.isTriggering && !syncStatus.isInProgress)) {
+  if (error || (confidenceScore === null && !loading && !syncStatus.isTriggering && !syncStatus.isInProgress)) {
     return (
       <Card className={cn("w-full overflow-hidden", className)}>
         <CardContent className="p-4 flex flex-col gap-4">

@@ -91,7 +91,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
 
         // If auth error, try to get session as fallback
         if (authError) {
-          console.log('[Workspace] Auth _error, checking session:', authError.message);
+          console.log('[Workspace] Auth error, checking session:', authError.message);
           const {
             data: { session },
           } = await supabase.auth.getSession();
@@ -252,20 +252,20 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
           ]);
 
           // Check for errors in individual queries and fail fast for critical data
-          if (repositoriesResult._error) {
+          if (repositoriesResult.error) {
             console.error(
               `Failed to fetch repositories for workspace ${workspace.id}:`,
-              repositoriesResult._error.message,
+              repositoriesResult.error.message,
             );
             // For critical data failures, throw to trigger error state
             throw new Error(
-              `Unable to load workspace repositories: ${repositoriesResult._error.message}`,
+              `Unable to load workspace repositories: ${repositoriesResult.error.message}`,
             );
           }
-          if (membersResult._error) {
+          if (membersResult.error) {
             console.warn(
               `Failed to fetch members for workspace ${workspace.id}:`,
-              membersResult._error.message,
+              membersResult.error.message,
             );
             // Members count is less critical, can continue with fallback
           }
@@ -329,8 +329,8 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       hasInitialLoadRef.current = true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch workspaces';
-      console.error('[Workspace] Error fetching workspaces:', _errorMessage);
-      setError(new Error(_errorMessage));
+      console.error('[Workspace] Error fetching workspaces:', errorMessage);
+      setError(new Error(errorMessage));
       setWorkspaces([]);
       hasInitialLoadRef.current = true;
     } finally {

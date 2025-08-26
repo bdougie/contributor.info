@@ -297,3 +297,4 @@ describe('YOLO Algorithm Improved Implementation', () => {
     const daysDiff = Math.abs((new Date().getTime() - sinceDate.getTime()) / (1000 * 60 * 60 * 24));
     expect(daysDiff).toBeCloseTo(90, 1); // Should be capped at 90 days
   });
+});

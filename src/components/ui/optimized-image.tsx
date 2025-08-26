@@ -155,7 +155,7 @@ export const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(
       );
     }
 
-    if (_error && fallbackSrc) {
+    if (error && fallbackSrc) {
       return (
         <img
           ref={ref}

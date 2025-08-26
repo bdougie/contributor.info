@@ -102,8 +102,8 @@ class LLMCitationTracker {
       if (process.env.NODE_ENV === 'development') {
         console.log('[LLM Citation Tracker] Page view tracked:', event);
       }
-    } catch () {
-      console.error('[LLM Citation Tracker] Failed to track page view:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -282,8 +282,8 @@ class LLMCitationTracker {
     try {
       const { error } = await supabase.from('referral_traffic').insert([event]);
 
-      if (_error) {
-        console.error('[LLM Citation Tracker] Failed to send referral event:', _error);
+      if (error) {
+        console.error(, error);
       }
     } catch (err) {
       console.error('[LLM Citation Tracker] Error sending referral event:', err);
@@ -297,8 +297,8 @@ class LLMCitationTracker {
     try {
       const { error } = await supabase.from('citation_alerts').insert([alert]);
 
-      if (_error) {
-        console.error('[LLM Citation Tracker] Failed to track citation alert:', _error);
+      if (error) {
+        console.error(, error);
       }
     } catch (err) {
       console.error('[LLM Citation Tracker] Error tracking citation alert:', err);
@@ -335,7 +335,7 @@ class LLMCitationTracker {
           })
           .eq('id', existing.id);
 
-        if (_error) throw error;
+        if (error) throw error;
       } else {
         // Insert new pattern
         const { error } = await supabase.from('query_patterns').insert([
@@ -346,7 +346,7 @@ class LLMCitationTracker {
           },
         ]);
 
-        if (_error) throw error;
+        if (error) throw error;
       }
     } catch (err) {
       console.error('[LLM Citation Tracker] Error recording query pattern:', err);
@@ -373,8 +373,8 @@ class LLMCitationTracker {
 
       const { data, error } = await query.order('created_at', { ascending: false });
 
-      if (_error) {
-        console.error('[LLM Citation Tracker] Failed to get citation metrics:', _error);
+      if (error) {
+        console.error(, error);
         return null;
       }
 

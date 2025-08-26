@@ -91,8 +91,8 @@ export function useGlobalStats(): GlobalStats {
           timestamp: Date.now(),
         };
         localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-      } catch () {
-        console.error('Error fetching global stats:', _error);
+      } catch (error) {
+        console.error(, error);
         setStats((prev) => ({
           ...prev,
           isLoading: false,

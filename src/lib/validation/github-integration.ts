@@ -355,7 +355,7 @@ export function safeValidateGitHubResponse<T>(
         receivedData: data,
       });
     } else {
-      console.warn(errorMessage, result._errors);
+      console.warn(errorMessage, result.errors);
     }
 
     return null;
@@ -368,11 +368,11 @@ export function safeValidateGitHubResponse<T>(
  * Creates a standardized error handler for GitHub API validation
  */
 export function createGitHubValidationErrorHandler(
-  onError: (_error: string, context: string, _data?: unknown) => void,
+  onError: (error: string, context: string, _data?: unknown) => void,
 ) {
   return <T>(schema: unknown, _data: unknown, context: string): T | null => {
-    return safeValidateGitHubResponse<T>(schema, _data, context, (message, _errorData) => {
-      onError(message, context, _errorData);
+    return safeValidateGitHubResponse<T>(schema, _data, context, (message, errorData) => {
+      onError(message, context, errorData);
     });
   };
 }

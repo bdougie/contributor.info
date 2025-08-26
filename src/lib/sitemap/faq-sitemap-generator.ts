@@ -30,7 +30,7 @@ export async function generateFAQSitemapEntries(limit: number = 100): Promise<FA
       .order('updated_at', { ascending: false })
       .limit(limit);
 
-    if (_error) {
+    if (error) {
       throw error;
     }
 
@@ -55,8 +55,8 @@ export async function generateFAQSitemapEntries(limit: number = 100): Promise<FA
       });
 
     return faqEntries;
-  } catch () {
-    console.error('Failed to generate FAQ sitemap entries:', _error);
+  } catch (error) {
+    console.error(, error);
     return [];
   }
 }
@@ -130,8 +130,8 @@ export async function updateMainSitemapWithFAQs(): Promise<boolean> {
     console.log('Generated %s FAQ sitemap entries', faqEntries.length);
 
     return true;
-  } catch () {
-    console.error('Failed to update main sitemap with FAQs:', _error);
+  } catch (error) {
+    console.error(, error);
     return false;
   }
 }

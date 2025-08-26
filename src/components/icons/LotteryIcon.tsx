@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const LotteryIcon({ className?: string }): JSX.Element = ({ className }) => (
+export const LotteryIcon = ({ className }: { className?: string }) => (
   <svg 
     width="22" 
     height="16" 

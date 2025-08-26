@@ -36,7 +36,7 @@ export function ContributorOfTheMonth({
   if (error) {
     return (
       <ContributorEmptyState
-        type="loading_error"
+        type="loadingerror"
         message={error}
         className={className}
       />

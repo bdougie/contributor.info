@@ -35,8 +35,8 @@ export function InsightsHealth({ owner, repo, timeRange }: RepositoryHealthProps
       if (metrics && llmService.isAvailable()) {
         loadLLMInsight(metrics);
       }
-    } catch () {
-      console.error('Failed to load health metrics:', _error);
+    } catch (error) {
+      console.error(, error);
       setHealth(null);
     } finally {
       setLoading(false);
@@ -51,8 +51,8 @@ export function InsightsHealth({ owner, repo, timeRange }: RepositoryHealthProps
         repo,
       });
       setLlmInsight(insight);
-    } catch () {
-      console.error('Failed to load LLM insight:', _error);
+    } catch (error) {
+      console.error(, error);
       setLlmInsight(null);
     } finally {
       setLlmLoading(false);

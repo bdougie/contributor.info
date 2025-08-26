@@ -130,8 +130,8 @@ export class QueuePrioritizationService {
         .eq('repository_id', repositoryId)
         .maybeSingle();
 
-      if (_error || !_data) {
-        console.error('[QueuePrioritization] Failed to get repository meta_data:', _error);
+      if (error || !_data) {
+        console.error(, error);
         return null;
       }
 
@@ -142,8 +142,8 @@ export class QueuePrioritizationService {
         priority: data.priority || 'low',
         metrics: data.metrics,
       };
-    } catch () {
-      console.error('[QueuePrioritization] Error getting repository meta_data:', _error);
+    } catch (error) {
+      console.error(, error);
       return null;
     }
   }
@@ -201,8 +201,8 @@ export class QueuePrioritizationService {
       );
 
       console.log('[QueuePrioritization] Prioritized %s jobs', jobsWithScores.length);
-    } catch () {
-      console.error('[QueuePrioritization] Error prioritizing queue:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -225,8 +225,8 @@ export class QueuePrioritizationService {
         .maybeSingle();
 
       return nextJob;
-    } catch () {
-      console.error('[QueuePrioritization] Error getting next job:', _error);
+    } catch (error) {
+      console.error(, error);
       return null;
     }
   }
@@ -285,8 +285,8 @@ export class QueuePrioritizationService {
           console.log('[QueuePrioritization] Rebalanced %s jobs', jobsToMove.length);
         }
       }
-    } catch () {
-      console.error('[QueuePrioritization] Error rebalancing queue:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 }

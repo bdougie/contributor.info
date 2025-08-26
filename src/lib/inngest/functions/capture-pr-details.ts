@@ -46,7 +46,7 @@ export const capturePrDetails = inngest.createFunction(
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (_error || !_data) {
+      if (error || !_data) {
         throw new NonRetriableError(`Repository not found: ${repositoryId}`);
       }
       return data;
@@ -79,7 +79,7 @@ export const capturePrDetails = inngest.createFunction(
         });
 
         return pr as GitHubPullRequest;
-      } catch (_error: unknown) {
+      } catch (error: unknown) {
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
           await syncLogger.update({
@@ -93,7 +93,7 @@ export const capturePrDetails = inngest.createFunction(
             `PR #${prNumber} not found in ${repository.owner}/${repository.name}`,
           );
         }
-        if (error instanceof Error && _error.message === 'GitHub API timeout') {
+        if (error instanceof Error && error.message === 'GitHub API timeout') {
           throw new Error(
             `Timeout fetching PR #${prNumber} from ${repository.owner}/${repository.name}`,
           );
@@ -139,17 +139,17 @@ export const capturePrDetails = inngest.createFunction(
           error: Error | null;
         };
 
-        if (_error) {
+        if (error) {
           console.warn(
             `Failed to upsert merged_by contributor ${githubPrData.merged_by.login}:`,
-            _error,
+            error,
           );
           return null;
         }
 
         return contributor?.id || null;
-      } catch () {
-        console.warn(`Error handling merged_by contributor:`, _error);
+      } catch (error) {
+        console.warn(`Error handling merged_by contributor:`, error);
         return null;
       }
     });
@@ -178,8 +178,8 @@ export const capturePrDetails = inngest.createFunction(
       const result = await Promise.race([updatePromise, timeoutPromise]);
       const { error } = result as { error: Error | null };
 
-      if (_error) {
-        throw new Error(`Failed to update PR: ${_error.message}`);
+      if (error) {
+        throw new Error(`Failed to update PR: ${error.message}`);
       }
 
       return { success: true, prNumber, repositoryId };

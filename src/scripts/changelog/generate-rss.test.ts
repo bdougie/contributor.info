@@ -53,7 +53,7 @@ describe('RSS/Atom Feed Generation', () => {
       expect(entries[0].date.getFullYear()).toBe(2025);
     });
 
-    it('should throw _error for invalid dates', () => {
+    it('should throw error for invalid dates', () => {
       const changelog = `
 ## [1.0.0](link) (invalid-date)
 ### 🚀 Features

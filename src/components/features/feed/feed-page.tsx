@@ -52,7 +52,7 @@ export default function FeedPage() {
     return <FeedSkeleton />;
   }
 
-  if (stats._error) {
+  if (stats.error) {
     return (
       <div className="container mx-auto py-2">
         <Card>

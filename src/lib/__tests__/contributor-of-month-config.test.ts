@@ -62,10 +62,10 @@ describe('contributor-of-month-config', () => {
       expect(state).toEqual({ type: 'loading' });
     });
 
-    it('returns error state when _error is provided', () => {
+    it('returns error state when error is provided', () => {
       const errorMessage = 'Test error';
-      const state = getComponentState(null, false, _errorMessage);
-      expect(state).toEqual({ type: 'error', message: _errorMessage });
+      const state = getComponentState(null, false, errorMessage);
+      expect(state).toEqual({ type: 'error', message: errorMessage });
     });
 
     it('returns no_activity state when ranking is null', () => {

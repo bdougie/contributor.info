@@ -52,7 +52,7 @@ export function InsightsDrawer() {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to generate insights";
       console.error("Error generating insights:", err);
-      setError(_errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

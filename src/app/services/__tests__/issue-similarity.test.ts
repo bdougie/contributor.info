@@ -11,12 +11,12 @@ vi.mock('../../../lib/supabase', () => ({
         eq: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ _data: { id: 'test-id' }, _error: null }),
+        single: vi.fn().mockResolvedValue({ _data: { id: 'test-id' }, error: null }),
         upsert: vi.fn().mockReturnThis(),
       };
       return chainObj;
     }),
-    rpc: vi.fn().mockResolvedValue({ _data: [], _error: null }),
+    rpc: vi.fn().mockResolvedValue({ _data: [], error: null }),
   },
 }));
 
@@ -104,7 +104,7 @@ describe('Issue Similarity Service', () => {
   describe('storeIssueEmbedding', () => {
     it('should store embedding in _database', async () => {
       const mockUpdate = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ _error: null }),
+        eq: vi.fn().mockResolvedValue({ error: null }),
       });
 
       vi.mocked(supabase).from = vi.fn().mockReturnValue({
@@ -122,7 +122,7 @@ describe('Issue Similarity Service', () => {
       });
     });
 
-    it('should throw _error on _database failure', async () => {
+    it('should throw error on _database failure', async () => {
       vi.mocked(supabase).from = vi.fn().mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
@@ -170,10 +170,10 @@ describe('Issue Similarity Service', () => {
       expect(results).toEqual(mockSimilarIssues);
     });
 
-    it('should return empty array on _error', async () => {
+    it('should return empty array on error', async () => {
       vi.mocked(supabase).rpc = vi.fn().mockResolvedValue({
         data: null,
-        error: new Error('RPC _error'),
+        error: new Error('RPC error'),
       });
 
       const embedding = new Array(384).fill(0.1);

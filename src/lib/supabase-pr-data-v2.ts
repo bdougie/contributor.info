@@ -64,7 +64,7 @@ export async function fetchPRDataWithSmartStrategy(
                 owner,
                 repo,
               },
-            }).catch((err) => console._error('Failed to enqueue classification job:', err)); // Fire and forget
+            }).catch((err) => console.error('Failed to enqueue classification job:', err)); // Fire and forget
           }
         } else {
           // Fallback to direct repository lookup
@@ -186,7 +186,7 @@ export async function fetchPRDataWithSmartStrategy(
                     reason: 'stale_cache',
                   },
                 }).catch((err) =>
-                  console._error('Failed to enqueue stale cache background sync:', err),
+                  console.error('Failed to enqueue stale cache background sync:', err),
                 );
               }
 
@@ -237,7 +237,7 @@ export async function fetchPRDataWithSmartStrategy(
                 reason: 'no_cache_xl_repo',
               },
             }).catch((err) =>
-              console._error('Failed to enqueue background capture for XL repo:', err),
+              console.error('Failed to enqueue background capture for XL repo:', err),
             );
           }
 
@@ -268,7 +268,7 @@ export async function fetchPRDataWithSmartStrategy(
               reason: 'partial_time_range',
             },
           }).catch((err) =>
-            console._error('Failed to enqueue partial time range background capture:', err),
+            console.error('Failed to enqueue partial time range background capture:', err),
           );
         }
 
@@ -282,11 +282,11 @@ export async function fetchPRDataWithSmartStrategy(
           strategy.triggerCapture && effectiveDays < requestedDays,
         );
         return createSuccessResult(githubPRs);
-      } catch () {
+      } catch (error) {
         // Handle rate limiting
         if (
           error instanceof Error &&
-          (_error.message.includes('rate limit') || error.message.includes('403'))
+          (error.message.includes('rate limit') || error.message.includes('403'))
         ) {
           trackRateLimit('github', `repos/${owner}/${repo}/pulls`);
 
@@ -360,7 +360,7 @@ export async function fetchPRDataWithSmartStrategy(
         console.error('Data fetching error:', {
           repository: `${owner}/${repo}`,
           timeRange,
-          error: error instanceof Error ? error.message : String(_error),
+          error: error instanceof Error ? error.message : String(error),
         });
 
         trackFetchEnd(
@@ -372,7 +372,7 @@ export async function fetchPRDataWithSmartStrategy(
           false,
           false,
           undefined,
-          error instanceof Error ? error.message : 'Unknown _error',
+          error instanceof Error ? error.message : 'Unknown error',
         );
         return createNoDataResult(`${owner}/${repo}`, []);
       }

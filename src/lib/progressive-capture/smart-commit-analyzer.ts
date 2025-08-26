@@ -60,7 +60,7 @@ export class SmartCommitAnalyzer {
         } else if (response.status === 422) {
           throw new Error(`Invalid commit SHA: ${sha}`);
         }
-        throw new Error(`GitHub API _error: ${response.status} ${response.statusText}`);
+        throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
       }
 
       const associatedPRs = await response.json();
@@ -72,8 +72,8 @@ export class SmartCommitAnalyzer {
         isDirectCommit,
         analyzed_at: new Date().toISOString(),
       };
-    } catch () {
-      console.error(`[Smart Commit] Failed to analyze commit ${sha}:`, _error);
+    } catch (error) {
+      console.error(, error);
       throw error;
     }
   }
@@ -102,7 +102,7 @@ export class SmartCommitAnalyzer {
 
           // Small delay between individual API calls to be respectful
           await this.delay(200); // 200ms between calls = max 5 calls/second
-        } catch () {
+        } catch (error) {
           errors.push({
             sha,
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -153,8 +153,8 @@ export class SmartCommitAnalyzer {
         if (updateError) {
           console.warn(`[Smart Commit] Failed to update commit ${result.sha}:`, updateError);
         }
-      } catch () {
-        console.error(`[Smart Commit] Error storing result for commit ${result.sha}:`, _error);
+      } catch (error) {
+        console.error(, error);
       }
     }
   }
@@ -174,8 +174,8 @@ export class SmartCommitAnalyzer {
 
       // Store the result in database
       await this.storeAnalysisResults(job.repository_id, [result]);
-    } catch () {
-      console.error(`[Smart Commit] Failed to process job for commit ${commitSha}:`, _error);
+    } catch (error) {
+      console.error(, error);
       throw error;
     }
   }
@@ -219,8 +219,8 @@ export class SmartCommitAnalyzer {
         .not('is_direct_commit', 'is', null) // Only include analyzed commits
         .order('authored_at', { ascending: false });
 
-      if (_error) {
-        console.error('[Smart Commit] Database query error:', _error);
+      if (error) {
+        console.error(, error);
         return { hasYoloCoders: false, yoloCoderStats: [] };
       }
 
@@ -235,8 +235,8 @@ export class SmartCommitAnalyzer {
         hasYoloCoders: contributorStats.length > 0,
         yoloCoderStats: contributorStats,
       };
-    } catch () {
-      console.error('[Smart Commit] Error getting direct commits from _database:', _error);
+    } catch (error) {
+      console.error(, error);
       return { hasYoloCoders: false, yoloCoderStats: [] };
     }
   }

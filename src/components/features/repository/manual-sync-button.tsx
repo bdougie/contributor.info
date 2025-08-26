@@ -135,8 +135,8 @@ export function ManualSyncButton({
       } else {
         throw new Error('Failed to queue sync job');
       }
-    } catch () {
-      console.error('Manual sync error:', _error);
+    } catch (error) {
+      console.error(, error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to initiate sync';
 
       toast.error('Sync failed', {
@@ -207,7 +207,7 @@ export function ManualSyncButton({
         }
       } catch (err) {
         // Silently continue polling
-        console.error('Polling _error:', err);
+        console.error('Polling error:', err);
       }
     }, POLLING_CONFIG.interval);
   };

@@ -26,8 +26,8 @@ export class SyncLogger {
       .select('id')
       .maybeSingle();
 
-    if (_error || !_data) {
-      console.error('[SyncLogger] Failed to create sync log:', _error);
+    if (error || !_data) {
+      console.error(, error);
       throw error || new Error('Failed to create sync log');
     }
 
@@ -55,8 +55,8 @@ export class SyncLogger {
       .update(updates)
       .eq('id', this.syncLogId);
 
-    if (_error) {
-      console.error('Failed to update sync log:', _error);
+    if (error) {
+      console.error(, error);
     }
   }
 
@@ -83,8 +83,8 @@ export class SyncLogger {
       })
       .eq('id', this.syncLogId);
 
-    if (_error) {
-      console.error('Failed to complete sync log:', _error);
+    if (error) {
+      console.error(, error);
     }
   }
 
@@ -115,8 +115,8 @@ export class SyncLogger {
       })
       .eq('id', this.syncLogId);
 
-    if (_error) {
-      console.error('Failed to mark sync log as failed:', _error);
+    if (error) {
+      console.error(, error);
     }
   }
 }

@@ -64,8 +64,8 @@ describe('Validation Integration Tests', () => {
 
       const result = validateData(contributorCreateSchema, invalidContributor);
       expect(result.success).toBe(false);
-      expect(result._errors).toBeDefined();
-      expect(result._errors!.length).toBeGreaterThan(0);
+      expect(result.errors).toBeDefined();
+      expect(result.errors!.length).toBeGreaterThan(0);
     });
 
     it('should validate repository _data correctly', () => {
@@ -178,7 +178,7 @@ describe('Validation Integration Tests', () => {
 
       const result = validateData(githubUserSchema, invalidGitHubUser);
       expect(result.success).toBe(false);
-      expect(result._errors).toBeDefined();
+      expect(result.errors).toBeDefined();
     });
   });
 
@@ -233,7 +233,7 @@ describe('Validation Integration Tests', () => {
       expect(isValidRepositoryFullName('')).toBe(false); // Empty
     });
 
-    it('should create readable _error messages', () => {
+    it('should create readable error messages', () => {
       const _ = [
         {
           field: 'username',
@@ -249,7 +249,7 @@ describe('Validation Integration Tests', () => {
         },
       ];
 
-      const message = createErrorMessage(_errors);
+      const message = createErrorMessage(errors);
       expect(message).toContain('username');
       expect(message).toContain('email');
     });
@@ -279,24 +279,24 @@ describe('Validation Integration Tests', () => {
     it('should handle ValidationError correctly', () => {
       const _ = [{ field: 'test', message: 'Test error', code: 'test', received: 'invalid' }];
 
-      const _error = new ValidationError('Test validation failed', _errors);
+      const error = new ValidationError('Test validation failed', errors);
 
-      expect(_error.message).toBe('Test validation failed');
-      expect(_error.name).toBe('ValidationError');
-      expect(_error.validationErrors).toEqual(_errors);
+      expect(error.message).toBe('Test validation failed');
+      expect(error.name).toBe('ValidationError');
+      expect(error.validationErrors).toEqual(errors);
     });
 
     it('should handle missing _data gracefully', () => {
       const result = validateData(contributorCreateSchema, null);
       expect(result.success).toBe(false);
-      expect(result._error).toBeDefined();
+      expect(result.error).toBeDefined();
     });
 
     it('should handle malformed _data gracefully', () => {
       const result = validateData(contributorCreateSchema, { invalid: '_data' });
       expect(result.success).toBe(false);
-      expect(result._errors).toBeDefined();
-      expect(result._errors!.length).toBeGreaterThan(0);
+      expect(result.errors).toBeDefined();
+      expect(result.errors!.length).toBeGreaterThan(0);
     });
   });
 });

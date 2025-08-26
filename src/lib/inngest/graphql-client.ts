@@ -307,20 +307,20 @@ export class GraphQLClient {
         ...result,
         pullRequest: result.repository?.pullRequest,
       };
-    } catch (_error: unknown) {
+    } catch (error: unknown) {
       this.metrics.fallbackCount++;
 
       // Enhanced error handling for GraphQL
-      if (_error.message?.includes('rate limit')) {
+      if (error.message?.includes('rate limit')) {
         throw new Error(`GraphQL rate limit exceeded`);
       }
 
-      if (_error.message?.includes('NOT_FOUND')) {
+      if (error.message?.includes('NOT_FOUND')) {
         throw new Error(`PR #${prNumber} not found in ${owner}/${repo}`);
       }
 
       // Log the error but don't modify it - let caller handle fallback
-      console.error(`[GraphQL] Query failed for ${owner}/${repo}#${prNumber}:`, _error.message);
+      console.error(`[GraphQL] Query failed for ${owner}/${repo}#${prNumber}:`, error.message);
       throw error;
     }
   }
@@ -362,9 +362,9 @@ export class GraphQLClient {
       });
 
       return filteredPRs;
-    } catch (_error: unknown) {
+    } catch (error: unknown) {
       this.metrics.fallbackCount++;
-      console.error(`[GraphQL] Recent PRs query failed for ${owner}/${repo}:`, _error.message);
+      console.error(`[GraphQL] Recent PRs query failed for ${owner}/${repo}:`, error.message);
       throw error;
     }
   }
@@ -463,8 +463,8 @@ export class GraphQLClient {
       }
 
       return prs;
-    } catch (_error: unknown) {
-      console.error(`[GraphQL] Paginated PRs query failed for ${owner}/${repo}:`, _error.message);
+    } catch (error: unknown) {
+      console.error(`[GraphQL] Paginated PRs query failed for ${owner}/${repo}:`, error.message);
       throw error;
     }
   }

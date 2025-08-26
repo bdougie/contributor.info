@@ -139,7 +139,7 @@ export class ProgressiveCaptureNotifications {
   /**
    * Show error notification when processing fails
    */
-  static showProcessingError(repository: string, _error: string) {
+  static showProcessingError(repository: string, error: string) {
     const existingId = this.notificationIds.get(`processing_${repository}`);
 
     // Dismiss the loading notification

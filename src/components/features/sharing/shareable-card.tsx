@@ -153,8 +153,8 @@ export function ShareableCard({
           await handleCapture('copy');
         }
       }
-    } catch () {
-      console.error('Error capturing element with SnapDOM:', _error);
+    } catch (error) {
+      console.error(, error);
       toast.error('Failed to capture chart');
     } finally {
       setIsCapturing(false);
@@ -183,8 +183,8 @@ export function ShareableCard({
           ...metadata,
         },
       });
-    } catch () {
-      console.error('Failed to track share event:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   };
 

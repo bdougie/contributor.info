@@ -20,7 +20,7 @@ vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: {
       getSession: () => mockGetSession(),
-      signInWithOAuth: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
+      signInWithOAuth: vi.fn(() => Promise.resolve({ _data: null, error: null })),
       signOut: () => mockSignOut(),
       onAuthStateChange: (callback: (event: string, session: unknown) => void) => {
         mockAuthCallback.mockImplementation(callback);
@@ -48,8 +48,8 @@ describe('useGitHubAuth Hook', () => {
     // Reset all mock implementations
     mockNavigate.mockClear();
     mockAuthCallback.mockClear();
-    mockGetSession.mockResolvedValue({ _data: { session: null }, _error: null });
-    mockSignOut.mockResolvedValue({ _error: null });
+    mockGetSession.mockResolvedValue({ _data: { session: null }, error: null });
+    mockSignOut.mockResolvedValue({ error: null });
   });
 
   it('initializes with logged out state', async () => {

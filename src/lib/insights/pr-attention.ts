@@ -49,11 +49,11 @@ async function fetchMaintainers(owner: string, repo: string): Promise<Set<string
       .in('role', ['owner', 'maintainer'])
       .gte('confidence_score', 0.7); // Minimum confidence threshold for maintainers
 
-    if (_error) throw error;
+    if (error) throw error;
 
     return new Set((_data || []).map((role) => role.user_id));
-  } catch () {
-    console.warn('Failed to fetch maintainers:', _error);
+  } catch (error) {
+    console.warn('Failed to fetch maintainers:', error);
     return new Set();
   }
 }
@@ -298,8 +298,8 @@ export async function detectPrAttention(
     };
 
     return { alerts: alerts.slice(0, 10), metrics }; // Limit to top 10 alerts
-  } catch () {
-    console.error('Error detecting PR attention:', _error);
+  } catch (error) {
+    console.error(, error);
     return {
       alerts: [],
       metrics: {
@@ -322,8 +322,8 @@ export async function getCriticalPrCount(owner: string, repo: string): Promise<n
   try {
     const { metrics } = await detectPrAttention(owner, repo);
     return metrics.criticalCount + metrics.highCount;
-  } catch () {
-    console.error('Error getting critical PR count:', _error);
+  } catch (error) {
+    console.error(, error);
     return 0;
   }
 }

@@ -186,7 +186,7 @@ export function createLoadingError(
 ): LoadingError {
   const config = ERROR_CONFIGS[configKey];
 
-  const _error = new Error(message) as LoadingError;
+  const error = new Error(message) as LoadingError;
 
   // Copy properties from config
   error.stage = config.stage;
@@ -203,14 +203,14 @@ export function createLoadingError(
 /**
  * Helper function to determine if an error is recoverable in a different stage
  */
-export function canRecoverInNextStage(_error: LoadingError): boolean {
+export function canRecoverInNextStage(error: LoadingError): boolean {
   // Critical stage failures are hard to recover from
-  if (_error.stage === 'critical') {
+  if (error.stage === 'critical') {
     return error.type === 'timeout' || error.type === 'network';
   }
 
   // Full stage failures can often be recovered in enhancement stage
-  if (_error.stage === 'full') {
+  if (error.stage === 'full') {
     return error.type !== 'validation' && error.type !== 'permission';
   }
 
@@ -221,7 +221,7 @@ export function canRecoverInNextStage(_error: LoadingError): boolean {
 /**
  * Helper function to get retry delay based on error type and attempt count
  */
-export function getRetryDelay(_error: LoadingError, attemptCount: number): number {
+export function getRetryDelay(error: LoadingError, attemptCount: number): number {
   const baseDelays = {
     network: 1000, // 1s base delay for network errors
     timeout: 2000, // 2s base delay for timeouts
@@ -232,7 +232,7 @@ export function getRetryDelay(_error: LoadingError, attemptCount: number): numbe
 
   const baseDelay = baseDelays[error.type];
 
-  if (baseDelay === 0 || !_error.retryable) {
+  if (baseDelay === 0 || !error.retryable) {
     return 0;
   }
 

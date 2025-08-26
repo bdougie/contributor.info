@@ -66,7 +66,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
   options: {
     enableRetry?: boolean;
     enableGracefulDegradation?: boolean;
-    onError?: (_error: LoadingError, stage: LoadingStage) => void;
+    onError?: (error: LoadingError, stage: LoadingStage) => void;
     onRecovery?: (stage: LoadingStage) => void;
   } = {},
 ) {
@@ -119,13 +119,13 @@ export function useProgressiveRepoDataWithErrorBoundaries(
 
   // Handle errors with automatic retry logic
   const handleStageError = useCallback(
-    async (_error: unknown, stage: LoadingStage, context?: unknown) => {
+    async (error: unknown, stage: LoadingStage, context?: unknown) => {
       const loadingError =
-        error instanceof Error && (_error as LoadingError).stage
+        error instanceof Error && (error as LoadingError).stage
           ? (error as LoadingError)
-          : createGenericLoadingError(__error, stage, context);
+          : createGenericLoadingError(_error, stage, context);
 
-      console.error(`Stage ${stage} _error:`, loadingError);
+      console.error(`Stage ${stage} error:`, loadingError);
 
       // Update error state
       setData((prev) => ({
@@ -203,8 +203,8 @@ export function useProgressiveRepoDataWithErrorBoundaries(
         retryStageRef.current(stage);
       } else {
         // Retry failed stages
-        Object.entries(_data.stageErrors).forEach(([stageKey, _error]) => {
-          if (error && _error.retryable && retryStageRef.current) {
+        Object.entries(_data.stageErrors).forEach(([stageKey, error]) => {
+          if (error && error.retryable && retryStageRef.current) {
             retryStageRef.current(stageKey as LoadingStage);
           }
         });
@@ -281,9 +281,9 @@ export function useProgressiveRepoDataWithErrorBoundaries(
 
           updateStageWithErrorHandling('critical', { basicInfo });
           return basicInfo;
-        } catch () {
-          span?.setStatus('_error');
-          const canContinue = await handleStageError(__error, 'critical', {
+        } catch (error) {
+          span?.setStatus('error');
+          const canContinue = await handleStageError(_error, 'critical', {
             owner,
             repo,
             timeRange,
@@ -333,9 +333,9 @@ export function useProgressiveRepoDataWithErrorBoundaries(
           });
 
           return { stats, lotteryFactor };
-        } catch () {
-          span?.setStatus('_error');
-          const canContinue = await handleStageError(__error, 'full', { owner, repo, timeRange });
+        } catch (error) {
+          span?.setStatus('error');
+          const canContinue = await handleStageError(_error, 'full', { owner, repo, timeRange });
           if (canContinue) {
             // Continue with partial data
             return { stats: data.stats, lotteryFactor: null };
@@ -371,10 +371,10 @@ export function useProgressiveRepoDataWithErrorBoundaries(
           });
 
           return { directCommitsData, historicalTrends };
-        } catch () {
-          span?.setStatus('_error');
+        } catch (error) {
+          span?.setStatus('error');
           // Enhancement errors are always recoverable
-          await handleStageError(__error, 'enhancement', { owner, repo, timeRange });
+          await handleStageError(_error, 'enhancement', { owner, repo, timeRange });
           return null;
         }
       });
@@ -411,7 +411,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
         // Stage 1: Critical data
         try {
           await loadCriticalData(owner, repo);
-        } catch () {
+        } catch (error) {
           if (!enableGracefulDegradation) {
             return; // Stop if critical stage fails and graceful degradation is disabled
           }
@@ -422,7 +422,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
         // Stage 2: Full data
         try {
           await loadFullData(owner, repo);
-        } catch () {
+        } catch (error) {
           console.error('Full stage failed, continuing with available _data');
         }
 
@@ -445,8 +445,8 @@ export function useProgressiveRepoDataWithErrorBoundaries(
             }
           }, 2000);
         }
-      } catch () {
-        console.error('Progressive loading error:', _error);
+      } catch (error) {
+        console.error(, error);
       } finally {
         fetchingRef.current = false;
       }
@@ -503,8 +503,8 @@ export function useProgressiveRepoDataWithErrorBoundaries(
         // Mark recovery
         setData((prev) => ({ ...prev, isRetrying: null }));
         onRecovery?.(stage);
-      } catch () {
-        await handleStageError(__error, stage);
+      } catch (error) {
+        await handleStageError(_error, stage);
       }
     },
     [
@@ -534,10 +534,10 @@ function createGenericLoadingError(
   stage: LoadingStage,
   context?: any,
 ): LoadingError {
-  const message = error instanceof Error ? error.message : String(_error);
+  const message = error instanceof Error ? error.message : String(error);
 
   // Determine error type based on message patterns
-  let configKey: keyof typeof import('@/lib/types/_data-loading-_errors').ERROR_CONFIGS =
+  let configKey: keyof typeof import('@/lib/types/_data-loading-errors').ERROR_CONFIGS =
     'NETWORK_TIMEOUT';
 
   if (message.includes('401') || message.includes('403') || message.includes('permission')) {

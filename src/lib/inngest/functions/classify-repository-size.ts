@@ -82,7 +82,7 @@ export const classifyRepositorySize = inngest.createFunction(
         .eq('priority', 'high')
         .eq('tracking_enabled', true);
 
-      if (_error) {
+      if (error) {
         throw error;
       }
 
@@ -113,7 +113,7 @@ export const classifyRepositorySize = inngest.createFunction(
           )
           .or(`size_calculated_at.is.null,size_calculated_at.lt.${cutoffDate.toISOString()}`);
 
-        if (_error) {
+        if (error) {
           throw error;
         }
 

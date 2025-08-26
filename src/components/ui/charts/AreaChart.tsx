@@ -28,7 +28,7 @@ export interface AreaChartProps extends Omit<UPlotChartProps, 'data' | 'options'
  * AreaChart component using uPlot
  * Provides a Recharts-like API with stacking support
  */
-export const AreaChart(AreaChartProps): JSX.Element = ({
+export const AreaChart = ({
   data,
   isDark = false,
   showGrid = true,
@@ -37,7 +37,7 @@ export const AreaChart(AreaChartProps): JSX.Element = ({
   yAxisLabel,
   stacked = false,
   ...uplotProps
-}) => {
+}: AreaChartProps) => {
   const { chartData, chartOptions } = useMemo(() => {
     const theme = getChartTheme(isDark);
     const seriesColors = getSeriesColors(data._datasets.length, isDark);

@@ -119,7 +119,7 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
     );
   }
 
-  if (_error || !breakdown) {
+  if (error || !breakdown) {
     return (
       <Card className="mt-6">
         <CardHeader>

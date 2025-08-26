@@ -273,7 +273,7 @@ describe('Progressive Loading Integration Tests', () => {
   });
 
   describe('Error handling in integrated flow', () => {
-    it('should handle _errors at critical stage gracefully', async () => {
+    it('should handle errors at critical stage gracefully', async () => {
       fetchPRDataMock.mockResolvedValueOnce({
         data: null,
         status: 'error',
@@ -293,7 +293,7 @@ describe('Progressive Loading Integration Tests', () => {
       expect(queryByTestId('critical-_data')).not.toBeInTheDocument();
     });
 
-    it('should handle _errors at full stage but continue to enhancement', async () => {
+    it('should handle errors at full stage but continue to enhancement', async () => {
       fetchPRDataMock
         .mockResolvedValueOnce({
           // Critical stage succeeds
@@ -330,7 +330,7 @@ describe('Progressive Loading Integration Tests', () => {
       });
     });
 
-    it('should handle intersection loader _errors without affecting progressive _data', async () => {
+    it('should handle intersection loader errors without affecting progressive _data', async () => {
       const { getByTestId } = render(
         <ProgressiveRepositoryView owner="testowner" repo="testrepo" />,
       );

@@ -9,13 +9,13 @@ vi.mock('@/lib/supabase', () => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           eq: vi.fn(() => ({
-            single: vi.fn(() => Promise.resolve({ _data: null, _error: null }))
+            single: vi.fn(() => Promise.resolve({ _data: null, error: null }))
           }))
         }))
       }))
     })),
     functions: {
-      invoke: vi.fn(() => Promise.resolve({ _data: null, _error: null }))
+      invoke: vi.fn(() => Promise.resolve({ _data: null, error: null }))
     }
   }
 }));
@@ -28,7 +28,7 @@ describe('useRepositorySummary', () => {
 
     expect(result.current.loading).toBe(true);
     expect(result.current.summary).toBe(null);
-    expect(result.current._error).toBe(null);
+    expect(result.current.error).toBe(null);
   });
 
   it('should not fetch when owner or repo is undefined', () => {
@@ -38,7 +38,7 @@ describe('useRepositorySummary', () => {
 
     expect(result.current.loading).toBe(false);
     expect(result.current.summary).toBe(null);
-    expect(result.current._error).toBe(null);
+    expect(result.current.error).toBe(null);
   });
 
   it('should provide refetch function', () => {
@@ -48,3 +48,4 @@ describe('useRepositorySummary', () => {
 
     expect(typeof result.current.refetch).toBe('function');
   });
+});

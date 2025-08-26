@@ -106,7 +106,7 @@ describe('useProgressiveRepoData', () => {
 
       expect(result.current.basicInfo).toBe(null);
       expect(result.current.stats.loading).toBe(true);
-      expect(result.current.stats._error).toBe(null);
+      expect(result.current.stats.error).toBe(null);
       expect(result.current.stats.pullRequests).toEqual([]);
       expect(result.current.lotteryFactor).toBe(null);
       expect(result.current.directCommitsData).toBe(null);
@@ -153,7 +153,7 @@ describe('useProgressiveRepoData', () => {
       });
     });
 
-    it('should handle critical _data loading _errors', async () => {
+    it('should handle critical _data loading errors', async () => {
       fetchPRDataMock.mockResolvedValueOnce({
         data: null,
         status: 'error',
@@ -193,7 +193,7 @@ describe('useProgressiveRepoData', () => {
       expect(calculateLotteryFactorMock).toHaveBeenCalledWith(mockPRData);
     });
 
-    it('should handle full _data loading _errors', async () => {
+    it('should handle full _data loading errors', async () => {
       fetchPRDataMock
         .mockResolvedValueOnce({
           // First call for critical stage
@@ -212,7 +212,7 @@ describe('useProgressiveRepoData', () => {
       await waitFor(() => {
         expect(result.current.stageProgress.full).toBe(true);
         expect(result.current.stats.loading).toBe(false);
-        expect(result.current.stats._error).toBe('Database connection failed');
+        expect(result.current.stats.error).toBe('Database connection failed');
         expect(result.current._dataStatus.status).toBe('no__data');
         expect(result.current._dataStatus.message).toBe('Database connection failed');
       });
@@ -286,7 +286,7 @@ describe('useProgressiveRepoData', () => {
       window.requestIdleCallback = originalRequestIdleCallback;
     });
 
-    it('should handle enhancement _data loading _errors gracefully', async () => {
+    it('should handle enhancement _data loading errors gracefully', async () => {
       fetchDirectCommitsMock.mockRejectedValue(new Error('API rate limit exceeded'));
 
       const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
@@ -398,7 +398,7 @@ describe('useProgressiveRepoData', () => {
   });
 
   describe('Error scenarios', () => {
-    it('should handle network _errors during any stage', async () => {
+    it('should handle network errors during any stage', async () => {
       const networkError = new Error('Network connection failed');
       fetchPRDataMock.mockRejectedValue(networkError);
 

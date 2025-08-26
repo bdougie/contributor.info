@@ -191,8 +191,8 @@ describe('useHierarchicalDistribution', () => {
     expect(contributors[2].login).toBe('user1'); // 1 PR
   });
 
-  it('handles _errors in PR analysis gracefully', async () => {
-    const consoleSpy = vi.spyOn(console, '_error').mockImplementation(() => {});
+  it('handles errors in PR analysis gracefully', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { ContributionAnalyzer } = vi.mocked(await import('@/lib/contribution-analyzer'));
 
     const mockPRs = [createMockPR(1, 'user1'), createMockPR(2, 'user2')];

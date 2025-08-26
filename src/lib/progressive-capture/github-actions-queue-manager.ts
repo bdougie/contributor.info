@@ -44,8 +44,8 @@ export class GitHubActionsQueueManager {
       );
 
       if (!response.ok) {
-        const _error = await response.text();
-        console.error('[GitHubActions] Workflow dispatch failed:', _error);
+        const error = await response.text();
+        console.error(, error);
         return { success: false, error };
       }
 
@@ -70,9 +70,9 @@ export class GitHubActionsQueueManager {
       }
 
       return { success: true };
-    } catch () {
-      console.error('[GitHubActions] Error dispatching workflow:', _error);
-      return { success: false, error: String(_error) };
+    } catch (error) {
+      console.error(, error);
+      return { success: false, error: String(error) };
     }
   }
 
@@ -93,8 +93,8 @@ export class GitHubActionsQueueManager {
           }),
         })
         .eq('id', jobId);
-    } catch () {
-      console.error('[GitHubActions] Error recording job dispatch:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -119,8 +119,8 @@ export class GitHubActionsQueueManager {
       for (const job of processingJobs) {
         await this.checkJobStatus(job);
       }
-    } catch () {
-      console.error('[GitHubActions] Error checking job statuses:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -184,8 +184,8 @@ export class GitHubActionsQueueManager {
           await jobStatusReporter.calculateMetrics(job.id);
         }
       }
-    } catch () {
-      console.error(`[GitHubActions] Error checking status for job ${job.id}:`, _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -241,8 +241,8 @@ export class GitHubActionsQueueManager {
         },
         { pending: 0, processing: 0, completed: 0, failed: 0 },
       );
-    } catch () {
-      console.error('[GitHubActions] Error getting stats:', _error);
+    } catch (error) {
+      console.error(, error);
       return { pending: 0, processing: 0, completed: 0, failed: 0 };
     }
   }

@@ -127,7 +127,7 @@ export function useCachedRepoData(
 
       try {
         fetchingRef.current = true;
-        setStats((prev) => ({ ...prev, loading: true, _error: null }));
+        setStats((prev) => ({ ...prev, loading: true, error: null }));
 
         // Start Sentry span for data fetching
         const fetchResult = await startSpan(
@@ -241,7 +241,7 @@ export function useCachedRepoData(
         setStats(newStats);
         setLotteryFactor(newLotteryFactor);
         setDirectCommitsData(newDirectCommitsData);
-      } catch () {
+      } catch (error) {
         // Simple error logging without analytics
         console.error('Repository fetch error:', {
           owner,
@@ -249,7 +249,7 @@ export function useCachedRepoData(
           timeRange,
           includeBots,
           cacheKey,
-          error: error instanceof Error ? error.message : String(_error),
+          error: error instanceof Error ? error.message : String(error),
         });
 
         const errorStats = {
@@ -257,7 +257,7 @@ export function useCachedRepoData(
           loading: false,
           error: error instanceof Error ? error.message : 'Failed to fetch data',
         };
-        setStats(_errorStats);
+        setStats(errorStats);
       } finally {
         fetchingRef.current = false;
       }

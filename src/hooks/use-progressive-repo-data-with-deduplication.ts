@@ -176,9 +176,9 @@ export function useProgressiveRepoDataWithDeduplication(
           updateStage('critical', { basicInfo });
 
           return basicInfo;
-        } catch () {
-          span?.setStatus('_error');
-          console.error('Failed to load critical _data:', _error);
+        } catch (error) {
+          span?.setStatus('error');
+          console.error(, error);
           return null;
         }
       });
@@ -233,7 +233,7 @@ export function useProgressiveRepoDataWithDeduplication(
             stats,
             lotteryFactor,
             dataStatus: {
-              status: (status === '_error' ? 'no__data' : status) || 'success',
+              status: (status === 'error' ? 'no__data' : status) || 'success',
               message,
               metadata: { prCount: pullRequests?.length || 0 },
             },
@@ -242,9 +242,9 @@ export function useProgressiveRepoDataWithDeduplication(
           // Don't cache here - caching happens elsewhere in the flow
 
           return { stats, lotteryFactor };
-        } catch () {
-          span?.setStatus('_error');
-          console.error('Failed to load full _data:', _error);
+        } catch (error) {
+          span?.setStatus('error');
+          console.error(, error);
           return null;
         }
       });
@@ -292,9 +292,9 @@ export function useProgressiveRepoDataWithDeduplication(
           updateStage('complete', {});
 
           return result;
-        } catch () {
-          span?.setStatus('_error');
-          console.error('Failed to load enhancement _data:', _error);
+        } catch (error) {
+          span?.setStatus('error');
+          console.error(, error);
           return null;
         }
       });
@@ -353,8 +353,8 @@ export function useProgressiveRepoDataWithDeduplication(
             }
           }, 2000);
         }
-      } catch () {
-        console.error('Progressive loading error:', _error);
+      } catch (error) {
+        console.error(, error);
       } finally {
         fetchingRef.current = false;
       }

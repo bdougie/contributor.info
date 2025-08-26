@@ -125,8 +125,8 @@ export async function searchGitHubRepositories(
         );
 
         if (!response.ok) {
-          const _error = await response.json();
-          if (response.status === 403 && _error.message?.includes('rate limit')) {
+          const error = await response.json();
+          if (response.status === 403 && error.message?.includes('rate limit')) {
             // Track rate limiting
             const rateLimitReset = response.headers.get('X-RateLimit-Reset');
             const resetTime = rateLimitReset
@@ -150,9 +150,9 @@ export async function searchGitHubRepositories(
 
           span.setAttributes({
             'http.status_code': response.status,
-            'error.type': 'api_error',
+            'error.type': 'apierror',
           });
-          throw new Error(`GitHub API error: ${_error.message || response.statusText}`);
+          throw new Error(`GitHub API error: ${error.message || response.statusText}`);
         }
 
         const _ = await response.json();
@@ -167,16 +167,16 @@ export async function searchGitHubRepositories(
         console.log('Repository search completed: %s results for "%s"', results.length, query);
 
         return results;
-      } catch () {
+      } catch (error) {
         span.setAttributes({
           'github.success': false,
           'error.type': error instanceof Error ? error.constructor.name : 'Unknown',
         });
 
         // Simple error logging without analytics
-        console.error('GitHub search error:', __error, { query, limit });
+        console.error('GitHub search error:', _error, { query, limit });
 
-        console.error('Error searching GitHub repositories:', _error);
+        console.error(, error);
         throw error;
       }
     },
@@ -200,7 +200,7 @@ export async function fetchUserOrganizations(
       login: org.login,
       avatar_url: org.avatar_url,
     }));
-  } catch () {
+  } catch (error) {
     return [];
   }
 }
@@ -226,7 +226,7 @@ async function fetchPRReviews(owner: string, repo: string, prNumber: number, hea
       },
       submitted_at: review.submitted_at,
     }));
-  } catch () {
+  } catch (error) {
     return [];
   }
 }
@@ -256,7 +256,7 @@ async function fetchPRComments(
       },
       created_at: comment.created_at,
     }));
-  } catch () {
+  } catch (error) {
     return [];
   }
 }
@@ -330,7 +330,7 @@ export async function fetchPullRequests(
                     `Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`,
                   );
                 }
-                throw new Error(`GitHub API _error: ${response.status} ${response.statusText}`);
+                throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
               }
               break; // Stop fetching if later pages fail
             }
@@ -407,7 +407,7 @@ export async function fetchPullRequests(
                   break; // No point in fetching older PRs
                 }
               }
-            } catch () {
+            } catch (error) {
               // If this is the first page and we get an error, it's likely a 404 or auth issue
               if (page === 1) {
                 throw error; // Re-throw the error for proper handling
@@ -495,19 +495,19 @@ export async function fetchPullRequests(
         console.log('Successfully fetched %s PRs for %s/%s', detailedPRs.length, owner, repo);
 
         return detailedPRs;
-      } catch () {
+      } catch (error) {
         span.setAttributes({
           'github.success': false,
           'error.type': error instanceof Error ? error.constructor.name : 'Unknown',
         });
 
         // Simple error logging without analytics
-        console.error('GitHub API error:', __error, { owner, repo, timeRange });
+        console.error('GitHub API error:', _error, { owner, repo, timeRange });
 
-        if (_error instanceof Error) {
+        if (error instanceof Error) {
           throw error;
         }
-        throw new Error('An unexpected _error occurred while fetching repository _data.');
+        throw new Error('An unexpected error occurred while fetching repository _data.');
       }
     },
   );
@@ -557,7 +557,7 @@ export async function fetchRepositoryInfo(
       if (response.status === 404) {
         return null; // Repository not found or not accessible
       }
-      throw new Error(`GitHub API _error: ${response.statusText}`);
+      throw new Error(`GitHub API error: ${response.statusText}`);
     }
 
     const repoData = await response.json();
@@ -579,8 +579,8 @@ export async function fetchRepositoryInfo(
       disabled: repoData.disabled,
       private: repoData.private,
     };
-  } catch () {
-    console.error('Error fetching repository info:', _error);
+  } catch (error) {
+    console.error(, error);
     return null;
   }
 }
@@ -625,8 +625,8 @@ export async function fetchRepositoryStargazers(
       avatar_url: star.user?.avatar_url || star.avatar_url,
       starred_at: star.starred_at || new Date().toISOString(), // Fallback if no timestamp
     }));
-  } catch () {
-    console.error('Error fetching stargazers:', _error);
+  } catch (error) {
+    console.error(, error);
     return [];
   }
 }
@@ -710,8 +710,8 @@ export async function fetchRepositoryCommitActivity(
       uniqueCommitters: uniqueCommitters.size,
       recentCommits,
     };
-  } catch () {
-    console.error('Error fetching commit activity:', _error);
+  } catch (error) {
+    console.error(, error);
     return { totalCommits: 0, commitFrequency: 0, uniqueCommitters: 0, recentCommits: [] };
   }
 }
@@ -825,9 +825,9 @@ export async function fetchDirectCommits(
               prCommitsResponse.statusText,
             );
           }
-        } catch () {
+        } catch (error) {
           if (NODE_ENV === 'development') {
-            console.log('YOLO Debug - Error fetching commits for PR #%s:', pr.number, _error);
+            console.log('YOLO Debug - Error fetching commits for PR #%s:', pr.number, error);
           }
           // Silently continue - error fetching commits for individual PRs shouldn't break the whole process
         }
@@ -960,7 +960,7 @@ export async function fetchDirectCommits(
       hasYoloCoders: directCommits.length > 0,
       yoloCoderStats,
     };
-  } catch () {
+  } catch (error) {
     return {
       directCommits: [],
       hasYoloCoders: false,

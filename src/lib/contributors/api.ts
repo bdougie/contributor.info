@@ -333,8 +333,8 @@ export async function fetchRepositoryActivity(
             }
           }
         }
-      } catch () {
-        console.warn(`Failed to fetch reviews for PR ${pr.number}:`, _error);
+      } catch (error) {
+        console.warn(`Failed to fetch reviews for PR ${pr.number}:`, error);
       }
 
       // Fetch and process comments for this PR
@@ -375,8 +375,8 @@ export async function fetchRepositoryActivity(
             }
           }
         }
-      } catch () {
-        console.warn(`Failed to fetch comments for PR ${pr.number}:`, _error);
+      } catch (error) {
+        console.warn(`Failed to fetch comments for PR ${pr.number}:`, error);
       }
     }
 
@@ -415,10 +415,10 @@ export async function fetchRepositoryActivity(
           commenter.latestContribution = commentDate;
         }
       }
-    } catch () {
-      console.warn(`Failed to fetch issue comments:`, _error);
+    } catch (error) {
+      console.warn(`Failed to fetch issue comments:`, error);
     }
-  } catch () {
+  } catch (error) {
     throw new ContributorApiError(
       `Failed to fetch activity for repository ${owner}/${repo}: ${error instanceof Error ? error.message : 'Unknown error'}`,
     );
@@ -504,8 +504,8 @@ export async function fetchContributorActivity(
             allContributors.set(contributorId, { ...activity });
           }
         }
-      } catch () {
-        console.error(`Failed to fetch activity for ${repoString}:`, _error);
+      } catch (error) {
+        console.error(, error);
         // Continue with other repositories
       }
     }
@@ -522,7 +522,7 @@ export async function fetchContributorActivity(
         fromCache: false,
       },
     };
-  } catch () {
+  } catch (error) {
     const processingTime = Date.now() - startTime;
 
     return {

@@ -121,9 +121,9 @@ class SupabaseMonitoring {
       }
 
       // Log errors
-      if (!metrics.success && metrics._errorMessage) {
+      if (!metrics.success && metrics.errorMessage) {
         // Simple error logging without analytics
-        console.error(new Error(metrics._errorMessage), {
+        console.error(new Error(metrics.errorMessage), {
           tags: {
             component: 'database',
             operation: metrics.category,
@@ -166,7 +166,7 @@ class SupabaseMonitoring {
       });
 
       return result;
-    } catch () {
+    } catch (error) {
       const duration = performance.now() - startTime;
       await this.logQueryMetrics({
         operation: `rpc: ${functionName}`,

@@ -159,7 +159,7 @@ describe('RequestDeduplicator', () => {
   });
 
   describe('cleanup behavior', () => {
-    it('should handle cancelAll without _errors', () => {
+    it('should handle cancelAll without errors', () => {
       const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('_data'));
 
       // Start multiple requests

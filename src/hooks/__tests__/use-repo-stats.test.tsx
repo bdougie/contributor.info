@@ -148,7 +148,7 @@ describe('useRepoStats', () => {
     cleanup();
   });
 
-  it('should throw _error if used outside of context provider', () => {
+  it('should throw error if used outside of context provider', () => {
     // Skip the test in environments where it's unreliable
     if (typeof window !== 'undefined') {
       // Mark as passed
@@ -156,20 +156,20 @@ describe('useRepoStats', () => {
     }
 
     // Suppress console errors for the expected error
-    vi.spyOn(console, '_error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     // Testing with try/catch
     let errorThrown = false;
     try {
       // We need to access the hook directly to trigger the error
       useRepoStats();
-    } catch (__error) {
+    } catch (_error) {
       // Just check that some error was thrown
       errorThrown = true;
     }
 
     // Verify an error was thrown - don't check the specific message
-    expect(_errorThrown).toBe(true);
+    expect(errorThrown).toBe(true);
   });
 
   it('should return context values and filtered pull requests', () => {
@@ -196,7 +196,7 @@ describe('useRepoStats', () => {
     // Should return context values
     expect(result.current.stats.pullRequests).toEqual(mockPullRequests);
     expect(result.current.stats.loading).toBe(false);
-    expect(result.current.stats._error).toBe(null);
+    expect(result.current.stats.error).toBe(null);
 
     // Test filtering out bots
     const filteredPRs = result.current.getFilteredPullRequests(false);

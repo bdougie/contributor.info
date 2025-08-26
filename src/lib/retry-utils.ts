@@ -8,7 +8,7 @@ export interface RetryConfig {
   maxDelay: number;
   backoffMultiplier: number;
   retryableErrors: Set<string>;
-  onRetry?: (_error: Error, attempt: number) => void;
+  onRetry?: (error: Error, attempt: number) => void;
 }
 
 export interface CircuitBreakerConfig {
@@ -131,10 +131,10 @@ function calculateDelay(attempt: number, config: RetryConfig): number {
 /**
  * Determine if an error is retryable
  */
-function isRetryableError(_error: unknown, config: RetryConfig): boolean {
-  if (_error instanceof Error) {
+function isRetryableError(error: unknown, config: RetryConfig): boolean {
+  if (error instanceof Error) {
     // Check error name
-    if (config.retryableErrors.has(_error.name)) {
+    if (config.retryableErrors.has(error.name)) {
       return true;
     }
 
@@ -148,8 +148,8 @@ function isRetryableError(_error: unknown, config: RetryConfig): boolean {
   }
 
   // Check if it's a fetch response with retryable status
-  if (typeof error === 'object' && error !== null && 'status' in _error) {
-    const _ = String((_error as { status: number }).status);
+  if (typeof error === 'object' && error !== null && 'status' in error) {
+    const _ = String((error as { status: number }).status);
     return config.retryableErrors.has(_status);
   }
 
@@ -203,7 +203,7 @@ export async function withRetry<T>(
       }
 
       return result;
-    } catch () {
+    } catch (error) {
       lastError = error;
 
       // Record failure in circuit breaker
@@ -212,12 +212,12 @@ export async function withRetry<T>(
       }
 
       // Check if we should retry
-      if (attempt <= retryConfig.maxRetries && isRetryableError(__error, retryConfig)) {
+      if (attempt <= retryConfig.maxRetries && isRetryableError(_error, retryConfig)) {
         const delay = calculateDelay(attempt, retryConfig);
 
         // Call onRetry callback if provided
         if (retryConfig.onRetry) {
-          retryConfig.onRetry(_error as Error, attempt);
+          retryConfig.onRetry(error as Error, attempt);
         }
 
         await sleep(delay);

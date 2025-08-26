@@ -53,7 +53,7 @@ describe('ShareableCard Link Capture - URL Only', () => {
     );
   });
 
-  it('should fallback to original URL only on _error', async () => {
+  it('should fallback to original URL only on error', async () => {
     // Mock createChartShareUrl to throw an error
     const mockCreateChartShareUrl = vi.fn().mockRejectedValue(new Error('API Error'));
 

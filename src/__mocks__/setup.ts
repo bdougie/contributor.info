@@ -35,14 +35,14 @@ global.console = {
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     from: vi.fn(() => ({
-      select: vi.fn(() => Promise.resolve({ _data: [], _error: null })),
-      insert: vi.fn(() => Promise.resolve({ _data: [], _error: null })),
-      update: vi.fn(() => Promise.resolve({ _data: [], _error: null })),
-      delete: vi.fn(() => Promise.resolve({ _data: [], _error: null })),
+      select: vi.fn(() => Promise.resolve({ _data: [], error: null })),
+      insert: vi.fn(() => Promise.resolve({ _data: [], error: null })),
+      update: vi.fn(() => Promise.resolve({ _data: [], error: null })),
+      delete: vi.fn(() => Promise.resolve({ _data: [], error: null })),
     })),
     auth: {
-      getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, _error: null })),
-      signOut: vi.fn(() => Promise.resolve({ _error: null })),
+      getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, error: null })),
+      signOut: vi.fn(() => Promise.resolve({ error: null })),
     },
   },
 }));

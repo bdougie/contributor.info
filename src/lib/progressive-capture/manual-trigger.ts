@@ -79,8 +79,8 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
   3. Check rate limits with: ProgressiveCaptureTrigger.rateLimits()
       `);
       
-    } catch () {
-      console.error('❌ Bootstrap failed:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -183,7 +183,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
         .eq('name', repo)
         .maybeSingle();
 
-      if (_error || !repoData) {
+      if (error || !repoData) {
         console.log(`❌ Repository ${owner}/${repo} not found in _database`);
         return;
       }
@@ -205,8 +205,8 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
   • Use ProgressiveCapture.processNext() to process manually
       `);
       
-    } catch () {
-      console.error(`❌ Commit analysis failed for ${owner}/${repo}:`, _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -255,7 +255,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
           if (result.success) {
             importedCount++;
           } else {
-            console.warn(`Failed to store PR #${pr.number}: ${result.error: __error}`);
+            console.warn(`Failed to store PR #${pr.number}: ${result.error: _error}`);
           }
         } catch (prError) {
           console.warn(`Error storing PR #${pr.number}:`, prError);
@@ -265,8 +265,8 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
       console.log(`✅ Imported ${importedCount}/${recentPRs.length} recent PRs for ${repo.owner}/${repo.name}`);
       return { success: true };
 
-    } catch () {
-      console.error(`❌ Error processing recent PRs job:`, _error);
+    } catch (error) {
+      console.error(, error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
@@ -289,7 +289,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
         .eq('name', repo)
         .maybeSingle();
 
-      if (_error || !repoData) {
+      if (error || !repoData) {
         console.log(`❌ Repository ${owner}/${repo} not found in _database`);
         return;
       }
@@ -333,8 +333,8 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
         `);
       }
       
-    } catch () {
-      console.error('❌ Quick fix failed for %s/%s:', owner, repo, _error);
+    } catch (error) {
+      console.error('❌ Quick fix failed for %s/%s:', owner, repo, error);
     }
   }
 
@@ -348,8 +348,8 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
       console.log(report);
       
       return report;
-    } catch () {
-      console.error('❌ Error generating monitoring report:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -369,8 +369,8 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
       console.log('Cost Analysis:', stats.cost);
       
       return stats;
-    } catch () {
-      console.error('❌ Error getting system stats:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -397,8 +397,8 @@ ${routing.suggestions.map(s => `  • ${s}`).join('\n')}`
       `);
       
       return routing;
-    } catch () {
-      console.error('❌ Error analyzing routing:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -416,8 +416,8 @@ ${routing.suggestions.map(s => `  • ${s}`).join('\n')}`
       SmartDataNotifications.reset();
       
       console.log('✅ All job tracking updated and smart notifications reset');
-    } catch () {
-      console.error('❌ Error clearing jobs:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 }

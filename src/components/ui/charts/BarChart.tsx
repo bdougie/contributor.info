@@ -26,7 +26,7 @@ export interface BarChartProps extends Omit<UPlotChartProps, 'data' | 'options'>
  * BarChart component using uPlot
  * Provides a Recharts-like API with grouped bars support
  */
-export const BarChart(BarChartProps): JSX.Element = ({
+export const BarChart = ({
   data,
   isDark = false,
   showGrid = true,
@@ -36,7 +36,7 @@ export const BarChart(BarChartProps): JSX.Element = ({
   grouped = true,
   barWidth = 0.6,
   ...uplotProps
-}) => {
+}: BarChartProps) => {
   const { chartData, chartOptions } = useMemo(() => {
     const theme = getChartTheme(isDark);
     const seriesColors = getSeriesColors(data._datasets.length, isDark);

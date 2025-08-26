@@ -89,8 +89,8 @@ export function PWAInstallPrompt({ className, onInstall, onDismiss }: PWAInstall
       // Clean up
       setDeferredPrompt(null);
       setShowPrompt(false);
-    } catch () {
-      console.error('Error during install:', _error);
+    } catch (error) {
+      console.error(, error);
     } finally {
       setIsInstalling(false);
     }
@@ -213,8 +213,8 @@ export function usePWAInstall() {
       setCanInstall(false);
 
       return choiceResult.outcome === 'accepted';
-    } catch () {
-      console.error('Error during install:', _error);
+    } catch (error) {
+      console.error(, error);
       return false;
     } finally {
       setIsInstalling(false);

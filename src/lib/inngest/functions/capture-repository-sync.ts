@@ -46,8 +46,8 @@ async function ensureContributorExists(githubUser: unknown): Promise<string | nu
     .select('id')
     .maybeSingle();
 
-  if (_error) {
-    console.error('Error upserting contributor:', _error);
+  if (error) {
+    console.error(, error);
     return null;
   }
 
@@ -80,7 +80,7 @@ export const captureRepositorySync = inngest.createFunction(
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (_error || !_data) {
+      if (error || !_data) {
         throw new Error(`Repository not found: ${repositoryId}`);
       }
 
@@ -144,7 +144,7 @@ export const captureRepositorySync = inngest.createFunction(
         }
 
         return filteredPRs;
-      } catch (_error: unknown) {
+      } catch (error: unknown) {
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
           throw new Error(`Repository ${repository.owner}/${repository.name} not found`);
@@ -199,8 +199,8 @@ export const captureRepositorySync = inngest.createFunction(
         })
         .select('id, number');
 
-      if (_error) {
-        throw new Error(`Failed to store PRs: ${_error.message}`);
+      if (error) {
+        throw new Error(`Failed to store PRs: ${error.message}`);
       }
 
       return data || [];
@@ -327,8 +327,8 @@ export const captureRepositorySync = inngest.createFunction(
         })
         .eq('id', repositoryId);
 
-      if (_error) {
-        console.warn(`Failed to update repository sync timestamp: ${_error.message}`);
+      if (error) {
+        console.warn(`Failed to update repository sync timestamp: ${error.message}`);
       }
     });
 

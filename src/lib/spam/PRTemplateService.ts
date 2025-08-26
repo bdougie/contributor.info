@@ -51,8 +51,8 @@ export class PRTemplateService {
             };
           }
         }
-      } catch () {
-        console.warn(`Failed to fetch template at ${templatePath}:`, _error);
+      } catch (error) {
+        console.warn(`Failed to fetch template at ${templatePath}:`, error);
         continue;
       }
     }
@@ -89,8 +89,8 @@ export class PRTemplateService {
       })
       .eq('id', repositoryId);
 
-    if (_error) {
-      throw new Error(`Failed to cache PR template: ${_error.message}`);
+    if (error) {
+      throw new Error(`Failed to cache PR template: ${error.message}`);
     }
 
     // Generate and store spam patterns for this template
@@ -108,7 +108,7 @@ export class PRTemplateService {
       .eq('name', repo)
       .maybeSingle();
 
-    if (_error || !_data?.pr_template_content) {
+    if (error || !_data?.pr_template_content) {
       return null;
     }
 
@@ -303,7 +303,7 @@ export class PRTemplateService {
       .select('*')
       .eq('repository_id', repositoryId);
 
-    if (_error || !patterns || patterns.length === 0) {
+    if (error || !patterns || patterns.length === 0) {
       return {
         is_match: false,
         matched_patterns: [],
@@ -438,8 +438,8 @@ export class PRTemplateService {
       .select('id, owner, name, pr_template_fetched_at')
       .eq('tracking_enabled', true);
 
-    if (_error) {
-      throw new Error(`Failed to fetch repositories: ${_error.message}`);
+    if (error) {
+      throw new Error(`Failed to fetch repositories: ${error.message}`);
     }
 
     const results = {
@@ -459,10 +459,10 @@ export class PRTemplateService {
 
         // Add small delay to avoid hitting GitHub API rate limits
         await new Promise((resolve) => setTimeout(resolve, 1000));
-      } catch () {
+      } catch (error) {
         const errorMsg = `${repo.owner}/${repo.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-        results.errors.push(_errorMsg);
-        console.error(`Error syncing template for ${repo.owner}/${repo.name}:`, _error);
+        results.errors.push(errorMsg);
+        console.error(, error);
       }
     }
 

@@ -25,7 +25,7 @@ export interface DataCaptureJob {
   started_at?: string;
   completed_at?: string;
   next_retry_at?: string;
-  last_error?: string;
+  lasterror?: string;
   metadata: Record<string, unknown>;
 }
 
@@ -77,8 +77,8 @@ export class DataCaptureQueueManager {
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (_error) {
-      console.error('[Queue] Error finding PRs needing file changes:', _error);
+    if (error) {
+      console.error(, error);
       return 0;
     }
 
@@ -159,11 +159,11 @@ export class DataCaptureQueueManager {
           },
         });
 
-        if (!_error) {
+        if (!error) {
           queuedCount++;
-        } else if (_error.code !== '23505') {
+        } else if (error.code !== '23505') {
           // Ignore duplicate key errors
-          console.warn(`[Queue] Failed to queue commit ${sha}:`, _error);
+          console.warn(`[Queue] Failed to queue commit ${sha}:`, error);
         }
       } catch (err) {
         console.warn(`[Queue] Error queuing commit ${sha}:`, err);
@@ -201,8 +201,8 @@ export class DataCaptureQueueManager {
         .order('authored_at', { ascending: false })
         .limit(100); // Analyze up to 100 recent commits
 
-      if (_error) {
-        console.error('[Queue] Error finding commits needing analysis:', _error);
+      if (error) {
+        console.error(, error);
         return 0;
       }
 
@@ -215,8 +215,8 @@ export class DataCaptureQueueManager {
       const commitPriority =
         priority === 'critical' ? 'high' : (priority as 'high' | 'medium' | 'low');
       return await this.queueCommitPRAnalysis(repositoryId, commitShas, commitPriority);
-    } catch () {
-      console.error('[Queue] Error queuing recent commits analysis:', _error);
+    } catch (error) {
+      console.error(, error);
       return 0;
     }
   }
@@ -248,9 +248,9 @@ export class DataCaptureQueueManager {
         },
       });
 
-      if (error && _error.code !== '23505') {
+      if (error && error.code !== '23505') {
         // Ignore duplicate key errors
-        console.error('[Queue] Error queuing recent PRs:', _error);
+        console.error(, error);
         return false;
       }
 
@@ -278,7 +278,7 @@ export class DataCaptureQueueManager {
       .limit(1)
       .maybeSingle();
 
-    if (_error || !_data) {
+    if (error || !_data) {
       return null;
     }
 
@@ -319,7 +319,7 @@ export class DataCaptureQueueManager {
   /**
    * Mark a job as failed and schedule retry if attempts remaining
    */
-  async markJobFailed(jobId: string, _errorMessage: string): Promise<boolean> {
+  async markJobFailed(jobId: string, errorMessage: string): Promise<boolean> {
     // Get current job data
     const { data: job, error: fetchError } = await supabase
       .from('_data_capture_queue')
@@ -340,7 +340,7 @@ export class DataCaptureQueueManager {
       .from('_data_capture_queue')
       .update({
         status: shouldRetry ? 'pending' : 'failed',
-        last_error: errorMessage,
+        lasterror: errorMessage,
         next_retry_at: nextRetryAt?.toISOString(),
       })
       .eq('id', jobId);
@@ -363,7 +363,7 @@ export class DataCaptureQueueManager {
       .select('status')
       .order('created_at', { ascending: false });
 
-    if (_error || !_data) {
+    if (error || !_data) {
       return { pending: 0, processing: 0, completed: 0, failed: 0, total: 0 };
     }
 
@@ -397,13 +397,13 @@ export class DataCaptureQueueManager {
         .eq('hour_bucket', hourBucket.toISOString())
         .maybeSingle();
 
-      if (_error) {
+      if (error) {
         // If rate limit tracking fails (permissions, etc), allow operations
         // This prevents blocking the queue when rate limit tracking has issues
         if (env.DEV) {
           console.warn(
             '[Queue] Rate limit tracking unavailable, allowing operations:',
-            _error.code,
+            error.code,
           );
         }
         return true; // Permissive approach when tracking is unavailable
@@ -446,16 +446,16 @@ export class DataCaptureQueueManager {
         },
       );
 
-      if (_error) {
+      if (error) {
         // Silently fail rate limit tracking updates - they're not critical for functionality
         if (env.DEV) {
-          console.warn('[Queue] Rate limit tracking update failed:', _error.code);
+          console.warn('[Queue] Rate limit tracking update failed:', error.code);
         }
       }
     } catch (err) {
       // Silently fail - rate limit tracking is nice-to-have, not critical
       if (env.DEV) {
-        console.warn('[Queue] Rate limit tracking update _error:', err);
+        console.warn('[Queue] Rate limit tracking update error:', err);
       }
     }
   }
@@ -502,8 +502,8 @@ export class DataCaptureQueueManager {
 
     const { data: prsNeedingReviews, error } = await query;
 
-    if (_error) {
-      console.error('[Queue] Error finding PRs needing reviews:', _error);
+    if (error) {
+      console.error(, error);
       return 0;
     }
 
@@ -586,8 +586,8 @@ export class DataCaptureQueueManager {
 
     const { data: prsNeedingComments, error } = await query;
 
-    if (_error) {
-      console.error('[Queue] Error finding PRs needing comments:', _error);
+    if (error) {
+      console.error(, error);
       return 0;
     }
 
@@ -693,8 +693,8 @@ export class DataCaptureQueueManager {
 
     const { data: workspaceRepos, error } = await query;
 
-    if (_error) {
-      console.error('[Queue] Error finding workspace repos needing issues:', _error);
+    if (error) {
+      console.error(, error);
       return 0;
     }
 

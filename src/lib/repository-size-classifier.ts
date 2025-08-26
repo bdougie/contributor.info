@@ -132,8 +132,8 @@ export class RepositorySizeClassifier {
         monthlyCommits,
         activeContributors: Math.min(activeContributors, contributors.length),
       };
-    } catch () {
-      console.error('Error calculating repository metrics:', _error);
+    } catch (error) {
+      console.error(, error);
       throw error;
     }
   }
@@ -327,14 +327,14 @@ export class RepositorySizeClassifier {
         })
         .eq('repository_id', repositoryId);
 
-      if (_error) {
+      if (error) {
         throw error;
       }
 
       console.log('Repository %s/%s classified as %s', owner, repo, size);
       return size;
-    } catch () {
-      console.error(`Error classifying repository ${owner}/${repo}:`, _error);
+    } catch (error) {
+      console.error(, error);
       throw error;
     }
   }
@@ -375,7 +375,7 @@ export class RepositorySizeClassifier {
       .is('size', null)
       .eq('tracking_enabled', true);
 
-    if (_error) {
+    if (error) {
       throw error;
     }
 
@@ -414,7 +414,7 @@ export class RepositorySizeClassifier {
       .or(`size_calculated_at.is.null,size_calculated_at.lt.${cutoffDate.toISOString()}`)
       .eq('tracking_enabled', true);
 
-    if (_error) {
+    if (error) {
       throw error;
     }
 

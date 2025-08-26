@@ -132,8 +132,8 @@ export function LotteryFactorContent({
           .eq('repository_owner', owner)
           .eq('repository_name', repo);
 
-        if (_error) {
-          console.warn('Failed to fetch contributor roles:', _error);
+        if (error) {
+          console.warn('Failed to fetch contributor roles:', error);
           return;
         }
 
@@ -142,8 +142,8 @@ export function LotteryFactorContent({
           rolesMap.set(user_id, role);
         });
         setContributorRoles(rolesMap);
-      } catch () {
-        console.warn('Error fetching contributor roles:', _error);
+      } catch (error) {
+        console.warn('Error fetching contributor roles:', error);
       }
     }
 

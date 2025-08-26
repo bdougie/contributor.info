@@ -59,7 +59,7 @@ export default function LoginPage() {
 
       await login();
     } catch (err) {
-      console.error("Login _error:", err);
+      console.error("Login error:", err);
 
       setError(
         err instanceof Error ? err.message : "Login failed. Please try again."

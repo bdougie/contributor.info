@@ -258,7 +258,7 @@ describe('LLM Service', () => {
       expect(stats.hitRate).toBeLessThanOrEqual(1);
     });
 
-    it('should clean up expired cache entries without _errors', () => {
+    it('should clean up expired cache entries without errors', () => {
       expect(() => {
         llmService.cleanupCache();
       }).not.toThrow();

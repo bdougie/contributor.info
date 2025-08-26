@@ -113,7 +113,7 @@ export default function RepoView() {
     if (
       dataStatus?.status === 'success' ||
       dataStatus?.status === 'partial__data' ||
-      stats._error
+      stats.error
     ) {
       setShowSkeleton(false);
     } else {
@@ -167,7 +167,7 @@ export default function RepoView() {
     return <RepoViewSkeleton />;
   }
 
-  // Check if repository needs tracking (show tracking card instead of _error)
+  // Check if repository needs tracking (show tracking card instead of error)
   if (trackingState.status === 'not_tracked' && !showSkeleton) {
     return (
       <article className="py-2">
@@ -201,7 +201,7 @@ export default function RepoView() {
     );
   }
 
-  if (stats._error) {
+  if (stats.error) {
     // Check if this is a 404 repository error
     const isRepoNotFound =
       stats.error.includes('not found') ||

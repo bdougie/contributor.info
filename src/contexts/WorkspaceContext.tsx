@@ -162,7 +162,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   // Log workspace errors
   useEffect(() => {
     if (workspacesError) {
-      console.error('[WorkspaceContext] Workspace loading _error:', workspacesError);
+      console.error('[WorkspaceContext] Workspace loading error:', workspacesError);
       setError(workspacesError.message);
     }
   }, [workspacesError]);
@@ -189,8 +189,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       const workspace = findWorkspace(idOrSlug);
       if (!workspace) {
         const errorMsg = WORKSPACE_ERROR_MESSAGES.NOT_FOUND(idOrSlug);
-        console.error(_errorMsg);
-        setError(_errorMsg);
+        console.error(errorMsg);
+        setError(errorMsg);
         return;
       }
 
@@ -215,12 +215,12 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
         // Preload workspace data if needed (the hooks will handle this)
         // In the future, we could add preloading logic here
-      } catch () {
+      } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : WORKSPACE_ERROR_MESSAGES.SWITCH_FAILED;
-        console.error('Failed to switch workspace:', _errorMessage);
-        setError(_errorMessage);
-        throw new Error(_errorMessage);
+        console.error('Failed to switch workspace:', errorMessage);
+        setError(errorMessage);
+        throw new Error(errorMessage);
       } finally {
         setIsLoading(false);
       }

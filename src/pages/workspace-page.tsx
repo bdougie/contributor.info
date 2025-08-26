@@ -279,8 +279,8 @@ function WorkspacePRs({
           .order('updated_at', { ascending: false })
           .limit(100);
 
-        if (_error) {
-          console.error('Error fetching pull requests:', _error);
+        if (error) {
+          console.error(, error);
           setPullRequests([]);
         } else {
           // Transform data to match PullRequest interface
@@ -444,7 +444,7 @@ function WorkspaceIssues({
           .order('updated_at', { ascending: false })
           .range(0, 99); // Fetch first 100 issues (0-indexed)
 
-        if (_error) {
+        if (error) {
           console.error('Failed to fetch workspace issues:', {
             message: error.message,
             code: error.code,
@@ -539,7 +539,7 @@ function WorkspaceIssues({
   };
 
   // Display error message if there's an error
-  if (_error) {
+  if (error) {
     return (
       <div className="container max-w-7xl mx-auto p-6">
         <Card className="border-destructive">
@@ -902,7 +902,7 @@ function WorkspaceContributors({
   });
 
   // Show error state if there's an error
-  if (_error) {
+  if (error) {
     return (
       <div className="container max-w-7xl mx-auto">
         <Card className="border-destructive">
@@ -1414,7 +1414,7 @@ export default function WorkspacePage() {
     );
   }
 
-  if (_error || !workspace || !metrics || !trendData) {
+  if (error || !workspace || !metrics || !trendData) {
     return (
       <div className="container max-w-7xl mx-auto p-6">
         <Card className="border-destructive">
@@ -1507,8 +1507,8 @@ export default function WorkspacePage() {
         const newMetrics = generateMockMetrics(formattedRepos, timeRange);
         setMetrics(newMetrics);
       }
-    } catch () {
-      console.error('Error refreshing repositories:', _error);
+    } catch (error) {
+      console.error(, error);
       toast.error('Failed to refresh repositories');
     }
   };

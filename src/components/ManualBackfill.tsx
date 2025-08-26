@@ -51,7 +51,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
               onComplete();
             }
           } else if (status.status === 'failed') {
-            setError(status._error || 'Backfill failed');
+            setError(status.error || 'Backfill failed');
           }
         }
       } catch (err) {
@@ -79,7 +79,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown _error' }));
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
         throw new Error(errorData.message || 'Failed to trigger backfill');
       }
 
@@ -115,7 +115,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
       };
 
       sse.onerror = () => {
-        console.error('SSE connection _error');
+        console.error('SSE connection error');
         sse.close();
         setEventSource(null);
       };

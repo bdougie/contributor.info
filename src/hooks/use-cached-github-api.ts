@@ -23,7 +23,7 @@ export interface CachedApiState<T> {
 export interface UseCachedGitHubApiOptions extends ApiCallOptions {
   enabled?: boolean;
   onSuccess?: (_data: unknown) => void;
-  onError?: (_error: string) => void;
+  onError?: (error: string) => void;
   refreshInterval?: number;
 }
 
@@ -59,7 +59,7 @@ export function useCachedGitHubApi<T>(
     async (forceRefresh = false) => {
       if (!enabled) return;
 
-      setState((prev) => ({ ...prev, loading: true, _error: null }));
+      setState((prev) => ({ ...prev, loading: true, error: null }));
 
       try {
         const result: ApiResponse<T> = await clientRef.current.makeRequest<T>(endpoint, params, {
@@ -82,16 +82,16 @@ export function useCachedGitHubApi<T>(
             loading: false,
             error: result.error || 'Unknown error occurred',
           }));
-          onError?.(result.error || 'Unknown _error occurred');
+          onError?.(result.error || 'Unknown error occurred');
         }
-      } catch () {
+      } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         setState((prev) => ({
           ...prev,
           loading: false,
           error: errorMessage,
         }));
-        onError?.(_errorMessage);
+        onError?.(errorMessage);
       }
     },
     [endpoint, params, enabled, apiOptions, onSuccess, onError],
@@ -235,7 +235,7 @@ export function useCachedBatchRequests<T>(
   const fetchBatch = useCallback(async () => {
     if (!options.enabled || requests.length === 0) return;
 
-    setState((prev) => ({ ...prev, loading: true, _error: null }));
+    setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
       const results = await clientRef.current.batchRequest<T>(requests);
@@ -244,7 +244,7 @@ export function useCachedBatchRequests<T>(
         loading: false,
         error: null,
       });
-    } catch () {
+    } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Batch request failed';
       setState((prev) => ({
         ...prev,

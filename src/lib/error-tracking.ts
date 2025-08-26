@@ -133,13 +133,13 @@ class ErrorTracker {
   }
 
   private async sendToConsole(report: ErrorReport): Promise<void> {
-    console.group(`🚨 Data Loading Error - Stage: ${report._error.stage}`);
-    console.error('Error:', report._error);
+    console.group(`🚨 Data Loading Error - Stage: ${report.error.stage}`);
+    console.error('Error:', report.error);
     console.info('Context:', report.context);
-    console.info('User Message:', report._error.userMessage);
+    console.info('User Message:', report.error.userMessage);
 
-    if (report._error.technicalDetails) {
-      console.info('Technical Details:', report._error.technicalDetails);
+    if (report.error.technicalDetails) {
+      console.info('Technical Details:', report.error.technicalDetails);
     }
 
     if (report.additionalData) {
@@ -170,14 +170,14 @@ class ErrorTracker {
       };
 
       // Store in localStorage for debugging
-      const existingLogs = JSON.parse(localStorage.getItem('_data-loading-_errors') || '[]');
-      existingLogs.push(_errorLog);
+      const existingLogs = JSON.parse(localStorage.getItem('_data-loading-errors') || '[]');
+      existingLogs.push(errorLog);
 
       // Keep only last 100 errors
       const recentLogs = existingLogs.slice(-100);
-      localStorage.setItem('_data-loading-_errors', JSON.stringify(recentLogs));
+      localStorage.setItem('_data-loading-errors', JSON.stringify(recentLogs));
     } catch (storageError) {
-      console.warn('Failed to store _error in localStorage:', storageError);
+      console.warn('Failed to store error in localStorage:', storageError);
     }
   }
 
@@ -188,9 +188,9 @@ class ErrorTracker {
       const Sentry = await import('@sentry/browser');
       
       Sentry.withScope(scope => {
-        scope.setTag('_error_type', '_data_loading');
-        scope.setTag('loading_stage', report._error.stage);
-        scope.setTag('error_category', report._error.type);
+        scope.setTag('error_type', '_data_loading');
+        scope.setTag('loading_stage', report.error.stage);
+        scope.setTag('error_category', report.error.type);
         scope.setContext('loading_context', report.context);
         
         if (report.additionalData) {
@@ -207,10 +207,10 @@ class ErrorTracker {
           });
         });
         
-        Sentry.captureException(report._error);
+        Sentry.captureException(report.error);
       });
-    } catch () {
-      console.warn('Failed to send error to Sentry:', _error);
+    } catch (error) {
+      console.warn('Failed to send error to Sentry:', error);
     }
   }
   */
@@ -232,18 +232,18 @@ class ErrorTracker {
         };
       }
 
-      const storedErrors = JSON.parse(localStorage.getItem('_data-loading-_errors') || '[]');
+      const storedErrors = JSON.parse(localStorage.getItem('_data-loading-errors') || '[]');
 
       const errorsByStage = storedErrors.reduce(
-        (acc: Record<LoadingStage, number>, _error: unknown) => {
-          acc[error.stage as LoadingStage] = (acc[_error.stage as LoadingStage] || 0) + 1;
+        (acc: Record<LoadingStage, number>, error: unknown) => {
+          acc[error.stage as LoadingStage] = (acc[error.stage as LoadingStage] || 0) + 1;
           return acc;
         },
         { critical: 0, full: 0, enhancement: 0 },
       );
 
-      const errorsByType = storedErrors.reduce((acc: Record<string, number>, _error: unknown) => {
-        acc[error.type] = (acc[_error.type] || 0) + 1;
+      const errorsByType = storedErrors.reduce((acc: Record<string, number>, error: unknown) => {
+        acc[error.type] = (acc[error.type] || 0) + 1;
         return acc;
       }, {});
 
@@ -253,8 +253,8 @@ class ErrorTracker {
         errorsByType,
         recentErrors: storedErrors.slice(-20),
       };
-    } catch () {
-      console.warn('Failed to get error stats:', _error);
+    } catch (error) {
+      console.warn('Failed to get error stats:', error);
       return {
         totalErrors: 0,
         errorsByStage: { critical: 0, full: 0, enhancement: 0 },
@@ -268,11 +268,11 @@ class ErrorTracker {
   clearErrorData(): void {
     try {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('_data-loading-_errors');
+        localStorage.removeItem('_data-loading-errors');
       }
       this.breadcrumbs = [];
-    } catch () {
-      console.warn('Failed to clear error _data:', _error);
+    } catch (error) {
+      console.warn('Failed to clear error _data:', error);
     }
   }
 
@@ -281,10 +281,10 @@ class ErrorTracker {
     try {
       if (typeof window === 'undefined') return '[]';
 
-      const storedErrors = localStorage.getItem('_data-loading-_errors') || '[]';
+      const storedErrors = localStorage.getItem('_data-loading-errors') || '[]';
       return storedErrors;
-    } catch () {
-      console.warn('Failed to export error _data:', _error);
+    } catch (error) {
+      console.warn('Failed to export error _data:', error);
       return '[]';
     }
   }
@@ -299,7 +299,7 @@ export function trackDataLoadingError(
   context?: Partial<ErrorTrackingContext>,
   additionalData?: Record<string, unknown>,
 ): void {
-  errorTracker.reportError(__error, context, additionalData);
+  errorTracker.reportError(_error, context, additionalData);
 }
 
 export function addBreadcrumb(breadcrumb: Omit<ErrorBreadcrumb, 'timestamp'>): void {
@@ -325,7 +325,7 @@ export function useErrorTracking() {
     context?: Partial<ErrorTrackingContext>,
     additionalData?: Record<string, unknown>,
   ) => {
-    trackDataLoadingError(__error, context, additionalData);
+    trackDataLoadingError(_error, context, additionalData);
   };
 
   const addBreadcrumbFromComponent = (

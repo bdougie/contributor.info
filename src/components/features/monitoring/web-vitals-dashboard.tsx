@@ -70,8 +70,8 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
       // Load historical data for charts
       const historical = await loadHistoricalData();
       setHistoricalData(historical);
-    } catch () {
-      console.error('Failed to load performance _data:', _error);
+    } catch (error) {
+      console.error(, error);
     } finally {
       setLoading(false);
     }

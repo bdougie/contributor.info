@@ -72,7 +72,7 @@ export interface EvaluationMetrics {
   confidence_calibration: {
     expected_accuracy: number;
     actual_accuracy: number;
-    calibration_error: number;
+    calibrationerror: number;
   };
   execution_stats: {
     total_samples: number;

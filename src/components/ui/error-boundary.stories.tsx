@@ -148,9 +148,9 @@ export const WithErrorCallback: Story = {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: designTokens.spacing[4] }}>
         <ErrorBoundary
-          onError={(_error, _errorInfo) => {
-            setErrorLog((prev) => [...prev, `Error: ${_error.message}`]);
-            console.log('Error logged:', _error, _errorInfo);
+          onError={(error, errorInfo) => {
+            setErrorLog((prev) => [...prev, `Error: ${error.message}`]);
+            console.log('Error logged:', error, errorInfo);
           }}
         >
           <BrokenComponent shouldBreak={true} />

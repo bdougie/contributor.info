@@ -5,7 +5,7 @@ import { SyncMonitoring } from '../sync-monitoring';
 vi.mock('../supabase', () => ({
   supabase: {
     from: vi.fn(() => ({
-      insert: vi.fn(() => Promise.resolve({ _error: null })),
+      insert: vi.fn(() => Promise.resolve({ error: null })),
       select: vi.fn(() => ({
         gte: vi.fn(() => ({
           data: [],

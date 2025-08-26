@@ -123,7 +123,7 @@ export function useLazyLoadData<T>(
     }
   }, [hasIntersected, data, loadFn]);
 
-  return { ref, data, loading, _error, hasIntersected };
+  return { ref, data, loading, error, hasIntersected };
 }
 
 /**

@@ -96,7 +96,7 @@ export function GitHubAppInstallButton({
         console.debug('Error checking app installation status:', dbError);
         setIsInstalled(false);
       }
-    } catch () {
+    } catch (error) {
       // Silently fail and assume not installed
       setIsInstalled(false);
     } finally {
@@ -136,7 +136,7 @@ export function GitHubAppInstallButton({
         // Failed to fetch repo permissions - user may not have access
         setCanInstall(false);
       }
-    } catch () {
+    } catch (error) {
       // Silently fail and assume user cannot install
       setCanInstall(false);
     }

@@ -41,11 +41,11 @@ export function AuthButton() {
           user_github_id: parseInt(githubId),
         });
 
-        if (_error) {
-          console.warn('Failed to check admin status:', _error);
+        if (error) {
+          console.warn('Failed to check admin status:', error);
 
           // Fallback: Try to create the user record if it doesn't exist
-          if (_error.message?.includes('does not exist') || error.code === 'PGRST116') {
+          if (error.message?.includes('does not exist') || error.code === 'PGRST116') {
             try {
               console.log('Attempting to create missing app_users record for user:', githubId);
               const githubUsername = user.user_metadata?.user_name;
@@ -81,16 +81,16 @@ export function AuthButton() {
 
           // Log auth error to database for monitoring
           try {
-            await supabase.rpc('log_auth_error', {
+            await supabase.rpc('log_autherror', {
               p_auth_user_id: user.id,
               p_github_user_id: parseInt(githubId),
               p_github_username: user.user_metadata?.user_name,
-              p_error_type: 'admin_check_failed',
-              p_error_message: error.message,
-              p_error_code: error.code,
+              perror_type: 'admin_check_failed',
+              perror_message: error.message,
+              perror_code: error.code,
             });
           } catch (logError) {
-            console.warn('Failed to log auth _error:', logError);
+            console.warn('Failed to log auth error:', logError);
           }
 
           setIsAdmin(false);
@@ -107,7 +107,7 @@ export function AuthButton() {
     // Get initial session
     supabase.auth
       .getSession()
-      .then(({ _data: { session }, _error: sessionError }) => {
+      .then(({ _data: { session }, error: sessionError }) => {
         if (sessionError) {
           setError(sessionError.message);
         }
@@ -177,7 +177,7 @@ export function AuthButton() {
     );
   }
 
-  if (_error) {
+  if (error) {
     // Error is already displayed in UI state
   }
 

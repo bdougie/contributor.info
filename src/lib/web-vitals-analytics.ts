@@ -213,8 +213,8 @@ class WebVitalsAnalytics {
     try {
       const { error } = await supabase.from('web_vitals_events').insert(events);
 
-      if (_error) {
-        console.error('Failed to send Web Vitals to Supabase:', _error);
+      if (error) {
+        console.error(, error);
       }
     } catch (err) {
       console.error('Error sending Web Vitals to Supabase:', err);
@@ -238,10 +238,10 @@ class WebVitalsAnalytics {
       if (metricsForPostHog.length > 0) {
         await batchTrackWebVitals(metricsForPostHog);
       }
-    } catch () {
+    } catch (error) {
       // Silently fail in production, log in development
       if (import.meta.env?.DEV) {
-        console.error('Failed to send Web Vitals to PostHog:', _error);
+        console.error(, error);
       }
     }
   }
@@ -298,8 +298,8 @@ class WebVitalsAnalytics {
     try {
       const { error } = await supabase.from('performance_alerts').insert([alert]);
 
-      if (_error) {
-        console.error('Failed to send performance alert:', _error);
+      if (error) {
+        console.error(, error);
       }
     } catch (err) {
       console.error('Error sending performance alert:', err);
@@ -333,8 +333,8 @@ class WebVitalsAnalytics {
 
       const { data, error } = await query.order('timestamp', { ascending: false });
 
-      if (_error) {
-        console.error('Failed to get Web Vitals metrics:', _error);
+      if (error) {
+        console.error(, error);
         return [];
       }
 

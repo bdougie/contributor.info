@@ -84,7 +84,7 @@ export class AutoRetryService {
       for (const job of failedJobs) {
         await this.processFailedJob(job);
       }
-    } catch () {
+    } catch (error) {
       console.error('[AutoRetry] ❌ Critical error checking failed jobs:', {
         error,
         timestamp: new Date().toISOString(),
@@ -118,7 +118,7 @@ export class AutoRetryService {
       }
 
       // Check if job has permanent failures that shouldn't be retried
-      if (this.isPermanentFailure(job._error)) {
+      if (this.isPermanentFailure(job.error)) {
         console.error(
           `[AutoRetry] ❌ Job ${job.id} has permanent failure, marking as permanently failed:`,
           {
@@ -160,7 +160,7 @@ export class AutoRetryService {
               {
                 attempt: retryCount + 1,
                 timestamp: new Date().toISOString(),
-                previous_error: job.error,
+                previouserror: job.error,
               },
             ],
           },
@@ -182,7 +182,7 @@ export class AutoRetryService {
           final_retry_count: retryCount + 1,
         },
       });
-    } catch () {
+    } catch (error) {
       console.error(`[AutoRetry] ❌ Error processing failed job ${job.id}:`, {
         jobId: job.id,
         jobType: job.job_type,
@@ -208,8 +208,8 @@ export class AutoRetryService {
   /**
    * Check if an error is permanent and shouldn't be retried
    */
-  private isPermanentFailure(_error?: string): boolean {
-    if (!_error) return false;
+  private isPermanentFailure(error?: string): boolean {
+    if (!error) return false;
 
     const permanentErrors = [
       'Repository not found',
@@ -275,7 +275,7 @@ export class AutoRetryService {
           .eq('id', originalJob.repository_id)
           .maybeSingle();
 
-        if (_error || !repo) {
+        if (error || !repo) {
           console.error('[AutoRetry] Failed to fetch repository details:', {
             jobId: originalJob.id,
             repositoryId: originalJob.repository_id,
@@ -302,7 +302,7 @@ export class AutoRetryService {
       metadata: {
         retry_of: originalJob.id,
         retry_attempt: (originalJob.meta_data?.retry_count || 0) + 1,
-        original_error: originalJob.error,
+        originalerror: originalJob.error,
         repository_name_fetched: !originalJob.metadata?.repository_name, // Track if we had to fetch it
       },
     };
@@ -417,8 +417,8 @@ export class AutoRetryService {
           jobsRecoveredViaFetch,
         },
       };
-    } catch () {
-      console.error('[AutoRetry] Error getting retry stats:', _error);
+    } catch (error) {
+      console.error(, error);
       return {
         totalRetries: 0,
         successfulRetries: 0,

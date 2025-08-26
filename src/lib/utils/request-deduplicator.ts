@@ -172,7 +172,7 @@ export class RequestDeduplicator {
     try {
       const result = await fetcher(signal);
       return result;
-    } catch () {
+    } catch (error) {
       // Clean up failed request immediately
       this.pending.delete(key);
       throw error;

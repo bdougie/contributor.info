@@ -56,8 +56,8 @@ export class GroundTruthExtractor {
       .order('confidence_score', { ascending: false })
       .limit(1500);
 
-    if (_error) {
-      throw new Error(`Failed to extract contributor roles: ${_error.message}`);
+    if (error) {
+      throw new Error(`Failed to extract contributor roles: ${error.message}`);
     }
 
     console.log('Found %s high-confidence contributor roles', contributorRoles?.length);
@@ -109,8 +109,8 @@ export class GroundTruthExtractor {
       .order('created_at', { ascending: false })
       .limit(100);
 
-    if (_error) {
-      console.warn(`Failed to extract events for ${contributorId}: ${_error.message}`);
+    if (error) {
+      console.warn(`Failed to extract events for ${contributorId}: ${error.message}`);
       return [];
     }
 

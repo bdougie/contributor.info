@@ -17,9 +17,9 @@ export function DubTest() {
       const shortUrl = await createChartShareUrl(currentUrl, 'test-chart', 'test-repo');
 
       setResult(`✅ Success! Short URL: ${shortUrl}`);
-    } catch (_error: unknown) {
-      setResult(`❌ Error: ${_error.message}`);
-      console.error('Dub API test error:', _error);
+    } catch (error: unknown) {
+      setResult(`❌ Error: ${error.message}`);
+      console.error(, error);
     } finally {
       setLoading(false);
     }

@@ -109,7 +109,7 @@ export function OptimizedAvatarSimple({
   };
 
   // Generate fallback text
-  const fallbackText = generateFallbackText(alt, fallback, _error);
+  const fallbackText = generateFallbackText(alt, fallback, error);
   const fallbackTextSize = getFallbackTextSize(size);
 
   // Default renderers (for production use)
@@ -169,7 +169,7 @@ export function OptimizedAvatarSimple({
           className: cn(
             'flex h-full w-full items-center justify-center rounded-full bg-muted text-sm font-medium',
             fallbackTextSize,
-            !shouldLoad || _error || !isLoaded ? 'opacity-100' : 'opacity-0',
+            !shouldLoad || error || !isLoaded ? 'opacity-100' : 'opacity-0',
           ),
           children: fallbackText,
         })}

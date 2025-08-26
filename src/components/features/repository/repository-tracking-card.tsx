@@ -124,7 +124,7 @@ export function RepositoryTrackingCard({
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to track repository';
-      setError(_errorMessage);
+      setError(errorMessage);
       toast.error('Tracking failed', {
         description: errorMessage,
         duration: 6000
@@ -194,7 +194,7 @@ export function RepositoryTrackingCard({
         }
       } catch (err) {
         // Silently continue polling
-        console.error('Polling _error:', err);
+        console.error('Polling error:', err);
       }
     }, 2000); // Poll every 2 seconds
   };

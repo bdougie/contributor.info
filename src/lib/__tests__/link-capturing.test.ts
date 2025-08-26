@@ -143,10 +143,10 @@ describe('Link Capturing Functionality', () => {
       expect(mockClipboard.writeText).toHaveBeenCalledWith(testUrl)
     })
 
-    it('should handle clipboard write _errors gracefully', async () => {
+    it('should handle clipboard write errors gracefully', async () => {
       mockClipboard.writeText.mockRejectedValueOnce(new Error('Clipboard access denied'))
       
-      await expect(navigator.clipboard.writeText('https://dub.sh/_error'))
+      await expect(navigator.clipboard.writeText('https://dub.sh/error'))
         .rejects.toThrow('Clipboard access denied')
     })
   })
@@ -186,7 +186,7 @@ describe('Link Capturing Functionality', () => {
   })
 
   describe('Error Handling', () => {
-    it('should handle function _errors gracefully', async () => {
+    it('should handle function errors gracefully', async () => {
       // Since we're in development mode, errors don't affect the result
       const result = await createShortUrl({ url: 'https://contributor.info/test' })
       
@@ -194,7 +194,7 @@ describe('Link Capturing Functionality', () => {
       expect(result?.id).toBe('dev-mock')
     })
 
-    it('should handle service _errors in response', async () => {
+    it('should handle service errors in response', async () => {
       // Development mode bypasses all API calls
       const result = await createShortUrl({ url: 'https://contributor.info/test' })
       
@@ -202,7 +202,7 @@ describe('Link Capturing Functionality', () => {
       expect(result?.id).toBe('dev-mock')
     })
 
-    it('should handle network/connection _errors', async () => {
+    it('should handle network/connection errors', async () => {
       // Development mode doesn't make network calls
       const result = await createShortUrl({ url: 'https://contributor.info/test' })
       
@@ -279,3 +279,4 @@ describe('Link Capturing Functionality', () => {
       expect(mockClipboard.writeText).toHaveBeenCalledWith(shortUrl)
     })
   })
+});

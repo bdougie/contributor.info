@@ -457,7 +457,7 @@ export const Interactive: Story = {
           
           {errors.length > 0 && (
             <ul id="interactive-errors" className="text-sm text-red-600">
-              {errors.map((__error, i) => (
+              {errors.map((_error, i) => (
                 <li key={i}>• {error}</li>
               ))}
             </ul>

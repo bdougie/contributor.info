@@ -257,8 +257,8 @@ export class PRAnalysisService {
           }
         }
       }
-    } catch () {
-      console.warn('Failed to check repository-specific patterns:', _error);
+    } catch (error) {
+      console.warn('Failed to check repository-specific patterns:', error);
     }
 
     // Fallback to common template detection

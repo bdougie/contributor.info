@@ -17,9 +17,9 @@ const mockSupabase = {
         }))
       }))
     })),
-    insert: vi.fn(() => Promise.resolve({ _error: null })),
+    insert: vi.fn(() => Promise.resolve({ error: null })),
     update: vi.fn(() => ({
-      eq: vi.fn(() => Promise.resolve({ _error: null }))
+      eq: vi.fn(() => Promise.resolve({ error: null }))
     }))
   }))
 };
@@ -168,3 +168,4 @@ describe('Repository Sync Event Flow Integration', () => {
       }).toThrow('column tracked_repositories.is_active does not exist');
     });
   });
+});

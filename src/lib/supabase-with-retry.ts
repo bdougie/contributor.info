@@ -42,11 +42,11 @@ const supabaseRetryConfig: Partial<RetryConfig> = {
     'FetchError',
     'AbortError',
   ]),
-  onRetry: (__error, attempt) => {
+  onRetry: (_error, attempt) => {
     retryMetrics.totalRetries++;
     // Only log in development
     if (process.env.NODE_ENV === 'development') {
-      console.log(`%s`, `Supabase retry attempt ${attempt}:`, _error.message);
+      console.log(`%s`, `Supabase retry attempt ${attempt}:`, error.message);
     }
   },
 };
@@ -67,7 +67,7 @@ const githubRetryConfig: Partial<RetryConfig> = {
     '429', // Rate limit - retry with longer backoff
     '403', // Sometimes indicates rate limit
   ]),
-  onRetry: (__error, attempt) => {
+  onRetry: (_error, attempt) => {
     retryMetrics.totalRetries++;
     const isRateLimit = error.message.includes('429') || error.message.includes('rate limit');
     // Only log in development
@@ -90,9 +90,9 @@ export async function supabaseWithRetry<T>(
       retryMetrics.successfulRetries++;
     }
     return result;
-  } catch () {
+  } catch (error) {
     retryMetrics.failedRetries++;
-    if (error instanceof Error && _error.message.includes('Circuit breaker is open')) {
+    if (error instanceof Error && error.message.includes('Circuit breaker is open')) {
       retryMetrics.circuitBreakerTrips++;
     }
     // Return in Supabase format
@@ -128,8 +128,8 @@ export async function fetchWithRetry(
 
       // Check for rate limit or server errors
       if (response.status === 429 || response.status >= 500) {
-        const _error = new Error(`HTTP ${response.status}: ${response.statusText}`);
-        (_error as any).status = response.status;
+        const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
+        (error as any).status = response.status;
         throw error;
       }
 
@@ -137,8 +137,8 @@ export async function fetchWithRetry(
       if (response.status === 403) {
         const rateLimitRemaining = response.headers.get('x-ratelimit-remaining');
         if (rateLimitRemaining === '0') {
-          const _error = new Error('GitHub API rate limit exceeded');
-          (_error as any).status = 429; // Treat as rate limit
+          const error = new Error('GitHub API rate limit exceeded');
+          (error as any).status = 429; // Treat as rate limit
           throw error;
         }
       }

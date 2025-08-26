@@ -84,8 +84,8 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
         // Fallback to static FAQ generation
         generateStaticFAQs();
       }
-    } catch () {
-      console.error('Failed to generate AI FAQs, falling back to static:', _error);
+    } catch (error) {
+      console.error('Failed to generate AI FAQs, falling back to static:', error);
       setUseAI(false);
       generateStaticFAQs();
     }

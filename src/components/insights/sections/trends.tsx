@@ -32,8 +32,8 @@ export function Trends({ owner, repo, timeRange }: TrendsProps) {
     try {
       const trendData = await calculateTrendMetrics(owner, repo, timeRange);
       setTrends(trendData);
-    } catch () {
-      console.error('Failed to load trends:', _error);
+    } catch (error) {
+      console.error(, error);
       setTrends([]);
     } finally {
       setLoading(false);

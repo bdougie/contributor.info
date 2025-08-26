@@ -194,7 +194,7 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
 
 export function RepositoryHealthOverall({ stats, timeRange }: RepositoryHealthOverallProps) {
   const health = useMemo(() => {
-    if (stats.loading || stats._error || stats.pullRequests.length === 0) {
+    if (stats.loading || stats.error || stats.pullRequests.length === 0) {
       return null;
     }
     return calculateHealthMetricsFromStats(stats, timeRange);

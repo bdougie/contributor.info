@@ -221,7 +221,7 @@ export async function fetchPRDataWithFallback(
           } else {
           }
         }
-      } catch () {}
+      } catch (error) {}
 
       // Fallback to GitHub API - STRICTLY LIMITED to prevent resource exhaustion
       // Only fetch basic repository info, never attempt to fetch all PRs for unknown repos
@@ -379,8 +379,8 @@ export async function fetchPRDataWithFallback(
               setTimeout(() => {
                 delete globalWindow.__discoveryInProgress[discoveryKey];
               }, 5000);
-            } catch () {
-              console.error('Failed to trigger repository discovery:', _error);
+            } catch (error) {
+              console.error(, error);
               delete globalWindow.__discoveryInProgress[discoveryKey];
             }
           } else {
@@ -537,7 +537,7 @@ export async function hasRecentPRData(
       .limit(1);
 
     return !error && data && data.length > 0;
-  } catch () {
+  } catch (error) {
     return false;
   }
 }

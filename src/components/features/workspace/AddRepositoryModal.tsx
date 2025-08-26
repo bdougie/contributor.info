@@ -164,7 +164,7 @@ export function AddRepositoryModal({
       } catch (err) {
         console.error('Error initializing modal:', err);
         const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-        setError(`Failed to load workspace details: ${_errorMessage}`);
+        setError(`Failed to load workspace details: ${errorMessage}`);
       } finally {
         setLoading(false);
       }
@@ -254,7 +254,7 @@ export function AddRepositoryModal({
     } catch (err) {
       console.error('Error removing repository:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      toast.error(`Failed to remove ${repoName}: ${_errorMessage}`);
+      toast.error(`Failed to remove ${repoName}: ${errorMessage}`);
     } finally {
       setRemovingRepoId(null);
     }
@@ -338,7 +338,7 @@ export function AddRepositoryModal({
         if (response.success) {
           successCount++;
         } else {
-          errors.push(`${stagedRepo.full_name}: ${response.error: __error}`);
+          errors.push(`${stagedRepo.full_name}: ${response.error}`);
         }
       }
 
@@ -354,17 +354,17 @@ export function AddRepositoryModal({
         }
 
         // Close modal if all succeeded
-        if (_errors.length === 0) {
+        if (errors.length === 0) {
           onOpenChange(false);
         }
       }
 
-      if (_errors.length > 0) {
-        setError(_errors.join('\n'));
+      if (errors.length > 0) {
+        setError(errors.join('\n'));
       }
     } catch (err) {
       console.error('Error adding repositories to workspace:', err);
-      setError('An unexpected _error occurred. Please try again.');
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setSubmitting(false);
     }

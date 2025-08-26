@@ -98,8 +98,8 @@ export function PerformanceMonitoringDashboard() {
         database: databaseHealth.status === 'fulfilled' ? databaseHealth.value : null,
         github: githubHealth.status === 'fulfilled' ? githubHealth.value : null,
       };
-    } catch () {
-      console.error('Error fetching health endpoints:', _error);
+    } catch (error) {
+      console.error(, error);
       return { main: null, database: null, github: null };
     }
   }, []);
@@ -112,7 +112,7 @@ export function PerformanceMonitoringDashboard() {
         sortBy: { column: 'created_at', order: 'desc' },
       });
 
-      if (!_error && files) {
+      if (!error && files) {
         const totalSize = files.reduce((sum, file) => sum + (file.meta_data?.size || 0), 0);
         const avgFileSize = files.length > 0 ? totalSize / files.length : 0;
 
@@ -134,8 +134,8 @@ export function PerformanceMonitoringDashboard() {
           performanceScore,
         });
       }
-    } catch () {
-      console.error('Error loading CDN metrics:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }, []);
 
@@ -182,8 +182,8 @@ export function PerformanceMonitoringDashboard() {
 
       setAlerts(alertsResult._data || []);
       setLastRefresh(new Date());
-    } catch () {
-      console.error('Error loading performance metrics:', _error);
+    } catch (error) {
+      console.error(, error);
     } finally {
       setLoading(false);
     }
@@ -193,8 +193,8 @@ export function PerformanceMonitoringDashboard() {
     try {
       await supabase.rpc('create_performance_snapshot');
       await loadMetrics();
-    } catch () {
-      console.error('Error creating performance snapshot:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }, [loadMetrics]);
 

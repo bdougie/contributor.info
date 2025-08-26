@@ -441,7 +441,7 @@ export const syncLogCreateSchema = syncLogBaseSchema.refine(
       return false;
     }
     // If status is failed, error_message should be set
-    if (data.status === 'failed' && !_data._error_message) {
+    if (data.status === 'failed' && !_data.error_message) {
       return false;
     }
     return true;

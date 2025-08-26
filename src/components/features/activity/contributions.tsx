@@ -180,7 +180,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         });
 
         setCachedAvatars(avatarMap);
-      } catch () {
+      } catch (error) {
         // Fallback to original URLs on error
         const fallbackMap = new Map<number, string>();
         contributors.forEach((c) => {

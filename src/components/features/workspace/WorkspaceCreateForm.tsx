@@ -56,8 +56,8 @@ export function WorkspaceCreateForm({
       errors.description = 'Description must be at most 500 characters';
     }
 
-    setValidationErrors(_errors);
-    return Object.keys(_errors).length === 0;
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

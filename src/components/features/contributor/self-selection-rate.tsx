@@ -103,7 +103,7 @@ export function SelfSelectionRate({
 
   // Refetch when sync completes
   useEffect(() => {
-    if (syncStatus.isComplete && !syncStatus._error) {
+    if (syncStatus.isComplete && !syncStatus.error) {
       fetchStats()
     }
   }, [syncStatus.isComplete, syncStatus.error])

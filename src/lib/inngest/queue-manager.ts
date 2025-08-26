@@ -22,8 +22,8 @@ export class InngestQueueManager {
       await inngest.send(event);
       console.log('✅ [Inngest] Event sent successfully:', event.name);
       return true;
-    } catch () {
-      console.warn('❌ [Inngest] Failed to send event:', _error);
+    } catch (error) {
+      console.warn('❌ [Inngest] Failed to send event:', error);
       return false;
     }
   }
@@ -62,7 +62,7 @@ export class InngestQueueManager {
       .order('created_at', { ascending: false })
       .limit(effectiveLimit);
 
-    if (_error || !prsNeedingUpdate || prsNeedingUpdate.length === 0) {
+    if (error || !prsNeedingUpdate || prsNeedingUpdate.length === 0) {
       return 0;
     }
 
@@ -225,7 +225,7 @@ export class InngestQueueManager {
 
     const { data: prsNeedingReviews, error } = await query;
 
-    if (_error || !prsNeedingReviews || prsNeedingReviews.length === 0) {
+    if (error || !prsNeedingReviews || prsNeedingReviews.length === 0) {
       return 0;
     }
 
@@ -292,7 +292,7 @@ export class InngestQueueManager {
 
     const { data: prsNeedingComments, error } = await query;
 
-    if (_error || !prsNeedingComments || prsNeedingComments.length === 0) {
+    if (error || !prsNeedingComments || prsNeedingComments.length === 0) {
       return 0;
     }
 
@@ -347,7 +347,7 @@ export class InngestQueueManager {
         .order('authored_at', { ascending: false })
         .limit(100);
 
-      if (_error || !commitsNeedingAnalysis || commitsNeedingAnalysis.length === 0) {
+      if (error || !commitsNeedingAnalysis || commitsNeedingAnalysis.length === 0) {
         return 0;
       }
 
@@ -378,8 +378,8 @@ export class InngestQueueManager {
       }
 
       return queuedCount;
-    } catch () {
-      console.error('[Queue] Error queuing recent commits analysis:', _error);
+    } catch (error) {
+      console.error(, error);
       return 0;
     }
   }

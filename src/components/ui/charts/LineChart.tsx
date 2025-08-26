@@ -27,7 +27,7 @@ export interface LineChartProps extends Omit<UPlotChartProps, 'data' | 'options'
  * LineChart component using uPlot
  * Provides a Recharts-like API for easy migration
  */
-export const LineChart(LineChartProps): JSX.Element = ({
+export const LineChart = ({
   data,
   isDark = false,
   showGrid = true,
@@ -35,7 +35,7 @@ export const LineChart(LineChartProps): JSX.Element = ({
   xAxisLabel,
   yAxisLabel,
   ...uplotProps
-}) => {
+}: LineChartProps) => {
   const { chartData, chartOptions } = useMemo(() => {
     const theme = getChartTheme(isDark);
     const seriesColors = getSeriesColors(data._datasets.length, isDark);

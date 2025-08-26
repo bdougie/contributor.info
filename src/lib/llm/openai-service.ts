@@ -93,8 +93,8 @@ class OpenAIService {
         confidence: this.calculateConfidence(healthData.score),
         timestamp: new Date(),
       };
-    } catch () {
-      console.error('Failed to generate health insight:', _error);
+    } catch (error) {
+      console.error(, error);
       return null;
     }
   }
@@ -126,8 +126,8 @@ class OpenAIService {
         confidence: 0.8, // Default confidence for recommendations
         timestamp: new Date(),
       };
-    } catch () {
-      console.error('Failed to generate recommendations:', _error);
+    } catch (error) {
+      console.error(, error);
       return null;
     }
   }
@@ -155,8 +155,8 @@ class OpenAIService {
         confidence: 0.7, // Patterns can be more subjective
         timestamp: new Date(),
       };
-    } catch () {
-      console.error('Failed to analyze PR patterns:', _error);
+    } catch (error) {
+      console.error(, error);
       return null;
     }
   }
@@ -215,7 +215,7 @@ class OpenAIService {
         } else if (response.status === 401) {
           throw new Error('Invalid OpenAI API key');
         } else {
-          throw new Error(`OpenAI API _error: ${response.status}`);
+          throw new Error(`OpenAI API error: ${response.status}`);
         }
       }
 
@@ -226,10 +226,10 @@ class OpenAIService {
       }
 
       return data.choices[0].message.content.trim();
-    } catch () {
+    } catch (error) {
       clearTimeout(timeoutId);
 
-      if (error instanceof Error && _error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('OpenAI request timeout');
       }
 

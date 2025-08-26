@@ -3,7 +3,7 @@
  * This keeps the component pure and testable
  */
 
-export type EmptyStateType = 'no_data' | 'no_activity' | 'minimal_activity' | 'loading_error';
+export type EmptyStateType = 'no_data' | 'no_activity' | 'minimal_activity' | 'loadingerror';
 export type SeverityLevel = 'info' | 'warning' | 'error';
 
 export interface EmptyStateContent {
@@ -63,7 +63,7 @@ export function getEmptyStateContent(
         bgColor: 'from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30',
       };
 
-    case 'loading_error':
+    case 'loadingerror':
       return {
         iconName: 'trophy',
         iconColor: 'text-red-400 dark:text-red-500',

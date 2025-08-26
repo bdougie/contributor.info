@@ -203,7 +203,7 @@ describe('WorkspaceService', () => {
         }
         if (table === 'workspace_members') {
           return {
-            insert: vi.fn().mockResolvedValue({ _error: null }),
+            insert: vi.fn().mockResolvedValue({ error: null }),
           } as MockQueryBuilder;
         }
         return {} as MockQueryBuilder;
@@ -259,11 +259,11 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result._error).toContain('reached the limit');
+      expect(result.error).toContain('reached the limit');
       expect(result.statusCode).toBe(403);
     });
 
-    it('should handle validation _errors', async () => {
+    it('should handle validation errors', async () => {
       const invalidData: CreateWorkspaceRequest = {
         name: '', // Invalid: empty name
         description: 'Test',
@@ -275,7 +275,7 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result._error).toContain('Name is required');
+      expect(result.error).toContain('Name is required');
       expect(result.statusCode).toBe(400);
     });
   });
@@ -431,7 +431,7 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result._error).toContain('Repository limit reached');
+      expect(result.error).toContain('Repository limit reached');
       expect(result.statusCode).toBe(403);
     });
 
@@ -466,7 +466,7 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result._error).toContain('already exists');
+      expect(result.error).toContain('already exists');
       expect(result.statusCode).toBe(409);
     });
 
@@ -486,7 +486,7 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result._error).toContain('Insufficient permissions');
+      expect(result.error).toContain('Insufficient permissions');
       expect(result.statusCode).toBe(403);
     });
   });
@@ -569,7 +569,7 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result._error).toContain('Insufficient permissions');
+      expect(result.error).toContain('Insufficient permissions');
       expect(result.statusCode).toBe(403);
     });
   });

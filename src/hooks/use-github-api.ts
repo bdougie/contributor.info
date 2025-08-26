@@ -58,8 +58,8 @@ export function useGitHubApi() {
 
         return result.data;
       } catch (err) {
-        const _error = err instanceof Error ? err : new Error(String(err));
-        setError(_error);
+        const error = err instanceof Error ? err : new Error(String(err));
+        setError(error);
         throw error;
       } finally {
         setIsLoading(false);
@@ -86,8 +86,8 @@ export function useGitHubApi() {
 
         return result.data;
       } catch (err) {
-        const _error = err instanceof Error ? err : new Error(String(err));
-        setError(_error);
+        const error = err instanceof Error ? err : new Error(String(err));
+        setError(error);
         throw error;
       } finally {
         setIsLoading(false);
@@ -114,8 +114,8 @@ export function useGitHubApi() {
 
         return result.data;
       } catch (err) {
-        const _error = err instanceof Error ? err : new Error(String(err));
-        setError(_error);
+        const error = err instanceof Error ? err : new Error(String(err));
+        setError(error);
         throw error;
       } finally {
         setIsLoading(false);
@@ -142,8 +142,8 @@ export function useGitHubApi() {
 
         return result.data;
       } catch (err) {
-        const _error = err instanceof Error ? err : new Error(String(err));
-        setError(_error);
+        const error = err instanceof Error ? err : new Error(String(err));
+        setError(error);
         throw error;
       } finally {
         setIsLoading(false);
@@ -170,8 +170,8 @@ export function useGitHubApi() {
 
         return result.data;
       } catch (err) {
-        const _error = err instanceof Error ? err : new Error(String(err));
-        setError(_error);
+        const error = err instanceof Error ? err : new Error(String(err));
+        setError(error);
         throw error;
       } finally {
         setIsLoading(false);

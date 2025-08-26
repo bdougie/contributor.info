@@ -37,8 +37,8 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
     {
       enableRetry: true,
       enableGracefulDegradation: true,
-      onError: (__error, stage) => {
-        trackError(_error, {
+      onError: (_error, stage) => {
+        trackError(error, {
           repository: `${owner}/${repo}`,
           timeRange,
         });
@@ -67,7 +67,7 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
         stage="critical"
         enableGracefulDegradation={false} // Critical data is required
         onRetry={() => handleManualRetry('critical')}
-        onError={(_error) => console.error('Critical stage error boundary:', _error)}
+        onError={(error) => console.error(, error)}
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
@@ -347,8 +347,8 @@ export const ProgressiveRepoViewWithHOC = () => {
 
   const EnhancedComponent = withDataLoadingErrorBoundary(BasicComponent, 'full', {
     enableGracefulDegradation: true,
-    onError: (_error, _errorInfo) => {
-      console.error('HOC caught error:', _error, _errorInfo);
+    onError: (error, errorInfo) => {
+      console.error('HOC caught error:', error, errorInfo);
     },
     onRetry: () => {
       console.log('HOC retry triggered');

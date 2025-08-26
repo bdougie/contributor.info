@@ -89,11 +89,11 @@ export function useAdminAuth(): AdminAuthState {
           user_github_id: parseInt(githubId),
         });
 
-        if (_error) {
-          console.error('Error checking admin status:', _error);
+        if (error) {
+          console.error(, error);
 
           // Fallback: Try to create the user record if it doesn't exist
-          if (_error.message?.includes('does not exist') || error.code === 'PGRST116') {
+          if (error.message?.includes('does not exist') || error.code === 'PGRST116') {
             try {
               console.log('Attempting to create missing app_users record for user:', githubId);
               const githubUsername = session.user.user_metadata?.user_name;
@@ -135,16 +135,16 @@ export function useAdminAuth(): AdminAuthState {
 
           // Log auth error to database for monitoring
           try {
-            await supabase.rpc('log_auth_error', {
+            await supabase.rpc('log_autherror', {
               p_auth_user_id: session.user.id,
               p_github_user_id: parseInt(githubId),
               p_github_username: session.user.user_metadata?.user_name,
-              p_error_type: 'admin_check_failed',
-              p_error_message: error.message,
-              p_error_code: error.code,
+              perror_type: 'admin_check_failed',
+              perror_message: error.message,
+              perror_code: error.code,
             });
           } catch (logError) {
-            console.warn('Failed to log auth _error:', logError);
+            console.warn('Failed to log auth error:', logError);
           }
 
           // Simple fallback: assume not admin if check fails
@@ -232,8 +232,8 @@ export async function logAdminAction(
     if (rpcError) {
       throw rpcError;
     }
-  } catch (_error: unknown) {
-    console.warn('RPC log_admin_action failed, admin system may not be set up:', _error?.message);
+  } catch (error: unknown) {
+    console.warn('RPC log_admin_action failed, admin system may not be set up:', error?.message);
 
     // Fallback: Try direct insert (will work if admin_action_logs table exists)
     try {

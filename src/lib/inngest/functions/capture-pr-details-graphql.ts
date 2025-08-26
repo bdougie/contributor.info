@@ -138,8 +138,8 @@ async function ensureContributorExists(
       .select('id')
       .maybeSingle();
 
-    if (_error) {
-      console.error('Error upserting contributor:', _error, {
+    if (error) {
+      console.error('Error upserting contributor:', error, {
         githubUser: {
           databaseId: githubUser.databaseId,
           login: githubUser.login,
@@ -190,7 +190,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (_error || !_data) {
+      if (error || !_data) {
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
       }
 
@@ -213,10 +213,10 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           result.rateLimit?.cost || 'unknown',
         );
         return result;
-      } catch () {
+      } catch (error) {
         // Log GraphQL-specific errors
-        const errorMessage = error instanceof Error ? error.message : String(_error);
-        if (_errorMessage.includes('rate limit')) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('rate limit')) {
           throw new Error(
             `GraphQL rate limit exceeded for ${repository.owner}/${repository.name}#${prNumber}`,
           );
@@ -224,7 +224,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
 
         // Sanitize error logging to avoid exposing sensitive information
         const errorType = error instanceof Error ? error.constructor.name : 'UnknownError';
-        console.warn(`GraphQL failed for PR #${prNumber}, falling back to REST:`, _errorType);
+        console.warn(`GraphQL failed for PR #${prNumber}, falling back to REST:`, errorType);
         throw error; // This will trigger the fallback to REST version
       }
     });

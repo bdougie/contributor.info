@@ -54,7 +54,7 @@ export function GitHubSyncDebug() {
         systemToken: result.hasSystemToken || false,
         error: result.error
       }
-    } catch () {
+    } catch (error) {
       addLog(`Error checking tokens: ${error}`)
       return { userToken: false, systemToken: false, error: error instanceof Error ? error.message : String(error) }
     }
@@ -135,7 +135,7 @@ export function GitHubSyncDebug() {
         syncStatus,
         rolesCount: rolesData?.length || 0
       }
-    } catch () {
+    } catch (error) {
       addLog(`Error checking database: ${error instanceof Error ? error.message : String(error)}`)
       return null
     }
@@ -192,7 +192,7 @@ export function GitHubSyncDebug() {
         addLog('=== Database state after sync ===')
         await checkDatabaseState()
       }
-    } catch () {
+    } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       setSyncError(errorMessage)
       addLog(`Error: ${errorMessage}`)
@@ -221,7 +221,7 @@ export function GitHubSyncDebug() {
       } else {
         addLog(`Successfully tracked repository: ${JSON.stringify(data, null, 2)}`)
       }
-    } catch () {
+    } catch (error) {
       addLog(`Unexpected error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }

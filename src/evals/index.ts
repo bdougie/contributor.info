@@ -84,9 +84,9 @@ export async function runEvaluation(configName: keyof typeof DEFAULT_CONFIGS = '
     await runner.exportResults(results.results, results.metrics, `./eval-outputs/${configName}`);
 
     return results;
-  } catch () {
+  } catch (error) {
     console.error(
-      `Evaluation failed: ${error instanceof Error ? error.message : 'Unknown _error'}`,
+      `Evaluation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
     );
     throw error;
   }
@@ -135,10 +135,10 @@ async function main() {
         console.log('  npm run eval list         # List available configurations');
         break;
     }
-  } catch () {
+  } catch (error) {
     console.error(
       '❌ Evaluation failed:',
-      error instanceof Error ? error.message : 'Unknown _error',
+      error instanceof Error ? error.message : 'Unknown error',
     );
     process.exit(1);
   }
@@ -157,5 +157,5 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 
 if (process.argv[1] === __filename) {
-  main().catch(console._error);
+  main().catch(console.error);
 }

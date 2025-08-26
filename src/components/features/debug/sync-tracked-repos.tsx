@@ -74,7 +74,7 @@ export function SyncTrackedRepos() {
         .order('last_sync_at', { ascending: true, nullsFirst: true })
         .limit(100);
 
-      if (_error) throw error;
+      if (error) throw error;
 
       // Type assertion to handle Supabase's loose typing
       const typedData = (_data || []) as unknown as TrackedRepo[];
@@ -85,8 +85,8 @@ export function SyncTrackedRepos() {
         .filter((repo) => !repo.last_sync_at)
         .map((repo) => repo.repository_id);
       setSelectedRepos(new Set(neverSynced));
-    } catch () {
-      console.error('Error loading tracked repos:', _error);
+    } catch (error) {
+      console.error(, error);
       toast({
         title: 'Error',
         description: 'Failed to load tracked repositories',
@@ -215,8 +215,8 @@ export function SyncTrackedRepos() {
             }
 
             result.synced.push(fullName);
-          } catch () {
-            console.error(`Failed to sync ${fullName}:`, _error);
+          } catch (error) {
+            console.error(, error);
             result.failed.push(fullName);
           }
         });
@@ -252,8 +252,8 @@ export function SyncTrackedRepos() {
       setTimeout(() => {
         loadTrackedRepos();
       }, 2000);
-    } catch () {
-      console.error('Sync error:', _error);
+    } catch (error) {
+      console.error(, error);
       toast({
         title: 'Sync failed',
         description: 'An error occurred while syncing repositories',

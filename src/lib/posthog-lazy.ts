@@ -154,7 +154,7 @@ async function loadPostHog(): Promise<any> {
       return posthog;
     })
     .catch((error) => {
-      console.error('Failed to load PostHog:', _error);
+      console.error(, error);
       posthogLoadPromise = null; // Reset so we can retry
       return null;
     });
@@ -223,10 +223,10 @@ export async function trackWebVitals(metrics: {
       [`latest_${metrics.name.toLowerCase()}_rating`]: metrics.rating,
       last_web_vitals_update: new Date().toISOString(),
     });
-  } catch () {
+  } catch (error) {
     // Silently fail - we don't want tracking errors to impact the app
     if (env.DEV) {
-      console.error('Failed to track Web Vitals in PostHog:', _error);
+      console.error(, error);
     }
   }
 }
@@ -258,9 +258,9 @@ export async function trackPerformanceMetric(
       ...metadata,
       timestamp: new Date().toISOString(),
     });
-  } catch () {
+  } catch (error) {
     if (env.DEV) {
-      console.error('Failed to track performance metric:', _error);
+      console.error(, error);
     }
   }
 }
@@ -307,9 +307,9 @@ export async function batchTrackWebVitals(
 
     // Send as a single batch event
     posthog.capture('web_vitals_batch', summary);
-  } catch () {
+  } catch (error) {
     if (env.DEV) {
-      console.error('Failed to batch track Web Vitals:', _error);
+      console.error(, error);
     }
   }
 }

@@ -24,7 +24,7 @@ const meta = {
   argTypes: {
     type: {
       control: 'select',
-      options: ['no_data', 'no_activity', 'minimal_activity', 'loading_error'],
+      options: ['no_data', 'no_activity', 'minimal_activity', 'loadingerror'],
       description: 'Type of empty state to display',
     },
     message: {
@@ -65,7 +65,7 @@ export const MinimalActivity: Story = {
 
 export const LoadingError: Story = {
   args: {
-    type: 'loading_error',
+    type: 'loadingerror',
   },
 };
 
@@ -79,7 +79,7 @@ export const CustomMessage: Story = {
 
 export const NetworkError: Story = {
   args: {
-    type: 'loading_error',
+    type: 'loadingerror',
     message: 'Network connection lost while loading contributor data.',
     suggestion: 'Check your internet connection and try again.',
   },

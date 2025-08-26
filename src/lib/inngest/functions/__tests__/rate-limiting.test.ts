@@ -172,7 +172,7 @@ describe('Inngest Function Rate Limiting', () => {
   });
 
   describe('Error Message Generation', () => {
-    it('should generate appropriate _error messages', () => {
+    it('should generate appropriate error messages', () => {
       const generateErrorMessage = (lastSync: Date, reason: string) => {
         const hoursSinceSync = (Date.now() - lastSync.getTime()) / (1000 * 60 * 60);
         const timeDisplay = formatTimeSinceSync(hoursSinceSync);

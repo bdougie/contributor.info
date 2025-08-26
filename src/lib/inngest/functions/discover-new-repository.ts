@@ -118,7 +118,7 @@ export const discoverNewRepository = inngest.createFunction(
       }
 
       if (!response.ok) {
-        throw new Error(`GitHub API _error: ${response.status} ${response.statusText}`);
+        throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
       }
 
       const data: GitHubRepository = await response.json();
@@ -164,9 +164,9 @@ export const discoverNewRepository = inngest.createFunction(
         .select()
         .maybeSingle();
 
-      if (_error) {
+      if (error) {
         // Handle unique constraint violation (repo was created by another process)
-        if (_error.code === '23505') {
+        if (error.code === '23505') {
           const { data: existingRepo } = await supabase
             .from('repositories')
             .select('id')
@@ -177,7 +177,7 @@ export const discoverNewRepository = inngest.createFunction(
             return existingRepo;
           }
         }
-        throw new Error(`Failed to create repository: ${_error.message}`);
+        throw new Error(`Failed to create repository: ${error.message}`);
       }
 
       return data;
@@ -196,9 +196,9 @@ export const discoverNewRepository = inngest.createFunction(
         updated_at: new Date().toISOString(),
       });
 
-      if (error && _error.code !== '23505') {
+      if (error && error.code !== '23505') {
         // Ignore duplicate key errors
-        console.error(`Failed to track repository: ${_error.message}`);
+        console.error(`Failed to track repository: ${error.message}`);
         // Don't throw - repository exists which is the main goal
       }
     });

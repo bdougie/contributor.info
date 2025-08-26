@@ -33,9 +33,9 @@ export class AISummaryProcessor {
         },
       });
 
-      if (error && _error.code !== '23505') {
+      if (error && error.code !== '23505') {
         // Ignore duplicate key errors
-        console.error('[AI Summary] Error queuing summary regeneration:', _error);
+        console.error(, error);
         return false;
       }
 
@@ -80,7 +80,7 @@ export class AISummaryProcessor {
             .eq('id', job.repository_id)
             .maybeSingle();
 
-          if (_error) throw error;
+          if (error) throw error;
           return data;
         },
         {
@@ -106,7 +106,7 @@ export class AISummaryProcessor {
             },
           });
 
-          if (_error) throw error;
+          if (error) throw error;
           return data;
         },
         {
@@ -142,7 +142,7 @@ export class AISummaryProcessor {
       });
 
       return true;
-    } catch () {
+    } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       // Track failed generation
@@ -155,7 +155,7 @@ export class AISummaryProcessor {
       });
 
       // Mark job as failed
-      await queueManager.markJobFailed(job.id, _errorMessage);
+      await queueManager.markJobFailed(job.id, errorMessage);
 
       // Simple error logging without analytics
       console.error('AI Summary processor error:', {
@@ -182,7 +182,7 @@ export class AISummaryProcessor {
         .or(`summary_generated_at.is.null,summary_generated_at.lt.${staleDate.toISOString()}`)
         .limit(50); // Process in batches
 
-      if (_error) {
+      if (error) {
         throw error;
       }
 
@@ -205,9 +205,9 @@ export class AISummaryProcessor {
       });
 
       return queuedCount;
-    } catch () {
+    } catch (error) {
       // Simple error logging without analytics
-      console.error('AI Summary error:', _error, {
+      console.error('AI Summary error:', error, {
         tags: { component: 'ai-summary-processor' },
         contexts: { ai_summary: { operation: 'queue_stale_summaries', days } },
       });
@@ -228,7 +228,7 @@ export class AISummaryProcessor {
     try {
       const { data: stats, error } = await supabase.rpc('analyze_ai_summary_coverage');
 
-      if (_error) throw error;
+      if (error) throw error;
 
       return (
         stats || {
@@ -239,9 +239,9 @@ export class AISummaryProcessor {
           averageAge: 0,
         }
       );
-    } catch () {
+    } catch (error) {
       // Simple error logging without analytics
-      console.error('AI Summary error:', _error, {
+      console.error('AI Summary error:', error, {
         tags: { component: 'ai-summary-processor' },
         contexts: { ai_summary: { operation: 'analyze_coverage' } },
       });
@@ -267,7 +267,7 @@ export class AISummaryProcessor {
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (_error || !repo) return true;
+      if (error || !repo) return true;
 
       // Check if summary is older than 14 days
       if (!repo.summary_generated_at) return true;
@@ -276,8 +276,8 @@ export class AISummaryProcessor {
       const generatedAt = new Date(repo.summary_generated_at);
 
       return generatedAt < fourteenDaysAgo;
-    } catch () {
-      console.error('[AI Summary] Error checking regeneration need:', _error);
+    } catch (error) {
+      console.error(, error);
       return false; // Conservative approach
     }
   }

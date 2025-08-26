@@ -9,7 +9,7 @@ export interface RolloutConfiguration {
   target_repositories: string[];
   excluded_repositories: string[];
   rollout_strategy: 'percentage' | 'whitelist' | 'repository_size';
-  max_error_rate: number;
+  maxerror_rate: number;
   monitoring_window_hours: number;
   auto_rollback_enabled: boolean;
   emergency_stop: boolean;
@@ -40,8 +40,8 @@ export interface RolloutMetrics {
   error_count: number;
   total_jobs: number;
   average_processing_time: number;
-  last_error_message?: string;
-  last_error_at?: string;
+  lasterror_message?: string;
+  lasterror_at?: string;
   metrics_window_start: string;
   metrics_window_end: string;
 }
@@ -96,14 +96,14 @@ export class HybridRolloutManager {
         feature_name: this.featureName,
       });
 
-      if (_error) {
-        console.error(`[RolloutManager] Error checking eligibility for ${repositoryId}:`, _error);
+      if (error) {
+        console.error(, error);
         return false;
       }
 
       return data as boolean;
-    } catch () {
-      console.error(`[RolloutManager] Exception checking eligibility for ${repositoryId}:`, _error);
+    } catch (error) {
+      console.error(, error);
       return false;
     }
   }
@@ -118,8 +118,8 @@ export class HybridRolloutManager {
         repo_id: repositoryId,
       });
 
-      if (_error) {
-        console.error(`[RolloutManager] Error categorizing repository ${repositoryId}:`, _error);
+      if (error) {
+        console.error(, error);
         return null;
       }
 
@@ -136,8 +136,8 @@ export class HybridRolloutManager {
       }
 
       return category as RepositoryCategory;
-    } catch () {
-      console.error(`[RolloutManager] Exception categorizing repository ${repositoryId}:`, _error);
+    } catch (error) {
+      console.error(, error);
       return null;
     }
   }
@@ -154,15 +154,15 @@ export class HybridRolloutManager {
         .eq('is_active', true)
         .maybeSingle();
 
-      if (error && _error.code !== 'PGRST116') {
+      if (error && error.code !== 'PGRST116') {
         // PGRST116 is "not found"
-        console.error(`[RolloutManager] Error fetching rollout configuration:`, _error);
+        console.error(, error);
         return null;
       }
 
       return data as RolloutConfiguration;
-    } catch () {
-      console.error(`[RolloutManager] Exception fetching rollout configuration:`, _error);
+    } catch (error) {
+      console.error(, error);
       return null;
     }
   }
@@ -220,8 +220,8 @@ export class HybridRolloutManager {
         percentage,
       );
       return true;
-    } catch () {
-      console.error(`[RolloutManager] Exception updating rollout percentage:`, _error);
+    } catch (error) {
+      console.error(, error);
       return false;
     }
   }
@@ -268,8 +268,8 @@ export class HybridRolloutManager {
 
       console.log('[RolloutManager] Emergency stop activated: %s', reason);
       return true;
-    } catch () {
-      console.error(`[RolloutManager] Exception during emergency stop:`, _error);
+    } catch (error) {
+      console.error(, error);
       return false;
     }
   }
@@ -295,8 +295,8 @@ export class HybridRolloutManager {
         })
         .eq('id', config.id);
 
-      if (_error) {
-        console.error(`[RolloutManager] Error updating whitelist:`, _error);
+      if (error) {
+        console.error(, error);
         return false;
       }
 
@@ -318,8 +318,8 @@ export class HybridRolloutManager {
 
       console.log('[RolloutManager] Added %s repositories to whitelist', repositoryIds.length);
       return true;
-    } catch () {
-      console.error(`[RolloutManager] Exception adding to whitelist:`, _error);
+    } catch (error) {
+      console.error(, error);
       return false;
     }
   }
@@ -347,8 +347,8 @@ export class HybridRolloutManager {
         })
         .eq('id', config.id);
 
-      if (_error) {
-        console.error(`[RolloutManager] Error updating whitelist:`, _error);
+      if (error) {
+        console.error(, error);
         return false;
       }
 
@@ -370,8 +370,8 @@ export class HybridRolloutManager {
 
       console.log('[RolloutManager] Removed %s repositories from whitelist', repositoryIds.length);
       return true;
-    } catch () {
-      console.error(`[RolloutManager] Exception removing from whitelist:`, _error);
+    } catch (error) {
+      console.error(, error);
       return false;
     }
   }
@@ -428,8 +428,8 @@ export class HybridRolloutManager {
                   processingTime) /
                 (existingMetrics.total_jobs + 1)
               : existingMetrics.average_processing_time,
-            last_error_message: success ? existingMetrics.last_error_message : errorMessage,
-            last_error_at: success ? existingMetrics.last_error_at : now.toISOString(),
+            lasterror_message: success ? existingMetrics.lasterror_message : errorMessage,
+            lasterror_at: success ? existingMetrics.lasterror_at : now.toISOString(),
             updated_at: now.toISOString(),
           })
           .eq('id', existingMetrics.id);
@@ -447,8 +447,8 @@ export class HybridRolloutManager {
           error_count: success ? 0 : 1,
           total_jobs: 1,
           average_processing_time: processingTime || 0,
-          last_error_message: success ? null : errorMessage,
-          last_error_at: success ? null : now.toISOString(),
+          lasterror_message: success ? null : errorMessage,
+          lasterror_at: success ? null : now.toISOString(),
           metrics_window_start: windowStart.toISOString(),
           metrics_window_end: now.toISOString(),
         });
@@ -457,8 +457,8 @@ export class HybridRolloutManager {
           console.error(`[RolloutManager] Error inserting metrics:`, insertError);
         }
       }
-    } catch () {
-      console.error(`[RolloutManager] Exception recording metrics:`, _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -544,8 +544,8 @@ export class HybridRolloutManager {
         categories: categoryDistribution,
         processor_distribution: processorDistribution,
       };
-    } catch () {
-      console.error(`[RolloutManager] Exception getting rollout stats:`, _error);
+    } catch (error) {
+      console.error(, error);
       return null;
     }
   }
@@ -566,29 +566,29 @@ export class HybridRolloutManager {
       }
 
       // Check if error rate exceeds threshold
-      if (stats.error_rate > config.max__error_rate && stats.active_jobs > 10) {
+      if (stats.error_rate > config.max_error_rate && stats.active_jobs > 10) {
         console.log(
           '[RolloutManager] Error rate %s% exceeds threshold %s%',
-          stats._error_rate.toFixed(2),
-          config.max_error_rate,
+          stats.error_rate.toFixed(2),
+          config.maxerror_rate,
         );
 
         // Trigger rollback to 0%
         const rollbackSuccess = await this.updateRolloutPercentage(
           0,
           'auto_rollback',
-          `Error rate ${stats.error_rate.toFixed(2)}% exceeded threshold ${config.max_error_rate}%`,
+          `Error rate ${stats.error_rate.toFixed(2)}% exceeded threshold ${config.maxerror_rate}%`,
         );
 
         if (rollbackSuccess) {
-          console.log(`[RolloutManager] Automatic rollback triggered due to high _error rate`);
+          console.log(`[RolloutManager] Automatic rollback triggered due to high error rate`);
           return true;
         }
       }
 
       return false;
-    } catch () {
-      console.error(`[RolloutManager] Exception during auto rollback check:`, _error);
+    } catch (error) {
+      console.error(, error);
       return false;
     }
   }

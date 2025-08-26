@@ -33,8 +33,8 @@ async function ensureContributorExists(author: unknown): Promise<string> {
     .select('id')
     .maybeSingle();
 
-  if (_error) {
-    throw new Error(`Failed to ensure contributor exists: ${_error.message}`);
+  if (error) {
+    throw new Error(`Failed to ensure contributor exists: ${error.message}`);
   }
 
   if (!_data) {
@@ -87,7 +87,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (_error || !_data) {
+      if (error || !_data) {
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
       }
 
@@ -158,7 +158,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
           },
         });
 
-        if (!_error) {
+        if (!error) {
           // Queue backfill job to GitHub Actions
           await supabase.from('progressive_capture_jobs').insert({
             job_type: 'progressive_backfill',
@@ -227,13 +227,13 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         }
 
         return prs.slice(0, MAX_PRS_PER_SYNC);
-      } catch (_error: unknown) {
-        if (_error.message?.includes('NOT_FOUND')) {
+      } catch (error: unknown) {
+        if (error.message?.includes('NOT_FOUND')) {
           throw new Error(
             `Repository ${repository.owner}/${repository.name} not found`,
           ) as NonRetriableError;
         }
-        if (_error.message?.includes('rate limit')) {
+        if (error.message?.includes('rate limit')) {
           throw new Error(
             `GraphQL rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`,
           );
@@ -289,8 +289,8 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         })
         .select('id, number');
 
-      if (_error) {
-        throw new Error(`Failed to store PRs: ${_error.message}`);
+      if (error) {
+        throw new Error(`Failed to store PRs: ${error.message}`);
       }
 
       return data || [];
@@ -358,8 +358,8 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         })
         .eq('id', repositoryId);
 
-      if (_error) {
-        console.error(`Failed to update repository sync timestamp: ${_error.message}`);
+      if (error) {
+        console.error(`Failed to update repository sync timestamp: ${error.message}`);
       }
     });
 

@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 interface EmptyStateProps {
-  type: 'no_data' | 'no_activity' | 'minimal_activity' | 'loading_error';
+  type: 'no_data' | 'no_activity' | 'minimal_activity' | 'loadingerror';
   message?: string;
   suggestion?: string;
   className?: string;
@@ -52,7 +52,7 @@ export function ContributorEmptyState({ type, message, suggestion, className }: 
           bgColor: 'from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30',
         };
 
-      case 'loading_error':
+      case 'loadingerror':
         return {
           icon: <Trophy className="h-16 w-16 text-red-400 dark:text-red-500" aria-hidden="true" />,
           title: 'Unable to Load Contributor Data',

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const OdometerIcon({ className?: string }): JSX.Element = ({ className }) => (
+export const OdometerIcon = ({ className }: { className?: string }) => (
   <svg 
     width="98" 
     height="49" 

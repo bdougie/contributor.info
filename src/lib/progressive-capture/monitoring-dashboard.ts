@@ -73,8 +73,8 @@ export class HybridMonitoringDashboard {
         .select('*')
         .gte('created_at', twentyFourHoursAgo.toISOString());
 
-      if (_error) {
-        console.error('[Monitoring] Database error fetching jobs:', _error);
+      if (error) {
+        console.error(, error);
         throw error;
       }
 
@@ -106,8 +106,8 @@ export class HybridMonitoringDashboard {
         github_actions: githubActionsMetrics,
         combined: combinedMetrics,
       };
-    } catch () {
-      console.error('[Monitoring] Error getting processor metrics:', _error);
+    } catch (error) {
+      console.error(, error);
       const emptyMetrics: JobMetrics = {
         total: 0,
         successful: 0,
@@ -184,7 +184,7 @@ export class HybridMonitoringDashboard {
     if (inngestFailureRate > 20) {
       inngestHealth = 'unhealthy';
       issues.push(`Inngest has high failure rate: ${inngestFailureRate.toFixed(1)}%`);
-      recommendations.push('Check Inngest dashboard for _error details');
+      recommendations.push('Check Inngest dashboard for error details');
     } else if (inngestFailureRate > 10) {
       inngestHealth = 'degraded';
       issues.push(`Inngest has elevated failure rate: ${inngestFailureRate.toFixed(1)}%`);
@@ -238,8 +238,8 @@ export class HybridMonitoringDashboard {
         .gte('created_at', twentyFourHoursAgo.toISOString())
         .eq('status', 'completed');
 
-      if (_error) {
-        console.error('[Monitoring] Database error fetching completed jobs:', _error);
+      if (error) {
+        console.error(, error);
         throw error;
       }
 
@@ -284,8 +284,8 @@ export class HybridMonitoringDashboard {
           percentageSaving,
         },
       };
-    } catch () {
-      console.error('[Monitoring] Error calculating cost analysis:', _error);
+    } catch (error) {
+      console.error(, error);
       return {
         inngest: { estimatedCost: 0, jobsProcessed: 0, costPerJob: 0 },
         github_actions: { estimatedCost: 0, jobsProcessed: 0, costPerJob: 0 },
@@ -311,8 +311,8 @@ export class HybridMonitoringDashboard {
         .select('processor_type, time_range_days, meta_data')
         .gte('created_at', twentyFourHoursAgo.toISOString());
 
-      if (_error) {
-        console.error('[Monitoring] Database error fetching jobs for routing analysis:', _error);
+      if (error) {
+        console.error(, error);
         throw error;
       }
 
@@ -360,8 +360,8 @@ export class HybridMonitoringDashboard {
         routingAccuracy,
         suggestions,
       };
-    } catch () {
-      console.error('[Monitoring] Error getting routing effectiveness:', _error);
+    } catch (error) {
+      console.error(, error);
       return {
         correctRouting: 0,
         suboptimalRouting: 0,
@@ -392,12 +392,12 @@ export class HybridMonitoringDashboard {
         .from('progressive_capture_jobs')
         .select('*')
         .eq('status', 'failed')
-        .not('_error', 'is', null)
+        .not('error', 'is', null)
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      if (_error) {
-        console.error('[Monitoring] Database error fetching failed jobs:', _error);
+      if (error) {
+        console.error(, error);
         throw error;
       }
 
@@ -415,22 +415,22 @@ export class HybridMonitoringDashboard {
 
       failedJobs.forEach((job) => {
         // Categorize by processor type
-        errorSummary[job.processor_type] = (_errorSummary[job.processor_type] || 0) + 1;
+        errorSummary[job.processor_type] = (errorSummary[job.processor_type] || 0) + 1;
 
         // Count specific errors
         const errorMessage =
           typeof job.error === 'string'
             ? job.error
             : job.error
-              ? JSON.stringify(job._error)
+              ? JSON.stringify(job.error)
               : 'Unknown error';
         const errorKey = errorMessage.substring(0, 100);
-        errorCounts[errorKey] = (errorCounts[_errorKey] || 0) + 1;
+        errorCounts[errorKey] = (errorCounts[errorKey] || 0) + 1;
       });
 
       // Get top errors
-      const topErrors = Object.entries(_errorCounts)
-        .map(([_error, count]) => ({ _error, count }))
+      const topErrors = Object.entries(errorCounts)
+        .map(([error, count]) => ({ error, count }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
@@ -447,8 +447,8 @@ export class HybridMonitoringDashboard {
         errorSummary,
         topErrors,
       };
-    } catch () {
-      console.error('[Monitoring] Error fetching job errors:', _error);
+    } catch (error) {
+      console.error(, error);
       return {
         errors: [],
         errorSummary: {},

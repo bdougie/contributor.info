@@ -186,7 +186,7 @@ export function HybridQueueStatus({
     );
   }
 
-  if (_error) {
+  if (error) {
     return (
       <Card className={className}>
         <CardHeader>

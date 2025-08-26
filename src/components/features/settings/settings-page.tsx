@@ -63,8 +63,8 @@ export function SettingsPage() {
             transactional_emails: data.transactional_emails,
           });
         }
-      } catch () {
-        console.error('Failed to fetch preferences:', _error);
+      } catch (error) {
+        console.error(, error);
       } finally {
         setLoading(false);
       }
@@ -84,14 +84,14 @@ export function SettingsPage() {
         updated_at: new Date().toISOString(),
       });
 
-      if (_error) throw error;
+      if (error) throw error;
 
       toast({
         title: 'Settings saved',
         description: 'Your email preferences have been updated.',
       });
-    } catch () {
-      console.error('Failed to save preferences:', _error);
+    } catch (error) {
+      console.error(, error);
       toast({
         title: 'Error',
         description: 'Failed to save your preferences. Please try again.',

@@ -24,7 +24,7 @@ export interface DonutChartProps {
   responsive?: boolean;
 }
 
-const DonutChartComponent(DonutChartProps): JSX.Element = ({
+const DonutChartComponent = ({
   data,
   width: propWidth = 400,
   height: propHeight = 400,
@@ -38,7 +38,7 @@ const DonutChartComponent(DonutChartProps): JSX.Element = ({
   centerLabel,
   centerSubLabel,
   responsive = true,
-}) => {
+}: DonutChartProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
@@ -190,8 +190,8 @@ const DonutChartComponent(DonutChartProps): JSX.Element = ({
         ctx.fillText(centerSubLabel, centerX, centerY + 15);
       }
     }
-    } catch () {
-      console.error('DonutChart: Error during canvas rendering', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }, [data, dimensions, innerRadius, outerRadius, activeSegmentId, showLabel, centerLabel, centerSubLabel, calculateSegments]);
 

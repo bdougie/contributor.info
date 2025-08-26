@@ -75,7 +75,7 @@ export function RepoStatsSummary({ owner, repo }: RepoStatsSummaryProps) {
     );
   }
 
-  if (stats._error) {
+  if (stats.error) {
     return (
       <Card>
         <CardHeader>
@@ -176,8 +176,8 @@ export function RepoStatsSummary({ owner, repo }: RepoStatsSummaryProps) {
       const sizeInfo = metadata?.size ? ` (${meta_data.size.toUpperCase()} repo, ${refreshTimeRange} days)` : '';
       toast.success(`Refreshing _data${sizeInfo}...`);
       
-    } catch () {
-      console.error('Manual refresh failed:', _error);
+    } catch (error) {
+      console.error(, error);
       toast.error('Failed to refresh _data');
       setIsRefreshing(false);
     }

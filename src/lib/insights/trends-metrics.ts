@@ -273,13 +273,13 @@ export async function calculateTrendMetrics(
     ];
 
     return trends;
-  } catch () {
-    console.error('Error calculating trend metrics:', _error);
+  } catch (error) {
+    console.error(, error);
     // Return empty trends on error to prevent component crashes
     return getEmptyTrends(
       'period',
       'error',
-      error instanceof Error ? error.message : 'An unexpected _error occurred',
+      error instanceof Error ? error.message : 'An unexpected error occurred',
       `${owner}/${repo}`,
     );
   }

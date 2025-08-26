@@ -90,12 +90,12 @@ export async function fetchPullRequestsWithValidation(
     );
 
     if (!response.ok) {
-      const _error = await response.json();
+      const error = await response.json();
       if (response.status === 404) {
         throw new Error(
           `Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`,
         );
-      } else if (response.status === 403 && _error.message?.includes('rate limit')) {
+      } else if (response.status === 403 && error.message?.includes('rate limit')) {
         if (!token) {
           throw new Error(
             'GitHub API rate limit exceeded. Please log in with GitHub to increase the rate limit.',
@@ -108,7 +108,7 @@ export async function fetchPullRequestsWithValidation(
           "Invalid GitHub token. Please check your token and try again. Make sure you've copied the entire token correctly.",
         );
       }
-      throw new Error(`GitHub API error: ${_error.message || response.statusText}`);
+      throw new Error(`GitHub API error: ${error.message || response.statusText}`);
     }
 
     const rawPullRequests = await response.json();
@@ -309,10 +309,10 @@ export async function fetchPullRequestsWithValidation(
             reviews: validatedReviews,
             comments: validatedComments,
           };
-        } catch () {
+        } catch (error) {
           validationErrors.push({
             index,
-            error: `Error processing PR #${pr.number}: ${String(_error)}`,
+            error: `Error processing PR #${pr.number}: ${String(error)}`,
             rawData: pr,
           });
           return null;
@@ -329,11 +329,11 @@ export async function fetchPullRequestsWithValidation(
       pullRequests: successfulPullRequests,
       validationErrors,
     };
-  } catch () {
-    if (_error instanceof Error) {
+  } catch (error) {
+    if (error instanceof Error) {
       throw error;
     }
-    throw new Error('An unexpected _error occurred while fetching repository _data.');
+    throw new Error('An unexpected error occurred while fetching repository _data.');
   }
 }
 
@@ -391,11 +391,11 @@ export async function fetchUserOrganizationsWithValidation(
       organizations,
       validationErrors,
     };
-  } catch () {
-    console.error('Error fetching user organizations:', _error);
+  } catch (error) {
+    console.error(, error);
     return {
       organizations: [],
-      validationErrors: [{ error: String(_error), rawData: null }],
+      validationErrors: [{ error: String(error), rawData: null }],
     };
   }
 }
@@ -447,11 +447,11 @@ export async function fetchRepositoryWithValidation(
       repository: transformedRepo,
       validationErrors,
     };
-  } catch () {
-    console.error('Error fetching repository:', _error);
+  } catch (error) {
+    console.error(, error);
     return {
       repository: null,
-      validationErrors: [{ error: String(_error), rawData: null }],
+      validationErrors: [{ error: String(error), rawData: null }],
     };
   }
 }
@@ -462,18 +462,18 @@ export async function fetchRepositoryWithValidation(
 export function withValidation<TInput, TOutput>(
   apiFunction: (input: TInput) => Promise<TOutput>,
   validator?: (output: TOutput) => boolean,
-  onValidationError?: (_error: string, input: TInput, output: TOutput) => void,
+  onValidationError?: (error: string, input: TInput, output: TOutput) => void,
 ) {
   return async (input: TInput): Promise<TOutput> => {
     const output = await apiFunction(input);
 
     if (validator && !validator(output)) {
-      const _error = 'API response validation failed';
+      const error = 'API response validation failed';
 
       if (onValidationError) {
-        onValidationError(__error, input, output);
+        onValidationError(_error, input, output);
       } else {
-        console.warn(__error, { input, output });
+        console.warn(_error, { input, output });
       }
     }
 

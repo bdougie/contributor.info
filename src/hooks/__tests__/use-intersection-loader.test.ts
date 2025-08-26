@@ -80,7 +80,7 @@ describe('useIntersectionLoader', () => {
 
       expect(result.current._data).toBe(null);
       expect(result.current.isLoading).toBe(false);
-      expect(result.current._error).toBe(null);
+      expect(result.current.error).toBe(null);
       expect(result.current.isIntersecting).toBe(false);
       expect(result.current.ref).toBeDefined();
       expect(typeof result.current.load).toBe('function');
@@ -150,29 +150,29 @@ describe('useIntersectionLoader', () => {
       });
     });
 
-    it('should handle loading _errors', async () => {
-      const _error = new Error('Loading failed');
-      const loadFn = vi.fn().mockRejectedValue(_error);
+    it('should handle loading errors', async () => {
+      const error = new Error('Loading failed');
+      const loadFn = vi.fn().mockRejectedValue(error);
       const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
       simulateIntersection(true);
 
       await waitFor(() => {
-        expect(result.current._error).toEqual(_error);
+        expect(result.current.error).toEqual(error);
         expect(result.current.isLoading).toBe(false);
         expect(result.current._data).toBe(null);
       });
     });
 
     it('should convert non-Error objects to Error', async () => {
-      const loadFn = vi.fn().mockRejectedValue('string _error');
+      const loadFn = vi.fn().mockRejectedValue('string error');
       const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
       simulateIntersection(true);
 
       await waitFor(() => {
-        expect(result.current._error).toBeInstanceOf(Error);
-        expect(result.current._error?.message).toBe('Failed to load _data');
+        expect(result.current.error).toBeInstanceOf(Error);
+        expect(result.current.error?.message).toBe('Failed to load _data');
       });
     });
   });
@@ -295,7 +295,7 @@ describe('useIntersectionLoader', () => {
       result.current.reset();
 
       expect(result.current._data).toBe(null);
-      expect(result.current._error).toBe(null);
+      expect(result.current.error).toBe(null);
       expect(result.current.isLoading).toBe(false);
       expect(result.current.isIntersecting).toBe(false);
     });

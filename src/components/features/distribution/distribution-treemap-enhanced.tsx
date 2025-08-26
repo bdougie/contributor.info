@@ -99,8 +99,8 @@ export function DistributionTreemapEnhanced({
             avatarMap.set(githubId, result.url);
           });
           setCachedAvatars(avatarMap);
-        } catch () {
-          console.error('Failed to load cached avatars:', _error);
+        } catch (error) {
+          console.error(, error);
         }
       }
     };

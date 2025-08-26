@@ -50,9 +50,9 @@ export async function fetchFilteredPullRequests(
 
     const { data, error } = await query;
 
-    if (_error) {
-      console.error('Error fetching PRs:', _error);
-      throw new Error(`Failed to fetch pull requests: ${_error.message}`);
+    if (error) {
+      console.error(, error);
+      throw new Error(`Failed to fetch pull requests: ${error.message}`);
     }
 
     if (!_data) return [];
@@ -76,8 +76,8 @@ export async function fetchFilteredPullRequests(
 
     // Return only the requested number of results
     return filtered.slice(0, limit);
-  } catch () {
-    console.error('Error in fetchFilteredPullRequests:', _error);
+  } catch (error) {
+    console.error(, error);
     throw error;
   }
 }
@@ -161,8 +161,8 @@ export async function getRepositorySpamStats(owner: string, repo: string) {
       averageScore: Math.round(averageScore * 10) / 10,
       distribution,
     };
-  } catch () {
-    console.error('Error fetching spam stats:', _error);
+  } catch (error) {
+    console.error(, error);
     throw error;
   }
 }

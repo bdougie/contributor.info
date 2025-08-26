@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const YoloIcon({ className?: string }): JSX.Element = ({ className }) => (
+export const YoloIcon = ({ className }: { className?: string }) => (
   <svg 
     width="15" 
     height="21" 

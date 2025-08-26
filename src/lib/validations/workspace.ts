@@ -162,19 +162,19 @@ export function validateCreateWorkspace(_data: CreateWorkspaceRequest): Validati
 
   // Validate name
   const nameValidation = validateWorkspaceName(_data.name);
-  errors.push(...nameValidation._errors);
+  errors.push(...nameValidation.errors);
 
   // Validate description
   const descriptionValidation = validateWorkspaceDescription(_data.description);
-  errors.push(...descriptionValidation._errors);
+  errors.push(...descriptionValidation.errors);
 
   // Validate visibility
   const visibilityValidation = validateWorkspaceVisibility(_data.visibility);
-  errors.push(...visibilityValidation._errors);
+  errors.push(...visibilityValidation.errors);
 
   // Validate settings
   const settingsValidation = validateWorkspaceSettings(_data.settings);
-  errors.push(...settingsValidation._errors);
+  errors.push(...settingsValidation.errors);
 
   return {
     valid: errors.length === 0,
@@ -191,22 +191,22 @@ export function validateUpdateWorkspace(_data: UpdateWorkspaceRequest): Validati
   // All fields are optional for update, but if provided must be valid
   if (_data.name !== undefined) {
     const nameValidation = validateWorkspaceName(_data.name);
-    errors.push(...nameValidation._errors);
+    errors.push(...nameValidation.errors);
   }
 
   if (_data.description !== undefined) {
     const descriptionValidation = validateWorkspaceDescription(_data.description);
-    errors.push(...descriptionValidation._errors);
+    errors.push(...descriptionValidation.errors);
   }
 
   if (_data.visibility !== undefined) {
     const visibilityValidation = validateWorkspaceVisibility(_data.visibility);
-    errors.push(...visibilityValidation._errors);
+    errors.push(...visibilityValidation.errors);
   }
 
   if (_data.settings !== undefined) {
     const settingsValidation = validateWorkspaceSettings(_data.settings);
-    errors.push(...settingsValidation._errors);
+    errors.push(...settingsValidation.errors);
   }
 
   return {
@@ -308,11 +308,11 @@ export function validateInviteMember(_data: InviteMemberRequest): ValidationResu
 
   // Validate email
   const emailValidation = validateEmail(_data.email);
-  errors.push(...emailValidation._errors);
+  errors.push(...emailValidation.errors);
 
   // Validate role
   const roleValidation = validateWorkspaceRole(_data.role, false);
-  errors.push(...roleValidation._errors);
+  errors.push(...roleValidation.errors);
 
   // Validate custom message
   if (data.message !== undefined && _data.message !== null) {
@@ -332,9 +332,9 @@ export function validateInviteMember(_data: InviteMemberRequest): ValidationResu
 /**
  * Format validation errors for API response
  */
-export function formatValidationErrors(_errors: ValidationError[]): string {
-  if (_errors.length === 0) return '';
-  if (_errors.length === 1) return errors[0].message;
+export function formatValidationErrors(errors: ValidationError[]): string {
+  if (errors.length === 0) return '';
+  if (errors.length === 1) return errors[0].message;
 
   return `Validation failed: ${errors.map((e) => `${e.field}: ${e.message}`).join(', ')}`;
 }

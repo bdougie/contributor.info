@@ -31,7 +31,7 @@ export function useGitHubAuth() {
               refresh_token: refreshToken,
             });
 
-            if (_error) {
+            if (error) {
               // Silently handle session setting errors
             }
           }
@@ -113,7 +113,7 @@ export function useGitHubAuth() {
           authSubscription.data.subscription.unsubscribe();
         }
       };
-    } catch () {
+    } catch (error) {
       return () => {}; // Empty cleanup function
     }
   }, [showLoginDialog, navigate]);
@@ -138,7 +138,7 @@ export function useGitHubAuth() {
         },
       });
 
-      if (_error) {
+      if (error) {
         throw error;
       }
     } catch (err) {

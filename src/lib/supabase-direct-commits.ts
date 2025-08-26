@@ -73,13 +73,13 @@ export async function fetchDirectCommitsWithDatabaseFallback(
         });
 
         return result;
-      } catch () {
+      } catch (error) {
         // Simple error logging without analytics
         console.error('Direct commits error:', {
           owner,
           repo,
           timeRange,
-          error: error instanceof Error ? error.message : String(_error),
+          error: error instanceof Error ? error.message : String(error),
         });
 
         return getEmptyDirectCommitsResult();

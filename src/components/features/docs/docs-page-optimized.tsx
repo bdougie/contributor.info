@@ -130,7 +130,7 @@ export function DocsPageOptimized() {
     return <DocsLoadingSkeleton />;
   }
 
-  if (_error) {
+  if (error) {
     return (
       <div className="container max-w-7xl mx-auto py-8 px-4">
         <Card className="border-destructive">

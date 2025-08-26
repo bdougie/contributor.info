@@ -65,7 +65,7 @@ describe('App Route Redirects', () => {
 
   describe('404 Error Prevention', () => {
     it('should handle old signup route without 404', () => {
-      const consoleSpy = vi.spyOn(console, '_error').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       render(
         <MemoryRouter initialEntries={['/signup']}>
@@ -85,7 +85,7 @@ describe('App Route Redirects', () => {
     });
 
     it('should handle old search feedback route without 404', () => {
-      const consoleSpy = vi.spyOn(console, '_error').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       render(
         <MemoryRouter initialEntries={['/search/feedback']}>
@@ -106,7 +106,7 @@ describe('App Route Redirects', () => {
   });
 
   describe('Redirect Impact', () => {
-    it('should resolve ~480 user route 404 _errors', () => {
+    it('should resolve ~480 user route 404 errors', () => {
       // Test that both problematic routes now redirect properly
       const problematicRoutes = ['/signup', '/search/feedback'];
       const expectedRedirects = ['/login', '/docs'];

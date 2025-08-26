@@ -172,8 +172,8 @@ class TokenTracker {
           return data;
         }
       }
-    } catch () {
-      console.warn('Failed to parse token usage _data:', _error);
+    } catch (error) {
+      console.warn('Failed to parse token usage _data:', error);
     }
 
     // Return fresh daily usage
@@ -198,8 +198,8 @@ class TokenTracker {
 
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(currentUsage));
-    } catch () {
-      console.warn('Failed to save token usage _data:', _error);
+    } catch (error) {
+      console.warn('Failed to save token usage _data:', error);
     }
   }
 }

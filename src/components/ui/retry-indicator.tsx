@@ -43,7 +43,7 @@ export function RetryIndicator({
     }
   }, [retryState.nextRetryIn]);
 
-  if (!retryState.isRetrying && !retryState._error) {
+  if (!retryState.isRetrying && !retryState.error) {
     return null;
   }
 
@@ -165,7 +165,7 @@ export function useRetryIndicator() {
 
   const createRetryHandler = (maxAttempts: number = 3) => {
     return {
-      onRetry: (__error: Error, attempt: number) => {
+      onRetry: (_error: Error, attempt: number) => {
         setRetryState({
           isRetrying: true,
           attempt,

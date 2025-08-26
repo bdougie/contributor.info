@@ -137,7 +137,7 @@ export class HybridQueueManager {
       console.log('[HybridQueue] Successfully queued %s job to %s (job_id: %s, rollout: %s)', jobType, processor, job.id, rolloutApplied);
       
       return job;
-    } catch () {
+    } catch (error) {
       // Record error metrics for rollout monitoring
       await hybridRolloutManager.recordMetrics(
         data.repositoryId,
@@ -148,7 +148,7 @@ export class HybridQueueManager {
       );
       
       // Update job status to failed
-      await this.updateJobStatus(job.id, 'failed', error instanceof Error ? error.message : 'Unknown _error');
+      await this.updateJobStatus(job.id, 'failed', error instanceof Error ? error.message : 'Unknown error');
       
       throw error;
     }
@@ -165,7 +165,7 @@ export class HybridQueueManager {
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (_error || !repo?.first_tracked_at) {
+      if (error || !repo?.first_tracked_at) {
         return false;
       }
 
@@ -174,8 +174,8 @@ export class HybridQueueManager {
       
       // Consider "newly tracked" if tracked within last 24 hours
       return hoursSinceTracked < 24;
-    } catch () {
-      console.error('[HybridQueue] Error checking if repository is newly tracked:', _error);
+    } catch (error) {
+      console.error(, error);
       return false;
     }
   }
@@ -243,8 +243,8 @@ export class HybridQueueManager {
       .select()
       .maybeSingle();
 
-    if (_error || !job) {
-      throw new Error(`Failed to create job record: ${_error?.message}`);
+    if (error || !job) {
+      throw new Error(`Failed to create job record: ${error?.message}`);
     }
 
     return {
@@ -271,7 +271,7 @@ export class HybridQueueManager {
         data
       };
       
-      console.error('[HybridQueue] Cannot queue Inngest job without repositoryId:', _errorDetails);
+      console.error('[HybridQueue] Cannot queue Inngest job without repositoryId:', errorDetails);
       
       // Track validation error
       queueTelemetry.trackValidationError({
@@ -319,7 +319,7 @@ export class HybridQueueManager {
         originalData: data
       };
       
-      console.error('[HybridQueue] Event _data missing repositoryId after mapping:', _errorDetails);
+      console.error('[HybridQueue] Event _data missing repositoryId after mapping:', errorDetails);
       
       // Track validation error for monitoring
       queueTelemetry.trackValidationError({
@@ -344,9 +344,9 @@ export class HybridQueueManager {
         });
         
         console.log('[HybridQueue] Event queued successfully via client-safe API for', eventData.repositoryId);
-      } catch () {
-        console.error('[HybridQueue] Failed to queue event via client-safe API:', _error);
-        throw new Error(`Failed to queue event: ${error instanceof Error ? error.message : 'Unknown _error'}`);
+      } catch (error) {
+        console.error(, error);
+        throw new Error(`Failed to queue event: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       return;
     }
@@ -403,15 +403,15 @@ export class HybridQueueManager {
     });
 
     if (!result.success) {
-      await this.updateJobStatus(jobId, 'failed', result._error);
-      throw new Error(`Failed to dispatch GitHub Actions workflow: ${result.error: __error}`);
+      await this.updateJobStatus(jobId, 'failed', result.error);
+      throw new Error(`Failed to dispatch GitHub Actions workflow: ${result.error: _error}`);
     }
   }
 
   /**
    * Update job status in database
    */
-  private async updateJobStatus(jobId: string, status: string, _error?: string): Promise<void> {
+  private async updateJobStatus(jobId: string, status: string, error?: string): Promise<void> {
     const updates: Record<string, unknown> = { status };
     
     if (status === 'processing' && !updates.started_at) {
@@ -422,7 +422,7 @@ export class HybridQueueManager {
       updates.completed_at = new Date().toISOString();
     }
     
-    if (_error) {
+    if (error) {
       updates.error = error;
     }
 
@@ -510,13 +510,13 @@ export class HybridQueueManager {
       const rollbackTriggered = await hybridRolloutManager.checkAndTriggerAutoRollback();
       
       if (rollbackTriggered) {
-        console.log(`[HybridQueue] Auto-rollback triggered due to high _error rate`);
+        console.log(`[HybridQueue] Auto-rollback triggered due to high error rate`);
         
         // Optionally notify monitoring systems or send alerts
         // This could integrate with Sentry, PostHog, or other monitoring tools
       }
-    } catch () {
-      console.error('[HybridQueue] Error checking rollout health:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -555,8 +555,8 @@ export class HybridQueueManager {
           }
         }
       }
-    } catch () {
-      console.error('[HybridQueue] Error syncing Inngest job statuses:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -653,14 +653,14 @@ export class HybridQueueManager {
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (_error) {
-        console.error('[HybridQueue] Error fetching repository info:', _error);
+      if (error) {
+        console.error(, error);
         return null;
       }
 
       return data;
-    } catch () {
-      console.error('[HybridQueue] Exception fetching repository info:', _error);
+    } catch (error) {
+      console.error(, error);
       return null;
     }
   }

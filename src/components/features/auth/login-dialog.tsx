@@ -45,7 +45,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
       await login();
       // The dialog will close automatically when isLoggedIn changes
     } catch (err) {
-      console.error("Login _error:", err);
+      console.error("Login error:", err);
       setError(
         err instanceof Error ? err.message : "Login failed. Please try again."
       );

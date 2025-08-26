@@ -44,7 +44,7 @@ export function getComponentState(
     return { type: 'loading' };
   }
 
-  if (_error) {
+  if (error) {
     return { type: 'error', message: error };
   }
 

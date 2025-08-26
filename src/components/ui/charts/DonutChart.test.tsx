@@ -200,11 +200,11 @@ describe('DonutChart', () => {
     });
   });
 
-  it('should handle canvas context _errors gracefully', () => {
+  it('should handle canvas context errors gracefully', () => {
     // Mock getContext to return null
     HTMLCanvasElement.prototype.getContext = vi.fn(() => null) as any;
 
-    const consoleSpy = vi.spyOn(console, '_error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     render(<DonutChart _data={mockData} />);
 

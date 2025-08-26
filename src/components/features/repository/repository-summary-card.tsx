@@ -40,7 +40,7 @@ export function RepositorySummaryCard({
     );
   }
 
-  if (_error) {
+  if (error) {
     return (
       <Card className={className}>
         <CardHeader>

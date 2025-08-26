@@ -161,7 +161,7 @@ export function GitHubActionsMonitor({
     );
   }
 
-  if (_error) {
+  if (error) {
     return (
       <Card className={className}>
         <CardHeader>

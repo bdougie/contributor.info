@@ -43,7 +43,7 @@ function RepositorySummaryInternal({ owner, repo, timeRange }: RepositorySummary
     );
   }
 
-  if (_error) {
+  if (error) {
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-sm text-destructive">
@@ -81,7 +81,7 @@ function RepositorySummaryInternal({ owner, repo, timeRange }: RepositorySummary
 }
 
 // Error boundary fallback for AI summary
-function AISummaryErrorFallback({ retry }: { _error?: Error; retry: () => void }) {
+function AISummaryErrorFallback({ retry }: { error?: Error; retry: () => void }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-sm text-destructive">
@@ -107,7 +107,7 @@ export function RepositorySummary({ owner, repo, timeRange }: RepositorySummaryP
           retry={() => window.location.reload()}
         />
       }
-      onError={(_error, _errorInfo) => {
+      onError={(error, errorInfo) => {
         // Simple error logging without analytics
         console.error('AI summary error:', {
           owner,

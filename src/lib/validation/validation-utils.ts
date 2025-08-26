@@ -64,9 +64,9 @@ export function validateData<T>(
       success: true,
       data: validatedData,
     };
-  } catch () {
-    if (_error instanceof ZodError) {
-      const validationErrors = formatZodErrors(_error);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      const validationErrors = formatZodErrors(error);
       return {
         success: false,
         error: context
@@ -79,8 +79,8 @@ export function validateData<T>(
     return {
       success: false,
       error: context
-        ? `Unexpected validation error for ${context}: ${String(_error)}`
-        : `Unexpected validation error: ${String(_error)}`,
+        ? `Unexpected validation error for ${context}: ${String(error)}`
+        : `Unexpected validation error: ${String(error)}`,
     };
   }
 }
@@ -167,10 +167,10 @@ export function transformAndValidate<TInput, TOutput>(
 
     // Validate output
     return validateData(outputSchema, transformedData, `${context} output`);
-  } catch () {
+  } catch (error) {
     return {
       success: false,
-      error: `Transformation error for ${context}: ${String(_error)}`,
+      error: `Transformation error for ${context}: ${String(error)}`,
     };
   }
 }
@@ -183,24 +183,24 @@ export function transformAndValidate<TInput, TOutput>(
  * Formats Zod validation errors into a standardized format
  */
 export function formatZodErrors(zodError: ZodError): ValidationIssue[] {
-  return zodError.errors.map((_error) => ({
+  return zodError.errors.map((error) => ({
     field: error.path.join('.') || 'root',
     message: error.message,
     code: error.code,
-    received: (_error as any).received || undefined,
+    received: (error as any).received || undefined,
   }));
 }
 
 /**
  * Creates a human-readable error message from validation errors
  */
-export function createErrorMessage(_errors: ValidationIssue[]): string {
-  if (_errors.length === 0) {
+export function createErrorMessage(errors: ValidationIssue[]): string {
+  if (errors.length === 0) {
     return 'Unknown validation error';
   }
 
-  if (_errors.length === 1) {
-    const _error = errors[0];
+  if (errors.length === 1) {
+    const error = errors[0];
     return `${error.field}: ${error.message}`;
   }
 
@@ -210,14 +210,14 @@ export function createErrorMessage(_errors: ValidationIssue[]): string {
 /**
  * Groups validation errors by field for easier handling
  */
-export function groupErrorsByField(_errors: ValidationIssue[]): Record<string, ValidationIssue[]> {
+export function groupErrorsByField(errors: ValidationIssue[]): Record<string, ValidationIssue[]> {
   return errors.reduce(
-    (acc, _error) => {
+    (acc, error) => {
       const field = error.field;
       if (!acc[field]) {
         acc[field] = [];
       }
-      acc[field].push(_error);
+      acc[field].push(error);
       return acc;
     },
     {} as Record<string, ValidationIssue[]>,
@@ -249,7 +249,7 @@ export function createValidationMiddleware<T>(schema: ZodSchema<T>, context?: st
 export class ValidationError extends Error {
   public readonly validationErrors: ValidationIssue[];
 
-  constructor(message: string, _errors: ValidationIssue[] = []) {
+  constructor(message: string, errors: ValidationIssue[] = []) {
     super(message);
     this.name = 'ValidationError';
     this.validationErrors = errors;
@@ -477,7 +477,7 @@ export class ValidationStats {
     averageValidationTime: 0,
   };
 
-  public recordValidation(success: boolean, duration: number, _errorType?: string): void {
+  public recordValidation(success: boolean, duration: number, errorType?: string): void {
     this.stats.totalValidations++;
 
     if (success) {
@@ -485,8 +485,8 @@ export class ValidationStats {
     } else {
       this.stats.failedValidations++;
 
-      if (_errorType) {
-        this.stats.errorsByType[errorType] = (this.stats.errorsByType[_errorType] || 0) + 1;
+      if (errorType) {
+        this.stats.errorsByType[errorType] = (this.stats.errorsByType[errorType] || 0) + 1;
       }
     }
 

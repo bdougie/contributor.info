@@ -63,7 +63,7 @@ export function RepositoryHealthCard() {
         .eq('repository_name', repo)
         .maybeSingle();
 
-      if (_error) throw error;
+      if (error) throw error;
 
       if (data && (_data as any).avg_confidence_score !== null) {
         setConfidenceScore(Number((_data as any).avg_confidence_score));
@@ -92,8 +92,8 @@ export function RepositoryHealthCard() {
         setConfidenceScore(result.score);
         setConfidenceBreakdown(result.breakdown);
       }
-    } catch () {
-      console.error('Failed to calculate contributor confidence:', _error);
+    } catch (error) {
+      console.error(, error);
       setConfidenceError(
         'Repository _data not available. This repository may need to be synced first.',
       );

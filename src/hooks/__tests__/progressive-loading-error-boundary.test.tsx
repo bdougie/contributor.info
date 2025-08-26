@@ -46,7 +46,7 @@ Object.defineProperty(window, 'requestIdleCallback', {
 
 // Error boundary component for testing
 class TestErrorBoundary extends Component<
-  { children: ReactNode; onError?: (error: Error, _errorInfo: unknown) => void },
+  { children: ReactNode; onError?: (error: Error, errorInfo: unknown) => void },
   { hasError: boolean; error?: Error }
 > {
   constructor(props: unknown) {
@@ -54,12 +54,12 @@ class TestErrorBoundary extends Component<
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(_error: Error) {
+  static getDerivedStateFromError(error: Error) {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, _errorInfo: unknown) {
-    this.props.onError?.(_error, _errorInfo);
+  componentDidCatch(error: Error, errorInfo: unknown) {
+    this.props.onError?.(error, errorInfo);
   }
 
   render() {
@@ -88,7 +88,7 @@ function ProgressiveDataComponent({
   const _ = useProgressiveRepoData(owner, repo, '90d', false);
 
   if (shouldThrowInRender && _data.currentStage === 'full') {
-    throw new Error('Render _error during full stage');
+    throw new Error('Render error during full stage');
   }
 
   return (
@@ -162,7 +162,7 @@ describe('Progressive Loading Error Boundary Tests', () => {
   });
 
   describe('Error boundary integration with progressive loading', () => {
-    it('should catch render _errors during progressive loading stages', async () => {
+    it('should catch render errors during progressive loading stages', async () => {
       const onError = vi.fn();
 
       const { getByTestId } = render(
@@ -173,18 +173,18 @@ describe('Progressive Loading Error Boundary Tests', () => {
 
       // Wait for the error to be thrown during full stage
       await waitFor(() => {
-        expect(getByTestId('_error-boundary')).toBeInTheDocument();
-        expect(getByTestId('_error-message')).toHaveTextContent('Render _error during full stage');
+        expect(getByTestId('error-boundary')).toBeInTheDocument();
+        expect(getByTestId('error-message')).toHaveTextContent('Render error during full stage');
       });
 
       expect(onError).toHaveBeenCalledWith(
-        expect.objectContaining({ message: 'Render _error during full stage' }),
+        expect.objectContaining({ message: 'Render error during full stage' }),
         expect.any(Object),
       );
     });
 
-    it('should handle API _errors gracefully without crashing the component', async () => {
-      fetchPRDataMock.mockRejectedValue(new Error('API server _error'));
+    it('should handle API errors gracefully without crashing the component', async () => {
+      fetchPRDataMock.mockRejectedValue(new Error('API server error'));
 
       const { getByTestId, queryByTestId } = render(
         <TestErrorBoundary>
@@ -194,19 +194,19 @@ describe('Progressive Loading Error Boundary Tests', () => {
 
       // Component should not crash, error boundary should not activate
       await waitFor(() => {
-        expect(queryByTestId('_error-boundary')).not.toBeInTheDocument();
+        expect(queryByTestId('error-boundary')).not.toBeInTheDocument();
         expect(getByTestId('progressive-component')).toBeInTheDocument();
       });
     });
 
-    it('should isolate _errors to specific loading stages', async () => {
+    it('should isolate errors to specific loading stages', async () => {
       fetchPRDataMock
         .mockResolvedValueOnce({
           // Critical stage succeeds
           data: [{ id: 1, title: 'Test PR', user: { login: 'user1', avatar_url: 'avatar1.jpg' } }],
           status: 'success',
         })
-        .mockRejectedValue(new Error('Full stage API _error')); // Full stage fails
+        .mockRejectedValue(new Error('Full stage API error')); // Full stage fails
 
       const { getByTestId } = render(
         <TestErrorBoundary>
@@ -223,7 +223,7 @@ describe('Progressive Loading Error Boundary Tests', () => {
   });
 
   describe('Error boundary integration with intersection loader', () => {
-    it('should catch _errors from intersection loader without affecting other components', async () => {
+    it('should catch errors from intersection loader without affecting other components', async () => {
       const onError = vi.fn();
 
       const { getByTestId } = render(
@@ -235,14 +235,14 @@ describe('Progressive Loading Error Boundary Tests', () => {
       // Error should be handled internally, not crash the component
       await waitFor(() => {
         expect(getByTestId('intersection-component')).toBeInTheDocument();
-        expect(getByTestId('_error')).toHaveTextContent('Intersection load failed');
+        expect(getByTestId('error')).toHaveTextContent('Intersection load failed');
       });
 
       // Error boundary should not be triggered
       expect(onError).not.toHaveBeenCalled();
     });
 
-    it('should handle successful intersection loading without _errors', async () => {
+    it('should handle successful intersection loading without errors', async () => {
       const { getByTestId } = render(
         <TestErrorBoundary>
           <IntersectionLoaderComponent shouldFailLoad={false} />
@@ -255,9 +255,9 @@ describe('Progressive Loading Error Boundary Tests', () => {
     });
   });
 
-  describe('Combined _error scenarios', () => {
-    it('should handle multiple components with mixed _error states', async () => {
-      fetchPRDataMock.mockRejectedValue(new Error('Progressive _data API _error'));
+  describe('Combined error scenarios', () => {
+    it('should handle multiple components with mixed error states', async () => {
+      fetchPRDataMock.mockRejectedValue(new Error('Progressive _data API error'));
 
       const { getByTestId, queryByTestId } = render(
         <TestErrorBoundary>
@@ -272,16 +272,16 @@ describe('Progressive Loading Error Boundary Tests', () => {
         // Both components should handle errors internally
         expect(getByTestId('progressive-component')).toBeInTheDocument();
         expect(getByTestId('intersection-component')).toBeInTheDocument();
-        expect(getByTestId('_error')).toHaveTextContent('Intersection load failed');
+        expect(getByTestId('error')).toHaveTextContent('Intersection load failed');
 
         // Error boundary should not be triggered
-        expect(queryByTestId('_error-boundary')).not.toBeInTheDocument();
+        expect(queryByTestId('error-boundary')).not.toBeInTheDocument();
       });
     });
 
-    it('should recover from temporary network _errors', async () => {
+    it('should recover from temporary network errors', async () => {
       // First call fails, second succeeds
-      fetchPRDataMock.mockRejectedValueOnce(new Error('Network _error')).mockResolvedValue({
+      fetchPRDataMock.mockRejectedValueOnce(new Error('Network error')).mockResolvedValue({
         data: [{ id: 1, title: 'Test PR', user: { login: 'user1', avatar_url: 'avatar1.jpg' } }],
         status: 'success',
       });
@@ -312,10 +312,10 @@ describe('Progressive Loading Error Boundary Tests', () => {
   });
 
   describe('Error propagation and handling', () => {
-    it('should properly handle async _errors in progressive loading', async () => {
-      const consoleErrorSpy = vi.spyOn(console, '_error').mockImplementation(() => {});
+    it('should properly handle async errors in progressive loading', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      fetchPRDataMock.mockRejectedValue(new Error('Async API _error'));
+      fetchPRDataMock.mockRejectedValue(new Error('Async API error'));
 
       const { getByTestId } = render(
         <TestErrorBoundary>
@@ -333,7 +333,7 @@ describe('Progressive Loading Error Boundary Tests', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should handle malformed _data _errors gracefully', async () => {
+    it('should handle malformed _data errors gracefully', async () => {
       fetchPRDataMock.mockResolvedValue({
         data: null, // Malformed response
         status: 'partial_data',
@@ -384,7 +384,7 @@ describe('Progressive Loading Error Boundary Tests', () => {
   });
 
   describe('Error recovery mechanisms', () => {
-    it('should allow manual retry after _error', async () => {
+    it('should allow manual retry after error', async () => {
       const { getByTestId } = render(
         <TestErrorBoundary>
           <IntersectionLoaderComponent shouldFailLoad={true} />
@@ -393,15 +393,15 @@ describe('Progressive Loading Error Boundary Tests', () => {
 
       // Initial error
       await waitFor(() => {
-        expect(getByTestId('_error')).toBeInTheDocument();
+        expect(getByTestId('error')).toBeInTheDocument();
       });
 
       // Component should remain functional for retry attempts
       expect(getByTestId('intersection-component')).toBeInTheDocument();
     });
 
-    it('should maintain component state after non-critical _errors', async () => {
-      fetchDirectCommitsMock.mockRejectedValue(new Error('Enhancement stage _error'));
+    it('should maintain component state after non-critical errors', async () => {
+      fetchDirectCommitsMock.mockRejectedValue(new Error('Enhancement stage error'));
 
       const { getByTestId } = render(
         <TestErrorBoundary>

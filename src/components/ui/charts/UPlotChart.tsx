@@ -17,7 +17,7 @@ export interface UPlotChartProps {
  * React wrapper for uPlot charting library
  * Handles proper lifecycle management and responsive sizing
  */
-export const UPlotChart(UPlotChartProps): JSX.Element = ({
+export const UPlotChart = ({
   data,
   options,
   width: propWidth,
@@ -26,7 +26,7 @@ export const UPlotChart(UPlotChartProps): JSX.Element = ({
   onReady,
   onDestroy,
   responsive = true,
-}) => {
+}: UPlotChartProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const plotRef = useRef<uPlot | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);

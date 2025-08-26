@@ -60,7 +60,7 @@ export class JobStatusReporter {
       }
 
       // Add error if failed
-      if (update._error) {
+      if (update.error) {
         updates.error = update.error;
       }
 
@@ -100,8 +100,8 @@ export class JobStatusReporter {
         .update(updates)
         .eq('id', update.jobId);
 
-      if (_error) {
-        console.error('[JobStatusReporter] Failed to update job status:', _error);
+      if (error) {
+        console.error(, error);
         throw error;
       }
 
@@ -111,8 +111,8 @@ export class JobStatusReporter {
       }
 
       console.log('[JobStatusReporter] Updated job %s status to %s', update.jobId, update.status);
-    } catch () {
-      console.error('[JobStatusReporter] Error reporting status:', _error);
+    } catch (error) {
+      console.error(, error);
       throw error;
     }
   }
@@ -138,11 +138,11 @@ export class JobStatusReporter {
         },
       );
 
-      if (_error) {
-        console.error('[JobStatusReporter] Failed to update progress:', _error);
+      if (error) {
+        console.error(, error);
       }
-    } catch () {
-      console.error('[JobStatusReporter] Error updating progress:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -207,8 +207,8 @@ export class JobStatusReporter {
         .eq('id', jobId);
 
       return metrics;
-    } catch () {
-      console.error('[JobStatusReporter] Error calculating metrics:', _error);
+    } catch (error) {
+      console.error(, error);
       return null;
     }
   }
@@ -243,8 +243,8 @@ export class JobStatusReporter {
         metadata: job.metadata,
         error: job.error,
       };
-    } catch () {
-      console.error('[JobStatusReporter] Error getting job summary:', _error);
+    } catch (error) {
+      console.error(, error);
       return null;
     }
   }
@@ -305,8 +305,8 @@ export class JobStatusReporter {
           };
         }),
       );
-    } catch () {
-      console.error('[JobStatusReporter] Error getting job history:', _error);
+    } catch (error) {
+      console.error(, error);
       return [];
     }
   }
@@ -324,8 +324,8 @@ export class JobStatusReporter {
       }
 
       console.log('[JobStatusReporter] Bulk updated %s job statuses', updates.length);
-    } catch () {
-      console.error('[JobStatusReporter] Error in bulk update:', _error);
+    } catch (error) {
+      console.error(, error);
       throw error;
     }
   }

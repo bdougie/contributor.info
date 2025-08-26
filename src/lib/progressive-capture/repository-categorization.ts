@@ -43,8 +43,8 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         .from('repositories')
         .select('id, name, owner');
 
-      if (_error) {
-        console.error('[RepositoryCategorization] Error fetching repositories:', _error);
+      if (error) {
+        console.error(, error);
         return;
       }
 
@@ -63,17 +63,17 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         try {
           const category = await this.categorizeRepository(repo.id);
           console.log('[RepositoryCategorization] %s/%s → %s', repo.owner, repo.name, category);
-        } catch () {
+        } catch (error) {
           console.error(
             `[RepositoryCategorization] Error categorizing ${repo.owner}/${repo.name}:`,
-            _error,
+            error,
           );
         }
       }
 
       console.log('[RepositoryCategorization] Bulk categorization completed');
-    } catch () {
-      console.error('[RepositoryCategorization] Exception during bulk categorization:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -84,10 +84,10 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
     try {
       const category = await hybridRolloutManager.categorizeRepository(repositoryId);
       return category?.category || null;
-    } catch () {
+    } catch (error) {
       console.error(
         `[RepositoryCategorization] Error categorizing repository ${repositoryId}:`,
-        _error,
+        error,
       );
       return null;
     }
@@ -106,8 +106,8 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
           monthly_activity_score
         `);
 
-      if (_error) {
-        console.error('[RepositoryCategorization] Error fetching category stats:', _error);
+      if (error) {
+        console.error(, error);
         return [];
       }
 
@@ -163,8 +163,8 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
       stats.sort((a, b) => b.count - a.count);
 
       return stats;
-    } catch () {
-      console.error('[RepositoryCategorization] Exception getting category stats:', _error);
+    } catch (error) {
+      console.error(, error);
       return [];
     }
   }
@@ -193,19 +193,19 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         .eq('category', category)
         .order('priority_level', { ascending: false });
 
-      if (_error) {
+      if (error) {
         console.error(
           `[RepositoryCategorization] Error fetching repositories for category ${category}:`,
-          _error,
+          error,
         );
         return [];
       }
 
       return data || [];
-    } catch () {
+    } catch (error) {
       console.error(
         `[RepositoryCategorization] Exception getting repositories for category ${category}:`,
-        _error,
+        error,
       );
       return [];
     }
@@ -226,10 +226,10 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         })
         .eq('repository_id', repositoryId);
 
-      if (_error) {
+      if (error) {
         console.error(
           `[RepositoryCategorization] Error marking repository ${repositoryId} as test:`,
-          _error,
+          error,
         );
         return false;
       }
@@ -239,10 +239,10 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         repositoryId,
       );
       return true;
-    } catch () {
+    } catch (error) {
       console.error(
         `[RepositoryCategorization] Exception marking repository ${repositoryId} as test:`,
-        _error,
+        error,
       );
       return false;
     }
@@ -271,10 +271,10 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         })
         .eq('repository_id', repositoryId);
 
-      if (_error) {
+      if (error) {
         console.error(
           `[RepositoryCategorization] Error unmarking repository ${repositoryId} as test:`,
-          _error,
+          error,
         );
         return false;
       }
@@ -284,10 +284,10 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         repositoryId,
       );
       return true;
-    } catch () {
+    } catch (error) {
       console.error(
         `[RepositoryCategorization] Exception unmarking repository ${repositoryId} as test:`,
-        _error,
+        error,
       );
       return false;
     }
@@ -317,14 +317,14 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         .eq('is_test_repository', true)
         .order('priority_level', { ascending: false });
 
-      if (_error) {
-        console.error('[RepositoryCategorization] Error fetching test repositories:', _error);
+      if (error) {
+        console.error(, error);
         return [];
       }
 
       return data || [];
-    } catch () {
-      console.error('[RepositoryCategorization] Exception getting test repositories:', _error);
+    } catch (error) {
+      console.error(, error);
       return [];
     }
   }
@@ -353,19 +353,19 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         .order('priority_level', { ascending: false })
         .limit(limit);
 
-      if (_error) {
+      if (error) {
         console.error(
           '[RepositoryCategorization] Error fetching rollout-ready repositories:',
-          _error,
+          error,
         );
         return [];
       }
 
       return data || [];
-    } catch () {
+    } catch (error) {
       console.error(
         '[RepositoryCategorization] Exception getting rollout-ready repositories:',
-        _error,
+        error,
       );
       return [];
     }

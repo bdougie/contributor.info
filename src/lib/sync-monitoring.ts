@@ -55,8 +55,8 @@ export class SyncMonitoring {
         router: metrics.router,
         created_at: metrics.timestamp.toISOString(),
       });
-    } catch () {
-      console.error('Failed to record sync metrics:', _error);
+    } catch (error) {
+      console.error(, error);
     }
 
     // Log to console for immediate visibility
@@ -232,7 +232,7 @@ export class SyncMonitoring {
     console.log(
       `${emoji} [${router}] ${metrics.functionName} for ${metrics.repository}: ` +
         `${metrics.executionTime.toFixed(2)}s ` +
-        `(processed: ${metrics.processed || 0}, errors: ${metrics._errors || 0})`,
+        `(processed: ${metrics.processed || 0}, errors: ${metrics.errors || 0})`,
     );
   }
 

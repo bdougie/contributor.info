@@ -87,13 +87,13 @@ export class EnhancedHybridRouter {
       const decision = this.makeRoutingDecision(factors);
 
       return decision;
-    } catch () {
-      console.error('[EnhancedHybridRouter] Error routing job:', _error);
+    } catch (error) {
+      console.error(, error);
 
       // Default to Inngest on error
       return {
         processor: 'inngest',
-        reason: 'routing_error_fallback',
+        reason: 'routingerror_fallback',
         confidence: 0.3,
       };
     }
@@ -218,14 +218,14 @@ export class EnhancedHybridRouter {
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (_error) {
-        console.error('[EnhancedHybridRouter] Error fetching repository:', _error);
+      if (error) {
+        console.error(, error);
         return null;
       }
 
       return data;
-    } catch () {
-      console.error('[EnhancedHybridRouter] Exception fetching repository:', _error);
+    } catch (error) {
+      console.error(, error);
       return null;
     }
   }
@@ -242,13 +242,13 @@ export class EnhancedHybridRouter {
         .eq('status', 'active')
         .maybeSingle();
 
-      if (_error || !_data) {
+      if (error || !_data) {
         return null;
       }
 
       return data;
-    } catch () {
-      console.error('[EnhancedHybridRouter] Error fetching backfill state:', _error);
+    } catch (error) {
+      console.error(, error);
       return null;
     }
   }
@@ -276,8 +276,8 @@ export class EnhancedHybridRouter {
         inngestLoad: Math.min(inngestCount / 100, 1),
         actionsLoad: Math.min(actionsCount / 100, 1),
       };
-    } catch () {
-      console.error('[EnhancedHybridRouter] Error getting load balance:', _error);
+    } catch (error) {
+      console.error(, error);
       return { inngestLoad: 0.5, actionsLoad: 0.5 };
     }
   }
@@ -349,8 +349,8 @@ export class EnhancedHybridRouter {
       }
 
       return stats;
-    } catch () {
-      console.error('[EnhancedHybridRouter] Error getting routing stats:', _error);
+    } catch (error) {
+      console.error(, error);
       return null;
     }
   }

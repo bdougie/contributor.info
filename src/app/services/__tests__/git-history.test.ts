@@ -69,7 +69,7 @@ describe('Git History Service', () => {
   });
 
   describe('Structured Logging', () => {
-    it('should use structured logging instead of console._error', async () => {
+    it('should use structured logging instead of console.error', async () => {
       const { supabase } = await import('../../../lib/supabase');
 
       // Mock database error
@@ -87,13 +87,13 @@ describe('Git History Service', () => {
       await indexGitHistory(mockRepository, mockOctokit as Octokit);
 
       // Verify structured logger was used for errors
-      expect(mockLoggerInstance._error).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
         'Error fetching repository from database: %s',
         'Database connection failed',
       );
 
       // Verify console.error was NOT called directly
-      const consoleErrorSpy = vi.spyOn(console, '_error');
+      const consoleErrorSpy = vi.spyOn(console, 'error');
       expect(consoleErrorSpy).not.toHaveBeenCalledWith(expect.stringContaining('[Git History]'));
     });
 
@@ -170,7 +170,7 @@ describe('Git History Service', () => {
       await indexGitHistory(mockRepository, mockOctokit as Octokit);
 
       // Verify parameterized logging was used (prevents format string attacks)
-      expect(mockLoggerInstance._error).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
         'Error fetching contributor %s: %s',
         maliciousUsername,
         'Contributor not found',
@@ -349,7 +349,7 @@ describe('Git History Service', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle commit processing _errors gracefully', async () => {
+    it('should handle commit processing errors gracefully', async () => {
       const { supabase } = await import('../../../lib/supabase');
 
       // Mock successful repository lookup
@@ -413,14 +413,14 @@ describe('Git History Service', () => {
       await indexGitHistory(mockRepository, mockOctokit as Octokit);
 
       // Verify error was logged properly
-      expect(mockLoggerInstance._error).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
         'Error processing commit %s: %s',
         'abc123',
         'API rate limit exceeded',
       );
     });
 
-    it('should handle pagination _errors gracefully', async () => {
+    it('should handle pagination errors gracefully', async () => {
       const { supabase } = await import('../../../lib/supabase');
 
       // Mock successful repository lookup
@@ -436,7 +436,7 @@ describe('Git History Service', () => {
       });
 
       // Mock commit listing to fail
-      (mockOctokit.repos!.listCommits as Mock).mockRejectedValue(new Error('Network _error'));
+      (mockOctokit.repos!.listCommits as Mock).mockRejectedValue(new Error('Network error'));
 
       // Mock file_contributors upsert
       (supabase.from as Mock).mockImplementation((table: string) => {
@@ -462,7 +462,7 @@ describe('Git History Service', () => {
       await indexGitHistory(mockRepository, mockOctokit as Octokit);
 
       // Verify error was logged
-      expect(mockLoggerInstance._error).toHaveBeenCalledWith(
+      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
         'Error fetching commits page %d: %s',
         1,
         'Network error',

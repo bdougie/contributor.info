@@ -26,7 +26,7 @@ async function loadSpriteContent(): Promise<string> {
         return text;
       })
       .catch((error) => {
-        console.error('Failed to load SVG sprite:', _error);
+        console.error(, error);
         spritePromise = null;
         return '';
       });

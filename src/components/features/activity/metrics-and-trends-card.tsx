@@ -100,7 +100,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     try {
       await navigator.clipboard.writeText(window.location.href);
       toast.success('Link copied to clipboard!');
-    } catch () {
+    } catch (error) {
       toast.error('Failed to copy link');
     }
   };
@@ -142,10 +142,10 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
       // if (hasLowDataQuality(metricsData, trendData) && !dataCapturing && !captureAttempted) {
       //   // Auto-capture logic here
       // }
-    } catch () {
+    } catch (error) {
       // Log error to monitoring service in production
       if (process.env.NODE_ENV === 'development') {
-        console.error('Failed to load _data:', _error);
+        console.error(, error);
       }
       setTrends([]);
       setMetrics(null);
@@ -162,7 +162,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     if (
       metrics.status === 'large_repository_protected' ||
       metrics.status === 'no__data' ||
-      metrics.status === '_error'
+      metrics.status === 'error'
     ) {
       return true;
     }

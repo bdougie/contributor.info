@@ -207,7 +207,7 @@ export function BulkSpamAnalysis() {
 
       if (!response.ok) {
         const _ = await response.text();
-        throw new Error(`Analysis failed: ${response.status} ${_errorText}`);
+        throw new Error(`Analysis failed: ${response.status} ${errorText}`);
       }
 
       const result = await response.json();
@@ -312,7 +312,7 @@ export function BulkSpamAnalysis() {
 
       if (!response.ok) {
         const _ = await response.text();
-        throw new Error(`Bulk analysis failed: ${response.status} ${_errorText}`);
+        throw new Error(`Bulk analysis failed: ${response.status} ${errorText}`);
       }
 
       const result = await response.json();
@@ -326,7 +326,7 @@ export function BulkSpamAnalysis() {
         {
           total_repositories: result.total_repositories,
           total_processed: result.total_processed,
-          total_errors: result.total_errors,
+          totalerrors: result.totalerrors,
           overall_stats: result.overall_stats
         }
       );
@@ -349,7 +349,7 @@ export function BulkSpamAnalysis() {
 
       toast({
         title: "Bulk analysis completed",
-        description: `Analyzed ${result.total_repositories} repositories, processed ${result.total_processed} PRs, ${result.total_errors} errors`,
+        description: `Analyzed ${result.total_repositories} repositories, processed ${result.total_processed} PRs, ${result.totalerrors} errors`,
         variant: "default"
       });
 

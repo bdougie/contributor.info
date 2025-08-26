@@ -117,7 +117,7 @@ describe('GitHub API Service', () => {
       });
     });
 
-    it('should throw _error on non-ok response', async () => {
+    it('should throw error on non-ok response', async () => {
       const mockResponse = {
         ok: false,
         status: 404,
@@ -130,7 +130,7 @@ describe('GitHub API Service', () => {
 
       await expect(
         GitHubApiService.fetchFromGitHub('/repos/nonexistent/repo', { token: null }),
-      ).rejects.toThrow('GitHub API _error: 404 Not Found');
+      ).rejects.toThrow('GitHub API error: 404 Not Found');
     });
   });
 

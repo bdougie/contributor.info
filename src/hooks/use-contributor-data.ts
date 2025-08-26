@@ -78,7 +78,7 @@ export function useContributorData({
           Accept: 'application/vnd.github.v3+json',
         };
         organizations = await fetchUserOrganizations(username, headers);
-      } catch () {
+      } catch (error) {
         organizations = [];
       }
 

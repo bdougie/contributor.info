@@ -74,7 +74,7 @@ export function useTrendingRepositories(
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData._error || `HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data: TrendingResponse = await response.json();

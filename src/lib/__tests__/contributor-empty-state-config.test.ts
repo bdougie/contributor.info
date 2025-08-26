@@ -33,12 +33,12 @@ describe('getEmptyStateContent', () => {
     expect(content.severity).toBe('warning');
   });
 
-  it('returns correct content for loading__error type', () => {
-    const content = getEmptyStateContent('loading__error');
+  it('returns correct content for loading_error type', () => {
+    const content = getEmptyStateContent('loading_error');
 
     expect(content.iconName).toBe('trophy');
     expect(content.title).toBe('Unable to Load Contributor Data');
-    expect(content.severity).toBe('_error');
+    expect(content.severity).toBe('error');
   });
 
   it('uses custom message when provided', () => {
@@ -64,8 +64,8 @@ describe('getEmptyStateContent', () => {
 });
 
 describe('getBadgeLabel', () => {
-  it('returns correct label for _error severity', () => {
-    expect(getBadgeLabel('_error')).toBe('⚠️ Error');
+  it('returns correct label for error severity', () => {
+    expect(getBadgeLabel('error')).toBe('⚠️ Error');
   });
 
   it('returns correct label for warning severity', () => {
@@ -78,8 +78,8 @@ describe('getBadgeLabel', () => {
 });
 
 describe('getBadgeColorClasses', () => {
-  it('returns red classes for _error severity', () => {
-    const classes = getBadgeColorClasses('_error');
+  it('returns red classes for error severity', () => {
+    const classes = getBadgeColorClasses('error');
     expect(classes).toContain('bg-red-500');
     expect(classes).toContain('text-white');
   });

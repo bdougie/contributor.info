@@ -63,8 +63,8 @@ class LLMService {
       }
 
       return insight;
-    } catch () {
-      console.error('LLM health insight failed:', _error);
+    } catch (error) {
+      console.error(, error);
 
       if (this.options.enableFallbacks) {
         return this.generateFallbackHealthInsight(healthData);
@@ -106,8 +106,8 @@ class LLMService {
       }
 
       return insight;
-    } catch () {
-      console.error('LLM recommendations failed:', _error);
+    } catch (error) {
+      console.error(, error);
 
       if (this.options.enableFallbacks) {
         return this.generateFallbackRecommendations(_data);
@@ -149,8 +149,8 @@ class LLMService {
       }
 
       return insight;
-    } catch () {
-      console.error('LLM pattern analysis failed:', _error);
+    } catch (error) {
+      console.error(, error);
 
       if (this.options.enableFallbacks) {
         return this.generateFallbackPatternInsight(prData);

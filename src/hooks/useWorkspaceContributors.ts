@@ -194,8 +194,8 @@ export function useWorkspaceContributors({
         .select('contributor_id')
         .eq('workspace_id', workspaceId);
 
-      if (_error) {
-        console.error('Error fetching workspace contributors:', _error);
+      if (error) {
+        console.error(, error);
         throw error;
       }
 
@@ -234,8 +234,8 @@ export function useWorkspaceContributors({
         .from('workspace_contributors')
         .insert(contributorsToAdd);
 
-      if (_error) {
-        console.error('Error adding contributors to workspace:', _error);
+      if (error) {
+        console.error(, error);
         throw error;
       }
 
@@ -260,8 +260,8 @@ export function useWorkspaceContributors({
         .eq('workspace_id', workspaceId)
         .eq('contributor_id', contributorId);
 
-      if (_error) {
-        console.error('Error removing contributor from workspace:', _error);
+      if (error) {
+        console.error(, error);
         throw error;
       }
 

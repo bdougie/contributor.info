@@ -36,7 +36,7 @@ const MockRepositoryHealth = ({
     );
   }
 
-  if (variant === '_error') {
+  if (variant === 'error') {
     return (
       <div className="p-6 border rounded-lg bg-card">
         <h3 className="text-xl font-semibold mb-4">Repository Health</h3>

@@ -87,11 +87,11 @@ export function WorkspaceCreateModal({
           navigate(`/i/${response._data.id}`);
         }
       } else {
-        setError(response._error || `Failed to ${mode === 'create' ? 'create' : 'update'} workspace`);
+        setError(response.error || `Failed to ${mode === 'create' ? 'create' : 'update'} workspace`);
       }
     } catch (err) {
       console.error(`Error ${mode === 'create' ? 'creating' : 'updating'} workspace:`, err);
-      setError('An unexpected _error occurred. Please try again.');
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }

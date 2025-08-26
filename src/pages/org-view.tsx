@@ -232,7 +232,7 @@ export default function OrgView() {
   const canShowMore = displayCount < Math.min(repositories.length, MAX_DISPLAY_COUNT);
   const hasMoreRepos = repositories.length > MAX_DISPLAY_COUNT;
 
-  if (_error) {
+  if (error) {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <Card>

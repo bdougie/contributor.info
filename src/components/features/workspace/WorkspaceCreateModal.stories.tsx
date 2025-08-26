@@ -175,7 +175,7 @@ export const FormInteractive: Story = {
       
       // Simulate random success/error
       if (Math.random() > 0.5) {
-        setError('Simulated _error: Workspace name already exists');
+        setError('Simulated error: Workspace name already exists');
       } else {
         alert('Success! Workspace created.');
         setError(null);

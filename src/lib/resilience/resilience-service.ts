@@ -87,7 +87,7 @@ class EnhancedCircuitBreaker {
 
       this.onSuccess(responseTime);
       return result;
-    } catch () {
+    } catch (error) {
       this.onFailure();
       throw error;
     }
@@ -200,7 +200,7 @@ class Bulkhead {
   private queue: Array<{
     operation: () => Promise<any>;
     resolve: (value: unknown) => void;
-    reject: (_error: unknown) => void;
+    reject: (error: unknown) => void;
     timestamp: number;
   }> = [];
 
@@ -306,7 +306,7 @@ class TimeoutHandler {
       }
 
       return result;
-    } catch () {
+    } catch (error) {
       const responseTime = performance.now() - startTime;
 
       if (responseTime >= timeout) {

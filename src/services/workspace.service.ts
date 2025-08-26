@@ -62,7 +62,7 @@ export class WorkspaceService {
       if (!validation.valid) {
         return {
           success: false,
-          error: formatValidationErrors(validation._errors),
+          error: formatValidationErrors(validation.errors),
           statusCode: 400,
         };
       }
@@ -172,8 +172,8 @@ export class WorkspaceService {
         data: workspace,
         statusCode: 201,
       };
-    } catch () {
-      console.error('Create workspace error:', _error);
+    } catch (error) {
+      console.error(, error);
       return {
         success: false,
         error: 'Failed to create workspace',
@@ -196,7 +196,7 @@ export class WorkspaceService {
       if (!validation.valid) {
         return {
           success: false,
-          error: formatValidationErrors(validation._errors),
+          error: formatValidationErrors(validation.errors),
           statusCode: 400,
         };
       }
@@ -253,8 +253,8 @@ export class WorkspaceService {
         data: workspace,
         statusCode: 200,
       };
-    } catch () {
-      console.error('Update workspace error:', _error);
+    } catch (error) {
+      console.error(, error);
       return {
         success: false,
         error: 'Failed to update workspace',
@@ -308,8 +308,8 @@ export class WorkspaceService {
         success: true,
         statusCode: 200,
       };
-    } catch () {
-      console.error('Delete workspace error:', _error);
+    } catch (error) {
+      console.error(, error);
       return {
         success: false,
         error: 'Failed to delete workspace',
@@ -350,8 +350,8 @@ export class WorkspaceService {
         .eq('workspace_members.user_id', userId)
         .maybeSingle();
 
-      if (_error) {
-        if (_error.code === 'PGRST116') {
+      if (error) {
+        if (error.code === 'PGRST116') {
           return {
             success: false,
             error: 'Workspace not found or access denied',
@@ -379,8 +379,8 @@ export class WorkspaceService {
         data: workspaceWithStats,
         statusCode: 200,
       };
-    } catch () {
-      console.error('Get workspace error:', _error);
+    } catch (error) {
+      console.error(, error);
       return {
         success: false,
         error: 'Failed to get workspace',
@@ -438,7 +438,7 @@ export class WorkspaceService {
 
       const { data: workspaces, error, count } = await query;
 
-      if (_error) {
+      if (error) {
         throw error;
       }
 
@@ -464,8 +464,8 @@ export class WorkspaceService {
         },
         statusCode: 200,
       };
-    } catch () {
-      console.error('List workspaces error:', _error);
+    } catch (error) {
+      console.error(, error);
       return {
         success: false,
         error: 'Failed to list workspaces',
@@ -498,8 +498,8 @@ export class WorkspaceService {
         hasPermission: requiredRoles.includes(member.role as WorkspaceRole),
         role: member.role as WorkspaceRole,
       };
-    } catch () {
-      console.error('Check permission error:', _error);
+    } catch (error) {
+      console.error(, error);
       return { hasPermission: false };
     }
   }
@@ -598,8 +598,8 @@ export class WorkspaceService {
         data: workspaceRepo,
         statusCode: 201,
       };
-    } catch () {
-      console.error('Add repository to workspace error:', _error);
+    } catch (error) {
+      console.error(, error);
       return {
         success: false,
         error: 'Failed to add repository to workspace',
@@ -663,8 +663,8 @@ export class WorkspaceService {
         success: true,
         statusCode: 200,
       };
-    } catch () {
-      console.error('Remove repository from workspace error:', _error);
+    } catch (error) {
+      console.error(, error);
       return {
         success: false,
         error: 'Failed to remove repository from workspace',
@@ -761,7 +761,7 @@ export class WorkspaceService {
 
       const { data: repositories, error, count } = await query;
 
-      if (_error) {
+      if (error) {
         throw error;
       }
 
@@ -778,8 +778,8 @@ export class WorkspaceService {
         },
         statusCode: 200,
       };
-    } catch () {
-      console.error('List workspace repositories error:', _error);
+    } catch (error) {
+      console.error(, error);
       return {
         success: false,
         error: 'Failed to list workspace repositories',

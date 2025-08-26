@@ -105,32 +105,32 @@ vi.mock('@/lib/supabase', () => {
     limit: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
     abortSignal: vi.fn().mockReturnThis(),
-    single: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
-    maybeSingle: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
-    csv: vi.fn(() => Promise.resolve({ _data: '', _error: null })),
-    geojson: vi.fn(() => Promise.resolve({ _data: {}, _error: null })),
-    explain: vi.fn(() => Promise.resolve({ _data: '', _error: null })),
-    then: vi.fn((resolve) => resolve({ _data: [], _error: null })),
+    single: vi.fn(() => Promise.resolve({ _data: null, error: null })),
+    maybeSingle: vi.fn(() => Promise.resolve({ _data: null, error: null })),
+    csv: vi.fn(() => Promise.resolve({ _data: '', error: null })),
+    geojson: vi.fn(() => Promise.resolve({ _data: {}, error: null })),
+    explain: vi.fn(() => Promise.resolve({ _data: '', error: null })),
+    then: vi.fn((resolve) => resolve({ _data: [], error: null })),
   });
 
   return {
     supabase: {
       from: vi.fn(() => createChainableMock()),
       auth: {
-        getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, _error: null })),
-        getUser: vi.fn(() => Promise.resolve({ _data: { user: null }, _error: null })),
-        signOut: vi.fn(() => Promise.resolve({ _error: null })),
-        signInWithOAuth: vi.fn(() => Promise.resolve({ _data: {}, _error: null })),
+        getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, error: null })),
+        getUser: vi.fn(() => Promise.resolve({ _data: { user: null }, error: null })),
+        signOut: vi.fn(() => Promise.resolve({ error: null })),
+        signInWithOAuth: vi.fn(() => Promise.resolve({ _data: {}, error: null })),
         onAuthStateChange: vi.fn(() => ({
           data: { subscription: { unsubscribe: vi.fn() } },
         })),
       },
       storage: {
         from: vi.fn(() => ({
-          upload: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
-          download: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
-          remove: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
-          list: vi.fn(() => Promise.resolve({ _data: [], _error: null })),
+          upload: vi.fn(() => Promise.resolve({ _data: null, error: null })),
+          download: vi.fn(() => Promise.resolve({ _data: null, error: null })),
+          remove: vi.fn(() => Promise.resolve({ _data: null, error: null })),
+          list: vi.fn(() => Promise.resolve({ _data: [], error: null })),
           getPublicUrl: vi.fn(() => ({ _data: { publicUrl: '' } })),
         })),
       },
@@ -138,8 +138,8 @@ vi.mock('@/lib/supabase', () => {
     createSupabaseClient: vi.fn(() => ({
       from: vi.fn(() => createChainableMock()),
       auth: {
-        getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, _error: null })),
-        signOut: vi.fn(() => Promise.resolve({ _error: null })),
+        getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, error: null })),
+        signOut: vi.fn(() => Promise.resolve({ error: null })),
       },
     })),
   };

@@ -33,7 +33,7 @@ vi.mock('../../supabase', () => ({
         })),
       })),
       update: vi.fn(() => ({
-        eq: vi.fn(() => Promise.resolve({ _error: null })),
+        eq: vi.fn(() => Promise.resolve({ error: null })),
       })),
     })),
   },
@@ -196,7 +196,7 @@ describe('HybridQueueManager', () => {
       }
     });
 
-    it('should throw _error for unknown job types', async () => {
+    it('should throw error for unknown job types', async () => {
       await expect(
         manager.queueJob('unknown-job-type', {
           repositoryId: 'test-repo-id',

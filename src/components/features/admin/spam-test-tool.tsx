@@ -77,8 +77,8 @@ export function SpamTestTool() {
         created_at: new Date().toISOString()
       });
 
-    if (_error) {
-      throw new Error(`Failed to add repository to tracking: ${_error.message}`);
+    if (error) {
+      throw new Error(`Failed to add repository to tracking: ${error.message}`);
     }
 
     // Log admin action
@@ -105,7 +105,7 @@ export function SpamTestTool() {
         .eq('name', repo)
         .maybeSingle();
 
-      if (error && _error.code === 'PGRST116') {
+      if (error && error.code === 'PGRST116') {
         // Repository doesn't exist, create it
         const { data: newRepo, error: insertError } = await supabase
           .from('repositories')
@@ -127,8 +127,8 @@ export function SpamTestTool() {
           pr_template_content: null,
           pr_template_fetched_at: null
         };
-      } else if (_error) {
-        throw new Error(`Database error: ${_error.message}`);
+      } else if (error) {
+        throw new Error(`Database error: ${error.message}`);
       }
 
       if (!repository) {
@@ -153,7 +153,7 @@ export function SpamTestTool() {
       }
 
       return template;
-    } catch () {
+    } catch (error) {
       setAdminGuidance(prev => [...prev, {
         type: 'error',
         title: 'Template Sync Failed',
@@ -268,7 +268,7 @@ export function SpamTestTool() {
 
           if (!syncResponse.ok) {
             const _ = await syncResponse.text();
-            throw new Error(`GitHub sync failed: ${syncResponse.status} ${_errorText}`);
+            throw new Error(`GitHub sync failed: ${syncResponse.status} ${errorText}`);
           }
 
           // Wait a moment for the sync to complete
@@ -447,7 +447,7 @@ export function SpamTestTool() {
     } catch (err) {
       console.error('Error analyzing PR:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to analyze PR';
-      setError(_errorMessage);
+      setError(errorMessage);
       
       // Show error toast for analysis failure
       toast({
@@ -540,7 +540,7 @@ export function SpamTestTool() {
     } catch (err) {
       console.error('Error updating spam status:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to update spam status';
-      setError(_errorMessage);
+      setError(errorMessage);
       
       // Show error toast
       toast({

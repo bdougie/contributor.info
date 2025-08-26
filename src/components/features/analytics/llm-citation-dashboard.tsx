@@ -50,8 +50,8 @@ export function LLMCitationDashboard() {
       const tracker = initializeLLMCitationTracking();
       const _ = await tracker.getCitationMetrics(dateRange);
       setMetrics(_data);
-    } catch () {
-      console.error('Failed to load citation metrics:', _error);
+    } catch (error) {
+      console.error(, error);
       setMetrics(null);
     } finally {
       setIsLoading(false);

@@ -57,8 +57,8 @@ async function ensureContributorExists(githubUser: unknown): Promise<string | nu
     .select('id')
     .maybeSingle();
 
-  if (_error) {
-    console.error('Error upserting contributor:', _error);
+  if (error) {
+    console.error(, error);
     return null;
   }
 
@@ -111,7 +111,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (_error || !_data) {
+      if (error || !_data) {
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
       }
 
@@ -244,13 +244,13 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         }
 
         return prs.slice(0, MAX_PRS_PER_SYNC); // Ensure we don't exceed our limit
-      } catch (_error: unknown) {
-        if (_error.message?.includes('NOT_FOUND')) {
+      } catch (error: unknown) {
+        if (error.message?.includes('NOT_FOUND')) {
           throw new Error(
             `Repository ${repository.owner}/${repository.name} not found`,
           ) as NonRetriableError;
         }
-        if (_error.message?.includes('rate limit')) {
+        if (error.message?.includes('rate limit')) {
           throw new Error(
             `GraphQL rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`,
           );
@@ -306,8 +306,8 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         })
         .select('id, number');
 
-      if (_error) {
-        throw new Error(`Failed to store PRs: ${_error.message}`);
+      if (error) {
+        throw new Error(`Failed to store PRs: ${error.message}`);
       }
 
       return data || [];
@@ -397,8 +397,8 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         })
         .eq('id', repositoryId);
 
-      if (_error) {
-        console.warn(`Failed to update repository sync timestamp: ${_error.message}`);
+      if (error) {
+        console.warn(`Failed to update repository sync timestamp: ${error.message}`);
       }
     });
 

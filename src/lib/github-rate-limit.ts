@@ -112,15 +112,15 @@ export class ExponentialBackoff {
 
   async retry<T>(
     fn: () => Promise<T>,
-    shouldRetry: (_error: unknown) => boolean = () => true,
+    shouldRetry: (error: unknown) => boolean = () => true,
   ): Promise<T> {
     while (this.attempt < this.maxAttempts) {
       try {
         return await fn();
-      } catch () {
+      } catch (error) {
         this.attempt++;
 
-        if (this.attempt >= this.maxAttempts || !shouldRetry(_error)) {
+        if (this.attempt >= this.maxAttempts || !shouldRetry(error)) {
           throw error;
         }
 
@@ -189,13 +189,13 @@ export async function githubApiRequest<T>(
       }
 
       if (!response.ok) {
-        throw new Error(`GitHub API _error: ${response.status} ${response.statusText}`);
+        throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
       }
 
       const _ = await response.json();
       return { data, rateLimitInfo };
     },
-    (_error) => {
+    (error) => {
       // Retry on rate limit or server errors
       return (
         error.message.includes('rate limit') ||

@@ -9,13 +9,13 @@ interface CodeDiffProps {
   className?: string;
 }
 
-export const CodeDiff(CodeDiffProps): JSX.Element = ({
+export const CodeDiff = ({
   before,
   after,
   additions = 0,
   deletions = 0,
   className
-}) => {
+}: CodeDiffProps) => {
   return (
     <div className={cn("font-mono text-sm", className)}>
       {/* Diff Header with stats */}
@@ -95,7 +95,7 @@ interface InlineCodeDiffProps {
   className?: string;
 }
 
-export const InlineCodeDiff(InlineCodeDiffProps): JSX.Element = ({
+export const InlineCodeDiff = ({
   additions = 0,
   deletions = 0,
   className
@@ -185,7 +185,7 @@ interface MultiLineDiffProps {
   showLineNumbers?: boolean;
 }
 
-export const MultiLineDiff(MultiLineDiffProps): JSX.Element = ({
+export const MultiLineDiff = ({
   lines,
   className,
   showLineNumbers = false

@@ -59,7 +59,7 @@ beforeEach(() => {
   // Clear console mocks
   vi.spyOn(console, 'log').mockImplementation(() => {});
   vi.spyOn(console, 'warn').mockImplementation(() => {});
-  vi.spyOn(console, '_error').mockImplementation(() => {});
+  vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 // Comprehensive cleanup after each test
@@ -105,9 +105,9 @@ export const createSupabaseMock = () => {
       in: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
-      single: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
-      maybeSingle: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
-      then: vi.fn((resolve: (value: unknown) => unknown) => resolve({ _data: [], _error: null })),
+      single: vi.fn(() => Promise.resolve({ _data: null, error: null })),
+      maybeSingle: vi.fn(() => Promise.resolve({ _data: null, error: null })),
+      then: vi.fn((resolve: (value: unknown) => unknown) => resolve({ _data: [], error: null })),
     };
 
     // Make each method return the builder for chaining
@@ -123,10 +123,10 @@ export const createSupabaseMock = () => {
   return {
     from: vi.fn(() => createQueryBuilder()),
     auth: {
-      getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, _error: null })),
-      signOut: vi.fn(() => Promise.resolve({ _error: null })),
-      signIn: vi.fn(() => Promise.resolve({ _data: { session: null }, _error: null })),
-      signUp: vi.fn(() => Promise.resolve({ _data: { session: null }, _error: null })),
+      getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, error: null })),
+      signOut: vi.fn(() => Promise.resolve({ error: null })),
+      signIn: vi.fn(() => Promise.resolve({ _data: { session: null }, error: null })),
+      signUp: vi.fn(() => Promise.resolve({ _data: { session: null }, error: null })),
       onAuthStateChange: vi.fn(() => ({ _data: { subscription: { unsubscribe: vi.fn() } } })),
     },
   };

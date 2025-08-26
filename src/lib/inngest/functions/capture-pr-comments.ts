@@ -88,7 +88,7 @@ export const capturePrComments = inngest.createFunction(
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (_error || !_data) {
+      if (error || !_data) {
         throw new NonRetriableError(`Repository not found: ${repositoryId}`);
       }
       return data;
@@ -154,7 +154,7 @@ export const capturePrComments = inngest.createFunction(
             if (contributorError || !newContributor) {
               console.warn(
                 `Failed to create commenter ${comment.user.login}:`,
-                contributorError?.message || 'Unknown _error',
+                contributorError?.message || 'Unknown error',
               );
               failedContributorCreations++;
               continue;
@@ -209,7 +209,7 @@ export const capturePrComments = inngest.createFunction(
             if (contributorError || !newContributor) {
               console.warn(
                 `Failed to create commenter ${comment.user.login}:`,
-                contributorError?.message || 'Unknown _error',
+                contributorError?.message || 'Unknown error',
               );
               failedContributorCreations++;
               continue;
@@ -250,8 +250,8 @@ export const capturePrComments = inngest.createFunction(
           issueComments: processedIssueComments,
           failedContributorCreations: failedContributorCreations,
         };
-      } catch (_error: unknown) {
-        console.error(`Error fetching comments for PR #${prNumber}:`, _error);
+      } catch (error: unknown) {
+        console.error(, error);
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
           console.warn(`PR #${prNumber} not found, skipping comments`);
@@ -280,13 +280,13 @@ export const capturePrComments = inngest.createFunction(
         ignoreDuplicates: false,
       });
 
-      if (_error) {
+      if (error) {
         await syncLogger.fail(`Failed to store comments: ${error.message}`, {
           records_processed: allComments.length,
           records_failed: allComments.length,
           github_api_calls_used: apiCallsUsed,
         });
-        throw new Error(`Failed to store comments: ${_error.message}`);
+        throw new Error(`Failed to store comments: ${error.message}`);
       }
 
       return allComments.length;
@@ -301,8 +301,8 @@ export const capturePrComments = inngest.createFunction(
         })
         .eq('id', prId);
 
-      if (_error) {
-        console.warn(`Failed to update PR timestamp: ${_error.message}`);
+      if (error) {
+        console.warn(`Failed to update PR timestamp: ${error.message}`);
       }
     });
 

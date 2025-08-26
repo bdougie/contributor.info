@@ -92,7 +92,7 @@ export class GitHubCacheService {
 
       this.recordMiss(performance.now() - startTime);
       return null;
-    } catch () {
+    } catch (error) {
       this.recordMiss(performance.now() - startTime);
       return null;
     }
@@ -117,7 +117,7 @@ export class GitHubCacheService {
       }
 
       this.updateStats();
-    } catch () {
+    } catch (error) {
       // Silently handle cache set errors
     }
   }
@@ -133,7 +133,7 @@ export class GitHubCacheService {
     if (this.config.persistenceEnabled) {
       try {
         localStorage.removeItem(this.getStorageKey(key));
-      } catch () {
+      } catch (error) {
         // Silently handle localStorage removal errors
       }
     }
@@ -155,7 +155,7 @@ export class GitHubCacheService {
             localStorage.removeItem(key);
           }
         });
-      } catch () {
+      } catch (error) {
         // Silently handle localStorage clearing errors
       }
     }
@@ -268,7 +268,7 @@ export class GitHubCacheService {
       }
 
       return entry.data;
-    } catch () {
+    } catch (error) {
       return null;
     }
   }
@@ -290,9 +290,9 @@ export class GitHubCacheService {
       };
 
       localStorage.setItem(this.getStorageKey(key), JSON.stringify(entry));
-    } catch () {
+    } catch (error) {
       // If storage is full, try to clear some space
-      if (error instanceof DOMException && _error.name === 'QuotaExceededError') {
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
         this.cleanupStorage();
       }
     }
@@ -345,7 +345,7 @@ export class GitHubCacheService {
       for (let i = 0; i < toRemove; i++) {
         localStorage.removeItem(entries[i].key);
       }
-    } catch () {
+    } catch (error) {
       // Silently handle storage cleanup errors
     }
   }
@@ -391,7 +391,7 @@ export class GitHubCacheService {
             }
           }
         });
-      } catch () {
+      } catch (error) {
         // Silently handle expired storage cleanup errors
       }
     }

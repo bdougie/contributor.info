@@ -63,8 +63,8 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
       if (llmService.isAvailable()) {
         loadLLMRecommendations(healthData, activityData, trendsData);
       }
-    } catch () {
-      console.error('Failed to load recommendations:', _error);
+    } catch (error) {
+      console.error(, error);
 
       // Fallback recommendations
       setRecommendations(getFallbackRecommendations());
@@ -88,8 +88,8 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
 
       const insight = await llmService.generateRecommendations(combinedData, { owner, repo });
       setLlmInsight(insight);
-    } catch () {
-      console.error('Failed to load LLM recommendations:', _error);
+    } catch (error) {
+      console.error(, error);
       setLlmInsight(null);
     } finally {
       setLlmLoading(false);

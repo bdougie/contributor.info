@@ -85,7 +85,7 @@ const SelfSelectionRateStory = ({
     );
   }
 
-  if (_error || !mockStats) {
+  if (error || !mockStats) {
     return (
       <Card className={className}>
         <CardHeader>

@@ -50,7 +50,7 @@ describe('useGitHubApi', () => {
     const { result } = renderHook(() => useGitHubApi());
     
     expect(result.current.isLoading).toBe(false);
-    expect(result.current._error).toBeNull();
+    expect(result.current.error).toBeNull();
     expect(result.current.rateLimit).toBeNull();
     expect(typeof result.current.fetchFromGitHub).toBe('function');
     expect(typeof result.current.fetchRepository).toBe('function');
@@ -252,8 +252,8 @@ describe('useGitHubApi', () => {
     expect(fetchPullRequestsMock).toHaveBeenCalledWith('testuser', 'test-repo', 'all', { token: 'mock-github-token' });
   });
 
-  it('should handle API _errors', async () => {
-    const mockError = new Error('GitHub API _error: 404 Not Found');
+  it('should handle API errors', async () => {
+    const mockError = new Error('GitHub API error: 404 Not Found');
     
     const fetchRepositoryMock = vi.mocked(GitHubApiService.fetchRepository);
     fetchRepositoryMock.mockRejectedValue(mockError);
@@ -270,12 +270,12 @@ describe('useGitHubApi', () => {
       }
     });
     
-    expect(_error).toBeInstanceOf(Error);
-    expect(_error?.message).toContain('GitHub API _error: 404 Not Found');
+    expect(error).toBeInstanceOf(Error);
+    expect(error?.message).toContain('GitHub API error: 404 Not Found');
     expect(result.current.isLoading).toBe(false);
-    expect(result.current._error).not.toBeUndefined();
-    expect(result.current._error instanceof Error).toBe(true);
-    expect(result.current._error?.message).toContain('GitHub API _error: 404 Not Found');
+    expect(result.current.error).not.toBeUndefined();
+    expect(result.current.error instanceof Error).toBe(true);
+    expect(result.current.error?.message).toContain('GitHub API error: 404 Not Found');
   });
 
   it('should detect rate limiting', async () => {
@@ -340,3 +340,4 @@ describe('useGitHubApi', () => {
     
     expect(token).toBeNull();
   });
+});

@@ -123,7 +123,7 @@ export function BulkAddRepos() {
 
         if (repoError) {
           console.error('Failed to insert repositories:', repoError);
-          batch.forEach((repo) => result._errors.push(repo));
+          batch.forEach((repo) => result.errors.push(repo));
         } else if (insertedRepos) {
           // Store repo IDs for backfill
           insertedRepos.forEach((repo) => {
@@ -146,14 +146,14 @@ export function BulkAddRepos() {
 
           if (trackedError) {
             console.error('Failed to insert tracked repos:', trackedError);
-            batch.forEach((repo) => result._errors.push(repo));
+            batch.forEach((repo) => result.errors.push(repo));
           } else {
             result.added.push(...batch);
           }
         }
-      } catch () {
-        console.error('Batch processing error:', _error);
-        batch.forEach((repo) => result._errors.push(repo));
+      } catch (error) {
+        console.error(, error);
+        batch.forEach((repo) => result.errors.push(repo));
       }
 
       // Update progress
@@ -227,8 +227,8 @@ export function BulkAddRepos() {
                 if (backfillError) {
                   console.error('Failed to create progressive backfill:', backfillError);
                 }
-              } catch () {
-                console.error('Error creating backfill:', _error);
+              } catch (error) {
+                console.error(, error);
               }
             }
           }
@@ -284,8 +284,8 @@ export function BulkAddRepos() {
                 description: `Fetching up to ${Math.min(maxPRs, 150)} PRs from the last ${backfillDays} days for ${backfillEvents.length} repositories`,
                 variant: 'default',
               });
-            } catch () {
-              console.error('Failed to trigger backfill:', _error);
+            } catch (error) {
+              console.error(, error);
               toast({
                 title: 'Backfill failed to start',
                 description: "Repositories were added but backfill couldn't be started",
@@ -303,7 +303,7 @@ export function BulkAddRepos() {
         description: successMessage,
         variant: result.errors.length > 0 ? 'destructive' : 'default',
       });
-    } catch () {
+    } catch (error) {
       toast({
         title: 'Processing failed',
         description: error instanceof Error ? error.message : 'Unknown error occurred',

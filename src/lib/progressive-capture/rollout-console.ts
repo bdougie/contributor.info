@@ -68,7 +68,7 @@ class RolloutConsoleManager implements RolloutConsole {
       console.log('📈 Rollout Percentage: %s%', config.rollout_percentage);
       console.log('🎯 Strategy: %s', config.rollout_strategy);
       console.log('🔄 Auto Rollback: %s', config.auto_rollback_enabled ? 'Enabled' : 'Disabled');
-      console.log('⚠️  Max Error Rate: %s%', config.max__error_rate);
+      console.log('⚠️  Max Error Rate: %s%', config.max_error_rate);
       console.log('🚨 Emergency Stop: %s', config.emergency_stop ? 'ACTIVE' : 'Inactive');
       console.log('🕐 Monitoring Window: %s hours', config.monitoring_window_hours);
       console.log('📝 Whitelist: %s repositories', config.target_repositories.length);
@@ -85,8 +85,8 @@ class RolloutConsoleManager implements RolloutConsole {
         if (envPercentage) console.log('   HYBRID_ROLLOUT_PERCENTAGE: %s', envPercentage);
         if (envEmergencyStop) console.log('   HYBRID_EMERGENCY_STOP: %s', envEmergencyStop);
       }
-    } catch () {
-      console.error('❌ Error getting rollout status:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -107,7 +107,7 @@ class RolloutConsoleManager implements RolloutConsole {
       console.log('🏢 Total Repositories: %s', stats.total_repositories);
       console.log('✅ Eligible Repositories: %s', stats.eligible_repositories);
       console.log('📈 Rollout Percentage: %s%', stats.rollout_percentage);
-      console.log('❌ Error Rate: %s%', stats._error_rate.toFixed(2));
+      console.log('❌ Error Rate: %s%', stats.error_rate.toFixed(2));
       console.log('✅ Success Rate: %s%', stats.success_rate.toFixed(2));
       console.log('🔄 Active Jobs: %s', stats.active_jobs);
 
@@ -120,8 +120,8 @@ class RolloutConsoleManager implements RolloutConsole {
       Object.entries(stats.processor_distribution).forEach(([processor, count]) => {
         console.log('   %s: %s jobs', processor, count);
       });
-    } catch () {
-      console.error('❌ Error getting rollout stats:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -148,8 +148,8 @@ class RolloutConsoleManager implements RolloutConsole {
         console.log('   Total PRs: %s', stat.total_pr_count.toLocaleString());
         console.log('   Avg Activity Score: %s', stat.average_activity_score.toFixed(1));
       });
-    } catch () {
-      console.error('❌ Error getting category stats:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -174,8 +174,8 @@ class RolloutConsoleManager implements RolloutConsole {
       } else {
         console.log('❌ Failed to update rollout percentage');
       }
-    } catch () {
-      console.error('❌ Error setting rollout percentage:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -193,8 +193,8 @@ class RolloutConsoleManager implements RolloutConsole {
       } else {
         console.log('❌ Failed to activate emergency stop');
       }
-    } catch () {
-      console.error('❌ Error activating emergency stop:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -218,15 +218,15 @@ class RolloutConsoleManager implements RolloutConsole {
         })
         .eq('id', config.id);
 
-      if (_error) {
-        console.error('❌ Error resuming rollout:', _error);
+      if (error) {
+        console.error(, error);
         return;
       }
 
       console.log('✅ Rollout resumed');
       console.log('   Current rollout percentage: %s%', config.rollout_percentage);
-    } catch () {
-      console.error('❌ Error resuming rollout:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -246,8 +246,8 @@ class RolloutConsoleManager implements RolloutConsole {
       } else {
         console.log('❌ Failed to add repositories to whitelist');
       }
-    } catch () {
-      console.error('❌ Error adding to whitelist:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -267,8 +267,8 @@ class RolloutConsoleManager implements RolloutConsole {
       } else {
         console.log('❌ Failed to remove repositories from whitelist');
       }
-    } catch () {
-      console.error('❌ Error removing from whitelist:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -301,8 +301,8 @@ class RolloutConsoleManager implements RolloutConsole {
           console.log('   %s. %s', index + 1, id);
         });
       }
-    } catch () {
-      console.error('❌ Error showing whitelist:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -314,8 +314,8 @@ class RolloutConsoleManager implements RolloutConsole {
       console.log('🔍 Starting repository categorization...');
       await repositoryCategorizer.categorizeAll();
       console.log('✅ Repository categorization completed');
-    } catch () {
-      console.error('❌ Error categorizing repositories:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -331,8 +331,8 @@ class RolloutConsoleManager implements RolloutConsole {
       } else {
         console.log('❌ Failed to mark repository %s as test', repositoryId);
       }
-    } catch () {
-      console.error('❌ Error marking repository as test:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -348,8 +348,8 @@ class RolloutConsoleManager implements RolloutConsole {
       } else {
         console.log('❌ Failed to unmark repository %s as test', repositoryId);
       }
-    } catch () {
-      console.error('❌ Error unmarking repository as test:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -369,8 +369,8 @@ class RolloutConsoleManager implements RolloutConsole {
       } else {
         console.log('❌ Failed to rollback');
       }
-    } catch () {
-      console.error('❌ Error rolling back:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -400,14 +400,14 @@ class RolloutConsoleManager implements RolloutConsole {
         })
         .eq('id', config.id);
 
-      if (_error) {
-        console.error('❌ Error enabling auto rollback:', _error);
+      if (error) {
+        console.error(, error);
         return;
       }
 
       console.log('✅ Auto rollback enabled');
-    } catch () {
-      console.error('❌ Error enabling auto rollback:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -430,14 +430,14 @@ class RolloutConsoleManager implements RolloutConsole {
         })
         .eq('id', config.id);
 
-      if (_error) {
-        console.error('❌ Error disabling auto rollback:', _error);
+      if (error) {
+        console.error(, error);
         return;
       }
 
       console.log('✅ Auto rollback disabled');
-    } catch () {
-      console.error('❌ Error disabling auto rollback:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -452,15 +452,15 @@ class RolloutConsoleManager implements RolloutConsole {
       const rollbackTriggered = await hybridRolloutManager.checkAndTriggerAutoRollback();
 
       if (rollbackTriggered) {
-        console.log('⚠️  Auto rollback was triggered due to high _error rate');
+        console.log('⚠️  Auto rollback was triggered due to high error rate');
       } else {
         console.log('✅ Rollout health is normal');
       }
 
       // Show current stats
       await this.stats();
-    } catch () {
-      console.error('❌ Error checking rollout health:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -475,8 +475,8 @@ class RolloutConsoleManager implements RolloutConsole {
       // This would query rollout_metrics table for detailed metrics
       // Implementation depends on specific metrics needed
       console.log('ℹ️  Detailed metrics implementation pending');
-    } catch () {
-      console.error('❌ Error showing metrics:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -504,7 +504,7 @@ class RolloutConsoleManager implements RolloutConsole {
         config.auto_rollback_enabled ? '✅ Enabled' : '❌ Disabled',
       );
       console.log('🚨 Emergency Stop: %s', config.emergency_stop ? '🔴 ACTIVE' : '🟢 Normal');
-      console.log('⚠️ Max Error Rate: %s%', config.max__error_rate);
+      console.log('⚠️ Max Error Rate: %s%', config.max_error_rate);
 
       // Check which repositories are eligible
       const { data: testRepos } = await supabase
@@ -532,7 +532,7 @@ class RolloutConsoleManager implements RolloutConsole {
           stats.eligible_repositories,
           stats.total_repositories,
         );
-        console.log('   Error Rate: %s%', stats._error_rate.toFixed(2));
+        console.log('   Error Rate: %s%', stats.error_rate.toFixed(2));
         console.log('   Success Rate: %s%', stats.success_rate.toFixed(2));
         console.log('   Active Jobs: %s', stats.active_jobs);
 
@@ -574,7 +574,7 @@ class RolloutConsoleManager implements RolloutConsole {
         .from('rollout_metrics')
         .select('*')
         .eq('rollout_config_id', config.id)
-        .gt('_error_count', 0)
+        .gt('error_count', 0)
         .order('created_at', { ascending: false })
         .limit(3);
 
@@ -583,9 +583,9 @@ class RolloutConsoleManager implements RolloutConsole {
         recentMetrics.forEach((metric) => {
           console.log('   Repository: %s', metric.repository_id);
           console.log('   Processor: %s', metric.processor_type);
-          console.log('   Errors: %s/%s', metric._error_count, metric.total_jobs);
-          if (metric.last__error_message) {
-            console.log('   Last Error: %s', metric.last__error_message);
+          console.log('   Errors: %s/%s', metric.error_count, metric.total_jobs);
+          if (metric.last_error_message) {
+            console.log('   Last Error: %s', metric.last_error_message);
           }
         });
       }
@@ -600,7 +600,7 @@ class RolloutConsoleManager implements RolloutConsole {
         console.log(`   📊 Next: Phase 5 (25%) when ready with small production repos`);
       }
 
-      if (stats && stats._error_rate > 2) {
+      if (stats && stats.error_rate > 2) {
         console.log(
           '   ⚠️ Error rate elevated (%s%). Consider investigation.',
           stats.error_rate.toFixed(2),
@@ -613,8 +613,8 @@ class RolloutConsoleManager implements RolloutConsole {
 
       console.log(`\n🔄 Refresh monitoring with: rollout.monitorPhase4()`);
       console.log(`🆘 Emergency stop with: rollout.emergencyStop("reason")`);
-    } catch () {
-      console.error('❌ Error monitoring Phase 4:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 
@@ -660,7 +660,7 @@ UTILITIES:
 EXAMPLES:
   rollout.setRollout(10)              - Start with 10% rollout
   rollout.addToWhitelist(['repo-id']) - Add test repository
-  rollout.emergencyStop('High _errors')- Emergency stop with reason
+  rollout.emergencyStop('High errors')- Emergency stop with reason
   rollout.checkHealth()               - Check if rollback needed
     `);
   }
@@ -688,8 +688,8 @@ EXAMPLES:
       setTimeout(() => {
         window.location.reload();
       }, 500);
-    } catch () {
-      console.error('❌ Error clearing cache:', _error);
+    } catch (error) {
+      console.error(, error);
     }
   }
 }

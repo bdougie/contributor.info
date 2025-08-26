@@ -159,8 +159,8 @@ export async function sendInngestEvent<T extends { name: string; data: any }>(
         recordSuccess(endpoint.name);
 
         return { ids: result.eventId ? [result.eventId] : result.eventIds || [] };
-      } catch () {
-        console.warn('Failed to send event via %s:', endpoint.name, _error);
+      } catch (error) {
+        console.warn('Failed to send event via %s:', endpoint.name, error);
         lastError = error as Error;
 
         // Record failure for circuit breaker

@@ -124,8 +124,8 @@ export function useRepositoryValidation(
             }, 1000); // Small delay to allow tracking to complete
           }
         }
-      } catch () {
-        console.error('Repository validation error:', _error);
+      } catch (error) {
+        console.error(, error);
 
         const errorResult: ValidationResult = {
           status: 'error',
@@ -134,10 +134,10 @@ export function useRepositoryValidation(
         };
 
         // Cache error results for a shorter time
-        validationCache.set(cacheKey, _errorResult);
+        validationCache.set(cacheKey, errorResult);
         cacheTimestamps.set(cacheKey, Date.now() - (CACHE_TTL - 60000)); // Cache for 1 minute
 
-        setResult(_errorResult);
+        setResult(errorResult);
       } finally {
         isValidating.current = false;
       }
@@ -168,12 +168,12 @@ async function trackRepository(owner: string, repo: string): Promise<void> {
       .select()
       .maybeSingle();
 
-    if (_error) {
+    if (error) {
       // Handle duplicate key error gracefully
-      if (_error.code === '23505') {
+      if (error.code === '23505') {
         console.log('Repository already tracked');
       } else {
-        console.error('Error tracking repository:', _error);
+        console.error(, error);
       }
     } else {
       console.log('Successfully tracked repository: %s/%s', owner, repo);
@@ -190,8 +190,8 @@ async function trackRepository(owner: string, repo: string): Promise<void> {
         console.error('Error dispatching tracking event:', e);
       }
     }
-  } catch () {
-    console.error('Error in trackRepository:', _error);
+  } catch (error) {
+    console.error(, error);
   }
 }
 

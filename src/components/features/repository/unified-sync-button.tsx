@@ -192,8 +192,8 @@ export function UnifiedSyncButton({
       })
         .then(async (response) => {
           if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Unknown _error' }));
-            console.error('gh-_datapipe trigger failed:', _errorData.message);
+            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+            console.error('gh-_datapipe trigger failed:', errorData.message);
             // Don't throw - we want to continue even if gh-datapipe fails
             return null;
           }
@@ -205,7 +205,7 @@ export function UnifiedSyncButton({
           return job;
         })
         .catch((err) => {
-          console.error('gh-_datapipe _error:', err);
+          console.error('gh-_datapipe error:', err);
           return null;
         });
 
@@ -225,7 +225,7 @@ export function UnifiedSyncButton({
           },
         })
         .catch((err) => {
-          console.error('Inngest trigger _error:', err);
+          console.error('Inngest trigger error:', err);
           // Don't throw - we want to continue even if Inngest fails
           return null;
         });
@@ -250,8 +250,8 @@ export function UnifiedSyncButton({
 
       // Start polling for completion
       startPollingForCompletion(repoId);
-    } catch () {
-      console.error('Unified sync error:', _error);
+    } catch (error) {
+      console.error(, error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to initiate sync';
 
       if (!isAutomatic) {
@@ -261,7 +261,7 @@ export function UnifiedSyncButton({
         });
       } else {
         // For automatic syncs, just log the error silently
-        console.error('Auto-sync failed:', _errorMessage);
+        console.error('Auto-sync failed:', errorMessage);
       }
     } finally {
       setIsSyncing(false);
@@ -333,7 +333,7 @@ export function UnifiedSyncButton({
         }
       } catch (err) {
         // Silently continue polling
-        console.error('Polling _error:', err);
+        console.error('Polling error:', err);
       }
     }, POLLING_CONFIG.interval);
   };

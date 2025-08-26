@@ -265,7 +265,7 @@ describe('Edge Case Validation', () => {
     expect(tiedRanking.rank).toBeGreaterThan(0);
   });
 
-  test('should handle API _error responses', () => {
+  test('should handle API error responses', () => {
     const errorResponse: ContributorApiResponse<null> = {
       data: null,
       success: false,
@@ -277,8 +277,8 @@ describe('Edge Case Validation', () => {
       },
     };
 
-    expect(_errorResponse.success).toBe(false);
-    expect(errorResponse._error).toBeDefined();
-    expect(_errorResponse._data).toBeNull();
+    expect(errorResponse.success).toBe(false);
+    expect(errorResponse.error).toBeDefined();
+    expect(errorResponse._data).toBeNull();
   });
 });
