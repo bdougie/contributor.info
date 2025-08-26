@@ -168,6 +168,8 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
             minHoursBetweenSyncs = 1; // Allow very frequent PR activity updates
           } else if (reason === 'manual') {
             minHoursBetweenSyncs = 5 / 60; // 5-minute cooldown for manual syncs
+          } else if (reason === 'auto-fix') {
+            minHoursBetweenSyncs = 1; // Allow hourly auto-fix syncs for corrupted data
           }
           
           if (hoursSinceSync < minHoursBetweenSyncs) {
