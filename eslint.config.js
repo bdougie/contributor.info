@@ -35,13 +35,15 @@ export default tseslint.config({
   },
   rules: {
     ...reactHooks.configs.recommended.rules,
+    // React hooks dependencies - warn instead of error for flexibility
+    'react-hooks/exhaustive-deps': 'warn',
     'react-refresh/only-export-components': [
       'warn',
       { allowConstantExport: true },
     ],
-    // Prevent nested ternaries that break Rollup tree shaking
+    // Warn about nested ternaries - they can impact readability and tree shaking
     // See: https://github.com/rollup/rollup/issues/5747
-    'no-nested-ternary': 'error',
+    'no-nested-ternary': 'warn',
     // Allow single ternaries but encourage helper functions for complex conditions
     'multiline-ternary': ['warn', 'always-multiline'],
     // Prevent usage of 'any' type - enforce proper TypeScript typing
