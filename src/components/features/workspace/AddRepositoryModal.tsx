@@ -31,9 +31,29 @@ const WorkspaceService = (typeof window !== 'undefined' && (window as any).__moc
   ? (window as any).__mockWorkspaceService
   : DefaultWorkspaceService;
 
+// Tier configuration
+const TIER_LIMITS = {
+  free: 4,
+  pro: 10,
+  enterprise: 100
+} as const;
+
 interface StagedRepository extends GitHubRepository {
   notes?: string;
   tags?: string[];
+  is_pinned?: boolean;
+}
+
+interface ExistingRepository {
+  id: string;
+  full_name: string;
+  name: string;
+  owner: string;
+  description: string | null;
+  language: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  workspace_repo_id?: string;
   is_pinned?: boolean;
 }
 
@@ -54,7 +74,7 @@ export function AddRepositoryModal({
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [stagedRepos, setStagedRepos] = useState<StagedRepository[]>([]);
   const [existingRepoIds, setExistingRepoIds] = useState<Set<string>>(new Set());
-  const [existingRepos, setExistingRepos] = useState<any[]>([]);
+  const [existingRepos, setExistingRepos] = useState<ExistingRepository[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,8 +82,9 @@ export function AddRepositoryModal({
 
   // Calculate limits
   const isFreeTier = workspace?.tier === 'free';
-  // Use the correct limits based on tier
-  const maxRepos = isFreeTier ? 4 : (workspace?.tier === 'pro' ? 10 : 100);
+  // Use the correct limits based on tier from configuration
+  const tier = workspace?.tier || 'free';
+  const maxRepos = TIER_LIMITS[tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.free;
   // Use the actual count of existing repos instead of relying on database field
   const currentRepoCount = existingRepos.length;
   const remainingSlots = maxRepos - currentRepoCount;
@@ -120,18 +141,19 @@ export function AddRepositoryModal({
         if (existingWorkspaceRepos) {
           const repos = existingWorkspaceRepos
             .filter((r: any) => r.repositories)
-            .map((r: any) => ({
+            .map((r: any): ExistingRepository => ({
               ...r.repositories,
               workspace_repo_id: r.repository_id,
               is_pinned: r.is_pinned
             }));
           
           setExistingRepos(repos);
-          setExistingRepoIds(new Set(repos.map((r: any) => r.full_name)));
+          setExistingRepoIds(new Set(repos.map((r: ExistingRepository) => r.full_name)));
         }
       } catch (err) {
         console.error('Error initializing modal:', err);
-        setError('Failed to load workspace details');
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        setError(`Failed to load workspace details: ${errorMessage}`);
       } finally {
         setLoading(false);
       }
@@ -174,9 +196,15 @@ export function AddRepositoryModal({
       return;
     }
 
+    // Verify user is workspace owner
+    if (workspace?.owner_id !== user.id) {
+      setError('Only workspace owners can remove repositories');
+      return;
+    }
+
     setRemovingRepoId(repoId);
     try {
-      // Remove from workspace
+      // Remove from workspace (RLS policies should also enforce ownership)
       const { error: removeError } = await supabase
         .from('workspace_repositories')
         .delete()
@@ -203,7 +231,8 @@ export function AddRepositoryModal({
       }
     } catch (err) {
       console.error('Error removing repository:', err);
-      toast.error(`Failed to remove ${repoName} from workspace`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      toast.error(`Failed to remove ${repoName}: ${errorMessage}`);
     } finally {
       setRemovingRepoId(null);
     }

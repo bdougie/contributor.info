@@ -1,6 +1,7 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import { WorkspacePullRequestsTable, type PullRequest } from '@/components/features/workspace/WorkspacePullRequestsTable';
@@ -1167,7 +1168,7 @@ export default function WorkspacePage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [selectedRepositories, setSelectedRepositories] = useState<string[]>([]);
   const [addRepositoryModalOpen, setAddRepositoryModalOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
 
   // Determine active tab from URL
