@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ChevronDown, Plus, Package, Clock, GitBranch, Search } from '@/components/ui/icon';
 import { useWorkspaceContext, type Workspace } from '@/contexts/WorkspaceContext';
 import { Button } from '@/components/ui/button';
@@ -28,8 +28,21 @@ interface WorkspaceSwitcherProps {
 
 export function WorkspaceSwitcher({ className, showFullName = true, onOpenCommandPalette }: WorkspaceSwitcherProps) {
   const navigate = useNavigate();
-  const { activeWorkspace, workspaces, switchWorkspace, isLoading, recentWorkspaces } = useWorkspaceContext();
+  const { activeWorkspace, workspaces, switchWorkspace, isLoading, recentWorkspaces, error } = useWorkspaceContext();
   const [open, setOpen] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+
+  // Set up loading timeout for UI feedback
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 3000); // Show timeout message after 3 seconds
+      return () => clearTimeout(timer);
+    } else {
+      setLoadingTimeout(false);
+    }
+  }, [isLoading]);
 
   // Separate recent and other workspaces
   const { recentWorkspacesList, otherWorkspaces } = useMemo(() => {
@@ -120,7 +133,15 @@ export function WorkspaceSwitcher({ className, showFullName = true, onOpenComman
             <Package className="h-4 w-4" />
             {showFullName && (
               <span className="truncate max-w-[200px]">
-                {isLoading ? 'Loading...' : (activeWorkspace?.name || (workspaces.length > 0 ? 'Select Workspace' : 'No Workspaces'))}
+                {isLoading && !loadingTimeout ? (
+                  'Loading...'
+                ) : error ? (
+                  'Error loading'
+                ) : loadingTimeout ? (
+                  'Taking longer than usual...'
+                ) : (
+                  activeWorkspace?.name || (workspaces.length > 0 ? 'Select Workspace' : 'No Workspaces')
+                )}
               </span>
             )}
           </div>
@@ -128,6 +149,19 @@ export function WorkspaceSwitcher({ className, showFullName = true, onOpenComman
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[320px]">
+        {error && (
+          <>
+            <DropdownMenuLabel className="text-destructive">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium">Error loading workspaces</p>
+                <p className="text-xs text-muted-foreground">
+                  {error === 'Loading timed out' ? 'The request took too long. Try refreshing the page.' : 'Please try again or refresh the page.'}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+          </>
+        )}
         {activeWorkspace && (
           <>
             <DropdownMenuLabel className="font-normal">

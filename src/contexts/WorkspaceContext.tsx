@@ -34,7 +34,7 @@ interface WorkspaceProviderProps {
 
 export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const navigate = useNavigate();
-  const { workspaces: rawWorkspaces, loading: workspacesLoading } = useUserWorkspaces();
+  const { workspaces: rawWorkspaces, loading: workspacesLoading, error: workspacesError } = useUserWorkspaces();
   
   // Add slugs to workspaces
   const workspaces = rawWorkspaces.map(ws => ({
@@ -65,6 +65,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasTimedOut, setHasTimedOut] = useState(false);
 
   // Find active workspace from the list (support both ID and slug)
   const activeWorkspace = workspaces.find((w: Workspace) => 
@@ -106,9 +107,34 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   // Auto-select first workspace if none selected but workspaces exist
   useEffect(() => {
     if (!activeWorkspaceId && workspaces.length > 0 && !workspacesLoading) {
+      console.log('[WorkspaceContext] Auto-selecting first workspace');
       setActiveWorkspaceId(workspaces[0].id);
     }
   }, [activeWorkspaceId, workspaces, workspacesLoading]);
+
+  // Set up loading timeout to prevent infinite loading states
+  useEffect(() => {
+    if (workspacesLoading) {
+      const timeout = setTimeout(() => {
+        if (workspacesLoading) {
+          console.error('[WorkspaceContext] Workspace loading timed out');
+          setHasTimedOut(true);
+        }
+      }, 5000); // 5 second timeout for context
+      
+      return () => clearTimeout(timeout);
+    } else {
+      setHasTimedOut(false);
+    }
+  }, [workspacesLoading]);
+
+  // Log workspace errors
+  useEffect(() => {
+    if (workspacesError) {
+      console.error('[WorkspaceContext] Workspace loading error:', workspacesError);
+      setError(workspacesError.message);
+    }
+  }, [workspacesError]);
 
   const addToRecent = useCallback((id: string): void => {
     setRecentWorkspaces(prev => {
@@ -169,10 +195,10 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     workspaces: workspaces as Workspace[],
     switchWorkspace,
     findWorkspace,
-    isLoading: isLoading || workspacesLoading,
+    isLoading: isLoading || (workspacesLoading && !hasTimedOut),
     recentWorkspaces,
     addToRecent,
-    error,
+    error: error || (hasTimedOut ? 'Loading timed out' : null),
   };
 
   return (
