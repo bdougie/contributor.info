@@ -11,17 +11,25 @@ import { config } from 'dotenv';
 // Load environment variables
 config();
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 const GITHUB_TOKEN = process.env.VITE_GITHUB_TOKEN;
 
+if (!SUPABASE_URL) {
+  console.error('❌ Missing VITE_SUPABASE_URL environment variable');
+  console.error('Please set VITE_SUPABASE_URL to your Supabase project URL');
+  process.exit(1);
+}
+
 if (!SUPABASE_ANON_KEY) {
   console.error('❌ Missing VITE_SUPABASE_ANON_KEY environment variable');
+  console.error('Please set VITE_SUPABASE_ANON_KEY to your Supabase anonymous key');
   process.exit(1);
 }
 
 if (!GITHUB_TOKEN) {
   console.error('❌ Missing VITE_GITHUB_TOKEN environment variable');
+  console.error('Please set VITE_GITHUB_TOKEN to your GitHub personal access token');
   process.exit(1);
 }
 
