@@ -58,7 +58,7 @@ export function SVGSpriteInliner() {
     loadSpriteContent().then((content) => {
       if (content) {
         // Extract just the defs/symbols part from the sprite
-        const match = content.match(/<svg[^>]*>(.*?)</svg>/s);
+        const match = content.match(/<svg[^>]*>(.*?)<\/svg>/s);
         if (match) {
           setSpriteHTML(match[1]);
         }

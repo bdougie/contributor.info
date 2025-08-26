@@ -226,13 +226,13 @@ function getCustomKey(url: string): string | undefined {
     const urlPath = new URL(url).pathname;
 
     // ex: /owner/repo (repository pages)
-    const repoMatch = urlPath.match(/^/([^/]+)/([^/]+)(?:/.*)?$/);
+    const repoMatch = urlPath.match(/^\/([^/]+)\/([^/]+)(?:\/.*)?$/);
     if (repoMatch) {
       return `${repoMatch[1]}/${repoMatch[2]}`;
     }
 
     // ex: /u/username or /user/username
-    const userMatch = urlPath.match(/^/(u|user)/(.+)$/);
+    const userMatch = urlPath.match(/^\/(u|user)\/(.+)$/);
     if (userMatch) {
       return userMatch[2];
     }

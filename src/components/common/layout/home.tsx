@@ -25,7 +25,7 @@ export default function Home() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const handleSearch = (repositoryPath: string) => {
-    const match = repositoryPath.match(/(?:github\.com/)?([^/]+)/([^/]+)/);
+    const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
     if (match) {
       const [, owner, repo] = match;
       navigate(`/${owner}/${repo}`);

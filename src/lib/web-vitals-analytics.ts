@@ -131,7 +131,7 @@ class WebVitalsAnalytics {
 
   private extractRepository(pathname: string): string | undefined {
     // Extract repository from path like /owner/repo
-    const match = pathname.match(/^/([^/]+)/([^/]+)/);
+    const match = pathname.match(/^\/([^/]+)\/([^/]+)/);
     return match ? `${match[1]}/${match[2]}` : undefined;
   }
 

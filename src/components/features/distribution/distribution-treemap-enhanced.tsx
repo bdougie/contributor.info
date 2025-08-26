@@ -68,7 +68,7 @@ export function DistributionTreemapEnhanced({
       const extractContributors = (node: unknown) => {
         if (node.login && node.avatar_url) {
           // Try to extract GitHub ID from avatar URL or use a hash
-          const match = node.avatar_url.match(/u/(\d+)/);
+          const match = node.avatar_url.match(/u\/(\d+)/);
           const githubId = match
             ? parseInt(match[1])
             : // Fallback: use a deterministic hash based on login
@@ -457,7 +457,7 @@ export function DistributionTreemapEnhanced({
                           src={(() => {
                             // Try to get cached avatar URL
                             if (avatar_url) {
-                              const match = avatar_url.match(/u/(\d+)/);
+                              const match = avatar_url.match(/u\/(\d+)/);
                               const githubId = match
                                 ? parseInt(match[1])
                                 : // Fallback: use a deterministic hash based on login

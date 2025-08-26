@@ -87,7 +87,7 @@ export const githubRepositorySchema = z.object({
   id: z.number().int().positive('Repository ID must be positive'),
   node_id: z.string().optional(),
   name: z.string().min(1, 'Repository name cannot be empty'),
-  full_name: z.string().regex(/^[^/]+/[^/]+$/, 'Invalid repository full name format'),
+  full_name: z.string().regex(/^[^/]+\/[^/]+$/, 'Invalid repository full name format'),
   private: z.boolean(),
   owner: githubUserSchema,
   html_url: z.string().url('Invalid HTML URL'),

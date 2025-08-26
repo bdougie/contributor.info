@@ -208,7 +208,7 @@ export function isRepositoryPath(pathname: string): {
   repo?: string;
 } {
   // Remove leading slash and any trailing slashes
-  const cleanPath = pathname.replace(/^/+|/+$/g, '');
+  const cleanPath = pathname.replace(/^\/+|\/+$/g, '');
 
   // Check if it matches the pattern: owner/repo (with optional sub-paths)
   const parts = cleanPath.split('/');

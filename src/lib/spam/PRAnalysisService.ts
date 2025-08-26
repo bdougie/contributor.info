@@ -100,7 +100,7 @@ export class PRAnalysisService {
 
     // Check for code snippets, file paths, or technical terms
     const hasTechnicalContent =
-      /\.(js|ts|py|java|cpp|c|h|css|html|md|json|yml|yaml)|\w+/\w+|`[^`]+`/i.test(text);
+      /\.(js|ts|py|java|cpp|c|h|css|html|md|json|yml|yaml)|\w+\/\w+|`[^`]+`/i.test(text);
 
     // Check word diversity (not just repeated words)
     const words = normalized.split(/\s+/).filter((word) => word.length > 2);

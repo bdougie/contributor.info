@@ -58,7 +58,7 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<Workspace>> {
     try {
       // Validate input
-      const validation = validateCreateWorkspace(_data);
+      const validation = validateCreateWorkspace(data);
       if (!validation.valid) {
         return {
           success: false,
@@ -113,7 +113,7 @@ export class WorkspaceService {
 
       // Generate slug
       const { data: slugData, error: slugError } = await supabase.rpc('generate_workspace_slug', {
-        workspace_name: _data.name,
+        workspace_name: data.name,
       });
 
       if (slugError || !slugData) {
@@ -192,7 +192,7 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<Workspace>> {
     try {
       // Validate input
-      const validation = validateUpdateWorkspace(_data);
+      const validation = validateUpdateWorkspace(data);
       if (!validation.valid) {
         return {
           success: false,
@@ -224,10 +224,10 @@ export class WorkspaceService {
         updated_at: new Date().toISOString(),
       };
 
-      if (_data.name !== undefined) updateData.name = data.name;
-      if (_data.description !== undefined) updateData.description = data.description;
-      if (_data.visibility !== undefined) updateData.visibility = data.visibility;
-      if (_data.settings !== undefined) updateData.settings = data.settings;
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.description !== undefined) updateData.description = data.description;
+      if (data.visibility !== undefined) updateData.visibility = data.visibility;
+      if (data.settings !== undefined) updateData.settings = data.settings;
 
       // Update workspace
       const { data: workspace, error: updateError } = await supabase
@@ -532,7 +532,7 @@ export class WorkspaceService {
         .from('workspace_repositories')
         .select('id')
         .eq('workspace_id', workspaceId)
-        .eq('repository_id', _data.repository_id)
+        .eq('repository_id', data.repository_id)
         .maybeSingle();
 
       if (existing) {

@@ -8,7 +8,7 @@ export function useRepositoryParser() {
    * @returns Object containing owner and repo or null if invalid
    */
   const parseRepository = (repoString: string) => {
-    const match = repoString.match(/(?:github\.com/)?([^/]+)/([^/]+)/);
+    const match = repoString.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
 
     if (match) {
       const [, owner, repo] = match;
@@ -24,7 +24,7 @@ export function useRepositoryParser() {
    * @returns Boolean indicating if string is valid repository format
    */
   const isValidRepository = (repoString: string): boolean => {
-    return !!repoString.match(/(?:github\.com/)?([^/]+)/([^/]+)/);
+    return !!repoString.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
   };
 
   /**

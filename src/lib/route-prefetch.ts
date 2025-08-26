@@ -13,7 +13,7 @@ const MAX_PREFETCH_CACHE_SIZE = 50; // Prevent unbounded growth
 const isValidRoute = (route: string): boolean => {
   // Allow only alphanumeric, hyphens, underscores, and forward slashes
   // Prevent directory traversal and other malicious patterns
-  return /^\/[\w-]*(/[\w-]+)*/?$/.test(route) && !route.includes('..');
+  return /^\/[\w-]*(\/[\w-]+)*\/?$/.test(route) && !route.includes('..');
 };
 
 /**
@@ -122,14 +122,14 @@ export const prefetchRoute = (routePath: string) => {
         break;
       default:
         // For dynamic routes like /owner/repo, prefetch the main repo view
-        if (routePath.match(/^\/[\w-]+/[\w-]+$/)) {
+        if (routePath.match(/^\/[\w-]+\/[\w-]+$/)) {
           success = await validateImport(
             () => import('@/components/features/repository/repo-view'),
             'repo-view',
           );
         }
         // For org routes
-        else if (routePath.match(/^/orgs/[\w-]+$/)) {
+        else if (routePath.match(/^\/orgs\/[\w-]+$/)) {
           success = await validateImport(() => import('@/pages/org-view'), 'org-view');
         }
         break;

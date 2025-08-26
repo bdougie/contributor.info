@@ -53,7 +53,7 @@ export const repoNameSchema = z
  */
 export const repoFullNameSchema = z
   .string()
-  .regex(/^[a-zA-Z0-9-]+/[a-zA-Z0-9._-]+$/, 'Invalid repository full name format');
+  .regex(/^[a-zA-Z0-9-]+\/[a-zA-Z0-9._-]+$/, 'Invalid repository full name format');
 
 /**
  * URL validation schema with optional null

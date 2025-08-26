@@ -244,7 +244,7 @@ function WorkspacePRs({
             : repositories;
 
         const repoIds = filteredRepos.map((r) => r.id);
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('pull_requests')
           .select(
             `
@@ -313,7 +313,7 @@ function WorkspacePRs({
             };
           };
 
-          const transformedPRs: PullRequest[] = ((_data || []) as unknown as PRData[]).map(
+          const transformedPRs: PullRequest[] = ((data || []) as unknown as PRData[]).map(
             (pr) => ({
               id: pr.id,
               number: pr.number,
@@ -411,7 +411,7 @@ function WorkspaceIssues({
         const repoIds = filteredRepos.map((r) => r.id);
 
         // Fetch issues with count for potential future pagination
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('issues')
           .select(
             `
@@ -480,7 +480,7 @@ function WorkspaceIssues({
             };
           }
 
-          const transformedIssues: Issue[] = ((_data || []) as unknown as IssueQueryResult[]).map(
+          const transformedIssues: Issue[] = ((data || []) as unknown as IssueQueryResult[]).map(
             (issue) => ({
               id: issue.id,
               number: issue.number,

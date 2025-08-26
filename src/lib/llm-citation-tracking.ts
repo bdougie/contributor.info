@@ -206,7 +206,7 @@ class LLMCitationTracker {
    */
   private extractRepositoryFromPath(path: string): string | undefined {
     // Match patterns like /owner/repo or /owner/repo/anything
-    const match = path.match(/^/([^/]+/[^/]+)/);
+    const match = path.match(/^\/([^/]+\/[^/]+)/);
     return match ? match[1] : undefined;
   }
 
