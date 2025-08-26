@@ -149,7 +149,7 @@ export function useWorkspace({ workspaceId, timeRange = '30d' }: UseWorkspaceOpt
       setTrendData(generateMockTrendData(daysMap[timeRange]));
       setRepositories(generateMockRepositories());
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch workspace data'));
+      setError(err instanceof Error ? err : new Error('Failed to fetch workspace _data'));
     } finally {
       setLoading(false);
     }

@@ -36,10 +36,10 @@ export default function RepoCardWithData() {
         ]);
 
         // Process the data to get stats
-        const processedStats = processPullRequestData(prDataResult.data, trends);
+        const processedStats = processPullRequestData(prDataResult._data, trends);
         setStats(processedStats);
       } catch (err) {
-        console.error("Error fetching repo data:", err);
+        console.error("Error fetching repo _data:", err);
         
         // Use mock data as fallback for popular repos
         const mockStats = getMockDataForRepo(owner, repo);
@@ -60,7 +60,7 @@ export default function RepoCardWithData() {
   return <RepoSocialCard owner={owner || ""} repo={repo || ""} timeRange="Trends" stats={stats || undefined} />;
 }
 
-function processPullRequestData(pullRequests: PullRequest[], _trends: any[]) {
+function processPullRequestData(pullRequests: PullRequest[], _trends: unknown[]) {
   // Filter out bots
   const filteredPRs = pullRequests.filter(pr => 
     pr.user.type !== 'Bot' && !pr.user.login.includes('[bot]')
@@ -115,7 +115,7 @@ function processPullRequestData(pullRequests: PullRequest[], _trends: any[]) {
 
 function getMockDataForRepo(owner: string, repo: string) {
   // Mock data for popular repositories to make the preview look good
-  const mockData: Record<string, any> = {
+  const mockData: Record<string, unknown> = {
     'facebook/react': {
       totalContributors: 1247,
       totalPRs: 8934,

@@ -42,8 +42,8 @@ export function InsightsHealth({
       if (metrics && llmService.isAvailable()) {
         loadLLMInsight(metrics);
       }
-    } catch (error) {
-      console.error("Failed to load health metrics:", error);
+    } catch (_error) {
+      console.error("Failed to load health metrics:", _error);
       setHealth(null);
     } finally {
       setLoading(false);
@@ -58,8 +58,8 @@ export function InsightsHealth({
         repo,
       });
       setLlmInsight(insight);
-    } catch (error) {
-      console.error("Failed to load LLM insight:", error);
+    } catch (_error) {
+      console.error("Failed to load LLM insight:", _error);
       setLlmInsight(null);
     } finally {
       setLlmLoading(false);

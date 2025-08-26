@@ -16,7 +16,7 @@ import {
 import type { CreateWorkspaceRequest } from '@/types/workspace';
 
 export interface WorkspaceCreateFormProps {
-  onSubmit: (data: CreateWorkspaceRequest) => Promise<void>;
+  onSubmit: (_data: CreateWorkspaceRequest) => Promise<void>;
   onCancel?: () => void;
   loading?: boolean;
   error?: string | null;
@@ -56,8 +56,8 @@ export function WorkspaceCreateForm({
       errors.description = 'Description must be at most 500 characters';
     }
 
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    setValidationErrors(_errors);
+    return Object.keys(_errors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,7 +87,7 @@ export function WorkspaceCreateForm({
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error: _error}</AlertDescription>
         </Alert>
       )}
 

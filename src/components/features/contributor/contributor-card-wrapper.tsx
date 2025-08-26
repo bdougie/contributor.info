@@ -47,7 +47,7 @@ export function ContributorCard(props: ContributorCardProps) {
     return <IconComponent className={className} />;
   };
 
-  const renderAvatar = ({ src, alt, fallback, className }: any) => (
+  const renderAvatar = ({ src, alt, fallback, className }: unknown) => (
     <Avatar className={className}>
       <AvatarImage 
         src={src}
@@ -60,7 +60,7 @@ export function ContributorCard(props: ContributorCardProps) {
     </Avatar>
   );
 
-  const renderTooltip = ({ trigger, content, side, className }: any) => (
+  const renderTooltip = ({ trigger, content, side, className }: unknown) => (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -70,7 +70,7 @@ export function ContributorCard(props: ContributorCardProps) {
           <div className="space-y-1">
             <div className="font-medium">{content.title}</div>
             <div className="text-xs space-y-1">
-              {content.items.map((item: any, index: number) => (
+              {content.items.map((item: unknown, index: number) => (
                 <div key={index} className="flex items-center gap-2">
                   {renderIcon(item.iconName, "h-3 w-3")}
                   <span>{item.count} {item.label}</span>
@@ -83,13 +83,13 @@ export function ContributorCard(props: ContributorCardProps) {
     </TooltipProvider>
   );
 
-  const renderBadge = ({ children, variant, className }: any) => (
+  const renderBadge = ({ children, variant, className }: unknown) => (
     <Badge variant={variant} className={className}>
       {children}
     </Badge>
   );
 
-  const renderHoverCard = ({ children }: any) => (
+  const renderHoverCard = ({ children }: unknown) => (
     <ContributorHoverCard contributor={contributorData}>
       {children}
     </ContributorHoverCard>

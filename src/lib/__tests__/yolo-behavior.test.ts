@@ -5,7 +5,7 @@ import { fetchDirectCommits } from '../github';
 vi.mock('../supabase', () => ({
   supabase: {
     auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: null } })
+      getSession: vi.fn().mockResolvedValue({ _data: { session: null } })
     }
   }
 }));
@@ -18,7 +18,7 @@ describe('YOLO Algorithm Improved Implementation', () => {
     vi.clearAllMocks();
   });
 
-  it('should use commits API and return structured data', async () => {
+  it('should use commits API and return structured _data', async () => {
     // Mock all required API calls with minimal data for basic functionality test
     (global.fetch as any).mockImplementation((url: string) => {
       if (url.includes('/repos/test/repo') && !url.includes('/commits') && !url.includes('/pulls')) {
@@ -197,7 +197,7 @@ describe('YOLO Algorithm Improved Implementation', () => {
     await fetchDirectCommits('test', 'repo', '90');
     
     // Verify the commits API was called with correct since parameter
-    const commitsCalls = (global.fetch as any).mock.calls.filter((call: any[]) => 
+    const commitsCalls = (global.fetch as any).mock.calls.filter((call: unknown[]) => 
       call[0].includes('/commits') && call[0].includes('since=')
     );
     expect(commitsCalls.length).toBeGreaterThan(0);
@@ -284,7 +284,7 @@ describe('YOLO Algorithm Improved Implementation', () => {
     await fetchDirectCommits('test', 'repo', '120'); // Request 120 days
     
     // Verify the since parameter represents no more than 90 days ago
-    const commitsCalls = (global.fetch as any).mock.calls.filter((call: any[]) => 
+    const commitsCalls = (global.fetch as any).mock.calls.filter((call: unknown[]) => 
       call[0].includes('/commits') && call[0].includes('since=')
     );
     expect(commitsCalls.length).toBeGreaterThan(0);

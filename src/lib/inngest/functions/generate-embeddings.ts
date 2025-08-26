@@ -28,7 +28,7 @@ export const generateEmbeddings = inngest.createFunction(
         .eq('id', repositoryId)
         .maybeSingle();
       
-      if (!data) {
+      if (!_data) {
         throw new Error(`Repository ${repositoryId} not found`);
       }
       

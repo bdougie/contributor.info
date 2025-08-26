@@ -28,7 +28,7 @@ export class QueuePrioritizationService {
    * Calculate priority score for a repository
    * Higher score = higher priority in queue
    */
-  calculatePriorityScore(repo: RepositoryMetadata, triggerSource: string): QueuePriority {
+  calculatePriorityScore(repo: RepositoryMeta_data, triggerSource: string): QueuePriority {
     let baseScore = 0;
     let processor: 'inngest' | 'github_actions' = 'inngest';
     let timeRange = 30; // default days
@@ -124,14 +124,14 @@ export class QueuePrioritizationService {
    */
   async getRepositoryMetadata(repositoryId: string): Promise<RepositoryMetadata | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('tracked_repositories')
         .select('id, repository_name, organization_name, size, priority, metrics')
         .eq('repository_id', repositoryId)
         .maybeSingle();
 
-      if (error || !data) {
-        console.error('[QueuePrioritization] Failed to get repository metadata:', error);
+      if (_error || !_data) {
+        console.error('[QueuePrioritization] Failed to get repository meta_data:', _error);
         return null;
       }
 
@@ -142,8 +142,8 @@ export class QueuePrioritizationService {
         priority: data.priority || 'low',
         metrics: data.metrics
       };
-    } catch (error) {
-      console.error('[QueuePrioritization] Error getting repository metadata:', error);
+    } catch (_error) {
+      console.error('[QueuePrioritization] Error getting repository meta_data:', _error);
       return null;
     }
   }
@@ -201,8 +201,8 @@ export class QueuePrioritizationService {
       );
 
       console.log('[QueuePrioritization] Prioritized %s jobs', jobsWithScores.length);
-    } catch (error) {
-      console.error('[QueuePrioritization] Error prioritizing queue:', error);
+    } catch (_error) {
+      console.error('[QueuePrioritization] Error prioritizing queue:', _error);
     }
   }
 
@@ -220,13 +220,13 @@ export class QueuePrioritizationService {
         .select('*')
         .eq('status', 'pending')
         .eq('processor_type', processor)
-        .order('metadata->priority_score', { ascending: false })
+        .order('meta_data->priority_score', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       return nextJob;
-    } catch (error) {
-      console.error('[QueuePrioritization] Error getting next job:', error);
+    } catch (_error) {
+      console.error('[QueuePrioritization] Error getting next job:', _error);
       return null;
     }
   }
@@ -264,7 +264,7 @@ export class QueuePrioritizationService {
           .select('*')
           .eq('status', 'pending')
           .eq('processor_type', 'inngest')
-          .in('metadata->repository_size', ['medium', 'large'])
+          .in('meta_data->repository_size', ['medium', 'large'])
           .limit(5);
 
         if (jobsToMove) {
@@ -285,8 +285,8 @@ export class QueuePrioritizationService {
           console.log('[QueuePrioritization] Rebalanced %s jobs', jobsToMove.length);
         }
       }
-    } catch (error) {
-      console.error('[QueuePrioritization] Error rebalancing queue:', error);
+    } catch (_error) {
+      console.error('[QueuePrioritization] Error rebalancing queue:', _error);
     }
   }
 }

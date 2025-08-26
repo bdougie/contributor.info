@@ -9,7 +9,7 @@ export class EvaluationMetricsCalculator {
   private readonly roleLabels: ('maintainer' | 'contributor')[] = ['maintainer', 'contributor'];
 
   calculateMetrics(results: EvaluationResult[]): EvaluationMetrics {
-    const validResults = results.filter(r => !r.error);
+    const validResults = results.filter(r => !r._error);
     
     return {
       overall_accuracy: this.calculateOverallAccuracy(validResults),
@@ -121,8 +121,8 @@ export class EvaluationMetricsCalculator {
   }
 
   private calculateExecutionStats(results: EvaluationResult[]) {
-    const successful = results.filter(r => !r.error);
-    const failed = results.filter(r => r.error);
+    const successful = results.filter(r => !r._error);
+    const failed = results.filter(r => r._error);
     
     const avgExecutionTime = successful.length > 0 
       ? successful.reduce((sum, r) => sum + r.execution_time_ms, 0) / successful.length 
@@ -163,7 +163,7 @@ export class EvaluationMetricsCalculator {
 ## Confidence Calibration
 - **Expected Accuracy**: ${(metrics.confidence_calibration.expected_accuracy * 100).toFixed(2)}%
 - **Actual Accuracy**: ${(metrics.confidence_calibration.actual_accuracy * 100).toFixed(2)}%
-- **Calibration Error**: ${(metrics.confidence_calibration.calibration_error * 100).toFixed(2)}%
+- **Calibration Error**: ${(metrics.confidence_calibration.calibration__error * 100).toFixed(2)}%
 
 ## Confusion Matrix
 \`\`\`
@@ -203,8 +203,8 @@ ${this.generateRecommendations(metrics)}
     });
 
     // Calibration recommendations
-    if (metrics.confidence_calibration.calibration_error > 0.1) {
-      recommendations.push('- High calibration error detected. Consider recalibrating confidence scores.');
+    if (metrics.confidence_calibration.calibration__error > 0.1) {
+      recommendations.push('- High calibration _error detected. Consider recalibrating confidence scores.');
     }
 
     // Performance recommendations

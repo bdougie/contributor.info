@@ -14,34 +14,34 @@ const METRIC_CONFIG = {
   contributors: {
     icon: Users,
     label: "Contributors",
-    getValue: (data: WidgetData) => data.stats.totalContributors,
+    getValue: (_data: WidgetData) => data.stats.totalContributors,
     getSubtext: undefined,
     color: "text-blue-600 dark:text-blue-400",
   },
   "pull-requests": {
     icon: GitPullRequest,
     label: "Pull Requests", 
-    getValue: (data: WidgetData) => data.stats.totalPRs,
+    getValue: (_data: WidgetData) => data.stats.totalPRs,
     getSubtext: undefined,
     color: "text-green-600 dark:text-green-400",
   },
   "lottery-factor": {
     icon: Target,
     label: "Lottery Factor",
-    getValue: (data: WidgetData) => data.stats.lotteryFactor?.toFixed(1) || "N/A",
-    getSubtext: (data: WidgetData) => data.stats.lotteryRating,
+    getValue: (_data: WidgetData) => data.stats.lotteryFactor?.toFixed(1) || "N/A",
+    getSubtext: (_data: WidgetData) => data.stats.lotteryRating,
     color: "text-orange-600 dark:text-orange-400",
   },
   "merge-rate": {
     icon: TrendingUp,
     label: "Merge Rate",
-    getValue: (data: WidgetData) => `${data.stats.mergeRate.toFixed(1)}%`,
+    getValue: (_data: WidgetData) => `${data.stats.mergeRate.toFixed(1)}%`,
     getSubtext: undefined,
     color: "text-purple-600 dark:text-purple-400",
   },
 };
 
-export function StatCard({ config, data, className }: StatCardProps) {
+export function StatCard({ config, _data, className }: StatCardProps) {
   const metrics = config.metrics || ['contributors', 'pull-requests', 'lottery-factor'];
   const theme = config.theme || 'light';
   const size = config.size || 'medium';
@@ -104,8 +104,8 @@ export function StatCard({ config, data, className }: StatCardProps) {
             if (!metricConfig) return null;
             
             const Icon = metricConfig.icon;
-            const value = metricConfig.getValue(data);
-            const subtext = metricConfig.getSubtext?.(data);
+            const value = metricConfig.getValue(_data);
+            const subtext = metricConfig.getSubtext?.(_data);
 
             return (
               <div key={metric} className="flex items-center gap-2">

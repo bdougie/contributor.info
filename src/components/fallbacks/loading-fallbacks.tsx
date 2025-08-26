@@ -12,7 +12,7 @@ interface FallbackProps {
   stage: LoadingStage;
   message?: string;
   showPartialData?: boolean;
-  partialData?: any;
+  partialData?: unknown;
 }
 
 /**
@@ -66,7 +66,7 @@ export function CriticalDataFallback({ message, partialData }: FallbackProps) {
             {partialData?.topContributors?.length > 0
 ? (
               <div className="flex -space-x-2">
-                {partialData.topContributors.slice(0, 5).map((contributor: any, i: number) => (
+                {partialData.topContributors.slice(0, 5).map((contributor: unknown, i: number) => (
                   <div key={i} className="h-8 w-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs font-medium">
                     {contributor.login?.[0]?.toUpperCase() || '?'}
                   </div>

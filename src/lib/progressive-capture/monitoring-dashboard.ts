@@ -68,13 +68,13 @@ export class HybridMonitoringDashboard {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
     try {
-      const { data: jobs, error } = await supabase
+      const { data: jobs, error: _error } = await supabase
         .from('progressive_capture_jobs')
         .select('*')
         .gte('created_at', twentyFourHoursAgo.toISOString());
 
-      if (error) {
-        console.error('[Monitoring] Database error fetching jobs:', error);
+      if (_error) {
+        console.error('[Monitoring] Database error fetching jobs:', _error);
         throw error;
       }
 
@@ -106,8 +106,8 @@ export class HybridMonitoringDashboard {
         github_actions: githubActionsMetrics,
         combined: combinedMetrics
       };
-    } catch (error) {
-      console.error('[Monitoring] Error getting processor metrics:', error);
+    } catch (_error) {
+      console.error('[Monitoring] Error getting processor metrics:', _error);
       const emptyMetrics: JobMetrics = {
         total: 0,
         successful: 0,
@@ -127,7 +127,7 @@ export class HybridMonitoringDashboard {
   /**
    * Calculate metrics for a set of jobs
    */
-  private static calculateJobMetrics(jobs: any[]): JobMetrics {
+  private static calculateJobMetrics(jobs: unknown[]): JobMetrics {
     const total = jobs.length;
     const successful = jobs.filter(j => j.status === 'completed').length;
     const failed = jobs.filter(j => j.status === 'failed').length;
@@ -175,7 +175,7 @@ export class HybridMonitoringDashboard {
     if (inngestFailureRate > 20) {
       inngestHealth = 'unhealthy';
       issues.push(`Inngest has high failure rate: ${inngestFailureRate.toFixed(1)}%`);
-      recommendations.push('Check Inngest dashboard for error details');
+      recommendations.push('Check Inngest dashboard for _error details');
     } else if (inngestFailureRate > 10) {
       inngestHealth = 'degraded';
       issues.push(`Inngest has elevated failure rate: ${inngestFailureRate.toFixed(1)}%`);
@@ -221,14 +221,14 @@ export class HybridMonitoringDashboard {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
     try {
-      const { data: jobs, error } = await supabase
+      const { data: jobs, error: _error } = await supabase
         .from('progressive_capture_jobs')
         .select('processor_type, status')
         .gte('created_at', twentyFourHoursAgo.toISOString())
         .eq('status', 'completed');
 
-      if (error) {
-        console.error('[Monitoring] Database error fetching completed jobs:', error);
+      if (_error) {
+        console.error('[Monitoring] Database error fetching completed jobs:', _error);
         throw error;
       }
 
@@ -273,8 +273,8 @@ export class HybridMonitoringDashboard {
           percentageSaving
         }
       };
-    } catch (error) {
-      console.error('[Monitoring] Error calculating cost analysis:', error);
+    } catch (_error) {
+      console.error('[Monitoring] Error calculating cost analysis:', _error);
       return {
         inngest: { estimatedCost: 0, jobsProcessed: 0, costPerJob: 0 },
         github_actions: { estimatedCost: 0, jobsProcessed: 0, costPerJob: 0 },
@@ -295,13 +295,13 @@ export class HybridMonitoringDashboard {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
     try {
-      const { data: jobs, error } = await supabase
+      const { data: jobs, error: _error } = await supabase
         .from('progressive_capture_jobs')
-        .select('processor_type, time_range_days, metadata')
+        .select('processor_type, time_range_days, meta_data')
         .gte('created_at', twentyFourHoursAgo.toISOString());
 
-      if (error) {
-        console.error('[Monitoring] Database error fetching jobs for routing analysis:', error);
+      if (_error) {
+        console.error('[Monitoring] Database error fetching jobs for routing analysis:', _error);
         throw error;
       }
 
@@ -349,8 +349,8 @@ export class HybridMonitoringDashboard {
         routingAccuracy,
         suggestions
       };
-    } catch (error) {
-      console.error('[Monitoring] Error getting routing effectiveness:', error);
+    } catch (_error) {
+      console.error('[Monitoring] Error getting routing effectiveness:', _error);
       return {
         correctRouting: 0,
         suboptimalRouting: 0,
@@ -371,22 +371,22 @@ export class HybridMonitoringDashboard {
       repository_id: string;
       error: string;
       created_at: string;
-      metadata: any;
+      metadata: unknown;
     }>;
     errorSummary: Record<string, number>;
     topErrors: Array<{ error: string; count: number }>;
   }> {
     try {
-      const { data: failedJobs, error } = await supabase
+      const { data: failedJobs, error: _error } = await supabase
         .from('progressive_capture_jobs')
         .select('*')
         .eq('status', 'failed')
-        .not('error', 'is', null)
+        .not('_error', 'is', null)
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      if (error) {
-        console.error('[Monitoring] Database error fetching failed jobs:', error);
+      if (_error) {
+        console.error('[Monitoring] Database error fetching failed jobs:', _error);
         throw error;
       }
 
@@ -404,21 +404,21 @@ export class HybridMonitoringDashboard {
 
       failedJobs.forEach(job => {
         // Categorize by processor type
-        errorSummary[job.processor_type] = (errorSummary[job.processor_type] || 0) + 1;
+        errorSummary[job.processor_type] = (_errorSummary[job.processor_type] || 0) + 1;
         
         // Count specific errors
         const errorMessage = typeof job.error === 'string' 
           ? job.error 
           : job.error 
-            ? JSON.stringify(job.error) 
+            ? JSON.stringify(job._error) 
             : 'Unknown error';
         const errorKey = errorMessage.substring(0, 100);
-        errorCounts[errorKey] = (errorCounts[errorKey] || 0) + 1;
+        errorCounts[errorKey] = (errorCounts[_errorKey] || 0) + 1;
       });
 
       // Get top errors
-      const topErrors = Object.entries(errorCounts)
-        .map(([error, count]) => ({ error, count }))
+      const topErrors = Object.entries(_errorCounts)
+        .map(([_error, count]) => ({ _error, count }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
@@ -435,8 +435,8 @@ export class HybridMonitoringDashboard {
         errorSummary,
         topErrors
       };
-    } catch (error) {
-      console.error('[Monitoring] Error fetching job errors:', error);
+    } catch (_error) {
+      console.error('[Monitoring] Error fetching job errors:', _error);
       return {
         errors: [],
         errorSummary: {},

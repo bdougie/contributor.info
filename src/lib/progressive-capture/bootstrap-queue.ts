@@ -17,7 +17,7 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
     const manager = await getHybridQueueManager();
     
     // 1. Find repositories with stale data (older than 3 days)
-    const { data: staleRepos, error: staleError } = await supabase
+    const { data: staleRepos, error: _error: staleError } = await supabase
       .from('repositories')
       .select('id, owner, name')
       .lt('last_updated_at', new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString())
@@ -34,7 +34,7 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
     }
 
     // 2. Find repositories with missing file change data that need historical processing
-    const { data: activeRepos, error: activeError } = await supabase
+    const { data: activeRepos, error: _error: activeError } = await supabase
       .from('repositories')
       .select(`
         id, 
@@ -55,7 +55,7 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
     }
 
     // 3. Queue additional historical processing for repositories with commits
-    const { data: reposWithCommits, error: commitsError } = await supabase
+    const { data: reposWithCommits, error: _error: commitsError } = await supabase
       .from('repositories')
       .select(`
         id,
@@ -110,8 +110,8 @@ export async function bootstrapDataCaptureQueue(): Promise<void> {
 4. View routing analysis with: ProgressiveCapture.routingAnalysis()
     `);
 
-  } catch (error) {
-    console.error('[Bootstrap] Error during queue bootstrap:', error);
+  } catch (_error) {
+    console.error('[Bootstrap] Error during queue bootstrap:', _error);
   }
 }
 
@@ -163,8 +163,8 @@ export async function analyzeDataGaps(): Promise<{
 
     return analysis;
 
-  } catch (error) {
-    console.error('[Analysis] Error analyzing data gaps:', error);
+  } catch (_error) {
+    console.error('[Analysis] Error analyzing _data gaps:', _error);
     return {
       repositoriesWithStaleData: 0,
       prsWithoutFileChanges: 0,

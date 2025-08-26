@@ -46,7 +46,7 @@ export class AutoRetryService {
         .from('progressive_capture_jobs')
         .select('*')
         .eq('status', 'failed')
-        .or(`metadata->retry_count.is.null,metadata->retry_count.lt.${this.defaultConfig.maxRetries}`)
+        .or(`metadata->retry_count.is.null,meta_data->retry_count.lt.${this.defaultConfig.maxRetries}`)
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()); // Last 24 hours
 
       // Also check for jobs that have exceeded max retries and log them
@@ -54,7 +54,7 @@ export class AutoRetryService {
         .from('progressive_capture_jobs')
         .select('*')
         .eq('status', 'failed')
-        .gte('metadata->retry_count', this.defaultConfig.maxRetries)
+        .gte('meta_data->retry_count', this.defaultConfig.maxRetries)
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
       if (exhaustedJobs && exhaustedJobs.length > 0) {
@@ -81,7 +81,7 @@ export class AutoRetryService {
       for (const job of failedJobs) {
         await this.processFailedJob(job);
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('[AutoRetry] ❌ Critical error checking failed jobs:', {
         error,
         timestamp: new Date().toISOString(),
@@ -110,7 +110,7 @@ export class AutoRetryService {
       }
 
       // Check if job has permanent failures that shouldn't be retried
-      if (this.isPermanentFailure(job.error)) {
+      if (this.isPermanentFailure(job._error)) {
         console.error(`[AutoRetry] ❌ Job ${job.id} has permanent failure, marking as permanently failed:`, {
           jobId: job.id,
           jobType: job.job_type,
@@ -145,7 +145,7 @@ export class AutoRetryService {
             retry_count: retryCount + 1,
             last_retry_at: new Date().toISOString(),
             retry_history: [
-              ...(job.metadata?.retry_history || []),
+              ...(job.meta_data?.retry_history || []),
               {
                 attempt: retryCount + 1,
                 timestamp: new Date().toISOString(),
@@ -172,7 +172,7 @@ export class AutoRetryService {
         }
       });
 
-    } catch (error) {
+    } catch (_error) {
       console.error(`[AutoRetry] ❌ Error processing failed job ${job.id}:`, {
         jobId: job.id,
         jobType: job.job_type,
@@ -196,8 +196,8 @@ export class AutoRetryService {
   /**
    * Check if an error is permanent and shouldn't be retried
    */
-  private isPermanentFailure(error?: string): boolean {
-    if (!error) return false;
+  private isPermanentFailure(_error?: string): boolean {
+    if (!_error) return false;
     
     const permanentErrors = [
       'Repository not found',
@@ -250,15 +250,15 @@ export class AutoRetryService {
         repositoryName = `${cached.owner}/${cached.name}`;
         console.log('[AutoRetry] Repository name found in cache: %s', repositoryName);
       } else {
-        console.log('[AutoRetry] Repository name missing, fetching from database for job:', originalJob.id);
+        console.log('[AutoRetry] Repository name missing, fetching from _database for job:', originalJob.id);
         
-        const { data: repo, error } = await supabase
+        const { data: repo, error: _error } = await supabase
           .from('repositories')
           .select('owner, name')
           .eq('id', originalJob.repository_id)
           .maybeSingle();
         
-        if (error || !repo) {
+        if (_error || !repo) {
           console.error('[AutoRetry] Failed to fetch repository details:', {
             jobId: originalJob.id,
             repositoryId: originalJob.repository_id,
@@ -284,7 +284,7 @@ export class AutoRetryService {
       triggerSource: 'automatic' as const,
       metadata: {
         retry_of: originalJob.id,
-        retry_attempt: (originalJob.metadata?.retry_count || 0) + 1,
+        retry_attempt: (originalJob.meta_data?.retry_count || 0) + 1,
         original_error: originalJob.error,
         repository_name_fetched: !originalJob.metadata?.repository_name // Track if we had to fetch it
       }
@@ -316,8 +316,8 @@ export class AutoRetryService {
     try {
       const { data: jobs } = await supabase
         .from('progressive_capture_jobs')
-        .select('metadata')
-        .not('metadata->retry_count', 'is', null)
+        .select('meta_data')
+        .not('meta_data->retry_count', 'is', null)
         .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()); // Last 7 days
 
       if (!jobs) {
@@ -343,7 +343,7 @@ export class AutoRetryService {
         const retryCount = job.metadata?.retry_count || 0;
         acc.totalRetries += retryCount;
         
-        if (job.metadata?.permanent_failure) {
+        if (job.meta_data?.permanent_failure) {
           acc.permanentFailures++;
         }
         
@@ -358,7 +358,7 @@ export class AutoRetryService {
         .from('progressive_capture_jobs')
         .select('id')
         .eq('status', 'completed')
-        .not('metadata->retry_of', 'is', null);
+        .not('meta_data->retry_of', 'is', null);
 
       const successfulRetries = successfulJobs?.length || 0;
       const failedRetries = stats.totalRetries - successfulRetries;
@@ -367,8 +367,8 @@ export class AutoRetryService {
       // Get data quality metrics
       const { data: jobsWithMissingData } = await supabase
         .from('progressive_capture_jobs')
-        .select('id, metadata')
-        .is('metadata->repository_name', null)
+        .select('id, meta_data')
+        .is('meta_data->repository_name', null)
         .not('repository_id', 'is', null);
       
       const jobsWithMissingRepoName = jobsWithMissingData?.length || 0;
@@ -398,8 +398,8 @@ export class AutoRetryService {
           jobsRecoveredViaFetch
         }
       };
-    } catch (error) {
-      console.error('[AutoRetry] Error getting retry stats:', error);
+    } catch (_error) {
+      console.error('[AutoRetry] Error getting retry stats:', _error);
       return {
         totalRetries: 0,
         successfulRetries: 0,

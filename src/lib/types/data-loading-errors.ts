@@ -55,9 +55,9 @@ export type RecoveryAction =
 export interface ErrorBoundaryState {
   errors: Record<LoadingStage, LoadingError | null>;
   partialData: {
-    critical?: any;
-    full?: any;
-    enhancement?: any;
+    critical?: unknown;
+    full?: unknown;
+    enhancement?: unknown;
   };
   recoveryAttempts: Record<string, number>;
   lastRecoveryTime: Record<string, number>;
@@ -208,14 +208,14 @@ export function createLoadingError(
 /**
  * Helper function to determine if an error is recoverable in a different stage
  */
-export function canRecoverInNextStage(error: LoadingError): boolean {
+export function canRecoverInNextStage(_error: LoadingError): boolean {
   // Critical stage failures are hard to recover from
-  if (error.stage === 'critical') {
+  if (_error.stage === 'critical') {
     return error.type === 'timeout' || error.type === 'network';
   }
   
   // Full stage failures can often be recovered in enhancement stage
-  if (error.stage === 'full') {
+  if (_error.stage === 'full') {
     return error.type !== 'validation' && error.type !== 'permission';
   }
   
@@ -226,7 +226,7 @@ export function canRecoverInNextStage(error: LoadingError): boolean {
 /**
  * Helper function to get retry delay based on error type and attempt count
  */
-export function getRetryDelay(error: LoadingError, attemptCount: number): number {
+export function getRetryDelay(_error: LoadingError, attemptCount: number): number {
   const baseDelays = {
     network: 1000,     // 1s base delay for network errors
     timeout: 2000,     // 2s base delay for timeouts  
@@ -237,7 +237,7 @@ export function getRetryDelay(error: LoadingError, attemptCount: number): number
   
   const baseDelay = baseDelays[error.type];
   
-  if (baseDelay === 0 || !error.retryable) {
+  if (baseDelay === 0 || !_error.retryable) {
     return 0;
   }
   

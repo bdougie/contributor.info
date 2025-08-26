@@ -118,8 +118,8 @@ class WebVitalsAnalytics {
       viewport_height: window.innerHeight,
       screen_width: window.screen.width,
       screen_height: window.screen.height,
-      connection_type: (navigator as any).connection?.effectiveType,
-      device_memory: (navigator as any).deviceMemory,
+      connection_type: (navigator as Navigator & { connection?: { effectiveType?: string } }).connection?.effectiveType,
+      device_memory: (navigator as Navigator & { deviceMemory?: number }).deviceMemory,
       hardware_concurrency: navigator.hardwareConcurrency,
       timestamp: new Date().toISOString(),
       repository,
@@ -182,7 +182,7 @@ class WebVitalsAnalytics {
       // Send to custom endpoint using sendBeacon
       const customEndpoint = import.meta.env?.VITE_VITALS_ENDPOINT;
       if (this.providers.has('custom') && customEndpoint) {
-        navigator.sendBeacon(customEndpoint, data);
+        navigator.sendBeacon(customEndpoint, _data);
       }
       
       // For Supabase, we'd need a special endpoint that accepts beacon data
@@ -204,12 +204,12 @@ class WebVitalsAnalytics {
 
   private async sendToSupabase(events: WebVitalsEvent[]): Promise<void> {
     try {
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('web_vitals_events')
         .insert(events);
       
-      if (error) {
-        console.error('Failed to send Web Vitals to Supabase:', error);
+      if (_error) {
+        console.error('Failed to send Web Vitals to Supabase:', _error);
       }
     } catch (err) {
       console.error('Error sending Web Vitals to Supabase:', err);
@@ -233,10 +233,10 @@ class WebVitalsAnalytics {
       if (metricsForPostHog.length > 0) {
         await batchTrackWebVitals(metricsForPostHog);
       }
-    } catch (error) {
+    } catch (_error) {
       // Silently fail in production, log in development
       if (import.meta.env?.DEV) {
-        console.error('Failed to send Web Vitals to PostHog:', error);
+        console.error('Failed to send Web Vitals to PostHog:', _error);
       }
     }
   }
@@ -289,12 +289,12 @@ class WebVitalsAnalytics {
     
     // Send to Supabase
     try {
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('performance_alerts')
         .insert([alert]);
       
-      if (error) {
-        console.error('Failed to send performance alert:', error);
+      if (_error) {
+        console.error('Failed to send performance alert:', _error);
       }
     } catch (err) {
       console.error('Error sending performance alert:', err);
@@ -328,10 +328,10 @@ class WebVitalsAnalytics {
           .lte('timestamp', filters.dateRange.end.toISOString());
       }
       
-      const { data, error } = await query.order('timestamp', { ascending: false });
+      const { data, error: _error } = await query.order('timestamp', { ascending: false });
       
-      if (error) {
-        console.error('Failed to get Web Vitals metrics:', error);
+      if (_error) {
+        console.error('Failed to get Web Vitals metrics:', _error);
         return [];
       }
       
@@ -355,7 +355,7 @@ class WebVitalsAnalytics {
     });
     
     // Calculate percentiles and ratings
-    const summary: Record<string, any> = {};
+    const summary: Record<string, unknown> = {};
     const metricNames = ['LCP', 'INP', 'CLS', 'FCP', 'TTFB'];
     
     for (const metricName of metricNames) {

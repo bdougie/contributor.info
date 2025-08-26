@@ -79,8 +79,8 @@ ${gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)'
   3. Check rate limits with: ProgressiveCaptureTrigger.rateLimits()
       `);
       
-    } catch (error) {
-      console.error('❌ Bootstrap failed:', error);
+    } catch (_error) {
+      console.error('❌ Bootstrap failed:', _error);
     }
   }
 
@@ -176,15 +176,15 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
     try {
       // Find repository ID
       const { supabase } = await import('../supabase');
-      const { data: repoData, error } = await supabase
+      const { data: repoData, error: _error } = await supabase
         .from('repositories')
         .select('id')
         .eq('owner', owner)
         .eq('name', repo)
         .maybeSingle();
 
-      if (error || !repoData) {
-        console.log(`❌ Repository ${owner}/${repo} not found in database`);
+      if (_error || !repoData) {
+        console.log(`❌ Repository ${owner}/${repo} not found in _database`);
         return;
       }
 
@@ -205,19 +205,19 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
   • Use ProgressiveCapture.processNext() to process manually
       `);
       
-    } catch (error) {
-      console.error(`❌ Commit analysis failed for ${owner}/${repo}:`, error);
+    } catch (_error) {
+      console.error(`❌ Commit analysis failed for ${owner}/${repo}:`, _error);
     }
   }
 
   /**
    * Process a recent_prs job - fetch and store recent PRs from GitHub API
    */
-  static async processRecentPRsJob(repositoryId: string, metadata: Record<string, unknown>): Promise<{ success: boolean; error?: string }> {
+  static async processRecentPRsJob(repositoryId: string, meta_data: Record<string, unknown>): Promise<{ success: boolean; error?: string }> {
     try {
       // Get repository info
       const { supabase } = await import('../supabase');
-      const { data: repo, error: repoError } = await supabase
+      const { data: repo, error: _error: repoError } = await supabase
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
@@ -255,7 +255,7 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
           if (result.success) {
             importedCount++;
           } else {
-            console.warn(`Failed to store PR #${pr.number}: ${result.error}`);
+            console.warn(`Failed to store PR #${pr.number}: ${result.error: __error}`);
           }
         } catch (prError) {
           console.warn(`Error storing PR #${pr.number}:`, prError);
@@ -265,8 +265,8 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
       console.log(`✅ Imported ${importedCount}/${recentPRs.length} recent PRs for ${repo.owner}/${repo.name}`);
       return { success: true };
 
-    } catch (error) {
-      console.error(`❌ Error processing recent PRs job:`, error);
+    } catch (_error) {
+      console.error(`❌ Error processing recent PRs job:`, _error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
@@ -282,15 +282,15 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
     try {
       // Find repository ID  
       const { supabase } = await import('../supabase');
-      const { data: repoData, error } = await supabase
+      const { data: repoData, error: _error } = await supabase
         .from('repositories')
         .select('id')
         .eq('owner', owner)
         .eq('name', repo)
         .maybeSingle();
 
-      if (error || !repoData) {
-        console.log(`❌ Repository ${owner}/${repo} not found in database`);
+      if (_error || !repoData) {
+        console.log(`❌ Repository ${owner}/${repo} not found in _database`);
         return;
       }
 
@@ -333,8 +333,8 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
         `);
       }
       
-    } catch (error) {
-      console.error('❌ Quick fix failed for %s/%s:', owner, repo, error);
+    } catch (_error) {
+      console.error('❌ Quick fix failed for %s/%s:', owner, repo, _error);
     }
   }
 
@@ -348,8 +348,8 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
       console.log(report);
       
       return report;
-    } catch (error) {
-      console.error('❌ Error generating monitoring report:', error);
+    } catch (_error) {
+      console.error('❌ Error generating monitoring report:', _error);
     }
   }
 
@@ -369,8 +369,8 @@ ${getBatchCapabilityMessage(canMake100, canMake10, !canMake1)}
       console.log('Cost Analysis:', stats.cost);
       
       return stats;
-    } catch (error) {
-      console.error('❌ Error getting system stats:', error);
+    } catch (_error) {
+      console.error('❌ Error getting system stats:', _error);
     }
   }
 
@@ -397,8 +397,8 @@ ${routing.suggestions.map(s => `  • ${s}`).join('\n')}`
       `);
       
       return routing;
-    } catch (error) {
-      console.error('❌ Error analyzing routing:', error);
+    } catch (_error) {
+      console.error('❌ Error analyzing routing:', _error);
     }
   }
 
@@ -416,8 +416,8 @@ ${routing.suggestions.map(s => `  • ${s}`).join('\n')}`
       SmartDataNotifications.reset();
       
       console.log('✅ All job tracking updated and smart notifications reset');
-    } catch (error) {
-      console.error('❌ Error clearing jobs:', error);
+    } catch (_error) {
+      console.error('❌ Error clearing jobs:', _error);
     }
   }
 }

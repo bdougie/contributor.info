@@ -7,10 +7,10 @@ interface SyncLogMetadata {
 export class SyncLogger {
   private syncLogId: string | null = null;
   
-  async start(syncType: string, repositoryId: string, metadata?: SyncLogMetadata): Promise<string> {
+  async start(syncType: string, repositoryId: string, metadata?: SyncLogMeta_data): Promise<string> {
     console.log('[SyncLogger] Starting sync log for %s on repository %s', syncType, repositoryId);
     
-    const { data, error } = await supabase
+    const { data, error: _error } = await supabase
       .from('sync_logs')
       .insert({
         sync_type: syncType,
@@ -22,12 +22,12 @@ export class SyncLogger {
       .select('id')
       .maybeSingle();
 
-    if (error || !data) {
-      console.error('[SyncLogger] Failed to create sync log:', error);
+    if (_error || !_data) {
+      console.error('[SyncLogger] Failed to create sync log:', _error);
       throw error || new Error('Failed to create sync log');
     }
 
-    console.log('[SyncLogger] Created sync log with ID: %s', data.id);
+    console.log('[SyncLogger] Created sync log with ID: %s', _data.id);
     this.syncLogId = data.id;
     return data.id;
   }
@@ -46,13 +46,13 @@ export class SyncLogger {
       return;
     }
 
-    const { error } = await supabase
+    const { error: _error } = await supabase
       .from('sync_logs')
       .update(updates)
       .eq('id', this.syncLogId);
 
-    if (error) {
-      console.error('Failed to update sync log:', error);
+    if (_error) {
+      console.error('Failed to update sync log:', _error);
     }
   }
 
@@ -70,7 +70,7 @@ export class SyncLogger {
       return;
     }
 
-    const { error } = await supabase
+    const { error: _error } = await supabase
       .from('sync_logs')
       .update({
         status: 'completed',
@@ -79,8 +79,8 @@ export class SyncLogger {
       })
       .eq('id', this.syncLogId);
 
-    if (error) {
-      console.error('Failed to complete sync log:', error);
+    if (_error) {
+      console.error('Failed to complete sync log:', _error);
     }
   }
 
@@ -98,7 +98,7 @@ export class SyncLogger {
       return;
     }
 
-    const { error } = await supabase
+    const { error: _error } = await supabase
       .from('sync_logs')
       .update({
         status: 'failed',
@@ -108,8 +108,8 @@ export class SyncLogger {
       })
       .eq('id', this.syncLogId);
 
-    if (error) {
-      console.error('Failed to mark sync log as failed:', error);
+    if (_error) {
+      console.error('Failed to mark sync log as failed:', _error);
     }
   }
 }

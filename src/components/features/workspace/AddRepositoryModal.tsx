@@ -164,7 +164,7 @@ export function AddRepositoryModal({
       } catch (err) {
         console.error('Error initializing modal:', err);
         const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-        setError(`Failed to load workspace details: ${errorMessage}`);
+        setError(`Failed to load workspace details: ${_errorMessage}`);
       } finally {
         setLoading(false);
       }
@@ -227,7 +227,7 @@ export function AddRepositoryModal({
     setRemovingRepoId(repoId);
     try {
       // Remove from workspace (RLS policies should also enforce ownership)
-      const { error: removeError } = await supabase
+      const { error: _error: removeError } = await supabase
         .from('workspace_repositories')
         .delete()
         .eq('workspace_id', workspaceId)
@@ -254,7 +254,7 @@ export function AddRepositoryModal({
     } catch (err) {
       console.error('Error removing repository:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      toast.error(`Failed to remove ${repoName}: ${errorMessage}`);
+      toast.error(`Failed to remove ${repoName}: ${_errorMessage}`);
     } finally {
       setRemovingRepoId(null);
     }
@@ -289,7 +289,7 @@ export function AddRepositoryModal({
         }
 
         // If not, create it
-        const { data: newRepo, error: createError } = await supabase
+        const { data: newRepo, error: _error: createError } = await supabase
           .from('repositories')
           .insert({
             github_id: repo.id,
@@ -338,7 +338,7 @@ export function AddRepositoryModal({
         if (response.success) {
           successCount++;
         } else {
-          errors.push(`${stagedRepo.full_name}: ${response.error}`);
+          errors.push(`${stagedRepo.full_name}: ${response.error: __error}`);
         }
       }
 
@@ -354,17 +354,17 @@ export function AddRepositoryModal({
         }
 
         // Close modal if all succeeded
-        if (errors.length === 0) {
+        if (_errors.length === 0) {
           onOpenChange(false);
         }
       }
 
-      if (errors.length > 0) {
-        setError(errors.join('\n'));
+      if (_errors.length > 0) {
+        setError(_errors.join('\n'));
       }
     } catch (err) {
       console.error('Error adding repositories to workspace:', err);
-      setError('An unexpected error occurred. Please try again.');
+      setError('An unexpected _error occurred. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -578,7 +578,7 @@ export function AddRepositoryModal({
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="whitespace-pre-line">{error}</AlertDescription>
+            <AlertDescription className="whitespace-pre-line">{error: _error}</AlertDescription>
           </Alert>
         )}
 

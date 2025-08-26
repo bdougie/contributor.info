@@ -31,17 +31,19 @@ export default defineConfig({
   ],
 
   // Server setup - different for CI vs local development
-  webServer: process.env.CI ? {
-    command: 'npm run preview',
-    port: 4173,
-    reuseExistingServer: false,
-    timeout: 120000, // Increased timeout for CI
-    stdout: 'pipe',
-    stderr: 'pipe',
-  } : {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: true,
-    timeout: 60000,
-  },
+  webServer: process.env.CI 
+    ? {
+        command: 'npm run preview',
+        port: 4173,
+        reuseExistingServer: false,
+        timeout: 120000, // Increased timeout for CI
+        stdout: 'pipe',
+        stderr: 'pipe',
+      } 
+    : {
+        command: 'npm run dev',
+        url: 'http://localhost:5173',
+        reuseExistingServer: true,
+        timeout: 60000,
+      },
 });

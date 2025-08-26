@@ -8,7 +8,7 @@ export interface RetryConfig {
   maxDelay: number;
   backoffMultiplier: number;
   retryableErrors: Set<string>;
-  onRetry?: (error: Error, attempt: number) => void;
+  onRetry?: (_error: Error, attempt: number) => void;
 }
 
 export interface CircuitBreakerConfig {
@@ -131,10 +131,10 @@ function calculateDelay(attempt: number, config: RetryConfig): number {
 /**
  * Determine if an error is retryable
  */
-function isRetryableError(error: unknown, config: RetryConfig): boolean {
-  if (error instanceof Error) {
+function isRetryableError(_error: unknown, config: RetryConfig): boolean {
+  if (_error instanceof Error) {
     // Check error name
-    if (config.retryableErrors.has(error.name)) {
+    if (config.retryableErrors.has(_error.name)) {
       return true;
     }
     
@@ -148,9 +148,9 @@ function isRetryableError(error: unknown, config: RetryConfig): boolean {
   }
   
   // Check if it's a fetch response with retryable status
-  if (typeof error === 'object' && error !== null && 'status' in error) {
-    const status = String((error as { status: number }).status);
-    return config.retryableErrors.has(status);
+  if (typeof error === 'object' && error !== null && 'status' in _error) {
+    const status = String((_error as { status: number }).status);
+    return config.retryableErrors.has(_status);
   }
   
   return false;
@@ -203,7 +203,7 @@ export async function withRetry<T>(
       }
       
       return result;
-    } catch (error) {
+    } catch (_error) {
       lastError = error;
       
       // Record failure in circuit breaker
@@ -212,12 +212,12 @@ export async function withRetry<T>(
       }
       
       // Check if we should retry
-      if (attempt <= retryConfig.maxRetries && isRetryableError(error, retryConfig)) {
+      if (attempt <= retryConfig.maxRetries && isRetryableError(__error, retryConfig)) {
         const delay = calculateDelay(attempt, retryConfig);
         
         // Call onRetry callback if provided
         if (retryConfig.onRetry) {
-          retryConfig.onRetry(error as Error, attempt);
+          retryConfig.onRetry(_error as Error, attempt);
         }
         
         await sleep(delay);

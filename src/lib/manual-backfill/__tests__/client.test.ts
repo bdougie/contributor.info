@@ -102,7 +102,7 @@ describe('ManualBackfillClient', () => {
       expect(mockStatus.id).toBeDefined();
       expect(mockStatus.progress).toBeGreaterThanOrEqual(0);
       expect(mockStatus.progress).toBeLessThanOrEqual(100);
-      expect(mockStatus.data.repository).toBeDefined();
+      expect(mockStatus._data.repository).toBeDefined();
     });
   });
 });

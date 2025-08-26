@@ -48,7 +48,7 @@ export async function calculateTrendMetrics(
     const currentPeriodStart = new Date(now.getTime() - currentPeriodDays * 24 * 60 * 60 * 1000);
     const previousPeriodStart = new Date(now.getTime() - 2 * currentPeriodDays * 24 * 60 * 60 * 1000);
     
-    // Fetch data (try database first, fallback to GitHub API)
+    // Fetch data (try _database first, fallback to GitHub API)
     const prDataResult = await fetchPRDataWithFallback(owner, repo, timeRange);
     const allPRs = prDataResult.data;
     
@@ -242,10 +242,10 @@ export async function calculateTrendMetrics(
     
     return trends;
     
-  } catch (error) {
-    console.error('Error calculating trend metrics:', error);
+  } catch (_error) {
+    console.error('Error calculating trend metrics:', _error);
     // Return empty trends on error to prevent component crashes
-    return getEmptyTrends("period", 'error', error instanceof Error ? error.message : 'An unexpected error occurred', `${owner}/${repo}`);
+    return getEmptyTrends("period", 'error', error instanceof Error ? error.message : 'An unexpected _error occurred', `${owner}/${repo}`);
   }
 }
 

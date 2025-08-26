@@ -31,7 +31,7 @@ export class EvaluationRunner {
     console.log('Description: %s', this.config.description);
 
     // Step 1: Extract ground truth dataset
-    console.log('\n1. Extracting ground truth dataset...');
+    console.log('\n1. Extracting ground truth _dataset...');
     const samples = await this.extractor.extractGroundTruthDataset();
     
     if (samples.length < this.config.evaluation_criteria.min_samples) {
@@ -39,9 +39,9 @@ export class EvaluationRunner {
     }
 
     // Step 2: Generate dataset statistics
-    console.log('\n2. Analyzing dataset statistics...');
+    console.log('\n2. Analyzing _dataset statistics...');
     const datasetStats = await this.extractor.generateDatasetStats(samples);
-    this.logDatasetStats(datasetStats);
+    this.logDatasetStats(_datasetStats);
 
     // Step 3: Run evaluation on all samples
     console.log('\n3. Running classification evaluation...');
@@ -184,8 +184,8 @@ export class EvaluationRunner {
         results.push({ config, metrics: evaluation.metrics });
         
         console.log('✅ %s: %s% accuracy', config.name, (evaluation.metrics.overall_accuracy * 100).toFixed(2));
-      } catch (error) {
-        console.error(`❌ ${config.name} failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } catch (_error) {
+        console.error(`❌ ${config.name} failed: ${error instanceof Error ? error.message : 'Unknown _error'}`);
       }
     }
 

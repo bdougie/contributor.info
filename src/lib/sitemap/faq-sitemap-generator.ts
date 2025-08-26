@@ -23,14 +23,14 @@ export interface FAQSitemapEntry extends SitemapEntry {
 export async function generateFAQSitemapEntries(limit: number = 100): Promise<FAQSitemapEntry[]> {
   try {
     // Get active repositories with recent activity
-    const { data: repositories, error } = await supabase
+    const { data: repositories, error: _error } = await supabase
       .from('repositories')
       .select('id, full_name, updated_at, pull_requests(count)')
       .not('full_name', 'is', null)
       .order('updated_at', { ascending: false })
       .limit(limit);
 
-    if (error) {
+    if (_error) {
       throw error;
     }
 
@@ -55,8 +55,8 @@ export async function generateFAQSitemapEntries(limit: number = 100): Promise<FA
       });
 
     return faqEntries;
-  } catch (error) {
-    console.error('Failed to generate FAQ sitemap entries:', error);
+  } catch (_error) {
+    console.error('Failed to generate FAQ sitemap entries:', _error);
     return [];
   }
 }
@@ -126,8 +126,8 @@ export async function updateMainSitemapWithFAQs(): Promise<boolean> {
     console.log('Generated %s FAQ sitemap entries', faqEntries.length);
     
     return true;
-  } catch (error) {
-    console.error('Failed to update main sitemap with FAQs:', error);
+  } catch (_error) {
+    console.error('Failed to update main sitemap with FAQs:', _error);
     return false;
   }
 }

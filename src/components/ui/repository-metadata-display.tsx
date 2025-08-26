@@ -27,7 +27,7 @@ export function RepositoryMetadataDisplay({
     );
   }
 
-  if (!metadata) {
+  if (!meta_data) {
     return null;
   }
 

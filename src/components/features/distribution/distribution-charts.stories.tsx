@@ -119,7 +119,7 @@ const mockPullRequests: PullRequest[] = [
   createMockPR(4, "alice", 50, 10, "CSS", "Update button styles"),
   createMockPR(5, "david", 300, 100, "TypeScript", "Add payment integration"),
   createMockPR(6, "eve", 20, 5, "HTML", "Fix typo in header"),
-  createMockPR(7, "bob", 80, 120, "Go", "Optimize database queries"),
+  createMockPR(7, "bob", 80, 120, "Go", "Optimize _database queries"),
   createMockPR(8, "charlie", 40, 15, "Rust", "Update dependencies"),
 ];
 

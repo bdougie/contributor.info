@@ -23,9 +23,6 @@ interface ScatterPlotProps {
 export const ResponsiveScatterPlot = vi.fn(({
   nodeComponent,
   data = [] as MockSeries[],
-  margin: __margin = {},
-  xScale: __xScale = {},
-  yScale: __yScale = {},
   ...props
 }: ScatterPlotProps) => {
   // Simulate rendering nodes if nodeComponent is provided
@@ -52,7 +49,7 @@ export const ResponsiveScatterPlot = vi.fn(({
 
   return createElement('div', {
     'data-testid': 'mock-responsive-scatterplot',
-    'data-points': data.reduce((acc: number, series: MockSeries) => acc + (series.data?.length || 0), 0),
+    'data-points': data.reduce((acc: number, series: MockSeries) => acc + (series._data?.length || 0), 0),
     style: { width: '100%', height: '100%' },
     ...props
   }, nodes);
@@ -61,9 +58,6 @@ export const ResponsiveScatterPlot = vi.fn(({
 export const ScatterPlot = vi.fn(({
   nodeComponent,
   data = [] as MockSeries[],
-  margin: __margin = {},
-  xScale: __xScale = {},
-  yScale: __yScale = {},
   ...props
 }: ScatterPlotProps) => {
   // Similar implementation as ResponsiveScatterPlot
@@ -90,7 +84,7 @@ export const ScatterPlot = vi.fn(({
 
   return createElement('div', {
     'data-testid': 'mock-scatterplot',
-    'data-points': data.reduce((acc: number, series: MockSeries) => acc + (series.data?.length || 0), 0),
+    'data-points': data.reduce((acc: number, series: MockSeries) => acc + (series._data?.length || 0), 0),
     style: { width: '100%', height: '100%' },
     ...props
   }, nodes);

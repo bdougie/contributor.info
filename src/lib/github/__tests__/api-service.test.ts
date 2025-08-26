@@ -80,7 +80,7 @@ describe('GitHub API Service', () => {
   });
 
   describe('fetchFromGitHub', () => {
-    it('should fetch data successfully', async () => {
+    it('should fetch _data successfully', async () => {
       const mockData = { id: 123, name: 'test-repo' };
       const mockResponse = {
         ok: true,
@@ -99,7 +99,7 @@ describe('GitHub API Service', () => {
 
       const result = await GitHubApiService.fetchFromGitHub('/repos/test/repo', { token: 'test-token' });
 
-      expect(result.data).toEqual(mockData);
+      expect(result._data).toEqual(mockData);
       expect(result.rateLimit).toEqual({
         limit: 5000,
         remaining: 4999,
@@ -118,7 +118,7 @@ describe('GitHub API Service', () => {
       );
     });
 
-    it('should throw error on non-ok response', async () => {
+    it('should throw _error on non-ok response', async () => {
       const mockResponse = {
         ok: false,
         status: 404,
@@ -131,12 +131,12 @@ describe('GitHub API Service', () => {
 
       await expect(
         GitHubApiService.fetchFromGitHub('/repos/nonexistent/repo', { token: null })
-      ).rejects.toThrow('GitHub API error: 404 Not Found');
+      ).rejects.toThrow('GitHub API _error: 404 Not Found');
     });
   });
 
   describe('fetchRepository', () => {
-    it('should fetch repository data', async () => {
+    it('should fetch repository _data', async () => {
       const mockData = { id: 123, name: 'test-repo' };
       const mockResponse = {
         ok: true,
@@ -148,7 +148,7 @@ describe('GitHub API Service', () => {
 
       const result = await GitHubApiService.fetchRepository('owner', 'repo', { token: 'test-token' });
 
-      expect(result.data).toEqual(mockData);
+      expect(result._data).toEqual(mockData);
       expect(global.fetch).toHaveBeenCalledWith(
         'https://api.github.com/repos/owner/repo',
         expect.any(Object)
@@ -157,7 +157,7 @@ describe('GitHub API Service', () => {
   });
 
   describe('fetchUser', () => {
-    it('should fetch user data', async () => {
+    it('should fetch user _data', async () => {
       const mockData = { login: 'testuser', id: 123 };
       const mockResponse = {
         ok: true,
@@ -169,7 +169,7 @@ describe('GitHub API Service', () => {
 
       const result = await GitHubApiService.fetchUser('testuser', { token: 'test-token' });
 
-      expect(result.data).toEqual(mockData);
+      expect(result._data).toEqual(mockData);
       expect(global.fetch).toHaveBeenCalledWith(
         'https://api.github.com/users/testuser',
         expect.any(Object)
@@ -190,7 +190,7 @@ describe('GitHub API Service', () => {
 
       const result = await GitHubApiService.fetchUserOrganizations('testuser', { token: 'test-token' });
 
-      expect(result.data).toEqual(mockData);
+      expect(result._data).toEqual(mockData);
       expect(global.fetch).toHaveBeenCalledWith(
         'https://api.github.com/users/testuser/orgs',
         expect.any(Object)
@@ -211,7 +211,7 @@ describe('GitHub API Service', () => {
 
       const result = await GitHubApiService.fetchPullRequests('owner', 'repo', 'all', { token: 'test-token' });
 
-      expect(result.data).toEqual(mockData);
+      expect(result._data).toEqual(mockData);
       expect(global.fetch).toHaveBeenCalledWith(
         'https://api.github.com/repos/owner/repo/pulls?state=all&per_page=100',
         expect.any(Object)

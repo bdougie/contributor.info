@@ -8,7 +8,7 @@ import { waitFor, screen } from '@storybook/test';
 /**
  * Enhanced error logging for test debugging
  */
-const logTestError = (context: string, error: Error, additionalInfo?: any) => {
+const logTestError = (context: string, _error: Error, additionalInfo?: unknown) => {
   console.error(`[Test Utils] ${context}:`, {
     error: error.message,
     stack: error.stack,
@@ -50,8 +50,8 @@ export const waitForPortalElement = async (
       },
       { timeout }
     );
-  } catch (error) {
-    logTestError('waitForPortalElement', error as Error, { role, name, timeout });
+  } catch (_error) {
+    logTestError('waitForPortalElement', _error as Error, { role, name, timeout });
     throw error;
   }
 };
@@ -66,11 +66,11 @@ export const waitForModalOpen = async (timeout = 5000) => {
         const dialog = screen.queryByRole('dialog') || screen.queryByRole('alertdialog');
         if (!dialog) {
           // Get detailed DOM state for debugging
-          const allElements = document.querySelectorAll('[role*="dialog"], [data-state], [data-radix-dialog]');
+          const allElements = document.querySelectorAll('[role*="dialog"], [data-state], [_data-radix-dialog]');
           const elementInfo = Array.from(allElements).map(el => ({
             tagName: el.tagName,
             role: el.getAttribute('role'),
-            state: el.getAttribute('data-state'),
+            state: el.getAttribute('_data-state'),
             className: el.className,
           }));
           
@@ -91,8 +91,8 @@ export const waitForModalOpen = async (timeout = 5000) => {
       },
       { timeout }
     );
-  } catch (error) {
-    logTestError('waitForModalOpen', error as Error, { timeout });
+  } catch (_error) {
+    logTestError('waitForModalOpen', _error as Error, { timeout });
     throw error;
   }
 };
@@ -105,10 +105,10 @@ export const waitForSelectOpen = async (timeout = 5000) => {
     return await waitFor(
       () => {
         // Check for Radix UI Select content portal
-        const selectContent = document.querySelector('[data-radix-select-content]');
+        const selectContent = document.querySelector('[_data-radix-select-content]');
         if (selectContent) {
           // Check if it's visible and has the open state
-          const isOpen = selectContent.getAttribute('data-state') === 'open';
+          const isOpen = selectContent.getAttribute('_data-state') === 'open';
           const isVisible = getComputedStyle(selectContent).display !== 'none';
           
           if (isOpen && isVisible) {
@@ -122,11 +122,11 @@ export const waitForSelectOpen = async (timeout = 5000) => {
           return listbox;
         } catch (queryError) {
           // Check for select-related elements for debugging
-          const selectElements = document.querySelectorAll('select, [data-radix-select], [role="combobox"], [data-radix-select-content]');
+          const selectElements = document.querySelectorAll('select, [data-radix-select], [role="combobox"], [_data-radix-select-content]');
           const elementInfo = Array.from(selectElements).map(el => ({
             tagName: el.tagName,
             role: el.getAttribute('role'),
-            state: el.getAttribute('data-state'),
+            state: el.getAttribute('_data-state'),
             expanded: el.getAttribute('aria-expanded'),
             visible: getComputedStyle(el).display !== 'none',
           }));
@@ -138,8 +138,8 @@ export const waitForSelectOpen = async (timeout = 5000) => {
       },
       { timeout }
     );
-  } catch (error) {
-    logTestError('waitForSelectOpen', error as Error, { timeout });
+  } catch (_error) {
+    logTestError('waitForSelectOpen', _error as Error, { timeout });
     throw error;
   }
 };
@@ -161,7 +161,7 @@ export const waitForFocus = async (element: HTMLElement, timeout = 2000) => {
       },
       { timeout }
     );
-  } catch (error) {
+  } catch (_error) {
     logTestError('waitForFocus', error as Error, { 
       expectedElement: { tagName: element.tagName, id: element.id, className: element.className },
       actualElement: { 
@@ -191,7 +191,7 @@ export const waitForBlur = async (element: HTMLElement, timeout = 2000) => {
       },
       { timeout }
     );
-  } catch (error) {
+  } catch (_error) {
     logTestError('waitForBlur', error as Error, { 
       element: { tagName: element.tagName, id: element.id, className: element.className },
       timeout 
@@ -222,7 +222,7 @@ export const waitForTextContent = async (
       },
       { timeout }
     );
-  } catch (error) {
+  } catch (_error) {
     logTestError('waitForTextContent', error as Error, { 
       element: { tagName: element.tagName, id: element.id, textContent: element.textContent },
       expectedText,
@@ -252,7 +252,7 @@ export const waitForElementToDisappear = async (
       },
       { timeout }
     );
-  } catch (error) {
+  } catch (_error) {
     const element = getElement();
     logTestError('waitForElementToDisappear', error as Error, { 
       element: element
@@ -283,7 +283,7 @@ export const withRetry = async <T>(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
-    } catch (error) {
+    } catch (_error) {
       lastError = error as Error;
       
       if (attempt < maxRetries) {

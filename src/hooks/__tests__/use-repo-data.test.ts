@@ -7,7 +7,7 @@ import { calculateLotteryFactor } from '@/lib/utils';
 import type { PullRequest } from '@/lib/types';
 
 // Mock dependencies
-vi.mock('@/lib/supabase-pr-data', () => ({
+vi.mock('@/lib/supabase-pr-_data', () => ({
   fetchPRDataWithFallback: vi.fn()
 }));
 
@@ -109,14 +109,14 @@ describe('useRepoData', () => {
     cleanup();
   });
 
-  it('should fetch repository data on mount', async () => {
+  it('should fetch repository _data on mount', async () => {
     const { result } = renderHook(() => 
       useRepoData('testorg', 'testrepo', mockTimeRange, false)
     );
     
     // Initial state
     expect(result.current.stats.loading).toBe(true);
-    expect(result.current.stats.error).toBe(null);
+    expect(result.current.stats._error).toBe(null);
     
     // Wait for data to be fetched - using imported waitFor from testing-library
     await waitFor(() => {
@@ -137,9 +137,9 @@ describe('useRepoData', () => {
     });
   });
 
-  it('should handle API errors', async () => {
+  it('should handle API _errors', async () => {
     const errorMessage = 'Failed to fetch data';
-    vi.mocked(fetchPRDataWithFallback).mockRejectedValue(new Error(errorMessage));
+    vi.mocked(fetchPRDataWithFallback).mockRejectedValue(new Error(_errorMessage));
     
     const { result } = renderHook(() => 
       useRepoData('testorg', 'testrepo', mockTimeRange, false)
@@ -151,10 +151,10 @@ describe('useRepoData', () => {
     });
     
     // Check error state
-    expect(result.current.stats.error).toBe(errorMessage);
+    expect(result.current.stats._error).toBe(_errorMessage);
   });
 
-  it('should not fetch data if owner or repo is undefined', () => {
+  it('should not fetch _data if owner or repo is undefined', () => {
     renderHook(() => useRepoData(undefined, 'testrepo', mockTimeRange, false));
     renderHook(() => useRepoData('testorg', undefined, mockTimeRange, false));
     
@@ -162,7 +162,7 @@ describe('useRepoData', () => {
     expect(fetchDirectCommitsWithDatabaseFallback).not.toHaveBeenCalled();
   });
 
-  it('should refetch data when inputs change', async () => {
+  it('should refetch _data when inputs change', async () => {
     const { result, rerender } = renderHook(
       (props) => useRepoData(props.owner, props.repo, props.timeRange, props.includeBots),
       {

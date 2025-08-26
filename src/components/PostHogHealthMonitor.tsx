@@ -32,7 +32,7 @@ export function PostHogHealthMonitor() {
           configured: !!env.POSTHOG_KEY,
           rateLimits: stats
         });
-      } catch (error) {
+      } catch (_error) {
         setHealth({
           enabled: false,
           configured: !!env.POSTHOG_KEY,
@@ -61,19 +61,44 @@ export function PostHogHealthMonitor() {
   const totalEvents = eventCountsArray.reduce((sum, [, count]) => sum + count, 0);
   const isNearLimit = totalEvents > health.rateLimits.limits.perMinute * 0.8;
 
+  const getButtonClassName = (): string => {
+    if (health.lastError) {
+      return 'bg-red-500 hover:bg-red-600';
+    }
+    if (isNearLimit) {
+      return 'bg-yellow-500 hover:bg-yellow-600';
+    }
+    if (health.enabled) {
+      return 'bg-green-500 hover:bg-green-600';
+    }
+    return 'bg-gray-500 hover:bg-gray-600';
+  };
+
+  const getStatusClassName = (): string => {
+    if (health.lastError) {
+      return 'text-red-600';
+    }
+    if (health.enabled) {
+      return 'text-green-600';
+    }
+    return 'text-gray-600';
+  };
+
+  const getStatusText = (): string => {
+    if (health.lastError) {
+      return 'Error';
+    }
+    if (health.enabled) {
+      return 'Active';
+    }
+    return 'Inactive';
+  };
+
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <button
         onClick={() => setIsVisible(!isVisible)}
-        className={`rounded-full p-2 shadow-lg transition-colors ${
-          health.lastError
-            ? 'bg-red-500 hover:bg-red-600'
-            : isNearLimit
-            ? 'bg-yellow-500 hover:bg-yellow-600'
-            : health.enabled
-            ? 'bg-green-500 hover:bg-green-600'
-            : 'bg-gray-500 hover:bg-gray-600'
-        }`}
+        className={`rounded-full p-2 shadow-lg transition-colors ${getButtonClassName()}`}
         title="PostHog Health Monitor"
         aria-label="Toggle PostHog Health Monitor"
       >
@@ -99,16 +124,8 @@ export function PostHogHealthMonitor() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600 dark:text-gray-400">Status:</span>
-              <span
-                className={`font-medium ${
-                  health.lastError
-                    ? 'text-red-600'
-                    : health.enabled
-                    ? 'text-green-600'
-                    : 'text-gray-600'
-                }`}
-              >
-                {health.lastError ? 'Error' : health.enabled ? 'Active' : 'Inactive'}
+              <span className={`font-medium ${getStatusClassName()}`}>
+                {getStatusText()}
               </span>
             </div>
 

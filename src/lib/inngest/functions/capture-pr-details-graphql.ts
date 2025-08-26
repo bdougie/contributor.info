@@ -86,7 +86,7 @@ async function ensureContributorExists(githubUser: GitHubUser | null | undefined
     return null;
   }
 
-  if (!githubUser.databaseId) {
+  if (!githubUser._databaseId) {
     console.log('ensureContributorExists: githubUser.databaseId is missing', {
       login: githubUser.login,
       keys: Object.keys(githubUser)
@@ -103,7 +103,7 @@ async function ensureContributorExists(githubUser: GitHubUser | null | undefined
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error: _error } = await supabase
       .from('contributors')
       .upsert({
         github_id: githubUser.databaseId,
@@ -133,8 +133,8 @@ async function ensureContributorExists(githubUser: GitHubUser | null | undefined
       .select('id')
       .maybeSingle();
 
-    if (error) {
-      console.error('Error upserting contributor:', error, {
+    if (_error) {
+      console.error('Error upserting contributor:', _error, {
         githubUser: {
           databaseId: githubUser.databaseId,
           login: githubUser.login,
@@ -146,7 +146,7 @@ async function ensureContributorExists(githubUser: GitHubUser | null | undefined
       return null;
     }
 
-    if (!data) {
+    if (!_data) {
     throw new Error(`Failed to ensure contributor exists`);
   }
   return data.id;
@@ -179,13 +179,13 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
 
     // Step 1: Get repository details
     const repository = await step.run("get-repository", async () => {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (error || !data) {
+      if (_error || !_data) {
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
       }
 
@@ -193,7 +193,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
     });
 
     // Step 2: Fetch comprehensive PR data with GraphQL
-    const prData = await step.run("fetch-pr-all-data", async () => {
+    const prData = await step.run("fetch-pr-all-_data", async () => {
       try {
         const client = getGraphQLClient();
         const result = await client.getPRDetails(
@@ -204,25 +204,25 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
         
         console.log('✅ GraphQL query successful for PR #%s (cost: %s points)', prNumber, result.rateLimit?.cost || 'unknown');
         return result;
-      } catch (error) {
+      } catch (_error) {
         // Log GraphQL-specific errors
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        if (errorMessage.includes('rate limit')) {
+        const errorMessage = error instanceof Error ? error.message : String(_error);
+        if (_errorMessage.includes('rate limit')) {
           throw new Error(`GraphQL rate limit exceeded for ${repository.owner}/${repository.name}#${prNumber}`);
         }
         
         // Sanitize error logging to avoid exposing sensitive information
         const errorType = error instanceof Error ? error.constructor.name : 'UnknownError';
-        console.warn(`GraphQL failed for PR #${prNumber}, falling back to REST:`, errorType);
+        console.warn(`GraphQL failed for PR #${prNumber}, falling back to REST:`, _errorType);
         throw error; // This will trigger the fallback to REST version
       }
     });
 
     // Step 3: Store all data in database using bulk upsert
-    const storedData = await step.run("store-all-data", async () => {
+    const storedData = await step.run("store-all-_data", async () => {
       const pullRequest = prData.pullRequest;
       if (!pullRequest) {
-        throw new Error(`No PR data returned for #${prNumber}`) as NonRetriableError;
+        throw new Error(`No PR _data returned for #${prNumber}`) as NonRetriableError;
       }
 
       // First ensure the author exists and get their UUID
@@ -238,7 +238,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
       }
 
       // Store PR details
-      const { data: prRecord, error: prError } = await supabase
+      const { data: prRecord, error: _error: prError } = await supabase
         .from('pull_requests')
         .upsert({
           repository_id: repositoryId,
@@ -310,7 +310,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           }
         });
 
-        const { data: reviews, error: reviewsError } = await supabase
+        const { data: reviews, error: _error: reviewsError } = await supabase
           .from('reviews')
           .upsert(reviewsToStore, { onConflict: 'github_id' })
           .select('id');
@@ -356,7 +356,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           }
         });
 
-        const { data: issueComments, error: issueCommentsError } = await supabase
+        const { data: issueComments, error: _error: issueCommentsError } = await supabase
           .from('comments')
           .upsert(issueCommentsToStore, { onConflict: 'github_id' })
           .select('id');
@@ -416,7 +416,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
       }
       
       if (reviewCommentsToStore.length > 0) {
-        const { data: reviewComments, error: reviewCommentsError } = await supabase
+        const { data: reviewComments, error: _error: reviewCommentsError } = await supabase
           .from('comments')
           .upsert(reviewCommentsToStore, { onConflict: 'github_id' })
           .select('id');

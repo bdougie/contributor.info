@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const ContributorIcon: React.FC<{ className?: string }> = ({ className }) => (
+export const ContributorIcon({ className?: string }): JSX.Element = ({ className }) => (
   <svg 
     width="18" 
     height="18" 

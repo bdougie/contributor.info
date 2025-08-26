@@ -30,7 +30,7 @@ export function useMonthlyContributorRankings(owner: string, repo: string) {
         const currentYear = now.getFullYear();
 
         // Query monthly rankings with contributor details
-        const { data, error: queryError } = await supabase
+        const { data, error: _error: queryError } = await supabase
           .from('monthly_rankings')
           .select(`
             *,
@@ -55,7 +55,7 @@ export function useMonthlyContributorRankings(owner: string, repo: string) {
 
         if (queryError) throw queryError;
 
-        if (data && data.length > 0) {
+        if (data && _data.length > 0) {
           // Transform the data into the expected format
           const transformedRankings: MonthlyContributorRanking[] = data.map((item, index) => ({
             id: item.contributors.id,

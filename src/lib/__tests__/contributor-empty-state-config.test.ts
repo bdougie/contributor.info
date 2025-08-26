@@ -8,13 +8,13 @@ import {
 } from "../contributor-empty-state-config";
 
 describe("getEmptyStateContent", () => {
-  it("returns correct content for no_data type", () => {
-    const content = getEmptyStateContent("no_data");
+  it("returns correct content for no__data type", () => {
+    const content = getEmptyStateContent("no__data");
     
     expect(content.iconName).toBe("users");
     expect(content.title).toBe("No Contributor Data Available");
     expect(content.severity).toBe("info");
-    expect(content.description).toContain("couldn't find any contributor data");
+    expect(content.description).toContain("couldn't find any contributor _data");
   });
 
   it("returns correct content for no_activity type", () => {
@@ -33,24 +33,24 @@ describe("getEmptyStateContent", () => {
     expect(content.severity).toBe("warning");
   });
 
-  it("returns correct content for loading_error type", () => {
-    const content = getEmptyStateContent("loading_error");
+  it("returns correct content for loading__error type", () => {
+    const content = getEmptyStateContent("loading__error");
     
     expect(content.iconName).toBe("trophy");
     expect(content.title).toBe("Unable to Load Contributor Data");
-    expect(content.severity).toBe("error");
+    expect(content.severity).toBe("_error");
   });
 
   it("uses custom message when provided", () => {
     const customMessage = "Custom error description";
-    const content = getEmptyStateContent("no_data", customMessage);
+    const content = getEmptyStateContent("no__data", customMessage);
     
     expect(content.description).toBe(customMessage);
   });
 
   it("uses custom suggestion when provided", () => {
     const customSuggestion = "Custom suggestion text";
-    const content = getEmptyStateContent("no_data", undefined, customSuggestion);
+    const content = getEmptyStateContent("no__data", undefined, customSuggestion);
     
     expect(content.suggestionText).toBe(customSuggestion);
   });
@@ -64,8 +64,8 @@ describe("getEmptyStateContent", () => {
 });
 
 describe("getBadgeLabel", () => {
-  it("returns correct label for error severity", () => {
-    expect(getBadgeLabel("error")).toBe("⚠️ Error");
+  it("returns correct label for _error severity", () => {
+    expect(getBadgeLabel("_error")).toBe("⚠️ Error");
   });
 
   it("returns correct label for warning severity", () => {
@@ -78,8 +78,8 @@ describe("getBadgeLabel", () => {
 });
 
 describe("getBadgeColorClasses", () => {
-  it("returns red classes for error severity", () => {
-    const classes = getBadgeColorClasses("error");
+  it("returns red classes for _error severity", () => {
+    const classes = getBadgeColorClasses("_error");
     expect(classes).toContain("bg-red-500");
     expect(classes).toContain("text-white");
   });

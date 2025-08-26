@@ -4,7 +4,7 @@ import { AlertCircle, RefreshCw } from '@/components/ui/icon';
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: any) => void;
+  onError?: (error: Error, _errorInfo: unknown) => void;
   context?: string;
 }
 
@@ -23,23 +23,23 @@ export class ErrorBoundary extends Component<Props, State> {
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(_error: Error): State {
     return {
       hasError: true,
       error
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, _errorInfo: unknown) {
     // Log error to console for debugging
-    console.error('Error caught by ErrorBoundary:', error, errorInfo);
+    console.error('Error caught by ErrorBoundary:', _error, _errorInfo);
 
     // Call custom error handler if provided
-    this.props.onError?.(error, errorInfo);
+    this.props.onError?.(_error, _errorInfo);
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: undefined });
+    this.setState({ hasError: false, _error: undefined });
   };
 
   handleFeedback = () => {
@@ -68,8 +68,8 @@ export class ErrorBoundary extends Component<Props, State> {
       
       // Force a hard reload
       window.location.reload();
-    } catch (error) {
-      console.error('Failed to clear cache:', error);
+    } catch (_error) {
+      console.error('Failed to clear cache:', _error);
       // Fallback to just reloading
       window.location.reload();
     }

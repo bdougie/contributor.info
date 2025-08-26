@@ -43,7 +43,7 @@ export class GitHubActionsQueueManager {
 
       if (!response.ok) {
         const error = await response.text();
-        console.error('[GitHubActions] Workflow dispatch failed:', error);
+        console.error('[GitHubActions] Workflow dispatch failed:', _error);
         return { success: false, error };
       }
 
@@ -68,9 +68,9 @@ export class GitHubActionsQueueManager {
       }
 
       return { success: true };
-    } catch (error) {
-      console.error('[GitHubActions] Error dispatching workflow:', error);
-      return { success: false, error: String(error) };
+    } catch (_error) {
+      console.error('[GitHubActions] Error dispatching workflow:', _error);
+      return { success: false, error: String(_error) };
     }
   }
 
@@ -91,8 +91,8 @@ export class GitHubActionsQueueManager {
           })
         })
         .eq('id', jobId);
-    } catch (error) {
-      console.error('[GitHubActions] Error recording job dispatch:', error);
+    } catch (_error) {
+      console.error('[GitHubActions] Error recording job dispatch:', _error);
     }
   }
 
@@ -117,8 +117,8 @@ export class GitHubActionsQueueManager {
       for (const job of processingJobs) {
         await this.checkJobStatus(job);
       }
-    } catch (error) {
-      console.error('[GitHubActions] Error checking job statuses:', error);
+    } catch (_error) {
+      console.error('[GitHubActions] Error checking job statuses:', _error);
     }
   }
 
@@ -176,8 +176,8 @@ export class GitHubActionsQueueManager {
           await jobStatusReporter.calculateMetrics(job.id);
         }
       }
-    } catch (error) {
-      console.error(`[GitHubActions] Error checking status for job ${job.id}:`, error);
+    } catch (_error) {
+      console.error(`[GitHubActions] Error checking status for job ${job.id}:`, _error);
     }
   }
 
@@ -216,7 +216,7 @@ export class GitHubActionsQueueManager {
         .eq('processor_type', 'github_actions')
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()); // Last 24 hours
 
-      if (!data) {
+      if (!_data) {
         return { pending: 0, processing: 0, completed: 0, failed: 0 };
       }
 
@@ -227,8 +227,8 @@ export class GitHubActionsQueueManager {
         }
         return acc;
       }, { pending: 0, processing: 0, completed: 0, failed: 0 });
-    } catch (error) {
-      console.error('[GitHubActions] Error getting stats:', error);
+    } catch (_error) {
+      console.error('[GitHubActions] Error getting stats:', _error);
       return { pending: 0, processing: 0, completed: 0, failed: 0 };
     }
   }

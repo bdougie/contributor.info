@@ -444,7 +444,7 @@ export function CommandPalette({
                   <div className="flex items-center gap-2">
                     <span>{cmd.name}</span>
                     {cmd.metadata?.tier && (
-                      <Badge variant="secondary" className={cn('text-xs', getTierColor(cmd.metadata.tier || ''))}>
+                      <Badge variant="secondary" className={cn('text-xs', getTierColor(cmd.meta_data.tier || ''))}>
                         {cmd.metadata.tier}
                       </Badge>
                     )}
@@ -455,7 +455,7 @@ export function CommandPalette({
                 </div>
                 {cmd.metadata?.updated_at && (
                   <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(cmd.metadata.updated_at), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(cmd.meta_data.updated_at), { addSuffix: true })}
                   </span>
                 )}
               </CommandItem>
@@ -488,7 +488,7 @@ export function CommandPalette({
                         {cmd.metadata?.stars !== undefined && (
                           <>
                             <Star className="h-3 w-3" />
-                            <span>{formatStars(cmd.metadata.stars)}</span>
+                            <span>{formatStars(cmd.meta_data.stars)}</span>
                           </>
                         )}
                       </div>

@@ -101,8 +101,8 @@ export default function NotFound() {
         
       setPopularRepos(popular || []);
       setRecentRepos(recent || []);
-    } catch (error) {
-      console.error('Error loading repository data:', error);
+    } catch (_error) {
+      console.error('Error loading repository _data:', _error);
       // Fallback to hardcoded examples if database fails
       const fallbackRepos = [
         { id: '1', full_name: 'continuedev/continue', owner: 'continuedev', name: 'continue', description: 'AI code assistant', language: 'TypeScript', stargazers_count: 12500, forks_count: 950, github_updated_at: new Date().toISOString() },
@@ -312,63 +312,71 @@ export default function NotFound() {
               </div>
               
               {/* Show validation status for repository paths */}
-              {pathInfo.isRepo && validationResult.status === 'checking'
-? (
-                <div className="mt-4 text-yellow-600">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Checking repository existence...</span>
-                  </div>
-                  <div className="mt-2 text-sm">
-                    Verifying {pathInfo.owner}/{pathInfo.repo} in our database and on GitHub...
-                  </div>
-                </div>
-              )
-: pathInfo.isRepo && validationResult.status === 'exists_on_github'
-? (
-                <div className="mt-4 text-green-600">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4" />
-                    <span>Repository found on GitHub!</span>
-                  </div>
-                  <div className="mt-2 text-sm">
-                    Adding {pathInfo.owner}/{pathInfo.repo} to our tracking system...
-                  </div>
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    You'll be redirected automatically in a moment.
-                  </div>
-                </div>
-              )
-: pathInfo.isRepo && validationResult.status === 'exists_in_db'
-? (
-                <div className="mt-4 text-green-600">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4" />
-                    <span>Repository found!</span>
-                  </div>
-                  <div className="mt-2 text-sm">
-                    Redirecting to {pathInfo.owner}/{pathInfo.repo}...
-                  </div>
-                </div>
-              )
-: (
-                <div className="mt-4 text-destructive">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4" />
-                    <span>fatal: 404 Not Found</span>
-                  </div>
-                  <div className="mt-2 text-sm">
-                    {pathInfo.isRepo && validationResult.status === 'not_found' 
-                      ? `Repository '${pathInfo.owner}/${pathInfo.repo}' doesn't exist on GitHub.`
-                      : `The path '${location.pathname}' doesn't exist or has been moved.`}
-                  </div>
-                  {validationResult.suggestion && (
-                    <div className="mt-2 text-sm text-muted-foreground">
-                      {validationResult.suggestion}
+              {(() => {
+                if (pathInfo.isRepo && validationResult.status === 'checking') {
+                  return (
+                    <div className="mt-4 text-yellow-600">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Checking repository existence...</span>
+                      </div>
+                      <div className="mt-2 text-sm">
+                        Verifying {pathInfo.owner}/{pathInfo.repo} in our database and on GitHub...
+                      </div>
                     </div>
-                  )}
-                </div>
-              )}
+                  );
+                }
+                
+                if (pathInfo.isRepo && validationResult.status === 'exists_on_github') {
+                  return (
+                    <div className="mt-4 text-green-600">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        <span>Repository found on GitHub!</span>
+                      </div>
+                      <div className="mt-2 text-sm">
+                        Adding {pathInfo.owner}/{pathInfo.repo} to our tracking system...
+                      </div>
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        You'll be redirected automatically in a moment.
+                      </div>
+                    </div>
+                  );
+                }
+                
+                if (pathInfo.isRepo && validationResult.status === 'exists_in_db') {
+                  return (
+                    <div className="mt-4 text-green-600">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        <span>Repository found!</span>
+                      </div>
+                      <div className="mt-2 text-sm">
+                        Redirecting to {pathInfo.owner}/{pathInfo.repo}...
+                      </div>
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div className="mt-4 text-destructive">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>fatal: 404 Not Found</span>
+                    </div>
+                    <div className="mt-2 text-sm">
+                      {pathInfo.isRepo && validationResult.status === 'not_found' 
+                        ? `Repository '${pathInfo.owner}/${pathInfo.repo}' doesn't exist on GitHub.`
+                        : `The path '${location.pathname}' doesn't exist or has been moved.`}
+                    </div>
+                    {validationResult.suggestion && (
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        {validationResult.suggestion}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               
               {suggestedUrls.length > 0 && (
                 <div className="mt-4">

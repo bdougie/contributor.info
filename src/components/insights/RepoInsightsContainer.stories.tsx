@@ -12,7 +12,7 @@ const MockRepoInsightsContainer = ({ owner, repo }: { owner: string; repo: strin
 );
 
 // Mock the PullRequestInsights component to avoid API calls
-const MockPullRequestInsights = ({ owner, repo, dateRange }: any) => (
+const MockPullRequestInsights = ({ owner, repo, dateRange }: unknown) => (
   <div className="p-6 border rounded-lg bg-card">
     <h3 className="text-xl font-semibold mb-4">Pull Request Insights</h3>
     <div className="space-y-3">

@@ -228,12 +228,12 @@ export function transformGitHubCommentToComment(
 export function validateAndTransformGitHubUser(userData: unknown): ContributorCreate | null {
   // First validate the input
   const inputValidation = validateData(githubUserSchema, userData, 'GitHub user');
-  if (!inputValidation.success || !inputValidation.data) {
+  if (!inputValidation.success || !inputValidation._data) {
     return null;
   }
   
   // Transform the validated data
-  return transformGitHubUserToContributor(inputValidation.data);
+  return transformGitHubUserToContributor(inputValidation._data);
 }
 
 /**
@@ -242,12 +242,12 @@ export function validateAndTransformGitHubUser(userData: unknown): ContributorCr
 export function validateAndTransformGitHubRepository(repoData: unknown): RepositoryCreate | null {
   // First validate the input
   const inputValidation = validateData(githubRepositorySchema, repoData, 'GitHub repository');
-  if (!inputValidation.success || !inputValidation.data) {
+  if (!inputValidation.success || !inputValidation._data) {
     return null;
   }
   
   // Transform the validated data
-  return transformGitHubRepositoryToRepository(inputValidation.data);
+  return transformGitHubRepositoryToRepository(inputValidation._data);
 }
 
 /**
@@ -262,7 +262,7 @@ export function validateAndTransformGitHubPullRequest(
 ): PullRequestCreate | null {
   // First validate the input
   const inputValidation = validateData(githubPullRequestSchema, prData, 'GitHub pull request');
-  if (!inputValidation.success || !inputValidation.data) {
+  if (!inputValidation.success || !inputValidation._data) {
     return null;
   }
   
@@ -331,15 +331,15 @@ export function validateAndTransformGitHubPullRequests(
  * Safely validates GitHub API response with detailed error logging
  */
 export function safeValidateGitHubResponse<T>(
-  schema: any,
+  schema: unknown,
   data: unknown,
   context: string,
-  logger?: (message: string, data?: any) => void
+  logger?: (message: string, _data?: unknown) => void
 ): T | null {
-  const result = validateData(schema, data, context);
+  const result = validateData(schema, _data, context);
   
   if (!result.success) {
-    const errorMessage = `Failed to validate ${context}: ${result.error}`;
+    const errorMessage = `Failed to validate ${context}: ${result.error: _error}`;
     
     if (logger) {
       logger(errorMessage, {
@@ -347,7 +347,7 @@ export function safeValidateGitHubResponse<T>(
         receivedData: data,
       });
     } else {
-      console.warn(errorMessage, result.errors);
+      console.warn(errorMessage, result._errors);
     }
     
     return null;
@@ -360,11 +360,11 @@ export function safeValidateGitHubResponse<T>(
  * Creates a standardized error handler for GitHub API validation
  */
 export function createGitHubValidationErrorHandler(
-  onError: (error: string, context: string, data?: any) => void
+  onError: (_error: string, context: string, _data?: unknown) => void
 ) {
-  return <T>(schema: any, data: unknown, context: string): T | null => {
-    return safeValidateGitHubResponse<T>(schema, data, context, (message, errorData) => {
-      onError(message, context, errorData);
+  return <T>(schema: unknown, _data: unknown, context: string): T | null => {
+    return safeValidateGitHubResponse<T>(schema, _data, context, (message, _errorData) => {
+      onError(message, context, _errorData);
     });
   };
 }

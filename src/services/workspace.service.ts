@@ -58,11 +58,11 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<Workspace>> {
     try {
       // Validate input
-      const validation = validateCreateWorkspace(data);
+      const validation = validateCreateWorkspace(_data);
       if (!validation.valid) {
         return {
           success: false,
-          error: formatValidationErrors(validation.errors),
+          error: formatValidationErrors(validation._errors),
           statusCode: 400
         };
       }
@@ -113,7 +113,7 @@ export class WorkspaceService {
 
       // Generate slug
       const { data: slugData, error: slugError } = await supabase
-        .rpc('generate_workspace_slug', { workspace_name: data.name });
+        .rpc('generate_workspace_slug', { workspace_name: _data.name });
 
       if (slugError || !slugData) {
         return {
@@ -154,7 +154,7 @@ export class WorkspaceService {
       }
 
       // Add creator as owner member
-      const { error: memberError } = await supabase
+      const { error: _error: memberError } = await supabase
         .from('workspace_members')
         .insert({
           workspace_id: workspace.id,
@@ -173,8 +173,8 @@ export class WorkspaceService {
         data: workspace,
         statusCode: 201
       };
-    } catch (error) {
-      console.error('Create workspace error:', error);
+    } catch (_error) {
+      console.error('Create workspace error:', _error);
       return {
         success: false,
         error: 'Failed to create workspace',
@@ -193,11 +193,11 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<Workspace>> {
     try {
       // Validate input
-      const validation = validateUpdateWorkspace(data);
+      const validation = validateUpdateWorkspace(_data);
       if (!validation.valid) {
         return {
           success: false,
-          error: formatValidationErrors(validation.errors),
+          error: formatValidationErrors(validation._errors),
           statusCode: 400
         };
       }
@@ -223,13 +223,13 @@ export class WorkspaceService {
         updated_at: new Date().toISOString()
       };
 
-      if (data.name !== undefined) updateData.name = data.name;
-      if (data.description !== undefined) updateData.description = data.description;
-      if (data.visibility !== undefined) updateData.visibility = data.visibility;
-      if (data.settings !== undefined) updateData.settings = data.settings;
+      if (_data.name !== undefined) updateData.name = data.name;
+      if (_data.description !== undefined) updateData.description = data.description;
+      if (_data.visibility !== undefined) updateData.visibility = data.visibility;
+      if (_data.settings !== undefined) updateData.settings = data.settings;
 
       // Update workspace
-      const { data: workspace, error: updateError } = await supabase
+      const { data: workspace, error: _error: updateError } = await supabase
         .from('workspaces')
         .update(updateData)
         .eq('id', workspaceId)
@@ -252,8 +252,8 @@ export class WorkspaceService {
         data: workspace,
         statusCode: 200
       };
-    } catch (error) {
-      console.error('Update workspace error:', error);
+    } catch (_error) {
+      console.error('Update workspace error:', _error);
       return {
         success: false,
         error: 'Failed to update workspace',
@@ -294,7 +294,7 @@ export class WorkspaceService {
       }
 
       // Delete workspace (cascade will handle related records)
-      const { error: deleteError } = await supabase
+      const { error: _error: deleteError } = await supabase
         .from('workspaces')
         .delete()
         .eq('id', workspaceId);
@@ -307,8 +307,8 @@ export class WorkspaceService {
         success: true,
         statusCode: 200
       };
-    } catch (error) {
-      console.error('Delete workspace error:', error);
+    } catch (_error) {
+      console.error('Delete workspace error:', _error);
       return {
         success: false,
         error: 'Failed to delete workspace',
@@ -326,7 +326,7 @@ export class WorkspaceService {
   ): Promise<ServiceResponse<WorkspaceWithStats>> {
     try {
       // Get workspace with member check
-      const { data: workspace, error } = await supabase
+      const { data: workspace, error: _error } = await supabase
         .from('workspaces')
         .select(`
           *,
@@ -347,8 +347,8 @@ export class WorkspaceService {
         .eq('workspace_members.user_id', userId)
         .maybeSingle();
 
-      if (error) {
-        if (error.code === 'PGRST116') {
+      if (_error) {
+        if (_error.code === 'PGRST116') {
           return {
             success: false,
             error: 'Workspace not found or access denied',
@@ -376,8 +376,8 @@ export class WorkspaceService {
         data: workspaceWithStats,
         statusCode: 200
       };
-    } catch (error) {
-      console.error('Get workspace error:', error);
+    } catch (_error) {
+      console.error('Get workspace error:', _error);
       return {
         success: false,
         error: 'Failed to get workspace',
@@ -430,9 +430,9 @@ export class WorkspaceService {
         query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
       }
 
-      const { data: workspaces, error, count } = await query;
+      const { data: workspaces, error: _error, count } = await query;
 
-      if (error) {
+      if (_error) {
         throw error;
       }
 
@@ -458,8 +458,8 @@ export class WorkspaceService {
         },
         statusCode: 200
       };
-    } catch (error) {
-      console.error('List workspaces error:', error);
+    } catch (_error) {
+      console.error('List workspaces error:', _error);
       return {
         success: false,
         error: 'Failed to list workspaces',
@@ -492,8 +492,8 @@ export class WorkspaceService {
         hasPermission: requiredRoles.includes(member.role as WorkspaceRole),
         role: member.role as WorkspaceRole
       };
-    } catch (error) {
-      console.error('Check permission error:', error);
+    } catch (_error) {
+      console.error('Check permission error:', _error);
       return { hasPermission: false };
     }
   }
@@ -522,7 +522,7 @@ export class WorkspaceService {
         .from('workspace_repositories')
         .select('id')
         .eq('workspace_id', workspaceId)
-        .eq('repository_id', data.repository_id)
+        .eq('repository_id', _data.repository_id)
         .maybeSingle();
 
       if (existing) {
@@ -557,7 +557,7 @@ export class WorkspaceService {
       }
 
       // Add repository to workspace
-      const { data: workspaceRepo, error: addError } = await supabase
+      const { data: workspaceRepo, error: _error: addError } = await supabase
         .from('workspace_repositories')
         .insert({
           workspace_id: workspaceId,
@@ -588,8 +588,8 @@ export class WorkspaceService {
         data: workspaceRepo,
         statusCode: 201
       };
-    } catch (error) {
-      console.error('Add repository to workspace error:', error);
+    } catch (_error) {
+      console.error('Add repository to workspace error:', _error);
       return {
         success: false,
         error: 'Failed to add repository to workspace',
@@ -618,7 +618,7 @@ export class WorkspaceService {
       }
 
       // Remove repository from workspace
-      const { error: removeError } = await supabase
+      const { error: _error: removeError } = await supabase
         .from('workspace_repositories')
         .delete()
         .eq('workspace_id', workspaceId)
@@ -649,8 +649,8 @@ export class WorkspaceService {
         success: true,
         statusCode: 200
       };
-    } catch (error) {
-      console.error('Remove repository from workspace error:', error);
+    } catch (_error) {
+      console.error('Remove repository from workspace error:', _error);
       return {
         success: false,
         error: 'Failed to remove repository from workspace',
@@ -735,9 +735,9 @@ export class WorkspaceService {
 
       query = query.range(offset, offset + limit - 1);
 
-      const { data: repositories, error, count } = await query;
+      const { data: repositories, error: _error, count } = await query;
 
-      if (error) {
+      if (_error) {
         throw error;
       }
 
@@ -754,8 +754,8 @@ export class WorkspaceService {
         },
         statusCode: 200
       };
-    } catch (error) {
-      console.error('List workspace repositories error:', error);
+    } catch (_error) {
+      console.error('List workspace repositories error:', _error);
       return {
         success: false,
         error: 'Failed to list workspace repositories',

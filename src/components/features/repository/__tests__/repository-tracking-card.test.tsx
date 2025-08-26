@@ -92,7 +92,7 @@ describe('RepositoryTrackingCard', () => {
   });
 
   describe('Mock Data Generation', () => {
-    it('should generate valid mock scatter data', () => {
+    it('should generate valid mock scatter _data', () => {
       // Test mock data structure
       const mockData = [];
       for (let i = 0; i < 30; i++) {

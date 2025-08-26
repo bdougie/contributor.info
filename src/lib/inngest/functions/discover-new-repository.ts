@@ -33,7 +33,7 @@ interface GitHubRepository {
   archived: boolean;
   disabled: boolean;
   open_issues_count: number;
-  license: any;
+  license: unknown;
   topics: string[];
   visibility: string;
   default_branch: string;
@@ -59,7 +59,7 @@ export const discoverNewRepository = inngest.createFunction(
     
     // Validate required fields
     if (!owner || !repo) {
-      console.error('Missing required fields in discovery event:', event.data);
+      console.error('Missing required fields in discovery event:', event._data);
       throw new NonRetriableError(`Missing required fields: owner=${owner}, repo=${repo}`);
     }
     
@@ -118,7 +118,7 @@ export const discoverNewRepository = inngest.createFunction(
       }
 
       if (!response.ok) {
-        throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+        throw new Error(`GitHub API _error: ${response.status} ${response.statusText}`);
       }
 
       const data: GitHubRepository = await response.json();
@@ -127,7 +127,7 @@ export const discoverNewRepository = inngest.createFunction(
 
     // Step 3: Create repository record
     const repository = await step.run("create-repository", async () => {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('repositories')
         .insert({
           github_id: githubData.id,
@@ -164,9 +164,9 @@ export const discoverNewRepository = inngest.createFunction(
         .select()
         .maybeSingle();
 
-      if (error) {
+      if (_error) {
         // Handle unique constraint violation (repo was created by another process)
-        if (error.code === '23505') {
+        if (_error.code === '23505') {
           const { data: existingRepo } = await supabase
             .from('repositories')
             .select('id')
@@ -177,7 +177,7 @@ export const discoverNewRepository = inngest.createFunction(
             return existingRepo;
           }
         }
-        throw new Error(`Failed to create repository: ${error.message}`);
+        throw new Error(`Failed to create repository: ${_error.message}`);
       }
 
       return data;
@@ -185,7 +185,7 @@ export const discoverNewRepository = inngest.createFunction(
 
     // Step 4: Add to tracked repositories
     await step.run("add-to-tracking", async () => {
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('tracked_repositories')
         .insert({
           repository_id: repository.id,
@@ -198,8 +198,8 @@ export const discoverNewRepository = inngest.createFunction(
           updated_at: new Date().toISOString()
         });
 
-      if (error && error.code !== '23505') { // Ignore duplicate key errors
-        console.error(`Failed to track repository: ${error.message}`);
+      if (error && _error.code !== '23505') { // Ignore duplicate key errors
+        console.error(`Failed to track repository: ${_error.message}`);
         // Don't throw - repository exists which is the main goal
       }
     });

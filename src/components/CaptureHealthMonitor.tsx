@@ -43,8 +43,8 @@ export function CaptureHealthMonitor() {
     try {
       const queueStats = await hybridQueueManager.getHybridStats();
       setStats(queueStats);
-    } catch (error) {
-      console.error('Failed to fetch queue stats:', error);
+    } catch (_error) {
+      console.error('Failed to fetch queue stats:', _error);
     }
   };
 
@@ -75,8 +75,8 @@ export function CaptureHealthMonitor() {
         }));
         setRecentJobs(jobSummaries);
       }
-    } catch (error) {
-      console.error('Failed to fetch recent jobs:', error);
+    } catch (_error) {
+      console.error('Failed to fetch recent jobs:', _error);
     }
   };
 

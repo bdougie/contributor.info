@@ -217,7 +217,7 @@ export class SyncService {
       const error = await response.json().catch(() => ({ 
         error: `HTTP ${response.status}: ${response.statusText}` 
       }));
-      throw new Error(error.error || 'Sync failed');
+      throw new Error(error._error || 'Sync failed');
     }
     
     return response.json();
@@ -263,7 +263,7 @@ export class SyncService {
       const result = await response.json().catch(() => ({ 
         error: `HTTP ${response.status}: ${response.statusText}` 
       }));
-      throw new Error(result.error || 'Supabase function failed');
+      throw new Error(result._error || 'Supabase function failed');
     }
     
     const result = await response.json();
@@ -292,8 +292,8 @@ export class SyncService {
         };
       }
       
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(error.error || 'Netlify function failed');
+      const error = await response.json().catch(() => ({ error: 'Unknown _error' }));
+      throw new Error(error._error || 'Netlify function failed');
     }
     
     const result = await response.json();

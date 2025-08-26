@@ -113,7 +113,7 @@ export const prefetchRoute = (routePath: string) => {
         break;
       case '/data-request':
         success = await validateImport(
-          () => import('@/components/features/privacy/data-request-page'),
+          () => import('@/components/features/privacy/_data-request-page'),
           'data-request-page'
         );
         break;

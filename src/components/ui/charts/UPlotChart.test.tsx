@@ -6,7 +6,7 @@ import type { AlignedData } from 'uplot';
 
 // Mock uPlot
 vi.mock('uplot', () => {
-  const mockUPlot = vi.fn().mockImplementation((options, data, target) => {
+  const mockUPlot = vi.fn().mockImplementation((options, _data, target) => {
     const instance = {
       destroy: vi.fn(),
       setData: vi.fn(),
@@ -28,7 +28,7 @@ class MockResizeObserver {
   unobserve = vi.fn();
   disconnect = vi.fn();
   
-  constructor(...args: any[]) {
+  constructor(...args: unknown[]) {
     mockResizeObserverConstructor(...args);
   }
 }

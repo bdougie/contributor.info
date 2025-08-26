@@ -325,8 +325,8 @@ export async function fetchRepositoryActivity(
             }
           }
         }
-      } catch (error) {
-        console.warn(`Failed to fetch reviews for PR ${pr.number}:`, error);
+      } catch (_error) {
+        console.warn(`Failed to fetch reviews for PR ${pr.number}:`, _error);
       }
 
       // Fetch and process comments for this PR
@@ -367,8 +367,8 @@ export async function fetchRepositoryActivity(
             }
           }
         }
-      } catch (error) {
-        console.warn(`Failed to fetch comments for PR ${pr.number}:`, error);
+      } catch (_error) {
+        console.warn(`Failed to fetch comments for PR ${pr.number}:`, _error);
       }
     }
 
@@ -407,11 +407,11 @@ export async function fetchRepositoryActivity(
           commenter.latestContribution = commentDate;
         }
       }
-    } catch (error) {
-      console.warn(`Failed to fetch issue comments:`, error);
+    } catch (_error) {
+      console.warn(`Failed to fetch issue comments:`, _error);
     }
 
-  } catch (error) {
+  } catch (_error) {
     throw new ContributorApiError(
       `Failed to fetch activity for repository ${owner}/${repo}: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
@@ -491,8 +491,8 @@ export async function fetchContributorActivity(
             allContributors.set(contributorId, { ...activity });
           }
         }
-      } catch (error) {
-        console.error(`Failed to fetch activity for ${repoString}:`, error);
+      } catch (_error) {
+        console.error(`Failed to fetch activity for ${repoString}:`, _error);
         // Continue with other repositories
       }
     }
@@ -510,7 +510,7 @@ export async function fetchContributorActivity(
       },
     };
 
-  } catch (error) {
+  } catch (_error) {
     const processingTime = Date.now() - startTime;
     
     return {
@@ -532,7 +532,7 @@ export async function fetchContributorActivity(
 class SimpleCache<T> {
   private cache = new Map<string, { data: T; timestamp: number; ttl: number }>();
   
-  set(key: string, data: T, ttl: number): void {
+  set(key: string, _data: T, ttl: number): void {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -596,7 +596,7 @@ export async function fetchContributorActivityCached(
   
   // Cache successful results
   if (result.success) {
-    contributorCache.set(cacheKey, result.data, cacheTtl);
+    contributorCache.set(cacheKey, result._data, cacheTtl);
   }
   
   return result;

@@ -38,7 +38,7 @@ interface ContributorCardSimpleProps {
   }) => React.ReactNode;
   renderHoverCard?: (props: {
     children: React.ReactNode;
-    contributor: any;
+    contributor: unknown;
   }) => React.ReactNode;
 }
 

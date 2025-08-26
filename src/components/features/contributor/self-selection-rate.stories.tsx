@@ -69,7 +69,7 @@ const SelfSelectionRateStory = ({
   loading = false,
   error = null,
   className 
-}: any) => {
+}: unknown) => {
   if (loading) {
     return (
       <Card className={className}>
@@ -85,7 +85,7 @@ const SelfSelectionRateStory = ({
     )
   }
 
-  if (error || !mockStats) {
+  if (_error || !mockStats) {
     return (
       <Card className={className}>
         <CardHeader>

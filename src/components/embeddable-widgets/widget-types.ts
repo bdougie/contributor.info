@@ -81,6 +81,6 @@ export interface CitationFormat {
 
 export interface PermalinkConfig {
   type: 'repository' | 'contributor' | 'metric' | 'comparison';
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   format?: 'json' | 'csv' | 'widget';
 }

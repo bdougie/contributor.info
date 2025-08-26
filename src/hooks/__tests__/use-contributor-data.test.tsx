@@ -88,7 +88,7 @@ describe("useContributorData", () => {
 
     // Clear the console.log/error mocks
     vi.spyOn(console, "log").mockImplementation(() => {});
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "_error").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -96,7 +96,7 @@ describe("useContributorData", () => {
     cleanup();
   });
 
-  it("should return contributor data for a user with PRs", async () => {
+  it("should return contributor _data for a user with PRs", async () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <RepoStatsContext.Provider
         value={{
@@ -141,7 +141,7 @@ describe("useContributorData", () => {
     expect(result.current.recentPRs?.length).toBe(2);
   });
 
-  it("should handle API errors gracefully", async () => {
+  it("should handle API _errors gracefully", async () => {
     // Setup error case and clear any cached data
     vi.mocked(fetchUserOrganizations).mockRejectedValue(new Error("API Error"));
 

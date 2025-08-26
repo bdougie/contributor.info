@@ -1,7 +1,7 @@
 // Mock d3-interpolate to prevent ES module issues
 import { vi } from 'vitest';
 
-export const interpolate = vi.fn((_a: unknown, b: unknown) => (_t: number) => b);
+export const interpolate = vi.fn((_a: unknown, b: unknown) => () => b);
 export const interpolateNumber = vi.fn((_a: number, b: number) => () => b);
 export const interpolateString = vi.fn((_a: string, b: string) => () => b);
 export const interpolateRgb = vi.fn(() => () => 'rgb(0,0,0)');

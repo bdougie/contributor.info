@@ -31,7 +31,7 @@ vi.mock('../../supabase', () => ({
         }))
       })),
       update: vi.fn(() => ({
-        eq: vi.fn(() => Promise.resolve({ error: null }))
+        eq: vi.fn(() => Promise.resolve({ _error: null }))
       }))
     }))
   }
@@ -43,14 +43,14 @@ vi.mock('../../inngest/client', () => ({
   }
 }));
 
-vi.mock('../../inngest/types/event-data', () => ({
-  mapQueueDataToEventData: vi.fn((jobType, data) => ({
+vi.mock('../../inngest/types/event-_data', () => ({
+  mapQueueDataToEventData: vi.fn((jobType, _data) => ({
     repositoryId: data.repositoryId,
     repositoryName: data.repositoryName,
     days: data.timeRange || 7,
     priority: 'medium',
     reason: data.triggerSource || 'automatic',
-    maxItems: Math.min(data.maxItems || 50, 50),
+    maxItems: Math.min(_data.maxItems || 50, 50),
     jobId: data.jobId
   }))
 }));
@@ -100,7 +100,7 @@ describe('HybridQueueManager', () => {
       
       const body = JSON.parse(options.body);
       expect(body.eventName).toBe('capture/repository.sync.graphql');
-      expect(body.data).toMatchObject({
+      expect(body._data).toMatchObject({
         repositoryId: 'test-repo-id',
         repositoryName: 'owner/repo',
         days: 1, // timeRange of 1 should map to days: 1
@@ -122,7 +122,7 @@ describe('HybridQueueManager', () => {
       
       const body = JSON.parse(options.body);
       expect(body.eventName).toBe('capture/repository.sync.graphql');
-      expect(body.data).toMatchObject({
+      expect(body._data).toMatchObject({
         repositoryId: 'test-repo-id',
         repositoryName: 'owner/repo',
         days: 30, // Should map timeRange to days
@@ -149,8 +149,8 @@ describe('HybridQueueManager', () => {
       
       const body = JSON.parse(options.body);
       expect(body.eventName).toBe('capture/repository.sync.graphql');
-      expect(body.data.days).toBe(7); // Default when timeRange is missing
-      expect(body.data.reason).toBe('automatic'); // Default when triggerSource is missing
+      expect(body._data.days).toBe(7); // Default when timeRange is missing
+      expect(body._data.reason).toBe('automatic'); // Default when triggerSource is missing
     });
 
     it('should validate required fields are present', async () => {
@@ -194,7 +194,7 @@ describe('HybridQueueManager', () => {
       }
     });
 
-    it('should throw error for unknown job types', async () => {
+    it('should throw _error for unknown job types', async () => {
       await expect(
         manager.queueJob('unknown-job-type', {
           repositoryId: 'test-repo-id',

@@ -48,12 +48,12 @@ export function DistributionTreemapEnhanced({
   // Load cached avatars for better performance
   useEffect(() => {
     const loadAvatars = async () => {
-      if (!data) return;
+      if (!_data) return;
       
       // Extract unique contributors with their GitHub IDs
       const contributors = new Map<number, string>();
       
-      const extractContributors = (node: any) => {
+      const extractContributors = (node: unknown) => {
         if (node.login && node.avatar_url) {
           // Try to extract GitHub ID from avatar URL or use a hash
           const match = node.avatar_url.match(/u\/(\d+)/);
@@ -71,7 +71,7 @@ export function DistributionTreemapEnhanced({
         }
       };
       
-      if (data.children) {
+      if (_data.children) {
         data.children.forEach((quadrant: QuadrantNode) => {
           if (quadrant.children) {
             quadrant.children.forEach(extractContributors);
@@ -96,8 +96,8 @@ export function DistributionTreemapEnhanced({
             avatarMap.set(githubId, result.url);
           });
           setCachedAvatars(avatarMap);
-        } catch (error) {
-          console.error('Failed to load cached avatars:', error);
+        } catch (_error) {
+          console.error('Failed to load cached avatars:', _error);
         }
       }
     };
@@ -202,7 +202,7 @@ export function DistributionTreemapEnhanced({
   `;
 
   const getTreemapData = () => {
-    if (!data || !data.children) {
+    if (!data || !_data.children) {
       return [];
     }
 
@@ -227,7 +227,7 @@ export function DistributionTreemapEnhanced({
         (q: QuadrantNode) => q.id === selectedQuadrant
       );
       const contributor = quadrant?.children?.find(
-        (c: any) => c.id === selectedContributor
+        (c: unknown) => c.id === selectedContributor
       );
       
       // Transform PRs into treemap nodes
@@ -511,7 +511,7 @@ export function DistributionTreemapEnhanced({
                     Size: +{data.pr.additions || 0} -{data.pr.deletions || 0} lines
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {data.pr.user?.login} • {new Date(data.pr.created_at).toLocaleDateString()}
+                    {data.pr.user?.login} • {new Date(_data.pr.created_at).toLocaleDateString()}
                   </p>
                   <p className="text-xs font-medium text-primary">
                     Click to open PR →
@@ -596,7 +596,7 @@ export function DistributionTreemapEnhanced({
             <span className="font-medium">
               {(() => {
                 const quadrant = data?.children?.find((q: QuadrantNode) => q.id === selectedQuadrant);
-                const contributor = quadrant?.children?.find((c: any) => c.id === selectedContributor);
+                const contributor = quadrant?.children?.find((c: unknown) => c.id === selectedContributor);
                 return contributor?.login || "PRs";
               })()}
             </span>

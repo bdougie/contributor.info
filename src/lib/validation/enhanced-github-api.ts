@@ -91,7 +91,7 @@ export async function fetchPullRequestsWithValidation(
       const error = await response.json();
       if (response.status === 404) {
         throw new Error(`Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`);
-      } else if (response.status === 403 && error.message?.includes('rate limit')) {
+      } else if (response.status === 403 && _error.message?.includes('rate limit')) {
         if (!token) {
           throw new Error('GitHub API rate limit exceeded. Please log in with GitHub to increase the rate limit.');
         } else {
@@ -100,7 +100,7 @@ export async function fetchPullRequestsWithValidation(
       } else if (response.status === 401) {
         throw new Error('Invalid GitHub token. Please check your token and try again. Make sure you\'ve copied the entire token correctly.');
       }
-      throw new Error(`GitHub API error: ${error.message || response.statusText}`);
+      throw new Error(`GitHub API error: ${_error.message || response.statusText}`);
     }
 
     const rawPullRequests = await response.json();
@@ -117,14 +117,14 @@ export async function fetchPullRequestsWithValidation(
     }
 
     // Filter PRs by the time range
-    const filteredPRs = rawPullRequests.filter((pr: any) => {
+    const filteredPRs = rawPullRequests.filter((pr: unknown) => {
       const prDate = new Date(pr.updated_at);
       return prDate >= since;
     });
     
     // Process each PR with validation
     const validatedPullRequests = await Promise.all(
-      filteredPRs.map(async (pr: any, index: number) => {
+      filteredPRs.map(async (pr: unknown, index: number) => {
         try {
           // Validate the basic PR data first
           const validatedPR = validateGitHubPullRequest(pr);
@@ -212,8 +212,8 @@ export async function fetchPullRequestsWithValidation(
             fetch(`${GITHUB_API_BASE}/repos/${owner}/${repo}/issues/${pr.number}/comments`, { headers })
           ]);
 
-          let validatedReviews: any[] = [];
-          let validatedComments: any[] = [];
+          let validatedReviews: unknown[] = [];
+          let validatedComments: unknown[] = [];
 
           // Validate reviews
           if (reviewsResponse.ok) {
@@ -225,7 +225,7 @@ export async function fetchPullRequestsWithValidation(
             );
             
             if (Array.isArray(reviewsValidation)) {
-              validatedReviews = reviewsValidation.map((review: any) => ({
+              validatedReviews = reviewsValidation.map((review: unknown) => ({
                 id: review.id,
                 state: review.state,
                 user: {
@@ -253,7 +253,7 @@ export async function fetchPullRequestsWithValidation(
             );
             
             if (Array.isArray(commentsValidation)) {
-              validatedComments = commentsValidation.map((comment: any) => ({
+              validatedComments = commentsValidation.map((comment: unknown) => ({
                 id: comment.id,
                 user: {
                   login: comment.user.login,
@@ -298,10 +298,10 @@ export async function fetchPullRequestsWithValidation(
             reviews: validatedReviews,
             comments: validatedComments,
           };
-        } catch (error) {
+        } catch (_error) {
           validationErrors.push({
             index,
-            error: `Error processing PR #${pr.number}: ${String(error)}`,
+            error: `Error processing PR #${pr.number}: ${String(_error)}`,
             rawData: pr,
           });
           return null;
@@ -318,11 +318,11 @@ export async function fetchPullRequestsWithValidation(
       pullRequests: successfulPullRequests,
       validationErrors,
     };
-  } catch (error) {
-    if (error instanceof Error) {
+  } catch (_error) {
+    if (_error instanceof Error) {
       throw error;
     }
-    throw new Error('An unexpected error occurred while fetching repository data.');
+    throw new Error('An unexpected _error occurred while fetching repository _data.');
   }
 }
 
@@ -371,7 +371,7 @@ export async function fetchUserOrganizationsWithValidation(
     }
 
     const organizations = Array.isArray(validatedOrgs) 
-      ? validatedOrgs.slice(0, 3).map((org: any) => ({
+      ? validatedOrgs.slice(0, 3).map((org: unknown) => ({
           login: org.login,
           avatar_url: org.avatar_url,
         }))
@@ -381,11 +381,11 @@ export async function fetchUserOrganizationsWithValidation(
       organizations,
       validationErrors,
     };
-  } catch (error) {
-    console.error('Error fetching user organizations:', error);
+  } catch (_error) {
+    console.error('Error fetching user organizations:', _error);
     return {
       organizations: [],
-      validationErrors: [{ error: String(error), rawData: null }],
+      validationErrors: [{ error: String(_error), rawData: null }],
     };
   }
 }
@@ -398,7 +398,7 @@ export async function fetchRepositoryWithValidation(
   repo: string,
   headers: HeadersInit
 ): Promise<{
-  repository: any | null;
+  repository: unknown | null;
   validationErrors: Array<{ error: string; rawData: unknown; }>;
 }> {
   try {
@@ -438,11 +438,11 @@ export async function fetchRepositoryWithValidation(
       repository: transformedRepo,
       validationErrors,
     };
-  } catch (error) {
-    console.error('Error fetching repository:', error);
+  } catch (_error) {
+    console.error('Error fetching repository:', _error);
     return {
       repository: null,
-      validationErrors: [{ error: String(error), rawData: null }],
+      validationErrors: [{ error: String(_error), rawData: null }],
     };
   }
 }
@@ -453,7 +453,7 @@ export async function fetchRepositoryWithValidation(
 export function withValidation<TInput, TOutput>(
   apiFunction: (input: TInput) => Promise<TOutput>,
   validator?: (output: TOutput) => boolean,
-  onValidationError?: (error: string, input: TInput, output: TOutput) => void
+  onValidationError?: (_error: string, input: TInput, output: TOutput) => void
 ) {
   return async (input: TInput): Promise<TOutput> => {
     const output = await apiFunction(input);
@@ -462,9 +462,9 @@ export function withValidation<TInput, TOutput>(
       const error = 'API response validation failed';
       
       if (onValidationError) {
-        onValidationError(error, input, output);
+        onValidationError(__error, input, output);
       } else {
-        console.warn(error, { input, output });
+        console.warn(__error, { input, output });
       }
     }
     

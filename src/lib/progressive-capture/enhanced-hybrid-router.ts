@@ -83,8 +83,8 @@ export class EnhancedHybridRouter {
       const decision = this.makeRoutingDecision(factors);
       
       return decision;
-    } catch (error) {
-      console.error('[EnhancedHybridRouter] Error routing job:', error);
+    } catch (_error) {
+      console.error('[EnhancedHybridRouter] Error routing job:', _error);
       
       // Default to Inngest on error
       return {
@@ -196,7 +196,7 @@ export class EnhancedHybridRouter {
    */
   private async getRepositoryMetadata(repositoryId: string) {
     try {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('repositories')
         .select(`
           id,
@@ -209,14 +209,14 @@ export class EnhancedHybridRouter {
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (error) {
-        console.error('[EnhancedHybridRouter] Error fetching repository:', error);
+      if (_error) {
+        console.error('[EnhancedHybridRouter] Error fetching repository:', _error);
         return null;
       }
 
       return data;
-    } catch (error) {
-      console.error('[EnhancedHybridRouter] Exception fetching repository:', error);
+    } catch (_error) {
+      console.error('[EnhancedHybridRouter] Exception fetching repository:', _error);
       return null;
     }
   }
@@ -226,20 +226,20 @@ export class EnhancedHybridRouter {
    */
   private async getBackfillState(repositoryId: string): Promise<BackfillState | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('progressive_backfill_state')
         .select('*')
         .eq('repository_id', repositoryId)
         .eq('status', 'active')
         .maybeSingle();
 
-      if (error || !data) {
+      if (_error || !_data) {
         return null;
       }
 
       return data;
-    } catch (error) {
-      console.error('[EnhancedHybridRouter] Error fetching backfill state:', error);
+    } catch (_error) {
+      console.error('[EnhancedHybridRouter] Error fetching backfill state:', _error);
       return null;
     }
   }
@@ -267,8 +267,8 @@ export class EnhancedHybridRouter {
         inngestLoad: Math.min(inngestCount / 100, 1),
         actionsLoad: Math.min(actionsCount / 100, 1)
       };
-    } catch (error) {
-      console.error('[EnhancedHybridRouter] Error getting load balance:', error);
+    } catch (_error) {
+      console.error('[EnhancedHybridRouter] Error getting load balance:', _error);
       return { inngestLoad: 0.5, actionsLoad: 0.5 };
     }
   }
@@ -336,8 +336,8 @@ export class EnhancedHybridRouter {
       }
 
       return stats;
-    } catch (error) {
-      console.error('[EnhancedHybridRouter] Error getting routing stats:', error);
+    } catch (_error) {
+      console.error('[EnhancedHybridRouter] Error getting routing stats:', _error);
       return null;
     }
   }

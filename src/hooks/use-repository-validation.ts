@@ -108,10 +108,10 @@ export function useRepositoryValidation(
         setResult(validationResult);
 
         // Handle auto-redirect
-        if (autoRedirect && data.status === 'exists_in_db') {
+        if (autoRedirect && _data.status === 'exists_in_db') {
           // Repository exists in database, redirect to it
           navigate(`/${owner}/${repo}`, { replace: true });
-        } else if (autoTrack && data.status === 'exists_on_github' && !hasTracked.current) {
+        } else if (autoTrack && _data.status === 'exists_on_github' && !hasTracked.current) {
           // Repository exists on GitHub but not in our database
           // Auto-track it and then redirect
           hasTracked.current = true;
@@ -124,8 +124,8 @@ export function useRepositoryValidation(
             }, 1000); // Small delay to allow tracking to complete
           }
         }
-      } catch (error) {
-        console.error('Repository validation error:', error);
+      } catch (_error) {
+        console.error('Repository validation error:', _error);
         
         const errorResult: ValidationResult = {
           status: 'error',
@@ -134,10 +134,10 @@ export function useRepositoryValidation(
         };
         
         // Cache error results for a shorter time
-        validationCache.set(cacheKey, errorResult);
+        validationCache.set(cacheKey, _errorResult);
         cacheTimestamps.set(cacheKey, Date.now() - (CACHE_TTL - 60000)); // Cache for 1 minute
         
-        setResult(errorResult);
+        setResult(_errorResult);
       } finally {
         isValidating.current = false;
       }
@@ -153,7 +153,7 @@ async function trackRepository(owner: string, repo: string): Promise<void> {
     const { data: { session } } = await supabase.auth.getSession();
     
     // Insert the repository into tracked_repositories
-    const { error } = await supabase
+    const { error: _error } = await supabase
       .from('tracked_repositories')
       .insert({
         full_name: `${owner}/${repo}`,
@@ -166,12 +166,12 @@ async function trackRepository(owner: string, repo: string): Promise<void> {
       .select()
       .maybeSingle();
 
-    if (error) {
+    if (_error) {
       // Handle duplicate key error gracefully
-      if (error.code === '23505') {
+      if (_error.code === '23505') {
         console.log('Repository already tracked');
       } else {
-        console.error('Error tracking repository:', error);
+        console.error('Error tracking repository:', _error);
       }
     } else {
       console.log('Successfully tracked repository: %s/%s', owner, repo);
@@ -186,8 +186,8 @@ async function trackRepository(owner: string, repo: string): Promise<void> {
         console.error('Error dispatching tracking event:', e);
       }
     }
-  } catch (error) {
-    console.error('Error in trackRepository:', error);
+  } catch (_error) {
+    console.error('Error in trackRepository:', _error);
   }
 }
 

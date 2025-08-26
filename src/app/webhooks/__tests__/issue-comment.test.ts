@@ -7,7 +7,7 @@ vi.mock('../../../../app/lib/auth', () => ({
   githubAppAuth: {
     getInstallationOctokit: vi.fn(() => ({
       issues: {
-        createComment: vi.fn().mockResolvedValue({ data: { id: 12345 } }),
+        createComment: vi.fn().mockResolvedValue({ _data: { id: 12345 } }),
         deleteComment: vi.fn().mockResolvedValue({}),
       },
       pulls: {
@@ -28,17 +28,17 @@ vi.mock('../../../lib/supabase', () => ({
         select: vi.fn().mockReturnThis(),
         update: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { id: 'test-id' } }),
+        single: vi.fn().mockResolvedValue({ _data: { id: 'test-id' } }),
         upsert: vi.fn().mockReturnThis(),
       };
       
       // Special handling for different tables
       if (table === 'pull_requests') {
-        chainObj.single = vi.fn().mockResolvedValue({ data: { id: 'pr-123', repository_id: 1 } });
+        chainObj.single = vi.fn().mockResolvedValue({ _data: { id: 'pr-123', repository_id: 1 } });
       } else if (table === 'comment_commands') {
-        chainObj.single = vi.fn().mockResolvedValue({ data: { id: 'cmd-123' } });
+        chainObj.single = vi.fn().mockResolvedValue({ _data: { id: 'cmd-123' } });
       } else if (table === 'contributors') {
-        chainObj.single = vi.fn().mockResolvedValue({ data: { id: 'contributor-123' } });
+        chainObj.single = vi.fn().mockResolvedValue({ _data: { id: 'contributor-123' } });
       }
       
       return chainObj;
@@ -87,20 +87,20 @@ describe('handleIssueCommentEvent', () => {
       body: 'Test body',
       state: 'open',
       pull_request: isPR ? { url: 'test', html_url: 'test' } : undefined,
-    } as any,
+    },
     comment: {
       id: 999,
       body: commentBody,
-      user: { id: 1, login: 'testuser' } as any,
-    } as any,
+      user: { id: 1, login: 'testuser' },
+    },
     repository: {
       id: 1,
       full_name: 'test/repo',
       owner: { login: 'test' },
       name: 'repo',
-    } as any,
-    installation: { id: 123 } as any,
-    sender: {} as any,
+    },
+    installation: { id: 123 },
+    sender: {},
   });
 
   beforeEach(() => {
@@ -129,3 +129,4 @@ describe('handleIssueCommentEvent', () => {
     expect(mockOctokit.issues.createComment).not.toHaveBeenCalled();
     expect(mockOctokit.issues.deleteComment).not.toHaveBeenCalled();
   });
+});

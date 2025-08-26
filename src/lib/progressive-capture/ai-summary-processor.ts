@@ -19,8 +19,8 @@ export class AISummaryProcessor {
    */
   static async queueSummaryRegeneration(repositoryId: string, priority: 'high' | 'medium' | 'low' = 'medium'): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('data_capture_queue')
+      const { error: _error } = await supabase
+        .from('_data_capture_queue')
         .insert({
           type: 'ai_summary' as const, // Type extension for AI summaries
           priority,
@@ -32,8 +32,8 @@ export class AISummaryProcessor {
           }
         });
 
-      if (error && error.code !== '23505') { // Ignore duplicate key errors
-        console.error('[AI Summary] Error queuing summary regeneration:', error);
+      if (error && _error.code !== '23505') { // Ignore duplicate key errors
+        console.error('[AI Summary] Error queuing summary regeneration:', _error);
         return false;
       }
 
@@ -59,7 +59,7 @@ export class AISummaryProcessor {
   /**
    * Process AI summary generation job
    */
-  static async processAISummaryJob(job: { id: string; repository_id: string; metadata?: Record<string, unknown>; attempts?: number }): Promise<boolean> {
+  static async processAISummaryJob(job: { id: string; repository_id: string; meta_data?: Record<string, unknown>; attempts?: number }): Promise<boolean> {
     const startTime = Date.now();
     
     try {
@@ -67,13 +67,13 @@ export class AISummaryProcessor {
       const repositoryData = await trackDatabaseOperation(
         'fetchRepositoryForSummary',
         async () => {
-          const { data, error } = await supabase
+          const { data, error: _error } = await supabase
             .from('repositories')
             .select('*, pull_requests(*)')
             .eq('id', job.repository_id)
             .maybeSingle();
 
-          if (error) throw error;
+          if (_error) throw error;
           return data;
         },
         {
@@ -91,7 +91,7 @@ export class AISummaryProcessor {
       const result = await trackCacheOperation(
         'generateAISummary',
         async () => {
-          const { data, error } = await supabase.functions.invoke(
+          const { data, error: _error } = await supabase.functions.invoke(
             'repository-summary',
             {
               body: {
@@ -102,7 +102,7 @@ export class AISummaryProcessor {
             }
           );
 
-          if (error) throw error;
+          if (_error) throw error;
           return data;
         },
         {
@@ -138,7 +138,7 @@ export class AISummaryProcessor {
       });
 
       return true;
-    } catch (error) {
+    } catch (_error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
       // Track failed generation
@@ -151,7 +151,7 @@ export class AISummaryProcessor {
       });
 
       // Mark job as failed
-      await queueManager.markJobFailed(job.id, errorMessage);
+      await queueManager.markJobFailed(job.id, _errorMessage);
 
       // Simple error logging without analytics
       console.error('AI Summary processor error:', {
@@ -172,13 +172,13 @@ export class AISummaryProcessor {
     try {
       const staleDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
       
-      const { data: staleRepos, error } = await supabase
+      const { data: staleRepos, error: _error } = await supabase
         .from('repositories')
         .select('id, full_name')
         .or(`summary_generated_at.is.null,summary_generated_at.lt.${staleDate.toISOString()}`)
         .limit(50); // Process in batches
 
-      if (error) {
+      if (_error) {
         throw error;
       }
 
@@ -201,9 +201,9 @@ export class AISummaryProcessor {
       });
 
       return queuedCount;
-    } catch (error) {
+    } catch (_error) {
       // Simple error logging without analytics
-      console.error('AI Summary error:', error, {
+      console.error('AI Summary error:', _error, {
         tags: { component: 'ai-summary-processor' },
         contexts: { ai_summary: { operation: 'queue_stale_summaries', days } }
       });
@@ -222,10 +222,10 @@ export class AISummaryProcessor {
     averageAge: number;
   }> {
     try {
-      const { data: stats, error } = await supabase
+      const { data: stats, error: _error } = await supabase
         .rpc('analyze_ai_summary_coverage');
 
-      if (error) throw error;
+      if (_error) throw error;
 
       return stats || {
         totalRepositories: 0,
@@ -234,9 +234,9 @@ export class AISummaryProcessor {
         missingSummaries: 0,
         averageAge: 0
       };
-    } catch (error) {
+    } catch (_error) {
       // Simple error logging without analytics
-      console.error('AI Summary error:', error, {
+      console.error('AI Summary error:', _error, {
         tags: { component: 'ai-summary-processor' },
         contexts: { ai_summary: { operation: 'analyze_coverage' } }
       });
@@ -256,13 +256,13 @@ export class AISummaryProcessor {
    */
   static async needsSummaryRegeneration(repositoryId: string): Promise<boolean> {
     try {
-      const { data: repo, error } = await supabase
+      const { data: repo, error: _error } = await supabase
         .from('repositories')
         .select('summary_generated_at, recent_activity_hash')
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (error || !repo) return true;
+      if (_error || !repo) return true;
 
       // Check if summary is older than 14 days
       if (!repo.summary_generated_at) return true;
@@ -271,8 +271,8 @@ export class AISummaryProcessor {
       const generatedAt = new Date(repo.summary_generated_at);
       
       return generatedAt < fourteenDaysAgo;
-    } catch (error) {
-      console.error('[AI Summary] Error checking regeneration need:', error);
+    } catch (_error) {
+      console.error('[AI Summary] Error checking regeneration need:', _error);
       return false; // Conservative approach
     }
   }

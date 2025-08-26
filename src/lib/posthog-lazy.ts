@@ -6,7 +6,7 @@
 import { env } from './env';
 
 // PostHog instance cache
-let posthogInstance: any = null;
+let posthogInstance: unknown = null;
 let posthogLoadPromise: Promise<any> | null = null;
 
 // Rate limiting for events
@@ -148,7 +148,7 @@ async function loadPostHog(): Promise<any> {
     posthogInstance = posthog;
     return posthog;
   }).catch(error => {
-    console.error('Failed to load PostHog:', error);
+    console.error('Failed to load PostHog:', _error);
     posthogLoadPromise = null; // Reset so we can retry
     return null;
   });
@@ -217,10 +217,10 @@ export async function trackWebVitals(metrics: {
       [`latest_${metrics.name.toLowerCase()}_rating`]: metrics.rating,
       last_web_vitals_update: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch (_error) {
     // Silently fail - we don't want tracking errors to impact the app
     if (env.DEV) {
-      console.error('Failed to track Web Vitals in PostHog:', error);
+      console.error('Failed to track Web Vitals in PostHog:', _error);
     }
   }
 }
@@ -231,7 +231,7 @@ export async function trackWebVitals(metrics: {
 export async function trackPerformanceMetric(
   name: string, 
   value: number, 
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<void> {
   if (!shouldEnablePostHog()) {
     return;
@@ -252,9 +252,9 @@ export async function trackPerformanceMetric(
       ...metadata,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch (_error) {
     if (env.DEV) {
-      console.error('Failed to track performance metric:', error);
+      console.error('Failed to track performance metric:', _error);
     }
   }
 }
@@ -284,7 +284,7 @@ export async function batchTrackWebVitals(
     if (!posthog) return;
 
     // Create a summary object for all metrics
-    const summary: Record<string, any> = {
+    const summary: Record<string, unknown> = {
       timestamp: new Date().toISOString(),
       page_url: window.location.href,
       page_path: window.location.pathname,
@@ -301,9 +301,9 @@ export async function batchTrackWebVitals(
 
     // Send as a single batch event
     posthog.capture('web_vitals_batch', summary);
-  } catch (error) {
+  } catch (_error) {
     if (env.DEV) {
-      console.error('Failed to batch track Web Vitals:', error);
+      console.error('Failed to batch track Web Vitals:', _error);
     }
   }
 }

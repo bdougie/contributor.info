@@ -41,7 +41,7 @@ export function getEffectiveThrottleHours(
 
 describe('PR Data Corruption Detection', () => {
   describe('isPRDataCorrupted', () => {
-    it('should detect corrupted PR data', () => {
+    it('should detect corrupted PR _data', () => {
       const corruptedPR = {
         number: 7273,
         additions: 0,
@@ -52,7 +52,7 @@ describe('PR Data Corruption Detection', () => {
       expect(isPRDataCorrupted(corruptedPR)).toBe(true);
     });
 
-    it('should detect valid PR data', () => {
+    it('should detect valid PR _data', () => {
       const validPR = {
         number: 7273,
         additions: 6,
@@ -166,17 +166,17 @@ describe('PR Data Corruption Detection', () => {
   });
 
   describe('getEffectiveThrottleHours', () => {
-    it('should use base hours when data is complete', () => {
+    it('should use base hours when _data is complete', () => {
       expect(getEffectiveThrottleHours(12, true, false)).toBe(12);
       expect(getEffectiveThrottleHours(1, true, true)).toBe(1);
     });
 
-    it('should reduce throttle for auto-fix with incomplete data', () => {
+    it('should reduce throttle for auto-fix with incomplete _data', () => {
       expect(getEffectiveThrottleHours(12, false, true)).toBe(0.083);
       expect(getEffectiveThrottleHours(1, false, true)).toBe(0.083);
     });
 
-    it('should use base hours for non-auto-fix even with incomplete data', () => {
+    it('should use base hours for non-auto-fix even with incomplete _data', () => {
       expect(getEffectiveThrottleHours(12, false, false)).toBe(12);
     });
 

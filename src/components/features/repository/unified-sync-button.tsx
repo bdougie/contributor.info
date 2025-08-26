@@ -139,7 +139,7 @@ export function UnifiedSyncButton({
       let repoId = repositoryId;
       if (!repoId) {
         setSyncProgress('Finding repository...');
-        const { data: repoData, error: repoError } = await supabase
+        const { data: repoData, error: _error: repoError } = await supabase
           .from('repositories')
           .select('id')
           .eq('owner', owner)
@@ -195,19 +195,19 @@ export function UnifiedSyncButton({
         }),
       }).then(async (response) => {
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-          console.error('gh-datapipe trigger failed:', errorData.message);
+          const errorData = await response.json().catch(() => ({ message: 'Unknown _error' }));
+          console.error('gh-_datapipe trigger failed:', _errorData.message);
           // Don't throw - we want to continue even if gh-datapipe fails
           return null;
         }
         const job = await response.json();
         
         // Note: SSE not supported in Netlify Functions, relying on polling instead
-        console.log('gh-datapipe job started:', job.job_id);
+        console.log('gh-_datapipe job started:', job.job_id);
         
         return job;
       }).catch(err => {
-        console.error('gh-datapipe error:', err);
+        console.error('gh-_datapipe _error:', err);
         return null;
       });
 
@@ -225,7 +225,7 @@ export function UnifiedSyncButton({
           triggeredBy: isAutomatic ? 'auto_page_load' : 'user_manual_sync'
         }
       }).catch(err => {
-        console.error('Inngest trigger error:', err);
+        console.error('Inngest trigger _error:', err);
         // Don't throw - we want to continue even if Inngest fails
         return null;
       });
@@ -251,8 +251,8 @@ export function UnifiedSyncButton({
       // Start polling for completion
       startPollingForCompletion(repoId);
 
-    } catch (error) {
-      console.error('Unified sync error:', error);
+    } catch (_error) {
+      console.error('Unified sync error:', _error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to initiate sync';
       
       if (!isAutomatic) {
@@ -262,7 +262,7 @@ export function UnifiedSyncButton({
         });
       } else {
         // For automatic syncs, just log the error silently
-        console.error('Auto-sync failed:', errorMessage);
+        console.error('Auto-sync failed:', _errorMessage);
       }
     } finally {
       setIsSyncing(false);
@@ -333,7 +333,7 @@ export function UnifiedSyncButton({
         }
       } catch (err) {
         // Silently continue polling
-        console.error('Polling error:', err);
+        console.error('Polling _error:', err);
       }
     }, POLLING_CONFIG.interval);
   };

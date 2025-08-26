@@ -209,7 +209,7 @@ export class AccountAnalysisService {
     }
 
     // Boost score for complete profiles
-    if (accountFlags && accountFlags.has_profile_data) {
+    if (accountFlags && accountFlags.has_profile__data) {
       trustScore += 0.2;
     }
 

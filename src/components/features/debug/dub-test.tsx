@@ -21,9 +21,9 @@ export function DubTest() {
       );
       
       setResult(`✅ Success! Short URL: ${shortUrl}`);
-    } catch (error: any) {
-      setResult(`❌ Error: ${error.message}`);
-      console.error("Dub API test error:", error);
+    } catch (_error: unknown) {
+      setResult(`❌ Error: ${_error.message}`);
+      console.error("Dub API test error:", _error);
     } finally {
       setLoading(false);
     }

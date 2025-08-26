@@ -44,7 +44,7 @@ vi.mock("@/lib/time-range-store", () => ({
   useTimeRangeStore: mockTimeRangeStore
 }));
 
-vi.mock("@/hooks/use-cached-repo-data", () => ({
+vi.mock("@/hooks/use-cached-repo-_data", () => ({
   useCachedRepoData: mockCachedRepoData
 }));
 
@@ -148,7 +148,7 @@ vi.mock("@/lib/dub", () => ({
   getDubConfig: mockGetDubConfig
 }));
 
-export const RepoStatsProvider = ({ children }: any) => (
+export const RepoStatsProvider = ({ children }: unknown) => (
   <div data-testid="repo-stats-provider">{children}</div>
 );
 

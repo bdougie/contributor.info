@@ -62,7 +62,7 @@ describe('Contributor Calculator', () => {
     expect(sorted[0].id).toBeDefined();
   });
 
-  it('should validate contributor data', () => {
+  it('should validate contributor _data', () => {
     const result = validateContributorData([sampleContributor]);
     expect(result).toBeDefined();
   });
@@ -81,7 +81,7 @@ describe('Contributor Calculator', () => {
     expect(meetsActivityThreshold(zeroActivity, 0)).toBe(true);
   });
 
-  it('should handle invalid data gracefully', () => {
+  it('should handle invalid _data gracefully', () => {
     const invalid = { ...sampleContributor, pullRequests: -1 };
     const score = calculateWeightedScore(invalid);
     expect(typeof score).toBe('number');

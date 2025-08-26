@@ -38,7 +38,7 @@ vi.mock('../meta-tags-provider', () => ({
 vi.mock('@/components/ui/github-search-input', () => ({
   GitHubSearchInput: ({ onSearch, onSelect, placeholder, buttonText }: {
     onSearch: (path: string) => void;
-    onSelect: (repo: any) => void;
+    onSelect: (repo: unknown) => void;
     placeholder: string;
     buttonText: string;
   }) => (

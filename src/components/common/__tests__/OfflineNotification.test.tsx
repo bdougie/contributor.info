@@ -64,7 +64,7 @@ describe('OfflineNotification', () => {
     expect(screen.getByText(/You're on a 2g connection/)).toBeInTheDocument();
   });
 
-  it('should show data saver warning when enabled', () => {
+  it('should show _data saver warning when enabled', () => {
     mockUseOnlineStatus.mockReturnValue({
       isOnline: true,
       isSlowConnection: false,

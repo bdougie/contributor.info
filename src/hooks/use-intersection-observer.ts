@@ -107,7 +107,7 @@ export function useLazyLoadData<T>(
   const loadingRef = useRef(false);
 
   useEffect(() => {
-    if (hasIntersected && !data && !loadingRef.current) {
+    if (hasIntersected && !_data && !loadingRef.current) {
       loadingRef.current = true;
       setLoading(true);
       
@@ -120,7 +120,7 @@ export function useLazyLoadData<T>(
     }
   }, [hasIntersected, data, loadFn]);
 
-  return { ref, data, loading, error, hasIntersected };
+  return { ref, data, loading, _error, hasIntersected };
 }
 
 /**

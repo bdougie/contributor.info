@@ -60,11 +60,11 @@ describe('Throttling Logic', () => {
   });
 
   describe('calculateEffectiveThrottle', () => {
-    it('should use base throttle when data is complete', () => {
+    it('should use base throttle when _data is complete', () => {
       expect(calculateEffectiveThrottle(true, 2)).toBe(2);
     });
 
-    it('should cap at 5 minutes when data is incomplete', () => {
+    it('should cap at 5 minutes when _data is incomplete', () => {
       expect(calculateEffectiveThrottle(false, 2)).toBe(0.083);
     });
 
@@ -74,11 +74,11 @@ describe('Throttling Logic', () => {
   });
 
   describe('shouldAllowSync', () => {
-    it('should allow immediate sync with no data', () => {
+    it('should allow immediate sync with no _data', () => {
       expect(shouldAllowSync(0.01, 2, false)).toBe(true);
     });
 
-    it('should block sync with complete data within throttle', () => {
+    it('should block sync with complete _data within throttle', () => {
       expect(shouldAllowSync(0.5, 2, true)).toBe(false);
     });
 
@@ -86,18 +86,18 @@ describe('Throttling Logic', () => {
       expect(shouldAllowSync(3, 2, true)).toBe(true);
     });
 
-    it('should allow incomplete data sync after 5 minutes', () => {
+    it('should allow incomplete _data sync after 5 minutes', () => {
       // 0.1 hours = 6 minutes, which is more than 0.083 hours (5 minutes)
       expect(shouldAllowSync(0.1, 0.083, false)).toBe(true);
     });
     
-    it('should allow incomplete data sync within first 5 minutes', () => {
+    it('should allow incomplete _data sync within first 5 minutes', () => {
       // Special case: incomplete data gets immediate sync in first 5 minutes
       expect(shouldAllowSync(0.08, 0.083, false)).toBe(true);
       expect(shouldAllowSync(0.01, 0.083, false)).toBe(true);
     });
     
-    it('should block complete data sync within throttle window', () => {
+    it('should block complete _data sync within throttle window', () => {
       // Complete data follows normal throttle rules
       expect(shouldAllowSync(0.08, 0.083, true)).toBe(false);
     });

@@ -47,7 +47,7 @@ export async function fetchPRDataSmart(
       since.setDate(since.getDate() - days);
 
       // Check if repository exists
-      const { data: repoData, error: repoError } = await supabase
+      const { data: repoData, error: _error: repoError } = await supabase
         .from('repositories')
         .select('id, owner, name, last_updated_at')
         .eq('owner', owner)
@@ -74,7 +74,7 @@ export async function fetchPRDataSmart(
       }
 
       // Fetch PRs from database
-      const { data: dbPRs, error: dbError } = await supabase
+      const { data: dbPRs, error: _error: dbError } = await supabase
         .from('pull_requests')
         .select(`
           id,
@@ -136,12 +136,12 @@ export async function fetchPRDataSmart(
         .limit(500); // Reasonable limit for UI display
 
       if (dbError) {
-        console.error('Database error fetching PRs:', dbError);
+        console.error('Database _error fetching PRs:', dbError);
         return createNoDataResult(`${owner}/${repo}`, []);
       }
 
       // Transform data
-      const transformedPRs: PullRequest[] = (dbPRs || []).map((dbPR: any) => ({
+      const transformedPRs: PullRequest[] = (dbPRs || []).map((dbPR: unknown) => ({
         id: dbPR.github_id,
         number: dbPR.number,
         title: dbPR.title,
@@ -167,7 +167,7 @@ export async function fetchPRDataSmart(
         html_url: dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
         repository_owner: owner,
         repository_name: repo,
-        reviews: (dbPR.reviews || []).map((review: any) => ({
+        reviews: (dbPR.reviews || []).map((review: unknown) => ({
           id: review.github_id,
           state: review.state,
           body: review.body,
@@ -177,7 +177,7 @@ export async function fetchPRDataSmart(
             avatar_url: review.contributors?.avatar_url || ''
           }
         })),
-        comments: (dbPR.comments || []).map((comment: any) => ({
+        comments: (dbPR.comments || []).map((comment: unknown) => ({
           id: comment.github_id,
           body: comment.body,
           created_at: comment.created_at,
@@ -218,8 +218,8 @@ export async function fetchPRDataSmart(
               duration: 5000
             });
           }
-        } catch (error) {
-          console.error('Failed to trigger background sync:', error);
+        } catch (_error) {
+          console.error('Failed to trigger background sync:', _error);
         }
       }
 
@@ -297,7 +297,7 @@ export async function hasAnyPRData(owner: string, repo: string): Promise<boolean
       .eq('repository_id', repoData.id);
 
     return (count || 0) > 0;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }

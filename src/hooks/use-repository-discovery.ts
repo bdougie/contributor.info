@@ -54,16 +54,16 @@ export function useRepositoryDiscovery({
         // Check if repository exists in database
         // Using maybeSingle() to handle non-existent repos without 406 errors
         console.log('[Repository Discovery] Checking repository:', `${owner}/${repo}`);
-        const { data: repoData, error } = await supabase
+        const { data: repoData, error: _error } = await supabase
           .from('repositories')
           .select('id, owner, name')
           .eq('owner', owner)
           .eq('name', repo)
           .maybeSingle();
 
-        if (error) {
+        if (_error) {
           // Real error occurred
-          console.error('Error checking repository:', error);
+          console.error('Error checking repository:', _error);
           setState({
             status: 'error',
             repository: null,
@@ -102,8 +102,8 @@ export function useRepositoryDiscovery({
         // Just set the state to indicate it needs tracking
         // The user will use the new tracking card instead
 
-      } catch (error) {
-        console.error('Repository check error:', error);
+      } catch (_error) {
+        console.error('Repository check error:', _error);
         setState({
           status: 'error',
           repository: null,
@@ -150,8 +150,8 @@ export function useRepositoryDiscovery({
         // Start polling for repository creation
         startPolling(owner, repo);
 
-      } catch (error) {
-        console.error('Failed to initiate discovery:', error);
+      } catch (_error) {
+        console.error('Failed to initiate discovery:', _error);
         
         setState({
           status: 'error',

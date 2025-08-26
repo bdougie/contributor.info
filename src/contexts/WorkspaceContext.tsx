@@ -32,7 +32,7 @@ interface WorkspaceProviderProps {
 
 export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const navigate = useNavigate();
-  const { workspaces: rawWorkspaces, loading: workspacesLoading, error: workspacesError, refetch } = useUserWorkspaces();
+  const { workspaces: rawWorkspaces, loading: workspacesLoading, error: _error: workspacesError, refetch } = useUserWorkspaces();
   
   // Add slugs to workspaces
   const workspaces = rawWorkspaces.map(ws => ({
@@ -144,7 +144,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   // Log workspace errors
   useEffect(() => {
     if (workspacesError) {
-      console.error('[WorkspaceContext] Workspace loading error:', workspacesError);
+      console.error('[WorkspaceContext] Workspace loading _error:', workspacesError);
       setError(workspacesError.message);
     }
   }, [workspacesError]);
@@ -167,8 +167,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     const workspace = findWorkspace(idOrSlug);
     if (!workspace) {
       const errorMsg = WORKSPACE_ERROR_MESSAGES.NOT_FOUND(idOrSlug);
-      console.error(errorMsg);
-      setError(errorMsg);
+      console.error(_errorMsg);
+      setError(_errorMsg);
       return;
     }
     
@@ -194,11 +194,11 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       // Preload workspace data if needed (the hooks will handle this)
       // In the future, we could add preloading logic here
       
-    } catch (error) {
+    } catch (_error) {
       const errorMessage = error instanceof Error ? error.message : WORKSPACE_ERROR_MESSAGES.SWITCH_FAILED;
-      console.error('Failed to switch workspace:', errorMessage);
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      console.error('Failed to switch workspace:', _errorMessage);
+      setError(_errorMessage);
+      throw new Error(_errorMessage);
     } finally {
       setIsLoading(false);
     }

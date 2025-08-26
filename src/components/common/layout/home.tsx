@@ -79,40 +79,44 @@ export default function Home() {
 
         {isLoggedIn && !authLoading && (
           <>
-            {workspaceLoading
-? (
-              <WorkspacePreviewCard
-                workspace={{
-                  id: '',
-                  name: '',
-                  slug: '',
-                  owner: { id: '', avatar_url: '', display_name: '' },
-                  repository_count: 0,
-                  member_count: 0,
-                  repositories: [],
-                  created_at: '',
-                }}
-                loading={true}
-              />
-            )
-: workspaceError
-? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-8 space-y-4">
-                  <p className="text-sm text-muted-foreground">Failed to load workspace</p>
-                  <Button onClick={refetchWorkspace} variant="outline" size="sm">
-                    Retry
-                  </Button>
-                </CardContent>
-              </Card>
-            )
-: hasWorkspace && workspace
-? (
-              <WorkspacePreviewCard workspace={workspace} />
-            )
-: (
-              <WorkspaceOnboarding onCreateClick={() => setCreateModalOpen(true)} />
-            )}
+            {(() => {
+              if (workspaceLoading) {
+                return (
+                  <WorkspacePreviewCard
+                    workspace={{
+                      id: '',
+                      name: '',
+                      slug: '',
+                      owner: { id: '', avatar_url: '', display_name: '' },
+                      repository_count: 0,
+                      member_count: 0,
+                      repositories: [],
+                      created_at: '',
+                    }}
+                    loading={true}
+                  />
+                );
+              }
+              
+              if (workspaceError) {
+                return (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-8 space-y-4">
+                      <p className="text-sm text-muted-foreground">Failed to load workspace</p>
+                      <Button onClick={refetchWorkspace} variant="outline" size="sm">
+                        Retry
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              
+              if (hasWorkspace && workspace) {
+                return <WorkspacePreviewCard workspace={workspace} />;
+              }
+              
+              return <WorkspaceOnboarding onCreateClick={() => setCreateModalOpen(true)} />;
+            })()}
           </>
         )}
       </div>

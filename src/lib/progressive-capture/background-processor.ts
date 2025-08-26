@@ -87,9 +87,9 @@ export class BackgroundProcessor {
           // Small delay between jobs to be nice to GitHub API
           await new Promise(resolve => setTimeout(resolve, 1000));
           
-        } catch (error) {
+        } catch (_error) {
           failures++;
-          console.error('[Background Processor] Error processing job:', error);
+          console.error('[Background Processor] Error processing job:', _error);
         }
       }
 
@@ -107,8 +107,8 @@ export class BackgroundProcessor {
       }
 
 
-    } catch (error) {
-      console.error('[Background Processor] Error in batch processing:', error);
+    } catch (_error) {
+      console.error('[Background Processor] Error in batch processing:', _error);
     } finally {
       this.isProcessing = false;
     }

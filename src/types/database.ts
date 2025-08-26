@@ -26,7 +26,7 @@ export interface Database {
           commits: number;
           html_url: string;
           spam_score: number | null;
-          spam_flags: any | null;
+          spam_flags: Record<string, unknown> | null;
           is_spam: boolean;
           reviewed_by_admin: boolean;
           spam_detected_at: string | null;

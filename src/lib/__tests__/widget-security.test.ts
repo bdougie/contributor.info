@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 
 // Replicate the escape functions from the widget generation
-function escapeXml(text: any): string {
+function escapeXml(text: unknown): string {
   if (typeof text !== 'string') {
     text = String(text);
   }
@@ -132,7 +132,7 @@ describe('Widget Security - XSS Prevention', () => {
       expect(escaped).toContain('&lt;image');
     });
 
-    it('should prevent data URI injection', () => {
+    it('should prevent _data URI injection', () => {
       const attack = 'data:text/html,<script>alert(1)</script>';
       expect(escapeXml(attack)).not.toContain('<script>');
     });

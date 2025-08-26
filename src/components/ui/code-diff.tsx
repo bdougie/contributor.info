@@ -9,7 +9,7 @@ interface CodeDiffProps {
   className?: string;
 }
 
-export const CodeDiff: React.FC<CodeDiffProps> = ({
+export const CodeDiff(CodeDiffProps): JSX.Element = ({
   before,
   after,
   additions = 0,
@@ -95,7 +95,7 @@ interface InlineCodeDiffProps {
   className?: string;
 }
 
-export const InlineCodeDiff: React.FC<InlineCodeDiffProps> = ({
+export const InlineCodeDiff(InlineCodeDiffProps): JSX.Element = ({
   additions = 0,
   deletions = 0,
   className
@@ -185,7 +185,7 @@ interface MultiLineDiffProps {
   showLineNumbers?: boolean;
 }
 
-export const MultiLineDiff: React.FC<MultiLineDiffProps> = ({
+export const MultiLineDiff(MultiLineDiffProps): JSX.Element = ({
   lines,
   className,
   showLineNumbers = false

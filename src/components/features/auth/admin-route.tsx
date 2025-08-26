@@ -15,7 +15,7 @@ interface AdminRouteProps {
  * Renders children only if user is authenticated and has admin privileges
  */
 export function AdminRoute({ children, fallback }: AdminRouteProps) {
-  const { isAuthenticated, isAdmin, isLoading, user, error } = useAdminAuth();
+  const { isAuthenticated, isAdmin, isLoading, user, error: _error } = useAdminAuth();
 
   // Show loading state
   if (isLoading) {
@@ -30,7 +30,7 @@ export function AdminRoute({ children, fallback }: AdminRouteProps) {
   }
 
   // Show error state
-  if (error) {
+  if (_error) {
     return (
       <Card className="max-w-md mx-auto mt-8">
         <CardHeader>
@@ -41,7 +41,7 @@ export function AdminRoute({ children, fallback }: AdminRouteProps) {
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{error: _error}</AlertDescription>
           </Alert>
           <Button asChild className="w-full mt-4">
             <Link to="/">Return to Home</Link>

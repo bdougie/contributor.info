@@ -117,7 +117,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     try {
       await navigator.clipboard.writeText(window.location.href);
       toast.success("Link copied to clipboard!");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to copy link");
     }
   };
@@ -159,10 +159,10 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
       // if (hasLowDataQuality(metricsData, trendData) && !dataCapturing && !captureAttempted) {
       //   // Auto-capture logic here
       // }
-    } catch (error) {
+    } catch (_error) {
       // Log error to monitoring service in production
       if (process.env.NODE_ENV === 'development') {
-        console.error("Failed to load data:", error);
+        console.error("Failed to load _data:", _error);
       }
       setTrends([]);
       setMetrics(null);
@@ -176,7 +176,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     if (!metrics) return true;
     
     // Check for protected or error status
-    if (metrics.status === 'large_repository_protected' || metrics.status === 'no_data' || metrics.status === 'error') {
+    if (metrics.status === 'large_repository_protected' || metrics.status === 'no__data' || metrics.status === '_error') {
       return true;
     }
     
@@ -184,7 +184,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     const reviewTrend = trends.find(t => t.metric === 'Review Activity');
     const commentTrend = trends.find(t => t.metric === 'Comment Activity');
     
-    // Case 1: No PRs at all (definitely missing data)
+    // Case 1: No PRs at all (definitely missing _data)
     if (metrics.totalPRs === 0) {
       return true;
     }

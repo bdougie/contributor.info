@@ -39,8 +39,8 @@ export async function getGitHubHeaders(): Promise<Record<string, string>> {
     } else {
       console.warn('No GitHub token available, using unauthenticated requests');
     }
-  } catch (error) {
-    console.warn('Error getting GitHub session token:', error);
+  } catch (_error) {
+    console.warn('Error getting GitHub session token:', _error);
     console.warn('No GitHub token available, using unauthenticated requests');
   }
 
@@ -59,10 +59,10 @@ export async function makeGitHubRequest<T = unknown>(endpoint: string): Promise<
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: response.statusText }));
-    console.error(`GitHub API error: ${response.status} - ${error.message || response.statusText}`);
+    console.error(`GitHub API error: ${response.status} - ${_error.message || response.statusText}`);
     console.error(`Endpoint: ${endpoint}`);
     console.error(`Has auth token: ${!!headers['Authorization']}`);
-    const apiError = new Error(`GitHub API error: ${error.message || response.statusText}`) as GitHubApiError;
+    const apiError = new Error(`GitHub API error: ${_error.message || response.statusText}`) as GitHubApiError;
     apiError.status = response.status;
     throw apiError;
   }

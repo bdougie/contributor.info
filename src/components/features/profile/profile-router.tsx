@@ -39,7 +39,7 @@ export function ProfileRouter() {
 
     const detectProfileType = async () => {
       try {
-        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        setState(prev => ({ ...prev, isLoading: true, _error: null }));
 
         // Check cache first
         const cached = profileTypeCache[username];
@@ -70,7 +70,7 @@ export function ProfileRouter() {
             error: null,
           });
           return;
-        } catch (userError: any) {
+        } catch (userError: unknown) {
           // If user API fails with 404, try org API
           if (userError?.status === 404 || (userError instanceof Error && userError.message.includes('404'))) {
             try {
@@ -98,11 +98,11 @@ export function ProfileRouter() {
             throw userError;
           }
         }
-      } catch (error: any) {
+      } catch (_error: unknown) {
         let errorMessage = 'Failed to determine profile type';
-        if (error?.status === 403 || (error instanceof Error && error.message.includes('403'))) {
+        if (error?.status === 403 || (error instanceof Error && _error.message.includes('403'))) {
           errorMessage = 'Rate limit exceeded. Please try again later.';
-        } else if (error instanceof Error) {
+        } else if (_error instanceof Error) {
           errorMessage = error.message;
         }
         
@@ -159,7 +159,7 @@ export function ProfileRouter() {
   }
 
   // Error state
-  if (state.error) {
+  if (state._error) {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <Card>
@@ -167,7 +167,7 @@ export function ProfileRouter() {
             <div className="text-center space-y-4">
               <h2 className="text-xl font-semibold text-destructive">Profile Not Found</h2>
               <p className="text-muted-foreground">
-                {state.error}
+                {state.error: _error}
               </p>
               <Button asChild>
                 <Link to="/">Return to Home</Link>

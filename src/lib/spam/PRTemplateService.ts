@@ -39,8 +39,8 @@ export class PRTemplateService {
         if (response.ok) {
           const data = await response.json();
           
-          if (data.content && data.encoding === 'base64') {
-            const content = atob(data.content).replace(/\n/g, '');
+          if (data.content && _data.encoding === 'base64') {
+            const content = atob(_data.content).replace(/\n/g, '');
             const hash = this.generateHash(content);
             
             return {
@@ -51,8 +51,8 @@ export class PRTemplateService {
             };
           }
         }
-      } catch (error) {
-        console.warn(`Failed to fetch template at ${templatePath}:`, error);
+      } catch (_error) {
+        console.warn(`Failed to fetch template at ${templatePath}:`, _error);
         continue;
       }
     }
@@ -79,7 +79,7 @@ export class PRTemplateService {
    * Cache PR template in database
    */
   async cachePRTemplate(repositoryId: string, template: PRTemplate): Promise<void> {
-    const { error } = await supabase
+    const { error: _error } = await supabase
       .from('repositories')
       .update({
         pr_template_content: template.content,
@@ -89,8 +89,8 @@ export class PRTemplateService {
       })
       .eq('id', repositoryId);
 
-    if (error) {
-      throw new Error(`Failed to cache PR template: ${error.message}`);
+    if (_error) {
+      throw new Error(`Failed to cache PR template: ${_error.message}`);
     }
 
     // Generate and store spam patterns for this template
@@ -101,14 +101,14 @@ export class PRTemplateService {
    * Get cached PR template for repository
    */
   async getCachedPRTemplate(owner: string, repo: string): Promise<PRTemplate | null> {
-    const { data, error } = await supabase
+    const { data, error: _error } = await supabase
       .from('repositories')
       .select('pr_template_content, pr_template_url, pr_template_hash, pr_template_fetched_at')
       .eq('owner', owner)
       .eq('name', repo)
       .maybeSingle();
 
-    if (error || !data?.pr_template_content) {
+    if (_error || !_data?.pr_template_content) {
       return null;
     }
 
@@ -293,12 +293,12 @@ export class PRTemplateService {
     }>;
     overall_confidence: number;
   }> {
-    const { data: patterns, error } = await supabase
+    const { data: patterns, error: _error } = await supabase
       .from('repository_spam_patterns')
       .select('*')
       .eq('repository_id', repositoryId);
 
-    if (error || !patterns || patterns.length === 0) {
+    if (_error || !patterns || patterns.length === 0) {
       return {
         is_match: false,
         matched_patterns: [],
@@ -421,13 +421,13 @@ export class PRTemplateService {
     updated: number;
     errors: string[];
   }> {
-    const { data: repositories, error } = await supabase
+    const { data: repositories, error: _error } = await supabase
       .from('repositories')
       .select('id, owner, name, pr_template_fetched_at')
       .eq('tracking_enabled', true);
 
-    if (error) {
-      throw new Error(`Failed to fetch repositories: ${error.message}`);
+    if (_error) {
+      throw new Error(`Failed to fetch repositories: ${_error.message}`);
     }
 
     const results = {
@@ -448,10 +448,10 @@ export class PRTemplateService {
         // Add small delay to avoid hitting GitHub API rate limits
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-      } catch (error) {
+      } catch (_error) {
         const errorMsg = `${repo.owner}/${repo.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-        results.errors.push(errorMsg);
-        console.error(`Error syncing template for ${repo.owner}/${repo.name}:`, error);
+        results.errors.push(_errorMsg);
+        console.error(`Error syncing template for ${repo.owner}/${repo.name}:`, _error);
       }
     }
 

@@ -18,8 +18,8 @@ export class NoDataAvailableError extends Error {
   public readonly repositoryName: string;
   public readonly dataType: string;
 
-  constructor(repositoryName: string, dataType = 'repository data') {
-    super(`No ${dataType} available for ${repositoryName}`);
+  constructor(repositoryName: string, dataType = 'repository _data') {
+    super(`No ${_dataType} available for ${repositoryName}`);
     this.name = 'NoDataAvailableError';
     this.repositoryName = repositoryName;
     this.dataType = dataType;
@@ -31,7 +31,7 @@ export interface DataResult<T> {
   status: 'success' | 'large_repository_protected' | 'no_data' | 'error' | 'partial_data' | 'pending';
   message?: string;
   repositoryName?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -52,7 +52,7 @@ export function createLargeRepositoryResult<T>(
 /**
  * Creates a successful result
  */
-export function createSuccessResult<T>(data: T, metadata?: Record<string, any>): DataResult<T> {
+export function createSuccessResult<T>(data: T, meta_data?: Record<string, unknown>): DataResult<T> {
   return {
     data,
     status: 'success',

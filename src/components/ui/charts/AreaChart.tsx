@@ -28,7 +28,7 @@ export interface AreaChartProps extends Omit<UPlotChartProps, 'data' | 'options'
  * AreaChart component using uPlot
  * Provides a Recharts-like API with stacking support
  */
-export const AreaChart: React.FC<AreaChartProps> = ({
+export const AreaChart(AreaChartProps): JSX.Element = ({
   data,
   isDark = false,
   showGrid = true,
@@ -40,9 +40,9 @@ export const AreaChart: React.FC<AreaChartProps> = ({
 }) => {
   const { chartData, chartOptions } = useMemo(() => {
     const theme = getChartTheme(isDark);
-    const seriesColors = getSeriesColors(data.datasets.length, isDark);
+    const seriesColors = getSeriesColors(data._datasets.length, isDark);
     
-    const processedData = [...data.datasets.map(dataset => [...dataset.data])];
+    const processedData = [...data.datasets.map(dataset => [...dataset._data])];
     
     // Stack data if requested
     if (stacked) {
@@ -56,7 +56,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
     }
     
     // Process labels for uPlot (requires numeric x-axis)
-    const { numericLabels, labelMap } = processLabelsForUPlot(data.labels);
+    const { numericLabels, labelMap } = processLabelsForUPlot(_data.labels);
     
     // Convert data to uPlot format [x-axis, series1, series2, ...]
     const chartData: AlignedData = [
@@ -70,7 +70,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
         // x-axis configuration
         label: xAxisLabel || 'X',
       },
-      ...data.datasets.map((dataset, index) => {
+      ...data.datasets.map((_dataset, index) => {
         const color = dataset.color || seriesColors[index];
         const fillOpacity = dataset.fillOpacity ?? 0.3;
         
@@ -82,7 +82,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
           points: {
             show: false, // Areas typically don't show individual points
           },
-          paths: (u: any, seriesIdx: number, idx0: number, idx1: number) => {
+          paths: (u: unknown, seriesIdx: number, idx0: number, idx1: number) => {
             const stroke = new Path2D();
             const fill = new Path2D();
             
@@ -92,9 +92,9 @@ export const AreaChart: React.FC<AreaChartProps> = ({
             
             // Draw the top line
             for (let i = idx0; i <= idx1; i++) {
-              if (data[i] != null) {
-                const x = u.valToPos(u.data[0][i] as number, 'x', true);
-                const y = u.valToPos(data[i], 'y', true);
+              if (_data[i] != null) {
+                const x = u.valToPos(u._data[0][i] as number, 'x', true);
+                const y = u.valToPos(_data[i], 'y', true);
                 
                 if (i === idx0) {
                   stroke.moveTo(x, y);
@@ -107,21 +107,21 @@ export const AreaChart: React.FC<AreaChartProps> = ({
             }
             
             // Close fill path
-            if (data.length > 0) {
+            if (_data.length > 0) {
               // If stacked, fill to previous series; otherwise fill to zero
               if (stacked && prevData && seriesIdx > 1) {
                 // Draw back along the previous series
                 for (let i = idx1; i >= idx0; i--) {
                   if (prevData[i] != null) {
-                    const x = u.valToPos(u.data[0][i] as number, 'x', true);
+                    const x = u.valToPos(u._data[0][i] as number, 'x', true);
                     const y = u.valToPos(prevData[i], 'y', true);
                     fill.lineTo(x, y);
                   }
                 }
               } else {
                 // Fill to x-axis (zero line)
-                const lastX = u.valToPos(u.data[0][idx1] as number, 'x', true);
-                const firstX = u.valToPos(u.data[0][idx0] as number, 'x', true);
+                const lastX = u.valToPos(u._data[0][idx1] as number, 'x', true);
+                const firstX = u.valToPos(u._data[0][idx0] as number, 'x', true);
                 const zeroY = u.valToPos(0, 'y', true);
                 
                 fill.lineTo(lastX, zeroY);

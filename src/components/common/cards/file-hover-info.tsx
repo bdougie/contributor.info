@@ -188,11 +188,15 @@ export function FileHoverInfo({
                 pullRequest.user?.login ||
                 "Unknown"}{" "}
               ·
-              {pullRequest.createdAt
-                ? ` ${new Date(pullRequest.createdAt).toLocaleDateString()}`
-                : pullRequest.created_at
-                ? ` ${new Date(pullRequest.created_at).toLocaleDateString()}`
-                : " Unknown date"}
+              {(() => {
+                if (pullRequest.createdAt) {
+                  return ` ${new Date(pullRequest.createdAt).toLocaleDateString()}`;
+                }
+                if (pullRequest.created_at) {
+                  return ` ${new Date(pullRequest.created_at).toLocaleDateString()}`;
+                }
+                return " Unknown date";
+              })()}
             </div>
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">

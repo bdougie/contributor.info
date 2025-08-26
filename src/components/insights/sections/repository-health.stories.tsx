@@ -24,7 +24,7 @@ const MockRepositoryHealth = ({ owner, repo, timeRange, variant = "excellent" }:
     );
   }
 
-  if (variant === "error") {
+  if (variant === "_error") {
     return (
       <div className="p-6 border rounded-lg bg-card">
         <h3 className="text-xl font-semibold mb-4">Repository Health</h3>
@@ -113,7 +113,7 @@ const MockRepositoryHealth = ({ owner, repo, timeRange, variant = "excellent" }:
       {/* Health Factors */}
       <div className="space-y-3 mb-6">
         <h4 className="font-medium">Health Factors</h4>
-        {data.factors.map((factor: any, index: number) => (
+        {data.factors.map((factor: unknown, index: number) => (
           <div key={index} className="flex items-center justify-between">
             <span className="text-sm">{factor.name}</span>
             <div className="flex items-center gap-2">

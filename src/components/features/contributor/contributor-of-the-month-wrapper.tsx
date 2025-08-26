@@ -28,31 +28,31 @@ const iconMap = {
 };
 
 export function ContributorOfTheMonth(props: ContributorOfTheMonthProps) {
-  const renderCard = ({ children, className, role, ariaLabelledBy }: any) => (
+  const renderCard = ({ children, className, role, ariaLabelledBy }: unknown) => (
     <Card className={cn(className)} role={role} aria-labelledby={ariaLabelledBy}>
       {children}
     </Card>
   );
 
-  const renderCardHeader = ({ children }: any) => <CardHeader>{children}</CardHeader>;
+  const renderCardHeader = ({ children }: unknown) => <CardHeader>{children}</CardHeader>;
 
-  const renderCardContent = ({ children, className }: any) => (
+  const renderCardContent = ({ children, className }: unknown) => (
     <CardContent className={className}>{children}</CardContent>
   );
 
-  const renderCardTitle = ({ children, id }: any) => (
+  const renderCardTitle = ({ children, id }: unknown) => (
     <CardTitle id={id}>{children}</CardTitle>
   );
 
-  const renderCardDescription = ({ children }: any) => (
+  const renderCardDescription = ({ children }: unknown) => (
     <CardDescription>{children}</CardDescription>
   );
 
-  const renderBadge = ({ children, variant }: any) => (
+  const renderBadge = ({ children, variant }: unknown) => (
     <Badge variant={variant}>{children}</Badge>
   );
 
-  const renderIcon = ({ name, className, ariaLabel, role }: any) => {
+  const renderIcon = ({ name, className, ariaLabel, role }: unknown) => {
     const IconComponent = iconMap[name as keyof typeof iconMap];
     if (!IconComponent) return <span>{name}</span>;
     
@@ -65,7 +65,7 @@ export function ContributorOfTheMonth(props: ContributorOfTheMonthProps) {
     );
   };
 
-  const renderContributorCard = ({ contributor, isWinner, showRank }: any) => (
+  const renderContributorCard = ({ contributor, isWinner, showRank }: unknown) => (
     <ContributorCard 
       contributor={contributor} 
       isWinner={isWinner} 
@@ -73,7 +73,7 @@ export function ContributorOfTheMonth(props: ContributorOfTheMonthProps) {
     />
   );
 
-  const renderSkeleton = ({ className, phase, contributorCount }: any) => (
+  const renderSkeleton = ({ className, phase, contributorCount }: unknown) => (
     <ContributorOfMonthSkeleton
       className={className}
       phase={phase}
@@ -81,7 +81,7 @@ export function ContributorOfTheMonth(props: ContributorOfTheMonthProps) {
     />
   );
 
-  const renderEmptyState = ({ type, message, className }: any) => (
+  const renderEmptyState = ({ type, message, className }: unknown) => (
     <ContributorEmptyState
       type={type}
       message={message}
@@ -89,7 +89,7 @@ export function ContributorOfTheMonth(props: ContributorOfTheMonthProps) {
     />
   );
 
-  const renderMinimalActivity = ({ contributors, month, year, className }: any) => (
+  const renderMinimalActivity = ({ contributors, month, year, className }: unknown) => (
     <MinimalActivityDisplay
       contributors={contributors}
       month={month}

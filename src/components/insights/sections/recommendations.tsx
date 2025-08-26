@@ -64,8 +64,8 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
         loadLLMRecommendations(healthData, activityData, trendsData);
       }
       
-    } catch (error) {
-      console.error("Failed to load recommendations:", error);
+    } catch (_error) {
+      console.error("Failed to load recommendations:", _error);
       
       // Fallback recommendations
       setRecommendations(getFallbackRecommendations());
@@ -74,7 +74,7 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
     }
   };
 
-  const loadLLMRecommendations = async (healthData: any, activityData: any, trendsData: any[]) => {
+  const loadLLMRecommendations = async (healthData: unknown, activityData: unknown, trendsData: unknown[]) => {
     setLlmLoading(true);
     try {
       const combinedData = {
@@ -85,20 +85,20 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
       
       const insight = await llmService.generateRecommendations(combinedData, { owner, repo });
       setLlmInsight(insight);
-    } catch (error) {
-      console.error("Failed to load LLM recommendations:", error);
+    } catch (_error) {
+      console.error("Failed to load LLM recommendations:", _error);
       setLlmInsight(null);
     } finally {
       setLlmLoading(false);
     }
   };
 
-  const generateRuleBasedRecommendations = (healthData: any, activityData: any, trendsData: any[]): Recommendation[] => {
+  const generateRuleBasedRecommendations = (healthData: unknown, activityData: unknown, trendsData: unknown[]): Recommendation[] => {
     const recommendations: Recommendation[] = [];
     
     // Health-based recommendations
     if (healthData.score < 60) {
-      const criticalFactors = healthData.factors.filter((f: any) => f.status === 'critical');
+      const criticalFactors = healthData.factors.filter((f: unknown) => f.status === 'critical');
       if (criticalFactors.length > 0) {
         recommendations.push({
           id: "health-critical",

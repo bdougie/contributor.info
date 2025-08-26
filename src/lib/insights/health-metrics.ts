@@ -33,11 +33,11 @@ export async function calculateHealthMetrics(
     const recommendations: string[] = [];
     
     // 1. PR Merge Time Factor
-    const mergedPRs = pullRequests.filter((pr: any) => pr.merged_at);
+    const mergedPRs = pullRequests.filter((pr: unknown) => pr.merged_at);
     let avgMergeTime = 0;
     
     if (mergedPRs.length > 0) {
-      const mergeTimes = mergedPRs.map((pr: any) => {
+      const mergeTimes = mergedPRs.map((pr: unknown) => {
         const created = new Date(pr.created_at);
         const merged = new Date(pr.merged_at!);
         return (merged.getTime() - created.getTime()) / (1000 * 60 * 60); // hours
@@ -75,12 +75,12 @@ export async function calculateHealthMetrics(
     });
     
     // 2. Contributor Diversity Factor
-    const uniqueContributors = new Set(pullRequests.map((pr: any) => pr.user?.login).filter(Boolean));
+    const uniqueContributors = new Set(pullRequests.map((pr: unknown) => pr.user?.login).filter(Boolean));
     const contributorCount = uniqueContributors.size;
     
     // Calculate bus factor (contributors who handle majority of work)
     const contributorPRCounts = new Map<string, number>();
-    pullRequests.forEach((pr: any) => {
+    pullRequests.forEach((pr: unknown) => {
       const author = pr.user?.login;
       if (author) {
         contributorPRCounts.set(author, (contributorPRCounts.get(author) || 0) + 1);
@@ -127,7 +127,7 @@ export async function calculateHealthMetrics(
     });
     
     // 3. Review Coverage Factor
-    const prsWithReviews = pullRequests.filter((pr: any) => 
+    const prsWithReviews = pullRequests.filter((pr: unknown) => 
       pr.reviews && pr.reviews.length > 0
     ).length;
     
@@ -155,7 +155,7 @@ export async function calculateHealthMetrics(
     });
     
     // 4. Activity Level Factor
-    const recentPRs = pullRequests.filter((pr: any) => {
+    const recentPRs = pullRequests.filter((pr: unknown) => {
       const created = new Date(pr.created_at);
       const daysAgo = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
       return daysAgo <= 7;
@@ -182,8 +182,8 @@ export async function calculateHealthMetrics(
     });
     
     // 5. Response Time Factor
-    const openPRs = pullRequests.filter((pr: any) => pr.state === 'open');
-    const oldOpenPRs = openPRs.filter((pr: any) => {
+    const openPRs = pullRequests.filter((pr: unknown) => pr.state === 'open');
+    const oldOpenPRs = openPRs.filter((pr: unknown) => {
       const created = new Date(pr.created_at);
       const daysOpen = (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24);
       return daysOpen > 7;
@@ -220,7 +220,7 @@ export async function calculateHealthMetrics(
     );
     const overallScore = Math.round(weightedScore / totalWeight);
     
-    // Determine trend (simplified - would need historical data for real trend)
+    // Determine trend (simplified - would need historical _data for real trend)
     let trend: "improving" | "declining" | "stable" = "stable";
     if (overallScore >= 80) trend = "improving";
     else if (overallScore < 60) trend = "declining";
@@ -240,8 +240,8 @@ export async function calculateHealthMetrics(
       recommendations: recommendations.slice(0, 3) // Limit to top 3 recommendations
     };
     
-  } catch (error) {
-    console.error('Error calculating health metrics:', error);
+  } catch (_error) {
+    console.error('Error calculating health metrics:', _error);
     
     // Return default metrics on error
     return {
@@ -255,7 +255,7 @@ export async function calculateHealthMetrics(
 }
 
 // Simple in-memory cache for confidence calculations (expires after 5 minutes)
-const confidenceCache = new Map<string, { result: any; timestamp: number }>();
+const confidenceCache = new Map<string, { result: unknown; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Export for testing purposes only
@@ -267,7 +267,7 @@ function getCacheKey(owner: string, repo: string, timeRange: string, returnBreak
   return `${owner}/${repo}:${timeRange}:${returnBreakdown}`;
 }
 
-function getFromCache(cacheKey: string): any | null {
+function getFromCache(cacheKey: string): unknown | null {
   const cached = confidenceCache.get(cacheKey);
   if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
     return cached.result;
@@ -278,7 +278,7 @@ function getFromCache(cacheKey: string): any | null {
   return null;
 }
 
-function setCache(cacheKey: string, result: any): void {
+function setCache(cacheKey: string, result: unknown): void {
   confidenceCache.set(cacheKey, {
     result,
     timestamp: Date.now()
@@ -373,7 +373,7 @@ export async function calculateRepositoryConfidence(
       // Check database cache if in-memory miss
       const cachedResult = await getCachedConfidenceScore(supabase, owner, repo, daysBack);
       if (cachedResult !== null) {
-        console.log('[Confidence] Using database cached score for %s/%s: %s%', owner, repo, cachedResult.score);
+        console.log('[Confidence] Using _database cached score for %s/%s: %s%', owner, repo, cachedResult.score);
         
         // Store in memory cache for faster future access
         const cacheValue = returnMetadata
@@ -387,7 +387,7 @@ export async function calculateRepositoryConfidence(
         
         setCache(cacheKey, cacheValue);
         
-        if (returnMetadata) {
+        if (returnMeta_data) {
           return {
             score: cachedResult.score,
             cached: true,
@@ -408,7 +408,7 @@ export async function calculateRepositoryConfidence(
       .maybeSingle();
 
     if (!repoData) {
-      console.warn(`Repository ${owner}/${repo} not found in database`);
+      console.warn(`Repository ${owner}/${repo} not found in _database`);
       console.warn(`This repository needs to be tracked or synced first to calculate confidence`);
       return 0;
     }
@@ -464,7 +464,7 @@ export async function calculateRepositoryConfidence(
     const finalScore = Math.min(50, Math.round(adjustedConfidence));
     const calculationTime = Date.now() - startTime;
 
-    // Cache the result for future use (both database and memory)
+    // Cache the result for future use (both _database and memory)
     await cacheConfidenceScore(supabase, owner, repo, daysBack, finalScore, calculationTime);
 
     console.log('[Confidence] Calculated confidence for %s/%s: %s% (%sms)', owner, repo, finalScore, calculationTime);
@@ -502,7 +502,7 @@ export async function calculateRepositoryConfidence(
       return result;
     }
     
-    if (returnMetadata) {
+    if (returnMeta_data) {
       const result = {
         score: finalScore,
         cached: false,
@@ -519,8 +519,8 @@ export async function calculateRepositoryConfidence(
     setCache(cacheKey, finalScore);
     return finalScore;
 
-  } catch (error) {
-    console.error('Error calculating repository confidence:', error);
+  } catch (_error) {
+    console.error('Error calculating repository confidence:', _error);
     // Return fallback based on available data
     return await calculateBasicFallback(owner, repo, timeRange);
   }
@@ -530,7 +530,7 @@ export async function calculateRepositoryConfidence(
  * Core star/fork to contribution conversion rate (OpenSauced algorithm)
  */
 async function calculateStarForkConfidence(
-  supabase: any,
+  supabase: unknown,
   owner: string,
   repo: string,
   repositoryId: string,
@@ -556,7 +556,7 @@ async function calculateStarForkConfidence(
     .gte('created_at', cutoffDate.toISOString());
 
   const contributors = new Set(
-    contributorData?.map((c: any) => c.contributors?.username).filter(Boolean) || []
+    contributorData?.map((c: unknown) => c.contributors?.username).filter(Boolean) || []
   );
 
   console.log(`[Confidence] Star/Fork data for %s/%s:`, owner, repo, {
@@ -572,10 +572,10 @@ async function calculateStarForkConfidence(
 
   // Separate and weight differently
   const stargazers = new Set(
-    starForkEvents.filter((e: any) => e.event_type === 'WatchEvent').map((e: any) => e.actor_login)
+    starForkEvents.filter((e: unknown) => e.event_type === 'WatchEvent').map((e: unknown) => e.actor_login)
   );
   const forkers = new Set(
-    starForkEvents.filter((e: any) => e.event_type === 'ForkEvent').map((e: any) => e.actor_login)
+    starForkEvents.filter((e: unknown) => e.event_type === 'ForkEvent').map((e: unknown) => e.actor_login)
   );
 
   const stargazersWhoContributed = Array.from(stargazers).filter(u => contributors.has(u)).length;
@@ -592,7 +592,7 @@ async function calculateStarForkConfidence(
  * Core star/fork to contribution conversion rate with breakdown data
  */
 async function calculateStarForkConfidenceWithBreakdown(
-  supabase: any,
+  supabase: unknown,
   owner: string,
   repo: string,
   repositoryId: string,
@@ -624,7 +624,7 @@ async function calculateStarForkConfidenceWithBreakdown(
     .gte('created_at', cutoffDate.toISOString());
 
   const contributors = new Set(
-    contributorData?.map((c: any) => c.contributors?.username).filter(Boolean) || []
+    contributorData?.map((c: unknown) => c.contributors?.username).filter(Boolean) || []
   );
 
   if (!starForkEvents?.length) {
@@ -639,10 +639,10 @@ async function calculateStarForkConfidenceWithBreakdown(
 
   // Separate and weight differently
   const stargazers = new Set(
-    starForkEvents.filter((e: any) => e.event_type === 'WatchEvent').map((e: any) => e.actor_login)
+    starForkEvents.filter((e: unknown) => e.event_type === 'WatchEvent').map((e: unknown) => e.actor_login)
   );
   const forkers = new Set(
-    starForkEvents.filter((e: any) => e.event_type === 'ForkEvent').map((e: any) => e.actor_login)
+    starForkEvents.filter((e: unknown) => e.event_type === 'ForkEvent').map((e: unknown) => e.actor_login)
   );
 
   const stargazersWhoContributed = Array.from(stargazers).filter(u => contributors.has(u)).length;
@@ -670,7 +670,7 @@ async function calculateStarForkConfidenceWithBreakdown(
  * Issue/comment engagement to contribution conversion rate
  */
 async function calculateEngagementConfidence(
-  supabase: any,
+  supabase: unknown,
   owner: string,
   repo: string,
   repositoryId: string,
@@ -702,10 +702,10 @@ async function calculateEngagementConfidence(
     .gte('created_at', cutoffDate.toISOString());
 
   const contributors = new Set(
-    prContributors?.map((c: any) => c.contributors?.username).filter(Boolean) || []
+    prContributors?.map((c: unknown) => c.contributors?.username).filter(Boolean) || []
   );
 
-  const engagers = new Set(engagementEvents?.map((e: any) => e.actor_login).filter(Boolean) || []);
+  const engagers = new Set(engagementEvents?.map((e: unknown) => e.actor_login).filter(Boolean) || []);
   const engagersWhoContributed = Array.from(engagers).filter(u => contributors.has(u)).length;
 
   return engagers.size > 0 ? (engagersWhoContributed / engagers.size) * 100 : 0;
@@ -715,7 +715,7 @@ async function calculateEngagementConfidence(
  * Contributor retention rate over time windows
  */
 async function calculateRetentionConfidence(
-  supabase: any,
+  supabase: unknown,
   _owner: string,
   _repo: string,
   repositoryId: string,
@@ -745,10 +745,10 @@ async function calculateRetentionConfidence(
   ]);
 
   const currentSet = new Set(
-    currentContributors.data?.map((c: any) => c.contributors?.username).filter(Boolean) || []
+    currentContributors.data?.map((c: unknown) => c.contributors?.username).filter(Boolean) || []
   );
   const previousSet = new Set(
-    previousContributors.data?.map((c: any) => c.contributors?.username).filter(Boolean) || []
+    previousContributors.data?.map((c: unknown) => c.contributors?.username).filter(Boolean) || []
   );
 
   // Calculate retention rate
@@ -761,7 +761,7 @@ async function calculateRetentionConfidence(
  * PR success rate and contribution quality
  */
 async function calculateQualityConfidence(
-  supabase: any,
+  supabase: unknown,
   _owner: string,
   _repo: string,
   repositoryId: string,
@@ -781,7 +781,7 @@ async function calculateQualityConfidence(
     return 50; // Neutral score if no PR data
   }
 
-  const mergedPRs = pullRequests.filter((pr: any) => pr.merged_at !== null).length;
+  const mergedPRs = pullRequests.filter((pr: unknown) => pr.merged_at !== null).length;
   const totalPRs = pullRequests.length;
 
   // PR success rate as quality indicator
@@ -856,8 +856,8 @@ async function calculateBasicFallback(
       uniqueContributors,
       daysBack
     );
-  } catch (error) {
-    console.error('Basic fallback failed:', error);
+  } catch (_error) {
+    console.error('Basic fallback failed:', _error);
     return 0;
   }
 }
@@ -878,7 +878,7 @@ function calculateFallbackConfidence(
     return 0;
   }
 
-  // Apply time-based scaling (newer repos have less confidence data)
+  // Apply time-based scaling (newer repos have less confidence _data)
   const timeMultiplier = Math.min(1, daysBack / 30);
   
   // Estimate confidence based on contributor ratio
@@ -899,13 +899,13 @@ function calculateFallbackConfidence(
  * Get cached confidence score if available and not expired
  */
 async function getCachedConfidenceScore(
-  supabase: any,
+  supabase: unknown,
   owner: string,
   repo: string,
   timeRangeDays: number
 ): Promise<{ score: number; calculatedAt: Date; calculationTimeMs?: number } | null> {
   try {
-    const { data, error } = await supabase
+    const { data, error: _error } = await supabase
       .from('repository_confidence_cache')
       .select('confidence_score, expires_at, calculated_at, calculation_time_ms')
       .eq('repository_owner', owner)
@@ -914,20 +914,20 @@ async function getCachedConfidenceScore(
       .gt('expires_at', new Date().toISOString())
       .maybeSingle();
 
-    if (error || !data) {
+    if (_error || !_data) {
       return null;
     }
 
-    const age = Date.now() - new Date(data.calculated_at).getTime();
+    const age = Date.now() - new Date(_data.calculated_at).getTime();
     console.log('[Confidence Cache] Found cached score: %s% (%ss old)', data.confidence_score, Math.round(age / 1000));
     
     return {
       score: data.confidence_score,
-      calculatedAt: new Date(data.calculated_at),
+      calculatedAt: new Date(_data.calculated_at),
       calculationTimeMs: data.calculation_time_ms
     };
-  } catch (error) {
-    console.warn('[Confidence Cache] Error reading cache:', error);
+  } catch (_error) {
+    console.warn('[Confidence Cache] Error reading cache:', _error);
     return null;
   }
 }
@@ -936,7 +936,7 @@ async function getCachedConfidenceScore(
  * Cache confidence score with appropriate TTL
  */
 async function cacheConfidenceScore(
-  supabase: any,
+  supabase: unknown,
   owner: string,
   repo: string,
   timeRangeDays: number,
@@ -967,19 +967,19 @@ async function cacheConfidenceScore(
       data_version: 1 // Current algorithm version
     };
 
-    const { error } = await supabase
+    const { error: _error } = await supabase
       .from('repository_confidence_cache')
       .upsert(cacheEntry, {
         onConflict: 'repository_owner,repository_name,time_range_days'
       });
 
-    if (error) {
-      console.warn('[Confidence Cache] Error storing cache:', error);
+    if (_error) {
+      console.warn('[Confidence Cache] Error storing cache:', _error);
     } else {
       console.log('[Confidence Cache] Stored score for %s/%s (expires in %sh)', owner, repo, Math.round(baseTTL / 3600));
     }
-  } catch (error) {
-    console.warn('[Confidence Cache] Error caching score:', error);
+  } catch (_error) {
+    console.warn('[Confidence Cache] Error caching score:', _error);
   }
 }
 
@@ -1019,14 +1019,14 @@ export async function invalidateConfidenceCache(
       query = query.eq('time_range_days', timeRangeDays);
     }
     
-    const { error } = await query;
+    const { error: _error } = await query;
     
-    if (error) {
-      console.warn(`[Confidence Cache] Error invalidating cache for ${owner}/${repo}:`, error);
+    if (_error) {
+      console.warn(`[Confidence Cache] Error invalidating cache for ${owner}/${repo}:`, _error);
     } else {
       console.log('[Confidence Cache] Invalidated cache for %s/%s', owner, repo);
     }
-  } catch (error) {
-    console.warn('[Confidence Cache] Error invalidating cache:', error);
+  } catch (_error) {
+    console.warn('[Confidence Cache] Error invalidating cache:', _error);
   }
 }

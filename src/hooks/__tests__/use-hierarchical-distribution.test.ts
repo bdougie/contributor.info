@@ -41,7 +41,7 @@ describe("useHierarchicalDistribution", () => {
     vi.clearAllMocks();
   });
 
-  it("returns null data when no pull requests provided", () => {
+  it("returns null _data when no pull requests provided", () => {
     const { result } = renderHook(() => useHierarchicalDistribution([]));
 
     expect(result.current.hierarchicalData).toBeNull();
@@ -63,7 +63,7 @@ describe("useHierarchicalDistribution", () => {
       createMockPR(5, "user1"),
     ];
 
-    (ContributionAnalyzer.analyze as any).mockImplementation((pr: any) => ({
+    (ContributionAnalyzer.analyze as any).mockImplementation((pr: unknown) => ({
       quadrant:
         pr.id === 1 || pr.id === 2 || pr.id === 3
           ? "new"
@@ -78,9 +78,9 @@ describe("useHierarchicalDistribution", () => {
     expect(ContributionAnalyzer.analyze).toHaveBeenCalledTimes(5);
 
     const data = result.current.hierarchicalData;
-    expect(data).not.toBeNull();
-    expect(data?.name).toBe("Distribution");
-    expect(data?.children).toHaveLength(4); // All quadrants
+    expect(_data).not.toBeNull();
+    expect(_data?.name).toBe("Distribution");
+    expect(_data?.children).toHaveLength(4); // All quadrants
 
     // Check new features quadrant
     const newQuadrant = data?.children.find((q) => q.id === "new");
@@ -210,8 +210,8 @@ describe("useHierarchicalDistribution", () => {
     expect(contributors[2].login).toBe("user1"); // 1 PR
   });
 
-  it("handles errors in PR analysis gracefully", async () => {
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  it("handles _errors in PR analysis gracefully", async () => {
+    const consoleSpy = vi.spyOn(console, "_error").mockImplementation(() => {});
     const { ContributionAnalyzer } = vi.mocked(
       await import("@/lib/contribution-analyzer")
     );

@@ -69,7 +69,7 @@ export default function FilteredPRActivity() {
     );
   }
 
-  if (error) {
+  if (_error) {
     return (
       <Card>
         <CardHeader>
@@ -77,7 +77,7 @@ export default function FilteredPRActivity() {
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{error: _error}</AlertDescription>
           </Alert>
         </CardContent>
       </Card>

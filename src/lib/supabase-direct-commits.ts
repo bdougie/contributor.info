@@ -36,7 +36,7 @@ export async function fetchDirectCommitsWithDatabaseFallback(
     async () => {
       try {
         // First, get the repository ID
-        const { data: repoData, error: repoError } = await supabase
+        const { data: repoData, error: _error: repoError } = await supabase
           .from('repositories')
           .select('id')
           .eq('owner', owner)
@@ -72,13 +72,13 @@ export async function fetchDirectCommitsWithDatabaseFallback(
         
         return result;
 
-      } catch (error) {
+      } catch (_error) {
         // Simple error logging without analytics
         console.error('Direct commits error:', {
           owner,
           repo,
           timeRange,
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(_error)
         });
         
         return getEmptyDirectCommitsResult();

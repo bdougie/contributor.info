@@ -49,9 +49,9 @@ export function LLMCitationDashboard() {
       const { initializeLLMCitationTracking } = await import('@/lib/llm-citation-tracking');
       const tracker = initializeLLMCitationTracking();
       const data = await tracker.getCitationMetrics(dateRange);
-      setMetrics(data);
-    } catch (error) {
-      console.error('Failed to load citation metrics:', error);
+      setMetrics(_data);
+    } catch (_error) {
+      console.error('Failed to load citation metrics:', _error);
       setMetrics(null);
     } finally {
       setIsLoading(false);

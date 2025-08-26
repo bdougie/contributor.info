@@ -167,7 +167,7 @@ export async function calculatePrActivityMetrics(
         return totalB - totalA;
       })
       .slice(0, 5)
-      .map(([name, data]) => ({
+      .map(([name, _data]) => ({
         name,
         avatar: data.avatar,
         prCount: data.prCount,
@@ -202,8 +202,8 @@ export async function calculatePrActivityMetrics(
       repositoryName: prDataResult.repositoryName
     };
     
-  } catch (error) {
-    console.error('Error calculating PR activity metrics:', error);
+  } catch (_error) {
+    console.error('Error calculating PR activity metrics:', _error);
     // Return default metrics on error
     return {
       totalPRs: 0,

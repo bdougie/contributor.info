@@ -29,16 +29,16 @@ describe('GitHub API Client', () => {
   });
 
   describe('ContributorApiError', () => {
-    it('should create error with message and status', () => {
+    it('should create _error with message and status', () => {
       const error = new ContributorApiError('Not found', 404);
-      expect(error.message).toBe('Not found');
-      expect(error.statusCode).toBe(404);
-      expect(error).toBeInstanceOf(Error);
+      expect(_error.message).toBe('Not found');
+      expect(_error.statusCode).toBe(404);
+      expect(_error).toBeInstanceOf(Error);
     });
 
     it('should have correct name', () => {
-      const error = new ContributorApiError('Test error', 500);
-      expect(error.name).toBe('ContributorApiError');
+      const error = new ContributorApiError('Test _error', 500);
+      expect(_error.name).toBe('ContributorApiError');
     });
   });
 });

@@ -18,7 +18,8 @@ export default function WidgetsPage() {
   );
 
   // Transform data to widget format
-  const widgetData: WidgetData | undefined = stats.pullRequests && !stats.loading ? (() => {
+  const widgetData: WidgetData | undefined = stats.pullRequests && !stats.loading 
+    ? (() => {
     const totalPRs = stats.pullRequests.length;
     const mergedPRs = stats.pullRequests.filter(pr => pr.merged_at).length;
     const uniqueContributors = new Set(stats.pullRequests.map(pr => pr.user.login)).size;
@@ -63,7 +64,8 @@ export default function WidgetsPage() {
       },
       topContributors: topContributors,
     };
-  })() : undefined;
+  })() 
+    : undefined;
 
   return (
     <div className="container mx-auto px-4 py-8">

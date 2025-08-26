@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const OdometerIcon: React.FC<{ className?: string }> = ({ className }) => (
+export const OdometerIcon({ className?: string }): JSX.Element = ({ className }) => (
   <svg 
     width="98" 
     height="49" 

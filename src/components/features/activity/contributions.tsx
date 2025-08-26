@@ -183,7 +183,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         });
         
         setCachedAvatars(avatarMap);
-      } catch (error) {
+      } catch (_error) {
         // Fallback to original URLs on error
         const fallbackMap = new Map<number, string>();
         contributors.forEach(c => {
@@ -267,9 +267,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
 
 
   // Custom Node for scatter plot points
-  const CustomNode = (props: any) => {
+  const CustomNode = (props: unknown) => {
     // Get the contributor's role
-    const { role } = useContributorRole(owner || '', repo || '', props.node.data.contributor);
+    const { role } = useContributorRole(owner || '', repo || '', props.node._data.contributor);
     
     const size = isMobile ? 28 : 35;
     
@@ -298,7 +298,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         <div style={{ width: '100%', height: '100%' }}>
           <PrHoverCard
             pullRequest={props.node.data._pr}
-            role={role?.role || (props.node.data._pr.user.type === "Bot" ? "Bot" : "Contributor")}
+            role={role?.role || (props.node._data._pr.user.type === "Bot" ? "Bot" : "Contributor")}
           >
             <Avatar
               className={`${
@@ -324,7 +324,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                 onError={(e) => {
                   // Fallback to GitHub avatar API on error, but only once
                   const target = e.target as HTMLImageElement;
-                  if (!target.dataset.retried) {
+                  if (!target._dataset.retried) {
                     target.dataset.retried = 'true';
                     // Use avatars.githubusercontent.com which provides CORS headers
                     // Using user ID if available, otherwise a default avatar

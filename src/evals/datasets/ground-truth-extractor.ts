@@ -25,10 +25,10 @@ export class GroundTruthExtractor {
   private targetSamplesPerRole = 400; // Balanced dataset
 
   async extractGroundTruthDataset(): Promise<EvaluationSample[]> {
-    console.log('Extracting ground truth dataset from Supabase...');
+    console.log('Extracting ground truth _dataset from Supabase...');
 
     // Get high-confidence contributor classifications
-    const { data: contributorRoles, error } = await supabase
+    const { data: contributorRoles, error: _error } = await supabase
       .from('contributor_roles')
       .select(`
         *,
@@ -51,8 +51,8 @@ export class GroundTruthExtractor {
       .order('confidence_score', { ascending: false })
       .limit(1500);
 
-    if (error) {
-      throw new Error(`Failed to extract contributor roles: ${error.message}`);
+    if (_error) {
+      throw new Error(`Failed to extract contributor roles: ${_error.message}`);
     }
 
     console.log('Found %s high-confidence contributor roles', contributorRoles?.length);
@@ -74,14 +74,14 @@ export class GroundTruthExtractor {
     return evaluationSamples.filter(sample => sample !== null) as EvaluationSample[];
   }
 
-  private balanceDataset(contributorRoles: any[]): any[] {
+  private balanceDataset(contributorRoles: unknown[]): unknown[] {
     const roleGroups = {
       owner: contributorRoles.filter(r => r.role === 'owner'),
       maintainer: contributorRoles.filter(r => r.role === 'maintainer'),
       contributor: contributorRoles.filter(r => r.role === 'contributor')
     };
 
-    const balanced: any[] = [];
+    const balanced: unknown[] = [];
     
     // Take equal samples from each role type
     Object.entries(roleGroups).forEach(([role, samples]) => {
@@ -96,7 +96,7 @@ export class GroundTruthExtractor {
 
   private async extractGitHubEvents(contributorId: string, repoId: string): Promise<GitHubEvent[]> {
     // Extract relevant GitHub events for the contributor in this repository
-    const { data: events, error } = await supabase
+    const { data: events, error: _error } = await supabase
       .from('github_events')
       .select('*')
       .eq('contributor_id', contributorId)
@@ -104,8 +104,8 @@ export class GroundTruthExtractor {
       .order('created_at', { ascending: false })
       .limit(100);
 
-    if (error) {
-      console.warn(`Failed to extract events for ${contributorId}: ${error.message}`);
+    if (_error) {
+      console.warn(`Failed to extract events for ${contributorId}: ${_error.message}`);
       return [];
     }
 
@@ -119,7 +119,7 @@ export class GroundTruthExtractor {
     })) || [];
   }
 
-  private calculateMetrics(role: any, events: GitHubEvent[]): ContributorMetrics {
+  private calculateMetrics(role: unknown, events: GitHubEvent[]): ContributorMetrics {
     const mergeEvents = events.filter(e => 
       e.type === 'PullRequestEvent' && e.merged === true
     ).length;
@@ -157,7 +157,7 @@ export class GroundTruthExtractor {
     return Math.ceil((latest.getTime() - earliest.getTime()) / (1000 * 60 * 60 * 24));
   }
 
-  private createEvaluationSample(role: any, events: GitHubEvent[], metrics: ContributorMetrics): EvaluationSample {
+  private createEvaluationSample(role: unknown, events: GitHubEvent[], metrics: ContributorMetrics): EvaluationSample {
     return {
       input: {
         user_id: role.contributors?.username || role.contributor_id,
@@ -197,9 +197,9 @@ export class GroundTruthExtractor {
       repository_distribution: {},
       temporal_distribution: {},
       quality_metrics: {
-        verified_samples: samples.filter(s => s.metadata?.verified_by).length,
-        high_confidence_samples: samples.filter(s => s.metadata?.confidence_level === 'high').length,
-        edge_cases: samples.filter(s => s.metadata?.edge_case).length
+        verified_samples: samples.filter(s => s.meta_data?.verified_by).length,
+        high_confidence_samples: samples.filter(s => s.meta_data?.confidence_level === 'high').length,
+        edge_cases: samples.filter(s => s.meta_data?.edge_case).length
       }
     };
 
@@ -211,7 +211,7 @@ export class GroundTruthExtractor {
 
     // Calculate temporal distribution (by month)
     samples.forEach(sample => {
-      if (sample.metadata?.verification_date) {
+      if (sample.meta_data?.verification_date) {
         const month = sample.metadata.verification_date.substring(0, 7); // YYYY-MM
         stats.temporal_distribution[month] = (stats.temporal_distribution[month] || 0) + 1;
       }

@@ -47,21 +47,21 @@ if (typeof window !== 'undefined' && window.location.href.includes('storybook'))
   // Create a mock for the supabase client
   (window as any).__mockSupabase = {
     auth: {
-      getUser: () => Promise.resolve({ data: { user: mockUser }, error: null }),
-      onAuthStateChange: (callback: any) => {
+      getUser: () => Promise.resolve({ _data: { user: mockUser }, _error: null }),
+      onAuthStateChange: (callback: unknown) => {
         // Immediately call with signed in state
         setTimeout(() => callback('SIGNED_IN', { user: mockUser }), 0);
         return { data: { subscription: { unsubscribe: () => {} } } };
       },
     },
     from: (table: string) => ({
-      select: (columns?: string) => ({
-        eq: (column: string, value: any) => ({
+      select: (_columns?: string) => ({
+        eq: (column: string, value: unknown) => ({
           single: () => {
             if (table === 'workspaces') {
-              return Promise.resolve({ data: mockWorkspace, error: null });
+              return Promise.resolve({ _data: mockWorkspace, _error: null });
             }
-            return Promise.resolve({ data: null, error: null });
+            return Promise.resolve({ _data: null, _error: null });
           },
           maybeSingle: () => {
             if (table === 'workspace_members') {
@@ -70,12 +70,12 @@ if (typeof window !== 'undefined' && window.location.href.includes('storybook'))
                 error: null 
               });
             }
-            return Promise.resolve({ data: null, error: null });
+            return Promise.resolve({ _data: null, _error: null });
           },
         }),
-        in: (column: string, values: any[]) => {
+        in: (column: string, values: unknown[]) => {
           if (table === 'repositories') {
-            return Promise.resolve({ data: mockRepositories, error: null });
+            return Promise.resolve({ _data: mockRepositories, _error: null });
           }
           if (table === 'workspace_repositories') {
             return Promise.resolve({ data: [
@@ -83,10 +83,10 @@ if (typeof window !== 'undefined' && window.location.href.includes('storybook'))
               { repository_id: 'repo-2' }
             ], error: null });
           }
-          return Promise.resolve({ data: [], error: null });
+          return Promise.resolve({ _data: [], _error: null });
         },
       }),
-      insert: (data: any) => ({
+      insert: (_data: unknown) => ({
         select: () => ({
           single: () => Promise.resolve({ 
             data: { id: 'new-repo-link', ...data }, 
@@ -94,9 +94,9 @@ if (typeof window !== 'undefined' && window.location.href.includes('storybook'))
           }),
         }),
       }),
-      update: (data: any) => ({
+      update: (_data: unknown) => ({
         eq: () => ({
-          select: () => Promise.resolve({ data: null, error: null }),
+          select: () => Promise.resolve({ _data: null, _error: null }),
         }),
       }),
     }),
@@ -104,7 +104,7 @@ if (typeof window !== 'undefined' && window.location.href.includes('storybook'))
   
   // Mock the WorkspaceService
   (window as any).__mockWorkspaceService = {
-    addRepositoryToWorkspace: (workspaceId: string, data: any, userId: string) => 
+    addRepositoryToWorkspace: (workspaceId: string, _data: unknown, userId: string) => 
       Promise.resolve({
         success: true,
         data: { id: 'new-link', repository_id: 'repo-123' },
@@ -115,27 +115,27 @@ if (typeof window !== 'undefined' && window.location.href.includes('storybook'))
 }
 
 // Override supabase for specific story scenarios
-const setupMockSupabase = (authenticated = true, options: any = {}) => {
+const setupMockSupabase = (authenticated = true, options: unknown = {}) => {
   if (typeof window !== 'undefined') {
     // Ensure mock exists
     if (!(window as any).__mockSupabase) {
       // Initialize mock if not present
       (window as any).__mockSupabase = {
         auth: {
-          getUser: () => Promise.resolve({ data: { user: authenticated ? mockUser : null }, error: null }),
-          onAuthStateChange: (callback: any) => {
+          getUser: () => Promise.resolve({ _data: { user: authenticated ? mockUser : null }, _error: null }),
+          onAuthStateChange: (callback: unknown) => {
             setTimeout(() => callback(authenticated ? 'SIGNED_IN' : 'SIGNED_OUT', { user: authenticated ? mockUser : null }), 0);
             return { data: { subscription: { unsubscribe: () => {} } } };
           },
         },
         from: (table: string) => ({
-          select: (columns?: string) => ({
-            eq: (column: string, value: any) => ({
+          select: (_columns?: string) => ({
+            eq: (column: string, value: unknown) => ({
               single: () => {
                 if (table === 'workspaces' && authenticated) {
-                  return Promise.resolve({ data: mockWorkspace, error: null });
+                  return Promise.resolve({ _data: mockWorkspace, _error: null });
                 }
-                return Promise.resolve({ data: null, error: null });
+                return Promise.resolve({ _data: null, _error: null });
               },
               maybeSingle: () => {
                 if (table === 'workspace_members' && authenticated) {
@@ -144,13 +144,13 @@ const setupMockSupabase = (authenticated = true, options: any = {}) => {
                     error: null 
                   });
                 }
-                return Promise.resolve({ data: null, error: null });
+                return Promise.resolve({ _data: null, _error: null });
               },
             }),
-            in: (column: string, values: any[]) => {
-              if (!authenticated) return Promise.resolve({ data: [], error: null });
+            in: (column: string, values: unknown[]) => {
+              if (!authenticated) return Promise.resolve({ _data: [], _error: null });
               if (table === 'repositories') {
-                return Promise.resolve({ data: mockRepositories, error: null });
+                return Promise.resolve({ _data: mockRepositories, _error: null });
               }
               if (table === 'workspace_repositories') {
                 return Promise.resolve({ data: [
@@ -158,19 +158,19 @@ const setupMockSupabase = (authenticated = true, options: any = {}) => {
                   { repository_id: 'repo-2' }
                 ], error: null });
               }
-              return Promise.resolve({ data: [], error: null });
+              return Promise.resolve({ _data: [], _error: null });
             },
           }),
-          insert: (data: any) => ({
+          insert: (_data: unknown) => ({
             select: () => ({
               single: () => authenticated 
-                ? Promise.resolve({ data: { id: 'new-repo-link', ...data }, error: null })
-                : Promise.resolve({ data: null, error: { message: 'Authentication required' } }),
+                ? Promise.resolve({ data: { id: 'new-repo-link', ..._data }, _error: null })
+                : Promise.resolve({ _data: null, _error: { message: 'Authentication required' } }),
             }),
           }),
-          update: (data: any) => ({
+          update: (_data: unknown) => ({
             eq: () => ({
-              select: () => Promise.resolve({ data: null, error: null }),
+              select: () => Promise.resolve({ _data: null, _error: null }),
             }),
           }),
         }),
@@ -181,8 +181,8 @@ const setupMockSupabase = (authenticated = true, options: any = {}) => {
     
     if (!authenticated && currentMock?.auth) {
       // Update to unauthenticated state
-      currentMock.auth.getUser = () => Promise.resolve({ data: { user: null }, error: null });
-      currentMock.auth.onAuthStateChange = (callback: any) => {
+      currentMock.auth.getUser = () => Promise.resolve({ _data: { user: null }, _error: null });
+      currentMock.auth.onAuthStateChange = (callback: unknown) => {
         setTimeout(() => callback('SIGNED_OUT', { user: null }), 0);
         return { data: { subscription: { unsubscribe: () => {} } } };
       };
@@ -407,7 +407,7 @@ export const ProTierWorkspace: Story = {
                 select: () => ({
                   ...result.select(),
                   eq: () => ({
-                    single: () => Promise.resolve({ data: proWorkspace, error: null }),
+                    single: () => Promise.resolve({ _data: proWorkspace, _error: null }),
                   }),
                 }),
               };
@@ -466,7 +466,7 @@ export const EnterpriseTierWorkspace: Story = {
                 select: () => ({
                   ...result.select(),
                   eq: () => ({
-                    single: () => Promise.resolve({ data: enterpriseWorkspace, error: null }),
+                    single: () => Promise.resolve({ _data: enterpriseWorkspace, _error: null }),
                   }),
                 }),
               };

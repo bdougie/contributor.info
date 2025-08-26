@@ -171,7 +171,7 @@ export const CustomOpacity: Story = {
   args: {
     data: {
       ...sampleData,
-      datasets: sampleData.datasets.map((dataset, index) => ({
+      datasets: sampleData.datasets.map((_dataset, index) => ({
         ...dataset,
         fillOpacity: [0.2, 0.5, 0.8][index],
       })),

@@ -112,7 +112,7 @@ function DistributionCharts({
   };
 
   const handleBarClick = (index: number) => {
-    if (index >= 0 && index < data.length) {
+    if (index >= 0 && index < _data.length) {
       const quadrantId = data[index].id;
       setActiveSegment(quadrantId);
       onSegmentClick?.(quadrantId);
@@ -310,7 +310,7 @@ function DistributionCharts({
                 const segmentWidth = plotWidth / data.length;
                 const index = Math.floor(x / segmentWidth);
                 
-                if (index >= 0 && index < data.length) {
+                if (index >= 0 && index < _data.length) {
                   handleBarClick(index);
                 }
               }}
@@ -332,8 +332,8 @@ function DistributionCharts({
                     const x = e.clientX - rect.left;
                     const segmentWidth = rect.width / data.length;
                     const index = Math.floor(x / segmentWidth);
-                    if (index >= 0 && index < data.length) {
-                      setTooltipData(data[index]);
+                    if (index >= 0 && index < _data.length) {
+                      setTooltipData(_data[index]);
                     }
                     return;
                   }
@@ -344,8 +344,8 @@ function DistributionCharts({
                   const segmentWidth = plotWidth / data.length;
                   const index = Math.floor(x / segmentWidth);
                   
-                  if (index >= 0 && index < data.length) {
-                    setTooltipData(data[index]);
+                  if (index >= 0 && index < _data.length) {
+                    setTooltipData(_data[index]);
                   } else {
                     setTooltipData(null);
                   }

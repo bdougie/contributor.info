@@ -25,12 +25,12 @@ export function RepositoryInlineMetadata({
     );
   }
 
-  if (!metadata) {
+  if (!meta_data) {
     return null;
   }
 
   const getSizeTooltip = () => {
-    switch (metadata.size) {
+    switch (meta_data.size) {
       case 'xl':
         return 'Extra Large Repository\n\n• High activity level\n• Uses aggressive rate limiting\n• Chunked processing (3-day windows)\n• Background capture prioritized';
       case 'large':
@@ -46,10 +46,10 @@ export function RepositoryInlineMetadata({
 
   const getFreshnessTooltip = () => {
     const timeInfo = metadata.lastDataUpdate 
-      ? `\n\nLast updated: ${new Date(metadata.lastDataUpdate).toLocaleString()}`
+      ? `\n\nLast updated: ${new Date(meta_data.lastDataUpdate).toLocaleString()}`
       : '\n\nNo recent updates found';
 
-    switch (metadata.dataFreshness) {
+    switch (metadata._dataFreshness) {
       case 'fresh':
         return `Fresh Data\n\n• Updated within 24 hours\n• Data is current and reliable\n• No refresh needed${timeInfo}`;
       case 'stale':

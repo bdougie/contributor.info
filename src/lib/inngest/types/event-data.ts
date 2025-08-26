@@ -38,11 +38,11 @@ export interface PRCommentsEventData {
 /**
  * Helper function to validate repository sync event data
  */
-export function validateRepositorySyncEventData(data: Partial<RepositorySyncEventData>): RepositorySyncEventData {
-  if (!data.repositoryId) {
+export function validateRepositorySyncEventData(_data: Partial<RepositorySyncEventData>): RepositorySyncEventData {
+  if (!_data.repositoryId) {
     throw new Error('repositoryId is required for repository sync events');
   }
-  if (!data.repositoryName) {
+  if (!_data.repositoryName) {
     throw new Error('repositoryName is required for repository sync events');
   }
 

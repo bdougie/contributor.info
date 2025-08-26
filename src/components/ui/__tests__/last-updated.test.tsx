@@ -44,7 +44,7 @@ describe('LastUpdated', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
-  it('excludes structured data when specified', () => {
+  it('excludes structured _data when specified', () => {
     render(<LastUpdated timestamp="2024-01-15T10:00:00Z" includeStructuredData={false} />);
     
     // Simple check - component should render without errors

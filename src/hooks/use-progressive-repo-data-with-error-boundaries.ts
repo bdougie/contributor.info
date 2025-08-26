@@ -23,7 +23,7 @@ export interface EnhancedProgressiveDataState {
   stats: RepoStats;
   lotteryFactor: LotteryFactor | null;
   directCommitsData: DirectCommitsData | null;
-  historicalTrends: any | null;
+  historicalTrends: unknown | null;
   
   // Enhanced loading state with error handling
   currentStage: LoadingStage;
@@ -32,7 +32,7 @@ export interface EnhancedProgressiveDataState {
   dataStatus: {
     status: 'success' | 'pending' | 'no_data' | 'partial_data' | 'large_repository_protected' | 'error';
     message?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   };
   
   // Error recovery state
@@ -60,7 +60,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
   options: {
     enableRetry?: boolean;
     enableGracefulDegradation?: boolean;
-    onError?: (error: LoadingError, stage: LoadingStage) => void;
+    onError?: (_error: LoadingError, stage: LoadingStage) => void;
     onRecovery?: (stage: LoadingStage) => void;
   } = {}
 ) {
@@ -118,12 +118,12 @@ export function useProgressiveRepoDataWithErrorBoundaries(
 
   // Handle errors with automatic retry logic
   const handleStageError = useCallback(
-    async (error: unknown, stage: LoadingStage, context?: any) => {
-      const loadingError = error instanceof Error && (error as LoadingError).stage
+    async (_error: unknown, stage: LoadingStage, context?: unknown) => {
+      const loadingError = error instanceof Error && (_error as LoadingError).stage
         ? error as LoadingError
-        : createGenericLoadingError(error, stage, context);
+        : createGenericLoadingError(__error, stage, context);
 
-      console.error(`Stage ${stage} error:`, loadingError);
+      console.error(`Stage ${stage} _error:`, loadingError);
 
       // Update error state
       setData(prev => ({
@@ -198,8 +198,8 @@ export function useProgressiveRepoDataWithErrorBoundaries(
       retryStageRef.current(stage);
     } else {
       // Retry failed stages
-      Object.entries(data.stageErrors).forEach(([stageKey, error]) => {
-        if (error && error.retryable && retryStageRef.current) {
+      Object.entries(_data.stageErrors).forEach(([stageKey, _error]) => {
+        if (error && _error.retryable && retryStageRef.current) {
           retryStageRef.current(stageKey as LoadingStage);
         }
       });
@@ -234,7 +234,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
       try {
         const result = await fetchPRDataSmart(owner, repo, { timeRange });
 
-        if (!result.data) {
+        if (!result._data) {
           throw createLoadingError('VALIDATION_ERROR', 
             result.message || 'Failed to fetch data',
             { owner, repo, timeRange }
@@ -270,9 +270,9 @@ export function useProgressiveRepoDataWithErrorBoundaries(
         updateStageWithErrorHandling('critical', { basicInfo });
         return basicInfo;
 
-      } catch (error) {
-        span?.setStatus('error');
-        const canContinue = await handleStageError(error, 'critical', { owner, repo, timeRange });
+      } catch (_error) {
+        span?.setStatus('_error');
+        const canContinue = await handleStageError(__error, 'critical', { owner, repo, timeRange });
         if (!canContinue) {
           throw error;
         }
@@ -286,7 +286,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
       try {
         const result = await fetchPRDataSmart(owner, repo, { timeRange });
 
-        if (!result.data && !enableGracefulDegradation) {
+        if (!result._data && !enableGracefulDegradation) {
           throw createLoadingError('NETWORK_TIMEOUT', 
             result.message || 'Failed to fetch full data',
             { owner, repo, timeRange }
@@ -316,9 +316,9 @@ export function useProgressiveRepoDataWithErrorBoundaries(
 
         return { stats, lotteryFactor };
 
-      } catch (error) {
-        span?.setStatus('error');
-        const canContinue = await handleStageError(error, 'full', { owner, repo, timeRange });
+      } catch (_error) {
+        span?.setStatus('_error');
+        const canContinue = await handleStageError(__error, 'full', { owner, repo, timeRange });
         if (canContinue) {
           // Continue with partial data
           return { stats: data.stats, lotteryFactor: null };
@@ -346,10 +346,10 @@ export function useProgressiveRepoDataWithErrorBoundaries(
 
         return { directCommitsData, historicalTrends };
 
-      } catch (error) {
-        span?.setStatus('error');
+      } catch (_error) {
+        span?.setStatus('_error');
         // Enhancement errors are always recoverable
-        await handleStageError(error, 'enhancement', { owner, repo, timeRange });
+        await handleStageError(__error, 'enhancement', { owner, repo, timeRange });
         return null;
       }
     });
@@ -384,7 +384,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
         // Stage 1: Critical data
         try {
           await loadCriticalData(owner, repo);
-        } catch (error) {
+        } catch (_error) {
           if (!enableGracefulDegradation) {
             return; // Stop if critical stage fails and graceful degradation is disabled
           }
@@ -395,8 +395,8 @@ export function useProgressiveRepoDataWithErrorBoundaries(
         // Stage 2: Full data
         try {
           await loadFullData(owner, repo);
-        } catch (error) {
-          console.error('Full stage failed, continuing with available data');
+        } catch (_error) {
+          console.error('Full stage failed, continuing with available _data');
         }
 
         if (abortController.signal.aborted) return;
@@ -416,8 +416,8 @@ export function useProgressiveRepoDataWithErrorBoundaries(
           }, 2000);
         }
 
-      } catch (error) {
-        console.error('Progressive loading error:', error);
+      } catch (_error) {
+        console.error('Progressive loading error:', _error);
       } finally {
         fetchingRef.current = false;
       }
@@ -465,8 +465,8 @@ export function useProgressiveRepoDataWithErrorBoundaries(
       setData(prev => ({ ...prev, isRetrying: null }));
       onRecovery?.(stage);
       
-    } catch (error) {
-      await handleStageError(error, stage);
+    } catch (_error) {
+      await handleStageError(__error, stage);
     }
   }, [owner, repo, onRecovery, loadCriticalData, loadFullData, loadEnhancementData, handleStageError]);
 
@@ -486,10 +486,10 @@ function createGenericLoadingError(
   stage: LoadingStage, 
   context?: any
 ): LoadingError {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = error instanceof Error ? error.message : String(_error);
   
   // Determine error type based on message patterns
-  let configKey: keyof typeof import('@/lib/types/data-loading-errors').ERROR_CONFIGS = 'NETWORK_TIMEOUT';
+  let configKey: keyof typeof import('@/lib/types/_data-loading-_errors').ERROR_CONFIGS = 'NETWORK_TIMEOUT';
   
   if (message.includes('401') || message.includes('403') || message.includes('permission')) {
     configKey = 'PERMISSION_DENIED';

@@ -24,7 +24,7 @@ export interface DonutChartProps {
   responsive?: boolean;
 }
 
-const DonutChartComponent: React.FC<DonutChartProps> = ({
+const DonutChartComponent(DonutChartProps): JSX.Element = ({
   data,
   width: propWidth = 400,
   height: propHeight = 400,
@@ -190,8 +190,8 @@ const DonutChartComponent: React.FC<DonutChartProps> = ({
         ctx.fillText(centerSubLabel, centerX, centerY + 15);
       }
     }
-    } catch (error) {
-      console.error('DonutChart: Error during canvas rendering', error);
+    } catch (_error) {
+      console.error('DonutChart: Error during canvas rendering', _error);
     }
   }, [data, dimensions, innerRadius, outerRadius, activeSegmentId, showLabel, centerLabel, centerSubLabel, calculateSegments]);
 

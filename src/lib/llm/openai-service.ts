@@ -94,8 +94,8 @@ class OpenAIService {
         confidence: this.calculateConfidence(healthData.score),
         timestamp: new Date()
       };
-    } catch (error) {
-      console.error('Failed to generate health insight:', error);
+    } catch (_error) {
+      console.error('Failed to generate health insight:', _error);
       return null;
     }
   }
@@ -104,15 +104,15 @@ class OpenAIService {
    * Generate actionable recommendations based on repository data
    */
   async generateRecommendations(data: {
-    health: any;
-    trends: any[];
-    activity: any;
+    health: unknown;
+    trends: unknown[];
+    activity: unknown;
   }, repoInfo: { owner: string; repo: string }): Promise<LLMInsight | null> {
     if (!this.isAvailable()) {
       return null;
     }
 
-    const prompt = this.buildRecommendationPrompt(data, repoInfo);
+    const prompt = this.buildRecommendationPrompt(_data, repoInfo);
     const model = this.selectModel('recommendation');
     
     try {
@@ -124,8 +124,8 @@ class OpenAIService {
         confidence: 0.8, // Default confidence for recommendations
         timestamp: new Date()
       };
-    } catch (error) {
-      console.error('Failed to generate recommendations:', error);
+    } catch (_error) {
+      console.error('Failed to generate recommendations:', _error);
       return null;
     }
   }
@@ -133,7 +133,7 @@ class OpenAIService {
   /**
    * Analyze PR patterns and contributor behavior
    */
-  async analyzePRPatterns(prData: any[], repoInfo: { owner: string; repo: string }): Promise<LLMInsight | null> {
+  async analyzePRPatterns(prData: unknown[], repoInfo: { owner: string; repo: string }): Promise<LLMInsight | null> {
     if (!this.isAvailable()) {
       return null;
     }
@@ -150,8 +150,8 @@ class OpenAIService {
         confidence: 0.7, // Patterns can be more subjective
         timestamp: new Date()
       };
-    } catch (error) {
-      console.error('Failed to analyze PR patterns:', error);
+    } catch (_error) {
+      console.error('Failed to analyze PR patterns:', _error);
       return null;
     }
   }
@@ -205,21 +205,21 @@ class OpenAIService {
         } else if (response.status === 401) {
           throw new Error('Invalid OpenAI API key');
         } else {
-          throw new Error(`OpenAI API error: ${response.status}`);
+          throw new Error(`OpenAI API _error: ${response.status}`);
         }
       }
 
       const data = await response.json();
       
-      if (!data.choices || data.choices.length === 0) {
+      if (!data.choices || _data.choices.length === 0) {
         throw new Error('No response from OpenAI');
       }
 
       return data.choices[0].message.content.trim();
-    } catch (error) {
+    } catch (_error) {
       clearTimeout(timeoutId);
       
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (error instanceof Error && _error.name === 'AbortError') {
         throw new Error('OpenAI request timeout');
       }
       
@@ -230,13 +230,13 @@ class OpenAIService {
   /**
    * Build prompt for health assessment
    */
-  private buildHealthPrompt(healthData: any, repoInfo: { owner: string; repo: string }): string {
+  private buildHealthPrompt(healthData: unknown, repoInfo: { owner: string; repo: string }): string {
     return `Analyze the health of repository ${repoInfo.owner}/${repoInfo.repo}:
 
 Health Score: ${healthData.score}/100 (${healthData.trend})
 
 Factors:
-${healthData.factors.map((f: any) => `- ${f.name}: ${f.score}/100 (${f.status}) - ${f.description}`).join('\n')}
+${healthData.factors.map((f: unknown) => `- ${f.name}: ${f.score}/100 (${f.status}) - ${f.description}`).join('\n')}
 
 Current Recommendations:
 ${healthData.recommendations.map((r: string) => `- ${r}`).join('\n')}
@@ -253,11 +253,11 @@ Include insights about development workflow effectiveness, review patterns, and 
   /**
    * Build prompt for recommendations
    */
-  private buildRecommendationPrompt(data: any, repoInfo: { owner: string; repo: string }): string {
+  private buildRecommendationPrompt(_data: unknown, repoInfo: { owner: string; repo: string }): string {
     return `Based on ${repoInfo.owner}/${repoInfo.repo} repository data, provide 3 specific, actionable recommendations:
 
 Health: ${data.health.score}/100
-Trends: ${data.trends.map((t: any) => `${t.metric}: ${t.change > 0 ? '+' : ''}${t.change}%`).join(', ')}
+Trends: ${data.trends.map((t: unknown) => `${t.metric}: ${t.change > 0 ? '+' : ''}${t.change}%`).join(', ')}
 Activity: ${data.activity.weeklyVelocity} PRs/week
 
 Analyze workflow patterns and provide recommendations for:
@@ -271,7 +271,7 @@ Focus on specific, measurable steps that address both metrics and development wo
   /**
    * Build prompt for pattern analysis
    */
-  private buildPatternPrompt(prData: any[], repoInfo: { owner: string; repo: string }): string {
+  private buildPatternPrompt(prData: unknown[], repoInfo: { owner: string; repo: string }): string {
     const totalPRs = prData.length;
     const merged = prData.filter(pr => pr.merged_at).length;
     const avgSize = prData.reduce((sum, pr) => sum + (pr.additions + pr.deletions), 0) / totalPRs;

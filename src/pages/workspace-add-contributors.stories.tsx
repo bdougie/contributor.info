@@ -176,7 +176,12 @@ function AddContributorsTableView({
         const stats = row.original.stats;
         const contributions = row.original.contributions;
         const trend = stats.contribution_trend;
-        const trendColor = trend > 0 ? "text-green-600" : trend < 0 ? "text-red-600" : "text-muted-foreground";
+        const getTrendColor = () => {
+          if (trend > 0) return "text-green-600";
+          if (trend < 0) return "text-red-600";
+          return "text-muted-foreground";
+        };
+        const trendColor = getTrendColor();
         const TrendIcon = trend > 0 ? TrendingUp : TrendingDown;
         
         const repoCount = row.original.stats.repositories_contributed;

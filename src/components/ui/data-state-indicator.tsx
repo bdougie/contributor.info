@@ -43,16 +43,16 @@ export function DataStateIndicator({
   };
 
   const renderIndicator = () => {
-    switch (status) {
+    switch (_status) {
       case 'success':
-        if (metadata?.isStale) {
+        if (meta_data?.isStale) {
           return {
             icon: <Clock className="h-4 w-4" />,
             color: 'text-yellow-600 dark:text-yellow-500',
             bgColor: 'bg-yellow-50 dark:bg-yellow-950',
             borderColor: 'border-yellow-200 dark:border-yellow-800',
             title: 'Data Available',
-            description: message || formatLastUpdate(metadata?.lastUpdate) || 'Data from cache • Fresh data loading...'
+            description: message || formatLastUpdate(meta_data?.lastUpdate) || 'Data from cache • Fresh data loading...'
           };
         }
         return {
@@ -61,7 +61,7 @@ export function DataStateIndicator({
           bgColor: 'bg-green-50 dark:bg-green-950',
           borderColor: 'border-green-200 dark:border-green-800',
           title: 'Data Current',
-          description: formatLastUpdate(metadata?.lastUpdate) || 'All data up to date'
+          description: formatLastUpdate(meta_data?.lastUpdate) || 'All data up to date'
         };
 
       case 'pending':
@@ -164,7 +164,7 @@ export function DataStateIndicator({
             )}
           </div>
         </div>
-        {(onRefresh || (metadata?.owner && metadata?.repo)) && status !== 'pending' && (
+        {(onRefresh || (metadata?.owner && meta_data?.repo)) && status !== 'pending' && (
           metadata?.owner && metadata?.repo
 ? (
             <UnifiedSyncButton

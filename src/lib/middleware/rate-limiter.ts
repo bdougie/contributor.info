@@ -163,7 +163,7 @@ export function createRateLimiter(config: RateLimitConfig) {
         statusText: response.statusText,
         headers: newHeaders
       });
-    } catch (error) {
+    } catch (_error) {
       // Optionally don't count failed requests
       if (skipFailedRequests) {
         store.reset(key);
@@ -209,12 +209,12 @@ export const rateLimiters = {
  * Apply rate limiter to a request handler
  */
 export function withRateLimit(
-  handler: (req: Request, context: any) => Promise<Response>,
+  handler: (req: Request, context: unknown) => Promise<Response>,
   config: RateLimitConfig
 ) {
   const limiter = createRateLimiter(config);
   
-  return async (req: Request, context: any): Promise<Response> => {
+  return async (req: Request, context: unknown): Promise<Response> => {
     return limiter(req, () => handler(req, context));
   };
 }

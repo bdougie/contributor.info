@@ -62,9 +62,9 @@ vi.mock('@/lib/supabase', () => {
       in: vi.fn(() => queryBuilder),
       order: vi.fn(() => queryBuilder),
       limit: vi.fn(() => queryBuilder),
-      single: vi.fn(() => Promise.resolve({ data: null, error: null })),
-      maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
-      then: (resolve: (value: { data: unknown[]; error: null }) => void) => resolve({ data: [], error: null }),
+      single: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
+      maybeSingle: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
+      then: (resolve: (value: { _data: unknown[]; _error: null }) => void) => resolve({ _data: [], _error: null }),
     };
     return queryBuilder;
   };
@@ -73,8 +73,8 @@ vi.mock('@/lib/supabase', () => {
     supabase: {
       from: vi.fn(() => createQueryBuilder()),
       auth: {
-        getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
-        signOut: vi.fn(() => Promise.resolve({ error: null })),
+        getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, _error: null })),
+        signOut: vi.fn(() => Promise.resolve({ _error: null })),
       },
     },
   };

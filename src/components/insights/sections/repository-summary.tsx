@@ -16,7 +16,7 @@ interface RepositorySummaryProps {
 // Internal component without error boundary
 function RepositorySummaryInternal({ owner, repo, timeRange }: RepositorySummaryProps) {
   const { stats } = useCachedRepoData(owner, repo, timeRange, false);
-  const { summary, loading, error, refetch } = useRepositorySummary(owner, repo, stats.pullRequests);
+  const { summary, loading, error: _error, refetch } = useRepositorySummary(owner, repo, stats.pullRequests);
 
   // Simple context tracking without analytics
   console.log('AI summary context:', {
@@ -38,7 +38,7 @@ function RepositorySummaryInternal({ owner, repo, timeRange }: RepositorySummary
     );
   }
 
-  if (error) {
+  if (_error) {
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-sm text-destructive">
@@ -90,7 +90,7 @@ function RepositorySummaryInternal({ owner, repo, timeRange }: RepositorySummary
 }
 
 // Error boundary fallback for AI summary
-function AISummaryErrorFallback({ retry }: { error?: Error; retry: () => void }) {
+function AISummaryErrorFallback({ retry }: { _error?: Error; retry: () => void }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-sm text-destructive">
@@ -116,7 +116,7 @@ export function RepositorySummary({ owner, repo, timeRange }: RepositorySummaryP
     <ErrorBoundary
       context={`AI Summary for ${owner}/${repo}`}
       fallback={<AISummaryErrorFallback error={new Error('AI Summary Error')} retry={() => window.location.reload()} />}
-      onError={(error, errorInfo) => {
+      onError={(_error, _errorInfo) => {
         // Simple error logging without analytics
         console.error('AI summary error:', {
           owner,

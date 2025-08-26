@@ -40,7 +40,7 @@ function ModalWrapper({
   defaultOpen?: boolean;
   onSuccess?: (workspaceId: string) => void;
   mode?: 'create' | 'edit';
-  initialValues?: any;
+  initialValues?: unknown;
   workspaceId?: string;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -91,8 +91,8 @@ export const FormDefault: Story = {
   render: () => (
     <div className="max-w-[500px] p-6 border rounded-lg">
       <WorkspaceCreateForm
-        onSubmit={async (data) => {
-          console.log('Form submitted:', data);
+        onSubmit={async (_data) => {
+          console.log('Form submitted:', _data);
           await new Promise(resolve => setTimeout(resolve, 1000));
         }}
       />
@@ -104,8 +104,8 @@ export const FormWithCancel: Story = {
   render: () => (
     <div className="max-w-[500px] p-6 border rounded-lg">
       <WorkspaceCreateForm
-        onSubmit={async (data) => {
-          console.log('Form submitted:', data);
+        onSubmit={async (_data) => {
+          console.log('Form submitted:', _data);
           await new Promise(resolve => setTimeout(resolve, 1000));
         }}
         onCancel={() => console.log('Cancelled')}
@@ -164,18 +164,18 @@ export const FormInteractive: Story = {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = async (data: any) => {
+    const handleSubmit = async (_data: unknown) => {
       setLoading(true);
       setError(null);
       
-      console.log('Submitting:', data);
+      console.log('Submitting:', _data);
       
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Simulate random success/error
       if (Math.random() > 0.5) {
-        setError('Simulated error: Workspace name already exists');
+        setError('Simulated _error: Workspace name already exists');
       } else {
         alert('Success! Workspace created.');
         setError(null);
@@ -191,7 +191,7 @@ export const FormInteractive: Story = {
           onSubmit={handleSubmit}
           onCancel={() => console.log('Cancelled')}
           loading={loading}
-          error={error}
+          error={error: _error}
         />
       </div>
     );
@@ -232,8 +232,8 @@ export const FormEditMode: Story = {
   render: () => (
     <div className="max-w-[500px] p-6 border rounded-lg">
       <WorkspaceCreateForm
-        onSubmit={async (data) => {
-          console.log('Updating workspace:', data);
+        onSubmit={async (_data) => {
+          console.log('Updating workspace:', _data);
           await new Promise(resolve => setTimeout(resolve, 1000));
         }}
         onCancel={() => console.log('Cancelled')}

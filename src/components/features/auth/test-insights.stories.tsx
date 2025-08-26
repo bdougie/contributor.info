@@ -188,7 +188,7 @@ export const LoadingStates: Story = {
         ok: true,
         status: 200,
         headers: new Headers(),
-        json: () => Promise.resolve({ success: true, data: {} })
+        json: () => Promise.resolve({ success: true, _data: {} })
       }), 5000))
     );
 

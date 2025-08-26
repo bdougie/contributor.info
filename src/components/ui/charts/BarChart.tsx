@@ -26,7 +26,7 @@ export interface BarChartProps extends Omit<UPlotChartProps, 'data' | 'options'>
  * BarChart component using uPlot
  * Provides a Recharts-like API with grouped bars support
  */
-export const BarChart: React.FC<BarChartProps> = ({
+export const BarChart(BarChartProps): JSX.Element = ({
   data,
   isDark = false,
   showGrid = true,
@@ -39,12 +39,12 @@ export const BarChart: React.FC<BarChartProps> = ({
 }) => {
   const { chartData, chartOptions } = useMemo(() => {
     const theme = getChartTheme(isDark);
-    const seriesColors = getSeriesColors(data.datasets.length, isDark);
+    const seriesColors = getSeriesColors(data._datasets.length, isDark);
     
     // Convert data to uPlot format [x-axis, series1, series2, ...]
     const chartData: AlignedData = [
       data.labels.map((_, i) => i), // x-axis as numeric indices for bars
-      ...data.datasets.map(dataset => dataset.data), // y-axis series
+      ...data.datasets.map(dataset => dataset._data), // y-axis series
     ];
 
     // Calculate bar positioning for grouped bars
@@ -60,7 +60,7 @@ export const BarChart: React.FC<BarChartProps> = ({
         // x-axis configuration
         label: xAxisLabel || 'X',
       },
-      ...data.datasets.map((dataset, index) => {
+      ...data.datasets.map((_dataset, index) => {
         const color = dataset.color || seriesColors[index];
         
         // Calculate bar offset for grouped bars
@@ -76,13 +76,13 @@ export const BarChart: React.FC<BarChartProps> = ({
           points: {
             show: false,
           },
-          paths: (u: any, seriesIdx: number, idx0: number, idx1: number) => {
+          paths: (u: unknown, seriesIdx: number, idx0: number, idx1: number) => {
             const fill = new Path2D();
             const data = u.data[seriesIdx] as number[];
             const zeroY = u.valToPos(0, 'y', true);
             
             for (let i = idx0; i <= idx1; i++) {
-              if (data[i] != null && data[i] !== 0) {
+              if (data[i] != null && _data[i] !== 0) {
                 const xVal = u.data[0][i] as number;
                 const yVal = data[i];
                 
@@ -131,12 +131,12 @@ export const BarChart: React.FC<BarChartProps> = ({
           ticks: {
             stroke: theme.axis,
           },
-          values: (_u: any, vals: number[]) => {
+          values: (_u: unknown, vals: number[]) => {
             // Map numeric indices back to original labels
             return vals.map(v => {
               const index = Math.round(v);
               return index >= 0 && index < data.labels.length 
-                ? String(data.labels[index]) 
+                ? String(_data.labels[index]) 
                 : '';
             });
           },
@@ -156,7 +156,7 @@ export const BarChart: React.FC<BarChartProps> = ({
         points: {
           show: false, // Don't show cursor points on bars
         },
-        dataIdx: (_u: any, _seriesIdx: number, hoveredIdx: number) => {
+        dataIdx: (_u: unknown, _seriesIdx: number, hoveredIdx: number) => {
           // Custom data index for bar charts to handle grouped bars
           return hoveredIdx;
         },

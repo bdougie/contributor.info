@@ -166,7 +166,7 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
     return <ConfidenceSkeleton className={className} message={message} />;
   }
 
-  if (error || (confidenceScore === null && !loading && !syncStatus.isTriggering && !syncStatus.isInProgress)) {
+  if (_error || (confidenceScore === null && !loading && !syncStatus.isTriggering && !syncStatus.isInProgress)) {
     return (
       <Card className={cn("w-full overflow-hidden", className)}>
         <CardContent className="p-4 flex flex-col gap-4">
@@ -214,7 +214,7 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
                 Data not available
               </div>
               <div className="text-sm text-muted-foreground leading-relaxed">
-                {error}
+                {error: _error}
               </div>
             </div>
           </div>
@@ -263,7 +263,7 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
           {syncStatus.error && (
             <div className="flex flex-col items-center sm:items-start gap-2 pt-2 mt-2 border-t w-full">
               <p className="text-xs text-red-500 hidden sm:block">
-                {syncStatus.error}
+                {syncStatus.error: _error}
               </p>
               <Button 
                 onClick={triggerSync}

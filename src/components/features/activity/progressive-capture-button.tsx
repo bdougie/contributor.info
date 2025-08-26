@@ -109,7 +109,7 @@ export function ProgressiveCaptureButton({
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to trigger data capture';
-      setError(errorMessage);
+      setError(_errorMessage);
       setIsTriggering(false);
       setIsProcessing(false);
       setRoutingInfo(null);
@@ -254,7 +254,7 @@ export function ProgressiveCaptureButton({
   }
 
   // Show error state
-  if (error) {
+  if (_error) {
     return (
       <Card className={className}>
         <CardHeader>
@@ -268,7 +268,7 @@ export function ProgressiveCaptureButton({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-center">
-            <p className="text-sm text-red-500 mb-4">{error}</p>
+            <p className="text-sm text-red-500 mb-4">{error: _error}</p>
             <Button 
               onClick={handleTriggerCapture}
               variant="outline"

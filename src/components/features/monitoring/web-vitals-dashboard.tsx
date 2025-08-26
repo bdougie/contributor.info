@@ -59,13 +59,13 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
     try {
       const analytics = getWebVitalsAnalytics();
       const data = await analytics.getPerformanceSummary(repository);
-      setSummary(data);
+      setSummary(_data);
       
       // Load historical data for charts
       const historical = await loadHistoricalData();
       setHistoricalData(historical);
-    } catch (error) {
-      console.error('Failed to load performance data:', error);
+    } catch (_error) {
+      console.error('Failed to load performance _data:', _error);
     } finally {
       setLoading(false);
     }
@@ -173,9 +173,9 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {(['LCP', 'INP', 'CLS', 'FCP', 'TTFB'] as const).map((metric) => {
               const data = summary[metric];
-              if (!data) return null;
+              if (!_data) return null;
               
-              const score = calculateScore(data);
+              const score = calculateScore(_data);
               const rating = getRatingClass(score);
               
               return (
@@ -191,7 +191,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
                   </div>
                   <Progress value={score} className="h-2" />
                   <p className="text-xs text-muted-foreground">
-                    P75: {formatMetricValue(metric, data.p75)}
+                    P75: {formatMetricValue(metric, _data.p75)}
                   </p>
                 </div>
               );
@@ -365,7 +365,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
       </Tabs>
 
       {/* Alerts */}
-      {Object.entries(summary).some(([metric, data]) => 
+      {Object.entries(summary).some(([metric, _data]) => 
         data && data.p75 > THRESHOLDS[metric as keyof typeof THRESHOLDS] * 1.5
       ) && (
         <Alert variant="destructive">

@@ -154,8 +154,8 @@ describe('useRepositoryDiscovery', () => {
     });
   });
 
-  describe('error handling', () => {
-    it('should handle repository check errors', async () => {
+  describe('_error handling', () => {
+    it('should handle repository check _errors', async () => {
       // Mock database error
       const mockQueryBuilder = {
         select: vi.fn().mockReturnThis(),
@@ -177,7 +177,7 @@ describe('useRepositoryDiscovery', () => {
       );
 
       await waitFor(() => {
-        expect(result.current.status).toBe('error');
+        expect(result.current.status).toBe('_error');
         expect(result.current.message).toContain('check the repository');
       });
     });
@@ -196,7 +196,7 @@ describe('useRepositoryDiscovery', () => {
       mockSupabaseFrom.mockReturnValue(mockQueryBuilder);
 
       // Mock API error
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      mockFetch.mockRejectedValueOnce(new Error('Network _error'));
 
       const { result } = renderHook(() =>
         useRepositoryDiscovery({
@@ -207,7 +207,7 @@ describe('useRepositoryDiscovery', () => {
       );
 
       await waitFor(() => {
-        expect(result.current.status).toBe('error');
+        expect(result.current.status).toBe('_error');
         expect(result.current.message).toContain('start discovery process');
       });
     });

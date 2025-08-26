@@ -130,13 +130,13 @@ export function DocsPageOptimized() {
     return <DocsLoadingSkeleton />;
   }
 
-  if (error) {
+  if (_error) {
     return (
       <div className="container max-w-7xl mx-auto py-8 px-4">
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle className="text-destructive">Error Loading Documentation</CardTitle>
-            <CardDescription>{error}</CardDescription>
+            <CardDescription>{error: _error}</CardDescription>
           </CardHeader>
         </Card>
       </div>

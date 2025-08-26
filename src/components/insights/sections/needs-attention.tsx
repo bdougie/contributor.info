@@ -87,7 +87,7 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
     );
   }
 
-  if (error) {
+  if (_error) {
     return (
       <div className="text-center py-2">
         <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-3" />

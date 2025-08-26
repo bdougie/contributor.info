@@ -57,8 +57,8 @@ export class SyncMonitoring {
           router: metrics.router,
           created_at: metrics.timestamp.toISOString(),
         });
-    } catch (error) {
-      console.error('Failed to record sync metrics:', error);
+    } catch (_error) {
+      console.error('Failed to record sync metrics:', _error);
     }
     
     // Log to console for immediate visibility
@@ -148,9 +148,9 @@ export class SyncMonitoring {
       acc[metric.repository].timeouts++;
       acc[metric.repository].totalTime += metric.execution_time;
       return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, unknown>);
     
-    return Object.values(grouped).map((g: any) => ({
+    return Object.values(grouped).map((g: unknown) => ({
       repository: g.repository,
       timeouts: g.timeouts,
       avgExecutionTime: g.totalTime / g.timeouts,
@@ -229,7 +229,7 @@ export class SyncMonitoring {
     console.log(
       `${emoji} [${router}] ${metrics.functionName} for ${metrics.repository}: ` +
       `${metrics.executionTime.toFixed(2)}s ` +
-      `(processed: ${metrics.processed || 0}, errors: ${metrics.errors || 0})`
+      `(processed: ${metrics.processed || 0}, errors: ${metrics._errors || 0})`
     );
   }
   

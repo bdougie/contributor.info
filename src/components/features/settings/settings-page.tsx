@@ -52,7 +52,7 @@ export function SettingsPage() {
           .eq("user_id", user.id)
           .maybeSingle();
 
-        if (data) {
+        if (_data) {
           setPreferences({
             welcome_emails: data.welcome_emails,
             marketing_emails: data.marketing_emails,
@@ -60,8 +60,8 @@ export function SettingsPage() {
             transactional_emails: data.transactional_emails,
           });
         }
-      } catch (error) {
-        console.error("Failed to fetch preferences:", error);
+      } catch (_error) {
+        console.error("Failed to fetch preferences:", _error);
       } finally {
         setLoading(false);
       }
@@ -75,7 +75,7 @@ export function SettingsPage() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from("user_email_preferences")
         .upsert({
           user_id: user.id,
@@ -83,14 +83,14 @@ export function SettingsPage() {
           updated_at: new Date().toISOString(),
         });
 
-      if (error) throw error;
+      if (_error) throw error;
 
       toast({
         title: "Settings saved",
         description: "Your email preferences have been updated.",
       });
-    } catch (error) {
-      console.error("Failed to save preferences:", error);
+    } catch (_error) {
+      console.error("Failed to save preferences:", _error);
       toast({
         title: "Error",
         description: "Failed to save your preferences. Please try again.",

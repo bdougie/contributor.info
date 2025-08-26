@@ -46,7 +46,7 @@ export function SpamAwareActivityItem({ activity }: SpamAwareActivityItemProps) 
         user.avatar,
         user.id
       );
-      setContributorData(dataWithOrgs);
+      setContributorData(_dataWithOrgs);
     };
 
     fetchContributorData();

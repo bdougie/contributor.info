@@ -16,7 +16,7 @@ describe('RequestDeduplicator', () => {
 
   describe('deduplication logic', () => {
     it('should share promises for identical keys', () => {
-      const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('test-data'));
+      const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('test-_data'));
       const key = 'test-key';
 
       // Start multiple requests with same key
@@ -28,7 +28,7 @@ describe('RequestDeduplicator', () => {
     });
 
     it('should create different promises for different keys', () => {
-      const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('test-data'));
+      const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('test-_data'));
 
       requestDeduplicator.dedupe('key1', mockFetcher);
       requestDeduplicator.dedupe('key2', mockFetcher);
@@ -40,7 +40,7 @@ describe('RequestDeduplicator', () => {
 
   describe('statistics tracking', () => {
     it('should track pending requests', () => {
-      const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('data'));
+      const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('_data'));
       
       // Start a request
       requestDeduplicator.dedupe('stats-test', mockFetcher);
@@ -50,7 +50,7 @@ describe('RequestDeduplicator', () => {
     });
 
     it('should track multiple subscribers', () => {
-      const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('data'));
+      const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('_data'));
       const key = 'subscriber-test';
       
       // Multiple requests with same key
@@ -63,7 +63,7 @@ describe('RequestDeduplicator', () => {
     });
 
     it('should reset stats after cancelAll', () => {
-      const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('data'));
+      const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('_data'));
       
       // Start some requests
       requestDeduplicator.dedupe('test1', mockFetcher);
@@ -83,7 +83,7 @@ describe('RequestDeduplicator', () => {
         // Verify signal is provided
         expect(signal).toBeDefined();
         expect(signal).toBeInstanceOf(AbortSignal);
-        return Promise.resolve('data');
+        return Promise.resolve('_data');
       });
 
       requestDeduplicator.dedupe('abort-test', mockFetcher, { abortable: true });
@@ -95,7 +95,7 @@ describe('RequestDeduplicator', () => {
       const mockFetcher = vi.fn((signal?: AbortSignal) => {
         // Verify no signal is provided
         expect(signal).toBeUndefined();
-        return Promise.resolve('data');
+        return Promise.resolve('_data');
       });
 
       requestDeduplicator.dedupe('no-abort-test', mockFetcher, { abortable: false });
@@ -104,7 +104,7 @@ describe('RequestDeduplicator', () => {
     });
 
     it('should handle cancel method', () => {
-      const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('data'));
+      const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('_data'));
 
       requestDeduplicator.dedupe('cancel-test', mockFetcher, { abortable: true });
       
@@ -139,7 +139,7 @@ describe('RequestDeduplicator', () => {
     it('should handle custom key generator', () => {
       const originalFetcher = vi.fn().mockReturnValue(Promise.resolve('result'));
       // Custom key generator that creates a key from all arguments
-      const keyGen = (...args: any[]) => args.join(':');
+      const keyGen = (...args: unknown[]) => args.join(':');
       const wrappedFetcher = withRequestDeduplication(originalFetcher, keyGen);
 
       // Call with same arguments
@@ -158,8 +158,8 @@ describe('RequestDeduplicator', () => {
   });
 
   describe('cleanup behavior', () => {
-    it('should handle cancelAll without errors', () => {
-      const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('data'));
+    it('should handle cancelAll without _errors', () => {
+      const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('_data'));
       
       // Start multiple requests
       requestDeduplicator.dedupe('test1', mockFetcher);

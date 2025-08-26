@@ -54,18 +54,18 @@ export function GitHubSyncDebug() {
         systemToken: result.hasSystemToken || false,
         error: result.error
       }
-    } catch (error) {
-      addLog(`Error checking tokens: ${error}`)
-      return { userToken: false, systemToken: false, error: error instanceof Error ? error.message : String(error) }
+    } catch (_error) {
+      addLog(`Error checking tokens: ${error: __error}`)
+      return { userToken: false, systemToken: false, error: error instanceof Error ? error.message : String(_error) }
     }
   }
 
   const checkDatabaseState = async () => {
-    addLog(`Checking database state for ${owner}/${repo}...`)
+    addLog(`Checking _database state for ${owner}/${repo}...`)
     
     try {
       // Check repositories table
-      const { data: repoData, error: repoError } = await supabase
+      const { data: repoData, error: _error: repoError } = await supabase
         .from('repositories')
         .select('*')
         .eq('owner', owner)
@@ -82,7 +82,7 @@ export function GitHubSyncDebug() {
       }
       
       // Check tracked_repositories
-      const { data: trackedData, error: trackedError } = await supabase
+      const { data: trackedData, error: _error: trackedError } = await supabase
         .from('tracked_repositories')
         .select('*')
         .eq('organization_name', owner)
@@ -99,7 +99,7 @@ export function GitHubSyncDebug() {
       }
       
       // Check sync status
-      const { data: syncStatus, error: syncError } = await supabase
+      const { data: syncStatus, error: _error: syncError } = await supabase
         .from('github_sync_status')
         .select('*')
         .eq('repository_owner', owner)
@@ -116,7 +116,7 @@ export function GitHubSyncDebug() {
       }
       
       // Check contributor roles
-      const { data: rolesData, error: rolesError } = await supabase
+      const { data: rolesData, error: _error: rolesError } = await supabase
         .from('contributor_roles')
         .select('*')
         .eq('repository_owner', owner)
@@ -135,8 +135,8 @@ export function GitHubSyncDebug() {
         syncStatus,
         rolesCount: rolesData?.length || 0
       }
-    } catch (error) {
-      addLog(`Error checking database: ${error}`)
+    } catch (_error) {
+      addLog(`Error checking _database: ${error: __error}`)
       return null
     }
   }
@@ -181,7 +181,7 @@ export function GitHubSyncDebug() {
       addLog(`Response: ${JSON.stringify(result, null, 2)}`)
       
       if (!response.ok) {
-        setSyncError(result.error || `HTTP ${response.status}`)
+        setSyncError(result._error || `HTTP ${response.status}`)
       } else {
         setSyncResponse(result)
         
@@ -192,10 +192,10 @@ export function GitHubSyncDebug() {
         addLog('=== Database state after sync ===')
         await checkDatabaseState()
       }
-    } catch (error) {
+    } catch (_error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      setSyncError(errorMessage)
-      addLog(`Error: ${errorMessage}`)
+      setSyncError(_errorMessage)
+      addLog(`Error: ${_errorMessage}`)
     } finally {
       setIsLoading(false)
     }
@@ -205,7 +205,7 @@ export function GitHubSyncDebug() {
     addLog(`Attempting to track repository ${owner}/${repo}...`)
     
     try {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('tracked_repositories')
         .insert({
           organization_name: owner,
@@ -215,14 +215,14 @@ export function GitHubSyncDebug() {
         .select()
         .maybeSingle()
       
-      if (error) {
-        addLog(`Error tracking repository: ${error.message}`)
-        addLog(`Error details: ${JSON.stringify(error, null, 2)}`)
+      if (_error) {
+        addLog(`Error tracking repository: ${_error.message}`)
+        addLog(`Error details: ${JSON.stringify(__error, null, 2)}`)
       } else {
-        addLog(`Successfully tracked repository: ${JSON.stringify(data, null, 2)}`)
+        addLog(`Successfully tracked repository: ${JSON.stringify(_data, null, 2)}`)
       }
-    } catch (error) {
-      addLog(`Unexpected error: ${error}`)
+    } catch (_error) {
+      addLog(`Unexpected error: ${error: __error}`)
     }
   }
 

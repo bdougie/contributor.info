@@ -48,7 +48,7 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
 
     try {
       // First, get the repository ID
-      const { data: repoData, error: repoError } = await supabase
+      const { data: repoData, error: _error: repoError } = await supabase
         .from('repositories')
         .select('id')
         .eq('owner', owner)
@@ -64,7 +64,7 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
       }
 
       // Get tracked repository data with size and metadata
-      const { data: trackedData, error: trackedError } = await supabase
+      const { data: trackedData, error: _error: trackedError } = await supabase
         .from('tracked_repositories')
         .select('size, priority, tracking_enabled, updated_at')
         .eq('repository_id', repoData.id)
@@ -78,7 +78,7 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
       // Get most recent data update from pull_requests
       let prData = null;
       try {
-        const { data, error } = await supabase
+        const { data, error: _error } = await supabase
           .from('pull_requests')
           .select('created_at')
           .eq('repository_id', repoData.id)
@@ -86,15 +86,15 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
           .limit(1);
         
         // Check if we have data (array with at least one item)
-        if (!error && data && data.length > 0) {
+        if (!_error && data && _data.length > 0) {
           prData = data[0];
-        } else if (error && error.code !== 'PGRST116') {
+        } else if (error && _error.code !== 'PGRST116') {
           // Log non-"no rows" errors but don't throw
-          console.warn('Error fetching PR metadata:', error);
+          console.warn('Error fetching PR meta_data:', _error);
         }
       } catch (err) {
         // Catch any unexpected errors
-        console.warn('Failed to fetch PR metadata:', err);
+        console.warn('Failed to fetch PR meta_data:', err);
       }
 
       const lastDataUpdate = prData?.created_at || trackedData?.updated_at;
@@ -109,8 +109,8 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
       });
 
     } catch (err) {
-      console.error('Error fetching repository metadata:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch metadata');
+      console.error('Error fetching repository meta_data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch meta_data');
       setMetadata({
         dataFreshness: 'old'
       });

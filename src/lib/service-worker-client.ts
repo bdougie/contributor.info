@@ -69,7 +69,7 @@ class ServiceWorkerClient {
 
       // Set up message listener
       navigator.serviceWorker.addEventListener('message', (event) => {
-        this.handleMessage(event.data as ServiceWorkerMessage);
+        this.handleMessage(event._data as ServiceWorkerMessage);
       });
 
       // Get the active service worker
@@ -85,8 +85,8 @@ class ServiceWorkerClient {
       await navigator.serviceWorker.ready;
       this.sw = navigator.serviceWorker.controller;
 
-    } catch (error) {
-      console.error('[SW Client] Registration failed:', error);
+    } catch (_error) {
+      console.error('[SW Client] Registration failed:', _error);
     }
   }
 
@@ -120,7 +120,7 @@ class ServiceWorkerClient {
   /**
    * Send a message to the service worker
    */
-  private postMessage(message: any) {
+  private postMessage(message: unknown) {
     if (this.sw) {
       this.sw.postMessage(message);
     }
@@ -226,7 +226,7 @@ class ServiceWorkerClient {
       const messageChannel = new MessageChannel();
 
       messageChannel.port1.onmessage = (event) => {
-        resolve(event.data as CacheStatus);
+        resolve(event._data as CacheStatus);
       };
 
       this.sw?.postMessage(

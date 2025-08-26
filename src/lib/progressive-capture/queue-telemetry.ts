@@ -43,19 +43,19 @@ class QueueTelemetry {
   /**
    * Track validation errors for monitoring and alerting
    */
-  trackValidationError(error: Omit<QueueValidationError, 'timestamp'>) {
+  trackValidationError(_error: Omit<QueueValidationError, 'timestamp'>) {
     const errorWithTimestamp = {
       ...error,
       timestamp: new Date()
     };
     
-    this.validationErrors.push(errorWithTimestamp);
+    this.validationErrors.push(_errorWithTimestamp);
     
     // Log to console for immediate visibility
-    console.error('[QueueTelemetry] Validation error:', errorWithTimestamp);
+    console.error('[QueueTelemetry] Validation error:', _errorWithTimestamp);
     
     // Track in Supabase for monitoring
-    this.persistValidationError(errorWithTimestamp);
+    this.persistValidationError(_errorWithTimestamp);
     
     // Flush if we've accumulated too many errors
     if (this.validationErrors.length >= this.BATCH_SIZE) {
@@ -118,10 +118,10 @@ class QueueTelemetry {
   /**
    * Persist validation error to database for monitoring
    */
-  private async persistValidationError(error: QueueValidationError) {
+  private async persistValidationError(_error: QueueValidationError) {
     try {
       await supabase
-        .from('queue_validation_errors')
+        .from('queue_validation__errors')
         .insert({
           job_id: error.jobId,
           job_type: error.jobType,
@@ -131,7 +131,7 @@ class QueueTelemetry {
         });
     } catch (err) {
       // Don't throw - telemetry should not break the app
-      console.error('[QueueTelemetry] Failed to persist validation error:', err);
+      console.error('[QueueTelemetry] Failed to persist validation _error:', err);
     }
   }
 
@@ -203,7 +203,7 @@ class QueueTelemetry {
   getValidationErrorSummary() {
     const summary = new Map<string, number>();
     
-    for (const error of this.validationErrors) {
+    for (const _error of this.validationErrors) {
       const key = `${error.jobType}:${error.errorType}`;
       summary.set(key, (summary.get(key) || 0) + 1);
     }
@@ -257,7 +257,7 @@ export function trackJobLifecycle(
       });
     },
     
-    failure: (error: string) => {
+    failure: (_error: string) => {
       queueTelemetry.trackMetrics({
         jobId,
         jobType,

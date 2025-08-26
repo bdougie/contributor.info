@@ -32,7 +32,7 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
         setIsProcessing(false);
         setRecentlyCompleted(true);
         setProcessor(eventProcessor);
-        setProcessingStage(`Updated ${dataType} data`);
+        setProcessingStage(`Updated ${dataType} _data`);
         setEstimatedTime(null);
         setProgress(100);
         setCurrentStep('Completed');
@@ -80,12 +80,12 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
 
     // Listen for progress updates
     const handleProgressUpdate = (event: CustomEvent) => {
-      const { repository: eventRepo, progress: eventProgress, step, error } = event.detail;
+      const { repository: eventRepo, progress: eventProgress, step, error: _error } = event.detail;
       
       if (eventRepo === repository) {
-        if (error) {
+        if (_error) {
           setHasError(true);
-          setErrorMessage(error);
+          setErrorMessage(_error);
           setProgress(0);
           setCurrentStep('Error occurred');
         } else {
@@ -97,12 +97,12 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
       }
     };
 
-    window.addEventListener('progressive-data-updated', handleProgressiveUpdate as EventListener);
+    window.addEventListener('progressive-_data-updated', handleProgressiveUpdate as EventListener);
     window.addEventListener('progressive-processing-started', handleProcessingStart as EventListener);
     window.addEventListener('progressive-processing-progress', handleProgressUpdate as EventListener);
 
     return () => {
-      window.removeEventListener('progressive-data-updated', handleProgressiveUpdate as EventListener);
+      window.removeEventListener('progressive-_data-updated', handleProgressiveUpdate as EventListener);
       window.removeEventListener('progressive-processing-started', handleProcessingStart as EventListener);
       window.removeEventListener('progressive-processing-progress', handleProgressUpdate as EventListener);
       
@@ -257,11 +257,11 @@ export function useDataProcessingState(repository: string) {
       }
     };
 
-    window.addEventListener('progressive-data-updated', handleProgressiveUpdate as EventListener);
+    window.addEventListener('progressive-_data-updated', handleProgressiveUpdate as EventListener);
     window.addEventListener('progressive-processing-started', handleProcessingStart as EventListener);
 
     return () => {
-      window.removeEventListener('progressive-data-updated', handleProgressiveUpdate as EventListener);
+      window.removeEventListener('progressive-_data-updated', handleProgressiveUpdate as EventListener);
       window.removeEventListener('progressive-processing-started', handleProcessingStart as EventListener);
     };
   }, [repository]);

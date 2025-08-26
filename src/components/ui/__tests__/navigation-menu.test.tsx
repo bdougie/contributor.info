@@ -49,7 +49,7 @@ describe('NavigationMenu Components', () => {
       );
       
       // The viewport should be present (though it might not be visible)
-      const viewport = document.querySelector('[data-radix-collection-item]') || 
+      const viewport = document.querySelector('[_data-radix-collection-item]') || 
                      document.querySelector('[class*="radix-navigation-menu-viewport"]');
       // We can't easily test the viewport without complex DOM queries, so we just ensure the component renders
       expect(screen.getByText('Content')).toBeInTheDocument();

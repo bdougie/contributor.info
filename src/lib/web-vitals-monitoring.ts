@@ -240,12 +240,12 @@ class WebVitalsMonitor {
             width: window.innerWidth,
             height: window.innerHeight,
           },
-          connection: (navigator as any).connection?.effectiveType || 'unknown',
+          connection: (navigator as Navigator & { connection?: { effectiveType?: string } }).connection?.effectiveType || 'unknown',
         }),
       });
-    } catch (error) {
+    } catch (_error) {
       if (this.debugMode) {
-        console.error('[Web Vitals] Failed to send metrics:', error);
+        console.error('[Web Vitals] Failed to send metrics:', _error);
       }
     }
   }
@@ -254,8 +254,8 @@ class WebVitalsMonitor {
     this.callbacks.forEach(callback => {
       try {
         callback(metric);
-      } catch (error) {
-        console.error('[Web Vitals] Callback error:', error);
+      } catch (_error) {
+        console.error('[Web Vitals] Callback error:', _error);
       }
     });
   }
@@ -279,7 +279,7 @@ class WebVitalsMonitor {
 
   public getSummary() {
     const metrics = this.getMetrics();
-    const summary: Record<string, any> = {};
+    const summary: Record<string, unknown> = {};
 
     metrics.metrics.forEach((metric, name) => {
       summary[name] = {

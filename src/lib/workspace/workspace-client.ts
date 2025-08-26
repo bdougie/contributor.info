@@ -24,7 +24,7 @@ import type {
 /**
  * Create a new workspace
  */
-export async function createWorkspace(data: CreateWorkspaceRequest) {
+export async function createWorkspace(_data: CreateWorkspaceRequest) {
   const { data: user, error: userError } = await supabase.auth.getUser();
   if (userError || !user?.user) {
     throw new Error('User not authenticated');
@@ -32,7 +32,7 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
 
   // Generate slug from name
   const { data: slugData, error: slugError } = await supabase
-    .rpc('generate_workspace_slug', { workspace_name: data.name });
+    .rpc('generate_workspace_slug', { workspace_name: _data.name });
   
   if (slugError) {
     throw new Error('Failed to generate workspace slug');
@@ -41,12 +41,12 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
   const { data: workspace, error } = await supabase
     .from('workspaces')
     .insert({
-      name: data.name,
+      name: _data.name,
       slug: slugData,
-      description: data.description || null,
+      description: _data.description || null,
       owner_id: user.user.id,
-      visibility: data.visibility || 'public',
-      settings: data.settings || {}
+      visibility: _data.visibility || 'public',
+      settings: _data.settings || {}
     })
     .select()
     .maybeSingle();
@@ -89,7 +89,7 @@ export async function getWorkspace(idOrSlug: string): Promise<WorkspaceWithStats
     .from('workspaces')
     .select(`
       *,
-      owner:owner_id(id, email, raw_user_meta_data),
+      owner:owner_id(id, email, raw_user_meta__data),
       workspace_repositories(count),
       workspace_members(count)
     `)
@@ -118,23 +118,46 @@ export async function getWorkspace(idOrSlug: string): Promise<WorkspaceWithStats
     `)
     .eq('workspace_id', data.id);
 
-  const total_stars = stats?.reduce((sum, item: any) => 
+  interface RepositoryStats {
+    repository?: {
+      stargazers_count?: number;
+      contributors?: Array<{ count: number }>;
+    };
+  }
+
+  const total_stars = stats?.reduce((sum: number, item: RepositoryStats) => 
     sum + (item.repository?.stargazers_count || 0), 0) || 0;
   
-  const total_contributors = stats?.reduce((sum, item: any) => 
+  const total_contributors = stats?.reduce((sum: number, item: RepositoryStats) => 
     sum + (item.repository?.contributors?.[0]?.count || 0), 0) || 0;
+
+  interface WorkspaceQueryResult {
+    workspace_repositories: Array<{ count: number }>;
+    workspace_members: Array<{ count: number }>;
+    owner: {
+      id: string;
+      email: string;
+      raw_user_meta_data?: {
+        avatar_url?: string;
+        full_name?: string;
+      };
+    };
+  }
+
+  const workspaceData = data as WorkspaceQueryResult & Omit<WorkspaceWithStats, 
+    'repository_count' | 'member_count' | 'total_stars' | 'total_contributors' | 'owner'>;
 
   return {
     ...data,
-    repository_count: (data as any).workspace_repositories[0]?.count || 0,
-    member_count: (data as any).workspace_members[0]?.count || 0,
+    repository_count: workspaceData.workspace_repositories[0]?.count || 0,
+    member_count: workspaceData.workspace_members[0]?.count || 0,
     total_stars,
     total_contributors,
     owner: {
-      id: (data as any).owner.id,
-      email: (data as any).owner.email,
-      avatar_url: (data as any).owner.raw_user_meta_data?.avatar_url,
-      display_name: (data as any).owner.raw_user_meta_data?.full_name
+      id: workspaceData.owner.id,
+      email: workspaceData.owner.email,
+      avatar_url: workspaceData.owner.raw_user_meta_data?.avatar_url,
+      display_name: workspaceData.owner.raw_user_meta_data?.full_name
     }
   } as WorkspaceWithStats;
 }
@@ -142,14 +165,14 @@ export async function getWorkspace(idOrSlug: string): Promise<WorkspaceWithStats
 /**
  * Update workspace
  */
-export async function updateWorkspace(id: string, data: UpdateWorkspaceRequest) {
+export async function updateWorkspace(id: string, _data: UpdateWorkspaceRequest) {
   const { data: workspace, error } = await supabase
     .from('workspaces')
     .update({
-      name: data.name,
-      description: data.description,
-      visibility: data.visibility,
-      settings: data.settings,
+      name: _data.name,
+      description: _data.description,
+      visibility: _data.visibility,
+      settings: _data.settings,
       updated_at: new Date().toISOString()
     })
     .eq('id', id)
@@ -437,8 +460,8 @@ export async function listWorkspaceMembers(workspaceId: string) {
     .from('workspace_members')
     .select(`
       *,
-      user:user_id(id, email, raw_user_meta_data),
-      invited_by_user:invited_by(id, email, raw_user_meta_data)
+      user:user_id(id, email, raw_user_meta__data),
+      invited_by_user:invited_by(id, email, raw_user_meta__data)
     `)
     .eq('workspace_id', workspaceId)
     .order('created_at', { ascending: false });

@@ -11,11 +11,11 @@ vi.mock('@/lib/supabase', () => ({
           single: vi.fn(),
           data: null
         })),
-        in: vi.fn(() => ({ data: [] }))
+        in: vi.fn(() => ({ _data: [] }))
       }))
     })),
     auth: {
-      getUser: vi.fn(() => ({ data: { user: null } }))
+      getUser: vi.fn(() => ({ _data: { user: null } }))
     }
   }
 }));

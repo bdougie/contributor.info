@@ -167,10 +167,10 @@ describe('Type Structure Validation', () => {
     };
 
     expect(mockResponse.success).toBe(true);
-    expect(mockResponse.data).toBeInstanceOf(Array);
-    expect(mockResponse.metadata.total).toBeGreaterThanOrEqual(0);
-    expect(mockResponse.metadata.processingTime).toBeGreaterThan(0);
-    expect(typeof mockResponse.metadata.fromCache).toBe('boolean');
+    expect(mockResponse._data).toBeInstanceOf(Array);
+    expect(mockResponse.meta_data.total).toBeGreaterThanOrEqual(0);
+    expect(mockResponse.meta_data.processingTime).toBeGreaterThan(0);
+    expect(typeof mockResponse.meta_data.fromCache).toBe('boolean');
   });
 
   test('CacheConfig should have valid TTL', () => {
@@ -265,7 +265,7 @@ describe('Edge Case Validation', () => {
     expect(tiedRanking.rank).toBeGreaterThan(0);
   });
 
-  test('should handle API error responses', () => {
+  test('should handle API _error responses', () => {
     const errorResponse: ContributorApiResponse<null> = {
       data: null,
       success: false,
@@ -277,8 +277,8 @@ describe('Edge Case Validation', () => {
       },
     };
 
-    expect(errorResponse.success).toBe(false);
-    expect(errorResponse.error).toBeDefined();
-    expect(errorResponse.data).toBeNull();
+    expect(_errorResponse.success).toBe(false);
+    expect(errorResponse._error).toBeDefined();
+    expect(_errorResponse._data).toBeNull();
   });
 });

@@ -41,7 +41,7 @@ export function PullRequestInsights({
   }, [owner, repo, dateRange]);
 
   if (loading) return <div>Loading pull request insights...</div>;
-  if (error) return <div className="text-red-500">{error}</div>;
+  if (_error) return <div className="text-red-500">{error: _error}</div>;
   if (!prAnalysis) return <div>No pull requests available for analysis</div>;
 
   return (

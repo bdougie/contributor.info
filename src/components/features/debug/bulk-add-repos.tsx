@@ -68,7 +68,7 @@ export function BulkAddRepos() {
     });
 
     // Check which repos already exist
-    const { data: existingRepos, error: checkError } = await supabase
+    const { data: existingRepos, error: _error: checkError } = await supabase
       .from('repositories')
       .select('id, owner, name')
       .or(repoChecks.join(','));
@@ -108,14 +108,14 @@ export function BulkAddRepos() {
       });
 
       try {
-        const { data: insertedRepos, error: repoError } = await supabase
+        const { data: insertedRepos, error: _error: repoError } = await supabase
           .from('repositories')
           .insert(repoInsertData)
           .select('id, owner, name');
 
         if (repoError) {
           console.error('Failed to insert repositories:', repoError);
-          batch.forEach(repo => result.errors.push(repo));
+          batch.forEach(repo => result._errors.push(repo));
         } else if (insertedRepos) {
           // Store repo IDs for backfill
           insertedRepos.forEach(repo => {
@@ -132,20 +132,20 @@ export function BulkAddRepos() {
             updated_at: new Date().toISOString()
           }));
 
-          const { error: trackedError } = await supabase
+          const { error: _error: trackedError } = await supabase
             .from('tracked_repositories')
             .insert(trackedInsertData);
 
           if (trackedError) {
             console.error('Failed to insert tracked repos:', trackedError);
-            batch.forEach(repo => result.errors.push(repo));
+            batch.forEach(repo => result._errors.push(repo));
           } else {
             result.added.push(...batch);
           }
         }
-      } catch (error) {
-        console.error('Batch processing error:', error);
-        batch.forEach(repo => result.errors.push(repo));
+      } catch (_error) {
+        console.error('Batch processing error:', _error);
+        batch.forEach(repo => result._errors.push(repo));
       }
 
       // Update progress
@@ -200,7 +200,7 @@ export function BulkAddRepos() {
             if (repoId) {
               try {
                 // Insert progressive backfill state
-                const { error: backfillError } = await supabase
+                const { error: _error: backfillError } = await supabase
                   .from('progressive_backfill_state')
                   .insert({
                     repository_id: repoId,
@@ -219,8 +219,8 @@ export function BulkAddRepos() {
                 if (backfillError) {
                   console.error('Failed to create progressive backfill:', backfillError);
                 }
-              } catch (error) {
-                console.error('Error creating backfill:', error);
+              } catch (_error) {
+                console.error('Error creating backfill:', _error);
               }
             }
           }
@@ -276,8 +276,8 @@ export function BulkAddRepos() {
                 description: `Fetching up to ${Math.min(maxPRs, 150)} PRs from the last ${backfillDays} days for ${backfillEvents.length} repositories`,
                 variant: "default"
               });
-            } catch (error) {
-              console.error('Failed to trigger backfill:', error);
+            } catch (_error) {
+              console.error('Failed to trigger backfill:', _error);
               toast({
                 title: "Backfill failed to start",
                 description: "Repositories were added but backfill couldn't be started",
@@ -296,7 +296,7 @@ export function BulkAddRepos() {
         variant: result.errors.length > 0 ? "destructive" : "default"
       });
 
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: "Processing failed",
         description: error instanceof Error ? error.message : "Unknown error occurred",

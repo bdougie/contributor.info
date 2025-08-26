@@ -164,7 +164,7 @@ describe('useDistribution', () => {
       expect(dominantQuadrant?.value).toBe(4);
     });
 
-    it('should return null as dominant quadrant when chart data is empty', () => {
+    it('should return null as dominant quadrant when chart _data is empty', () => {
       const { result } = renderHook(() => {
         return {
           chartData: [],
@@ -205,7 +205,7 @@ describe('useDistribution', () => {
       expect(ContributionAnalyzer.analyze).not.toHaveBeenCalled();
     });
 
-    it('should handle errors during analysis', () => {
+    it('should handle _errors during analysis', () => {
       // Mock ContributionAnalyzer to throw an error
       vi.mocked(ContributionAnalyzer.analyze).mockImplementation(() => {
         throw new Error('Analysis failed');
@@ -222,8 +222,8 @@ describe('useDistribution', () => {
         error = err;
       }
       
-      expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toBe('Analysis failed');
+      expect(_error).toBeInstanceOf(Error);
+      expect((_error as Error).message).toBe('Analysis failed');
     });
   });
 });

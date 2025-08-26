@@ -169,7 +169,7 @@ export const MultiLine: Story = {
       <h3 className="text-lg font-semibold">Function Refactor</h3>
       <MultiLineDiff
         lines={[
-          { type: 'unchanged', content: 'function calculateMetrics(data) {' },
+          { type: 'unchanged', content: 'function calculateMetrics(_data) {' },
           { type: 'deletion', content: '  const added = data.linesAdded;' },
           { type: 'deletion', content: '  const changed = data.linesChanged;' },
           { type: 'addition', content: '  const { linesAdded, linesDeleted, linesChanged } = data;' },
@@ -243,8 +243,8 @@ export const MultipleExamples: Story = {
       <div>
         <h3 className="text-lg font-semibold mb-3">Method Signature Change</h3>
         <CodeDiff
-          before="function process(data) { return data.map(transform); }"
-          after="async function processAsync(data, options = {}) { return await Promise.all(data.map(item => transform(item, options))); }"
+          before="function process(_data) { return data.map(transform); }"
+          after="async function processAsync(_data, options = {}) { return await Promise.all(_data.map(item => transform(item, options))); }"
           additions={45}
           deletions={12}
         />

@@ -10,7 +10,7 @@ import { MetaTagsProvider } from "../common/layout";
 vi.mock("@/lib/supabase", () => ({
   supabase: {
     auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      getSession: vi.fn().mockResolvedValue({ _data: { session: null } }),
       onAuthStateChange: vi.fn(() => ({
         data: { subscription: { unsubscribe: vi.fn() } },
       })),
@@ -44,7 +44,7 @@ vi.mock("@/hooks/use-github-auth", () => ({
   useGitHubAuth: vi.fn(),
 }));
 
-vi.mock("@/hooks/use-cached-repo-data", () => ({
+vi.mock("@/hooks/use-cached-repo-_data", () => ({
   useCachedRepoData: vi.fn(() => ({
     stats: {
       pullRequests: [],
@@ -73,7 +73,7 @@ vi.mock("@/hooks/use-github-search", () => ({
 }));
 
 vi.mock("@/components/ui/github-search-input", () => ({
-  GitHubSearchInput: ({ onSearch, placeholder }: any) => (
+  GitHubSearchInput: ({ onSearch, placeholder }: unknown) => (
     <form onSubmit={(e) => {
       e.preventDefault();
       const input = e.currentTarget.querySelector('input');

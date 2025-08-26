@@ -76,8 +76,8 @@ class ManualBackfillClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-      throw new Error(`Failed to trigger backfill: ${error.message || response.statusText}`);
+      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      throw new Error(`Failed to trigger backfill: ${_error.message || response.statusText}`);
     }
 
     return response.json();
@@ -93,8 +93,8 @@ class ManualBackfillClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-      throw new Error(`Failed to get job status: ${error.message || response.statusText}`);
+      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      throw new Error(`Failed to get job status: ${_error.message || response.statusText}`);
     }
 
     return response.json();
@@ -105,7 +105,7 @@ class ManualBackfillClient {
    */
   async listJobs(status?: string, limit = 10): Promise<JobListResponse> {
     const params = new URLSearchParams();
-    if (status) params.append('status', status);
+    if (_status) params.append('status', status);
     params.append('limit', String(limit));
 
     const response = await fetch(`${this.apiUrl}/api/backfill/jobs?${params}`, {
@@ -114,8 +114,8 @@ class ManualBackfillClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-      throw new Error(`Failed to list jobs: ${error.message || response.statusText}`);
+      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      throw new Error(`Failed to list jobs: ${_error.message || response.statusText}`);
     }
 
     return response.json();
@@ -131,8 +131,8 @@ class ManualBackfillClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-      throw new Error(`Failed to cancel job: ${error.message || response.statusText}`);
+      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      throw new Error(`Failed to cancel job: ${_error.message || response.statusText}`);
     }
 
     return response.json();

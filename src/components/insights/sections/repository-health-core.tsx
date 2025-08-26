@@ -22,11 +22,11 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
   const recommendations: string[] = [];
   
   // 1. PR Merge Time Factor
-  const mergedPRs = pullRequests.filter((pr: any) => pr.merged_at);
+  const mergedPRs = pullRequests.filter((pr: unknown) => pr.merged_at);
   let avgMergeTime = 0;
   
   if (mergedPRs.length > 0) {
-    const mergeTimes = mergedPRs.map((pr: any) => {
+    const mergeTimes = mergedPRs.map((pr: unknown) => {
       const created = new Date(pr.created_at);
       const merged = new Date(pr.merged_at!);
       return (merged.getTime() - created.getTime()) / (1000 * 60 * 60); // hours
@@ -59,7 +59,7 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
   });
 
   // 2. Contributor Diversity Factor
-  const uniqueContributors = new Set(pullRequests.map((pr: any) => pr.user.login)).size;
+  const uniqueContributors = new Set(pullRequests.map((pr: unknown) => pr.user.login)).size;
   const totalPRs = pullRequests.length;
   
   let diversityScore = 100;
@@ -87,7 +87,7 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
   });
 
   // 3. Review Coverage Factor
-  const reviewedPRs = pullRequests.filter((pr: any) => 
+  const reviewedPRs = pullRequests.filter((pr: unknown) => 
     pr.requested_reviewers?.length > 0 || pr.reviews?.length > 0
   );
   const reviewCoverage = totalPRs > 0 ? (reviewedPRs.length / totalPRs) * 100 : 0;
@@ -139,8 +139,8 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
 
   // 5. Response Time Factor
   const responseTimes = pullRequests
-    .filter((pr: any) => pr.comments > 0)
-    .map((pr: any) => {
+    .filter((pr: unknown) => pr.comments > 0)
+    .map((pr: unknown) => {
       // Estimate response time (simplified)
       const created = new Date(pr.created_at);
       const updated = new Date(pr.updated_at);
@@ -179,7 +179,7 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
   const weightedScore = factors.reduce((sum, factor) => sum + (factor.score * factor.weight), 0);
   const overallScore = Math.round(weightedScore / totalWeight);
 
-  // Determine trend (simplified - could be enhanced with historical data)
+  // Determine trend (simplified - could be enhanced with historical _data)
   let trend: HealthMetrics['trend'] = "stable";
   if (overallScore >= 80) trend = "improving";
   else if (overallScore < 60) trend = "declining";
@@ -198,7 +198,7 @@ export function RepositoryHealthCore({
   timeRange,
 }: RepositoryHealthCoreProps) {
   const health = useMemo(() => {
-    if (stats.loading || stats.error || stats.pullRequests.length === 0) {
+    if (stats.loading || stats._error || stats.pullRequests.length === 0) {
       return null;
     }
     return calculateHealthMetricsFromStats(stats, timeRange);
@@ -224,7 +224,7 @@ export function RepositoryHealthCore({
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (_status) {
       case "good":
         return "bg-green-500";
       case "warning":

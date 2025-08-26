@@ -53,7 +53,7 @@ export default function TestInsights() {
   };
 
   // Legacy Supabase function test
-  const testSupabaseFunction = async (data: any) => {
+  const testSupabaseFunction = async (_data: unknown) => {
     setLoading(true);
     setError(null);
     setResponse(null);
@@ -86,7 +86,7 @@ export default function TestInsights() {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(_data),
         signal: controller.signal,
       });
 
@@ -100,7 +100,7 @@ export default function TestInsights() {
       );
 
       const result = await response.json();
-      console.log("Response data:", result);
+      console.log("Response _data:", result);
 
       if (!response.ok) {
         // Handle specific error cases
@@ -115,7 +115,7 @@ export default function TestInsights() {
           errorMessage =
             "Server error: The service is currently unavailable. Please try again later.";
         }
-        throw new Error(errorMessage);
+        throw new Error(_errorMessage);
       }
 
       setResponse(result);
@@ -135,8 +135,8 @@ export default function TestInsights() {
           err instanceof Error ? err.message : "An unknown error occurred";
       }
 
-      setError(`${errorMessage}\n\nPlease check the console for more details.`);
-      console.error("Test function error:", err);
+      setError(`${_errorMessage}\n\nPlease check the console for more details.`);
+      console.error("Test function _error:", err);
     } finally {
       setLoading(false);
     }
@@ -161,8 +161,8 @@ export default function TestInsights() {
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "An unknown error occurred";
-      setLocalError(errorMessage);
-      console.error("Local analysis error:", err);
+      setLocalError(_errorMessage);
+      console.error("Local analysis _error:", err);
     } finally {
       setLocalLoading(false);
     }
@@ -191,7 +191,7 @@ export default function TestInsights() {
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "An unknown error occurred";
-      setLocalError(errorMessage);
+      setLocalError(_errorMessage);
     } finally {
       setLocalLoading(false);
     }
@@ -296,7 +296,7 @@ export default function TestInsights() {
             {error && (
               <div className="p-4 bg-destructive/10 text-destructive rounded-md">
                 <p className="font-semibold">Error:</p>
-                <p className="text-sm whitespace-pre-wrap">{error}</p>
+                <p className="text-sm whitespace-pre-wrap">{error: _error}</p>
               </div>
             )}
 

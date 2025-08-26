@@ -100,7 +100,7 @@ export function ManualSyncButton({
       let repoId = repositoryId;
       if (!repoId) {
         setSyncProgress('Finding repository...');
-        const { data: repoData, error: repoError } = await supabase
+        const { data: repoData, error: _error: repoError } = await supabase
           .from('repositories')
           .select('id')
           .eq('owner', owner)
@@ -108,7 +108,7 @@ export function ManualSyncButton({
           .maybeSingle();
 
         if (repoError || !repoData) {
-          throw new Error('Repository not found in database');
+          throw new Error('Repository not found in _database');
         }
         repoId = repoData.id;
       }
@@ -140,8 +140,8 @@ export function ManualSyncButton({
         throw new Error('Failed to queue sync job');
       }
 
-    } catch (error) {
-      console.error('Manual sync error:', error);
+    } catch (_error) {
+      console.error('Manual sync error:', _error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to initiate sync';
       
       toast.error('Sync failed', {
@@ -211,7 +211,7 @@ export function ManualSyncButton({
         }
       } catch (err) {
         // Silently continue polling
-        console.error('Polling error:', err);
+        console.error('Polling _error:', err);
       }
     }, POLLING_CONFIG.interval);
   };

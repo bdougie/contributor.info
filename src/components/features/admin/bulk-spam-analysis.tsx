@@ -78,7 +78,7 @@ export function BulkSpamAnalysis() {
       setError(null);
 
       // Get repository stats with PR analysis data
-      const { data: repoData, error: repoError } = await supabase
+      const { data: repoData, error: _error: repoError } = await supabase
         .from('repositories')
         .select(`
           id,
@@ -207,7 +207,7 @@ export function BulkSpamAnalysis() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Analysis failed: ${response.status} ${errorText}`);
+        throw new Error(`Analysis failed: ${response.status} ${_errorText}`);
       }
 
       const result = await response.json();
@@ -312,7 +312,7 @@ export function BulkSpamAnalysis() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Bulk analysis failed: ${response.status} ${errorText}`);
+        throw new Error(`Bulk analysis failed: ${response.status} ${_errorText}`);
       }
 
       const result = await response.json();
@@ -333,7 +333,7 @@ export function BulkSpamAnalysis() {
 
       // Update bulk jobs with detailed results
       if (result.results) {
-        const newJobs: BulkAnalysisJob[] = result.results.map((repoResult: any) => ({
+        const newJobs: BulkAnalysisJob[] = result.results.map((repoResult: unknown) => ({
           repository_id: repoResult.repository_id,
           repository_name: repoResult.repository_name,
           status: repoResult.error ? 'failed' : 'completed',
@@ -432,7 +432,7 @@ export function BulkSpamAnalysis() {
 
       {error && (
         <Alert variant="destructive" className="mb-6">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error: _error}</AlertDescription>
         </Alert>
       )}
 
@@ -552,7 +552,7 @@ export function BulkSpamAnalysis() {
                 />
               </div>
             </div>
-            <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
+            <Select value={filterStatus} onValueChange={(value: unknown) => setFilterStatus(value)}>
               <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>

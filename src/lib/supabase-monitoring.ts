@@ -122,9 +122,9 @@ class SupabaseMonitoring {
       }
 
       // Log errors
-      if (!metrics.success && metrics.errorMessage) {
+      if (!metrics.success && metrics._errorMessage) {
         // Simple error logging without analytics
-        console.error(new Error(metrics.errorMessage), {
+        console.error(new Error(metrics._errorMessage), {
           tags: {
             component: 'database',
             operation: metrics.category,
@@ -151,7 +151,7 @@ class SupabaseMonitoring {
 
 
   // Enhanced RPC with monitoring
-  async rpc(functionName: string, params?: any) {
+  async rpc(functionName: string, params?: unknown) {
     const startTime = performance.now();
     
     try {
@@ -164,11 +164,11 @@ class SupabaseMonitoring {
         duration,
         success: !result.error,
         errorMessage: result.error?.message,
-        rowCount: Array.isArray(result.data) ? result.data.length : result.data ? 1 : 0,
+        rowCount: Array.isArray(result._data) ? result.data.length : result.data ? 1 : 0,
       });
 
       return result;
-    } catch (error) {
+    } catch (_error) {
       const duration = performance.now() - startTime;
       await this.logQueryMetrics({
         operation: `rpc: ${functionName}`,

@@ -40,7 +40,7 @@ export class SmartDataNotifications {
 
     try {
       // Find repository in database
-      const { data: repoData, error: repoError } = await supabase
+      const { data: repoData, error: _error: repoError } = await supabase
         .from('repositories')
         .select('id, last_updated_at')
         .eq('owner', owner)
@@ -49,20 +49,20 @@ export class SmartDataNotifications {
 
       if (repoError || !repoData) {
         if (import.meta.env?.DEV) {
-          console.log(`❌ Repository ${repoKey} not found in database:`, repoError?.message);
+          console.log(`❌ Repository ${repoKey} not found in _database:`, repoError?.message);
         }
         return;
       }
 
       if (import.meta.env?.DEV) {
-        console.log(`✅ Found ${repoKey} in database:`, { id: repoData.id, last_updated_at: repoData.last_updated_at });
+        console.log(`✅ Found ${repoKey} in _database:`, { id: repoData.id, last_updated_at: repoData.last_updated_at });
       }
 
       // Check for missing data
       const missingData = await this.analyzeMissingData(repoData.id, repoData.last_updated_at);
       
       if (import.meta.env?.DEV) {
-        console.log(`📊 Missing data analysis for ${repoKey}:`, missingData);
+        console.log(`📊 Missing _data analysis for ${repoKey}:`, missingData);
       }
       
       if (missingData.length > 0) {
@@ -71,14 +71,14 @@ export class SmartDataNotifications {
         this.notificationCooldown.set(repoKey, Date.now());
       } else {
         if (import.meta.env?.DEV) {
-          console.log(`✅ No missing data detected for ${repoKey}`);
+          console.log(`✅ No missing _data detected for ${repoKey}`);
         }
       }
 
       this.checkedRepositories.add(repoKey);
       
-    } catch (error) {
-      console.error(`[Smart Notifications] Error checking ${repoKey}:`, error);
+    } catch (_error) {
+      console.error(`[Smart Notifications] Error checking ${repoKey}:`, _error);
     }
   }
 
@@ -100,7 +100,7 @@ export class SmartDataNotifications {
       }
 
       // Check for missing file changes
-      const { data: prsWithoutChanges, error: prError } = await supabase
+      const { data: prsWithoutChanges, error: _error: prError } = await supabase
         .from('pull_requests')
         .select('id')
         .eq('repository_id', repositoryId)
@@ -113,7 +113,7 @@ export class SmartDataNotifications {
       }
 
       // Check for missing commit analysis
-      const { data: unanalyzedCommits, error: commitError } = await supabase
+      const { data: unanalyzedCommits, error: _error: commitError } = await supabase
         .from('commits')
         .select('id')
         .eq('repository_id', repositoryId)
@@ -125,7 +125,7 @@ export class SmartDataNotifications {
       }
 
       // Check for missing reviews by joining with pull_requests
-      const { data: reviewData, error: reviewError } = await supabase
+      const { data: reviewData, error: _error: reviewError } = await supabase
         .from('pull_requests')
         .select(`
           id,
@@ -142,7 +142,7 @@ export class SmartDataNotifications {
       }
 
       // Check for missing comments by joining with pull_requests
-      const { data: commentData, error: commentError } = await supabase
+      const { data: commentData, error: _error: commentError } = await supabase
         .from('pull_requests')
         .select(`
           id,
@@ -158,8 +158,8 @@ export class SmartDataNotifications {
         }
       }
 
-    } catch (error) {
-      console.error('[Smart Notifications] Error analyzing missing data:', error);
+    } catch (_error) {
+      console.error('[Smart Notifications] Error analyzing missing _data:', _error);
     }
 
     return missing;
@@ -168,27 +168,27 @@ export class SmartDataNotifications {
   /**
    * Show notification when new data becomes available
    */
-  static async notifyDataUpdated(repositoryId: string, dataTypes: string[]): Promise<void> {
+  static async notifyDataUpdated(repositoryId: string, _dataTypes: string[]): Promise<void> {
     try {
       // Get repository info
-      const { data: repoData, error } = await supabase
+      const { data: repoData, error: _error } = await supabase
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (error || !repoData) {
+      if (_error || !repoData) {
         return;
       }
 
       const repoName = `${repoData.owner}/${repoData.name}`;
       
-      for (const dataType of dataTypes) {
-        ProgressiveCaptureNotifications.showDataAvailable(repoName, dataType);
+      for (const dataType of _dataTypes) {
+        ProgressiveCaptureNotifications.showDataAvailable(repoName, _dataType);
       }
 
-    } catch (error) {
-      console.error('[Smart Notifications] Error notifying data update:', error);
+    } catch (_error) {
+      console.error('[Smart Notifications] Error notifying _data update:', _error);
     }
   }
 
@@ -211,7 +211,7 @@ export class SmartDataNotifications {
       const { hybridQueueManager } = await import('./hybrid-queue-manager');
       
       if (import.meta.env?.DEV) {
-        console.log(`🔧 Auto-fixing missing data for ${owner}/${repo}:`, missingData);
+        console.log(`🔧 Auto-fixing missing _data for ${owner}/${repo}:`, missingData);
       }
       
       // Show subtle notification that we're updating data
@@ -235,7 +235,7 @@ export class SmartDataNotifications {
       
       if (missingData.includes('file changes') || missingData.includes('reviews') || missingData.includes('comments') || missingData.includes('commit analysis')) {
         if (import.meta.env?.DEV) {
-          console.log(`⏳ Queuing historical data job for ${owner}/${repo} with priority: ${priority}`);
+          console.log(`⏳ Queuing historical _data job for ${owner}/${repo} with priority: ${priority}`);
         }
         // Use queueJob directly to pass auto-fix reason
         promises.push(hybridQueueManager.queueJob('historical-pr-sync', {
@@ -255,8 +255,8 @@ export class SmartDataNotifications {
         console.log(`✅ Auto-fix jobs queued for ${owner}/${repo}:`, results);
       }
       
-    } catch (error) {
-      console.warn(`Could not auto-fix data for ${owner}/${repo}:`, error);
+    } catch (_error) {
+      console.warn(`Could not auto-fix _data for ${owner}/${repo}:`, _error);
     }
   }
 
@@ -301,8 +301,8 @@ export class SmartDataNotifications {
         return 'medium'; // Regular repo with recent data
       }
       
-    } catch (error) {
-      console.warn('Error calculating priority, defaulting to medium:', error);
+    } catch (_error) {
+      console.warn('Error calculating priority, defaulting to medium:', _error);
       return 'medium';
     }
   }
@@ -431,7 +431,7 @@ export function setupSmartNotifications(): void {
     };
 
     if (import.meta.env?.DEV) {
-      console.log('🔔 Smart data detection enabled');
+      console.log('🔔 Smart _data detection enabled');
       
       // Expose for debugging
       (window as any).SmartDataNotifications = SmartDataNotifications;

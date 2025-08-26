@@ -74,7 +74,7 @@ export async function fetchFromGitHub<T = unknown>(
   
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`GitHub API error: ${response.status} ${response.statusText}. ${errorBody}`);
+    throw new Error(`GitHub API error: ${response.status} ${response.statusText}. ${_errorBody}`);
   }
   
   const data = await response.json() as T;

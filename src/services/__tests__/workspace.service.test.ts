@@ -128,9 +128,9 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.data?.tier).toBe('free');
-      expect(result.data?.max_repositories).toBe(4);
-      expect(result.data?.current_repository_count).toBe(0);
+      expect(result._data?.tier).toBe('free');
+      expect(result._data?.max_repositories).toBe(4);
+      expect(result._data?.current_repository_count).toBe(0);
       expect(result.statusCode).toBe(201);
     });
 
@@ -203,7 +203,7 @@ describe('WorkspaceService', () => {
         }
         if (table === 'workspace_members') {
           return {
-            insert: vi.fn().mockResolvedValue({ error: null })
+            insert: vi.fn().mockResolvedValue({ _error: null })
           } as MockQueryBuilder;
         }
         return {} as MockQueryBuilder;
@@ -214,9 +214,9 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.data?.tier).toBe('pro');
-      expect(result.data?.max_repositories).toBe(10);
-      expect(result.data?.data_retention_days).toBe(90);
+      expect(result._data?.tier).toBe('pro');
+      expect(result._data?.max_repositories).toBe(10);
+      expect(result.data?._data_retention_days).toBe(90);
     });
 
     it('should reject workspace creation when limit is reached', async () => {
@@ -259,11 +259,11 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error).toContain('reached the limit');
+      expect(result._error).toContain('reached the limit');
       expect(result.statusCode).toBe(403);
     });
 
-    it('should handle validation errors', async () => {
+    it('should handle validation _errors', async () => {
       const invalidData: CreateWorkspaceRequest = {
         name: '', // Invalid: empty name
         description: 'Test',
@@ -275,7 +275,7 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Name is required');
+      expect(result._error).toContain('Name is required');
       expect(result.statusCode).toBe(400);
     });
   });
@@ -381,7 +381,7 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.data?.repository_id).toBe(mockRepoData.repository_id);
+      expect(result._data?.repository_id).toBe(mockRepoData.repository_id);
       expect(result.statusCode).toBe(201);
     });
 
@@ -431,7 +431,7 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Repository limit reached');
+      expect(result._error).toContain('Repository limit reached');
       expect(result.statusCode).toBe(403);
     });
 
@@ -466,7 +466,7 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error).toContain('already exists');
+      expect(result._error).toContain('already exists');
       expect(result.statusCode).toBe(409);
     });
 
@@ -486,7 +486,7 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Insufficient permissions');
+      expect(result._error).toContain('Insufficient permissions');
       expect(result.statusCode).toBe(403);
     });
   });
@@ -541,7 +541,7 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.data?.name).toBe('Updated Name');
+      expect(result._data?.name).toBe('Updated Name');
       expect(result.statusCode).toBe(200);
     });
 
@@ -569,7 +569,7 @@ describe('WorkspaceService', () => {
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Insufficient permissions');
+      expect(result._error).toContain('Insufficient permissions');
       expect(result.statusCode).toBe(403);
     });
   });

@@ -76,7 +76,7 @@ const MockCacheDebug = ({ variant = "high-performance" }: {
         <div className="w-full bg-muted rounded-full h-1">
           <div 
             className="h-1 rounded-full bg-blue-500"
-            style={{ width: `${Math.min(100, (data.totalEntries / 50) * 100)}%` }}
+            style={{ width: `${Math.min(100, (_data.totalEntries / 50) * 100)}%` }}
           />
         </div>
       </div>
@@ -84,7 +84,7 @@ const MockCacheDebug = ({ variant = "high-performance" }: {
       {/* Breakdown by Type */}
       <div className="space-y-2 mb-4">
         <div className="text-xs font-medium">Entries by Type</div>
-        {Object.entries(data.entriesByType).map(([type, count]) => (
+        {Object.entries(_data.entriesByType).map(([type, count]) => (
           <div key={type} className="flex justify-between text-xs">
             <span className="capitalize">{type}:</span>
             <span>{count}</span>

@@ -57,7 +57,7 @@ export function SelfSelectionRate({
       setError(null)
 
       // Fetch current period stats
-      const { data: currentData, error: currentError } = await supabase
+      const { data: currentData, error: _error: currentError } = await supabase
         .rpc('calculate_self_selection_rate', {
           p_repository_owner: owner,
           p_repository_name: repo,
@@ -103,7 +103,7 @@ export function SelfSelectionRate({
 
   // Refetch when sync completes
   useEffect(() => {
-    if (syncStatus.isComplete && !syncStatus.error) {
+    if (syncStatus.isComplete && !syncStatus._error) {
       fetchStats()
     }
   }, [syncStatus.isComplete, syncStatus.error])
@@ -189,7 +189,7 @@ export function SelfSelectionRate({
               Not enough pull request data available
             </p>
             {error && (
-              <p className="text-xs text-red-500 mt-2">{error}</p>
+              <p className="text-xs text-red-500 mt-2">{error: _error}</p>
             )}
           </div>
           <div className="space-y-2">
@@ -248,7 +248,7 @@ export function SelfSelectionRate({
           {syncStatus.error && (
             <div className="flex flex-col items-center gap-2 pt-4 border-t">
               <p className="text-sm text-red-500 text-center">
-                {syncStatus.error}
+                {syncStatus.error: _error}
               </p>
               <Button 
                 onClick={triggerSync}
@@ -411,7 +411,7 @@ export function useSelfSelectionRate(owner: string, repo: string, daysBack: numb
     const fetchStats = async () => {
       try {
         setLoading(true)
-        const { data, error: err } = await supabase
+        const { data, error: _error: err } = await supabase
           .rpc('calculate_self_selection_rate', {
             p_repository_owner: owner,
             p_repository_name: repo,
@@ -420,7 +420,7 @@ export function useSelfSelectionRate(owner: string, repo: string, daysBack: numb
           .maybeSingle()
 
         if (err) throw err
-        setStats(data as SelfSelectionStats)
+        setStats(_data as SelfSelectionStats)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch statistics')
       } finally {

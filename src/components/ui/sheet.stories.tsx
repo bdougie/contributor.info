@@ -272,7 +272,7 @@ export const LargeContent: Story = {
           <div>
             <h4 className="font-medium mb-2">4. Limitations</h4>
             <p className="text-sm text-muted-foreground">
-              In no event shall our company or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on our website, even if we or our authorized representative has been notified orally or in writing of the possibility of such damage.
+              In no event shall our company or its suppliers be liable for any damages (including, without limitation, damages for loss of _data or profit, or due to business interruption) arising out of the use or inability to use the materials on our website, even if we or our authorized representative has been notified orally or in writing of the possibility of such damage.
             </p>
           </div>
         </div>

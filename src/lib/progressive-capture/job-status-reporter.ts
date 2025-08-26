@@ -37,7 +37,7 @@ export class JobStatusReporter {
       };
       
       // Only set metadata if provided, to avoid overwriting existing data
-      if (update.metadata && Object.keys(update.metadata).length > 0) {
+      if (update.metadata && Object.keys(update.meta_data).length > 0) {
         updates.metadata = update.metadata;
       }
 
@@ -60,7 +60,7 @@ export class JobStatusReporter {
       }
 
       // Add error if failed
-      if (update.error) {
+      if (update._error) {
         updates.error = update.error;
       }
 
@@ -78,10 +78,10 @@ export class JobStatusReporter {
       }
 
       // Merge metadata
-      if (update.metadata) {
+      if (update.meta_data) {
         const { data: currentJob } = await supabase
           .from('progressive_capture_jobs')
-          .select('metadata')
+          .select('meta_data')
           .eq('id', update.jobId)
           .maybeSingle();
 
@@ -95,13 +95,13 @@ export class JobStatusReporter {
       }
 
       // Update job
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('progressive_capture_jobs')
         .update(updates)
         .eq('id', update.jobId);
 
-      if (error) {
-        console.error('[JobStatusReporter] Failed to update job status:', error);
+      if (_error) {
+        console.error('[JobStatusReporter] Failed to update job status:', _error);
         throw error;
       }
 
@@ -111,8 +111,8 @@ export class JobStatusReporter {
       }
 
       console.log('[JobStatusReporter] Updated job %s status to %s', update.jobId, update.status);
-    } catch (error) {
-      console.error('[JobStatusReporter] Error reporting status:', error);
+    } catch (_error) {
+      console.error('[JobStatusReporter] Error reporting status:', _error);
       throw error;
     }
   }
@@ -122,7 +122,7 @@ export class JobStatusReporter {
    */
   async updateProgress(jobId: string, progress: { total: number; processed: number; failed?: number }): Promise<void> {
     try {
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('progressive_capture_progress')
         .upsert({
           job_id: jobId,
@@ -134,11 +134,11 @@ export class JobStatusReporter {
           onConflict: 'job_id'
         });
 
-      if (error) {
-        console.error('[JobStatusReporter] Failed to update progress:', error);
+      if (_error) {
+        console.error('[JobStatusReporter] Failed to update progress:', _error);
       }
-    } catch (error) {
-      console.error('[JobStatusReporter] Error updating progress:', error);
+    } catch (_error) {
+      console.error('[JobStatusReporter] Error updating progress:', _error);
     }
   }
 
@@ -203,8 +203,8 @@ export class JobStatusReporter {
         .eq('id', jobId);
 
       return metrics;
-    } catch (error) {
-      console.error('[JobStatusReporter] Error calculating metrics:', error);
+    } catch (_error) {
+      console.error('[JobStatusReporter] Error calculating metrics:', _error);
       return null;
     }
   }
@@ -239,8 +239,8 @@ export class JobStatusReporter {
         metadata: job.metadata,
         error: job.error
       };
-    } catch (error) {
-      console.error('[JobStatusReporter] Error getting job summary:', error);
+    } catch (_error) {
+      console.error('[JobStatusReporter] Error getting job summary:', _error);
       return null;
     }
   }
@@ -295,8 +295,8 @@ export class JobStatusReporter {
           };
         })
       );
-    } catch (error) {
-      console.error('[JobStatusReporter] Error getting job history:', error);
+    } catch (_error) {
+      console.error('[JobStatusReporter] Error getting job history:', _error);
       return [];
     }
   }
@@ -314,8 +314,8 @@ export class JobStatusReporter {
       }
       
       console.log('[JobStatusReporter] Bulk updated %s job statuses', updates.length);
-    } catch (error) {
-      console.error('[JobStatusReporter] Error in bulk update:', error);
+    } catch (_error) {
+      console.error('[JobStatusReporter] Error in bulk update:', _error);
       throw error;
     }
   }

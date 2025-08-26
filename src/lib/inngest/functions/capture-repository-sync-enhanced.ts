@@ -11,12 +11,12 @@ const DEFAULT_DAYS_LIMIT = 30;
 const BACKFILL_SYNC_DAYS = 1; // Only sync 1 day when backfill is active
 
 // Helper function to ensure a contributor exists
-async function ensureContributorExists(author: any): Promise<string> {
+async function ensureContributorExists(author: unknown): Promise<string> {
   if (!author?.login) {
     throw new Error('Author login is required');
   }
 
-  const { data, error } = await supabase
+  const { data, error: _error } = await supabase
     .from('contributors')
     .upsert({
       github_id: author.databaseId?.toString() || author.id?.toString() || '0',
@@ -30,11 +30,11 @@ async function ensureContributorExists(author: any): Promise<string> {
     .select('id')
     .maybeSingle();
 
-  if (error) {
-    throw new Error(`Failed to ensure contributor exists: ${error.message}`);
+  if (_error) {
+    throw new Error(`Failed to ensure contributor exists: ${_error.message}`);
   }
 
-  if (!data) {
+  if (!_data) {
     throw new Error(`Failed to ensure contributor exists`);
   }
   return data.id;
@@ -77,26 +77,26 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
 
     // Step 2: Get repository details
     const repository = await step.run("get-repository", async () => {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('repositories')
         .select('owner, name, last_updated_at, pull_request_count')
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (error || !data) {
+      if (_error || !_data) {
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
       }
 
       // Check if repository was synced recently
-      if (shouldCheckSyncTime && data.last_updated_at) {
-        const lastSyncTime = new Date(data.last_updated_at).getTime();
+      if (shouldCheckSyncTime && _data.last_updated_at) {
+        const lastSyncTime = new Date(_data.last_updated_at).getTime();
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
         
         if (hoursSinceSync < RATE_LIMIT_CONFIG.COOLDOWN_HOURS) {
           const timeAgo = hoursSinceSync < 1 
             ? `${Math.round(hoursSinceSync * 60)} minutes`
             : `${Math.round(hoursSinceSync)} hours`;
-          throw new Error(`Repository ${data.owner}/${data.name} was synced ${timeAgo} ago. Skipping to prevent excessive API usage.`) as NonRetriableError;
+          throw new Error(`Repository ${data.owner}/${_data.name} was synced ${timeAgo} ago. Skipping to prevent excessive API usage.`) as NonRetriableError;
         }
       }
 
@@ -129,7 +129,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         console.log('Repository %s/%s is only %s% complete, initiating backfill', repository.owner, repository.name, Math.round(completeness * 100));
         
         // Create backfill state
-        const { error } = await supabase
+        const { error: _error } = await supabase
           .from('progressive_backfill_state')
           .insert({
             repository_id: repositoryId,
@@ -144,7 +144,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
             }
           });
 
-        if (!error) {
+        if (!_error) {
           // Queue backfill job to GitHub Actions
           await supabase
             .from('progressive_capture_jobs')
@@ -203,11 +203,11 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         }
 
         return prs.slice(0, MAX_PRS_PER_SYNC);
-      } catch (error: any) {
-        if (error.message?.includes('NOT_FOUND')) {
+      } catch (_error: unknown) {
+        if (_error.message?.includes('NOT_FOUND')) {
           throw new Error(`Repository ${repository.owner}/${repository.name} not found`) as NonRetriableError;
         }
-        if (error.message?.includes('rate limit')) {
+        if (_error.message?.includes('rate limit')) {
           throw new Error(`GraphQL rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`);
         }
         
@@ -223,11 +223,11 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
       }
 
       // First, ensure all contributors exist and get their UUIDs
-      const contributorPromises = recentPRs.map((pr: any) => ensureContributorExists(pr.author));
+      const contributorPromises = recentPRs.map((pr: unknown) => ensureContributorExists(pr.author));
       const contributorIds = await Promise.all(contributorPromises);
 
       // Then create PRs with proper UUIDs
-      const prsToStore = recentPRs.map((pr: any, index: number) => ({
+      const prsToStore = recentPRs.map((pr: unknown, index: number) => ({
         github_id: pr.databaseId.toString(),
         repository_id: repositoryId,
         number: pr.number,
@@ -251,7 +251,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         head_branch: pr.headRefName || 'unknown',
       }));
 
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('pull_requests')
         .upsert(prsToStore, {
           onConflict: 'github_id',
@@ -259,8 +259,8 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
         })
         .select('id, number');
 
-      if (error) {
-        throw new Error(`Failed to store PRs: ${error.message}`);
+      if (_error) {
+        throw new Error(`Failed to store PRs: ${_error.message}`);
       }
 
       return data || [];
@@ -276,7 +276,7 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
       let detailJobsQueued = 0;
 
       for (const pr of storedPRs) {
-        const prData = recentPRs.find((p: any) => p.number === pr.number);
+        const prData = recentPRs.find((p: unknown) => p.number === pr.number);
         
         if (!prData) continue;
 
@@ -315,15 +315,15 @@ export const captureRepositorySyncEnhanced = inngest.createFunction(
 
     // Step 9: Update repository sync timestamp
     await step.run("update-sync-timestamp", async () => {
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('repositories')
         .update({
           last_updated_at: new Date().toISOString(),
         })
         .eq('id', repositoryId);
 
-      if (error) {
-        console.error(`Failed to update repository sync timestamp: ${error.message}`);
+      if (_error) {
+        console.error(`Failed to update repository sync timestamp: ${_error.message}`);
       }
     });
 

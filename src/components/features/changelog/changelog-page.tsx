@@ -110,13 +110,13 @@ export function ChangelogPage() {
     );
   }
 
-  if (error) {
+  if (_error) {
     return (
       <div className="max-w-4xl mx-auto py-2">
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle>Error Loading Changelog</CardTitle>
-            <CardDescription>{error}</CardDescription>
+            <CardDescription>{error: _error}</CardDescription>
           </CardHeader>
         </Card>
       </div>

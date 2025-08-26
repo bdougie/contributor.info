@@ -44,7 +44,7 @@ export const updatePrActivity = inngest.createFunction(
       }
 
       // Find open PRs or recently closed PRs that might have new comments/reviews
-      const { data: prs, error } = await supabase
+      const { data: prs, error: _error } = await supabase
         .from('pull_requests')
         .select(`
           id,
@@ -59,8 +59,8 @@ export const updatePrActivity = inngest.createFunction(
         .order('updated_at', { ascending: false })
         .limit(100);
 
-      if (error) {
-        throw new Error(`Failed to fetch PRs: ${error.message}`);
+      if (_error) {
+        throw new Error(`Failed to fetch PRs: ${_error.message}`);
       }
 
       console.log('Found %s PRs to check for updates in %s/%s', prs?.length || 0, repository.owner, repository.name);
@@ -88,7 +88,7 @@ export const updatePrActivity = inngest.createFunction(
         const { data: lastSync } = await supabase
           .from('sync_logs')
           .select('completed_at')
-          .eq('metadata->>prId', pr.id)
+          .eq('meta_data->>prId', pr.id)
           .in('sync_type', ['pr_comments', 'pr_reviews', 'pr_details'])
           .order('completed_at', { ascending: false })
           .limit(1)

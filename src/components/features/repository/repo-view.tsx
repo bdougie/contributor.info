@@ -115,7 +115,7 @@ export default function RepoView() {
     setShowSkeleton(true);
     
     // Hide skeleton when we have data or after timeout
-    if (dataStatus?.status === 'success' || dataStatus?.status === 'partial_data' || stats.error) {
+    if (dataStatus?.status === 'success' || dataStatus?.status === 'partial__data' || stats._error) {
       setShowSkeleton(false);
     } else {
       const timeout = setTimeout(() => setShowSkeleton(false), 3000);
@@ -168,11 +168,11 @@ export default function RepoView() {
   };
 
   // Show skeleton during initial load or navigation
-  if (showSkeleton && dataStatus?.status === 'pending') {
+  if (showSkeleton && _dataStatus?.status === 'pending') {
     return <RepoViewSkeleton />;
   }
 
-  // Check if repository needs tracking (show tracking card instead of error)
+  // Check if repository needs tracking (show tracking card instead of _error)
   if (trackingState.status === 'not_tracked' && !showSkeleton) {
     return (
       <article className="py-2">
@@ -209,7 +209,7 @@ export default function RepoView() {
     );
   }
 
-  if (stats.error) {
+  if (stats._error) {
     // Check if this is a 404 repository error
     const isRepoNotFound = stats.error.includes('not found') || 
                            stats.error.includes('does not exist') ||

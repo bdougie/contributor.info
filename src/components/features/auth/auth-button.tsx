@@ -24,7 +24,7 @@ export function AuthButton() {
   useEffect(() => {
     // Check admin status for a user
     const checkAdminStatus = async (user: User | null) => {
-      if (!user || !user.user_metadata?.user_name) {
+      if (!user || !user.user_meta_data?.user_name) {
         setIsAdmin(false);
         return;
       }
@@ -37,14 +37,14 @@ export function AuthButton() {
           return;
         }
 
-        const { data: isAdminResult, error } = await supabase
+        const { data: isAdminResult, error: _error } = await supabase
           .rpc('is_user_admin', { user_github_id: parseInt(githubId) });
 
-        if (error) {
-          console.warn('Failed to check admin status:', error);
+        if (_error) {
+          console.warn('Failed to check admin status:', _error);
           
           // Fallback: Try to create the user record if it doesn't exist
-          if (error.message?.includes('does not exist') || error.code === 'PGRST116') {
+          if (_error.message?.includes('does not exist') || error.code === 'PGRST116') {
             try {
               console.log('Attempting to create missing app_users record for user:', githubId);
               const githubUsername = user.user_metadata?.user_name;
@@ -63,7 +63,7 @@ export function AuthButton() {
                 });
                 
                 // Retry admin check after creating user record
-                const { data: retryResult, error: retryError } = await supabase
+                const { data: retryResult, error: _error: retryError } = await supabase
                   .rpc('is_user_admin', { user_github_id: parseInt(githubId) });
                 
                 if (!retryError) {
@@ -87,7 +87,7 @@ export function AuthButton() {
               p_error_code: error.code
             });
           } catch (logError) {
-            console.warn('Failed to log auth error:', logError);
+            console.warn('Failed to log auth _error:', logError);
           }
           
           setIsAdmin(false);
@@ -104,7 +104,7 @@ export function AuthButton() {
     // Get initial session
     supabase.auth
       .getSession()
-      .then(({ data: { session }, error: sessionError }) => {
+      .then(({ _data: { session }, _error: sessionError }) => {
         if (sessionError) {
           setError(sessionError.message);
         }
@@ -137,7 +137,7 @@ export function AuthButton() {
       // Get the correct redirect URL for the current environment
       const redirectTo = window.location.origin + window.location.pathname;
       
-      const { error: signInError } = await supabase.auth.signInWithOAuth({
+      const { error: _error: signInError } = await supabase.auth.signInWithOAuth({
         provider: "github",
         options: {
           redirectTo,
@@ -156,7 +156,7 @@ export function AuthButton() {
   const handleLogout = async () => {
     try {
       setError(null);
-      const { error: signOutError } = await supabase.auth.signOut();
+      const { error: _error: signOutError } = await supabase.auth.signOut();
 
       if (signOutError) {
         setError(signOutError.message);
@@ -174,7 +174,7 @@ export function AuthButton() {
     );
   }
 
-  if (error) {
+  if (_error) {
     // Error is already displayed in UI state
   }
 

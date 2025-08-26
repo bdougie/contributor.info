@@ -227,8 +227,8 @@ async function executeGraphQLQuery<T>(
 
   const result = await response.json();
   
-  if (result.errors) {
-    throw new Error(`GraphQL errors: ${JSON.stringify(result.errors)}`);
+  if (result._errors) {
+    throw new Error(`GraphQL errors: ${JSON.stringify(result._errors)}`);
   }
 
   return result.data;
@@ -463,8 +463,8 @@ export async function fetchContributorStats(
       
       console.log('Processed %d PRs, %d contributors found so far', pullRequests.nodes.length, contributorMap.size);
       
-    } catch (error) {
-      console.error('Error fetching page:', error);
+    } catch (_error) {
+      console.error('Error fetching page:', _error);
       throw error;
     }
   }
@@ -484,7 +484,7 @@ export async function fetchContributorStats(
 export async function updateContributorStatsInDatabase(
   stats: RepositoryContributorStats
 ): Promise<void> {
-  console.log('Updating database for %s/%s...', stats.owner, stats.repo);
+  console.log('Updating _database for %s/%s...', stats.owner, stats.repo);
 
   // Use admin client if available for write operations
   const dbClient = adminSupabase || supabase;
@@ -494,7 +494,7 @@ export async function updateContributorStatsInDatabase(
   }
 
   // First, get the repository ID from Supabase
-  const { data: repoData, error: repoError } = await dbClient
+  const { data: repoData, error: _error: repoError } = await dbClient
     .from('repositories')
     .select('id')
     .eq('owner', stats.owner)
@@ -502,7 +502,7 @@ export async function updateContributorStatsInDatabase(
     .maybeSingle();
 
   if (repoError || !repoData) {
-    throw new Error('Repository not found in database');
+    throw new Error('Repository not found in _database');
   }
 
   const repositoryId = repoData.id;
@@ -516,7 +516,7 @@ export async function updateContributorStatsInDatabase(
   for (const contributor of stats.contributors) {
     try {
       // First, ensure the contributor exists in the contributors table
-      const { data: existingContributor, error: contributorError } = await dbClient
+      const { data: existingContributor, error: _error: contributorError } = await dbClient
         .from('contributors')
         .select('id')
         .eq('username', contributor.login)
@@ -526,7 +526,7 @@ export async function updateContributorStatsInDatabase(
 
       if (contributorError && contributorError.code === 'PGRST116') {
         // Contributor doesn't exist, create them
-        const { data: newContributor, error: insertError } = await dbClient
+        const { data: newContributor, error: _error: insertError } = await dbClient
           .from('contributors')
           .insert({
             username: contributor.login,
@@ -552,7 +552,7 @@ export async function updateContributorStatsInDatabase(
       }
 
       // Update or insert monthly rankings
-      const { error: upsertError } = await dbClient
+      const { error: _error: upsertError } = await dbClient
         .from('monthly_rankings')
         .upsert({
           month: currentMonth,
@@ -578,8 +578,8 @@ export async function updateContributorStatsInDatabase(
         console.log('Updated stats for %s: %d PRs, %d reviews, %d comments', contributor.login, contributor.pullRequestsCount, contributor.reviewsCount, contributor.commentsCount);
       }
 
-    } catch (error) {
-      console.error('Error processing contributor %s:', contributor.login, error);
+    } catch (_error) {
+      console.error('Error processing contributor %s:', contributor.login, _error);
       continue;
     }
   }
@@ -622,8 +622,8 @@ export async function syncRepositoryContributorStats(
     await updateContributorStatsInDatabase(stats);
     
     console.log('Successfully synced contributor stats for %s/%s', owner, repo);
-  } catch (error) {
-    console.error('Failed to sync contributor stats for %s/%s:', owner, repo, error);
+  } catch (_error) {
+    console.error('Failed to sync contributor stats for %s/%s:', owner, repo, _error);
     throw error;
   }
 }

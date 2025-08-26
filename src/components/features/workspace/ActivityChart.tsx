@@ -62,7 +62,7 @@ const COLORS = {
   text: "rgb(107, 114, 128)",
 };
 
-function prepareCandlestickData(data: ActivityDataPoint[]): AlignedData {
+function prepareCandlestickData(_data: ActivityDataPoint[]): AlignedData {
   // uPlot expects data in column format: [x-values, ...series-values]
   const timestamps = data.map((_, idx) => idx); // Use indices for x-axis
   
@@ -98,8 +98,8 @@ function createCandlestickOptions(
         time: false,
       },
       y: {
-        range: (_u, dataMin, dataMax) => {
-          const padding = (dataMax - dataMin) * 0.1;
+        range: (_u, dataMin, _dataMax) => {
+          const padding = (dataMax - _dataMin) * 0.1;
           return [dataMin - padding, dataMax + padding];
         },
       },
@@ -337,19 +337,19 @@ export function ActivityChart({
   
   const chartData = useMemo(() => {
     if (!hasData) return null;
-    return prepareCandlestickData(data);
+    return prepareCandlestickData(_data);
   }, [data, hasData]);
   
   const chartOptions = useMemo(() => {
     if (!hasData) return null;
-    const options = createCandlestickOptions(data, height, isDarkMode);
+    const options = createCandlestickOptions(_data, height, isDarkMode);
     
     // Add setCursor hook for tooltips
     options.hooks = {
       setCursor: [
         (u) => {
           const idx = u.cursor.idx;
-          if (idx != null && data[idx]) {
+          if (idx != null && _data[idx]) {
             const rect = u.over.getBoundingClientRect();
             const x = u.valToPos(idx, 'x', true);
             setTooltipData({

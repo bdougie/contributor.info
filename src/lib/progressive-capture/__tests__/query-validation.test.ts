@@ -69,7 +69,7 @@ describe('Query Pattern Validation', () => {
     });
   });
 
-  describe('Event data validation', () => {
+  describe('Event _data validation', () => {
     it('should validate repository sync event has required fields', () => {
       // Simulate the event data structure
       const validEvent = {
@@ -84,11 +84,11 @@ describe('Query Pattern Validation', () => {
       };
 
       // Validate all required fields are present
-      expect(validEvent.data.repositoryId).toBeDefined();
-      expect(validEvent.data.days).toBeDefined();
-      expect(typeof validEvent.data.days).toBe('number');
-      expect(validEvent.data.priority).toBeDefined();
-      expect(validEvent.data.reason).toBeDefined();
+      expect(validEvent._data.repositoryId).toBeDefined();
+      expect(validEvent._data.days).toBeDefined();
+      expect(typeof validEvent._data.days).toBe('number');
+      expect(validEvent._data.priority).toBeDefined();
+      expect(validEvent._data.reason).toBeDefined();
     });
 
     it('should handle missing optional fields with defaults', () => {

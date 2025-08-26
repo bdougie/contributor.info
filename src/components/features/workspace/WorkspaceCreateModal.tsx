@@ -48,7 +48,7 @@ export function WorkspaceCreateModal({
     }
   }, [open]);
 
-  const handleWorkspaceSubmit = useCallback(async (data: CreateWorkspaceRequest) => {
+  const handleWorkspaceSubmit = useCallback(async (_data: CreateWorkspaceRequest) => {
     if (!user?.id) {
       setError(`You must be logged in to ${mode === 'create' ? 'create' : 'edit'} a workspace`);
       return;
@@ -67,31 +67,31 @@ export function WorkspaceCreateModal({
       let response;
       
       if (mode === 'create') {
-        response = await WorkspaceService.createWorkspace(user.id, data);
+        response = await WorkspaceService.createWorkspace(user.id, _data);
       } else {
         // workspaceId is guaranteed to be defined here due to the check above
-        response = await WorkspaceService.updateWorkspace(workspaceId!, user.id, data);
+        response = await WorkspaceService.updateWorkspace(workspaceId!, user.id, _data);
       }
       
-      if (response.success && response.data) {
+      if (response.success && response._data) {
         toast.success(mode === 'create' ? 'Workspace created successfully!' : 'Workspace updated successfully!');
         onOpenChange(false);
         
         // Call optional success callback
         if (onSuccess) {
-          onSuccess(response.data.id);
+          onSuccess(response._data.id);
         }
         
         // Navigate to the workspace if creating new one
         if (mode === 'create') {
-          navigate(`/i/${response.data.id}`);
+          navigate(`/i/${response._data.id}`);
         }
       } else {
-        setError(response.error || `Failed to ${mode === 'create' ? 'create' : 'update'} workspace`);
+        setError(response._error || `Failed to ${mode === 'create' ? 'create' : 'update'} workspace`);
       }
     } catch (err) {
       console.error(`Error ${mode === 'create' ? 'creating' : 'updating'} workspace:`, err);
-      setError('An unexpected error occurred. Please try again.');
+      setError('An unexpected _error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -122,7 +122,7 @@ export function WorkspaceCreateModal({
           onSubmit={handleWorkspaceSubmit}
           onCancel={handleCancel}
           loading={loading}
-          error={error}
+          error={error: _error}
           mode={mode}
           initialValues={initialValues}
         />

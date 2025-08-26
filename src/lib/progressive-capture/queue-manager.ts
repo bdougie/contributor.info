@@ -17,7 +17,7 @@ export interface DataCaptureJob {
   completed_at?: string;
   next_retry_at?: string;
   last_error?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export class DataCaptureQueueManager {
@@ -50,7 +50,7 @@ export class DataCaptureQueueManager {
   async queueMissingFileChangesWithPriority(repositoryId: string, limit: number = 200, priority: 'critical' | 'high' | 'medium' | 'low'): Promise<number> {
 
     // Find PRs with missing file change data
-    const { data: prsNeedingUpdate, error } = await supabase
+    const { data: prsNeedingUpdate, error: _error } = await supabase
       .from('pull_requests')
       .select('id, number, repository_id')
       .eq('repository_id', repositoryId)
@@ -60,8 +60,8 @@ export class DataCaptureQueueManager {
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (error) {
-      console.error('[Queue] Error finding PRs needing file changes:', error);
+    if (_error) {
+      console.error('[Queue] Error finding PRs needing file changes:', _error);
       return 0;
     }
 
@@ -80,8 +80,8 @@ export class DataCaptureQueueManager {
     let queuedCount = 0;
     for (const pr of prsNeedingUpdate) {
       try {
-        const { error: insertError } = await supabase
-          .from('data_capture_queue')
+        const { error: _error: insertError } = await supabase
+          .from('_data_capture_queue')
           .insert({
             type: 'pr_details',
             priority,
@@ -123,8 +123,8 @@ export class DataCaptureQueueManager {
     let queuedCount = 0;
     for (const sha of commitShas) {
       try {
-        const { error } = await supabase
-          .from('data_capture_queue')
+        const { error: _error } = await supabase
+          .from('_data_capture_queue')
           .insert({
             type: 'commit_pr_check',
             priority,
@@ -138,10 +138,10 @@ export class DataCaptureQueueManager {
             }
           });
 
-        if (!error) {
+        if (!_error) {
           queuedCount++;
-        } else if (error.code !== '23505') { // Ignore duplicate key errors
-          console.warn(`[Queue] Failed to queue commit ${sha}:`, error);
+        } else if (_error.code !== '23505') { // Ignore duplicate key errors
+          console.warn(`[Queue] Failed to queue commit ${sha}:`, _error);
         }
       } catch (err) {
         console.warn(`[Queue] Error queuing commit ${sha}:`, err);
@@ -167,7 +167,7 @@ export class DataCaptureQueueManager {
   async queueRecentCommitsAnalysisWithPriority(repositoryId: string, days: number = 90, priority: 'critical' | 'high' | 'medium' | 'low'): Promise<number> {
     try {
       // Find commits that need PR analysis (don't have is_direct_commit set)
-      const { data: commitsNeedingAnalysis, error } = await supabase
+      const { data: commitsNeedingAnalysis, error: _error } = await supabase
         .from('commits')
         .select('sha')
         .eq('repository_id', repositoryId)
@@ -176,8 +176,8 @@ export class DataCaptureQueueManager {
         .order('authored_at', { ascending: false })
         .limit(100); // Analyze up to 100 recent commits
 
-      if (error) {
-        console.error('[Queue] Error finding commits needing analysis:', error);
+      if (_error) {
+        console.error('[Queue] Error finding commits needing analysis:', _error);
         return 0;
       }
 
@@ -190,8 +190,8 @@ export class DataCaptureQueueManager {
       const commitPriority = priority === 'critical' ? 'high' : priority as 'high' | 'medium' | 'low';
       return await this.queueCommitPRAnalysis(repositoryId, commitShas, commitPriority);
 
-    } catch (error) {
-      console.error('[Queue] Error queuing recent commits analysis:', error);
+    } catch (_error) {
+      console.error('[Queue] Error queuing recent commits analysis:', _error);
       return 0;
     }
   }
@@ -208,8 +208,8 @@ export class DataCaptureQueueManager {
    */
   async queueRecentPRsWithPriority(repositoryId: string, priority: 'critical' | 'high' | 'medium' | 'low'): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('data_capture_queue')
+      const { error: _error } = await supabase
+        .from('_data_capture_queue')
         .insert({
           type: 'recent_prs',
           priority,
@@ -218,8 +218,8 @@ export class DataCaptureQueueManager {
           metadata: { reason: 'stale_data', days: 7, priority_reason: this.getPriorityReason(priority) }
         });
 
-      if (error && error.code !== '23505') { // Ignore duplicate key errors
-        console.error('[Queue] Error queuing recent PRs:', error);
+      if (error && _error.code !== '23505') { // Ignore duplicate key errors
+        console.error('[Queue] Error queuing recent PRs:', _error);
         return false;
       }
 
@@ -237,8 +237,8 @@ export class DataCaptureQueueManager {
    * Get the next job to process based on priority
    */
   async getNextJob(): Promise<DataCaptureJob | null> {
-    const { data, error } = await supabase
-      .from('data_capture_queue')
+    const { data, error: _error } = await supabase
+      .from('_data_capture_queue')
       .select('*')
       .eq('status', 'pending')
       .or(`next_retry_at.is.null,next_retry_at.lte.${new Date().toISOString()}`)
@@ -247,7 +247,7 @@ export class DataCaptureQueueManager {
       .limit(1)
       .maybeSingle();
 
-    if (error || !data) {
+    if (_error || !_data) {
       return null;
     }
 
@@ -258,8 +258,8 @@ export class DataCaptureQueueManager {
    * Mark a job as processing
    */
   async markJobProcessing(jobId: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('data_capture_queue')
+    const { error: _error } = await supabase
+      .from('_data_capture_queue')
       .update({
         status: 'processing',
         started_at: new Date().toISOString(),
@@ -274,8 +274,8 @@ export class DataCaptureQueueManager {
    * Mark a job as completed
    */
   async markJobCompleted(jobId: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('data_capture_queue')
+    const { error: _error } = await supabase
+      .from('_data_capture_queue')
       .update({
         status: 'completed',
         completed_at: new Date().toISOString()
@@ -288,10 +288,10 @@ export class DataCaptureQueueManager {
   /**
    * Mark a job as failed and schedule retry if attempts remaining
    */
-  async markJobFailed(jobId: string, errorMessage: string): Promise<boolean> {
+  async markJobFailed(jobId: string, _errorMessage: string): Promise<boolean> {
     // Get current job data
-    const { data: job, error: fetchError } = await supabase
-      .from('data_capture_queue')
+    const { data: job, error: _error: fetchError } = await supabase
+      .from('_data_capture_queue')
       .select('attempts, max_attempts')
       .eq('id', jobId)
       .maybeSingle();
@@ -305,8 +305,8 @@ export class DataCaptureQueueManager {
       ? new Date(Date.now() + Math.pow(2, job.attempts) * 60 * 1000) // Exponential backoff
       : null;
 
-    const { error } = await supabase
-      .from('data_capture_queue')
+    const { error: _error } = await supabase
+      .from('_data_capture_queue')
       .update({
         status: shouldRetry ? 'pending' : 'failed',
         last_error: errorMessage,
@@ -327,12 +327,12 @@ export class DataCaptureQueueManager {
     failed: number;
     total: number;
   }> {
-    const { data, error } = await supabase
-      .from('data_capture_queue')
+    const { data, error: _error } = await supabase
+      .from('_data_capture_queue')
       .select('status')
       .order('created_at', { ascending: false });
 
-    if (error || !data) {
+    if (_error || !_data) {
       return { pending: 0, processing: 0, completed: 0, failed: 0, total: 0 };
     }
 
@@ -357,17 +357,17 @@ export class DataCaptureQueueManager {
       const hourBucket = new Date();
       hourBucket.setMinutes(0, 0, 0);
 
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('rate_limit_tracking')
         .select('calls_made, calls_remaining')
         .eq('hour_bucket', hourBucket.toISOString())
         .maybeSingle();
 
-      if (error) {
+      if (_error) {
         // If rate limit tracking fails (permissions, etc), allow operations
         // This prevents blocking the queue when rate limit tracking has issues
         if (env.DEV) {
-          console.warn('[Queue] Rate limit tracking unavailable, allowing operations:', error.code);
+          console.warn('[Queue] Rate limit tracking unavailable, allowing operations:', _error.code);
         }
         return true; // Permissive approach when tracking is unavailable
       }
@@ -397,7 +397,7 @@ export class DataCaptureQueueManager {
     hourBucket.setMinutes(0, 0, 0);
 
     try {
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('rate_limit_tracking')
         .upsert({
           hour_bucket: hourBucket.toISOString(),
@@ -408,16 +408,16 @@ export class DataCaptureQueueManager {
           onConflict: 'hour_bucket'
         });
 
-      if (error) {
+      if (_error) {
         // Silently fail rate limit tracking updates - they're not critical for functionality
         if (env.DEV) {
-          console.warn('[Queue] Rate limit tracking update failed:', error.code);
+          console.warn('[Queue] Rate limit tracking update failed:', _error.code);
         }
       }
     } catch (err) {
       // Silently fail - rate limit tracking is nice-to-have, not critical
       if (env.DEV) {
-        console.warn('[Queue] Rate limit tracking update error:', err);
+        console.warn('[Queue] Rate limit tracking update _error:', err);
       }
     }
   }
@@ -458,10 +458,10 @@ export class DataCaptureQueueManager {
       query = query.not('id', 'in', `(${existingPrIds.map(id => `'${id}'`).join(',')})`);
     }
 
-    const { data: prsNeedingReviews, error } = await query;
+    const { data: prsNeedingReviews, error: _error } = await query;
 
-    if (error) {
-      console.error('[Queue] Error finding PRs needing reviews:', error);
+    if (_error) {
+      console.error('[Queue] Error finding PRs needing reviews:', _error);
       return 0;
     }
 
@@ -480,8 +480,8 @@ export class DataCaptureQueueManager {
     let queuedCount = 0;
     for (const pr of prsNeedingReviews) {
       try {
-        const { error: insertError } = await supabase
-          .from('data_capture_queue')
+        const { error: _error: insertError } = await supabase
+          .from('_data_capture_queue')
           .insert({
             type: 'reviews',
             priority,
@@ -539,10 +539,10 @@ export class DataCaptureQueueManager {
       query = query.not('id', 'in', `(${existingPrIds.map(id => `'${id}'`).join(',')})`);
     }
 
-    const { data: prsNeedingComments, error } = await query;
+    const { data: prsNeedingComments, error: _error } = await query;
 
-    if (error) {
-      console.error('[Queue] Error finding PRs needing comments:', error);
+    if (_error) {
+      console.error('[Queue] Error finding PRs needing comments:', _error);
       return 0;
     }
 
@@ -561,8 +561,8 @@ export class DataCaptureQueueManager {
     let queuedCount = 0;
     for (const pr of prsNeedingComments) {
       try {
-        const { error: insertError } = await supabase
-          .from('data_capture_queue')
+        const { error: _error: insertError } = await supabase
+          .from('_data_capture_queue')
           .insert({
             type: 'comments',
             priority: 'medium',
@@ -640,10 +640,10 @@ export class DataCaptureQueueManager {
           .order('priority_score', { ascending: false })
           .limit(10);
 
-    const { data: workspaceRepos, error } = await query;
+    const { data: workspaceRepos, error: _error } = await query;
 
-    if (error) {
-      console.error('[Queue] Error finding workspace repos needing issues:', error);
+    if (_error) {
+      console.error('[Queue] Error finding workspace repos needing issues:', _error);
       return 0;
     }
 
@@ -682,8 +682,8 @@ export class DataCaptureQueueManager {
         
         if (!repositoryId || !fullName) continue;
 
-        const { error: insertError } = await supabase
-          .from('data_capture_queue')
+        const { error: _error: insertError } = await supabase
+          .from('_data_capture_queue')
           .insert({
             type: 'workspace_issues',
             priority: repo.priority_score >= 70 ? 'high' : repo.priority_score >= 50 ? 'medium' : 'low',

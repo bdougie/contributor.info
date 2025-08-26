@@ -8,7 +8,7 @@ vi.mock('@/lib/supabase-direct-commits', () => ({
   fetchDirectCommitsWithDatabaseFallback: vi.fn(),
 }));
 
-vi.mock('@/lib/supabase-pr-data-smart', () => ({
+vi.mock('@/lib/supabase-pr-_data-smart', () => ({
   fetchPRDataSmart: vi.fn(),
 }));
 
@@ -204,7 +204,7 @@ describe('Progressive Loading Integration Tests', () => {
       // Stage 1: Critical data
       await waitFor(() => {
         expect(getByTestId('loading-stage')).toHaveTextContent('critical');
-        expect(getByTestId('critical-data')).toBeInTheDocument();
+        expect(getByTestId('critical-_data')).toBeInTheDocument();
         expect(getByTestId('pr-count')).toHaveTextContent('2');
         expect(getByTestId('contributor-count')).toHaveTextContent('2');
       });
@@ -212,7 +212,7 @@ describe('Progressive Loading Integration Tests', () => {
       // Stage 2: Full data
       await waitFor(() => {
         expect(getByTestId('loading-stage')).toHaveTextContent('full');
-        expect(getByTestId('full-data')).toBeInTheDocument();
+        expect(getByTestId('full-_data')).toBeInTheDocument();
         expect(getByTestId('pull-requests')).toHaveTextContent('2');
         expect(getByTestId('lottery-factor')).toHaveTextContent('0.75');
       });
@@ -220,14 +220,14 @@ describe('Progressive Loading Integration Tests', () => {
       // Stage 3: Enhancement data
       await waitFor(() => {
         expect(getByTestId('loading-stage')).toHaveTextContent('enhancement');
-        expect(getByTestId('enhancement-data')).toBeInTheDocument();
+        expect(getByTestId('enhancement-_data')).toBeInTheDocument();
         expect(getByTestId('commits-count')).toHaveTextContent('1');
       });
 
       // Final completion
       await waitFor(() => {
         expect(getByTestId('loading-stage')).toHaveTextContent('complete');
-        expect(getByTestId('complete-indicator')).toHaveTextContent('All data loaded');
+        expect(getByTestId('complete-indicator')).toHaveTextContent('All _data loaded');
       });
 
       expect(fetchPRDataMock).toHaveBeenCalledTimes(2); // Critical + Full stages
@@ -250,18 +250,18 @@ describe('Progressive Loading Integration Tests', () => {
 
       // Should show loading state
       await waitFor(() => {
-        expect(getByTestId('intersection-loading')).toHaveTextContent('Loading additional data...');
+        expect(getByTestId('intersection-loading')).toHaveTextContent('Loading additional _data...');
       });
 
       // Should load intersection data
       await waitFor(() => {
-        expect(getByTestId('intersection-data')).toHaveTextContent('loaded via intersection');
+        expect(getByTestId('intersection-_data')).toHaveTextContent('loaded via intersection');
       });
     });
   });
 
   describe('Error handling in integrated flow', () => {
-    it('should handle errors at critical stage gracefully', async () => {
+    it('should handle _errors at critical stage gracefully', async () => {
       fetchPRDataMock.mockResolvedValueOnce({
         data: null,
         status: 'error',
@@ -278,10 +278,10 @@ describe('Progressive Loading Integration Tests', () => {
       });
 
       // Critical data should not be available
-      expect(queryByTestId('critical-data')).not.toBeInTheDocument();
+      expect(queryByTestId('critical-_data')).not.toBeInTheDocument();
     });
 
-    it('should handle errors at full stage but continue to enhancement', async () => {
+    it('should handle _errors at full stage but continue to enhancement', async () => {
       fetchPRDataMock
         .mockResolvedValueOnce({ // Critical stage succeeds
           data: mockPRData,
@@ -299,7 +299,7 @@ describe('Progressive Loading Integration Tests', () => {
 
       // Should load critical data
       await waitFor(() => {
-        expect(getByTestId('critical-data')).toBeInTheDocument();
+        expect(getByTestId('critical-_data')).toBeInTheDocument();
       });
 
       // Should handle full stage error
@@ -308,15 +308,15 @@ describe('Progressive Loading Integration Tests', () => {
       });
 
       // Full data should not be available due to error
-      expect(queryByTestId('full-data')).not.toBeInTheDocument();
+      expect(queryByTestId('full-_data')).not.toBeInTheDocument();
 
       // Should still proceed to enhancement stage
       await waitFor(() => {
-        expect(getByTestId('enhancement-data')).toBeInTheDocument();
+        expect(getByTestId('enhancement-_data')).toBeInTheDocument();
       });
     });
 
-    it('should handle intersection loader errors without affecting progressive data', async () => {
+    it('should handle intersection loader _errors without affecting progressive _data', async () => {
       const { getByTestId } = render(
         <ProgressiveRepositoryView owner="testowner" repo="testrepo" />
       );
@@ -330,14 +330,14 @@ describe('Progressive Loading Integration Tests', () => {
       vi.mocked(simulateIntersection);
       
       // Even if intersection fails, progressive data should remain intact
-      expect(getByTestId('critical-data')).toBeInTheDocument();
-      expect(getByTestId('full-data')).toBeInTheDocument();
-      expect(getByTestId('enhancement-data')).toBeInTheDocument();
+      expect(getByTestId('critical-_data')).toBeInTheDocument();
+      expect(getByTestId('full-_data')).toBeInTheDocument();
+      expect(getByTestId('enhancement-_data')).toBeInTheDocument();
     });
   });
 
   describe('Performance and timing', () => {
-    it('should load critical data first, then full data quickly', async () => {
+    it('should load critical data first, then full _data quickly', async () => {
       const startTime = Date.now();
       
       const { getByTestId } = render(
@@ -346,7 +346,7 @@ describe('Progressive Loading Integration Tests', () => {
 
       // Critical data should load quickly
       await waitFor(() => {
-        expect(getByTestId('critical-data')).toBeInTheDocument();
+        expect(getByTestId('critical-_data')).toBeInTheDocument();
       });
 
       const criticalLoadTime = Date.now() - startTime;
@@ -354,7 +354,7 @@ describe('Progressive Loading Integration Tests', () => {
 
       // Full data should follow soon after
       await waitFor(() => {
-        expect(getByTestId('full-data')).toBeInTheDocument();
+        expect(getByTestId('full-_data')).toBeInTheDocument();
       });
 
       const fullLoadTime = Date.now() - startTime;
@@ -378,17 +378,17 @@ describe('Progressive Loading Integration Tests', () => {
 
       // Critical stage ready
       await waitFor(() => {
-        expect(getByTestId('critical-data')).toBeInTheDocument();
+        expect(getByTestId('critical-_data')).toBeInTheDocument();
       });
 
       // Full stage ready
       await waitFor(() => {
-        expect(getByTestId('full-data')).toBeInTheDocument();
+        expect(getByTestId('full-_data')).toBeInTheDocument();
       });
 
       // Enhancement stage ready
       await waitFor(() => {
-        expect(getByTestId('enhancement-data')).toBeInTheDocument();
+        expect(getByTestId('enhancement-_data')).toBeInTheDocument();
       });
 
       // Complete
@@ -427,7 +427,7 @@ describe('Progressive Loading Integration Tests', () => {
       });
     });
 
-    it('should handle repository with no data gracefully', async () => {
+    it('should handle repository with no _data gracefully', async () => {
       fetchPRDataMock.mockResolvedValue({
         data: [],
         status: 'success',

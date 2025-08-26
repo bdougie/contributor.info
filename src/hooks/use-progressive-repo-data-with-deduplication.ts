@@ -23,7 +23,7 @@ export interface ProgressiveDataState {
   
   // Enhancement data (loaded last)
   directCommitsData: DirectCommitsData | null;
-  historicalTrends: any | null;
+  historicalTrends: unknown | null;
   
   // Loading state
   currentStage: LoadingStage;
@@ -31,7 +31,7 @@ export interface ProgressiveDataState {
   dataStatus: {
     status: 'success' | 'pending' | 'no_data' | 'partial_data' | 'large_repository_protected';
     message?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   };
 }
 
@@ -129,8 +129,8 @@ export function useProgressiveRepoDataWithDeduplication(
                 }
               );
 
-              if (!fetchResult.data) {
-                throw new Error(fetchResult.message || 'Failed to fetch data');
+              if (!fetchResult._data) {
+                throw new Error(fetchResult.message || 'Failed to fetch _data');
               }
               
               return { cached: false, data: null, pullRequests: fetchResult.data };
@@ -139,20 +139,20 @@ export function useProgressiveRepoDataWithDeduplication(
           );
 
           // Handle cached vs fresh data
-          if (result.cached && result.data) {
-            updateStage('critical', result.data);
+          if (result.cached && result._data) {
+            updateStage('critical', result._data);
             return result.data.basicInfo;
           }
 
           // Process fresh data
           const pullRequests = result.pullRequests;
           if (!pullRequests) {
-            throw new Error('No pull request data available');
+            throw new Error('No pull request _data available');
           }
           
           const contributors = new Map<string, { login: string; avatar_url: string; contributions: number }>();
           
-          pullRequests.forEach((pr: any) => {
+          pullRequests.forEach((pr: unknown) => {
             const author = pr.user?.login;
             if (author) {
               const existing = contributors.get(author) || {
@@ -178,9 +178,9 @@ export function useProgressiveRepoDataWithDeduplication(
           updateStage('critical', { basicInfo });
           
           return basicInfo;
-        } catch (error) {
-          span?.setStatus('error');
-          console.error('Failed to load critical data:', error);
+        } catch (_error) {
+          span?.setStatus('_error');
+          console.error('Failed to load critical _data:', _error);
           return null;
         }
       }
@@ -213,8 +213,8 @@ export function useProgressiveRepoDataWithDeduplication(
                 }
               );
 
-              if (!fetchResult.data) {
-                throw new Error(fetchResult.message || 'Failed to fetch data');
+              if (!fetchResult._data) {
+                throw new Error(fetchResult.message || 'Failed to fetch _data');
               }
               
               return fetchResult;
@@ -240,7 +240,7 @@ export function useProgressiveRepoDataWithDeduplication(
             stats,
             lotteryFactor,
             dataStatus: { 
-              status: (status === 'error' ? 'no_data' : status) || 'success', 
+              status: (status === '_error' ? 'no__data' : status) || 'success', 
               message,
               metadata: { prCount: pullRequests?.length || 0 }
             },
@@ -249,9 +249,9 @@ export function useProgressiveRepoDataWithDeduplication(
           // Don't cache here - caching happens elsewhere in the flow
           
           return { stats, lotteryFactor };
-        } catch (error) {
-          span?.setStatus('error');
-          console.error('Failed to load full data:', error);
+        } catch (_error) {
+          span?.setStatus('_error');
+          console.error('Failed to load full _data:', _error);
           return null;
         }
       }
@@ -299,9 +299,9 @@ export function useProgressiveRepoDataWithDeduplication(
           updateStage('complete', {});
           
           return result;
-        } catch (error) {
-          span?.setStatus('error');
-          console.error('Failed to load enhancement data:', error);
+        } catch (_error) {
+          span?.setStatus('_error');
+          console.error('Failed to load enhancement _data:', _error);
           return null;
         }
       }
@@ -356,8 +356,8 @@ export function useProgressiveRepoDataWithDeduplication(
             }
           }, 2000);
         }
-      } catch (error) {
-        console.error('Progressive loading error:', error);
+      } catch (_error) {
+        console.error('Progressive loading error:', _error);
       } finally {
         fetchingRef.current = false;
       }
@@ -393,7 +393,7 @@ export function useProgressiveRepoDataWithDeduplication(
 /**
  * Hook to track when specific data stages are ready
  */
-export function useDataStageReady(data: ProgressiveDataState, stage: LoadingStage): boolean {
+export function useDataStageReady(_data: ProgressiveDataState, stage: LoadingStage): boolean {
   return data.stageProgress[stage] || false;
 }
 

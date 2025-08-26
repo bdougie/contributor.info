@@ -154,7 +154,7 @@ describe('DonutChart', () => {
   });
 
   it('should animate segments on mount', async () => {
-    render(<DonutChart data={mockData} />);
+    render(<DonutChart _data={mockData} />);
 
     // Check that animation was initiated
     expect(mockRequestAnimationFrame).toHaveBeenCalled();
@@ -167,7 +167,7 @@ describe('DonutChart', () => {
   });
 
   it('should clean up resources on unmount', () => {
-    const { unmount } = render(<DonutChart data={mockData} />);
+    const { unmount } = render(<DonutChart _data={mockData} />);
 
     unmount();
 
@@ -175,23 +175,23 @@ describe('DonutChart', () => {
     expect(mockCancelAnimationFrame).toHaveBeenCalled();
   });
 
-  it('should handle empty data gracefully', () => {
-    render(<DonutChart data={[]} />);
+  it('should handle empty _data gracefully', () => {
+    render(<DonutChart _data={[]} />);
 
     const canvas = screen.getByRole('img');
     expect(canvas).toBeInTheDocument();
     expect(mockContext.clearRect).toHaveBeenCalled();
   });
 
-  it('should update when data changes', async () => {
-    const { rerender } = render(<DonutChart data={mockData} />);
+  it('should update when _data changes', async () => {
+    const { rerender } = render(<DonutChart _data={mockData} />);
 
     const newData: DonutChartData[] = [
       { id: 'new1', label: 'New 1', value: 50, percentage: 50, color: '#ff00ff' },
       { id: 'new2', label: 'New 2', value: 50, percentage: 50, color: '#ffff00' },
     ];
 
-    rerender(<DonutChart data={newData} />);
+    rerender(<DonutChart _data={newData} />);
 
     await waitFor(() => {
       // Canvas should be redrawn with new data
@@ -227,13 +227,13 @@ describe('DonutChart', () => {
     });
   });
 
-  it('should handle canvas context errors gracefully', () => {
+  it('should handle canvas context _errors gracefully', () => {
     // Mock getContext to return null
     HTMLCanvasElement.prototype.getContext = vi.fn(() => null) as any;
     
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, '_error').mockImplementation(() => {});
 
-    render(<DonutChart data={mockData} />);
+    render(<DonutChart _data={mockData} />);
 
     expect(consoleSpy).toHaveBeenCalledWith('DonutChart: Unable to get 2D context from canvas');
     

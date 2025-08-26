@@ -204,7 +204,7 @@ export default function OrgView() {
   const [displayCount, setDisplayCount] = useState(INITIAL_DISPLAY_COUNT);
   const [cachedAvatarUrl, setCachedAvatarUrl] = useState<string | null>(null);
   
-  const { repositories, orgData, isLoading, error } = useOrgRepos(org);
+  const { repositories, orgData, isLoading, error: _error } = useOrgRepos(org);
 
   // Check for cached avatar URL on mount
   useEffect(() => {
@@ -238,7 +238,7 @@ export default function OrgView() {
   const canShowMore = displayCount < Math.min(repositories.length, MAX_DISPLAY_COUNT);
   const hasMoreRepos = repositories.length > MAX_DISPLAY_COUNT;
 
-  if (error) {
+  if (_error) {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <Card>
@@ -268,7 +268,8 @@ export default function OrgView() {
         <div className="flex items-center gap-3">
           <div className="org-avatar-container">
             {/* Use cached avatar URL immediately if available, fall back to orgData */}
-            {(cachedAvatarUrl || orgData?.avatar_url) ? (
+            {(cachedAvatarUrl || orgData?.avatar_url) 
+              ? (
               <OrganizationAvatar
                 src={cachedAvatarUrl || orgData?.avatar_url || ''}
                 alt={orgData?.name || org || ''}
@@ -276,7 +277,8 @@ export default function OrgView() {
                 priority={true}
                 lazy={false} // Always load immediately for org avatar
               />
-            ) : (
+            ) 
+              : (
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md flex items-center justify-center text-white font-bold text-lg">
                 {org?.charAt(0)?.toUpperCase() || '?'}
               </div>
@@ -311,99 +313,105 @@ export default function OrgView() {
           </CardTitle>
         </CardHeader>
         <CardContent className="org-repos-table">
-          {isLoading
-? (
-            <div className="space-y-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Repository</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Activity</TableHead>
-                    <TableHead>Language</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell>
-                        <div className="flex flex-col space-y-2">
-                          <Skeleton className="h-4 w-32" />
-                          <div className="flex items-center gap-2">
-                            <Skeleton className="h-3 w-8" />
-                            <Skeleton className="h-3 w-8" />
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-48" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-6 w-16 rounded-full" />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Skeleton className="w-3 h-3 rounded-full" />
-                          <Skeleton className="h-4 w-20" />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-6 w-16 rounded" />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )
-: repositories.length > 0
-? (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Repository</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Activity</TableHead>
-                    <TableHead>Language</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {displayedRepos.map((repo) => (
-                    <RepositoryRow key={repo.id} repo={repo} />
-                  ))}
-                </TableBody>
-              </Table>
-              
-              {canShowMore && (
-                <div className="mt-6 text-center">
-                  <Button 
-                    variant="outline" 
-                    onClick={showMoreRepos}
-                    className="gap-2"
-                  >
-                    Show More Repositories
-                    <span className="text-xs text-muted-foreground">
-                      ({displayCount} of {Math.min(repositories.length, MAX_DISPLAY_COUNT)})
-                    </span>
-                  </Button>
+          {(() => {
+            if (isLoading) {
+              return (
+                <div className="space-y-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Repository</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Activity</TableHead>
+                        <TableHead>Language</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Array.from({ length: 10 }).map((_, i) => (
+                        <TableRow key={i}>
+                          <TableCell>
+                            <div className="flex flex-col space-y-2">
+                              <Skeleton className="h-4 w-32" />
+                              <div className="flex items-center gap-2">
+                                <Skeleton className="h-3 w-8" />
+                                <Skeleton className="h-3 w-8" />
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-4 w-48" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-6 w-16 rounded-full" />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Skeleton className="w-3 h-3 rounded-full" />
+                              <Skeleton className="h-4 w-20" />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton className="h-6 w-16 rounded" />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
-              )}
-              
-              {hasMoreRepos && displayCount >= MAX_DISPLAY_COUNT && (
-                <div className="mt-4 text-center text-sm text-muted-foreground">
-                  Showing most active repositories. Use the request form below for specific repositories.
-                </div>
-              )}
-            </>
-          )
-: (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No repositories found for this organization.</p>
-            </div>
-          )}
+              );
+            }
+            
+            if (repositories.length > 0) {
+              return (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Repository</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Activity</TableHead>
+                        <TableHead>Language</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {displayedRepos.map((repo) => (
+                        <RepositoryRow key={repo.id} repo={repo} />
+                      ))}
+                    </TableBody>
+                  </Table>
+                  
+                  {canShowMore && (
+                    <div className="mt-6 text-center">
+                      <Button 
+                        variant="outline" 
+                        onClick={showMoreRepos}
+                        className="gap-2"
+                      >
+                        Show More Repositories
+                        <span className="text-xs text-muted-foreground">
+                          ({displayCount} of {Math.min(repositories.length, MAX_DISPLAY_COUNT)})
+                        </span>
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {hasMoreRepos && displayCount >= MAX_DISPLAY_COUNT && (
+                    <div className="mt-4 text-center text-sm text-muted-foreground">
+                      Showing most active repositories. Use the request form below for specific repositories.
+                    </div>
+                  )}
+                </>
+              );
+            }
+            
+            return (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No repositories found for this organization.</p>
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 

@@ -209,7 +209,7 @@ export const ErrorState: Story = {
   args: {
     activities: [],
     loading: false,
-    error: new globalThis.Error("Failed to load PR activity data"),
+    error: new globalThis.Error("Failed to load PR activity _data"),
     selectedTypes: []
   },
   render: (args) => (
@@ -238,7 +238,7 @@ export const EmptyAfterFilter: Story = {
     activities: mixedActivities,
     loading: false,
     error: null,
-    selectedTypes: ["opened"] // Filter to show only opened PRs (but our data has mixed types)
+    selectedTypes: ["opened"] // Filter to show only opened PRs (but our _data has mixed types)
   },
   render: (args) => (
     <div className="w-[600px] p-4">

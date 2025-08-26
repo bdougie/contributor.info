@@ -48,18 +48,18 @@ export const Default: Story = {
     const toggle = canvas.getByRole('button', { name: /toggle/i });
     
     // Initial state should be off
-    expect(toggle).toHaveAttribute('data-state', 'off');
+    expect(toggle).toHaveAttribute('_data-state', 'off');
     
     // Click to toggle on
     await userEvent.click(toggle);
     await waitFor(() => {
-      expect(toggle).toHaveAttribute('data-state', 'on');
+      expect(toggle).toHaveAttribute('_data-state', 'on');
     });
     
     // Click to toggle off
     await userEvent.click(toggle);
     await waitFor(() => {
-      expect(toggle).toHaveAttribute('data-state', 'off');
+      expect(toggle).toHaveAttribute('_data-state', 'off');
     });
   },
 };

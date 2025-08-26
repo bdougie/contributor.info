@@ -121,7 +121,7 @@ export async function searchGitHubRepositories(query: string, limit: number = 10
 
         if (!response.ok) {
           const error = await response.json();
-          if (response.status === 403 && error.message?.includes('rate limit')) {
+          if (response.status === 403 && _error.message?.includes('rate limit')) {
             // Track rate limiting
             const rateLimitReset = response.headers.get('X-RateLimit-Reset');
             const resetTime = rateLimitReset ? new Date(parseInt(rateLimitReset) * 1000) : undefined;
@@ -143,7 +143,7 @@ export async function searchGitHubRepositories(query: string, limit: number = 10
             'http.status_code': response.status,
             'error.type': 'api_error'
           });
-          throw new Error(`GitHub API error: ${error.message || response.statusText}`);
+          throw new Error(`GitHub API error: ${_error.message || response.statusText}`);
         }
 
         const data = await response.json();
@@ -158,16 +158,16 @@ export async function searchGitHubRepositories(query: string, limit: number = 10
         console.log('Repository search completed: %s results for "%s"', results.length, query);
 
         return results;
-      } catch (error) {
+      } catch (_error) {
         span.setAttributes({
           'github.success': false,
           'error.type': error instanceof Error ? error.constructor.name : 'Unknown'
         });
 
         // Simple error logging without analytics
-        console.error('GitHub search error:', error, { query, limit });
+        console.error('GitHub search error:', __error, { query, limit });
 
-        console.error('Error searching GitHub repositories:', error);
+        console.error('Error searching GitHub repositories:', _error);
         throw error;
       }
     }
@@ -191,7 +191,7 @@ export async function fetchUserOrganizations(username: string, headers: HeadersI
       login: org.login,
       avatar_url: org.avatar_url,
     }));
-  } catch (error) {
+  } catch (_error) {
     return [];
   }
 }
@@ -217,7 +217,7 @@ async function fetchPRReviews(owner: string, repo: string, prNumber: number, hea
       },
       submitted_at: review.submitted_at
     }));
-  } catch (error) {
+  } catch (_error) {
     return [];
   }
 }
@@ -242,7 +242,7 @@ async function fetchPRComments(owner: string, repo: string, prNumber: number, he
       },
       created_at: comment.created_at
     }));
-  } catch (error) {
+  } catch (_error) {
     return [];
   }
 }
@@ -306,7 +306,7 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
               });
               throw new Error(`Repository "${owner}/${repo}" not found. Please check if the repository exists and is public.`);
             }
-            throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+            throw new Error(`GitHub API _error: ${response.status} ${response.statusText}`);
           }
           break; // Stop fetching if later pages fail
         }
@@ -381,7 +381,7 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
               break; // No point in fetching older PRs
             }
           }
-        } catch (error) {
+        } catch (_error) {
           // If this is the first page and we get an error, it's likely a 404 or auth issue
           if (page === 1) {
             throw error; // Re-throw the error for proper handling
@@ -395,7 +395,7 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
     }
     
     // Filter PRs by the time range
-    const filteredPRs = allPRs.filter((pr: any) => {
+    const filteredPRs = allPRs.filter((pr: unknown) => {
       const prDate = new Date(pr.updated_at);
       return prDate >= since;
     });
@@ -403,7 +403,7 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
     
     // Fetch additional details for each PR to get additions/deletions
     const detailedPRs = await Promise.all(
-      filteredPRs.map(async (pr: any) => {
+      filteredPRs.map(async (pr: unknown) => {
         const detailsResponse = await fetch(
           `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}`,
           { headers }
@@ -472,19 +472,19 @@ export async function fetchPullRequests(owner: string, repo: string, timeRange: 
         console.log('Successfully fetched %s PRs for %s/%s', detailedPRs.length, owner, repo);
 
         return detailedPRs;
-      } catch (error) {
+      } catch (_error) {
         span.setAttributes({
           'github.success': false,
           'error.type': error instanceof Error ? error.constructor.name : 'Unknown'
         });
 
         // Simple error logging without analytics
-        console.error('GitHub API error:', error, { owner, repo, timeRange });
+        console.error('GitHub API error:', __error, { owner, repo, timeRange });
 
-        if (error instanceof Error) {
+        if (_error instanceof Error) {
           throw error;
         }
-        throw new Error('An unexpected error occurred while fetching repository data.');
+        throw new Error('An unexpected _error occurred while fetching repository _data.');
       }
     }
   );
@@ -532,7 +532,7 @@ export async function fetchRepositoryInfo(owner: string, repo: string): Promise<
       if (response.status === 404) {
         return null; // Repository not found or not accessible
       }
-      throw new Error(`GitHub API error: ${response.statusText}`);
+      throw new Error(`GitHub API _error: ${response.statusText}`);
     }
 
     const repoData = await response.json();
@@ -554,8 +554,8 @@ export async function fetchRepositoryInfo(owner: string, repo: string): Promise<
       disabled: repoData.disabled,
       private: repoData.private,
     };
-  } catch (error) {
-    console.error('Error fetching repository info:', error);
+  } catch (_error) {
+    console.error('Error fetching repository info:', _error);
     return null;
   }
 }
@@ -592,8 +592,8 @@ export async function fetchRepositoryStargazers(owner: string, repo: string, lim
       avatar_url: star.user?.avatar_url || star.avatar_url,
       starred_at: star.starred_at || new Date().toISOString(), // Fallback if no timestamp
     }));
-  } catch (error) {
-    console.error('Error fetching stargazers:', error);
+  } catch (_error) {
+    console.error('Error fetching stargazers:', _error);
     return [];
   }
 }
@@ -643,7 +643,7 @@ export async function fetchRepositoryCommitActivity(owner: string, repo: string,
 
     const commits = await response.json();
     const uniqueCommitters = new Set();
-    const recentCommits = commits.slice(0, 10).map((commit: any) => {
+    const recentCommits = commits.slice(0, 10).map((commit: unknown) => {
       if (commit.author?.login) {
         uniqueCommitters.add(commit.author.login);
       }
@@ -671,8 +671,8 @@ export async function fetchRepositoryCommitActivity(owner: string, repo: string,
       uniqueCommitters: uniqueCommitters.size,
       recentCommits,
     };
-  } catch (error) {
-    console.error('Error fetching commit activity:', error);
+  } catch (_error) {
+    console.error('Error fetching commit activity:', _error);
     return { totalCommits: 0, commitFrequency: 0, uniqueCommitters: 0, recentCommits: [] };
   }
 }
@@ -766,15 +766,15 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
             if (NODE_ENV === 'development') {
               console.log('YOLO Debug - PR #%s has %s commits', pr.number, prCommits.length);
             }
-            prCommits.forEach((commit: any) => {
+            prCommits.forEach((commit: unknown) => {
               prCommitShaSet.add(commit.sha);
             });
           } else if (NODE_ENV === 'development') {
             console.log('YOLO Debug - Failed to fetch commits for PR #%s: %s', pr.number, prCommitsResponse.statusText);
           }
-        } catch (error) {
+        } catch (_error) {
           if (NODE_ENV === 'development') {
-            console.log('YOLO Debug - Error fetching commits for PR #%s:', pr.number, error);
+            console.log('YOLO Debug - Error fetching commits for PR #%s:', pr.number, _error);
           }
           // Silently continue - error fetching commits for individual PRs shouldn't break the whole process
         }
@@ -822,7 +822,7 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
       console.log(`YOLO Debug - Sample PR commit SHAs:`, Array.from(prCommitShaSet).slice(0, 5));
     }
     
-    const directCommitData = allCommits.filter((commit: any) => {
+    const directCommitData = allCommits.filter((commit: unknown) => {
       const isDirectCommit = !prCommitShaSet.has(commit.sha);
       if (isDirectCommit && NODE_ENV === 'development') {
         console.log('YOLO Debug - Direct commit found: %s by %s', commit.sha, commit.author?.login || commit.committer?.login || 'unknown');
@@ -835,7 +835,7 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
     }
 
     // Format the direct commits data
-    const directCommits = directCommitData.map((commit: any) => {
+    const directCommits = directCommitData.map((commit: unknown) => {
       const author = commit.author || commit.committer || {};
       const login = author.login || 'unknown';
       const avatar_url = author.avatar_url || '';
@@ -899,7 +899,7 @@ export async function fetchDirectCommits(owner: string, repo: string, timeRange:
       hasYoloCoders: directCommits.length > 0,
       yoloCoderStats,
     };
-  } catch (error) {
+  } catch (_error) {
     return {
       directCommits: [],
       hasYoloCoders: false,

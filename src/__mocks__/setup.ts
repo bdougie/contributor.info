@@ -21,7 +21,7 @@ global.IntersectionObserver = vi.fn(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   takeRecords: vi.fn(() => []),
-})) as any;
+})) as unknown as typeof IntersectionObserver;
 
 // Mock console to reduce noise
 global.console = {
@@ -35,14 +35,14 @@ global.console = {
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     from: vi.fn(() => ({
-      select: vi.fn(() => Promise.resolve({ data: [], error: null })),
-      insert: vi.fn(() => Promise.resolve({ data: [], error: null })),
-      update: vi.fn(() => Promise.resolve({ data: [], error: null })),
-      delete: vi.fn(() => Promise.resolve({ data: [], error: null })),
+      select: vi.fn(() => Promise.resolve({ _data: [], _error: null })),
+      insert: vi.fn(() => Promise.resolve({ _data: [], _error: null })),
+      update: vi.fn(() => Promise.resolve({ _data: [], _error: null })),
+      delete: vi.fn(() => Promise.resolve({ _data: [], _error: null })),
     })),
     auth: {
-      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
-      signOut: vi.fn(() => Promise.resolve({ error: null })),
+      getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, _error: null })),
+      signOut: vi.fn(() => Promise.resolve({ _error: null })),
     },
   },
 }));

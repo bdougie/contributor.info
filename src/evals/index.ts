@@ -88,8 +88,8 @@ export async function runEvaluation(configName: keyof typeof DEFAULT_CONFIGS = '
     );
     
     return results;
-  } catch (error) {
-    console.error(`Evaluation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  } catch (_error) {
+    console.error(`Evaluation failed: ${error instanceof Error ? error.message : 'Unknown _error'}`);
     throw error;
   }
 }
@@ -137,8 +137,8 @@ async function main() {
         console.log('  npm run eval list         # List available configurations');
         break;
     }
-  } catch (error) {
-    console.error('❌ Evaluation failed:', error instanceof Error ? error.message : 'Unknown error');
+  } catch (_error) {
+    console.error('❌ Evaluation failed:', error instanceof Error ? error.message : 'Unknown _error');
     process.exit(1);
   }
 }
@@ -156,5 +156,5 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 
 if (process.argv[1] === __filename) {
-  main().catch(console.error);
+  main().catch(console._error);
 }

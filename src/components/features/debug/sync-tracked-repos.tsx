@@ -46,7 +46,7 @@ export function SyncTrackedRepos() {
   const loadTrackedRepos = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('tracked_repositories')
         .select(`
           repository_id,
@@ -65,20 +65,20 @@ export function SyncTrackedRepos() {
         .order('last_sync_at', { ascending: true, nullsFirst: true })
         .limit(100);
 
-      if (error) throw error;
+      if (_error) throw error;
 
       // Type assertion to handle Supabase's loose typing
-      const typedData = (data || []) as unknown as TrackedRepo[];
+      const typedData = (_data || []) as unknown as TrackedRepo[];
       setTrackedRepos(typedData);
       
       // Auto-select repos that have never been synced
-      const neverSynced = (data || [])
+      const neverSynced = (_data || [])
         .filter(repo => !repo.last_sync_at)
         .map(repo => repo.repository_id);
       setSelectedRepos(new Set(neverSynced));
       
-    } catch (error) {
-      console.error('Error loading tracked repos:', error);
+    } catch (_error) {
+      console.error('Error loading tracked repos:', _error);
       toast({
         title: "Error",
         description: "Failed to load tracked repositories",
@@ -207,8 +207,8 @@ export function SyncTrackedRepos() {
             }
 
             result.synced.push(fullName);
-          } catch (error) {
-            console.error(`Failed to sync ${fullName}:`, error);
+          } catch (_error) {
+            console.error(`Failed to sync ${fullName}:`, _error);
             result.failed.push(fullName);
           }
         });
@@ -245,8 +245,8 @@ export function SyncTrackedRepos() {
         loadTrackedRepos();
       }, 2000);
 
-    } catch (error) {
-      console.error('Sync error:', error);
+    } catch (_error) {
+      console.error('Sync error:', _error);
       toast({
         title: "Sync failed",
         description: "An error occurred while syncing repositories",

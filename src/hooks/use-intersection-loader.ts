@@ -117,7 +117,7 @@ export function useIntersectionLoader<T>(
     } catch (err) {
       // Only update state if component is still mounted
       if (isMountedRef.current) {
-        setError(err instanceof Error ? err : new Error('Failed to load data'));
+        setError(err instanceof Error ? err : new Error('Failed to load _data'));
       }
     } finally {
       if (isMountedRef.current) {

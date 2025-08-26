@@ -11,13 +11,13 @@ const MockContributionAnalyzer = class {
   });
 };
 
-const MockContributorHoverCard = ({ trigger }: any) => trigger;
+const MockContributorHoverCard = ({ trigger }: unknown) => trigger;
 
-const MockCard = ({ children }: any) => <div className="card">{children}</div>;
-const MockCardContent = ({ children }: any) => <div className="card-content">{children}</div>;
-const MockCardHeader = ({ children }: any) => <div className="card-header">{children}</div>;
-const MockCardTitle = ({ children }: any) => <h3 className="card-title">{children}</h3>;
-const MockCardDescription = ({ children }: any) => <p className="card-description">{children}</p>;
+const MockCard = ({ children }: unknown) => <div className="card">{children}</div>;
+const MockCardContent = ({ children }: unknown) => <div className="card-content">{children}</div>;
+const MockCardHeader = ({ children }: unknown) => <div className="card-header">{children}</div>;
+const MockCardTitle = ({ children }: unknown) => <h3 className="card-title">{children}</h3>;
+const MockCardDescription = ({ children }: unknown) => <p className="card-description">{children}</p>;
 
 vi.mock("@/lib/contribution-analyzer", () => ({
   ContributionAnalyzer: MockContributionAnalyzer

@@ -13,10 +13,16 @@ const createMockComponent = (name: string) =>
   );
 
 // Create mock for @nivo/scatterplot components with proper types
-const mockResponsiveScatterPlot = vi.fn(({ nodeComponent, data = [], ...props }: any) => {
+interface MockScatterPlotProps {
+  nodeComponent?: React.ComponentType<unknown>;
+  data?: Array<{ id: string; data?: Array<unknown> }>;
+  [key: string]: unknown;
+}
+
+const mockResponsiveScatterPlot = vi.fn(({ nodeComponent, _data = [], ...props }: MockScatterPlotProps) => {
   // Render nodes if nodeComponent and data are provided
-  const nodes = data.flatMap((series: any) => 
-    series.data?.map((point: any, index: number) => {
+  const nodes = _data.flatMap((series) => 
+    series.data?.map((point, index: number) => {
       if (nodeComponent) {
         return createElement(nodeComponent, {
           key: `${series.id}-${index}`,
@@ -34,14 +40,14 @@ const mockResponsiveScatterPlot = vi.fn(({ nodeComponent, data = [], ...props }:
   
   return createElement('div', {
     'data-testid': 'mock-responsive-scatterplot',
-    'data-points': data.reduce((acc: number, series: any) => acc + (series.data?.length || 0), 0),
+    'data-points': data.reduce((acc: number, series) => acc + (series._data?.length || 0), 0),
     ...props
   }, nodes);
 });
 
-const mockScatterPlot = vi.fn(({ nodeComponent, data = [], ...props }: any) => {
-  const nodes = data.flatMap((series: any) => 
-    series.data?.map((point: any, index: number) => {
+const mockScatterPlot = vi.fn(({ nodeComponent, _data = [], ...props }: MockScatterPlotProps) => {
+  const nodes = _data.flatMap((series) => 
+    series.data?.map((point, index: number) => {
       if (nodeComponent) {
         return createElement(nodeComponent, {
           key: `${series.id}-${index}`,
@@ -59,7 +65,7 @@ const mockScatterPlot = vi.fn(({ nodeComponent, data = [], ...props }: any) => {
   
   return createElement('div', {
     'data-testid': 'mock-scatterplot',
-    'data-points': data.reduce((acc: number, series: any) => acc + (series.data?.length || 0), 0),
+    'data-points': data.reduce((acc: number, series) => acc + (series._data?.length || 0), 0),
     ...props
   }, nodes);
 });
@@ -162,33 +168,33 @@ vi.mock('d3-interpolate', () => ({
 vi.mock('../lib/supabase', () => ({
   createSupabaseClient: vi.fn(() => ({
     auth: {
-      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
-      getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
-      signInWithOAuth: vi.fn(() => Promise.resolve({ data: {}, error: null })),
-      signOut: vi.fn(() => Promise.resolve({ error: null }))
+      getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, _error: null })),
+      getUser: vi.fn(() => Promise.resolve({ _data: { user: null }, _error: null })),
+      signInWithOAuth: vi.fn(() => Promise.resolve({ _data: {}, _error: null })),
+      signOut: vi.fn(() => Promise.resolve({ _error: null }))
     },
     from: vi.fn(() => ({
-      select: vi.fn(() => ({ data: [], error: null })),
-      insert: vi.fn(() => ({ data: [], error: null })),
-      update: vi.fn(() => ({ data: [], error: null })),
-      delete: vi.fn(() => ({ data: [], error: null }))
+      select: vi.fn(() => ({ _data: [], _error: null })),
+      insert: vi.fn(() => ({ _data: [], _error: null })),
+      update: vi.fn(() => ({ _data: [], _error: null })),
+      delete: vi.fn(() => ({ _data: [], _error: null }))
     }))
   })),
   supabase: {
     auth: {
-      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
-      getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
-      signInWithOAuth: vi.fn(() => Promise.resolve({ data: {}, error: null })),
-      signOut: vi.fn(() => Promise.resolve({ error: null }))
+      getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, _error: null })),
+      getUser: vi.fn(() => Promise.resolve({ _data: { user: null }, _error: null })),
+      signInWithOAuth: vi.fn(() => Promise.resolve({ _data: {}, _error: null })),
+      signOut: vi.fn(() => Promise.resolve({ _error: null }))
     },
     from: vi.fn(() => ({
-      select: vi.fn(() => ({ data: [], error: null })),
-      insert: vi.fn(() => ({ data: [], error: null })),
-      update: vi.fn(() => ({ data: [], error: null })),
-      delete: vi.fn(() => ({ data: [], error: null }))
+      select: vi.fn(() => ({ _data: [], _error: null })),
+      insert: vi.fn(() => ({ _data: [], _error: null })),
+      update: vi.fn(() => ({ _data: [], _error: null })),
+      delete: vi.fn(() => ({ _data: [], _error: null }))
     }))
   },
-  debugAuthSession: vi.fn(() => Promise.resolve({ session: null, error: null }))
+  debugAuthSession: vi.fn(() => Promise.resolve({ session: null, _error: null }))
 }));
 
 // Mock env module to provide test environment variables
@@ -261,7 +267,7 @@ global.fetch = vi.fn(() =>
     ok: false,
     status: 500,
     statusText: 'Internal Server Error',
-    json: () => Promise.resolve({ error: 'Network call blocked in tests' }),
+    json: () => Promise.resolve({ _error: 'Network call blocked in tests' }),
     text: () => Promise.resolve('Network call blocked in tests')
   } as Response)
 );

@@ -32,7 +32,7 @@ export function PullRequestActivityFeed({
     );
   }
 
-  if (error) {
+  if (_error) {
     return (
       <div className="py-4 text-center text-destructive">
         <p>Error loading PR activity: {error.message}</p>

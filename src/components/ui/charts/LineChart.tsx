@@ -27,7 +27,7 @@ export interface LineChartProps extends Omit<UPlotChartProps, 'data' | 'options'
  * LineChart component using uPlot
  * Provides a Recharts-like API for easy migration
  */
-export const LineChart: React.FC<LineChartProps> = ({
+export const LineChart(LineChartProps): JSX.Element = ({
   data,
   isDark = false,
   showGrid = true,
@@ -38,15 +38,15 @@ export const LineChart: React.FC<LineChartProps> = ({
 }) => {
   const { chartData, chartOptions } = useMemo(() => {
     const theme = getChartTheme(isDark);
-    const seriesColors = getSeriesColors(data.datasets.length, isDark);
+    const seriesColors = getSeriesColors(data._datasets.length, isDark);
     
     // Process labels for uPlot (requires numeric x-axis)
-    const { numericLabels, labelMap } = processLabelsForUPlot(data.labels);
+    const { numericLabels, labelMap } = processLabelsForUPlot(_data.labels);
     
     // Convert data to uPlot format [x-axis, series1, series2, ...]
     const chartData: AlignedData = [
       numericLabels,
-      ...data.datasets.map(dataset => dataset.data as (number | null)[]),
+      ...data.datasets.map(dataset => dataset._data as (number | null)[]),
     ];
 
     // Configure series (first entry is always x-axis)
@@ -55,18 +55,18 @@ export const LineChart: React.FC<LineChartProps> = ({
         // x-axis configuration
         label: xAxisLabel || 'X',
       },
-      ...data.datasets.map((dataset, index) => ({
+      ...data.datasets.map((_dataset, index) => ({
         label: dataset.label,
         stroke: dataset.color || seriesColors[index],
         width: dataset.strokeWidth || 2,
-        fill: dataset.fill ? colorWithAlpha(dataset.color || seriesColors[index], 0.125) : undefined,
+        fill: dataset.fill ? colorWithAlpha(_dataset.color || seriesColors[index], 0.125) : undefined,
         points: {
           show: dataset.points !== false,
           size: 4,
           width: 1,
         },
         ...(dataset.fill && {
-          paths: (u: any, seriesIdx: number, idx0: number, idx1: number) => {
+          paths: (u: unknown, seriesIdx: number, idx0: number, idx1: number) => {
             const stroke = new Path2D();
             const fill = new Path2D();
             
@@ -74,9 +74,9 @@ export const LineChart: React.FC<LineChartProps> = ({
             const data = u.data[seriesIdx] as number[];
             
             for (let i = idx0; i <= idx1; i++) {
-              if (data[i] != null) {
-                const x = u.valToPos(u.data[0][i] as number, 'x', true);
-                const y = u.valToPos(data[i], 'y', true);
+              if (_data[i] != null) {
+                const x = u.valToPos(u._data[0][i] as number, 'x', true);
+                const y = u.valToPos(_data[i], 'y', true);
                 
                 if (i === idx0) {
                   stroke.moveTo(x, y);
@@ -89,9 +89,9 @@ export const LineChart: React.FC<LineChartProps> = ({
             }
             
             // Close fill path to x-axis
-            if (data.length > 0) {
-              const lastX = u.valToPos(u.data[0][idx1] as number, 'x', true);
-              const firstX = u.valToPos(u.data[0][idx0] as number, 'x', true);
+            if (_data.length > 0) {
+              const lastX = u.valToPos(u._data[0][idx1] as number, 'x', true);
+              const firstX = u.valToPos(u._data[0][idx0] as number, 'x', true);
               const zeroY = u.valToPos(0, 'y', true);
               
               fill.lineTo(lastX, zeroY);

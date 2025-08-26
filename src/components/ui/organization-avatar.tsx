@@ -114,7 +114,7 @@ export function OrganizationAvatar({
   // Generate fallback initials from alt text
   const generateFallback = () => {
     if (fallback) return fallback;
-    if (error) return '?';
+    if (_error) return '?';
     
     const words = alt.split(' ');
     if (words.length >= 2) {
@@ -170,7 +170,7 @@ export function OrganizationAvatar({
           size <= 32 && 'text-xs',
           size >= 80 && 'text-base',
           // Show fallback when loading or on error
-          (!shouldLoad || error || !isLoaded) ? 'opacity-100' : 'opacity-0'
+          (!shouldLoad || _error || !isLoaded) ? 'opacity-100' : 'opacity-0'
         )}
       >
         {generateFallback()}

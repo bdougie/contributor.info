@@ -49,7 +49,7 @@ const MOCK_DATA: WidgetData = {
   ],
 };
 
-export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_DATA }: WidgetGalleryProps) {
+export function WidgetGallery({ owner = "facebook", repo = "react", _data = MOCK_DATA }: WidgetGalleryProps) {
   const [selectedWidget, setSelectedWidget] = useState<'stat-card' | 'badge' | 'citation'>('stat-card');
   const [customOwner, setCustomOwner] = useState(owner);
   const [customRepo, setCustomRepo] = useState(repo);
@@ -78,7 +78,7 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
     try {
       await navigator.clipboard.writeText(text);
       toast.success(`${type} copied to clipboard`);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to copy to clipboard");
     }
   };
@@ -104,7 +104,7 @@ export function WidgetGallery({ owner = "facebook", repo = "react", data = MOCK_
         };
         
       case 'badge':
-        const badgeMarkdown = generateBadgeMarkdown(badgeConfig, data);
+        const badgeMarkdown = generateBadgeMarkdown(badgeConfig, _data);
         const badgeParams = new URLSearchParams({
           owner: customOwner,
           repo: customRepo,

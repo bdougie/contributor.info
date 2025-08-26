@@ -27,8 +27,8 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
     {
       enableRetry: true,
       enableGracefulDegradation: true,
-      onError: (error, stage) => {
-        trackError(error, {
+      onError: (__error, stage) => {
+        trackError(_error, {
           repository: `${owner}/${repo}`,
           timeRange,
         });
@@ -50,7 +50,7 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
     }
   );
 
-  const handleManualRetry = (stage?: any) => {
+  const handleManualRetry = (stage?: unknown) => {
     addBreadcrumb(
       `Manual retry triggered for stage: ${stage || 'all'}`,
       'user',
@@ -67,7 +67,7 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
         stage="critical"
         enableGracefulDegradation={false} // Critical data is required
         onRetry={() => handleManualRetry('critical')}
-        onError={(error) => console.error('Critical stage error boundary:', error)}
+        onError={(_error) => console.error('Critical stage error boundary:', _error)}
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
@@ -130,7 +130,7 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
               )
 : (
                 <div className="flex -space-x-2">
-                  {progressiveData.basicInfo?.topContributors.map((contributor: any, i: number) => (
+                  {progressiveData.basicInfo?.topContributors.map((contributor: unknown, i: number) => (
                     <Avatar key={contributor.login} className="h-8 w-8 border-2 border-background">
                       <AvatarImage 
                         src={`${contributor.avatar_url}?s=64`} 
@@ -329,8 +329,8 @@ export const ProgressiveRepoViewWithHOC = () => {
     'full',
     {
       enableGracefulDegradation: true,
-      onError: (error, errorInfo) => {
-        console.error('HOC caught error:', error, errorInfo);
+      onError: (_error, _errorInfo) => {
+        console.error('HOC caught error:', _error, _errorInfo);
       },
       onRetry: () => {
         console.log('HOC retry triggered');

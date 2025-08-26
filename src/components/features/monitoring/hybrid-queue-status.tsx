@@ -69,7 +69,7 @@ export function HybridQueueStatus({
   };
 
   const getStatusColor = (status: keyof QueueStats): string => {
-    switch (status) {
+    switch (_status) {
       case 'pending': return 'text-yellow-600';
       case 'processing': return 'text-blue-600';
       case 'completed': return 'text-green-600';
@@ -79,7 +79,7 @@ export function HybridQueueStatus({
   };
 
   const getStatusIcon = (status: keyof QueueStats) => {
-    switch (status) {
+    switch (_status) {
       case 'pending': return Clock;
       case 'processing': return Loader2;
       case 'completed': return CheckCircle;
@@ -186,7 +186,7 @@ export function HybridQueueStatus({
     );
   }
 
-  if (error) {
+  if (_error) {
     return (
       <Card className={className}>
         <CardHeader>
@@ -198,7 +198,7 @@ export function HybridQueueStatus({
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-red-500 mb-4">{error}</p>
+            <p className="text-red-500 mb-4">{error: _error}</p>
             <Button onClick={fetchStats} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry

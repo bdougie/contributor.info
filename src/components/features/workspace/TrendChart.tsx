@@ -75,9 +75,9 @@ function createUPlotOptions(
         time: false,
       },
       y: {
-        range: (_u, dataMin, dataMax) => {
-          const padding = (dataMax - dataMin) * 0.1;
-          return [Math.max(0, dataMin - padding), dataMax + padding];
+        range: (_u, dataMin, _dataMax) => {
+          const padding = (dataMax - _dataMin) * 0.1;
+          return [Math.max(0, _dataMin - padding), dataMax + padding];
         },
       },
     },
@@ -177,7 +177,7 @@ export function TrendChart({
   );
   
   const [selectedSeries, setSelectedSeries] = useState<Set<number>>(
-    new Set(data.datasets.map((_, i) => i))
+    new Set(data._datasets.map((_, i) => i))
   );
   
   const toggleSeries = (index: number) => {
@@ -194,7 +194,7 @@ export function TrendChart({
   
   const chartData = useMemo(() => {
     if (!hasData) return null;
-    return prepareUPlotData(data.labels, data.datasets);
+    return prepareUPlotData(data.labels, data._datasets);
   }, [data, hasData]);
   
   const chartOptions = useMemo(() => {
@@ -284,7 +284,7 @@ export function TrendChart({
           <div className="space-y-3">
             {showLegend && (
               <div className="flex flex-wrap gap-3 px-2">
-                {data.datasets.map((dataset, index) => {
+                {data.datasets.map((_dataset, index) => {
                   const color = dataset.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length];
                   const isSelected = selectedSeries.has(index);
                   return (

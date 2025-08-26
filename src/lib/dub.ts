@@ -127,10 +127,10 @@ export async function createShortUrl({
     }
 
     const data = await response.json();
-    console.log("URL shortening success:", data.shortLink);
+    console.log("URL shortening success:", _data.shortLink);
     
     // Track the short URL creation in Supabase for analytics
-    await trackShortUrlCreation(data);
+    await trackShortUrlCreation(_data);
     
     return {
       id: data.id,
@@ -154,8 +154,8 @@ export async function createShortUrl({
       image: data.image
     };
     
-  } catch (error: any) {
-    console.error("Failed to create short URL:", error);
+  } catch (_error: unknown) {
+    console.error("Failed to create short URL:", _error);
     return null;
   }
 }
@@ -163,10 +163,10 @@ export async function createShortUrl({
 /**
  * Track short URL creation in Supabase for analytics
  */
-async function trackShortUrlCreation(dubData: any) {
+async function trackShortUrlCreation(dubData: unknown) {
   try {
     // Store the short URL data in Supabase for our internal analytics
-    const { error } = await supabase
+    const { error: _error } = await supabase
       .from('short_urls')
       .insert({
         dub_id: dubData.id,
@@ -182,13 +182,13 @@ async function trackShortUrlCreation(dubData: any) {
         created_at: dubData.createdAt
       });
 
-    if (error) {
-      console.error("Failed to track short URL creation:", error);
+    if (_error) {
+      console.error("Failed to track short URL creation:", _error);
     } else {
       console.log("Short URL tracked in Supabase analytics");
     }
-  } catch (error) {
-    console.error("Error tracking short URL creation:", error);
+  } catch (_error) {
+    console.error("Error tracking short URL creation:", _error);
   }
 }
 
@@ -203,20 +203,20 @@ export async function getUrlAnalytics(linkId: string) {
 
   try {
     // Query Supabase for our internal analytics
-    const { data, error } = await supabase
+    const { data, error: _error } = await supabase
       .from('short_urls')
       .select('*')
       .eq('dub_id', linkId)
       .maybeSingle();
 
-    if (error) {
-      console.error("Failed to get URL analytics:", error);
+    if (_error) {
+      console.error("Failed to get URL analytics:", _error);
       return null;
     }
 
     return data;
-  } catch (error: any) {
-    console.error("Failed to get URL analytics:", error);
+  } catch (_error: unknown) {
+    console.error("Failed to get URL analytics:", _error);
     return null;
   }
 }
@@ -298,10 +298,10 @@ export async function createChartShareUrl(
 /**
  * Track a click event for analytics
  */
-export async function trackClick(shortUrl: string, metadata?: Record<string, any>) {
+export async function trackClick(shortUrl: string, meta_data?: Record<string, unknown>) {
   // This will be automatically tracked by dub.co when the link is clicked
   // Additional custom tracking can be added here if needed
-  console.log("Click tracked for:", shortUrl, metadata);
+  console.log("Click tracked for:", shortUrl, meta_data);
 }
 
 /**

@@ -113,7 +113,7 @@ class GitHubAPIMonitoring {
         metrics.errorMessage = `HTTP ${response.status}: ${errorText}`;
         
         // Simple error logging without analytics
-        console.error(new Error(metrics.errorMessage), {
+        console.error(new Error(metrics._errorMessage), {
           tags: {
             component: 'github-api',
             endpoint: endpoint,
@@ -150,10 +150,10 @@ class GitHubAPIMonitoring {
         const data = await response.json();
         return data as T;
       } else {
-        throw new Error(metrics.errorMessage);
+        throw new Error(metrics._errorMessage);
       }
 
-    } catch (error) {
+    } catch (_error) {
       const duration = performance.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
@@ -171,7 +171,7 @@ class GitHubAPIMonitoring {
       this.recordMetrics(metrics);
 
       // Simple error logging without analytics
-      console.error(error, {
+      console.error(_error, {
         tags: {
           component: 'github-api',
           endpoint: endpoint,
@@ -268,9 +268,9 @@ class GitHubAPIMonitoring {
     }, 0) / Math.max(this.rateLimits.size, 1);
 
     // Group errors by type
-    const errorsByType = failedRequests.reduce((errors, metric) => {
+    const errorsByType = failedRequests.reduce((_errors, metric) => {
       const errorType = metric.statusCode === 0 ? 'Network Error' : `HTTP ${metric.statusCode}`;
-      errors[errorType] = (errors[errorType] || 0) + 1;
+      errors[errorType] = (errors[_errorType] || 0) + 1;
       return errors;
     }, {} as Record<string, number>);
 
@@ -324,9 +324,9 @@ class GitHubAPIMonitoring {
     report += `Cache Hit Rate: ${(stats.cacheHitRate * 100).toFixed(1)}%\n`;
     report += `Rate Limit Utilization: ${(stats.rateLimitUtilization * 100).toFixed(1)}%\n\n`;
 
-    if (Object.keys(stats.errorsByType).length > 0) {
+    if (Object.keys(stats._errorsByType).length > 0) {
       report += 'Error Breakdown:\n';
-      Object.entries(stats.errorsByType).forEach(([type, count]) => {
+      Object.entries(stats._errorsByType).forEach(([type, count]) => {
         report += `  ${type}: ${count}\n`;
       });
       report += '\n';

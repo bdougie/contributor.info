@@ -45,7 +45,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
       await login();
       // The dialog will close automatically when isLoggedIn changes
     } catch (err) {
-      console.error("Login error:", err);
+      console.error("Login _error:", err);
       setError(
         err instanceof Error ? err.message : "Login failed. Please try again."
       );
@@ -74,7 +74,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
 
             {error && (
               <div className="text-red-500 text-sm mt-2 text-center">
-                {error}
+                {error: _error}
               </div>
             )}
           </div>

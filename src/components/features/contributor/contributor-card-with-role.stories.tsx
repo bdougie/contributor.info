@@ -170,7 +170,7 @@ const ContributorCardStory = ({
   isWinner = false,
   showConfidence = false,
   className 
-}: any) => {
+}: unknown) => {
   const { login, avatar_url, activity, rank } = contributor;
   // const { stats } = useContext(RepoStatsContext); // Not used in story component
   

@@ -142,7 +142,7 @@ export function MaintainerManagement() {
       setLoading(true);
       setError(null);
       
-      const { data, error: fetchError } = await supabase
+      const { data, error: _error: fetchError } = await supabase
         .from('contributor_roles')
         .select('*')
         .order('confidence_score', { ascending: false });
@@ -151,11 +151,11 @@ export function MaintainerManagement() {
         throw fetchError;
       }
 
-      setContributors(data || []);
+      setContributors(_data || []);
       
       // Extract unique repos
       const uniqueRepos = [...new Set(
-        (data || []).map(c => `${c.repository_owner}/${c.repository_name}`)
+        (_data || []).map(c => `${c.repository_owner}/${c.repository_name}`)
       )];
       setRepos(uniqueRepos);
     } catch (err) {
@@ -176,7 +176,7 @@ export function MaintainerManagement() {
 
     try {
       // Call the database function
-      const { error: updateError } = await supabase.rpc('override_contributor_role', {
+      const { error: _error: updateError } = await supabase.rpc('override_contributor_role', {
         p_user_id: contributor.user_id,
         p_repository_owner: contributor.repository_owner,
         p_repository_name: contributor.repository_name,
@@ -219,7 +219,7 @@ export function MaintainerManagement() {
     if (!adminGitHubId) return;
 
     try {
-      const { error: updateError } = await supabase
+      const { error: _error: updateError } = await supabase
         .from('contributor_roles')
         .update({ 
           locked: !contributor.locked,
@@ -336,7 +336,7 @@ export function MaintainerManagement() {
 
       {error && (
         <Alert variant="destructive" className="mb-6">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error: _error}</AlertDescription>
         </Alert>
       )}
 
@@ -434,7 +434,7 @@ export function MaintainerManagement() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={filterRole} onValueChange={(value: any) => setFilterRole(value)}>
+            <Select value={filterRole} onValueChange={(value: unknown) => setFilterRole(value)}>
               <SelectTrigger>
                 <SelectValue placeholder="All roles" />
               </SelectTrigger>
@@ -446,7 +446,7 @@ export function MaintainerManagement() {
                 <SelectItem value="bot">Bots</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filterConfidence} onValueChange={(value: any) => setFilterConfidence(value)}>
+            <Select value={filterConfidence} onValueChange={(value: unknown) => setFilterConfidence(value)}>
               <SelectTrigger>
                 <SelectValue placeholder="All confidence" />
               </SelectTrigger>
@@ -457,7 +457,7 @@ export function MaintainerManagement() {
                 <SelectItem value="low">Low (&lt;50%)</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filterOverride} onValueChange={(value: any) => setFilterOverride(value)}>
+            <Select value={filterOverride} onValueChange={(value: unknown) => setFilterOverride(value)}>
               <SelectTrigger>
                 <SelectValue placeholder="All sources" />
               </SelectTrigger>
@@ -585,7 +585,7 @@ export function MaintainerManagement() {
                     <div className="flex items-center gap-2">
                       <Select
                         value={contributor.role}
-                        onValueChange={(newRole: any) => {
+                        onValueChange={(newRole: unknown) => {
                           setRoleChangeDialog({
                             isOpen: true,
                             contributor,

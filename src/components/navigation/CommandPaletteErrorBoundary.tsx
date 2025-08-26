@@ -17,16 +17,16 @@ export class CommandPaletteErrorBoundary extends Component<Props, State> {
     error: null,
   };
 
-  public static getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(_error: Error): State {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('CommandPalette error:', error, errorInfo);
+  public componentDidCatch(error: Error, _errorInfo: ErrorInfo) {
+    console.error('CommandPalette error:', _error, _errorInfo);
   }
 
   private handleReset = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, _error: null });
     this.props.onReset?.();
   };
 

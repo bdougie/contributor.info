@@ -79,12 +79,12 @@ class DialogErrorBoundary extends Component<
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(_error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Dialog loading error:', error, errorInfo);
+  componentDidCatch(error: Error, _errorInfo: ErrorInfo) {
+    console.error('Dialog loading error:', _error, _errorInfo);
   }
 
   render() {

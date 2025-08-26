@@ -87,11 +87,11 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         const authResult = await supabase.auth.getUser();
         clearTimeout(authTimeoutId);
         
-        const { data: authData, error: authError } = authResult;
+        const { data: authData, error: _error: authError } = authResult;
         
         // If auth error, try to get session as fallback
         if (authError) {
-          console.log('[Workspace] Auth error, checking session:', authError.message);
+          console.log('[Workspace] Auth _error, checking session:', authError.message);
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) {
             console.log('[Workspace] No session found, user is not authenticated');
@@ -152,7 +152,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         .eq('is_active', true);
 
       // Then get workspace IDs where user is a member
-      const { data: memberData, error: memberError } = await supabase
+      const { data: memberData, error: _error: memberError } = await supabase
         .from('workspace_members')
         .select('workspace_id, role')
         .eq('user_id', user.id);
@@ -183,7 +183,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       const workspaceIdsArray = Array.from(workspaceIds);
       
       // Now fetch the workspace details
-      const { data: workspaceData, error: workspaceError } = await supabase
+      const { data: workspaceData, error: _error: workspaceError } = await supabase
         .from('workspaces')
         .select(`
           id,
@@ -247,13 +247,13 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
           ]);
 
           // Check for errors in individual queries and fail fast for critical data
-          if (repositoriesResult.error) {
-            console.error(`Failed to fetch repositories for workspace ${workspace.id}:`, repositoriesResult.error.message);
+          if (repositoriesResult._error) {
+            console.error(`Failed to fetch repositories for workspace ${workspace.id}:`, repositoriesResult._error.message);
             // For critical data failures, throw to trigger error state
-            throw new Error(`Unable to load workspace repositories: ${repositoriesResult.error.message}`);
+            throw new Error(`Unable to load workspace repositories: ${repositoriesResult._error.message}`);
           }
-          if (membersResult.error) {
-            console.warn(`Failed to fetch members for workspace ${workspace.id}:`, membersResult.error.message);
+          if (membersResult._error) {
+            console.warn(`Failed to fetch members for workspace ${workspace.id}:`, membersResult._error.message);
             // Members count is less critical, can continue with fallback
           }
 
@@ -317,8 +317,8 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       hasInitialLoadRef.current = true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch workspaces';
-      console.error('[Workspace] Error fetching workspaces:', errorMessage);
-      setError(new Error(errorMessage));
+      console.error('[Workspace] Error fetching workspaces:', _errorMessage);
+      setError(new Error(_errorMessage));
       setWorkspaces([]);
       hasInitialLoadRef.current = true;
     } finally {
@@ -386,7 +386,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
  * Useful for showing a single workspace preview on homepage
  */
 export function usePrimaryWorkspace() {
-  const { workspaces, loading, error, refetch } = useUserWorkspaces();
+  const { workspaces, loading, error: _error, refetch } = useUserWorkspaces();
 
   return {
     workspace: workspaces[0] || null,

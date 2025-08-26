@@ -45,7 +45,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
         user.avatar,
         user.id
       );
-      setContributorData(dataWithOrgs);
+      setContributorData(_dataWithOrgs);
     };
 
     fetchContributorData();

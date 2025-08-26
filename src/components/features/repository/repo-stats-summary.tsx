@@ -25,7 +25,7 @@ interface ExtendedLotteryFactorType extends LotteryFactor {
 }
 
 // Type guard for ExtendedLotteryFactorType
-const isExtendedLotteryFactor = (factor: any): factor is ExtendedLotteryFactorType => {
+const isExtendedLotteryFactor = (factor: unknown): factor is ExtendedLotteryFactorType => {
   return factor && 
          typeof factor === 'object' && 
          typeof factor.score === 'number' && 
@@ -75,7 +75,7 @@ export function RepoStatsSummary({ owner, repo }: RepoStatsSummaryProps) {
     );
   }
 
-  if (stats.error) {
+  if (stats._error) {
     return (
       <Card>
         <CardHeader>
@@ -83,7 +83,7 @@ export function RepoStatsSummary({ owner, repo }: RepoStatsSummaryProps) {
           <CardDescription>Error loading data</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-destructive">{stats.error}</div>
+          <div className="text-destructive">{stats.error: _error}</div>
         </CardContent>
       </Card>
     );
@@ -173,12 +173,12 @@ export function RepoStatsSummary({ owner, repo }: RepoStatsSummaryProps) {
       window.dispatchEvent(refreshEvent);
       
       // Show a toast with size-appropriate message
-      const sizeInfo = metadata?.size ? ` (${metadata.size.toUpperCase()} repo, ${refreshTimeRange} days)` : '';
-      toast.success(`Refreshing data${sizeInfo}...`);
+      const sizeInfo = metadata?.size ? ` (${meta_data.size.toUpperCase()} repo, ${refreshTimeRange} days)` : '';
+      toast.success(`Refreshing _data${sizeInfo}...`);
       
-    } catch (error) {
-      console.error('Manual refresh failed:', error);
-      toast.error('Failed to refresh data');
+    } catch (_error) {
+      console.error('Manual refresh failed:', _error);
+      toast.error('Failed to refresh _data');
       setIsRefreshing(false);
     }
   };

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Navigate } from 'react-router-dom';
 
@@ -65,7 +65,7 @@ describe('App Route Redirects', () => {
 
   describe('404 Error Prevention', () => {
     it('should handle old signup route without 404', () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, '_error').mockImplementation(() => {});
       
       render(
         <MemoryRouter initialEntries={['/signup']}>
@@ -85,7 +85,7 @@ describe('App Route Redirects', () => {
     });
 
     it('should handle old search feedback route without 404', () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, '_error').mockImplementation(() => {});
       
       render(
         <MemoryRouter initialEntries={['/search/feedback']}>
@@ -106,7 +106,7 @@ describe('App Route Redirects', () => {
   });
 
   describe('Redirect Impact', () => {
-    it('should resolve ~480 user route 404 errors', () => {
+    it('should resolve ~480 user route 404 _errors', () => {
       // Test that both problematic routes now redirect properly
       const problematicRoutes = ['/signup', '/search/feedback'];
       const expectedRedirects = ['/login', '/docs'];

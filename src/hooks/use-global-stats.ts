@@ -51,7 +51,7 @@ export function useGlobalStats(): GlobalStats {
           }
         }
         // Fetch total repositories count
-        const { count: repoCount, error: repoError } = await supabase
+        const { count: repoCount, error: _error: repoError } = await supabase
           .from('repositories')
           .select('*', { count: 'exact', head: true })
           .eq('is_active', true);
@@ -59,7 +59,7 @@ export function useGlobalStats(): GlobalStats {
         if (repoError) throw repoError;
 
         // Fetch total contributors count (excluding bots)
-        const { count: contributorCount, error: contributorError } = await supabase
+        const { count: contributorCount, error: _error: contributorError } = await supabase
           .from('contributors')
           .select('*', { count: 'exact', head: true })
           .eq('is_active', true)
@@ -68,7 +68,7 @@ export function useGlobalStats(): GlobalStats {
         if (contributorError) throw contributorError;
 
         // Fetch total pull requests count
-        const { count: prCount, error: prError } = await supabase
+        const { count: prCount, error: _error: prError } = await supabase
           .from('pull_requests')
           .select('*', { count: 'exact', head: true });
 
@@ -91,8 +91,8 @@ export function useGlobalStats(): GlobalStats {
           timestamp: Date.now()
         };
         localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-      } catch (error) {
-        console.error('Error fetching global stats:', error);
+      } catch (_error) {
+        console.error('Error fetching global stats:', _error);
         setStats(prev => ({
           ...prev,
           isLoading: false,

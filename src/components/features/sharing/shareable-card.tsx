@@ -153,15 +153,15 @@ export function ShareableCard({
           await handleCapture('copy');
         }
       }
-    } catch (error) {
-      console.error('Error capturing element with SnapDOM:', error);
+    } catch (_error) {
+      console.error('Error capturing element with SnapDOM:', _error);
       toast.error("Failed to capture chart");
     } finally {
       setIsCapturing(false);
     }
   };
 
-  const trackShareEvent = async (action: string, type: string, metadata?: Record<string, any>) => {
+  const trackShareEvent = async (action: string, type: string, meta_data?: Record<string, unknown>) => {
     try {
       await trackAnalytics({
         original_url: window.location.href,
@@ -179,8 +179,8 @@ export function ShareableCard({
           ...metadata
         }
       });
-    } catch (error) {
-      console.error('Failed to track share event:', error);
+    } catch (_error) {
+      console.error('Failed to track share event:', _error);
     }
   };
 

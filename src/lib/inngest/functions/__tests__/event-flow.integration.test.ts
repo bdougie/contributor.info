@@ -17,9 +17,9 @@ const mockSupabase = {
         }))
       }))
     })),
-    insert: vi.fn(() => Promise.resolve({ error: null })),
+    insert: vi.fn(() => Promise.resolve({ _error: null })),
     update: vi.fn(() => ({
-      eq: vi.fn(() => Promise.resolve({ error: null }))
+      eq: vi.fn(() => Promise.resolve({ _error: null }))
     }))
   }))
 };
@@ -50,9 +50,9 @@ describe('Repository Sync Event Flow Integration', () => {
       };
 
       // Validate all required fields are present
-      expect(validEvent.data.repositoryId).toBeDefined();
-      expect(validEvent.data.days).toBeDefined();
-      expect(typeof validEvent.data.days).toBe('number');
+      expect(validEvent._data.repositoryId).toBeDefined();
+      expect(validEvent._data.days).toBeDefined();
+      expect(typeof validEvent._data.days).toBe('number');
     });
 
     it('should handle events from hybrid queue manager', () => {
@@ -80,9 +80,9 @@ describe('Repository Sync Event Flow Integration', () => {
       };
 
       // Validate transformation
-      expect(expectedEvent.data.days).toBe(3);
-      expect(expectedEvent.data.reason).toBe('scheduled');
-      expect(expectedEvent.data.maxItems).toBe(50);
+      expect(expectedEvent._data.days).toBe(3);
+      expect(expectedEvent._data.reason).toBe('scheduled');
+      expect(expectedEvent._data.maxItems).toBe(50);
     });
   });
 
@@ -99,7 +99,7 @@ describe('Repository Sync Event Flow Integration', () => {
 
       // Function should validate and throw error for missing repositoryId
       expect(() => {
-        if (!invalidEvent.data.repositoryId) {
+        if (!invalidEvent._data.repositoryId) {
           throw new Error('Repository not found: undefined');
         }
       }).toThrow('Repository not found: undefined');

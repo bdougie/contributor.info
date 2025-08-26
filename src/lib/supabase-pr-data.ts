@@ -37,7 +37,7 @@ export async function fetchPRDataWithFallback(
 
 
     // First, get the repository ID
-    const { data: repoData, error: repoError } = await supabase
+    const { data: repoData, error: _error: repoError } = await supabase
       .from('repositories')
       .select('id')
       .eq('owner', owner)
@@ -50,7 +50,7 @@ export async function fetchPRDataWithFallback(
     } else {
       cacheHit = true;
       // Now fetch PRs for this repository with contributor data, reviews, and comments
-      const { data: dbPRs, error: dbError } = await supabase
+      const { data: dbPRs, error: _error: dbError } = await supabase
         .from('pull_requests')
         .select(`
           id,
@@ -114,7 +114,7 @@ export async function fetchPRDataWithFallback(
     } else if (dbPRs && dbPRs.length > 0) {
       
       // Transform database data to match GitHub API format
-      const transformedPRs: PullRequest[] = dbPRs.map((dbPR: any) => ({
+      const transformedPRs: PullRequest[] = dbPRs.map((dbPR: unknown) => ({
         id: dbPR.github_id,
         number: dbPR.number,
         title: dbPR.title,
@@ -144,7 +144,7 @@ export async function fetchPRDataWithFallback(
         html_url: dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
         repository_owner: owner,
         repository_name: repo,
-        reviews: (dbPR.reviews || []).map((review: any) => ({
+        reviews: (dbPR.reviews || []).map((review: unknown) => ({
           id: review.github_id,
           state: review.state,
           body: review.body,
@@ -154,7 +154,7 @@ export async function fetchPRDataWithFallback(
             avatar_url: review.contributors?.avatar_url || ''
           }
         })),
-        comments: (dbPR.comments || []).map((comment: any) => ({
+        comments: (dbPR.comments || []).map((comment: unknown) => ({
           id: comment.github_id,
           body: comment.body,
           created_at: comment.created_at,
@@ -172,7 +172,7 @@ export async function fetchPRDataWithFallback(
         console.log('🔍 [DB] Fetched %s PRs with %s reviews and %s comments for %s/%s', transformedPRs.length, totalReviews, totalComments, owner, repo);
         
         if (transformedPRs.length > 5 && totalReviews === 0 && totalComments === 0) {
-          console.warn(`⚠️ [DB] Repository ${owner}/${repo} has ${transformedPRs.length} PRs but no reviews/comments data. Consider running progressive data capture.`);
+          console.warn(`⚠️ [DB] Repository ${owner}/${repo} has ${transformedPRs.length} PRs but no reviews/comments data. Consider running progressive _data capture.`);
         }
       }
 
@@ -192,7 +192,7 @@ export async function fetchPRDataWithFallback(
         
         if (latestUpdate > thirtyDaysAgo) {
           const dataToReturn = filteredPRs.length > 0 ? filteredPRs : transformedPRs.slice(0, 100);
-          return createSuccessResult(dataToReturn);
+          return createSuccessResult(_dataToReturn);
         } else {
         }
       }
@@ -201,12 +201,12 @@ export async function fetchPRDataWithFallback(
       if (transformedPRs.length > 0) {
         // We have database data - use it instead of risking API calls during rate limiting
         const dataToReturn = filteredPRs.length > 0 ? filteredPRs : transformedPRs.slice(0, 100);
-        return createSuccessResult(dataToReturn);
+        return createSuccessResult(_dataToReturn);
       }
     } else {
     }
     }
-  } catch (error) {
+  } catch (_error) {
   }
 
   // Fallback to GitHub API - STRICTLY LIMITED to prevent resource exhaustion
@@ -231,7 +231,7 @@ export async function fetchPRDataWithFallback(
     if (protectedRepos.some(repo => repoName.toLowerCase().includes(repo.toLowerCase()))) {
       // Check if we have cached data before applying protection
       try {
-        const { data: repoData, error: repoError } = await supabase
+        const { data: repoData, error: _error: repoError } = await supabase
           .from('repositories')
           .select('id')
           .eq('owner', owner)
@@ -239,7 +239,7 @@ export async function fetchPRDataWithFallback(
           .maybeSingle();
 
         if (!repoError && repoData) {
-          const { data: cachedPRs, error: cacheError } = await supabase
+          const { data: cachedPRs, error: _error: cacheError } = await supabase
             .from('pull_requests')
             .select(`
               id,
@@ -275,7 +275,7 @@ export async function fetchPRDataWithFallback(
 
           if (!cacheError && cachedPRs && cachedPRs.length > 0) {
             // We have cached data - apply protection and return it
-            const transformedPRs: PullRequest[] = cachedPRs.map((dbPR: any) => ({
+            const transformedPRs: PullRequest[] = cachedPRs.map((dbPR: unknown) => ({
               id: dbPR.github_id,
               number: dbPR.number,
               title: dbPR.title,
@@ -329,7 +329,7 @@ export async function fetchPRDataWithFallback(
     // This prevents timeouts and rate limit issues
     // Instead, return a pending state and let background processing handle it
     
-    console.log('Repository %s/%s not in database. Checking discovery status.', owner, repo);
+    console.log('Repository %s/%s not in _database. Checking discovery status.', owner, repo);
     
     // Trigger repository discovery for new repositories
     // Validate that we have owner and repo before sending
@@ -362,8 +362,8 @@ export async function fetchPRDataWithFallback(
           setTimeout(() => {
             delete globalWindow.__discoveryInProgress[discoveryKey];
           }, 5000);
-        } catch (error) {
-          console.error('Failed to trigger repository discovery:', error);
+        } catch (_error) {
+          console.error('Failed to trigger repository discovery:', _error);
           delete globalWindow.__discoveryInProgress[discoveryKey];
         }
       } else {
@@ -429,7 +429,7 @@ export async function fetchPRDataWithFallback(
           .limit(100);
 
       if (emergencyData && emergencyData.length > 0) {
-        const emergencyPRs = emergencyData.map((dbPR: any) => ({
+        const emergencyPRs = emergencyData.map((dbPR: unknown) => ({
           id: dbPR.github_id,
           number: dbPR.number,
           title: dbPR.title,
@@ -466,7 +466,7 @@ export async function fetchPRDataWithFallback(
     }
     
     // If everything fails, return no data result instead of throwing
-    console.error('All data fetching methods failed:', githubError);
+    console.error('All _data fetching methods failed:', githubError);
     
     // Simple error logging without analytics
     console.error('Complete data fetching failure:', {
@@ -501,7 +501,7 @@ export async function hasRecentPRData(
   try {
     const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
     
-    const { data, error } = await supabase
+    const { data, error: _error } = await supabase
       .from('pull_requests')
       .select('updated_at')
       .eq('repositories.owner', owner)
@@ -510,7 +510,7 @@ export async function hasRecentPRData(
       .limit(1);
 
     return !error && data && data.length > 0;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }

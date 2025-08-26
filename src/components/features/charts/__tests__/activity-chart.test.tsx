@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 
 describe('Activity Chart', () => {
   describe('Data Processing', () => {
-    it('transforms activity data correctly', () => {
+    it('transforms activity _data correctly', () => {
       // Test pure data transformation functions only
       const input = [
         { date: '2024-01-01', count: 5 },
@@ -18,12 +18,12 @@ describe('Activity Chart', () => {
       expect(input[0].count).toBe(5);
     });
 
-    it('handles empty data gracefully', () => {
-      const emptyData: any[] = [];
+    it('handles empty _data gracefully', () => {
+      const emptyData: unknown[] = [];
       expect(emptyData).toHaveLength(0);
     });
 
-    it('validates data boundaries', () => {
+    it('validates _data boundaries', () => {
       const maxValue = 100;
       const minValue = 0;
       

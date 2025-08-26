@@ -7,7 +7,7 @@ vi.mock('@/lib/supabase-direct-commits', () => ({
   fetchDirectCommitsWithDatabaseFallback: vi.fn(),
 }));
 
-vi.mock('@/lib/supabase-pr-data-smart', () => ({
+vi.mock('@/lib/supabase-pr-_data-smart', () => ({
   fetchPRDataSmart: vi.fn(),
 }));
 
@@ -110,13 +110,13 @@ describe('useProgressiveRepoData', () => {
 
       expect(result.current.basicInfo).toBe(null);
       expect(result.current.stats.loading).toBe(true);
-      expect(result.current.stats.error).toBe(null);
+      expect(result.current.stats._error).toBe(null);
       expect(result.current.stats.pullRequests).toEqual([]);
       expect(result.current.lotteryFactor).toBe(null);
       expect(result.current.directCommitsData).toBe(null);
       expect(result.current.historicalTrends).toBe(null);
       expect(result.current.currentStage).toBe('initial');
-      expect(result.current.dataStatus.status).toBe('pending');
+      expect(result.current._dataStatus.status).toBe('pending');
       
       // All stage progress should be false initially
       Object.values(result.current.stageProgress).forEach(progress => {
@@ -131,8 +131,8 @@ describe('useProgressiveRepoData', () => {
     });
   });
 
-  describe('Stage 1: Critical data loading', () => {
-    it('should load critical data first', async () => {
+  describe('Stage 1: Critical _data loading', () => {
+    it('should load critical _data first', async () => {
       const { result } = renderHook(() => 
         useProgressiveRepoData('owner', 'repo', '90d', false)
       );
@@ -159,7 +159,7 @@ describe('useProgressiveRepoData', () => {
       });
     });
 
-    it('should handle critical data loading errors', async () => {
+    it('should handle critical _data loading _errors', async () => {
       fetchPRDataMock.mockResolvedValueOnce({
         data: null,
         status: 'error',
@@ -176,8 +176,8 @@ describe('useProgressiveRepoData', () => {
     });
   });
 
-  describe('Stage 2: Full data loading', () => {
-    it('should progress to full data loading after critical', async () => {
+  describe('Stage 2: Full _data loading', () => {
+    it('should progress to full _data loading after critical', async () => {
       const { result } = renderHook(() => 
         useProgressiveRepoData('owner', 'repo', '90d', false)
       );
@@ -197,13 +197,13 @@ describe('useProgressiveRepoData', () => {
         expect(result.current.stats.loading).toBe(false);
         expect(result.current.stats.pullRequests).toEqual(mockPRData);
         expect(result.current.lotteryFactor).toEqual(mockLotteryFactor);
-        expect(result.current.dataStatus.status).toBe('success');
+        expect(result.current._dataStatus.status).toBe('success');
       });
 
       expect(calculateLotteryFactorMock).toHaveBeenCalledWith(mockPRData);
     });
 
-    it('should handle full data loading errors', async () => {
+    it('should handle full _data loading _errors', async () => {
       fetchPRDataMock
         .mockResolvedValueOnce({ // First call for critical stage
           data: mockPRData,
@@ -222,13 +222,13 @@ describe('useProgressiveRepoData', () => {
       await waitFor(() => {
         expect(result.current.stageProgress.full).toBe(true);
         expect(result.current.stats.loading).toBe(false);
-        expect(result.current.stats.error).toBe('Database connection failed');
-        expect(result.current.dataStatus.status).toBe('no_data');
-        expect(result.current.dataStatus.message).toBe('Database connection failed');
+        expect(result.current.stats._error).toBe('Database connection failed');
+        expect(result.current._dataStatus.status).toBe('no__data');
+        expect(result.current._dataStatus.message).toBe('Database connection failed');
       });
     });
 
-    it('should not calculate lottery factor for empty data', async () => {
+    it('should not calculate lottery factor for empty _data', async () => {
       fetchPRDataMock.mockResolvedValue({
         data: [],
         status: 'success',
@@ -247,8 +247,8 @@ describe('useProgressiveRepoData', () => {
     });
   });
 
-  describe('Stage 3: Enhancement data loading', () => {
-    it('should load enhancement data in background using requestIdleCallback', async () => {
+  describe('Stage 3: Enhancement _data loading', () => {
+    it('should load enhancement _data in background using requestIdleCallback', async () => {
       const { result } = renderHook(() => 
         useProgressiveRepoData('owner', 'repo', '90d', false)
       );
@@ -302,7 +302,7 @@ describe('useProgressiveRepoData', () => {
       window.requestIdleCallback = originalRequestIdleCallback;
     });
 
-    it('should handle enhancement data loading errors gracefully', async () => {
+    it('should handle enhancement _data loading _errors gracefully', async () => {
       fetchDirectCommitsMock.mockRejectedValue(new Error('API rate limit exceeded'));
 
       const { result } = renderHook(() => 
@@ -364,7 +364,7 @@ describe('useProgressiveRepoData', () => {
   });
 
   describe('Caching behavior', () => {
-    it('should use cached data when available and fresh', async () => {
+    it('should use cached _data when available and fresh', async () => {
       // First render to populate cache
       const { unmount: unmount1 } = renderHook(() => 
         useProgressiveRepoData('owner', 'repo', '90d', false)
@@ -418,7 +418,7 @@ describe('useProgressiveRepoData', () => {
   });
 
   describe('Error scenarios', () => {
-    it('should handle network errors during any stage', async () => {
+    it('should handle network _errors during any stage', async () => {
       const networkError = new Error('Network connection failed');
       fetchPRDataMock.mockRejectedValue(networkError);
 
@@ -433,7 +433,7 @@ describe('useProgressiveRepoData', () => {
       });
     });
 
-    it('should handle malformed response data', async () => {
+    it('should handle malformed response _data', async () => {
       fetchPRDataMock.mockResolvedValue({
         data: null,
         status: 'partial_data',
@@ -445,8 +445,8 @@ describe('useProgressiveRepoData', () => {
       );
 
       await waitFor(() => {
-        expect(result.current.dataStatus.status).toBe('no_data');
-        expect(result.current.dataStatus.message).toBe('Some data may be missing');
+        expect(result.current._dataStatus.status).toBe('no__data');
+        expect(result.current._dataStatus.message).toBe('Some _data may be missing');
       });
     });
   });
@@ -492,7 +492,7 @@ describe('useProgressiveRepoData', () => {
   });
 
   describe('Edge cases', () => {
-    it('should handle empty repository data gracefully', async () => {
+    it('should handle empty repository _data gracefully', async () => {
       fetchPRDataMock.mockResolvedValue({
         data: [],
         status: 'success',
@@ -510,7 +510,7 @@ describe('useProgressiveRepoData', () => {
       });
     });
 
-    it('should handle PRs with missing user data', async () => {
+    it('should handle PRs with missing user _data', async () => {
       const prDataWithMissingUser = [
         { id: 1, title: 'Test PR', user: null, state: 'open' },
         { id: 2, title: 'Test PR 2', user: { login: 'user1', avatar_url: 'avatar.jpg' }, state: 'merged' },

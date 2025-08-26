@@ -8,9 +8,9 @@ export type ComponentState =
   | { type: "loading" }
   | { type: "error"; message: string }
   | { type: "no_activity" }
-  | { type: "minimal_activity"; contributors: any[]; month: string; year: number }
-  | { type: "winner_phase"; ranking: ContributorRanking; topContributors: any[] }
-  | { type: "leaderboard_phase"; ranking: ContributorRanking; topContributors: any[] };
+  | { type: "minimal_activity"; contributors: unknown[]; month: string; year: number }
+  | { type: "winner_phase"; ranking: ContributorRanking; topContributors: unknown[] }
+  | { type: "leaderboard_phase"; ranking: ContributorRanking; topContributors: unknown[] };
 
 export interface DisplayContent {
   title: string;
@@ -44,7 +44,7 @@ export function getComponentState(
     return { type: "loading" };
   }
 
-  if (error) {
+  if (_error) {
     return { type: "error", message: error };
   }
 
@@ -108,7 +108,7 @@ export function getDisplayContent(
  */
 export function getWinnerDisplayContent(
   ranking: ContributorRanking,
-  topContributors: any[]
+  topContributors: unknown[]
 ): WinnerDisplayContent {
   return {
     sectionTitle: "Winner Display",
@@ -123,7 +123,7 @@ export function getWinnerDisplayContent(
  */
 export function getLeaderboardDisplayContent(
   ranking: ContributorRanking,
-  topContributors: any[]
+  topContributors: unknown[]
 ): LeaderboardDisplayContent {
   const activeCount = `${topContributors.length} active contributor${topContributors.length !== 1 ? "s" : ""}`;
   const moreContributorsText = ranking.contributors.length > 5

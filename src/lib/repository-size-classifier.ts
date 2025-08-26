@@ -134,8 +134,8 @@ export class RepositorySizeClassifier {
         monthlyCommits,
         activeContributors: Math.min(activeContributors, contributors.length)
       };
-    } catch (error) {
-      console.error('Error calculating repository metrics:', error);
+    } catch (_error) {
+      console.error('Error calculating repository metrics:', _error);
       throw error;
     }
   }
@@ -303,7 +303,7 @@ export class RepositorySizeClassifier {
       };
       
       // Update in database
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('tracked_repositories')
         .update({
           size,
@@ -312,14 +312,14 @@ export class RepositorySizeClassifier {
         })
         .eq('repository_id', repositoryId);
       
-      if (error) {
+      if (_error) {
         throw error;
       }
       
       console.log('Repository %s/%s classified as %s', owner, repo, size);
       return size;
-    } catch (error) {
-      console.error(`Error classifying repository ${owner}/${repo}:`, error);
+    } catch (_error) {
+      console.error(`Error classifying repository ${owner}/${repo}:`, _error);
       throw error;
     }
   }
@@ -344,7 +344,7 @@ export class RepositorySizeClassifier {
    * Get all unclassified repositories
    */
   async getUnclassifiedRepositories(): Promise<Array<{ id: string; owner: string; name: string }>> {
-    const { data, error } = await supabase
+    const { data, error: _error } = await supabase
       .from('tracked_repositories')
       .select(`
         id,
@@ -358,7 +358,7 @@ export class RepositorySizeClassifier {
       .is('size', null)
       .eq('tracking_enabled', true);
 
-    if (error) {
+    if (_error) {
       throw error;
     }
 
@@ -379,7 +379,7 @@ export class RepositorySizeClassifier {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
-    const { data, error } = await supabase
+    const { data, error: _error } = await supabase
       .from('tracked_repositories')
       .select(`
         id,
@@ -393,12 +393,12 @@ export class RepositorySizeClassifier {
       .or(`size_calculated_at.is.null,size_calculated_at.lt.${cutoffDate.toISOString()}`)
       .eq('tracking_enabled', true);
 
-    if (error) {
+    if (_error) {
       throw error;
     }
 
-    if (data && data.length > 0) {
-      console.log('Found %s repositories to reclassify', data.length);
+    if (data && _data.length > 0) {
+      console.log('Found %s repositories to reclassify', _data.length);
       
       // Cast the data to the expected shape
       const typedData = data as unknown as TrackedRepositoryWithRepo[];

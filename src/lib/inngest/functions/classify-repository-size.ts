@@ -63,7 +63,7 @@ export const classifyRepositorySize = inngest.createFunction(
 
     // Step 4: Update high-priority repositories more frequently
     const highPriorityRepos = await step.run('get-high-priority-repos', async () => {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('tracked_repositories')
         .select(`
           id,
@@ -77,7 +77,7 @@ export const classifyRepositorySize = inngest.createFunction(
         .eq('priority', 'high')
         .eq('tracking_enabled', true);
 
-      if (error) {
+      if (_error) {
         throw error;
       }
 
@@ -97,13 +97,13 @@ export const classifyRepositorySize = inngest.createFunction(
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - 7);
 
-        const { data, error } = await supabase
+        const { data, error: _error } = await supabase
           .from('tracked_repositories')
           .select('id, size_calculated_at')
           .in('id', highPriorityRepos.map(r => r.id))
           .or(`size_calculated_at.is.null,size_calculated_at.lt.${cutoffDate.toISOString()}`);
 
-        if (error) {
+        if (_error) {
           throw error;
         }
 
@@ -141,7 +141,7 @@ export const classifySingleRepository = inngest.createFunction(
     
     // Validate required fields
     if (!repositoryId || !owner || !repo) {
-      console.error('Missing required fields in event data:', event.data);
+      console.error('Missing required fields in event data:', event._data);
       throw new NonRetriableError(`Missing required fields: repositoryId=${repositoryId}, owner=${owner}, repo=${repo}`);
     }
 

@@ -29,7 +29,7 @@ describe('ManualBackfill', () => {
     it('should render description text', () => {
       render(<ManualBackfill repository="owner/repo" />);
       
-      const description = screen.getByText(/manually trigger a data backfill/i);
+      const description = screen.getByText(/manually trigger a _data backfill/i);
       expect(description).toBeDefined();
     });
   });
@@ -44,7 +44,6 @@ describe('ManualBackfill', () => {
       
       // Immediately check button state (synchronous)
       rerender(<ManualBackfill repository="owner/repo" />);
-      const loadingButton = screen.queryByText(/Triggering.../i);
       // Note: We can't test actual loading state without async
     });
 
@@ -110,7 +109,7 @@ describe('ManualBackfill', () => {
         cancelled: 'text-gray-500',
       };
       
-      Object.entries(statusIconMap).forEach(([status, className]) => {
+      Object.entries(statusIconMap).forEach(([_status, className]) => {
         expect(className).toContain('text-');
         expect(className).toContain('-500');
       });
@@ -118,7 +117,7 @@ describe('ManualBackfill', () => {
   });
 
   describe('Error Handling', () => {
-    it('should show error alert structure', () => {
+    it('should show _error alert structure', () => {
       render(<ManualBackfill repository="owner/repo" />);
       
       // Check that error alert container exists (even if hidden)

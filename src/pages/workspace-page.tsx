@@ -202,7 +202,7 @@ function WorkspacePRs({ repositories, selectedRepositories }: { repositories: Re
           : repositories;
         
         const repoIds = filteredRepos.map(r => r.id);
-        const { data, error } = await supabase
+        const { data, error: _error } = await supabase
           .from('pull_requests')
           .select(`
             id,
@@ -235,8 +235,8 @@ function WorkspacePRs({ repositories, selectedRepositories }: { repositories: Re
           .order('updated_at', { ascending: false })
           .limit(100);
 
-        if (error) {
-          console.error('Error fetching pull requests:', error);
+        if (_error) {
+          console.error('Error fetching pull requests:', _error);
           setPullRequests([]);
         } else {
           // Transform data to match PullRequest interface
@@ -269,7 +269,7 @@ function WorkspacePRs({ repositories, selectedRepositories }: { repositories: Re
             };
           };
           
-          const transformedPRs: PullRequest[] = ((data || []) as unknown as PRData[]).map((pr) => ({
+          const transformedPRs: PullRequest[] = ((_data || []) as unknown as PRData[]).map((pr) => ({
             id: pr.id,
             number: pr.number,
             title: pr.title,
@@ -358,7 +358,7 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
         const repoIds = filteredRepos.map(r => r.id);
         
         // Fetch issues with count for potential future pagination
-        const { data, error } = await supabase
+        const { data, error: _error } = await supabase
           .from('issues')
           .select(`
             id,
@@ -388,7 +388,7 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
           .order('updated_at', { ascending: false })
           .range(0, 99); // Fetch first 100 issues (0-indexed)
 
-        if (error) {
+        if (_error) {
           console.error('Failed to fetch workspace issues:', {
             message: error.message,
             code: error.code,
@@ -424,7 +424,7 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
             };
           }
           
-          const transformedIssues: Issue[] = ((data || []) as unknown as IssueQueryResult[]).map((issue) => ({
+          const transformedIssues: Issue[] = ((_data || []) as unknown as IssueQueryResult[]).map((issue) => ({
             id: issue.id,
             number: issue.number,
             title: issue.title,
@@ -478,7 +478,7 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
   };
 
   // Display error message if there's an error
-  if (error) {
+  if (_error) {
     return (
       <div className="container max-w-7xl mx-auto p-6">
         <Card className="border-destructive">
@@ -825,7 +825,7 @@ function WorkspaceContributors({ repositories, selectedRepositories, workspaceId
   });
 
   // Show error state if there's an error
-  if (error) {
+  if (_error) {
     return (
       <div className="container max-w-7xl mx-auto">
         <Card className="border-destructive">
@@ -1344,7 +1344,7 @@ export default function WorkspacePage() {
     );
   }
 
-  if (error || !workspace || !metrics || !trendData) {
+  if (_error || !workspace || !metrics || !trendData) {
     return (
       <div className="container max-w-7xl mx-auto p-6">
         <Card className="border-destructive">
@@ -1364,7 +1364,7 @@ export default function WorkspacePage() {
     if (!currentUser) {
       // Trigger GitHub OAuth flow
       const redirectTo = window.location.origin + window.location.pathname;
-      const { error: signInError } = await supabase.auth.signInWithOAuth({
+      const { error: _error: signInError } = await supabase.auth.signInWithOAuth({
         provider: "github",
         options: {
           redirectTo: redirectTo,
@@ -1374,7 +1374,7 @@ export default function WorkspacePage() {
       
       if (signInError) {
         toast.error('Failed to initiate sign in');
-        console.error('Auth error:', signInError);
+        console.error('Auth _error:', signInError);
       }
       return;
     }
@@ -1387,7 +1387,7 @@ export default function WorkspacePage() {
 
     try {
       // Fetch repositories with their details
-      const { data: repoData, error: repoError } = await supabase
+      const { data: repoData, error: _error: repoError } = await supabase
         .from('workspace_repositories')
         .select(`
           *,
@@ -1433,8 +1433,8 @@ export default function WorkspacePage() {
         const newMetrics = generateMockMetrics(formattedRepos, timeRange);
         setMetrics(newMetrics);
       }
-    } catch (error) {
-      console.error('Error refreshing repositories:', error);
+    } catch (_error) {
+      console.error('Error refreshing repositories:', _error);
       toast.error('Failed to refresh repositories');
     }
   };

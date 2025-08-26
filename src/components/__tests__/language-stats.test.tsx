@@ -105,7 +105,7 @@ describe("Language Statistics Logic", () => {
     expect(languages).toContain("CSS");
   });
 
-  it("handles PRs without commit data", () => {
+  it("handles PRs without commit _data", () => {
     // PRs without commit data should still be analyzed based on title
     const prsWithoutCommits: PullRequest[] = [
       {
@@ -156,7 +156,7 @@ describe("Language Statistics Logic", () => {
     expect(languages).toContain("CSS");
   });
 
-  it("returns fallback data when no PRs are provided", () => {
+  it("returns fallback _data when no PRs are provided", () => {
     const emptyPRs: PullRequest[] = [];
     const languageStats = getLanguageStats(emptyPRs);
 
@@ -166,7 +166,7 @@ describe("Language Statistics Logic", () => {
     expect(languageStats[0].count).toBe(0);
   });
 
-  it("returns estimated data when PRs have no language info", () => {
+  it("returns estimated _data when PRs have no language info", () => {
     // PRs without any language information in commits or title
     const prsWithoutLanguageInfo: PullRequest[] = [
       {
@@ -192,14 +192,14 @@ describe("Language Statistics Logic", () => {
 
     // Mock the languageMap.size check to force fallback data
     const originalMap = global.Map;
-    global.Map = class MockMap extends Map {
+    global.Map = class MockMap<K, V> extends Map<K, V> {
       constructor() {
         super();
       }
       get size() {
         return 0; // Force fallback data path
       }
-    } as any;
+    };
 
     const languageStats = getLanguageStats(prsWithoutLanguageInfo);
 

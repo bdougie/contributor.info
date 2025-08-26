@@ -49,7 +49,7 @@ const balancedDataset: PullRequest[] = [
   // Refinement (low additions, high deletions) - 25%
   createMockPR(1, "refactorer", 10, 50, 1, "Refactor authentication module"),
   createMockPR(2, "cleaner", 5, 30, 2, "Remove unused imports"),
-  createMockPR(3, "optimizer", 15, 40, 3, "Optimize database queries"),
+  createMockPR(3, "optimizer", 15, 40, 3, "Optimize _database queries"),
 
   // New Feature (high additions, low deletions) - 25%
   createMockPR(4, "builder", 200, 5, 4, "Add user dashboard"),

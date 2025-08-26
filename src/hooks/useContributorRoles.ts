@@ -55,12 +55,12 @@ export function useContributorRoles(
           query = query.gte('confidence_score', minimumConfidence)
         }
 
-        const { data, error: fetchError } = await query
+        const { data, error: _error: fetchError } = await query
 
         if (fetchError) throw fetchError
 
         // Enhance with additional computed properties
-        const enhancedRoles = (data || []).map(role => ({
+        const enhancedRoles = (_data || []).map(role => ({
           ...role,
           is_bot: checkIfBot(role.user_id),
           activity_level: getActivityLevel(role.permission_events_count),
@@ -164,7 +164,7 @@ export function useContributorRole(
   repo: string,
   userId: string
 ) {
-  const { roles, loading, error } = useContributorRoles(owner, repo)
+  const { roles, loading, error: _error } = useContributorRoles(owner, repo)
   const role = roles.find(r => r.user_id === userId)
   
   return { role, loading, error }
@@ -172,7 +172,7 @@ export function useContributorRole(
 
 // Hook to get role statistics
 export function useRoleStatistics(owner: string, repo: string) {
-  const { roles, loading, error } = useContributorRoles(owner, repo)
+  const { roles, loading, error: _error } = useContributorRoles(owner, repo)
   
   const stats = {
     total: roles.length,

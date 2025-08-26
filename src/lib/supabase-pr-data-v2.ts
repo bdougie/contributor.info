@@ -66,7 +66,7 @@ export async function fetchPRDataWithSmartStrategy(
                 owner,
                 repo
               }
-            }).catch(err => console.error('Failed to enqueue classification job:', err)); // Fire and forget
+            }).catch(err => console._error('Failed to enqueue classification job:', err)); // Fire and forget
           }
         } else {
           // Fallback to direct repository lookup
@@ -89,7 +89,7 @@ export async function fetchPRDataWithSmartStrategy(
         // Step 3: Try to get cached data first
         if (repositoryId) {
           
-          const { data: dbPRs, error: dbError } = await supabase
+          const { data: dbPRs, error: _error: dbError } = await supabase
             .from('pull_requests')
             .select(`
               id,
@@ -175,7 +175,7 @@ export async function fetchPRDataWithSmartStrategy(
                     priority: strategy.capturePriority,
                     reason: 'stale_cache'
                   }
-                }).catch(err => console.error('Failed to enqueue stale cache background sync:', err));
+                }).catch(err => console._error('Failed to enqueue stale cache background sync:', err));
               }
               
               // Return partial data for XL repos to avoid rate limits
@@ -213,7 +213,7 @@ export async function fetchPRDataWithSmartStrategy(
                 priority: 'critical',
                 reason: 'no_cache_xl_repo'
               }
-            }).catch(err => console.error('Failed to enqueue background capture for XL repo:', err));
+            }).catch(err => console._error('Failed to enqueue background capture for XL repo:', err));
           }
           
           trackFetchEnd(fetchId, repoName, repoSize, 'partial', minimalPRs.length, false, true);
@@ -242,16 +242,16 @@ export async function fetchPRDataWithSmartStrategy(
               priority: strategy.capturePriority,
               reason: 'partial_time_range'
             }
-          }).catch(err => console.error('Failed to enqueue partial time range background capture:', err));
+          }).catch(err => console._error('Failed to enqueue partial time range background capture:', err));
         }
         
         trackFetchEnd(fetchId, repoName, repoSize, 'live', githubPRs.length, false, strategy.triggerCapture && effectiveDays < requestedDays);
         return createSuccessResult(githubPRs);
         
-      } catch (error) {
+      } catch (_error) {
         // Handle rate limiting
         if (error instanceof Error && 
-            (error.message.includes('rate limit') || error.message.includes('403'))) {
+            (_error.message.includes('rate limit') || error.message.includes('403'))) {
           trackRateLimit('github', `repos/${owner}/${repo}/pulls`);
           
           // Try emergency cache fallback
@@ -314,10 +314,10 @@ export async function fetchPRDataWithSmartStrategy(
         console.error('Data fetching error:', {
           repository: `${owner}/${repo}`,
           timeRange,
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(_error)
         });
         
-        trackFetchEnd(fetchId, repoName, null, 'emergency', 0, false, false, undefined, error instanceof Error ? error.message : 'Unknown error');
+        trackFetchEnd(fetchId, repoName, null, 'emergency', 0, false, false, undefined, error instanceof Error ? error.message : 'Unknown _error');
         return createNoDataResult(`${owner}/${repo}`, []);
       }
     },
@@ -334,11 +334,11 @@ export async function fetchPRDataWithSmartStrategy(
  * Transform database PR records to PullRequest format
  */
 function transformDatabasePRs(
-  dbPRs: any[], 
+  dbPRs: unknown[], 
   owner: string, 
   repo: string
 ): PullRequest[] {
-  return dbPRs.map((dbPR: any) => ({
+  return dbPRs.map((dbPR: unknown) => ({
     id: dbPR.github_id,
     number: dbPR.number,
     title: dbPR.title,
@@ -368,7 +368,7 @@ function transformDatabasePRs(
     html_url: dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
     repository_owner: owner,
     repository_name: repo,
-    reviews: (dbPR.reviews || []).map((review: any) => ({
+    reviews: (dbPR.reviews || []).map((review: unknown) => ({
       id: review.github_id,
       state: review.state,
       body: review.body,
@@ -378,7 +378,7 @@ function transformDatabasePRs(
         avatar_url: review.contributors?.avatar_url || ''
       }
     })),
-    comments: (dbPR.comments || []).map((comment: any) => ({
+    comments: (dbPR.comments || []).map((comment: unknown) => ({
       id: comment.github_id,
       body: comment.body,
       created_at: comment.created_at,

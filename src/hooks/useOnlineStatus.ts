@@ -61,7 +61,7 @@ function getInitialStatus(): OnlineStatus {
 // Update all subscribers
 function notifyListeners(status: OnlineStatus) {
   sharedStatus = status;
-  listeners.forEach(listener => listener(status));
+  listeners.forEach(listener => listener(_status));
 }
 
 // Setup shared event listeners once

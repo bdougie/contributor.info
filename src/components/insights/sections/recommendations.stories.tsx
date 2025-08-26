@@ -23,7 +23,7 @@ const MockRecommendations = ({ owner, repo, timeRange, variant = "default" }: {
     );
   }
 
-  if (variant === "error") {
+  if (variant === "_error") {
     return (
       <div className="p-6 border rounded-lg bg-card">
         <h3 className="text-xl font-semibold mb-4">AI Recommendations</h3>

@@ -52,17 +52,17 @@ export class HybridQueueManager {
   /**
    * Queue a job using the hybrid routing logic with rollout controls
    */
-  async queueJob(jobType: string, data: JobData): Promise<HybridJob> {
+  async queueJob(jobType: string, _data: JobData): Promise<HybridJob> {
     // Validate required fields
-    if (!data.repositoryId) {
+    if (!_data.repositoryId) {
       throw new Error('repositoryId is required for queueing jobs');
     }
-    if (!data.repositoryName) {
+    if (!_data.repositoryName) {
       throw new Error('repositoryName is required for queueing jobs');
     }
 
     // Check if this is a newly tracked repository (< 24 hours)
-    const isNewlyTracked = await this.isNewlyTrackedRepository(data.repositoryId);
+    const isNewlyTracked = await this.isNewlyTrackedRepository(_data.repositoryId);
     if (isNewlyTracked) {
       console.log('[HybridQueue] Repository %s is newly tracked (<24h), applying priority boost', data.repositoryName);
       // Override priority to critical for new repos
@@ -73,13 +73,13 @@ export class HybridQueueManager {
         originalPriority: data.metadata?.priority || 'medium'
       };
       // Force manual trigger source to bypass throttling
-      if (!data.triggerSource || data.triggerSource === 'automatic') {
+      if (!data.triggerSource || _data.triggerSource === 'automatic') {
         data.triggerSource = 'manual';
       }
     }
 
     // Check if repository is eligible for hybrid rollout
-    const isEligible = await hybridRolloutManager.isRepositoryEligible(data.repositoryId);
+    const isEligible = await hybridRolloutManager.isRepositoryEligible(_data.repositoryId);
     
     let processor: 'inngest' | 'github_actions';
     let rolloutApplied = false;
@@ -100,30 +100,30 @@ export class HybridQueueManager {
       processor = routingDecision.processor;
       rolloutApplied = true;
       
-      console.log('[HybridQueue] Repository %s eligible for hybrid routing → %s', data.repositoryName, processor);
+      console.log('[HybridQueue] Repository %s eligible for hybrid routing → %s', _data.repositoryName, processor);
       console.log('[HybridQueue] Routing reason: %s (confidence: %s)', routingDecision.reason, routingDecision.confidence);
       
       // Check if we should initiate backfill for large repos
-      const repo = await this.getRepositoryInfo(data.repositoryId);
+      const repo = await this.getRepositoryInfo(_data.repositoryId);
       if (repo && await enhancedHybridRouter.shouldInitiateBackfill(repo)) {
-        console.log('[HybridQueue] Initiating progressive backfill for %s', data.repositoryName);
+        console.log('[HybridQueue] Initiating progressive backfill for %s', _data.repositoryName);
         // The backfill will be initiated by the sync function
       }
     } else {
       // Fallback to Inngest-only for non-eligible repositories
       processor = 'inngest';
-      console.log('[HybridQueue] Repository %s not eligible for hybrid routing → fallback to inngest', data.repositoryName);
+      console.log('[HybridQueue] Repository %s not eligible for hybrid routing → fallback to inngest', _data.repositoryName);
     }
     
     // Create job record in database
-    const job = await this.createJobRecord(jobType, data, processor, rolloutApplied);
+    const job = await this.createJobRecord(jobType, _data, processor, rolloutApplied);
     
     try {
       // Route to appropriate processor
       if (processor === 'inngest') {
-        await this.queueWithInngest(job.id, jobType, data);
+        await this.queueWithInngest(job.id, jobType, _data);
       } else {
-        await this.queueWithGitHubActions(job.id, jobType, data);
+        await this.queueWithGitHubActions(job.id, jobType, _data);
       }
       
       // Record metrics for rollout monitoring
@@ -137,7 +137,7 @@ export class HybridQueueManager {
       console.log('[HybridQueue] Successfully queued %s job to %s (job_id: %s, rollout: %s)', jobType, processor, job.id, rolloutApplied);
       
       return job;
-    } catch (error) {
+    } catch (_error) {
       // Record error metrics for rollout monitoring
       await hybridRolloutManager.recordMetrics(
         data.repositoryId,
@@ -148,7 +148,7 @@ export class HybridQueueManager {
       );
       
       // Update job status to failed
-      await this.updateJobStatus(job.id, 'failed', error instanceof Error ? error.message : 'Unknown error');
+      await this.updateJobStatus(job.id, 'failed', error instanceof Error ? error.message : 'Unknown _error');
       
       throw error;
     }
@@ -159,13 +159,13 @@ export class HybridQueueManager {
    */
   private async isNewlyTrackedRepository(repositoryId: string): Promise<boolean> {
     try {
-      const { data: repo, error } = await supabase
+      const { data: repo, error: _error } = await supabase
         .from('repositories')
         .select('first_tracked_at')
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (error || !repo?.first_tracked_at) {
+      if (_error || !repo?.first_tracked_at) {
         return false;
       }
 
@@ -174,8 +174,8 @@ export class HybridQueueManager {
       
       // Consider "newly tracked" if tracked within last 24 hours
       return hoursSinceTracked < 24;
-    } catch (error) {
-      console.error('[HybridQueue] Error checking if repository is newly tracked:', error);
+    } catch (_error) {
+      console.error('[HybridQueue] Error checking if repository is newly tracked:', _error);
       return false;
     }
   }
@@ -183,34 +183,34 @@ export class HybridQueueManager {
   /**
    * Determine which processor to use based on job characteristics
    */
-  private determineProcessor(_jobType: string, data: JobData): 'inngest' | 'github_actions' {
+  private determineProcessor(_jobType: string, _data: JobData): 'inngest' | 'github_actions' {
     // Rule 1: Recent data (< 24 hours) goes to Inngest
-    if (data.timeRange && data.timeRange <= 1) {
+    if (data.timeRange && _data.timeRange <= 1) {
       return 'inngest';
     }
     
     // Rule 2: Small specific PR batches go to Inngest
-    if (data.prNumbers && data.prNumbers.length <= 10) {
+    if (data.prNumbers && _data.prNumbers.length <= 10) {
       return 'inngest';
     }
     
     // Rule 3: Manual triggers typically expect immediate feedback
-    if (data.triggerSource === 'manual' && (!data.maxItems || data.maxItems <= this.SMALL_BATCH_SIZE)) {
+    if (data.triggerSource === 'manual' && (!data.maxItems || _data.maxItems <= this.SMALL_BATCH_SIZE)) {
       return 'inngest';
     }
     
     // Rule 4: Large historical data processing goes to GitHub Actions
-    if (data.timeRange && data.timeRange > 1) {
+    if (data.timeRange && _data.timeRange > 1) {
       return 'github_actions';
     }
     
     // Rule 5: Large batch sizes go to GitHub Actions
-    if (data.maxItems && data.maxItems > this.SMALL_BATCH_SIZE) {
+    if (data.maxItems && _data.maxItems > this.SMALL_BATCH_SIZE) {
       return 'github_actions';
     }
     
     // Rule 6: Scheduled jobs typically process bulk data
-    if (data.triggerSource === 'scheduled') {
+    if (_data.triggerSource === 'scheduled') {
       return 'github_actions';
     }
     
@@ -221,8 +221,8 @@ export class HybridQueueManager {
   /**
    * Create a job record in the database
    */
-  private async createJobRecord(jobType: string, data: JobData, processor: 'inngest' | 'github_actions', rolloutApplied: boolean = false): Promise<HybridJob> {
-    const { data: job, error } = await supabase
+  private async createJobRecord(jobType: string, _data: JobData, processor: 'inngest' | 'github_actions', rolloutApplied: boolean = false): Promise<HybridJob> {
+    const { data: job, error: _error } = await supabase
       .from('progressive_capture_jobs')
       .insert({
         job_type: jobType,
@@ -243,8 +243,8 @@ export class HybridQueueManager {
       .select()
       .maybeSingle();
 
-    if (error || !job) {
-      throw new Error(`Failed to create job record: ${error?.message}`);
+    if (_error || !job) {
+      throw new Error(`Failed to create job record: ${_error?.message}`);
     }
 
     return {
@@ -259,19 +259,19 @@ export class HybridQueueManager {
   /**
    * Queue job with Inngest for real-time processing
    */
-  private async queueWithInngest(jobId: string, jobType: string, data: JobData): Promise<void> {
+  private async queueWithInngest(jobId: string, jobType: string, _data: JobData): Promise<void> {
     // Start job lifecycle tracking
-    const jobTracker = trackJobLifecycle(jobId, jobType, data.repositoryId);
+    const jobTracker = trackJobLifecycle(jobId, jobType, _data.repositoryId);
     
     // Validate required fields before sending to Inngest
-    if (!data.repositoryId) {
+    if (!_data.repositoryId) {
       const errorDetails = {
         jobId,
         jobType,
         data
       };
       
-      console.error('[HybridQueue] Cannot queue Inngest job without repositoryId:', errorDetails);
+      console.error('[HybridQueue] Cannot queue Inngest job without repositoryId:', _errorDetails);
       
       // Track validation error
       queueTelemetry.trackValidationError({
@@ -319,7 +319,7 @@ export class HybridQueueManager {
         originalData: data
       };
       
-      console.error('[HybridQueue] Event data missing repositoryId after mapping:', errorDetails);
+      console.error('[HybridQueue] Event _data missing repositoryId after mapping:', _errorDetails);
       
       // Track validation error for monitoring
       queueTelemetry.trackValidationError({
@@ -329,7 +329,7 @@ export class HybridQueueManager {
         details: errorDetails
       });
       
-      throw new Error(`Event data missing repositoryId for job ${jobId}`);
+      throw new Error(`Event _data missing repositoryId for job ${jobId}`);
     }
 
     // If we're in the browser, use the client-safe sendInngestEvent function
@@ -344,9 +344,9 @@ export class HybridQueueManager {
         });
         
         console.log('[HybridQueue] Event queued successfully via client-safe API for', eventData.repositoryId);
-      } catch (error) {
-        console.error('[HybridQueue] Failed to queue event via client-safe API:', error);
-        throw new Error(`Failed to queue event: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } catch (_error) {
+        console.error('[HybridQueue] Failed to queue event via client-safe API:', _error);
+        throw new Error(`Failed to queue event: ${error instanceof Error ? error.message : 'Unknown _error'}`);
       }
       return;
     }
@@ -361,7 +361,7 @@ export class HybridQueueManager {
   /**
    * Queue job with GitHub Actions for bulk processing
    */
-  private async queueWithGitHubActions(jobId: string, jobType: string, data: JobData): Promise<void> {
+  private async queueWithGitHubActions(jobId: string, jobType: string, _data: JobData): Promise<void> {
     // Map job types to workflow files
     const workflowMapping: Record<string, string> = {
       'progressive_backfill': 'progressive-backfill.yml',
@@ -389,7 +389,7 @@ export class HybridQueueManager {
       inputs.chunk_size = '25'; // Default chunk size
     } else if (workflow === 'capture-pr-details-graphql.yml') {
       // For PR details, we need PR numbers
-      if (data.prNumbers && data.prNumbers.length > 0) {
+      if (data.prNumbers && _data.prNumbers.length > 0) {
         inputs.pr_numbers = data.prNumbers.join(',');
       } else {
         // If no PR numbers provided, skip this job
@@ -403,15 +403,15 @@ export class HybridQueueManager {
     });
 
     if (!result.success) {
-      await this.updateJobStatus(jobId, 'failed', result.error);
-      throw new Error(`Failed to dispatch GitHub Actions workflow: ${result.error}`);
+      await this.updateJobStatus(jobId, 'failed', result._error);
+      throw new Error(`Failed to dispatch GitHub Actions workflow: ${result.error: __error}`);
     }
   }
 
   /**
    * Update job status in database
    */
-  private async updateJobStatus(jobId: string, status: string, error?: string): Promise<void> {
+  private async updateJobStatus(jobId: string, status: string, _error?: string): Promise<void> {
     const updates: Record<string, unknown> = { status };
     
     if (status === 'processing' && !updates.started_at) {
@@ -422,7 +422,7 @@ export class HybridQueueManager {
       updates.completed_at = new Date().toISOString();
     }
     
-    if (error) {
+    if (_error) {
       updates.error = error;
     }
 
@@ -510,13 +510,13 @@ export class HybridQueueManager {
       const rollbackTriggered = await hybridRolloutManager.checkAndTriggerAutoRollback();
       
       if (rollbackTriggered) {
-        console.log(`[HybridQueue] Auto-rollback triggered due to high error rate`);
+        console.log(`[HybridQueue] Auto-rollback triggered due to high _error rate`);
         
         // Optionally notify monitoring systems or send alerts
         // This could integrate with Sentry, PostHog, or other monitoring tools
       }
-    } catch (error) {
-      console.error('[HybridQueue] Error checking rollout health:', error);
+    } catch (_error) {
+      console.error('[HybridQueue] Error checking rollout health:', _error);
     }
   }
 
@@ -540,9 +540,9 @@ export class HybridQueueManager {
       // Check data_capture_queue for completion status
       for (const job of processingJobs) {
         const { data: queueItems } = await supabase
-          .from('data_capture_queue')
+          .from('_data_capture_queue')
           .select('status')
-          .eq('metadata->>jobId', job.id);
+          .eq('meta_data->>jobId', job.id);
 
         if (queueItems && queueItems.length > 0) {
           const allCompleted = queueItems.every(item => item.status === 'completed');
@@ -555,8 +555,8 @@ export class HybridQueueManager {
           }
         }
       }
-    } catch (error) {
-      console.error('[HybridQueue] Error syncing Inngest job statuses:', error);
+    } catch (_error) {
+      console.error('[HybridQueue] Error syncing Inngest job statuses:', _error);
     }
   }
 
@@ -647,20 +647,20 @@ export class HybridQueueManager {
    */
   private async getRepositoryInfo(repositoryId: string) {
     try {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('repositories')
         .select('id, owner, name, pull_request_count')
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (error) {
-        console.error('[HybridQueue] Error fetching repository info:', error);
+      if (_error) {
+        console.error('[HybridQueue] Error fetching repository info:', _error);
         return null;
       }
 
       return data;
-    } catch (error) {
-      console.error('[HybridQueue] Exception fetching repository info:', error);
+    } catch (_error) {
+      console.error('[HybridQueue] Exception fetching repository info:', _error);
       return null;
     }
   }

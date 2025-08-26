@@ -15,7 +15,7 @@ export interface ShareEvent {
   domain?: string;
   user_agent?: string;
   referrer?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -28,7 +28,7 @@ export async function trackShareEvent(event: ShareEvent): Promise<void> {
     const userAgent = navigator.userAgent;
     const referrer = document.referrer;
 
-    const { error } = await supabase
+    const { error: _error } = await supabase
       .from('share_events')
       .insert([{
         ...event,
@@ -38,8 +38,8 @@ export async function trackShareEvent(event: ShareEvent): Promise<void> {
         page_path: event.page_path || window.location.pathname
       }]);
 
-    if (error) {
-      console.error('Failed to track share event:', error);
+    if (_error) {
+      console.error('Failed to track share event:', _error);
     }
   } catch (err) {
     console.error('Error tracking share event:', err);
@@ -69,14 +69,14 @@ function getSessionId(): string {
  */
 export async function getRepositoryShareAnalytics(repository: string) {
   try {
-    const { data, error } = await supabase
+    const { data, error: _error } = await supabase
       .from('share_analytics_summary')
       .select('*')
       .eq('repository', repository)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Failed to get repository share analytics:', error);
+    if (_error) {
+      console.error('Failed to get repository share analytics:', _error);
       return [];
     }
 
@@ -114,10 +114,10 @@ export async function getShareMetrics(filters: {
         .lte('created_at', filters.dateRange.end.toISOString());
     }
 
-    const { data, error } = await query;
+    const { data, error: _error } = await query;
 
-    if (error) {
-      console.error('Failed to get share metrics:', error);
+    if (_error) {
+      console.error('Failed to get share metrics:', _error);
       return null;
     }
 
@@ -174,13 +174,13 @@ export async function updateClickAnalytics(dubLinkId: string): Promise<void> {
  */
 export async function getTopSharedRepositories(limit: number = 10) {
   try {
-    const { data, error } = await supabase
+    const { data, error: _error } = await supabase
       .from('share_events')
       .select('repository')
       .not('repository', 'is', null);
 
-    if (error) {
-      console.error('Failed to get top shared repositories:', error);
+    if (_error) {
+      console.error('Failed to get top shared repositories:', _error);
       return [];
     }
 
@@ -208,14 +208,14 @@ export async function getTopSharedRepositories(limit: number = 10) {
  */
 export async function getShareRate(repository: string, viewsCount?: number): Promise<number> {
   try {
-    const { data, error } = await supabase
+    const { data, error: _error } = await supabase
       .from('share_events')
       .select('id')
       .eq('repository', repository)
       .eq('action', 'share');
 
-    if (error) {
-      console.error('Failed to get share count:', error);
+    if (_error) {
+      console.error('Failed to get share count:', _error);
       return 0;
     }
 

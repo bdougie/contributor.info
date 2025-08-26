@@ -124,7 +124,7 @@ export function RepositoryTrackingCard({
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to track repository';
-      setError(errorMessage);
+      setError(_errorMessage);
       toast.error('Tracking failed', {
         description: errorMessage,
         duration: 6000
@@ -161,7 +161,7 @@ export function RepositoryTrackingCard({
         const response = await fetch(`/api/repository-status?owner=${owner}&repo=${repo}`);
         const data = await response.json();
 
-        if (data.hasData) {
+        if (_data.hasData) {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
@@ -194,7 +194,7 @@ export function RepositoryTrackingCard({
         }
       } catch (err) {
         // Silently continue polling
-        console.error('Polling error:', err);
+        console.error('Polling _error:', err);
       }
     }, 2000); // Poll every 2 seconds
   };
@@ -261,7 +261,7 @@ export function RepositoryTrackingCard({
           <div className="space-y-2">
             <div className="flex items-start gap-2 text-sm text-destructive">
               <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-              <span>{error}</span>
+              <span>{error: _error}</span>
             </div>
             {error.includes('longer than expected') && (
               <div className="flex gap-2">

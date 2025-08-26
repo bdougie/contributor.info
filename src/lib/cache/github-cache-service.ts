@@ -36,7 +36,7 @@ export interface CacheStats {
  * Multi-tier cache for GitHub API responses
  * - Tier 1: In-memory cache (fastest)
  * - Tier 2: LocalStorage cache (persistent)
- * - Tier 3: IndexedDB cache (large data)
+ * - Tier 3: IndexedDB cache (large _data)
  */
 export class GitHubCacheService {
   private memoryCache = new Map<string, CacheEntry<any>>()
@@ -92,7 +92,7 @@ export class GitHubCacheService {
 
       this.recordMiss(performance.now() - startTime)
       return null
-    } catch (error) {
+    } catch (_error) {
       this.recordMiss(performance.now() - startTime)
       return null
     }
@@ -109,15 +109,15 @@ export class GitHubCacheService {
   ): Promise<void> {
     try {
       // Always store in memory cache
-      this.setInMemory(key, data, ttl, metadata)
+      this.setInMemory(key, data, ttl, meta_data)
 
       // Store in persistent cache for larger data
       if (this.config.persistenceEnabled) {
-        await this.setInStorage(key, data, ttl, metadata)
+        await this.setInStorage(key, data, ttl, meta_data)
       }
 
       this.updateStats()
-    } catch (error) {
+    } catch (_error) {
       // Silently handle cache set errors
     }
   }
@@ -133,7 +133,7 @@ export class GitHubCacheService {
     if (this.config.persistenceEnabled) {
       try {
         localStorage.removeItem(this.getStorageKey(key))
-      } catch (error) {
+      } catch (_error) {
         // Silently handle localStorage removal errors
       }
     }
@@ -155,7 +155,7 @@ export class GitHubCacheService {
             localStorage.removeItem(key)
           }
         })
-      } catch (error) {
+      } catch (_error) {
         // Silently handle localStorage clearing errors
       }
     }
@@ -182,13 +182,13 @@ export class GitHubCacheService {
   /**
    * Create cache key with repository, endpoint, and parameters
    */
-  createKey(endpoint: string, params: Record<string, any> = {}): string {
+  createKey(endpoint: string, params: Record<string, unknown> = {}): string {
     const sortedParams = Object.keys(params)
       .sort()
       .reduce((sorted, key) => {
         sorted[key] = params[key]
         return sorted
-      }, {} as Record<string, any>)
+      }, {} as Record<string, unknown>)
 
     const paramString = Object.keys(sortedParams).length > 0 
       ? JSON.stringify(sortedParams) 
@@ -267,7 +267,7 @@ export class GitHubCacheService {
       }
 
       return entry.data
-    } catch (error) {
+    } catch (_error) {
       return null
     }
   }
@@ -289,9 +289,9 @@ export class GitHubCacheService {
       }
 
       localStorage.setItem(this.getStorageKey(key), JSON.stringify(entry))
-    } catch (error) {
+    } catch (_error) {
       // If storage is full, try to clear some space
-      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+      if (error instanceof DOMException && _error.name === 'QuotaExceededError') {
         this.cleanupStorage()
       }
     }
@@ -344,7 +344,7 @@ export class GitHubCacheService {
       for (let i = 0; i < toRemove; i++) {
         localStorage.removeItem(entries[i].key)
       }
-    } catch (error) {
+    } catch (_error) {
       // Silently handle storage cleanup errors
     }
   }
@@ -387,7 +387,7 @@ export class GitHubCacheService {
             }
           }
         })
-      } catch (error) {
+      } catch (_error) {
         // Silently handle expired storage cleanup errors
       }
     }

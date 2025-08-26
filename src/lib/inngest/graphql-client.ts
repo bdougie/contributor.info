@@ -196,12 +196,12 @@ export interface RateLimitInfo {
 }
 
 export interface GraphQLResponse {
-  repository: any;
+  repository: unknown;
   rateLimit?: RateLimitInfo;
 }
 
 export interface PRDetailsResponse extends GraphQLResponse {
-  pullRequest: any;
+  pullRequest: unknown;
 }
 
 export interface PaginatedPRsResponse {
@@ -300,20 +300,20 @@ export class GraphQLClient {
         ...result,
         pullRequest: result.repository?.pullRequest
       };
-    } catch (error: any) {
+    } catch (_error: unknown) {
       this.metrics.fallbackCount++;
       
       // Enhanced error handling for GraphQL
-      if (error.message?.includes('rate limit')) {
+      if (_error.message?.includes('rate limit')) {
         throw new Error(`GraphQL rate limit exceeded`);
       }
       
-      if (error.message?.includes('NOT_FOUND')) {
+      if (_error.message?.includes('NOT_FOUND')) {
         throw new Error(`PR #${prNumber} not found in ${owner}/${repo}`);
       }
       
       // Log the error but don't modify it - let caller handle fallback
-      console.error(`[GraphQL] Query failed for ${owner}/${repo}#${prNumber}:`, error.message);
+      console.error(`[GraphQL] Query failed for ${owner}/${repo}#${prNumber}:`, _error.message);
       throw error;
     }
   }
@@ -339,15 +339,15 @@ export class GraphQLClient {
       
       // Filter PRs updated since the given date (client-side filtering)
       const sinceDate = new Date(since);
-      const filteredPRs = allPRs.filter((pr: any) => {
+      const filteredPRs = allPRs.filter((pr: unknown) => {
         const updatedAt = new Date(pr.updatedAt);
         return updatedAt >= sinceDate;
       });
 
       return filteredPRs;
-    } catch (error: any) {
+    } catch (_error: unknown) {
       this.metrics.fallbackCount++;
-      console.error(`[GraphQL] Recent PRs query failed for ${owner}/${repo}:`, error.message);
+      console.error(`[GraphQL] Recent PRs query failed for ${owner}/${repo}:`, _error.message);
       throw error;
     }
   }
@@ -442,8 +442,8 @@ export class GraphQLClient {
       }
 
       return prs;
-    } catch (error: any) {
-      console.error(`[GraphQL] Paginated PRs query failed for ${owner}/${repo}:`, error.message);
+    } catch (_error: unknown) {
+      console.error(`[GraphQL] Paginated PRs query failed for ${owner}/${repo}:`, _error.message);
       throw error;
     }
   }

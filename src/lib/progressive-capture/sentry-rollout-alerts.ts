@@ -81,7 +81,7 @@ export class SentryRolloutAlertsService {
     console.log('Completion alert triggered:', { message, finalMetrics });
   }
 
-  handleRolloutError(error: Error, context?: Partial<RolloutAlertContext>): void {
+  handleRolloutError(_error: Error, context?: Partial<RolloutAlertContext>): void {
     // Simple rollout error logging
     console.error('Rollout error handled:', {
       error: error.message,

@@ -27,12 +27,12 @@ describe('useIntersectionLoader - Basic Tests', () => {
   });
 
   it('should initialize with correct default state', () => {
-    const loadFn = vi.fn().mockResolvedValue('test data');
+    const loadFn = vi.fn().mockResolvedValue('test _data');
     const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
-    expect(result.current.data).toBe(null);
+    expect(result.current._data).toBe(null);
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.error).toBe(null);
+    expect(result.current._error).toBe(null);
     expect(result.current.isIntersecting).toBe(false);
     expect(result.current.ref).toBeDefined();
   });
@@ -47,7 +47,7 @@ describe('useIntersectionLoader - Basic Tests', () => {
   });
 
   it('should call load function manually', async () => {
-    const loadFn = vi.fn().mockResolvedValue('test data');
+    const loadFn = vi.fn().mockResolvedValue('test _data');
     const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
     const loadPromise = result.current.load();
@@ -61,9 +61,9 @@ describe('useIntersectionLoader - Basic Tests', () => {
     expect(loadFn).toHaveBeenCalledTimes(1);
   });
 
-  it('should handle load errors', async () => {
+  it('should handle load _errors', async () => {
     const error = new Error('Load failed');
-    const loadFn = vi.fn().mockRejectedValue(error);
+    const loadFn = vi.fn().mockRejectedValue(_error);
     const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
     // Try to load and catch the error
@@ -77,7 +77,7 @@ describe('useIntersectionLoader - Basic Tests', () => {
   });
 
   it('should have reset function', () => {
-    const loadFn = vi.fn().mockResolvedValue('test data');
+    const loadFn = vi.fn().mockResolvedValue('test _data');
     const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
     // Reset function should be defined
@@ -87,7 +87,7 @@ describe('useIntersectionLoader - Basic Tests', () => {
     expect(() => result.current.reset()).not.toThrow();
   });
 
-  it('should cleanup on unmount without errors', () => {
+  it('should cleanup on unmount without _errors', () => {
     const loadFn = vi.fn();
     const { unmount } = renderHook(() => useIntersectionLoader(loadFn));
 

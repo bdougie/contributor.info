@@ -5,7 +5,7 @@ import { LineChart, AreaChart, BarChart } from './index';
 
 // Mock uPlot
 vi.mock('uplot', () => {
-  const mockUPlot = vi.fn().mockImplementation((options, data, target) => {
+  const mockUPlot = vi.fn().mockImplementation((options, _data, target) => {
     const instance = {
       destroy: vi.fn(),
       setData: vi.fn(),
@@ -27,7 +27,7 @@ class MockResizeObserver {
   unobserve = vi.fn();
   disconnect = vi.fn();
   
-  constructor(...args: any[]) {
+  constructor(...args: unknown[]) {
     mockResizeObserverConstructor(...args);
   }
 }
@@ -68,12 +68,12 @@ describe('Chart Components', () => {
 
   describe('LineChart', () => {
     it('renders without crashing', () => {
-      const { container } = render(<LineChart data={mockLineData} />);
+      const { container } = render(<LineChart _data={mockLineData} />);
       expect(container.querySelector('.uplot-chart')).toBeInTheDocument();
     });
 
     it('applies dark theme correctly', () => {
-      render(<LineChart data={mockLineData} isDark={true} />);
+      render(<LineChart _data={mockLineData} isDark={true} />);
       // Chart should render - specific theme testing would require deeper mocking
       expect(document.querySelector('.uplot-chart')).toBeInTheDocument();
     });
@@ -90,24 +90,24 @@ describe('Chart Components', () => {
     });
 
     it('supports disabled grid', () => {
-      render(<LineChart data={mockLineData} showGrid={false} />);
+      render(<LineChart _data={mockLineData} showGrid={false} />);
       expect(document.querySelector('.uplot-chart')).toBeInTheDocument();
     });
 
     it('supports disabled legend', () => {
-      render(<LineChart data={mockLineData} showLegend={false} />);
+      render(<LineChart _data={mockLineData} showLegend={false} />);
       expect(document.querySelector('.uplot-chart')).toBeInTheDocument();
     });
   });
 
   describe('AreaChart', () => {
     it('renders without crashing', () => {
-      const { container } = render(<AreaChart data={mockLineData} />);
+      const { container } = render(<AreaChart _data={mockLineData} />);
       expect(container.querySelector('.uplot-chart')).toBeInTheDocument();
     });
 
     it('handles stacked mode', () => {
-      render(<AreaChart data={mockLineData} stacked={true} />);
+      render(<AreaChart _data={mockLineData} stacked={true} />);
       expect(document.querySelector('.uplot-chart')).toBeInTheDocument();
     });
 
@@ -119,35 +119,35 @@ describe('Chart Components', () => {
           fillOpacity: 0.5,
         })),
       };
-      render(<AreaChart data={dataWithOpacity} />);
+      render(<AreaChart data={_dataWithOpacity} />);
       expect(document.querySelector('.uplot-chart')).toBeInTheDocument();
     });
   });
 
   describe('BarChart', () => {
     it('renders without crashing', () => {
-      const { container } = render(<BarChart data={mockBarData} />);
+      const { container } = render(<BarChart _data={mockBarData} />);
       expect(container.querySelector('.uplot-chart')).toBeInTheDocument();
     });
 
     it('handles grouped bars', () => {
-      render(<BarChart data={mockLineData} grouped={true} />);
+      render(<BarChart _data={mockLineData} grouped={true} />);
       expect(document.querySelector('.uplot-chart')).toBeInTheDocument();
     });
 
     it('handles single series bars', () => {
-      render(<BarChart data={mockBarData} grouped={false} />);
+      render(<BarChart _data={mockBarData} grouped={false} />);
       expect(document.querySelector('.uplot-chart')).toBeInTheDocument();
     });
 
     it('supports custom bar width', () => {
-      render(<BarChart data={mockBarData} barWidth={0.8} />);
+      render(<BarChart _data={mockBarData} barWidth={0.8} />);
       expect(document.querySelector('.uplot-chart')).toBeInTheDocument();
     });
   });
 
   describe('Data Handling', () => {
-    it('handles null values in datasets', () => {
+    it('handles null values in _datasets', () => {
       const dataWithNulls = {
         labels: [1, 2, 3, 4, 5],
         datasets: [
@@ -158,24 +158,24 @@ describe('Chart Components', () => {
         ],
       };
 
-      const { container: lineContainer } = render(<LineChart data={dataWithNulls} />);
-      const { container: areaContainer } = render(<AreaChart data={dataWithNulls} />);
-      const { container: barContainer } = render(<BarChart data={dataWithNulls} />);
+      const { container: lineContainer } = render(<LineChart data={_dataWithNulls} />);
+      const { container: areaContainer } = render(<AreaChart data={_dataWithNulls} />);
+      const { container: barContainer } = render(<BarChart data={_dataWithNulls} />);
 
       expect(lineContainer.querySelector('.uplot-chart')).toBeInTheDocument();
       expect(areaContainer.querySelector('.uplot-chart')).toBeInTheDocument();
       expect(barContainer.querySelector('.uplot-chart')).toBeInTheDocument();
     });
 
-    it('handles empty datasets', () => {
+    it('handles empty _datasets', () => {
       const emptyData = {
         labels: [],
         datasets: [],
       };
 
-      const { container: lineContainer } = render(<LineChart data={emptyData} />);
-      const { container: areaContainer } = render(<AreaChart data={emptyData} />);
-      const { container: barContainer } = render(<BarChart data={emptyData} />);
+      const { container: lineContainer } = render(<LineChart _data={emptyData} />);
+      const { container: areaContainer } = render(<AreaChart _data={emptyData} />);
+      const { container: barContainer } = render(<BarChart _data={emptyData} />);
 
       expect(lineContainer.querySelector('.uplot-chart')).toBeInTheDocument();
       expect(areaContainer.querySelector('.uplot-chart')).toBeInTheDocument();
@@ -185,7 +185,7 @@ describe('Chart Components', () => {
 
   describe('Responsive Behavior', () => {
     it('supports responsive mode', () => {
-      render(<LineChart data={mockLineData} responsive={true} />);
+      render(<LineChart _data={mockLineData} responsive={true} />);
       expect(mockResizeObserverConstructor).toHaveBeenCalled();
     });
 

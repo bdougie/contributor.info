@@ -48,9 +48,9 @@ class ManualBackfillServerClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-      console.error('[ManualBackfillServerClient] Failed to trigger backfill:', error);
-      throw new Error(`Failed to trigger backfill: ${error.message || response.statusText}`);
+      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      console.error('[ManualBackfillServerClient] Failed to trigger backfill:', _error);
+      throw new Error(`Failed to trigger backfill: ${_error.message || response.statusText}`);
     }
 
     const result = await response.json();
@@ -72,8 +72,8 @@ class ManualBackfillServerClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-      throw new Error(`Failed to get job status: ${error.message || response.statusText}`);
+      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      throw new Error(`Failed to get job status: ${_error.message || response.statusText}`);
     }
 
     return response.json();
@@ -88,7 +88,7 @@ class ManualBackfillServerClient {
     }
 
     const params = new URLSearchParams();
-    if (status) params.append('status', status);
+    if (_status) params.append('status', status);
     params.append('limit', String(limit));
 
     const response = await fetch(`${this.apiUrl}/api/backfill/jobs?${params}`, {
@@ -97,8 +97,8 @@ class ManualBackfillServerClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-      throw new Error(`Failed to list jobs: ${error.message || response.statusText}`);
+      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      throw new Error(`Failed to list jobs: ${_error.message || response.statusText}`);
     }
 
     return response.json();
@@ -118,8 +118,8 @@ class ManualBackfillServerClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-      throw new Error(`Failed to cancel job: ${error.message || response.statusText}`);
+      const error = await response.json().catch(() => ({ message: 'Unknown _error' }));
+      throw new Error(`Failed to cancel job: ${_error.message || response.statusText}`);
     }
 
     const result = await response.json();
@@ -135,8 +135,8 @@ class ManualBackfillServerClient {
       const response = await fetch(`${this.apiUrl}/health`);
       const data = await response.json();
       return data.status === 'healthy';
-    } catch (error) {
-      console.error('[ManualBackfillServerClient] Health check failed:', error);
+    } catch (_error) {
+      console.error('[ManualBackfillServerClient] Health check failed:', _error);
       return false;
     }
   }

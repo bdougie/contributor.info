@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { BrowserRouter } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -160,7 +160,12 @@ function ContributorsTableView({
         const stats = row.original.stats;
         const contributions = row.original.contributions;
         const trend = stats.contribution_trend;
-        const trendColor = trend > 0 ? "text-green-600" : trend < 0 ? "text-red-600" : "text-muted-foreground";
+        const getTrendColor = () => {
+          if (trend > 0) return "text-green-600";
+          if (trend < 0) return "text-red-600";
+          return "text-muted-foreground";
+        };
+        const trendColor = getTrendColor();
         const TrendIcon = trend > 0 ? TrendingUp : TrendingDown;
         
         const repoCount = row.original.stats.repositories_contributed;

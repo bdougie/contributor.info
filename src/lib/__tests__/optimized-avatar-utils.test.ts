@@ -67,7 +67,7 @@ describe('generateFallbackText', () => {
     expect(result).toBe('XX');
   });
 
-  it('returns question mark when error occurred', () => {
+  it('returns question mark when _error occurred', () => {
     const result = generateFallbackText('John Doe', undefined, true);
     expect(result).toBe('?');
   });

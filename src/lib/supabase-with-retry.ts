@@ -42,11 +42,11 @@ const supabaseRetryConfig: Partial<RetryConfig> = {
     'FetchError',
     'AbortError'
   ]),
-  onRetry: (error, attempt) => {
+  onRetry: (__error, attempt) => {
     retryMetrics.totalRetries++;
     // Only log in development
     if (process.env.NODE_ENV === 'development') {
-      console.log(`%s`, `Supabase retry attempt ${attempt}:`, error.message);
+      console.log(`%s`, `Supabase retry attempt ${attempt}:`, _error.message);
     }
   }
 };
@@ -67,7 +67,7 @@ const githubRetryConfig: Partial<RetryConfig> = {
     '429', // Rate limit - retry with longer backoff
     '403', // Sometimes indicates rate limit
   ]),
-  onRetry: (error, attempt) => {
+  onRetry: (__error, attempt) => {
     retryMetrics.totalRetries++;
     const isRateLimit = error.message.includes('429') || error.message.includes('rate limit');
     // Only log in development
@@ -94,9 +94,9 @@ export async function supabaseWithRetry<T>(
       retryMetrics.successfulRetries++;
     }
     return result;
-  } catch (error) {
+  } catch (_error) {
     retryMetrics.failedRetries++;
-    if (error instanceof Error && error.message.includes('Circuit breaker is open')) {
+    if (error instanceof Error && _error.message.includes('Circuit breaker is open')) {
       retryMetrics.circuitBreakerTrips++;
     }
     // Return in Supabase format
@@ -134,7 +134,7 @@ export async function fetchWithRetry(
       // Check for rate limit or server errors
       if (response.status === 429 || response.status >= 500) {
         const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
-        (error as any).status = response.status;
+        (_error as any).status = response.status;
         throw error;
       }
       
@@ -143,7 +143,7 @@ export async function fetchWithRetry(
         const rateLimitRemaining = response.headers.get('x-ratelimit-remaining');
         if (rateLimitRemaining === '0') {
           const error = new Error('GitHub API rate limit exceeded');
-          (error as any).status = 429; // Treat as rate limit
+          (_error as any).status = 429; // Treat as rate limit
           throw error;
         }
       }
@@ -208,12 +208,12 @@ export const retryableSupabase = {
   /**
    * Insert or update repository with retry
    */
-  upsertRepository: async (data: Record<string, unknown>) => {
+  upsertRepository: async (_data: Record<string, unknown>) => {
     return withRetry(
       async () => {
         return await supabase
           .from('repositories')
-          .upsert(data, { onConflict: 'owner,name' })
+          .upsert(_data, { onConflict: 'owner,name' })
           .select()
           .maybeSingle();
       },

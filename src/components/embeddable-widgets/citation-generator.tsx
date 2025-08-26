@@ -12,20 +12,20 @@ interface CitationGeneratorProps {
   permalinkConfig?: PermalinkConfig;
 }
 
-const CITATION_FORMATS: Record<CitationFormat['style'], (data: WidgetData, date: Date, url: string) => string> = {
-  apa: (data, date, url) => 
+const CITATION_FORMATS: Record<CitationFormat['style'], (_data: WidgetData, date: Date, url: string) => string> = {
+  apa: (_data, date, url) => 
     `Contributor.info. (${date.getFullYear()}). ${data.repository.owner}/${data.repository.repo} repository analytics. Retrieved ${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}, from ${url}`,
   
-  mla: (data, date, url) => 
+  mla: (_data, date, url) => 
     `Contributor.info. "${data.repository.owner}/${data.repository.repo} Repository Analytics." Contributor.info, ${date.getDate()} ${date.toLocaleDateString('en-US', { month: 'short' })} ${date.getFullYear()}, ${url}.`,
   
-  chicago: (data, date, url) => 
+  chicago: (_data, date, url) => 
     `Contributor.info. "${data.repository.owner}/${data.repository.repo} Repository Analytics." Accessed ${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. ${url}.`,
   
-  ieee: (data, date, url) => 
+  ieee: (_data, date, url) => 
     `Contributor.info, "${data.repository.owner}/${data.repository.repo} repository analytics," accessed ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. [Online]. Available: ${url}`,
   
-  bibtex: (data, date, url) => 
+  bibtex: (_data, date, url) => 
     `@misc{contributor_info_${data.repository.owner}_${data.repository.repo}_${date.getFullYear()},
   title={${data.repository.owner}/${data.repository.repo} Repository Analytics},
   author={Contributor.info},
@@ -34,11 +34,11 @@ const CITATION_FORMATS: Record<CitationFormat['style'], (data: WidgetData, date:
   note={Accessed: ${date.toISOString().split('T')[0]}}
 }`,
   
-  plain: (data, date, url) => 
+  plain: (_data, date, url) => 
     `${data.repository.owner}/${data.repository.repo} repository analytics by Contributor.info. Data retrieved on ${date.toLocaleDateString()} from ${url}`,
 };
 
-export function CitationGenerator({ data, permalinkConfig }: CitationGeneratorProps) {
+export function CitationGenerator({ _data, permalinkConfig }: CitationGeneratorProps) {
   const [selectedFormat, setSelectedFormat] = useState<CitationFormat['style']>('apa');
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
   
@@ -47,7 +47,7 @@ export function CitationGenerator({ data, permalinkConfig }: CitationGeneratorPr
   const citationURL = `${baseURL}/${data.repository.owner}/${data.repository.repo}`;
   
   const generateCitation = (format: CitationFormat['style']): string => {
-    return CITATION_FORMATS[format](data, currentDate, citationURL);
+    return CITATION_FORMATS[format](_data, currentDate, citationURL);
   };
 
   const copyToClipboard = async (text: string, format: string) => {
@@ -56,7 +56,7 @@ export function CitationGenerator({ data, permalinkConfig }: CitationGeneratorPr
       setCopiedFormat(format);
       toast.success(`${format.toUpperCase()} citation copied to clipboard`);
       setTimeout(() => setCopiedFormat(null), 2000);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to copy to clipboard");
     }
   };
@@ -79,7 +79,7 @@ export function CitationGenerator({ data, permalinkConfig }: CitationGeneratorPr
 
   const exportBibliography = () => {
     const citations = Object.entries(CITATION_FORMATS).map(([format, generator]) => {
-      return `${format.toUpperCase()}:\n${generator(data, currentDate, citationURL)}\n`;
+      return `${format.toUpperCase()}:\n${generator(_data, currentDate, citationURL)}\n`;
     }).join('\n');
     
     const content = `# Citations for ${data.repository.owner}/${data.repository.repo}
@@ -89,7 +89,7 @@ Generated on ${currentDate.toLocaleDateString()}
 - Total Contributors: ${data.stats.totalContributors}
 - Total Pull Requests: ${data.stats.totalPRs}
 - Merge Rate: ${data.stats.mergeRate.toFixed(1)}%
-${data.stats.lotteryFactor ? `- Lottery Factor: ${data.stats.lotteryFactor.toFixed(1)} (${data.stats.lotteryRating})` : ''}
+${data.stats.lotteryFactor ? `- Lottery Factor: ${data.stats.lotteryFactor.toFixed(1)} (${_data.stats.lotteryRating})` : ''}
 
 ## Citations
 

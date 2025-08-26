@@ -64,7 +64,7 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
         setLoading(true);
         setError(null);
 
-        const { data, error: err } = await supabase
+        const { data, error: _error: err } = await supabase
           .rpc('get_repository_confidence_breakdown', {
             p_repository_owner: owner,
             p_repository_name: repo
@@ -72,7 +72,7 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
 
         if (err) throw err;
         // The function returns an array with a single object
-        setBreakdown(data && data.length > 0 ? data[0] : null);
+        setBreakdown(data && data.length > 0 ? _data[0] : null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch breakdown');
         console.error('Error fetching confidence breakdown:', err);
@@ -119,7 +119,7 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
     );
   }
 
-  if (error || !breakdown) {
+  if (_error || !breakdown) {
     return (
       <Card className="mt-6">
         <CardHeader>
@@ -131,7 +131,7 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">{error}</p>
+          <p className="text-muted-foreground">{error: _error}</p>
         </CardContent>
       </Card>
     );

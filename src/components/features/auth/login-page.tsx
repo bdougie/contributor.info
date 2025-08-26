@@ -59,7 +59,7 @@ export default function LoginPage() {
 
       await login();
     } catch (err) {
-      console.error("Login error:", err);
+      console.error("Login _error:", err);
 
       setError(
         err instanceof Error ? err.message : "Login failed. Please try again."
@@ -89,7 +89,7 @@ export default function LoginPage() {
           </Button>
 
           {error && (
-            <div className="text-red-500 text-sm mt-2 text-center">{error}</div>
+            <div className="text-red-500 text-sm mt-2 text-center">{error: _error}</div>
           )}
         </CardContent>
       </Card>

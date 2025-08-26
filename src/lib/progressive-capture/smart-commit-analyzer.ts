@@ -2,7 +2,7 @@ import { supabase } from '../supabase';
 
 interface CommitPRAssociation {
   sha: string;
-  associatedPRs: any[];
+  associatedPRs: unknown[];
   isDirectCommit: boolean;
   analyzed_at: string;
 }
@@ -61,7 +61,7 @@ export class SmartCommitAnalyzer {
         } else if (response.status === 422) {
           throw new Error(`Invalid commit SHA: ${sha}`);
         }
-        throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+        throw new Error(`GitHub API _error: ${response.status} ${response.statusText}`);
       }
 
       const associatedPRs = await response.json();
@@ -75,8 +75,8 @@ export class SmartCommitAnalyzer {
         analyzed_at: new Date().toISOString()
       };
 
-    } catch (error) {
-      console.error(`[Smart Commit] Failed to analyze commit ${sha}:`, error);
+    } catch (_error) {
+      console.error(`[Smart Commit] Failed to analyze commit ${sha}:`, _error);
       throw error;
     }
   }
@@ -102,7 +102,7 @@ export class SmartCommitAnalyzer {
           // Small delay between individual API calls to be respectful
           await this.delay(200); // 200ms between calls = max 5 calls/second
           
-        } catch (error) {
+        } catch (_error) {
           errors.push({
             sha,
             error: error instanceof Error ? error.message : 'Unknown error'
@@ -139,7 +139,7 @@ export class SmartCommitAnalyzer {
     for (const result of results) {
       try {
         // Update the commit record with PR association info
-        const { error: updateError } = await supabase
+        const { error: _error: updateError } = await supabase
           .from('commits')
           .update({
             is_direct_commit: result.isDirectCommit,
@@ -153,8 +153,8 @@ export class SmartCommitAnalyzer {
           console.warn(`[Smart Commit] Failed to update commit ${result.sha}:`, updateError);
         }
 
-      } catch (error) {
-        console.error(`[Smart Commit] Error storing result for commit ${result.sha}:`, error);
+      } catch (_error) {
+        console.error(`[Smart Commit] Error storing result for commit ${result.sha}:`, _error);
       }
     }
 
@@ -163,7 +163,7 @@ export class SmartCommitAnalyzer {
   /**
    * Process a commit analysis job from the queue
    */
-  async processCommitAnalysisJob(job: { repository_id: string; resource_id: string; metadata: any }, repoInfo: { owner: string; name: string }): Promise<void> {
+  async processCommitAnalysisJob(job: { repository_id: string; resource_id: string; meta_data: any }, repoInfo: { owner: string; name: string }): Promise<void> {
     const commitSha = job.resource_id;
     
     try {
@@ -174,8 +174,8 @@ export class SmartCommitAnalyzer {
       await this.storeAnalysisResults(job.repository_id, [result]);
       
       
-    } catch (error) {
-      console.error(`[Smart Commit] Failed to process job for commit ${commitSha}:`, error);
+    } catch (_error) {
+      console.error(`[Smart Commit] Failed to process job for commit ${commitSha}:`, _error);
       throw error;
     }
   }
@@ -199,7 +199,7 @@ export class SmartCommitAnalyzer {
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
       // Query database for commit analysis (no GitHub API calls needed!)
-      const { data: commits, error } = await supabase
+      const { data: commits, error: _error } = await supabase
         .from('commits')
         .select(`
           sha,
@@ -215,8 +215,8 @@ export class SmartCommitAnalyzer {
         .not('is_direct_commit', 'is', null) // Only include analyzed commits
         .order('authored_at', { ascending: false });
 
-      if (error) {
-        console.error('[Smart Commit] Database query error:', error);
+      if (_error) {
+        console.error('[Smart Commit] Database query error:', _error);
         return { hasYoloCoders: false, yoloCoderStats: [] };
       }
 
@@ -233,8 +233,8 @@ export class SmartCommitAnalyzer {
         yoloCoderStats: contributorStats
       };
 
-    } catch (error) {
-      console.error('[Smart Commit] Error getting direct commits from database:', error);
+    } catch (_error) {
+      console.error('[Smart Commit] Error getting direct commits from _database:', _error);
       return { hasYoloCoders: false, yoloCoderStats: [] };
     }
   }
@@ -242,7 +242,7 @@ export class SmartCommitAnalyzer {
   /**
    * Calculate YOLO coder statistics from analyzed commits
    */
-  private calculateYoloCoderStats(commits: any[]): Array<{
+  private calculateYoloCoderStats(commits: unknown[]): Array<{
     login: string;
     avatar_url: string;
     directCommits: number;
@@ -314,7 +314,7 @@ export class SmartCommitAnalyzer {
   /**
    * Extract the primary PR ID from associated PRs (usually the first one)
    */
-  private extractPrimaryPRId(associatedPRs: any[]): string | null {
+  private extractPrimaryPRId(associatedPRs: unknown[]): string | null {
     if (associatedPRs.length === 0) return null;
     
     // For commits associated with multiple PRs, use the earliest one

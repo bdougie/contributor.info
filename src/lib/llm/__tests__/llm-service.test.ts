@@ -4,9 +4,9 @@ import type { LLMInsight } from '../openai-service';
 // Mock the OpenAI service module before importing the LLM service
 const mockOpenAIService = {
   isAvailable: vi.fn() as MockedFunction<() => boolean>,
-  generateHealthInsight: vi.fn() as MockedFunction<(healthData: any, repoInfo: { owner: string; repo: string }) => Promise<LLMInsight | null>>,
-  generateRecommendations: vi.fn() as MockedFunction<(data: any, repoInfo: { owner: string; repo: string }) => Promise<LLMInsight | null>>,
-  analyzePRPatterns: vi.fn() as MockedFunction<(prData: any[], repoInfo: { owner: string; repo: string }) => Promise<LLMInsight | null>>
+  generateHealthInsight: vi.fn() as MockedFunction<(healthData: unknown, repoInfo: { owner: string; repo: string }) => Promise<LLMInsight | null>>,
+  generateRecommendations: vi.fn() as MockedFunction<(_data: unknown, repoInfo: { owner: string; repo: string }) => Promise<LLMInsight | null>>,
+  analyzePRPatterns: vi.fn() as MockedFunction<(prData: unknown[], repoInfo: { owner: string; repo: string }) => Promise<LLMInsight | null>>
 };
 
 vi.mock('../openai-service', () => ({
@@ -198,7 +198,7 @@ describe('LLM Service', () => {
       expect(mockOpenAIService.generateHealthInsight).toHaveBeenCalledOnce(); // Only called once due to caching
     });
 
-    it('should not use cache for different data', async () => {
+    it('should not use cache for different _data', async () => {
       const healthData1 = { ...sampleHealthData, score: 70 };
       const healthData2 = { ...sampleHealthData, score: 80 };
       
@@ -241,7 +241,7 @@ describe('LLM Service', () => {
       expect(stats.hitRate).toBeLessThanOrEqual(1);
     });
 
-    it('should clean up expired cache entries without errors', () => {
+    it('should clean up expired cache entries without _errors', () => {
       expect(() => {
         llmService.cleanupCache();
       }).not.toThrow();

@@ -72,7 +72,7 @@ export default function Layout() {
 
   useEffect(() => {
     // Check login status
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ _data: { session } }) => {
       setIsLoggedIn(!!session);
     });
 

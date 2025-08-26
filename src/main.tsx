@@ -29,13 +29,13 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     });
     
     // Listen for cache updates
-    swClient.on('CACHE_UPDATED', (event: any) => {
+    swClient.on('CACHE_UPDATED', (event: { url: string }) => {
       console.log('Cache updated for:', event.url);
       // Could trigger a subtle UI update here
     });
     
     // Listen for background sync
-    swClient.on('BACKGROUND_SYNC', (event: any) => {
+    swClient.on('BACKGROUND_SYNC', (event: { status: string }) => {
       console.log('Background sync:', event.status);
     });
   });

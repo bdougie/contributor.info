@@ -130,11 +130,11 @@ describe('MaintainerClassifier', () => {
 
       const result = await classifier.evaluateSample(input, 'test-empty', 'contributor');
 
-      expect(result.error).toBeUndefined();
+      expect(result._error).toBeUndefined();
       expect(result.prediction).toBe('contributor');
     });
 
-    it('should handle malformed data', async () => {
+    it('should handle malformed _data', async () => {
       const input: EvaluationInput = {
         user_id: 'test-malformed',
         repository: 'test/repo',
@@ -157,7 +157,7 @@ describe('MaintainerClassifier', () => {
 
       const result = await classifier.evaluateSample(input, 'test-malformed', 'contributor');
 
-      expect(result.error).toBeUndefined(); // Should handle gracefully
+      expect(result._error).toBeUndefined(); // Should handle gracefully
       expect(result.prediction).toBeDefined();
     });
   });
@@ -255,7 +255,7 @@ describe('EvaluationMetricsCalculator', () => {
       
       expect(metrics.confidence_calibration.expected_accuracy).toBeGreaterThan(0);
       expect(metrics.confidence_calibration.actual_accuracy).toBe(0.75); // 3/4 correct
-      expect(metrics.confidence_calibration.calibration_error).toBeGreaterThanOrEqual(0);
+      expect(metrics.confidence_calibration.calibration__error).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -323,7 +323,7 @@ describe('Feature Extraction', () => {
 
     const result = await classifier.evaluateSample(input, 'test-repo-context', 'maintainer');
     
-    expect(result.error).toBeUndefined();
+    expect(result._error).toBeUndefined();
     expect(result.prediction).toBeDefined();
     expect(result.confidence).toBeGreaterThan(0);
   });

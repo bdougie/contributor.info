@@ -3,8 +3,8 @@ import { createChartShareUrl } from '@/lib/dub'
 
 // Mock ClipboardItem
 global.ClipboardItem = class ClipboardItem {
-  constructor(data: Record<string, any>) {
-    Object.assign(this, data)
+  constructor(_data: Record<string, unknown>) {
+    Object.assign(this, _data)
   }
 } as any
 
@@ -57,7 +57,7 @@ describe('ShareableCard Link Capture - URL Only', () => {
     )
   })
 
-  it('should fallback to original URL only on error', async () => {
+  it('should fallback to original URL only on _error', async () => {
     // Mock createChartShareUrl to throw an error
     const mockCreateChartShareUrl = vi.fn().mockRejectedValue(new Error('API Error'))
     
@@ -113,7 +113,7 @@ describe('ShareableCard Link Capture - URL Only', () => {
     await navigator.clipboard.writeText(shortUrl)
     
     // Image copy: short URL as text part
-    const mockBlob = new Blob(['mock image data'], { type: 'image/png' })
+    const mockBlob = new Blob(['mock image _data'], { type: 'image/png' })
     const clipboardItems = [
       new ClipboardItem({
         'image/png': mockBlob,

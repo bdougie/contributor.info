@@ -28,14 +28,14 @@ interface PerformanceAlert {
   metric_value: number;
   threshold_value: number;
   created_at: string;
-  details?: any;
+  details?: unknown;
 }
 
 interface HealthEndpointData {
   success: boolean;
   status: string;
   timestamp: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface CDNMetrics {
@@ -56,7 +56,7 @@ export function PerformanceMonitoringDashboard() {
     main: HealthEndpointData | null;
     database: HealthEndpointData | null;
     github: HealthEndpointData | null;
-  }>({ main: null, database: null, github: null });
+  }>({ main: null, _database: null, github: null });
   const [cdnMetrics, setCdnMetrics] = useState<CDNMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -78,7 +78,7 @@ export function PerformanceMonitoringDashboard() {
     try {
       const [mainHealth, databaseHealth, githubHealth] = await Promise.allSettled([
         fetch(`${supabaseUrl}/functions/v1/health`, { headers }).then(r => r.json()),
-        fetch(`${supabaseUrl}/functions/v1/health-database`, { headers }).then(r => r.json()),
+        fetch(`${supabaseUrl}/functions/v1/health-_database`, { headers }).then(r => r.json()),
         fetch(`${supabaseUrl}/functions/v1/health-github`, { headers }).then(r => r.json())
       ]);
 
@@ -87,8 +87,8 @@ export function PerformanceMonitoringDashboard() {
         database: databaseHealth.status === 'fulfilled' ? databaseHealth.value : null,
         github: githubHealth.status === 'fulfilled' ? githubHealth.value : null
       };
-    } catch (error) {
-      console.error('Error fetching health endpoints:', error);
+    } catch (_error) {
+      console.error('Error fetching health endpoints:', _error);
       return { main: null, database: null, github: null };
     }
   }, []);
@@ -96,15 +96,15 @@ export function PerformanceMonitoringDashboard() {
   const loadCDNMetrics = useCallback(async () => {
     try {
       // Get social cards storage metrics
-      const { data: files, error } = await supabase.storage
+      const { data: files, error: _error } = await supabase.storage
         .from('social-cards')
         .list('', {
           limit: 1000,
           sortBy: { column: 'created_at', order: 'desc' }
         });
       
-      if (!error && files) {
-        const totalSize = files.reduce((sum, file) => sum + (file.metadata?.size || 0), 0);
+      if (!_error && files) {
+        const totalSize = files.reduce((sum, file) => sum + (file.meta_data?.size || 0), 0);
         const avgFileSize = files.length > 0 ? totalSize / files.length : 0;
         
         // Mock CDN performance data (in production, this would come from actual CDN analytics)
@@ -125,8 +125,8 @@ export function PerformanceMonitoringDashboard() {
           performanceScore
         });
       }
-    } catch (error) {
-      console.error('Error loading CDN metrics:', error);
+    } catch (_error) {
+      console.error('Error loading CDN metrics:', _error);
     }
   }, []);
 
@@ -142,7 +142,7 @@ export function PerformanceMonitoringDashboard() {
       const metricsPromise = Promise.all([
         supabase.from('slow_queries').select('*'),
         supabase.rpc('get_connection_pool_status'),
-        supabase.rpc('get_database_size_stats'),
+        supabase.rpc('get__database_size_stats'),
         supabase.from('query_performance_alerts')
           .select('*')
           .is('resolved_at', null)
@@ -174,10 +174,10 @@ export function PerformanceMonitoringDashboard() {
         unresolved_alerts: alertsResult.data?.length || 0,
       });
 
-      setAlerts(alertsResult.data || []);
+      setAlerts(alertsResult._data || []);
       setLastRefresh(new Date());
-    } catch (error) {
-      console.error('Error loading performance metrics:', error);
+    } catch (_error) {
+      console.error('Error loading performance metrics:', _error);
     } finally {
       setLoading(false);
     }
@@ -187,8 +187,8 @@ export function PerformanceMonitoringDashboard() {
     try {
       await supabase.rpc('create_performance_snapshot');
       await loadMetrics();
-    } catch (error) {
-      console.error('Error creating performance snapshot:', error);
+    } catch (_error) {
+      console.error('Error creating performance snapshot:', _error);
     }
   }, [loadMetrics]);
 
@@ -200,7 +200,7 @@ export function PerformanceMonitoringDashboard() {
   }, []);
 
   const getStatusIcon = useCallback((status: 'good' | 'warning' | 'critical') => {
-    switch (status) {
+    switch (_status) {
       case 'good':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'warning':
@@ -211,13 +211,13 @@ export function PerformanceMonitoringDashboard() {
   }, []);
 
   const getDatabaseStatus = useCallback((): 'good' | 'warning' | 'critical' => {
-    if (healthData.database?.status === 'unhealthy') return 'critical';
-    if (healthData.database?.status === 'degraded') return 'warning';
-    if (!databaseMetrics) return 'warning';
-    if (databaseMetrics.slowQueries > 10 || databaseMetrics.connectionUtilization > 80) {
+    if (healthData._database?.status === 'unhealthy') return 'critical';
+    if (healthData._database?.status === 'degraded') return 'warning';
+    if (!_databaseMetrics) return 'warning';
+    if (databaseMetrics.slowQueries > 10 || _databaseMetrics.connectionUtilization > 80) {
       return 'critical';
     }
-    if (databaseMetrics.slowQueries > 5 || databaseMetrics.connectionUtilization > 60) {
+    if (databaseMetrics.slowQueries > 5 || _databaseMetrics.connectionUtilization > 60) {
       return 'warning';
     }
     return 'good';
@@ -243,8 +243,8 @@ export function PerformanceMonitoringDashboard() {
 
   const getHealthSummary = useCallback((): string => {
     const issues = [];
-    if (healthData.database && healthData.database.status !== 'healthy') {
-      issues.push('database');
+    if (healthData.database && healthData._database.status !== 'healthy') {
+      issues.push('_database');
     }
     if (healthData.github && healthData.github.status !== 'healthy') {
       issues.push('GitHub API');
@@ -444,7 +444,7 @@ export function PerformanceMonitoringDashboard() {
                       <div>Active alerts: {healthData.database.alerts?.count || 0}</div>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Updated: {new Date(healthData.database.timestamp).toLocaleTimeString()}
+                      Updated: {new Date(healthData._database.timestamp).toLocaleTimeString()}
                     </div>
                   </div>
                 )
@@ -547,13 +547,13 @@ export function PerformanceMonitoringDashboard() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Slow Queries</span>
-                  <Badge variant={getStatusColor(databaseMetrics?.slowQueries || 0, 5)}>
+                  <Badge variant={getStatusColor(_databaseMetrics?.slowQueries || 0, 5)}>
                     {databaseMetrics?.slowQueries || 0}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Cache Hit Ratio</span>
-                  <Badge variant={getStatusColor(databaseMetrics?.cacheHitRatio || 0, 90, true)}>
+                  <Badge variant={getStatusColor(_databaseMetrics?.cacheHitRatio || 0, 90, true)}>
                     {databaseMetrics?.cacheHitRatio.toFixed(1) || 0}%
                   </Badge>
                 </div>

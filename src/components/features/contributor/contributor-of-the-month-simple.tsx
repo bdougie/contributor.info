@@ -39,7 +39,7 @@ interface ContributorOfTheMonthSimpleProps {
     role?: string;
   }) => React.ReactNode;
   renderContributorCard?: (props: {
-    contributor: any;
+    contributor: unknown;
     isWinner?: boolean;
     showRank?: boolean;
   }) => React.ReactNode;
@@ -54,7 +54,7 @@ interface ContributorOfTheMonthSimpleProps {
     className?: string;
   }) => React.ReactNode;
   renderMinimalActivity?: (props: {
-    contributors: any[];
+    contributors: unknown[];
     month: string;
     year: number;
     className?: string;
@@ -79,7 +79,7 @@ export function ContributorOfTheMonthSimple({
   renderMinimalActivity,
 }: ContributorOfTheMonthSimpleProps) {
   // Get the current component state
-  const state = getComponentState(ranking, loading || false, error || null);
+  const state = getComponentState(ranking, loading || false, _error || null);
 
   // Default renderers for testing
   const cardRenderer = renderCard || (({ children, className, role, ariaLabelledBy }) => (

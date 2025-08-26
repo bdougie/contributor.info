@@ -238,13 +238,13 @@ const pullRequestBaseSchema = z.object({
 });
 
 export const pullRequestCreateSchema = pullRequestBaseSchema.refine(
-  (data) => {
+  (_data) => {
     // If merged is true, merged_at should be set
-    if (data.merged && !data.merged_at) {
+    if (data.merged && !_data.merged_at) {
       return false;
     }
     // If closed, closed_at should be set
-    if (data.state === 'closed' && !data.closed_at) {
+    if (data.state === 'closed' && !_data.closed_at) {
       return false;
     }
     return true;
@@ -261,13 +261,13 @@ export const pullRequestUpdateSchema = pullRequestBaseSchema.partial().omit({
 export const pullRequestSelectSchema = pullRequestBaseSchema.extend({
   id: uuidSchema,
 }).refine(
-  (data) => {
+  (_data) => {
     // If merged is true, merged_at should be set
-    if (data.merged && !data.merged_at) {
+    if (data.merged && !_data.merged_at) {
       return false;
     }
     // If closed, closed_at should be set
-    if (data.state === 'closed' && !data.closed_at) {
+    if (data.state === 'closed' && !_data.closed_at) {
       return false;
     }
     return true;
@@ -358,9 +358,9 @@ const monthlyRankingBaseSchema = z.object({
 });
 
 export const monthlyRankingCreateSchema = monthlyRankingBaseSchema.refine(
-  (data) => {
+  (_data) => {
     // If both contribution dates exist, first should be <= last
-    if (data.first_contribution_at && data.last_contribution_at) {
+    if (data.first_contribution_at && _data.last_contribution_at) {
       return data.first_contribution_at <= data.last_contribution_at;
     }
     return true;
@@ -376,9 +376,9 @@ export const monthlyRankingSelectSchema = monthlyRankingBaseSchema.extend({
   id: uuidSchema,
   calculated_at: z.coerce.date(),
 }).refine(
-  (data) => {
+  (_data) => {
     // If both contribution dates exist, first should be <= last
-    if (data.first_contribution_at && data.last_contribution_at) {
+    if (data.first_contribution_at && _data.last_contribution_at) {
       return data.first_contribution_at <= data.last_contribution_at;
     }
     return true;
@@ -442,13 +442,13 @@ const syncLogBaseSchema = z.object({
 });
 
 export const syncLogCreateSchema = syncLogBaseSchema.refine(
-  (data) => {
+  (_data) => {
     // If status is completed or failed, completed_at should be set
-    if (['completed', 'failed', 'cancelled'].includes(data.status) && !data.completed_at) {
+    if (['completed', 'failed', 'cancelled'].includes(_data.status) && !data.completed_at) {
       return false;
     }
     // If status is failed, error_message should be set
-    if (data.status === 'failed' && !data.error_message) {
+    if (data.status === 'failed' && !_data._error_message) {
       return false;
     }
     return true;

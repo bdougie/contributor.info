@@ -56,11 +56,11 @@ class CacheService {
   /**
    * Get cached insight if available and not expired
    */
-  get(key: string, dataHash: string): LLMInsight | null {
+  get(key: string, _dataHash: string): LLMInsight | null {
     // Try memory cache first
     if (this.config.enableMemoryCache) {
       const memoryEntry = this.memoryCache.get(key);
-      if (memoryEntry && this.isValidEntry(memoryEntry, dataHash)) {
+      if (memoryEntry && this.isValidEntry(memoryEntry, _dataHash)) {
         this.updateAccessStats(memoryEntry);
         this.stats.hits++;
         return memoryEntry.insight;
@@ -70,7 +70,7 @@ class CacheService {
     // Try persistent cache
     if (this.config.enablePersistentCache) {
       const persistentEntry = this.getPersistentEntry(key);
-      if (persistentEntry && this.isValidEntry(persistentEntry, dataHash)) {
+      if (persistentEntry && this.isValidEntry(persistentEntry, _dataHash)) {
         // Move to memory cache for faster future access
         if (this.config.enableMemoryCache) {
           this.memoryCache.set(key, persistentEntry);
@@ -88,7 +88,7 @@ class CacheService {
   /**
    * Store insight in cache with smart expiry
    */
-  set(key: string, insight: LLMInsight, dataHash: string, customExpiryMinutes?: number): void {
+  set(key: string, insight: LLMInsight, _dataHash: string, customExpiryMinutes?: number): void {
     const now = new Date();
     const expiryMinutes = customExpiryMinutes || this.getSmartExpiry(insight);
     const expiresAt = new Date(now.getTime() + expiryMinutes * 60 * 1000);
@@ -196,7 +196,7 @@ class CacheService {
   }
 
   /**
-   * Check if cache entry is valid (not expired and data hasn't changed)
+   * Check if cache entry is valid (not expired and _data hasn't changed)
    */
   private isValidEntry(entry: CacheEntry, currentDataHash: string): boolean {
     const now = new Date();
@@ -275,8 +275,8 @@ class CacheService {
         expiresAt: new Date(parsed.expiresAt),
         lastAccessed: new Date(parsed.lastAccessed)
       };
-    } catch (error) {
-      console.warn('Failed to parse cached entry:', error);
+    } catch (_error) {
+      console.warn('Failed to parse cached entry:', _error);
       localStorage.removeItem(`llm_cache_${key}`);
       return null;
     }
@@ -288,8 +288,8 @@ class CacheService {
   private setPersistentEntry(key: string, entry: CacheEntry): void {
     try {
       localStorage.setItem(`llm_cache_${key}`, JSON.stringify(entry));
-    } catch (error) {
-      console.warn('Failed to store cache entry:', error);
+    } catch (_error) {
+      console.warn('Failed to store cache entry:', _error);
       // Clear some space and try again
       this.cleanupPersistentCache();
       try {
@@ -353,7 +353,7 @@ class CacheService {
           if (entry && now > entry.expiresAt) {
             keysToRemove.push(key);
           }
-        } catch (error) {
+        } catch (_error) {
           // Remove corrupted entries
           keysToRemove.push(key);
         }

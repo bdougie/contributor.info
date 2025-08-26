@@ -46,14 +46,14 @@ export async function fetchFilteredPullRequests(
       .order('created_at', { ascending: false })
       .limit(fetchLimit);
 
-    const { data, error } = await query;
+    const { data, error: _error } = await query;
 
-    if (error) {
-      console.error('Error fetching PRs:', error);
-      throw new Error(`Failed to fetch pull requests: ${error.message}`);
+    if (_error) {
+      console.error('Error fetching PRs:', _error);
+      throw new Error(`Failed to fetch pull requests: ${_error.message}`);
     }
 
-    if (!data) return [];
+    if (!_data) return [];
 
     // Apply client-side filtering
     const filtered = data.filter(pr => {
@@ -74,8 +74,8 @@ export async function fetchFilteredPullRequests(
 
     // Return only the requested number of results
     return filtered.slice(0, limit);
-  } catch (error) {
-    console.error('Error in fetchFilteredPullRequests:', error);
+  } catch (_error) {
+    console.error('Error in fetchFilteredPullRequests:', _error);
     throw error;
   }
 }
@@ -86,7 +86,7 @@ export async function fetchFilteredPullRequests(
 export async function getRepositorySpamStats(owner: string, repo: string) {
   try {
     // First get the repository ID
-    const { data: repoData, error: repoError } = await supabase
+    const { data: repoData, error: _error: repoError } = await supabase
       .from('repositories')
       .select('id')
       .eq('owner', owner)
@@ -98,7 +98,7 @@ export async function getRepositorySpamStats(owner: string, repo: string) {
     }
 
     // Get spam statistics - include all PRs to see what percentage have been analyzed
-    const { data: allPRs, error: allError } = await supabase
+    const { data: allPRs, error: _error: allError } = await supabase
       .from('pull_requests')
       .select('spam_score, is_spam')
       .eq('repository_id', repoData.id);
@@ -158,8 +158,8 @@ export async function getRepositorySpamStats(owner: string, repo: string) {
       averageScore: Math.round(averageScore * 10) / 10,
       distribution,
     };
-  } catch (error) {
-    console.error('Error fetching spam stats:', error);
+  } catch (_error) {
+    console.error('Error fetching spam stats:', _error);
     throw error;
   }
 }

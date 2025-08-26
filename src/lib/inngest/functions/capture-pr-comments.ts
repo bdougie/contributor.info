@@ -82,13 +82,13 @@ export const capturePrComments = inngest.createFunction(
 
     // Step 1: Get repository details
     const repository = await step.run("get-repository", async () => {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (error || !data) {
+      if (_error || !_data) {
         throw new NonRetriableError(`Repository not found: ${repositoryId}`);
       }
       return data;
@@ -135,7 +135,7 @@ export const capturePrComments = inngest.createFunction(
           
           if (!commenterId) {
             // Create new contributor
-            const { data: newContributor, error: contributorError } = await supabase
+            const { data: newContributor, error: _error: contributorError } = await supabase
               .from('contributors')
               .insert({
                 github_id: comment.user.id,
@@ -147,7 +147,7 @@ export const capturePrComments = inngest.createFunction(
               .maybeSingle();
               
             if (contributorError || !newContributor) {
-              console.warn(`Failed to create commenter ${comment.user.login}:`, contributorError?.message || 'Unknown error');
+              console.warn(`Failed to create commenter ${comment.user.login}:`, contributorError?.message || 'Unknown _error');
               failedContributorCreations++;
               continue;
             }
@@ -187,7 +187,7 @@ export const capturePrComments = inngest.createFunction(
           
           if (!commenterId) {
             // Create new contributor
-            const { data: newContributor, error: contributorError } = await supabase
+            const { data: newContributor, error: _error: contributorError } = await supabase
               .from('contributors')
               .insert({
                 github_id: comment.user.id,
@@ -199,7 +199,7 @@ export const capturePrComments = inngest.createFunction(
               .maybeSingle();
               
             if (contributorError || !newContributor) {
-              console.warn(`Failed to create commenter ${comment.user.login}:`, contributorError?.message || 'Unknown error');
+              console.warn(`Failed to create commenter ${comment.user.login}:`, contributorError?.message || 'Unknown _error');
               failedContributorCreations++;
               continue;
             }
@@ -235,8 +235,8 @@ export const capturePrComments = inngest.createFunction(
           issueComments: processedIssueComments,
           failedContributorCreations: failedContributorCreations,
         };
-      } catch (error: unknown) {
-        console.error(`Error fetching comments for PR #${prNumber}:`, error);
+      } catch (_error: unknown) {
+        console.error(`Error fetching comments for PR #${prNumber}:`, _error);
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
           console.warn(`PR #${prNumber} not found, skipping comments`);
@@ -258,20 +258,20 @@ export const capturePrComments = inngest.createFunction(
       }
 
       // Batch insert comments
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('comments')
         .upsert(allComments, {
           onConflict: 'github_id',
           ignoreDuplicates: false,
         });
 
-      if (error) {
+      if (_error) {
         await syncLogger.fail(`Failed to store comments: ${error.message}`, {
           records_processed: allComments.length,
           records_failed: allComments.length,
           github_api_calls_used: apiCallsUsed
         });
-        throw new Error(`Failed to store comments: ${error.message}`);
+        throw new Error(`Failed to store comments: ${_error.message}`);
       }
 
       return allComments.length;
@@ -279,15 +279,15 @@ export const capturePrComments = inngest.createFunction(
 
     // Step 4: Update PR timestamp (comment counts are tracked via foreign key relationships)
     await step.run("update-pr-stats", async () => {
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('pull_requests')
         .update({
           updated_at: new Date().toISOString(),
         })
         .eq('id', prId);
 
-      if (error) {
-        console.warn(`Failed to update PR timestamp: ${error.message}`);
+      if (_error) {
+        console.warn(`Failed to update PR timestamp: ${_error.message}`);
       }
     });
 

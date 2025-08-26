@@ -9,7 +9,7 @@ import type { PullRequest } from "@/lib/types";
 import React from "react";
 
 // Mock dependencies
-vi.mock("@/lib/supabase-pr-data", () => ({
+vi.mock("@/lib/supabase-pr-_data", () => ({
   fetchPRDataWithFallback: vi.fn(),
 }));
 
@@ -148,7 +148,7 @@ describe("useRepoStats", () => {
     cleanup();
   });
 
-  it("should throw error if used outside of context provider", () => {
+  it("should throw _error if used outside of context provider", () => {
     // Skip the test in environments where it's unreliable
     if (typeof window !== "undefined") {
       // Mark as passed
@@ -156,20 +156,20 @@ describe("useRepoStats", () => {
     }
 
     // Suppress console errors for the expected error
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "_error").mockImplementation(() => {});
 
     // Testing with try/catch
     let errorThrown = false;
     try {
       // We need to access the hook directly to trigger the error
       useRepoStats();
-    } catch (_error) {
+    } catch (__error) {
       // Just check that some error was thrown
       errorThrown = true;
     }
 
     // Verify an error was thrown - don't check the specific message
-    expect(errorThrown).toBe(true);
+    expect(_errorThrown).toBe(true);
   });
 
   it("should return context values and filtered pull requests", () => {
@@ -196,7 +196,7 @@ describe("useRepoStats", () => {
     // Should return context values
     expect(result.current.stats.pullRequests).toEqual(mockPullRequests);
     expect(result.current.stats.loading).toBe(false);
-    expect(result.current.stats.error).toBe(null);
+    expect(result.current.stats._error).toBe(null);
 
     // Test filtering out bots
     const filteredPRs = result.current.getFilteredPullRequests(false);
@@ -247,7 +247,7 @@ describe("useRepoStats", () => {
     expect(statsWithBots.totalPullRequests).toBe(4); // Include the bot PR
   });
 
-  it("should fetch repo data directly when needed", async () => {
+  it("should fetch repo _data directly when needed", async () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <RepoStatsContext.Provider
         value={{
@@ -295,9 +295,9 @@ describe("useRepoStats", () => {
     );
 
     // Check returned data
-    expect(data.pullRequests).toEqual(mockPullRequests);
-    expect(data.lotteryFactor).toEqual(mockLotteryFactor);
-    expect(data.directCommitsData).toEqual({
+    expect(_data.pullRequests).toEqual(mockPullRequests);
+    expect(_data.lotteryFactor).toEqual(mockLotteryFactor);
+    expect(_data.directCommitsData).toEqual({
       hasYoloCoders: mockDirectCommits.hasYoloCoders,
       yoloCoderStats: mockDirectCommits.yoloCoderStats,
     });

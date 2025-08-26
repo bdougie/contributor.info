@@ -13,7 +13,7 @@ export interface RolloutConfiguration {
   monitoring_window_hours: number;
   auto_rollback_enabled: boolean;
   emergency_stop: boolean;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -88,19 +88,19 @@ export class HybridRolloutManager {
       }
 
       // Use database function for eligibility check
-      const { data, error } = await supabase.rpc('is_repository_eligible_for_rollout', {
+      const { data, error: _error } = await supabase.rpc('is_repository_eligible_for_rollout', {
         repo_id: repositoryId,
         feature_name: this.featureName
       });
 
-      if (error) {
-        console.error(`[RolloutManager] Error checking eligibility for ${repositoryId}:`, error);
+      if (_error) {
+        console.error(`[RolloutManager] Error checking eligibility for ${repositoryId}:`, _error);
         return false;
       }
 
       return data as boolean;
-    } catch (error) {
-      console.error(`[RolloutManager] Exception checking eligibility for ${repositoryId}:`, error);
+    } catch (_error) {
+      console.error(`[RolloutManager] Exception checking eligibility for ${repositoryId}:`, _error);
       return false;
     }
   }
@@ -111,17 +111,17 @@ export class HybridRolloutManager {
   async categorizeRepository(repositoryId: string): Promise<RepositoryCategory | null> {
     try {
       // Use database function to categorize repository
-      const { error } = await supabase.rpc('categorize_repository', {
+      const { error: _error } = await supabase.rpc('categorize_repository', {
         repo_id: repositoryId
       });
 
-      if (error) {
-        console.error(`[RolloutManager] Error categorizing repository ${repositoryId}:`, error);
+      if (_error) {
+        console.error(`[RolloutManager] Error categorizing repository ${repositoryId}:`, _error);
         return null;
       }
 
       // Fetch the categorization result
-      const { data: category, error: fetchError } = await supabase
+      const { data: category, error: _error: fetchError } = await supabase
         .from('repository_categories')
         .select('*')
         .eq('repository_id', repositoryId)
@@ -133,8 +133,8 @@ export class HybridRolloutManager {
       }
 
       return category as RepositoryCategory;
-    } catch (error) {
-      console.error(`[RolloutManager] Exception categorizing repository ${repositoryId}:`, error);
+    } catch (_error) {
+      console.error(`[RolloutManager] Exception categorizing repository ${repositoryId}:`, _error);
       return null;
     }
   }
@@ -144,21 +144,21 @@ export class HybridRolloutManager {
    */
   async getRolloutConfiguration(): Promise<RolloutConfiguration | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('rollout_configuration')
         .select('*')
         .eq('feature_name', this.featureName)
         .eq('is_active', true)
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-        console.error(`[RolloutManager] Error fetching rollout configuration:`, error);
+      if (error && _error.code !== 'PGRST116') { // PGRST116 is "not found"
+        console.error(`[RolloutManager] Error fetching rollout configuration:`, _error);
         return null;
       }
 
       return data as RolloutConfiguration;
-    } catch (error) {
-      console.error(`[RolloutManager] Exception fetching rollout configuration:`, error);
+    } catch (_error) {
+      console.error(`[RolloutManager] Exception fetching rollout configuration:`, _error);
       return null;
     }
   }
@@ -181,7 +181,7 @@ export class HybridRolloutManager {
       const previousPercentage = config.rollout_percentage;
 
       // Update rollout configuration
-      const { error: updateError } = await supabase
+      const { error: _error: updateError } = await supabase
         .from('rollout_configuration')
         .update({
           rollout_percentage: percentage,
@@ -195,7 +195,7 @@ export class HybridRolloutManager {
       }
 
       // Log the change in rollout history
-      const { error: historyError } = await supabase
+      const { error: _error: historyError } = await supabase
         .from('rollout_history')
         .insert({
           rollout_config_id: config.id,
@@ -213,8 +213,8 @@ export class HybridRolloutManager {
 
       console.log('[RolloutManager] Updated rollout percentage from %s% to %s%', previousPercentage, percentage);
       return true;
-    } catch (error) {
-      console.error(`[RolloutManager] Exception updating rollout percentage:`, error);
+    } catch (_error) {
+      console.error(`[RolloutManager] Exception updating rollout percentage:`, _error);
       return false;
     }
   }
@@ -231,7 +231,7 @@ export class HybridRolloutManager {
       }
 
       // Set emergency stop
-      const { error: updateError } = await supabase
+      const { error: _error: updateError } = await supabase
         .from('rollout_configuration')
         .update({
           emergency_stop: true,
@@ -245,7 +245,7 @@ export class HybridRolloutManager {
       }
 
       // Log the emergency stop
-      const { error: historyError } = await supabase
+      const { error: _error: historyError } = await supabase
         .from('rollout_history')
         .insert({
           rollout_config_id: config.id,
@@ -263,8 +263,8 @@ export class HybridRolloutManager {
 
       console.log('[RolloutManager] Emergency stop activated: %s', reason);
       return true;
-    } catch (error) {
-      console.error(`[RolloutManager] Exception during emergency stop:`, error);
+    } catch (_error) {
+      console.error(`[RolloutManager] Exception during emergency stop:`, _error);
       return false;
     }
   }
@@ -282,7 +282,7 @@ export class HybridRolloutManager {
 
       const updatedWhitelist = [...new Set([...config.target_repositories, ...repositoryIds])];
 
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('rollout_configuration')
         .update({
           target_repositories: updatedWhitelist,
@@ -290,13 +290,13 @@ export class HybridRolloutManager {
         })
         .eq('id', config.id);
 
-      if (error) {
-        console.error(`[RolloutManager] Error updating whitelist:`, error);
+      if (_error) {
+        console.error(`[RolloutManager] Error updating whitelist:`, _error);
         return false;
       }
 
       // Log the change
-      const { error: historyError } = await supabase
+      const { error: _error: historyError } = await supabase
         .from('rollout_history')
         .insert({
           rollout_config_id: config.id,
@@ -315,8 +315,8 @@ export class HybridRolloutManager {
 
       console.log('[RolloutManager] Added %s repositories to whitelist', repositoryIds.length);
       return true;
-    } catch (error) {
-      console.error(`[RolloutManager] Exception adding to whitelist:`, error);
+    } catch (_error) {
+      console.error(`[RolloutManager] Exception adding to whitelist:`, _error);
       return false;
     }
   }
@@ -336,7 +336,7 @@ export class HybridRolloutManager {
         id => !repositoryIds.includes(id)
       );
 
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('rollout_configuration')
         .update({
           target_repositories: updatedWhitelist,
@@ -344,13 +344,13 @@ export class HybridRolloutManager {
         })
         .eq('id', config.id);
 
-      if (error) {
-        console.error(`[RolloutManager] Error updating whitelist:`, error);
+      if (_error) {
+        console.error(`[RolloutManager] Error updating whitelist:`, _error);
         return false;
       }
 
       // Log the change
-      const { error: historyError } = await supabase
+      const { error: _error: historyError } = await supabase
         .from('rollout_history')
         .insert({
           rollout_config_id: config.id,
@@ -369,8 +369,8 @@ export class HybridRolloutManager {
 
       console.log('[RolloutManager] Removed %s repositories from whitelist', repositoryIds.length);
       return true;
-    } catch (error) {
-      console.error(`[RolloutManager] Exception removing from whitelist:`, error);
+    } catch (_error) {
+      console.error(`[RolloutManager] Exception removing from whitelist:`, _error);
       return false;
     }
   }
@@ -396,7 +396,7 @@ export class HybridRolloutManager {
 
       // Get or create metrics record for this window
       // Check if we have a recent metrics record within the monitoring window
-      const { data: existingMetrics, error: fetchError } = await supabase
+      const { data: existingMetrics, error: _error: fetchError } = await supabase
         .from('rollout_metrics')
         .select('*')
         .eq('rollout_config_id', config.id)
@@ -414,7 +414,7 @@ export class HybridRolloutManager {
 
       if (existingMetrics) {
         // Update existing metrics
-        const { error: updateError } = await supabase
+        const { error: _error: updateError } = await supabase
           .from('rollout_metrics')
           .update({
             success_count: success ? existingMetrics.success_count + 1 : existingMetrics.success_count,
@@ -434,7 +434,7 @@ export class HybridRolloutManager {
         }
       } else {
         // Create new metrics record
-        const { error: insertError } = await supabase
+        const { error: _error: insertError } = await supabase
           .from('rollout_metrics')
           .insert({
             rollout_config_id: config.id,
@@ -454,8 +454,8 @@ export class HybridRolloutManager {
           console.error(`[RolloutManager] Error inserting metrics:`, insertError);
         }
       }
-    } catch (error) {
-      console.error(`[RolloutManager] Exception recording metrics:`, error);
+    } catch (_error) {
+      console.error(`[RolloutManager] Exception recording metrics:`, _error);
     }
   }
 
@@ -470,7 +470,7 @@ export class HybridRolloutManager {
       }
 
       // Get repository categories
-      const { data: categories, error: categoryError } = await supabase
+      const { data: categories, error: _error: categoryError } = await supabase
         .from('repository_categories')
         .select('category, repository_id');
 
@@ -481,7 +481,7 @@ export class HybridRolloutManager {
 
       // Get metrics for error rate calculation
       const windowStart = new Date(Date.now() - config.monitoring_window_hours * 60 * 60 * 1000);
-      const { data: metrics, error: metricsError } = await supabase
+      const { data: metrics, error: _error: metricsError } = await supabase
         .from('rollout_metrics')
         .select('*')
         .eq('rollout_config_id', config.id)
@@ -539,8 +539,8 @@ export class HybridRolloutManager {
         categories: categoryDistribution,
         processor_distribution: processorDistribution
       };
-    } catch (error) {
-      console.error(`[RolloutManager] Exception getting rollout stats:`, error);
+    } catch (_error) {
+      console.error(`[RolloutManager] Exception getting rollout stats:`, _error);
       return null;
     }
   }
@@ -561,8 +561,8 @@ export class HybridRolloutManager {
       }
 
       // Check if error rate exceeds threshold
-      if (stats.error_rate > config.max_error_rate && stats.active_jobs > 10) {
-        console.log('[RolloutManager] Error rate %s% exceeds threshold %s%', stats.error_rate.toFixed(2), config.max_error_rate);
+      if (stats.error_rate > config.max__error_rate && stats.active_jobs > 10) {
+        console.log('[RolloutManager] Error rate %s% exceeds threshold %s%', stats._error_rate.toFixed(2), config.max_error_rate);
         
         // Trigger rollback to 0%
         const rollbackSuccess = await this.updateRolloutPercentage(
@@ -572,14 +572,14 @@ export class HybridRolloutManager {
         );
 
         if (rollbackSuccess) {
-          console.log(`[RolloutManager] Automatic rollback triggered due to high error rate`);
+          console.log(`[RolloutManager] Automatic rollback triggered due to high _error rate`);
           return true;
         }
       }
 
       return false;
-    } catch (error) {
-      console.error(`[RolloutManager] Exception during auto rollback check:`, error);
+    } catch (_error) {
+      console.error(`[RolloutManager] Exception during auto rollback check:`, _error);
       return false;
     }
   }

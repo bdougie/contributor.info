@@ -77,27 +77,27 @@ function getLotteryFactorColor(factor: number | undefined): string {
 
 // Predefined badge types with time context
 const BADGE_PRESETS = {
-  contributors: (data: WidgetData) => ({
+  contributors: (_data: WidgetData) => ({
     label: "contributors (30d)",
     message: data.stats.totalContributors.toString(),
     color: COLORS.contributors,
   }),
-  "pull-requests": (data: WidgetData) => ({
+  "pull-requests": (_data: WidgetData) => ({
     label: "PRs (30d)", 
     message: data.stats.totalPRs.toString(),
     color: COLORS.pullRequests,
   }),
-  "merge-rate": (data: WidgetData) => ({
+  "merge-rate": (_data: WidgetData) => ({
     label: "merge rate (30d)",
     message: `${data.stats.mergeRate.toFixed(1)}%`,
-    color: getMergeRateColor(data.stats.mergeRate),
+    color: getMergeRateColor(_data.stats.mergeRate),
   }),
-  "lottery-factor": (data: WidgetData) => ({
+  "lottery-factor": (_data: WidgetData) => ({
     label: "lottery factor (30d)",
     message: data.stats.lotteryFactor?.toFixed(1) || "N/A",
-    color: getLotteryFactorColor(data.stats.lotteryFactor),
+    color: getLotteryFactorColor(_data.stats.lotteryFactor),
   }),
-  activity: (data: WidgetData) => ({
+  activity: (_data: WidgetData) => ({
     label: "activity (7d)",
     message: data.activity.recentActivity ? "active" : "low",
     color: data.activity.recentActivity ? COLORS.activity.active : COLORS.activity.low,
@@ -105,7 +105,7 @@ const BADGE_PRESETS = {
 };
 
 // Security functions for safe SVG generation
-function escapeXml(text: any): string {
+function escapeXml(text: unknown): string {
   if (typeof text !== 'string') {
     text = String(text);
   }
@@ -131,7 +131,7 @@ function sanitizeColor(color: string): string {
 }
 
 
-export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps) {
+export function BadgeGenerator({ config, _data, className }: BadgeGeneratorProps) {
   const style = config.style || 'flat';
   const styleConfig = BADGE_STYLES[style];
   
@@ -148,7 +148,7 @@ export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps)
     // Preset badge - infer from config or use first metric
     const presetKey = config.metrics?.[0] || 'contributors';
     const preset = BADGE_PRESETS[presetKey as keyof typeof BADGE_PRESETS];
-    badgeContent = preset ? preset(data) : BADGE_PRESETS.contributors(data);
+    badgeContent = preset ? preset(_data) : BADGE_PRESETS.contributors(_data);
   }
 
   const { label, message, color } = badgeContent;
@@ -254,7 +254,7 @@ export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps)
 }
 
 // Utility function to generate badge URL
-export function generateBadgeURL(config: BadgeConfig, data: WidgetData): string {
+export function generateBadgeURL(config: BadgeConfig, _data: WidgetData): string {
   return `${window.location.origin}/api/widget/badge?` + new URLSearchParams({
     owner: data.repository.owner,
     repo: data.repository.repo,
@@ -266,7 +266,7 @@ export function generateBadgeURL(config: BadgeConfig, data: WidgetData): string 
 }
 
 // Utility function to generate badge markdown
-export function generateBadgeMarkdown(config: BadgeConfig, data: WidgetData): string {
-  const badgeUrl = generateBadgeURL(config, data);
+export function generateBadgeMarkdown(config: BadgeConfig, _data: WidgetData): string {
+  const badgeUrl = generateBadgeURL(config, _data);
   return `![${data.repository.repo} badge](${badgeUrl})`;
 }

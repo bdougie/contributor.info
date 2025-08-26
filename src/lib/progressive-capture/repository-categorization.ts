@@ -40,12 +40,12 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
       console.log('[RepositoryCategorization] Starting bulk categorization...');
       
       // Get all repositories
-      const { data: repositories, error } = await supabase
+      const { data: repositories, error: _error } = await supabase
         .from('repositories')
         .select('id, name, owner');
 
-      if (error) {
-        console.error('[RepositoryCategorization] Error fetching repositories:', error);
+      if (_error) {
+        console.error('[RepositoryCategorization] Error fetching repositories:', _error);
         return;
       }
 
@@ -61,14 +61,14 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         try {
           const category = await this.categorizeRepository(repo.id);
           console.log('[RepositoryCategorization] %s/%s → %s', repo.owner, repo.name, category);
-        } catch (error) {
-          console.error(`[RepositoryCategorization] Error categorizing ${repo.owner}/${repo.name}:`, error);
+        } catch (_error) {
+          console.error(`[RepositoryCategorization] Error categorizing ${repo.owner}/${repo.name}:`, _error);
         }
       }
 
       console.log('[RepositoryCategorization] Bulk categorization completed');
-    } catch (error) {
-      console.error('[RepositoryCategorization] Exception during bulk categorization:', error);
+    } catch (_error) {
+      console.error('[RepositoryCategorization] Exception during bulk categorization:', _error);
     }
   }
 
@@ -79,8 +79,8 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
     try {
       const category = await hybridRolloutManager.categorizeRepository(repositoryId);
       return category?.category || null;
-    } catch (error) {
-      console.error(`[RepositoryCategorization] Error categorizing repository ${repositoryId}:`, error);
+    } catch (_error) {
+      console.error(`[RepositoryCategorization] Error categorizing repository ${repositoryId}:`, _error);
       return null;
     }
   }
@@ -90,7 +90,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
    */
   async getCategoryStats(): Promise<RepositoryCategoryStats[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('repository_categories')
         .select(`
           category,
@@ -100,12 +100,12 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
           monthly_activity_score
         `);
 
-      if (error) {
-        console.error('[RepositoryCategorization] Error fetching category stats:', error);
+      if (_error) {
+        console.error('[RepositoryCategorization] Error fetching category stats:', _error);
         return [];
       }
 
-      if (!data || data.length === 0) {
+      if (!data || _data.length === 0) {
         return [];
       }
 
@@ -118,7 +118,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         total_activity_score: number;
       }>();
 
-      for (const repo of data) {
+      for (const repo of _data) {
         const category = repo.category;
         const existing = categoryMap.get(category) || {
           count: 0,
@@ -154,8 +154,8 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
       stats.sort((a, b) => b.count - a.count);
 
       return stats;
-    } catch (error) {
-      console.error('[RepositoryCategorization] Exception getting category stats:', error);
+    } catch (_error) {
+      console.error('[RepositoryCategorization] Exception getting category stats:', _error);
       return [];
     }
   }
@@ -165,7 +165,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
    */
   async getRepositoriesByCategory(category: string): Promise<any[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('repository_categories')
         .select(`
           *,
@@ -182,14 +182,14 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         .eq('category', category)
         .order('priority_level', { ascending: false });
 
-      if (error) {
-        console.error(`[RepositoryCategorization] Error fetching repositories for category ${category}:`, error);
+      if (_error) {
+        console.error(`[RepositoryCategorization] Error fetching repositories for category ${category}:`, _error);
         return [];
       }
 
       return data || [];
-    } catch (error) {
-      console.error(`[RepositoryCategorization] Exception getting repositories for category ${category}:`, error);
+    } catch (_error) {
+      console.error(`[RepositoryCategorization] Exception getting repositories for category ${category}:`, _error);
       return [];
     }
   }
@@ -199,7 +199,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
    */
   async markAsTestRepository(repositoryId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('repository_categories')
         .update({
           is_test_repository: true,
@@ -209,15 +209,15 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         })
         .eq('repository_id', repositoryId);
 
-      if (error) {
-        console.error(`[RepositoryCategorization] Error marking repository ${repositoryId} as test:`, error);
+      if (_error) {
+        console.error(`[RepositoryCategorization] Error marking repository ${repositoryId} as test:`, _error);
         return false;
       }
 
       console.log('[RepositoryCategorization] Marked repository %s as test repository', repositoryId);
       return true;
-    } catch (error) {
-      console.error(`[RepositoryCategorization] Exception marking repository ${repositoryId} as test:`, error);
+    } catch (_error) {
+      console.error(`[RepositoryCategorization] Exception marking repository ${repositoryId} as test:`, _error);
       return false;
     }
   }
@@ -235,7 +235,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         return false;
       }
 
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('repository_categories')
         .update({
           is_test_repository: false,
@@ -243,15 +243,15 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         })
         .eq('repository_id', repositoryId);
 
-      if (error) {
-        console.error(`[RepositoryCategorization] Error unmarking repository ${repositoryId} as test:`, error);
+      if (_error) {
+        console.error(`[RepositoryCategorization] Error unmarking repository ${repositoryId} as test:`, _error);
         return false;
       }
 
       console.log('[RepositoryCategorization] Unmarked repository %s as test repository', repositoryId);
       return true;
-    } catch (error) {
-      console.error(`[RepositoryCategorization] Exception unmarking repository ${repositoryId} as test:`, error);
+    } catch (_error) {
+      console.error(`[RepositoryCategorization] Exception unmarking repository ${repositoryId} as test:`, _error);
       return false;
     }
   }
@@ -261,7 +261,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
    */
   async getTestRepositories(): Promise<any[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('repository_categories')
         .select(`
           *,
@@ -278,14 +278,14 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         .eq('is_test_repository', true)
         .order('priority_level', { ascending: false });
 
-      if (error) {
-        console.error('[RepositoryCategorization] Error fetching test repositories:', error);
+      if (_error) {
+        console.error('[RepositoryCategorization] Error fetching test repositories:', _error);
         return [];
       }
 
       return data || [];
-    } catch (error) {
-      console.error('[RepositoryCategorization] Exception getting test repositories:', error);
+    } catch (_error) {
+      console.error('[RepositoryCategorization] Exception getting test repositories:', _error);
       return [];
     }
   }
@@ -295,7 +295,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
    */
   async getRolloutReadyRepositories(limit: number = 10): Promise<any[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('repository_categories')
         .select(`
           *,
@@ -312,14 +312,14 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
         .order('priority_level', { ascending: false })
         .limit(limit);
 
-      if (error) {
-        console.error('[RepositoryCategorization] Error fetching rollout-ready repositories:', error);
+      if (_error) {
+        console.error('[RepositoryCategorization] Error fetching rollout-ready repositories:', _error);
         return [];
       }
 
       return data || [];
-    } catch (error) {
-      console.error('[RepositoryCategorization] Exception getting rollout-ready repositories:', error);
+    } catch (_error) {
+      console.error('[RepositoryCategorization] Exception getting rollout-ready repositories:', _error);
       return [];
     }
   }

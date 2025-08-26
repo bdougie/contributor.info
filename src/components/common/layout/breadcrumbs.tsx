@@ -93,30 +93,36 @@ export const Breadcrumbs = () => {
     );
   };
 
-  const items = displayBreadcrumbs.map((crumb) => {
-    const prefetchHandlers = !crumb.isLast && !crumb.isStatic ? usePrefetchOnIntent(crumb.to) : {};
+  const BreadcrumbItemComponent = ({ crumb }: { crumb: typeof displayBreadcrumbs[0] }) => {
+    const prefetchHandlers = usePrefetchOnIntent(!crumb.isLast && !crumb.isStatic ? crumb.to : '');
     
+    const renderContent = () => {
+      if (crumb.isLast) {
+        return <BreadcrumbPage className={cn(isMobile && 'text-sm font-medium')}>{crumb.name}</BreadcrumbPage>;
+      }
+      if (crumb.isStatic) {
+        return <span className="text-muted-foreground">{crumb.name}</span>;
+      }
+      return (
+        <BreadcrumbLink asChild>
+          <Link to={crumb.to} className={cn(isMobile && 'text-sm')} {...prefetchHandlers}>{crumb.name}</Link>
+        </BreadcrumbLink>
+      );
+    };
+
     return (
       <React.Fragment key={crumb.to || crumb.name}>
         <BreadcrumbItem>
-          {crumb.isLast
-? (
-            <BreadcrumbPage className={cn(isMobile && 'text-sm font-medium')}>{crumb.name}</BreadcrumbPage>
-          )
-: crumb.isStatic
-? (
-            <span className="text-muted-foreground">{crumb.name}</span>
-          )
-: (
-            <BreadcrumbLink asChild>
-              <Link to={crumb.to} className={cn(isMobile && 'text-sm')} {...prefetchHandlers}>{crumb.name}</Link>
-            </BreadcrumbLink>
-          )}
+          {renderContent()}
         </BreadcrumbItem>
         {!crumb.isLast && <BreadcrumbSeparator />}
       </React.Fragment>
     );
-  });
+  };
+
+  const items = displayBreadcrumbs.map((crumb) => (
+    <BreadcrumbItemComponent key={crumb.to || crumb.name} crumb={crumb} />
+  ));
 
   // Use dynamic origin for JSON-LD to support different environments
   const origin = typeof window !== 'undefined' 
@@ -141,7 +147,8 @@ export const Breadcrumbs = () => {
       </Helmet>
       
       {/* Mobile: Pinned breadcrumb with back button */}
-      {isMobile ? (
+      {isMobile 
+        ? (
         <div className="sticky top-0 z-40 bg-transparent md:hidden">
           <div className="container px-4 py-2">
             {getBackButton()}
@@ -156,7 +163,8 @@ export const Breadcrumbs = () => {
             </div>
           </div>
         </div>
-      ) : (
+      ) 
+        : (
         /* Desktop: Standard breadcrumb */
         <Breadcrumb className="hidden md:flex mb-4" style={{ background: 'transparent', border: 'none' }}>
           <BreadcrumbList>{items}</BreadcrumbList>

@@ -43,7 +43,7 @@ const BulkAddRepos = lazy(() => import("@/components/features/debug/bulk-add-rep
 // Settings and Privacy components
 const SettingsPage = lazy(() => import("@/components/features/settings/settings-page").then(m => ({ default: m.SettingsPage })));
 const PrivacyPolicyPage = lazy(() => import("@/components/features/privacy/privacy-policy-page").then(m => ({ default: m.PrivacyPolicyPage })));
-const DataRequestPage = lazy(() => import("@/components/features/privacy/data-request-page").then(m => ({ default: m.DataRequestPage })));
+const DataRequestPage = lazy(() => import("@/components/features/privacy/_data-request-page").then(m => ({ default: m.DataRequestPage })));
 const TermsPage = lazy(() => import("@/components/features/privacy/terms-page").then(m => ({ default: m.TermsPage })));
 
 // Workspace components
@@ -250,7 +250,7 @@ function App() {
         import("@/components/features/repository/repo-view"),
         import("@/components/features/auth/login-page"),
         import("@/lib/supabase"), // Critical for data loading
-        import("@/hooks/use-cached-repo-data")
+        import("@/hooks/use-cached-repo-_data")
       ];
       
       // Start critical loads immediately

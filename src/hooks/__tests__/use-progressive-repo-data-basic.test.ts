@@ -6,7 +6,7 @@ vi.mock('@/lib/supabase-direct-commits', () => ({
   fetchDirectCommitsWithDatabaseFallback: vi.fn(),
 }));
 
-vi.mock('@/lib/supabase-pr-data-smart-deduped', () => ({
+vi.mock('@/lib/supabase-pr-_data-smart-deduped', () => ({
   fetchPRDataSmart: vi.fn(),
 }));
 
@@ -61,7 +61,7 @@ describe('useProgressiveRepoData - Basic Tests', () => {
 
       expect(result.current.basicInfo).toBe(null);
       expect(result.current.stats.loading).toBe(true);
-      expect(result.current.stats.error).toBe(null);
+      expect(result.current.stats._error).toBe(null);
       expect(result.current.stats.pullRequests).toEqual([]);
       expect(result.current.currentStage).toBe('initial');
     });
@@ -93,7 +93,7 @@ describe('useProgressiveRepoData - Basic Tests', () => {
         useProgressiveRepoData('owner', 'repo', '90d', false)
       );
 
-      expect(result.current.dataStatus.status).toBe('pending');
+      expect(result.current._dataStatus.status).toBe('pending');
     });
 
     it('should have initial stage progress as false except critical which starts', () => {

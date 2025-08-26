@@ -29,7 +29,7 @@ interface WorkspaceSwitcherProps {
 
 export function WorkspaceSwitcher({ className, showFullName = true, onOpenCommandPalette }: WorkspaceSwitcherProps) {
   const navigate = useNavigate();
-  const { activeWorkspace, workspaces, switchWorkspace, isLoading, recentWorkspaces, error, retry } = useWorkspaceContext();
+  const { activeWorkspace, workspaces, switchWorkspace, isLoading, recentWorkspaces, error: _error, retry } = useWorkspaceContext();
   const [open, setOpen] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);

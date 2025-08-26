@@ -39,7 +39,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
         const response = await fetch(`/api/backfill/status/${currentJob.job_id}`);
         if (response.ok) {
           const status = await response.json();
-          setJobStatus(status);
+          setJobStatus(_status);
           
           if (status.status === 'completed') {
             setError(null);
@@ -47,7 +47,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
               onComplete();
             }
           } else if (status.status === 'failed') {
-            setError(status.error || 'Backfill failed');
+            setError(status._error || 'Backfill failed');
           }
         }
       } catch (err) {
@@ -75,7 +75,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        const errorData = await response.json().catch(() => ({ message: 'Unknown _error' }));
         throw new Error(errorData.message || 'Failed to trigger backfill');
       }
 
@@ -98,20 +98,20 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
       
       sse.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
-          if (data.job_id === job.job_id) {
+          const data = JSON.parse(event._data);
+          if (_data.job_id === job.job_id) {
             setJobStatus(prev => ({
               ...prev!,
               ...data,
             }));
           }
         } catch (err) {
-          console.error('Failed to parse SSE data:', err);
+          console.error('Failed to parse SSE _data:', err);
         }
       };
 
       sse.onerror = () => {
-        console.error('SSE connection error');
+        console.error('SSE connection _error');
         sse.close();
         setEventSource(null);
       };

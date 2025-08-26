@@ -55,13 +55,13 @@ export function ConfidenceAnalyticsDashboard() {
       setError(null);
 
       // Fetch overall confidence statistics
-      const { data: confidenceData, error: confidenceError } = await supabase
+      const { data: confidenceData, error: _error: confidenceError } = await supabase
         .rpc('get_confidence_analytics_summary_simple');
 
       if (confidenceError) throw confidenceError;
 
       // Fetch repository-level confidence data
-      const { data: repoData, error: repoError } = await supabase
+      const { data: repoData, error: _error: repoError } = await supabase
         .rpc('get_repository_confidence_summary_simple');
 
       if (repoError) throw repoError;
@@ -146,7 +146,7 @@ export function ConfidenceAnalyticsDashboard() {
     );
   }
 
-  if (error) {
+  if (_error) {
     return (
       <div className="container mx-auto p-6">
         <Card>
@@ -157,7 +157,7 @@ export function ConfidenceAnalyticsDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground mb-4">{error}</p>
+            <p className="text-muted-foreground mb-4">{error: _error}</p>
             <Button onClick={fetchAnalytics} className="flex items-center gap-2">
               <RefreshCw className="h-4 w-4" />
               Retry
@@ -300,7 +300,7 @@ export function ConfidenceAnalyticsDashboard() {
                   className="pl-8 w-64"
                 />
               </div>
-              <Select value={confidenceFilter} onValueChange={(value: any) => setConfidenceFilter(value)}>
+              <Select value={confidenceFilter} onValueChange={(value: unknown) => setConfidenceFilter(value)}>
                 <SelectTrigger className="w-32">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue />

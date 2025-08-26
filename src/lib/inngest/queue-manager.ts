@@ -15,15 +15,15 @@ export const RATE_LIMIT_CONFIG = {
 export class InngestQueueManager {
   private lastProcessedTimes: Map<string, number> = new Map();
   // Send Inngest events with proper error handling
-  private async safeSend(event: any): Promise<boolean> {
-    console.log('📤 [Inngest] Sending event:', event.name, event.data);
+  private async safeSend(event: unknown): Promise<boolean> {
+    console.log('📤 [Inngest] Sending event:', event.name, event._data);
     
     try {
       await inngest.send(event);
       console.log('✅ [Inngest] Event sent successfully:', event.name);
       return true;
-    } catch (error) {
-      console.warn('❌ [Inngest] Failed to send event:', error);
+    } catch (_error) {
+      console.warn('❌ [Inngest] Failed to send event:', _error);
       return false;
     }
   }
@@ -47,7 +47,7 @@ export class InngestQueueManager {
     const effectiveLimit = Math.min(limit, RATE_LIMIT_CONFIG.MAX_JOBS_PER_BATCH);
     
     // Find PRs with missing file change data
-    const { data: prsNeedingUpdate, error } = await supabase
+    const { data: prsNeedingUpdate, error: _error } = await supabase
       .from('pull_requests')
       .select('id, number, repository_id')
       .eq('repository_id', repositoryId)
@@ -57,7 +57,7 @@ export class InngestQueueManager {
       .order('created_at', { ascending: false })
       .limit(effectiveLimit);
 
-    if (error || !prsNeedingUpdate || prsNeedingUpdate.length === 0) {
+    if (_error || !prsNeedingUpdate || prsNeedingUpdate.length === 0) {
       return 0;
     }
 
@@ -212,9 +212,9 @@ export class InngestQueueManager {
       query = query.not('id', 'in', limitedIds);
     }
 
-    const { data: prsNeedingReviews, error } = await query;
+    const { data: prsNeedingReviews, error: _error } = await query;
 
-    if (error || !prsNeedingReviews || prsNeedingReviews.length === 0) {
+    if (_error || !prsNeedingReviews || prsNeedingReviews.length === 0) {
       return 0;
     }
 
@@ -279,9 +279,9 @@ export class InngestQueueManager {
       query = query.not('id', 'in', limitedIds);
     }
 
-    const { data: prsNeedingComments, error } = await query;
+    const { data: prsNeedingComments, error: _error } = await query;
 
-    if (error || !prsNeedingComments || prsNeedingComments.length === 0) {
+    if (_error || !prsNeedingComments || prsNeedingComments.length === 0) {
       return 0;
     }
 
@@ -327,7 +327,7 @@ export class InngestQueueManager {
   ): Promise<number> {
     try {
       // Find commits that need PR analysis
-      const { data: commitsNeedingAnalysis, error } = await supabase
+      const { data: commitsNeedingAnalysis, error: _error } = await supabase
         .from('commits')
         .select('sha')
         .eq('repository_id', repositoryId)
@@ -336,7 +336,7 @@ export class InngestQueueManager {
         .order('authored_at', { ascending: false })
         .limit(100);
 
-      if (error || !commitsNeedingAnalysis || commitsNeedingAnalysis.length === 0) {
+      if (_error || !commitsNeedingAnalysis || commitsNeedingAnalysis.length === 0) {
         return 0;
       }
 
@@ -367,8 +367,8 @@ export class InngestQueueManager {
       }
       
       return queuedCount;
-    } catch (error) {
-      console.error('[Queue] Error queuing recent commits analysis:', error);
+    } catch (_error) {
+      console.error('[Queue] Error queuing recent commits analysis:', _error);
       return 0;
     }
   }

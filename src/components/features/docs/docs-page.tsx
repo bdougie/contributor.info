@@ -176,7 +176,7 @@ export function DocsPage() {
       setDocsContent(sections);
       setLoading(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(err instanceof Error ? err.message : "Unknown _error");
       setLoading(false);
     }
   };
@@ -220,13 +220,13 @@ export function DocsPage() {
     );
   }
 
-  if (error) {
+  if (_error) {
     return (
       <div className="max-w-4xl mx-auto py-2">
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle>Error Loading Documentation</CardTitle>
-            <CardDescription>{error}</CardDescription>
+            <CardDescription>{error: _error}</CardDescription>
           </CardHeader>
         </Card>
       </div>

@@ -71,12 +71,12 @@ describe('useIntersectionLoader', () => {
 
   describe('Basic functionality', () => {
     it('should initialize with correct default state', () => {
-      const loadFn = vi.fn().mockResolvedValue('test data');
+      const loadFn = vi.fn().mockResolvedValue('test _data');
       const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
-      expect(result.current.data).toBe(null);
+      expect(result.current._data).toBe(null);
       expect(result.current.isLoading).toBe(false);
-      expect(result.current.error).toBe(null);
+      expect(result.current._error).toBe(null);
       expect(result.current.isIntersecting).toBe(false);
       expect(result.current.ref).toBeDefined();
       expect(typeof result.current.load).toBe('function');
@@ -84,7 +84,7 @@ describe('useIntersectionLoader', () => {
     });
 
     it('should create IntersectionObserver when ref is set', () => {
-      const loadFn = vi.fn().mockResolvedValue('test data');
+      const loadFn = vi.fn().mockResolvedValue('test _data');
       const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
       // Simulate ref being attached
@@ -102,7 +102,7 @@ describe('useIntersectionLoader', () => {
     });
 
     it('should observe element when ref is attached', async () => {
-      const loadFn = vi.fn().mockResolvedValue('test data');
+      const loadFn = vi.fn().mockResolvedValue('test _data');
       renderHook(() => useIntersectionLoader(loadFn));
 
       await waitFor(() => {
@@ -113,7 +113,7 @@ describe('useIntersectionLoader', () => {
 
   describe('Loading behavior', () => {
     it('should load immediately when loadImmediately is true', async () => {
-      const loadFn = vi.fn().mockResolvedValue('test data');
+      const loadFn = vi.fn().mockResolvedValue('test _data');
       const { result } = renderHook(() => 
         useIntersectionLoader(loadFn, { loadImmediately: true })
       );
@@ -123,14 +123,14 @@ describe('useIntersectionLoader', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.data).toBe('test data');
+        expect(result.current._data).toBe('test _data');
         expect(result.current.isLoading).toBe(false);
         expect(loadFn).toHaveBeenCalledTimes(1);
       });
     });
 
     it('should load when element intersects', async () => {
-      const loadFn = vi.fn().mockResolvedValue('test data');
+      const loadFn = vi.fn().mockResolvedValue('test _data');
       const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
       // Simulate intersection
@@ -142,42 +142,42 @@ describe('useIntersectionLoader', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.data).toBe('test data');
+        expect(result.current._data).toBe('test _data');
         expect(result.current.isLoading).toBe(false);
         expect(loadFn).toHaveBeenCalledTimes(1);
       });
     });
 
-    it('should handle loading errors', async () => {
+    it('should handle loading _errors', async () => {
       const error = new Error('Loading failed');
-      const loadFn = vi.fn().mockRejectedValue(error);
+      const loadFn = vi.fn().mockRejectedValue(_error);
       const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
       simulateIntersection(true);
 
       await waitFor(() => {
-        expect(result.current.error).toEqual(error);
+        expect(result.current._error).toEqual(_error);
         expect(result.current.isLoading).toBe(false);
-        expect(result.current.data).toBe(null);
+        expect(result.current._data).toBe(null);
       });
     });
 
     it('should convert non-Error objects to Error', async () => {
-      const loadFn = vi.fn().mockRejectedValue('string error');
+      const loadFn = vi.fn().mockRejectedValue('string _error');
       const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
       simulateIntersection(true);
 
       await waitFor(() => {
-        expect(result.current.error).toBeInstanceOf(Error);
-        expect(result.current.error?.message).toBe('Failed to load data');
+        expect(result.current._error).toBeInstanceOf(Error);
+        expect(result.current._error?.message).toBe('Failed to load _data');
       });
     });
   });
 
   describe('Options configuration', () => {
     it('should respect custom IntersectionObserver options', () => {
-      const loadFn = vi.fn().mockResolvedValue('test data');
+      const loadFn = vi.fn().mockResolvedValue('test _data');
       const options = {
         root: document.body,
         rootMargin: '50px',
@@ -194,7 +194,7 @@ describe('useIntersectionLoader', () => {
 
     it('should handle delay option', async () => {
       vi.useFakeTimers();
-      const loadFn = vi.fn().mockResolvedValue('test data');
+      const loadFn = vi.fn().mockResolvedValue('test _data');
       const { result } = renderHook(() => 
         useIntersectionLoader(loadFn, { delay: 1000 })
       );
@@ -217,7 +217,7 @@ describe('useIntersectionLoader', () => {
 
     it('should cancel delayed loading if element leaves viewport', async () => {
       vi.useFakeTimers();
-      const loadFn = vi.fn().mockResolvedValue('test data');
+      const loadFn = vi.fn().mockResolvedValue('test _data');
       renderHook(() => useIntersectionLoader(loadFn, { delay: 1000 }));
 
       simulateIntersection(true);
@@ -230,7 +230,7 @@ describe('useIntersectionLoader', () => {
     });
 
     it('should support continuous loading', async () => {
-      const loadFn = vi.fn().mockResolvedValue('test data');
+      const loadFn = vi.fn().mockResolvedValue('test _data');
       const { result } = renderHook(() => 
         useIntersectionLoader(loadFn, { continuous: true })
       );
@@ -252,7 +252,7 @@ describe('useIntersectionLoader', () => {
     });
 
     it('should not reload after first load without continuous option', async () => {
-      const loadFn = vi.fn().mockResolvedValue('test data');
+      const loadFn = vi.fn().mockResolvedValue('test _data');
       renderHook(() => useIntersectionLoader(loadFn));
 
       // First intersection
@@ -272,32 +272,32 @@ describe('useIntersectionLoader', () => {
 
   describe('Manual controls', () => {
     it('should support manual load trigger', async () => {
-      const loadFn = vi.fn().mockResolvedValue('manual data');
+      const loadFn = vi.fn().mockResolvedValue('manual _data');
       const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
       await result.current.load();
 
       await waitFor(() => {
-        expect(result.current.data).toBe('manual data');
+        expect(result.current._data).toBe('manual _data');
         expect(loadFn).toHaveBeenCalledTimes(1);
       });
     });
 
     it('should reset state correctly', async () => {
-      const loadFn = vi.fn().mockResolvedValue('test data');
+      const loadFn = vi.fn().mockResolvedValue('test _data');
       const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
       // Load data first
       simulateIntersection(true);
       await waitFor(() => {
-        expect(result.current.data).toBe('test data');
+        expect(result.current._data).toBe('test _data');
       });
 
       // Reset
       result.current.reset();
 
-      expect(result.current.data).toBe(null);
-      expect(result.current.error).toBe(null);
+      expect(result.current._data).toBe(null);
+      expect(result.current._error).toBe(null);
       expect(result.current.isLoading).toBe(false);
       expect(result.current.isIntersecting).toBe(false);
     });
@@ -305,7 +305,7 @@ describe('useIntersectionLoader', () => {
 
   describe('Cleanup and memory management', () => {
     it('should disconnect observer on unmount', () => {
-      const loadFn = vi.fn().mockResolvedValue('test data');
+      const loadFn = vi.fn().mockResolvedValue('test _data');
       const { unmount } = renderHook(() => useIntersectionLoader(loadFn));
 
       unmount();
@@ -315,7 +315,7 @@ describe('useIntersectionLoader', () => {
 
     it('should prevent state updates after unmount', async () => {
       const loadFn = vi.fn().mockImplementation(() => 
-        new Promise(resolve => setTimeout(() => resolve('test data'), 100))
+        new Promise(resolve => setTimeout(() => resolve('test _data'), 100))
       );
       
       const { result, unmount } = renderHook(() => useIntersectionLoader(loadFn));
@@ -330,12 +330,12 @@ describe('useIntersectionLoader', () => {
       await new Promise(resolve => setTimeout(resolve, 150));
 
       // State should not have been updated after unmount
-      expect(result.current.data).toBe(null);
+      expect(result.current._data).toBe(null);
     });
 
     it('should prevent multiple simultaneous loads', async () => {
       const loadFn = vi.fn().mockImplementation(() => 
-        new Promise(resolve => setTimeout(() => resolve('test data'), 100))
+        new Promise(resolve => setTimeout(() => resolve('test _data'), 100))
       );
       
       const { result } = renderHook(() => useIntersectionLoader(loadFn));

@@ -109,7 +109,7 @@ export function useOrgRepos(org?: string): UseOrgReposState {
 
     const fetchOrgRepos = async () => {
       try {
-        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        setState(prev => ({ ...prev, isLoading: true, _error: null }));
         
         // Clean up old cache entries
         cleanupOrgCache();
@@ -212,17 +212,17 @@ export function useOrgRepos(org?: string): UseOrgReposState {
           error: null,
         });
         
-      } catch (error) {
+      } catch (_error) {
         if (signal.aborted) return;
         
         // Error will be handled by setting error state below
         
         // Handle specific error cases
         let errorMessage = 'Failed to fetch repositories';
-        if (error instanceof Error) {
-          if (error.message.includes('404')) {
+        if (_error instanceof Error) {
+          if (_error.message.includes('404')) {
             errorMessage = `Organization "${org}" not found or not public`;
-          } else if (error.message.includes('403')) {
+          } else if (_error.message.includes('403')) {
             errorMessage = 'Rate limit exceeded. Please try again later.';
           } else {
             errorMessage = error.message;
@@ -232,7 +232,7 @@ export function useOrgRepos(org?: string): UseOrgReposState {
         setState({
           repositories: [],
           isLoading: false,
-          error: new Error(errorMessage),
+          error: new Error(_errorMessage),
         });
       }
     };

@@ -66,7 +66,7 @@ export function SpamManagement() {
       setLoading(true);
       setError(null);
       
-      const { data, error: fetchError } = await supabase
+      const { data, error: _error: fetchError } = await supabase
         .from('spam_detections')
         .select(`
           *,
@@ -88,7 +88,7 @@ export function SpamManagement() {
         throw fetchError;
       }
 
-      setDetections(data || []);
+      setDetections(_data || []);
     } catch (err) {
       console.error('Error fetching spam detections:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch spam detections');
@@ -101,7 +101,7 @@ export function SpamManagement() {
     if (!adminGitHubId) return;
 
     try {
-      const { error: updateError } = await supabase
+      const { error: _error: updateError } = await supabase
         .from('spam_detections')
         .update({ 
           status: newStatus,
@@ -180,7 +180,7 @@ export function SpamManagement() {
   };
 
   const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
+    switch (_status) {
       case 'confirmed': return "destructive";
       case 'false_positive': return "default";
       default: return "secondary";
@@ -217,7 +217,7 @@ export function SpamManagement() {
 
       {error && (
         <Alert variant="destructive" className="mb-6">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error: _error}</AlertDescription>
         </Alert>
       )}
 
@@ -288,7 +288,7 @@ export function SpamManagement() {
                 />
               </div>
             </div>
-            <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
+            <Select value={filterStatus} onValueChange={(value: unknown) => setFilterStatus(value)}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -299,7 +299,7 @@ export function SpamManagement() {
                 <SelectItem value="false_positive">False Positive</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filterScore} onValueChange={(value: any) => setFilterScore(value)}>
+            <Select value={filterScore} onValueChange={(value: unknown) => setFilterScore(value)}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by score" />
               </SelectTrigger>

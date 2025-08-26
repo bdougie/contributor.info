@@ -41,7 +41,7 @@ export interface PrAttentionMetrics {
  */
 async function fetchMaintainers(owner: string, repo: string): Promise<Set<string>> {
   try {
-    const { data, error } = await supabase
+    const { data, error: _error } = await supabase
       .from('contributor_roles')
       .select('user_id')
       .eq('repository_owner', owner)
@@ -49,11 +49,11 @@ async function fetchMaintainers(owner: string, repo: string): Promise<Set<string
       .in('role', ['owner', 'maintainer'])
       .gte('confidence_score', 0.7); // Minimum confidence threshold for maintainers
 
-    if (error) throw error;
+    if (_error) throw error;
 
-    return new Set((data || []).map(role => role.user_id));
-  } catch (error) {
-    console.warn('Failed to fetch maintainers:', error);
+    return new Set((_data || []).map(role => role.user_id));
+  } catch (_error) {
+    console.warn('Failed to fetch maintainers:', _error);
     return new Set();
   }
 }
@@ -289,8 +289,8 @@ export async function detectPrAttention(
     
     return { alerts: alerts.slice(0, 10), metrics }; // Limit to top 10 alerts
     
-  } catch (error) {
-    console.error('Error detecting PR attention:', error);
+  } catch (_error) {
+    console.error('Error detecting PR attention:', _error);
     return {
       alerts: [],
       metrics: {
@@ -316,8 +316,8 @@ export async function getCriticalPrCount(
   try {
     const { metrics } = await detectPrAttention(owner, repo);
     return metrics.criticalCount + metrics.highCount;
-  } catch (error) {
-    console.error('Error getting critical PR count:', error);
+  } catch (_error) {
+    console.error('Error getting critical PR count:', _error);
     return 0;
   }
 }

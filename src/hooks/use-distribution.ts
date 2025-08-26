@@ -142,7 +142,7 @@ export function useDistribution(pullRequests: PullRequest[]) {
         };
       });
       
-      setChartData(data);
+      setChartData(_data);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to analyze distribution'));

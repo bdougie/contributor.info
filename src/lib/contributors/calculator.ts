@@ -337,7 +337,7 @@ export function validateContributorData(contributors: ContributorActivity[]): {
       warnings.push(`Contributor ${contributor.username} has zero activity`);
     }
     
-    // Check for unusually high activity (potential data issue)
+    // Check for unusually high activity (potential _data issue)
     if (totalActivity > 1000) {
       warnings.push(`Contributor ${contributor.username} has unusually high activity: ${totalActivity}`);
     }
@@ -347,7 +347,7 @@ export function validateContributorData(contributors: ContributorActivity[]): {
   const ids = contributors.map(c => c.id);
   const uniqueIds = new Set(ids);
   if (ids.length !== uniqueIds.size) {
-    errors.push('Duplicate contributors found in dataset');
+    errors.push('Duplicate contributors found in _dataset');
   }
   
   return {
@@ -363,8 +363,8 @@ export function validateContributorData(contributors: ContributorActivity[]): {
 class CalculationCache {
   private cache = new Map<string, { data: unknown; timestamp: number; ttl: number }>();
   
-  set<T>(key: string, data: T, ttl: number): void {
-    this.cache.set(key, { data, timestamp: Date.now(), ttl });
+  set<T>(key: string, _data: T, ttl: number): void {
+    this.cache.set(key, { _data, timestamp: Date.now(), ttl });
   }
   
   get<T>(key: string): T | null {

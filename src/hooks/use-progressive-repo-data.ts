@@ -23,7 +23,7 @@ export interface ProgressiveDataState {
   
   // Enhancement data (loaded last)
   directCommitsData: DirectCommitsData | null;
-  historicalTrends: any | null;
+  historicalTrends: unknown | null;
   
   // Loading state
   currentStage: LoadingStage;
@@ -31,7 +31,7 @@ export interface ProgressiveDataState {
   dataStatus: {
     status: 'success' | 'pending' | 'no_data' | 'partial_data' | 'large_repository_protected';
     message?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   };
 }
 
@@ -117,7 +117,7 @@ export function useProgressiveRepoData(
             const cached = progressiveCache[cacheKey];
             
             if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-              updateStage('critical', cached.data);
+              updateStage('critical', cached._data);
               return cached.data.basicInfo;
             }
 
@@ -131,8 +131,8 @@ export function useProgressiveRepoData(
               `critical-data-${owner}-${repo}`
             );
 
-            if (!result.data) {
-              throw new Error(result.message || 'Failed to fetch data');
+            if (!result._data) {
+              throw new Error(result.message || 'Failed to fetch _data');
             }
             
             const pullRequests = result.data;
@@ -165,9 +165,9 @@ export function useProgressiveRepoData(
             updateStage('critical', { basicInfo });
             
             return basicInfo;
-          } catch (error) {
-            span?.setStatus('error');
-            console.error('Failed to load critical data:', error);
+          } catch (_error) {
+            span?.setStatus('_error');
+            console.error('Failed to load critical _data:', _error);
             updateStage('critical', { basicInfo: null });
             return null;
           }
@@ -191,7 +191,7 @@ export function useProgressiveRepoData(
               `full-data-${owner}-${repo}`
             );
 
-            if (!result.data) {
+            if (!result._data) {
               updateStage('full', {
                 stats: {
                   pullRequests: [],
@@ -200,7 +200,7 @@ export function useProgressiveRepoData(
                 },
                 dataStatus: { status: 'no_data', message: result.message },
               });
-              span?.setStatus('error');
+              span?.setStatus('_error');
               return;
             }
             
@@ -222,7 +222,7 @@ export function useProgressiveRepoData(
               stats,
               lotteryFactor,
               dataStatus: { 
-                status: (status === 'error' ? 'no_data' : status) || 'success', 
+                status: (status === '_error' ? 'no__data' : status) || 'success', 
                 message,
                 metadata: { prCount: pullRequests?.length || 0 }
               },
@@ -239,9 +239,9 @@ export function useProgressiveRepoData(
             });
             
             return { stats, lotteryFactor };
-          } catch (error) {
-            span?.setStatus('error');
-            console.error('Failed to load full data:', error);
+          } catch (_error) {
+            span?.setStatus('_error');
+            console.error('Failed to load full _data:', _error);
             updateStage('full', {
               stats: {
                 pullRequests: [],
@@ -285,9 +285,9 @@ export function useProgressiveRepoData(
             updateStage('complete', {});
             
             return { directCommitsData, historicalTrends };
-          } catch (error) {
-            span?.setStatus('error');
-            console.error('Failed to load enhancement data:', error);
+          } catch (_error) {
+            span?.setStatus('_error');
+            console.error('Failed to load enhancement _data:', _error);
             updateStage('enhancement', {
               directCommitsData: null,
               historicalTrends: null,
@@ -335,8 +335,8 @@ export function useProgressiveRepoData(
             }
           }, 2000);
         }
-      } catch (error) {
-        console.error('Progressive loading error:', error);
+      } catch (_error) {
+        console.error('Progressive loading error:', _error);
       } finally {
         fetchingRef.current = false;
       }
@@ -357,6 +357,6 @@ export function useProgressiveRepoData(
 /**
  * Hook to track when specific data stages are ready
  */
-export function useDataStageReady(data: ProgressiveDataState, stage: LoadingStage): boolean {
+export function useDataStageReady(_data: ProgressiveDataState, stage: LoadingStage): boolean {
   return data.stageProgress[stage] || false;
 }

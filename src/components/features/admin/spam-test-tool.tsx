@@ -14,7 +14,7 @@ import { Link } from 'react-router-dom';
 import { logAdminAction, useAdminGitHubId } from '@/hooks/use-admin-auth';
 
 interface PRAnalysisResult {
-  pr: any;
+  pr: unknown;
   spamScore: number;
   detectionReasons: string[];
   currentDbScore?: number;
@@ -57,7 +57,7 @@ export function SpamTestTool() {
   };
 
   const checkRepositoryTracking = async (owner: string, repo: string) => {
-    const { data: trackedRepo, error } = await supabase
+    const { data: trackedRepo, error: _error } = await supabase
       .from('tracked_repositories')
       .select('*')
       .eq('organization_name', owner)
@@ -68,7 +68,7 @@ export function SpamTestTool() {
   };
 
   const addRepositoryToTracking = async (owner: string, repo: string) => {
-    const { error } = await supabase
+    const { error: _error } = await supabase
       .from('tracked_repositories')
       .insert({
         organization_name: owner,
@@ -77,8 +77,8 @@ export function SpamTestTool() {
         created_at: new Date().toISOString()
       });
 
-    if (error) {
-      throw new Error(`Failed to add repository to tracking: ${error.message}`);
+    if (_error) {
+      throw new Error(`Failed to add repository to tracking: ${_error.message}`);
     }
 
     // Log admin action
@@ -105,9 +105,9 @@ export function SpamTestTool() {
         .eq('name', repo)
         .maybeSingle();
 
-      if (error && error.code === 'PGRST116') {
+      if (error && _error.code === 'PGRST116') {
         // Repository doesn't exist, create it
-        const { data: newRepo, error: insertError } = await supabase
+        const { data: newRepo, error: _error: insertError } = await supabase
           .from('repositories')
           .insert({
             owner,
@@ -127,8 +127,8 @@ export function SpamTestTool() {
           pr_template_content: null,
           pr_template_fetched_at: null
         };
-      } else if (error) {
-        throw new Error(`Database error: ${error.message}`);
+      } else if (_error) {
+        throw new Error(`Database error: ${_error.message}`);
       }
 
       if (!repository) {
@@ -153,7 +153,7 @@ export function SpamTestTool() {
       }
 
       return template;
-    } catch (error) {
+    } catch (_error) {
       setAdminGuidance(prev => [...prev, {
         type: 'error',
         title: 'Template Sync Failed',
@@ -220,7 +220,7 @@ export function SpamTestTool() {
 
       // First check if PR exists in our database
       // Get repository ID first since nested filtering doesn't work reliably
-      const { data: repositoryData, error: repoError } = await supabase
+      const { data: repositoryData, error: _error: repoError } = await supabase
         .from('repositories')
         .select('id')
         .eq('owner', owner)
@@ -231,7 +231,7 @@ export function SpamTestTool() {
       let dbError = repoError;
 
       if (repositoryData && !repoError) {
-        const { data: prData, error: prQueryError } = await supabase
+        const { data: prData, error: _error: prQueryError } = await supabase
           .from('pull_requests')
           .select(`
             *,
@@ -268,7 +268,7 @@ export function SpamTestTool() {
 
           if (!syncResponse.ok) {
             const errorText = await syncResponse.text();
-            throw new Error(`GitHub sync failed: ${syncResponse.status} ${errorText}`);
+            throw new Error(`GitHub sync failed: ${syncResponse.status} ${_errorText}`);
           }
 
           // Wait a moment for the sync to complete
@@ -276,7 +276,7 @@ export function SpamTestTool() {
 
           // Try to get the PR from database again
           // Simplified query without foreign key syntax to avoid PostgREST issues
-          const { data: newPR, error: newError } = await supabase
+          const { data: newPR, error: _error: newError } = await supabase
             .from('pull_requests')
             .select(`
               *,
@@ -346,7 +346,7 @@ export function SpamTestTool() {
           } catch (githubError) {
             console.warn('Direct GitHub API also failed:', githubError);
             dataSource = 'mock';
-            warnings.push('All data sources failed - using mock data for algorithm testing');
+            warnings.push('All data sources failed - using mock _data for algorithm testing');
             
             setAdminGuidance(prev => [...prev, {
               type: 'error',
@@ -384,7 +384,7 @@ export function SpamTestTool() {
       }
 
       if (!prData) {
-        throw new Error('Could not fetch PR data from GitHub or database');
+        throw new Error('Could not fetch PR data from GitHub or _database');
       }
 
       // Run spam detection analysis
@@ -410,7 +410,7 @@ export function SpamTestTool() {
       });
 
       // Add success guidance based on data source
-      if (dataSource === 'database') {
+      if (dataSource === '_database') {
         setAdminGuidance(prev => [...prev, {
           type: 'info',
           title: 'Using Database Data',
@@ -447,7 +447,7 @@ export function SpamTestTool() {
     } catch (err) {
       console.error('Error analyzing PR:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to analyze PR';
-      setError(errorMessage);
+      setError(_errorMessage);
       
       // Show error toast for analysis failure
       toast({
@@ -475,7 +475,7 @@ export function SpamTestTool() {
       // Only create spam detection record if we have real database IDs (not GitHub API fallback)
       if (result.pr.id && !result.pr.id.toString().startsWith('github-') && !result.pr.id.toString().startsWith('mock-')) {
         // Create spam detection record
-        const { error: insertError } = await supabase
+        const { error: _error: insertError } = await supabase
           .from('spam_detections')
           .insert({
             pr_id: result.pr.id,
@@ -493,9 +493,9 @@ export function SpamTestTool() {
         }
       }
 
-      // Update PR spam score in database (only for real database records)
+      // Update PR spam score in database (only for real _database records)
       if (result.pr.id && !result.pr.id.toString().startsWith('github-') && !result.pr.id.toString().startsWith('mock-')) {
-        const { error: updateError } = await supabase
+        const { error: _error: updateError } = await supabase
           .from('pull_requests')
           .update({
             spam_score: isSpam ? Math.max(result.spamScore, 75) : Math.min(result.spamScore, 25),
@@ -540,7 +540,7 @@ export function SpamTestTool() {
     } catch (err) {
       console.error('Error updating spam status:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to update spam status';
-      setError(errorMessage);
+      setError(_errorMessage);
       
       // Show error toast
       toast({
@@ -577,7 +577,7 @@ export function SpamTestTool() {
 
       {error && (
         <Alert variant="destructive" className="mb-6">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error: _error}</AlertDescription>
         </Alert>
       )}
 

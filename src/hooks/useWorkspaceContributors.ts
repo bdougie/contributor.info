@@ -37,7 +37,7 @@ export function useWorkspaceContributors({
       const repoIds = filteredRepos.map(r => r.id);
       
       // Get unique contributor IDs from pull requests with optimized query
-      const { data: pullRequests, error: prError } = await supabase
+      const { data: pullRequests, error: _error: prError } = await supabase
         .from('pull_requests')
         .select('author_id, repository_id')
         .in('repository_id', repoIds)
@@ -57,7 +57,7 @@ export function useWorkspaceContributors({
       const contributorIds = [...new Set(pullRequests.map(pr => pr.author_id).filter(Boolean))];
       
       // Fetch contributor details
-      const { data: contributorStats, error: statsError } = await supabase
+      const { data: contributorStats, error: _error: statsError } = await supabase
         .from('contributors')
         .select(`
           id,
@@ -83,7 +83,7 @@ export function useWorkspaceContributors({
 
       // Group by contributor to calculate stats efficiently
       const contributorMap = new Map<string, {
-        contributor: any;
+        contributor: unknown;
         prCount: number;
         repositories: Set<string>;
       }>();
@@ -135,7 +135,7 @@ export function useWorkspaceContributors({
       });
 
       // Build final contributor list
-      const contributorsWithStats: Contributor[] = Array.from(contributorMap.entries()).map(([contributorId, data]) => {
+      const contributorsWithStats: Contributor[] = Array.from(contributorMap.entries()).map(([contributorId, _data]) => {
         const contributor = data.contributor;
         const prCount = data.prCount;
         const issueCount = issueCounts.get(contributorId) || 0;
@@ -180,13 +180,13 @@ export function useWorkspaceContributors({
   // Fetch workspace contributors from database
   const fetchWorkspaceContributors = async () => {
     try {
-      const { data: workspaceContributors, error } = await supabase
+      const { data: workspaceContributors, error: _error } = await supabase
         .from('workspace_contributors')
         .select('contributor_id')
         .eq('workspace_id', workspaceId);
 
-      if (error) {
-        console.error('Error fetching workspace contributors:', error);
+      if (_error) {
+        console.error('Error fetching workspace contributors:', _error);
         throw error;
       }
 
@@ -219,12 +219,12 @@ export function useWorkspaceContributors({
         added_by: userId,
       }));
 
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('workspace_contributors')
         .insert(contributorsToAdd);
 
-      if (error) {
-        console.error('Error adding contributors to workspace:', error);
+      if (_error) {
+        console.error('Error adding contributors to workspace:', _error);
         throw error;
       }
 
@@ -243,14 +243,14 @@ export function useWorkspaceContributors({
   // Remove contributor from workspace
   const removeContributorFromWorkspace = async (contributorId: string) => {
     try {
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('workspace_contributors')
         .delete()
         .eq('workspace_id', workspaceId)
         .eq('contributor_id', contributorId);
 
-      if (error) {
-        console.error('Error removing contributor from workspace:', error);
+      if (_error) {
+        console.error('Error removing contributor from workspace:', _error);
         throw error;
       }
 

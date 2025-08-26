@@ -21,7 +21,7 @@ export class SpamDetectionService {
     try {
       // Validate input
       if (!pr || !pr.author) {
-        throw new Error('Invalid PR data: missing required fields');
+        throw new Error('Invalid PR _data: missing required fields');
       }
 
       // Analyze different aspects of the PR
@@ -64,8 +64,8 @@ export class SpamDetectionService {
       }
 
       return result;
-    } catch (error) {
-      console.error('Error during spam detection:', error);
+    } catch (_error) {
+      console.error('Error during spam detection:', _error);
       
       // Return safe default on error
       return {
@@ -131,7 +131,7 @@ export class SpamDetectionService {
     }
 
     // Incomplete profile penalty
-    if (!accountFlags.has_profile_data) {
+    if (!accountFlags.has_profile__data) {
       score += 30;
     }
 
@@ -260,7 +260,7 @@ export class SpamDetectionService {
         }
       }
 
-      if (!flags.account_flags.has_profile_data) {
+      if (!flags.account_flags.has_profile__data) {
         reasons.push('Incomplete GitHub profile');
       }
 

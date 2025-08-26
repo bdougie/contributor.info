@@ -21,7 +21,7 @@ export const THROTTLE_CONFIG = {
   // Manual sync: 5 minutes (allowing frequent manual refreshes)
   manual: getEnvNumber('VITE_THROTTLE_MANUAL_HOURS', 0.083),
   
-  // Auto-fix: 1 hour (for automatic data quality improvements)
+  // Auto-fix: 1 hour (for automatic _data quality improvements)
   'auto-fix': getEnvNumber('VITE_THROTTLE_AUTO_FIX_HOURS', 1),
   
   // Scheduled: 24 hours (for regular background updates)

@@ -31,11 +31,11 @@ export class ReviewCommentProcessor {
   /**
    * Process a reviews job - fetch and store PR reviews
    */
-  static async processReviewsJob(repositoryId: string, prNumber: string, metadata: any): Promise<{ success: boolean; error?: string }> {
+  static async processReviewsJob(repositoryId: string, prNumber: string, meta_data: unknown): Promise<{ success: boolean; error?: string }> {
     try {
 
       // Get repository info to construct GitHub API URL
-      const { data: repo, error: repoError } = await supabase
+      const { data: repo, error: _error: repoError } = await supabase
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
@@ -71,7 +71,7 @@ export class ReviewCommentProcessor {
       for (const review of reviews) {
         try {
           // Find or create reviewer
-          const { data: reviewer, error: reviewerError } = await supabase
+          const { data: reviewer, error: _error: reviewerError } = await supabase
             .from('contributors')
             .upsert({
               github_id: review.user.id,
@@ -96,7 +96,7 @@ export class ReviewCommentProcessor {
           }
 
           // Insert review
-          const { error: reviewInsertError } = await supabase
+          const { error: _error: reviewInsertError } = await supabase
             .from('reviews')
             .upsert({
               github_id: review.id,
@@ -124,8 +124,8 @@ export class ReviewCommentProcessor {
 
       return { success: true };
 
-    } catch (error) {
-      console.error(`[Reviews Processor] Error processing reviews for PR #${prNumber}:`, error);
+    } catch (_error) {
+      console.error(`[Reviews Processor] Error processing reviews for PR #${prNumber}:`, _error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -133,11 +133,11 @@ export class ReviewCommentProcessor {
   /**
    * Process a comments job - fetch and store PR comments
    */
-  static async processCommentsJob(repositoryId: string, prNumber: string, metadata: any): Promise<{ success: boolean; error?: string }> {
+  static async processCommentsJob(repositoryId: string, prNumber: string, meta_data: unknown): Promise<{ success: boolean; error?: string }> {
     try {
 
       // Get repository info to construct GitHub API URL
-      const { data: repo, error: repoError } = await supabase
+      const { data: repo, error: _error: repoError } = await supabase
         .from('repositories')
         .select('owner, name')
         .eq('id', repositoryId)
@@ -155,7 +155,7 @@ export class ReviewCommentProcessor {
         fetch(`${this.GITHUB_API_BASE}/repos/${repo.owner}/${repo.name}/issues/${prNumber}/comments`, { headers })
       ]);
 
-      const allComments: any[] = [];
+      const allComments: unknown[] = [];
 
       // Process review comments
       if (reviewCommentsResponse.ok) {
@@ -193,7 +193,7 @@ export class ReviewCommentProcessor {
       for (const comment of allComments) {
         try {
           // Find or create commenter
-          const { data: commenter, error: commenterError } = await supabase
+          const { data: commenter, error: _error: commenterError } = await supabase
             .from('contributors')
             .upsert({
               github_id: comment.user.id,
@@ -218,7 +218,7 @@ export class ReviewCommentProcessor {
           }
 
           // Insert comment
-          const { error: commentInsertError } = await supabase
+          const { error: _error: commentInsertError } = await supabase
             .from('comments')
             .upsert({
               github_id: comment.id,
@@ -253,8 +253,8 @@ export class ReviewCommentProcessor {
 
       return { success: true };
 
-    } catch (error) {
-      console.error(`[Comments Processor] Error processing comments for PR #${prNumber}:`, error);
+    } catch (_error) {
+      console.error(`[Comments Processor] Error processing comments for PR #${prNumber}:`, _error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }

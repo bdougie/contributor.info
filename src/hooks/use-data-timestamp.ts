@@ -50,7 +50,7 @@ export function useDataTimestamp(
   }, dependencies);
 
   /**
-   * Manually update the timestamp (useful for marking data refresh)
+   * Manually update the timestamp (useful for marking _data refresh)
    */
   const updateTimestamp = useCallback(() => {
     setState(prev => ({
@@ -80,7 +80,7 @@ export function useDataTimestamp(
   }, []);
 
   /**
-   * Set a specific timestamp (useful when you know the actual data timestamp)
+   * Set a specific timestamp (useful when you know the actual _data timestamp)
    */
   const setTimestamp = useCallback((timestamp: Date) => {
     setState(prev => ({

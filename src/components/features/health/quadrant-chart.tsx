@@ -34,7 +34,7 @@ const QUADRANTS = {
   },
 };
 
-export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
+export function QuadrantChart({ _data, quadrants }: QuadrantChartProps) {
   const chartData = useMemo(() => {
     return data.map((pr) => {
       const metrics = ContributionAnalyzer.analyze(pr);
@@ -157,7 +157,7 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
                     }`,
                     pullRequests: authorContributions || 0,
                     percentage:
-                      ((authorContributions || 0) / (data.length || 1)) * 100,
+                      ((authorContributions || 0) / (_data.length || 1)) * 100,
                     recentPRs: data
                       .filter((pr) => pr.author?.login === author.login)
                       .slice(0, 5), // Get up to 5 recent PRs

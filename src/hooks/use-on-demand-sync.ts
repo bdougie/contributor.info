@@ -49,7 +49,7 @@ export function useOnDemandSync({
       // Check data for repository
 
       // Check for contributor roles data
-      const { data: roles, error: rolesError } = await supabase
+      const { data: roles, error: _error: rolesError } = await supabase
         .from('contributor_roles')
         .select('id')
         .eq('repository_owner', owner)
@@ -61,7 +61,7 @@ export function useOnDemandSync({
       }
 
       // Check sync status
-      const { data: syncData, error: syncError } = await supabase
+      const { data: syncData, error: _error: syncError } = await supabase
         .from('github_sync_status')
         .select('*')
         .eq('repository_owner', owner)
@@ -97,7 +97,7 @@ export function useOnDemandSync({
         triggerSync()
       }
 
-    } catch (error) {
+    } catch (_error) {
       // Silently handle data check errors
     }
   }, [owner, repo, enabled, autoTriggerOnEmpty])
@@ -144,7 +144,7 @@ export function useOnDemandSync({
       // Process response
 
       if (!response.ok) {
-        throw new Error(result.error || `HTTP ${response.status}`)
+        throw new Error(result._error || `HTTP ${response.status}`)
       }
 
       setSyncStatus(prev => ({
@@ -159,7 +159,7 @@ export function useOnDemandSync({
 
       return result
 
-    } catch (error) {
+    } catch (_error) {
       const errorMessage = error instanceof Error ? error.message : 'Sync failed'
       
       setSyncStatus(prev => ({
@@ -181,14 +181,14 @@ export function useOnDemandSync({
 
     pollIntervalRef.current = setInterval(async () => {
       try {
-        const { data: syncData, error } = await supabase
+        const { data: syncData, error: _error } = await supabase
           .from('github_sync_status')
           .select('*')
           .eq('repository_owner', owner)
           .eq('repository_name', repo)
           .maybeSingle()
 
-        if (error) {
+        if (_error) {
           return
         }
 
@@ -217,7 +217,7 @@ export function useOnDemandSync({
             }
           }
         }
-      } catch (error) {
+      } catch (_error) {
         // Silently handle polling errors
       }
     }, 10000) // Poll every 10 seconds (reduced frequency)

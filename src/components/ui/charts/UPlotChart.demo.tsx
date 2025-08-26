@@ -86,7 +86,7 @@ export const UPlotChartDemo: React.FC = () => {
     setData(generateData());
   }, []);
 
-  const handleChartReady = useCallback((chart: any) => {
+  const handleChartReady = useCallback((chart: unknown) => {
     console.log('Chart is ready:', chart);
   }, []);
 

@@ -16,7 +16,6 @@ import { cleanup } from '@testing-library/react';
 
 // Store original implementations for restoration
 const originalConsole = global.console;
-const originalFetch = global.fetch;
 
 // Mock fetch globally - simple and synchronous
 global.fetch = vi.fn(() =>
@@ -39,14 +38,14 @@ global.IntersectionObserver = vi.fn(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   takeRecords: vi.fn(() => []),
-})) as any;
+})) as unknown as typeof IntersectionObserver;
 
 // Mock ResizeObserver
 global.ResizeObserver = vi.fn(() => ({
   disconnect: vi.fn(),
   observe: vi.fn(),
   unobserve: vi.fn(),
-})) as any;
+})) as unknown as typeof ResizeObserver;
 
 // Mock matchMedia
 global.matchMedia = vi.fn((query: string) => ({
@@ -106,41 +105,41 @@ vi.mock('@/lib/supabase', () => {
     limit: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
     abortSignal: vi.fn().mockReturnThis(),
-    single: vi.fn(() => Promise.resolve({ data: null, error: null })),
-    maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
-    csv: vi.fn(() => Promise.resolve({ data: '', error: null })),
-    geojson: vi.fn(() => Promise.resolve({ data: {}, error: null })),
-    explain: vi.fn(() => Promise.resolve({ data: '', error: null })),
-    then: vi.fn((resolve) => resolve({ data: [], error: null })),
+    single: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
+    maybeSingle: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
+    csv: vi.fn(() => Promise.resolve({ _data: '', _error: null })),
+    geojson: vi.fn(() => Promise.resolve({ _data: {}, _error: null })),
+    explain: vi.fn(() => Promise.resolve({ _data: '', _error: null })),
+    then: vi.fn((resolve) => resolve({ _data: [], _error: null })),
   });
 
   return {
     supabase: {
       from: vi.fn(() => createChainableMock()),
       auth: {
-        getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
-        getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
-        signOut: vi.fn(() => Promise.resolve({ error: null })),
-        signInWithOAuth: vi.fn(() => Promise.resolve({ data: {}, error: null })),
+        getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, _error: null })),
+        getUser: vi.fn(() => Promise.resolve({ _data: { user: null }, _error: null })),
+        signOut: vi.fn(() => Promise.resolve({ _error: null })),
+        signInWithOAuth: vi.fn(() => Promise.resolve({ _data: {}, _error: null })),
         onAuthStateChange: vi.fn(() => ({
           data: { subscription: { unsubscribe: vi.fn() } },
         })),
       },
       storage: {
         from: vi.fn(() => ({
-          upload: vi.fn(() => Promise.resolve({ data: null, error: null })),
-          download: vi.fn(() => Promise.resolve({ data: null, error: null })),
-          remove: vi.fn(() => Promise.resolve({ data: null, error: null })),
-          list: vi.fn(() => Promise.resolve({ data: [], error: null })),
-          getPublicUrl: vi.fn(() => ({ data: { publicUrl: '' } })),
+          upload: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
+          download: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
+          remove: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
+          list: vi.fn(() => Promise.resolve({ _data: [], _error: null })),
+          getPublicUrl: vi.fn(() => ({ _data: { publicUrl: '' } })),
         })),
       },
     },
     createSupabaseClient: vi.fn(() => ({
       from: vi.fn(() => createChainableMock()),
       auth: {
-        getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
-        signOut: vi.fn(() => Promise.resolve({ error: null })),
+        getSession: vi.fn(() => Promise.resolve({ _data: { session: null }, _error: null })),
+        signOut: vi.fn(() => Promise.resolve({ _error: null })),
       },
     })),
   };
@@ -148,16 +147,16 @@ vi.mock('@/lib/supabase', () => {
 
 // Mock utility functions
 vi.mock('@/lib/utils', () => ({
-  cn: (...classes: any[]) => classes.filter(Boolean).join(' '),
+  cn: (...classes: unknown[]) => classes.filter(Boolean).join(' '),
 }));
 
 // Mock lucide-react icons
 vi.mock('lucide-react', async (importOriginal) => {
   const React = (await import('react')).default;
-  const createIcon = () => (props: any) => React.createElement('svg', { ...props }, null);
+  const createIcon = () => (props: Record<string, unknown>) => React.createElement('svg', { ...props }, null);
   
   // Get the actual module to preserve any exports we don't explicitly mock
-  const actual = await importOriginal() as any;
+  const actual = await importOriginal() as Record<string, unknown>;
   
   return {
     ...actual,
@@ -204,19 +203,32 @@ vi.mock('lucide-react', async (importOriginal) => {
   };
 });
 
+interface MockComponentProps {
+  children?: React.ReactNode;
+  className?: string;
+  role?: string;
+  [key: string]: unknown;
+}
+
+interface MockBadgeProps {
+  children?: React.ReactNode;
+  className?: string;
+  variant?: string;
+}
+
 // Mock UI components to ensure they render in tests
 vi.mock('@/components/ui/card', async () => {
   const React = (await import('react')).default;
   return {
-    Card: ({ children, className, role, ...props }: any) => 
+    Card: ({ children, className, role, ...props }: MockComponentProps) => 
       React.createElement('div', { className, role, ...props }, children),
-    CardContent: ({ children, className }: any) => 
+    CardContent: ({ children, className }: MockComponentProps) => 
       React.createElement('div', { className }, children),
-    CardHeader: ({ children, className }: any) => 
+    CardHeader: ({ children, className }: MockComponentProps) => 
       React.createElement('div', { className }, children),
-    CardTitle: ({ children, className }: any) => 
+    CardTitle: ({ children, className }: MockComponentProps) => 
       React.createElement('h3', { className }, children),
-    CardDescription: ({ children, className }: any) => 
+    CardDescription: ({ children, className }: MockComponentProps) => 
       React.createElement('p', { className }, children),
   };
 });
@@ -224,20 +236,26 @@ vi.mock('@/components/ui/card', async () => {
 vi.mock('@/components/ui/badge', async () => {
   const React = (await import('react')).default;
   return {
-    Badge: ({ children, className, variant }: any) => 
+    Badge: ({ children, className }: MockBadgeProps) => 
       React.createElement('span', { className }, children),
   };
 });
+
+interface MockRouterProps {
+  children?: React.ReactNode;
+  to?: string;
+  [key: string]: unknown;
+}
 
 // Mock React Router globally to prevent conflicts
 vi.mock('react-router-dom', async () => {
   const React = (await import('react')).default;
   return {
-    BrowserRouter: ({ children }: any) => React.createElement('div', null, children),
-    Router: ({ children }: any) => React.createElement('div', null, children),
-    MemoryRouter: ({ children }: any) => React.createElement('div', null, children),
-    Routes: ({ children }: any) => React.createElement('div', null, children),
-    Route: ({ children }: any) => React.createElement('div', null, children),
+    BrowserRouter: ({ children }: MockRouterProps) => React.createElement('div', null, children),
+    Router: ({ children }: MockRouterProps) => React.createElement('div', null, children),
+    MemoryRouter: ({ children }: MockRouterProps) => React.createElement('div', null, children),
+    Routes: ({ children }: MockRouterProps) => React.createElement('div', null, children),
+    Route: ({ children }: MockRouterProps) => React.createElement('div', null, children),
     useParams: vi.fn(() => ({})),
     useNavigate: vi.fn(() => vi.fn()),
     useLocation: vi.fn(() => ({ pathname: '/', search: '', hash: '', state: null, key: 'default' })),
@@ -245,8 +263,8 @@ vi.mock('react-router-dom', async () => {
     useOutletContext: vi.fn(() => ({})),
     Outlet: () => null,
     Navigate: ({ to }: { to: string }) => React.createElement('div', null, `Navigate to ${to}`),
-    Link: ({ children, to, ...props }: any) => React.createElement('a', { href: to, ...props }, children),
-    NavLink: ({ children, to, ...props }: any) => React.createElement('a', { href: to, ...props }, children),
+    Link: ({ children, to, ...props }: MockRouterProps) => React.createElement('a', { href: to, ...props }, children),
+    NavLink: ({ children, to, ...props }: MockRouterProps) => React.createElement('a', { href: to, ...props }, children),
   };
 });
 
@@ -254,7 +272,7 @@ vi.mock('react-router-dom', async () => {
 vi.mock('@nivo/scatterplot', () => ({ default: () => null }));
 vi.mock('@nivo/core', () => ({ 
   default: () => null,
-  ResponsiveWrapper: ({ children }: any) => children,
+  ResponsiveWrapper: ({ children }: { children: React.ReactNode }) => children,
 }));
 vi.mock('d3-interpolate', () => ({ 
   default: vi.fn(),

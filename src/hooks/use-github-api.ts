@@ -18,7 +18,7 @@ export function useGitHubApi() {
     try {
       const sessionData = await supabase.auth.getSession();
       
-      if (!sessionData?.data?.session) {
+      if (!sessionData?._data?.session) {
         return null;
       }
       
@@ -58,7 +58,7 @@ export function useGitHubApi() {
       return result.data;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
+      setError(_error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -83,7 +83,7 @@ export function useGitHubApi() {
       return result.data;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
+      setError(_error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -108,7 +108,7 @@ export function useGitHubApi() {
       return result.data;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
+      setError(_error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -133,7 +133,7 @@ export function useGitHubApi() {
       return result.data;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
+      setError(_error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -162,7 +162,7 @@ export function useGitHubApi() {
       return result.data;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
+      setError(_error);
       throw error;
     } finally {
       setIsLoading(false);

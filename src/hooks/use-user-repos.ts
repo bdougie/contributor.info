@@ -113,7 +113,7 @@ export function useUserRepos(username?: string): UseUserReposState {
 
     const fetchUserRepos = async () => {
       try {
-        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        setState(prev => ({ ...prev, isLoading: true, _error: null }));
         
         // Clean up old cache entries
         cleanupUserCache();
@@ -225,22 +225,22 @@ export function useUserRepos(username?: string): UseUserReposState {
           error: null,
         });
         
-      } catch (error) {
+      } catch (_error) {
         if (signal.aborted) return;
         
         let errorMessage = 'Failed to fetch repositories';
-        if ((error as any)?.status === 404 || (error instanceof Error && error.message.includes('404'))) {
+        if ((_error as any)?.status === 404 || (error instanceof Error && _error.message.includes('404'))) {
           errorMessage = `User "${username}" not found`;
-        } else if ((error as any)?.status === 403 || (error instanceof Error && error.message.includes('403'))) {
+        } else if ((_error as any)?.status === 403 || (error instanceof Error && _error.message.includes('403'))) {
           errorMessage = 'Rate limit exceeded. Please try again later.';
-        } else if (error instanceof Error) {
+        } else if (_error instanceof Error) {
           errorMessage = error.message;
         }
         
         setState({
           repositories: [],
           isLoading: false,
-          error: new Error(errorMessage),
+          error: new Error(_errorMessage),
         });
       }
     };

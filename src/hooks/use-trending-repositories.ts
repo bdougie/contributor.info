@@ -74,12 +74,12 @@ export function useTrendingRepositories(
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(errorData._error || `HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data: TrendingResponse = await response.json();
-      setRepositories(data.repositories);
-      setStatistics(data.metadata.statistics);
+      setRepositories(_data.repositories);
+      setStatistics(data.meta_data.statistics);
     } catch (err) {
       console.error('Error fetching trending repositories:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch trending repositories');
@@ -135,7 +135,7 @@ export function useTrendingStatistics(period: '24h' | '7d' | '30d' = '7d') {
         }
 
         const data: TrendingResponse = await response.json();
-        setStatistics(data.metadata.statistics);
+        setStatistics(data.meta_data.statistics);
       } catch (err) {
         console.error('Error fetching trending statistics:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch trending statistics');

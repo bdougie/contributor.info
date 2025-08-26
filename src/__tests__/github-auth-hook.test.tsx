@@ -7,7 +7,6 @@ const mockNavigate = vi.fn();
 const mockAuthCallback = vi.fn();
 const mockGetSession = vi.fn();
 const mockSignOut = vi.fn();
-const mockOnAuthStateChange = vi.fn();
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
@@ -21,9 +20,9 @@ vi.mock("../lib/supabase", () => ({
   supabase: {
     auth: {
       getSession: () => mockGetSession(),
-      signInWithOAuth: vi.fn(() => Promise.resolve({ data: null, error: null })),
+      signInWithOAuth: vi.fn(() => Promise.resolve({ _data: null, _error: null })),
       signOut: () => mockSignOut(),
-      onAuthStateChange: (callback: any) => {
+      onAuthStateChange: (callback: (event: string, session: unknown) => void) => {
         mockAuthCallback.mockImplementation(callback);
         return {
           subscription: { unsubscribe: vi.fn() },
@@ -49,8 +48,8 @@ describe("useGitHubAuth Hook", () => {
     // Reset all mock implementations
     mockNavigate.mockClear();
     mockAuthCallback.mockClear();
-    mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
-    mockSignOut.mockResolvedValue({ error: null });
+    mockGetSession.mockResolvedValue({ _data: { session: null }, _error: null });
+    mockSignOut.mockResolvedValue({ _error: null });
   });
 
   it("initializes with logged out state", async () => {
@@ -137,3 +136,4 @@ describe("useGitHubAuth Hook", () => {
     // Verify supabase logout was called
     expect(mockSignOut).toHaveBeenCalled();
   });
+});

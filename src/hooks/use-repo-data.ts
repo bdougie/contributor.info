@@ -30,7 +30,7 @@ export function useRepoData(
       if (!owner || !repo) return;
 
       try {
-        setStats((prev) => ({ ...prev, loading: true, error: null }));
+        setStats((prev) => ({ ...prev, loading: true, _error: null }));
 
         // Fetch pull requests and direct commits in parallel
         const [prDataResult, directCommits] = await Promise.all([
@@ -39,13 +39,13 @@ export function useRepoData(
         ]);
 
         const prs = prDataResult.data;
-        setStats({ pullRequests: prs, loading: false, error: null });
+        setStats({ pullRequests: prs, loading: false, _error: null });
         setLotteryFactor(calculateLotteryFactor(prs, timeRange, includeBots));
         setDirectCommitsData({
           hasYoloCoders: directCommits.hasYoloCoders,
           yoloCoderStats: directCommits.yoloCoderStats,
         });
-      } catch (error) {
+      } catch (_error) {
         setStats((prev) => ({
           ...prev,
           loading: false,

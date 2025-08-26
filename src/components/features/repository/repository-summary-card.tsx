@@ -8,7 +8,7 @@ import { Markdown } from "@/components/common/layout";
 interface RepositorySummaryCardProps {
   owner: string;
   repo: string;
-  pullRequests?: any[];
+  pullRequests?: unknown[];
   className?: string;
 }
 
@@ -18,7 +18,7 @@ export function RepositorySummaryCard({
   pullRequests = [],
   className = ""
 }: RepositorySummaryCardProps) {
-  const { summary, loading, error, refetch } = useRepositorySummary(owner, repo, pullRequests);
+  const { summary, loading, error: _error, refetch } = useRepositorySummary(owner, repo, pullRequests);
 
   if (loading) {
     return (
@@ -40,7 +40,7 @@ export function RepositorySummaryCard({
     );
   }
 
-  if (error) {
+  if (_error) {
     return (
       <Card className={className}>
         <CardHeader>
@@ -51,7 +51,7 @@ export function RepositorySummaryCard({
         </CardHeader>
         <CardContent>
           <div className="text-sm text-muted-foreground mb-3">
-            Unable to generate AI summary: {error}
+            Unable to generate AI summary: {error: _error}
           </div>
           <Button 
             variant="outline" 

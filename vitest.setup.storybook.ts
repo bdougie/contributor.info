@@ -10,10 +10,19 @@ if (typeof process !== 'undefined' && process.env) {
 }
 
 // Mock import.meta.env for browser context
+interface WindowWithImport extends Window {
+  import?: {
+    meta?: {
+      env?: Record<string, unknown>;
+    };
+  };
+}
+
 if (typeof window !== 'undefined') {
-  (window as any).import = (window as any).import || {};
-  (window as any).import.meta = (window as any).import.meta || {};
-  (window as any).import.meta.env = {
+  const windowWithImport = window as WindowWithImport;
+  windowWithImport.import = windowWithImport.import || {};
+  windowWithImport.import.meta = windowWithImport.import.meta || {};
+  windowWithImport.import.meta.env = {
     VITE_SUPABASE_URL: 'http://localhost:54321',
     VITE_SUPABASE_ANON_KEY: 'mock-anon-key',
     MODE: 'test',
@@ -40,14 +49,14 @@ Object.defineProperty(window, 'matchMedia', {
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
+  constructor(_callback: IntersectionObserverCallback, _options?: IntersectionObserverInit) {}
   disconnect() {}
-  observe() {}
+  observe(_element: Element) {}
   unobserve() {}
-  takeRecords() {
+  takeRecords(): IntersectionObserverEntry[] {
     return [];
   }
-} as any;
+};
 
 // Setup before each test
 beforeEach(() => {

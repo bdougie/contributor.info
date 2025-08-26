@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.pnp.*
+.yarn/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+storybook-static/
+coverage/
+lighthouse-reports/
+
+# Generated files
+*.min.js
+*.min.css
+public/sitemap.xml
+public/sitemap-news.xml
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment files
+.env*
+
+# IDE
+.vscode/
+.idea/
+
+# Testing
+playwright-report/
+test-results/
+
+# Cache and temp files
+.cache/
+.temp/
+*.log
+
+# Supabase
+supabase/.temp/
+supabase/functions/node_modules/
+
+# Large data files
+*.csv
+*.sql

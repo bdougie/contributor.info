@@ -3,7 +3,6 @@
  * These mocks provide minimal implementations that preserve accessibility attributes
  */
 import React from 'react';
-import { vi } from 'vitest';
 
 // Card components
 export const Card = ({ children, role, className, ...props }: {

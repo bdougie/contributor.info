@@ -22,7 +22,7 @@ interface RequestOptions {
   /** Whether this request supports abortion */
   abortable?: boolean;
   /** Custom key generator for cache key */
-  keyGenerator?: (...args: any[]) => string;
+  keyGenerator?: (...args: unknown[]) => string;
 }
 
 /**
@@ -95,11 +95,11 @@ export class RequestDeduplicator {
    */
   static generateKey = {
     /** Generate key for repository-based requests */
-    repository: (owner: string, repo: string, ...params: any[]): string => 
+    repository: (owner: string, repo: string, ...params: unknown[]): string => 
       `repo:${owner}/${repo}:${params.join(':')}`,
     
     /** Generate key for user-based requests */
-    user: (username: string, ...params: any[]): string =>
+    user: (username: string, ...params: unknown[]): string =>
       `user:${username}:${params.join(':')}`,
     
     /** Generate key for progressive loading stages */
@@ -107,7 +107,7 @@ export class RequestDeduplicator {
       `progressive:${stage}:${owner}/${repo}:${timeRange}:${includeBots}`,
     
     /** Generate custom key with prefix */
-    custom: (prefix: string, ...params: any[]): string =>
+    custom: (prefix: string, ...params: unknown[]): string =>
       `${prefix}:${params.join(':')}`,
   };
 
@@ -168,7 +168,7 @@ export class RequestDeduplicator {
     try {
       const result = await fetcher(signal);
       return result;
-    } catch (error) {
+    } catch (_error) {
       // Clean up failed request immediately
       this.pending.delete(key);
       throw error;

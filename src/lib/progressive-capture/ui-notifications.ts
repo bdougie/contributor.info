@@ -135,7 +135,7 @@ export class ProgressiveCaptureNotifications {
   /**
    * Show error notification when processing fails
    */
-  static showProcessingError(repository: string, error: string) {
+  static showProcessingError(repository: string, _error: string) {
     const existingId = this.notificationIds.get(`processing_${repository}`);
     
     // Dismiss the loading notification
@@ -160,8 +160,8 @@ export class ProgressiveCaptureNotifications {
   /**
    * Show notification when new data becomes available
    */
-  static showDataAvailable(repository: string, dataType: string) {
-    if (dataType === 'updated') {
+  static showDataAvailable(repository: string, _dataType: string) {
+    if (_dataType === 'updated') {
       // Subtle notification for background updates
       toast.info(`Updating ${repository}...`, {
         description: 'We are fetching data in the background',

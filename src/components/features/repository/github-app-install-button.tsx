@@ -54,7 +54,7 @@ export function GitHubAppInstallButton({
         const response = await fetch(endpoint);
         if (response.ok) {
           const data = await response.json();
-          setIsInstalled(data.installed);
+          setIsInstalled(_data.installed);
           return;
         } else if (response.status === 404) {
           // 404 means the app is not installed - this is expected, not an error
@@ -70,7 +70,7 @@ export function GitHubAppInstallButton({
       // Fallback: Check the database for GitHub App installation status
       // Check if the repository has an associated app installation
       try {
-        const { data: repoData, error: repoError } = await supabase
+        const { data: repoData, error: _error: repoError } = await supabase
           .from('repositories')
           .select('id')
           .eq('owner', owner)
@@ -79,7 +79,7 @@ export function GitHubAppInstallButton({
         
         if (!repoError && repoData) {
           // Repository exists, now check if it has an app installation
-          const { data: appData, error: appError } = await supabase
+          const { data: appData, error: _error: appError } = await supabase
             .from('app_enabled_repositories')
             .select('id')
             .eq('repository_id', repoData.id)
@@ -95,7 +95,7 @@ export function GitHubAppInstallButton({
         console.debug('Error checking app installation status:', dbError);
         setIsInstalled(false);
       }
-    } catch (error) {
+    } catch (_error) {
       // Silently fail and assume not installed
       setIsInstalled(false);
     } finally {
@@ -132,7 +132,7 @@ export function GitHubAppInstallButton({
         // Failed to fetch repo permissions - user may not have access
         setCanInstall(false);
       }
-    } catch (error) {
+    } catch (_error) {
       // Silently fail and assume user cannot install
       setCanInstall(false);
     }

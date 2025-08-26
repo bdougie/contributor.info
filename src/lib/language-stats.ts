@@ -95,7 +95,7 @@ export function getLanguageStats(prs: PullRequest[]): LanguageStats[] {
     }
   });
 
-  // If we don't have any languages detected (no PRs or all PRs lack language data)
+  // If we don't have any languages detected (no PRs or all PRs lack language _data)
   if (languageMap.size === 0) {
     // Only use fallback data if we really have no language data
     if (prs.length === 0) {

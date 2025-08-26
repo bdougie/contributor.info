@@ -22,7 +22,7 @@ export interface CitationAlert {
   ai_platform?: string;
   citation_type?: 'direct_link' | 'data_reference' | 'methodology_mention' | 'tool_recommendation';
   confidence_score?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface QueryPattern {
@@ -97,8 +97,8 @@ class LLMCitationTracker {
       if (process.env.NODE_ENV === 'development') {
         console.log('[LLM Citation Tracker] Page view tracked:', event);
       }
-    } catch (error) {
-      console.error('[LLM Citation Tracker] Failed to track page view:', error);
+    } catch (_error) {
+      console.error('[LLM Citation Tracker] Failed to track page view:', _error);
     }
   }
 
@@ -258,12 +258,12 @@ class LLMCitationTracker {
    */
   private async sendReferralEvent(event: ReferralTrafficEvent): Promise<void> {
     try {
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('referral_traffic')
         .insert([event]);
 
-      if (error) {
-        console.error('[LLM Citation Tracker] Failed to send referral event:', error);
+      if (_error) {
+        console.error('[LLM Citation Tracker] Failed to send referral event:', _error);
       }
     } catch (err) {
       console.error('[LLM Citation Tracker] Error sending referral event:', err);
@@ -275,12 +275,12 @@ class LLMCitationTracker {
    */
   public async trackCitationAlert(alert: CitationAlert): Promise<void> {
     try {
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('citation_alerts')
         .insert([alert]);
 
-      if (error) {
-        console.error('[LLM Citation Tracker] Failed to track citation alert:', error);
+      if (_error) {
+        console.error('[LLM Citation Tracker] Failed to track citation alert:', _error);
       }
     } catch (err) {
       console.error('[LLM Citation Tracker] Error tracking citation alert:', err);
@@ -293,7 +293,7 @@ class LLMCitationTracker {
   public async recordQueryPattern(pattern: QueryPattern): Promise<void> {
     try {
       // First, try to update existing pattern
-      const { data: existing, error: fetchError } = await supabase
+      const { data: existing, error: _error: fetchError } = await supabase
         .from('query_patterns')
         .select('id, frequency_count')
         .eq('pattern_text', pattern.pattern_text)
@@ -305,7 +305,7 @@ class LLMCitationTracker {
 
       if (existing) {
         // Update existing pattern
-        const { error } = await supabase
+        const { error: _error } = await supabase
           .from('query_patterns')
           .update({
             frequency_count: existing.frequency_count + 1,
@@ -316,10 +316,10 @@ class LLMCitationTracker {
           })
           .eq('id', existing.id);
 
-        if (error) throw error;
+        if (_error) throw error;
       } else {
         // Insert new pattern
-        const { error } = await supabase
+        const { error: _error } = await supabase
           .from('query_patterns')
           .insert([{
             ...pattern,
@@ -327,7 +327,7 @@ class LLMCitationTracker {
             last_seen_at: new Date().toISOString(),
           }]);
 
-        if (error) throw error;
+        if (_error) throw error;
       }
     } catch (err) {
       console.error('[LLM Citation Tracker] Error recording query pattern:', err);
@@ -355,17 +355,17 @@ class LLMCitationTracker {
         query = query.gte('created_at', thirtyDaysAgo.toISOString());
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data, error: _error } = await query.order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('[LLM Citation Tracker] Failed to get citation metrics:', error);
+      if (_error) {
+        console.error('[LLM Citation Tracker] Failed to get citation metrics:', _error);
         return null;
       }
 
       // Aggregate the data
       const metrics = {
         totalCitations: data?.length || 0,
-        uniqueRepositories: new Set(data?.map(d => d.repository).filter(Boolean)).size,
+        uniqueRepositories: new Set(_data?.map(d => d.repository).filter(Boolean)).size,
         platformBreakdown: {} as Record<string, number>,
         repositoryBreakdown: {} as Record<string, number>,
         dailyTrend: {} as Record<string, number>,

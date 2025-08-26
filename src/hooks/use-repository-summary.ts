@@ -10,7 +10,7 @@ interface UseRepositorySummaryReturn {
 }
 
 // Helper function to create activity hash (same as edge function)
-function createActivityHash(pullRequests: any[]): string {
+function createActivityHash(pullRequests: unknown[]): string {
   const activityData = pullRequests
     .slice(0, 10)
     .map(pr => `${pr.number}-${pr.merged_at || pr.created_at}`)
@@ -19,7 +19,7 @@ function createActivityHash(pullRequests: any[]): string {
 }
 
 // Check if summary needs regeneration (14 days old or activity changed)
-function needsRegeneration(repo: any, activityHash: string): boolean {
+function needsRegeneration(repo: unknown, activityHash: string): boolean {
   if (!repo.summary_generated_at || !repo.recent_activity_hash) {
     return true;
   }
@@ -42,7 +42,7 @@ function humanizeNumber(num: number): string {
 }
 
 // Generate summary locally as fallback
-async function generateLocalSummary(repository: any, pullRequests: any[]): Promise<string> {
+async function generateLocalSummary(repository: unknown, pullRequests: unknown[]): Promise<string> {
   const recentMergedPRs = (pullRequests || [])
     .filter(pr => pr.merged_at !== null)
     .slice(0, 5);
@@ -75,7 +75,7 @@ async function generateLocalSummary(repository: any, pullRequests: any[]): Promi
 export function useRepositorySummary(
   owner: string | undefined,
   repo: string | undefined,
-  pullRequests?: any[]
+  pullRequests?: unknown[]
 ): UseRepositorySummaryReturn {
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -99,14 +99,14 @@ export function useRepositorySummary(
       const repositoryData = await trackDatabaseOperation(
         'fetchRepositorySummary',
         async () => {
-          const { data, error } = await supabase
+          const { data, error: _error } = await supabase
             .from('repositories')
             .select('id, full_name, description, language, stargazers_count, forks_count, ai_summary, summary_generated_at, recent_activity_hash')
             .eq('owner', owner)
             .eq('name', repo)
             .maybeSingle();
 
-          if (error) throw error;
+          if (_error) throw error;
           return data;
         },
         {
@@ -153,7 +153,7 @@ export function useRepositorySummary(
             dataSource: 'api'
           });
 
-          const { data, error: functionError } = await supabase.functions.invoke(
+          const { data, error: _error: functionError } = await supabase.functions.invoke(
             'repository-summary',
             {
               body: {
@@ -172,11 +172,11 @@ export function useRepositorySummary(
             throw new Error(`Failed to generate summary: ${functionError.message}`);
           }
 
-          if (data.error) {
-            throw new Error(data.error);
+          if (_data._error) {
+            throw new Error(_data._error);
           }
 
-          setSummary(data.summary);
+          setSummary(_data.summary);
           return data.summary;
         },
         {
@@ -190,7 +190,7 @@ export function useRepositorySummary(
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
       
       // Fallback to local generation if Edge Function fails
-      if (errorMessage.includes('500') || errorMessage.includes('non-2xx')) {
+      if (_errorMessage.includes('500') || errorMessage.includes('non-2xx')) {
         console.log('Edge Function failed, generating summary locally');
         try {
           // Get repository data from the beginning of the function
@@ -209,8 +209,8 @@ export function useRepositorySummary(
           console.error('Local summary generation failed:', fallbackErr);
         }
       } else {
-        setError(errorMessage);
-        console.error('AI summary error:', errorMessage, { owner, repo });
+        setError(_errorMessage);
+        console.error('AI summary error:', _errorMessage, { owner, repo });
       }
     } finally {
       setLoading(false);
@@ -227,14 +227,14 @@ export function useRepositorySummary(
       const repositoryData = await trackDatabaseOperation(
         'refetchRepositorySummary',
         async () => {
-          const { data, error } = await supabase
+          const { data, error: _error } = await supabase
             .from('repositories')
             .select('id, full_name, description, language, stargazers_count, forks_count, ai_summary, summary_generated_at, recent_activity_hash')
             .eq('owner', owner)
             .eq('name', repo)
             .maybeSingle();
 
-          if (error) throw error;
+          if (_error) throw error;
           return data;
         },
         {
@@ -253,7 +253,7 @@ export function useRepositorySummary(
       const result = await trackCacheOperation(
         'forceRegenerateSummary',
         async () => {
-          const { data, error: functionError } = await supabase.functions.invoke(
+          const { data, error: _error: functionError } = await supabase.functions.invoke(
             'repository-summary',
             {
               body: {
@@ -271,8 +271,8 @@ export function useRepositorySummary(
             throw new Error(`Failed to generate summary: ${functionError.message}`);
           }
 
-          if (data.error) {
-            throw new Error(data.error);
+          if (_data._error) {
+            throw new Error(_data._error);
           }
 
           return data.summary;
@@ -289,10 +289,10 @@ export function useRepositorySummary(
       setSummary(result);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
-      setError(errorMessage);
+      setError(_errorMessage);
       
       // Simple error logging without analytics
-      console.error('AI summary refresh error:', errorMessage, { owner, repo });
+      console.error('AI summary refresh error:', _errorMessage, { owner, repo });
     } finally {
       setLoading(false);
     }

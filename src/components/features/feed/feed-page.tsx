@@ -52,7 +52,7 @@ export default function FeedPage() {
     return <FeedSkeleton />;
   }
 
-  if (stats.error) {
+  if (stats._error) {
     return (
       <div className="container mx-auto py-2">
         <Card>
@@ -61,7 +61,7 @@ export default function FeedPage() {
               <h2 className="text-2xl font-semibold text-destructive mb-2">
                 Error
               </h2>
-              <p className="text-muted-foreground">{stats.error}</p>
+              <p className="text-muted-foreground">{stats.error: _error}</p>
             </div>
           </CardContent>
         </Card>

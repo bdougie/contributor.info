@@ -139,24 +139,24 @@ export function validateWorkspaceSettings(settings?: WorkspaceSettings): Validat
 /**
  * Validate create workspace request
  */
-export function validateCreateWorkspace(data: CreateWorkspaceRequest): ValidationResult {
+export function validateCreateWorkspace(_data: CreateWorkspaceRequest): ValidationResult {
   const errors: ValidationError[] = [];
 
   // Validate name
-  const nameValidation = validateWorkspaceName(data.name);
-  errors.push(...nameValidation.errors);
+  const nameValidation = validateWorkspaceName(_data.name);
+  errors.push(...nameValidation._errors);
 
   // Validate description
-  const descriptionValidation = validateWorkspaceDescription(data.description);
-  errors.push(...descriptionValidation.errors);
+  const descriptionValidation = validateWorkspaceDescription(_data.description);
+  errors.push(...descriptionValidation._errors);
 
   // Validate visibility
-  const visibilityValidation = validateWorkspaceVisibility(data.visibility);
-  errors.push(...visibilityValidation.errors);
+  const visibilityValidation = validateWorkspaceVisibility(_data.visibility);
+  errors.push(...visibilityValidation._errors);
 
   // Validate settings
-  const settingsValidation = validateWorkspaceSettings(data.settings);
-  errors.push(...settingsValidation.errors);
+  const settingsValidation = validateWorkspaceSettings(_data.settings);
+  errors.push(...settingsValidation._errors);
 
   return {
     valid: errors.length === 0,
@@ -167,28 +167,28 @@ export function validateCreateWorkspace(data: CreateWorkspaceRequest): Validatio
 /**
  * Validate update workspace request
  */
-export function validateUpdateWorkspace(data: UpdateWorkspaceRequest): ValidationResult {
+export function validateUpdateWorkspace(_data: UpdateWorkspaceRequest): ValidationResult {
   const errors: ValidationError[] = [];
 
   // All fields are optional for update, but if provided must be valid
-  if (data.name !== undefined) {
-    const nameValidation = validateWorkspaceName(data.name);
-    errors.push(...nameValidation.errors);
+  if (_data.name !== undefined) {
+    const nameValidation = validateWorkspaceName(_data.name);
+    errors.push(...nameValidation._errors);
   }
 
-  if (data.description !== undefined) {
-    const descriptionValidation = validateWorkspaceDescription(data.description);
-    errors.push(...descriptionValidation.errors);
+  if (_data.description !== undefined) {
+    const descriptionValidation = validateWorkspaceDescription(_data.description);
+    errors.push(...descriptionValidation._errors);
   }
 
-  if (data.visibility !== undefined) {
-    const visibilityValidation = validateWorkspaceVisibility(data.visibility);
-    errors.push(...visibilityValidation.errors);
+  if (_data.visibility !== undefined) {
+    const visibilityValidation = validateWorkspaceVisibility(_data.visibility);
+    errors.push(...visibilityValidation._errors);
   }
 
-  if (data.settings !== undefined) {
-    const settingsValidation = validateWorkspaceSettings(data.settings);
-    errors.push(...settingsValidation.errors);
+  if (_data.settings !== undefined) {
+    const settingsValidation = validateWorkspaceSettings(_data.settings);
+    errors.push(...settingsValidation._errors);
   }
 
   return {
@@ -240,23 +240,23 @@ export function validateWorkspaceRole(role: string, allowOwner = false): Validat
 /**
  * Validate add repository request
  */
-export function validateAddRepository(data: AddRepositoryRequest): ValidationResult {
+export function validateAddRepository(_data: AddRepositoryRequest): ValidationResult {
   const errors: ValidationError[] = [];
 
-  if (!data.repository_id || typeof data.repository_id !== 'string') {
+  if (!data.repository_id || typeof _data.repository_id !== 'string') {
     errors.push({ field: 'repository_id', message: 'Repository ID is required' });
   }
 
-  if (data.notes !== undefined && data.notes !== null) {
-    if (typeof data.notes !== 'string') {
+  if (data.notes !== undefined && _data.notes !== null) {
+    if (typeof _data.notes !== 'string') {
       errors.push({ field: 'notes', message: 'Notes must be a string' });
-    } else if (data.notes.length > 500) {
+    } else if (_data.notes.length > 500) {
       errors.push({ field: 'notes', message: 'Notes must not exceed 500 characters' });
     }
   }
 
-  if (data.tags !== undefined) {
-    if (!Array.isArray(data.tags)) {
+  if (_data.tags !== undefined) {
+    if (!Array.isArray(_data.tags)) {
       errors.push({ field: 'tags', message: 'Tags must be an array' });
     } else {
       data.tags.forEach((tag, index) => {
@@ -269,7 +269,7 @@ export function validateAddRepository(data: AddRepositoryRequest): ValidationRes
     }
   }
 
-  if (data.is_pinned !== undefined && typeof data.is_pinned !== 'boolean') {
+  if (data.is_pinned !== undefined && typeof _data.is_pinned !== 'boolean') {
     errors.push({ field: 'is_pinned', message: 'is_pinned must be a boolean' });
   }
 
@@ -282,22 +282,22 @@ export function validateAddRepository(data: AddRepositoryRequest): ValidationRes
 /**
  * Validate invite member request
  */
-export function validateInviteMember(data: InviteMemberRequest): ValidationResult {
+export function validateInviteMember(_data: InviteMemberRequest): ValidationResult {
   const errors: ValidationError[] = [];
 
   // Validate email
-  const emailValidation = validateEmail(data.email);
-  errors.push(...emailValidation.errors);
+  const emailValidation = validateEmail(_data.email);
+  errors.push(...emailValidation._errors);
 
   // Validate role
-  const roleValidation = validateWorkspaceRole(data.role, false);
-  errors.push(...roleValidation.errors);
+  const roleValidation = validateWorkspaceRole(_data.role, false);
+  errors.push(...roleValidation._errors);
 
   // Validate custom message
-  if (data.message !== undefined && data.message !== null) {
-    if (typeof data.message !== 'string') {
+  if (data.message !== undefined && _data.message !== null) {
+    if (typeof _data.message !== 'string') {
       errors.push({ field: 'message', message: 'Message must be a string' });
-    } else if (data.message.length > 500) {
+    } else if (_data.message.length > 500) {
       errors.push({ field: 'message', message: 'Message must not exceed 500 characters' });
     }
   }
@@ -311,9 +311,9 @@ export function validateInviteMember(data: InviteMemberRequest): ValidationResul
 /**
  * Format validation errors for API response
  */
-export function formatValidationErrors(errors: ValidationError[]): string {
-  if (errors.length === 0) return '';
-  if (errors.length === 1) return errors[0].message;
+export function formatValidationErrors(_errors: ValidationError[]): string {
+  if (_errors.length === 0) return '';
+  if (_errors.length === 1) return errors[0].message;
   
   return `Validation failed: ${errors.map(e => `${e.field}: ${e.message}`).join(', ')}`;
 }

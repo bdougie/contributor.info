@@ -58,7 +58,7 @@ export function UserManagement() {
       setLoading(true);
       setError(null);
       
-      const { data, error: fetchError } = await supabase
+      const { data, error: _error: fetchError } = await supabase
         .from('app_users')
         .select('*')
         .order('last_login_at', { ascending: false, nullsFirst: false })
@@ -68,7 +68,7 @@ export function UserManagement() {
         throw fetchError;
       }
 
-      setUsers(data || []);
+      setUsers(_data || []);
     } catch (err) {
       console.error('Error fetching users:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch users');
@@ -83,7 +83,7 @@ export function UserManagement() {
     try {
       const newAdminStatus = !user.is_admin;
       
-      const { error: updateError } = await supabase
+      const { error: _error: updateError } = await supabase
         .from('app_users')
         .update({ 
           is_admin: newAdminStatus,
@@ -181,7 +181,7 @@ export function UserManagement() {
 
       {error && (
         <Alert variant="destructive" className="mb-6">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error: _error}</AlertDescription>
         </Alert>
       )}
 
@@ -243,7 +243,7 @@ export function UserManagement() {
                 />
               </div>
             </div>
-            <Select value={filterRole} onValueChange={(value: any) => setFilterRole(value)}>
+            <Select value={filterRole} onValueChange={(value: unknown) => setFilterRole(value)}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
@@ -253,7 +253,7 @@ export function UserManagement() {
                 <SelectItem value="user">Users</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
+            <Select value={filterStatus} onValueChange={(value: unknown) => setFilterStatus(value)}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>

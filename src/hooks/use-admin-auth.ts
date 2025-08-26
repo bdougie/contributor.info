@@ -82,14 +82,14 @@ export function useAdminAuth(): AdminAuthState {
         }
 
         // Check admin status in database using RPC to bypass RLS
-        const { data: isAdminResult, error } = await supabase
+        const { data: isAdminResult, error: _error } = await supabase
           .rpc('is_user_admin', { user_github_id: parseInt(githubId) });
 
-        if (error) {
-          console.error('Error checking admin status:', error);
+        if (_error) {
+          console.error('Error checking admin status:', _error);
           
           // Fallback: Try to create the user record if it doesn't exist
-          if (error.message?.includes('does not exist') || error.code === 'PGRST116') {
+          if (_error.message?.includes('does not exist') || error.code === 'PGRST116') {
             try {
               console.log('Attempting to create missing app_users record for user:', githubId);
               const githubUsername = session.user.user_metadata?.user_name;
@@ -108,7 +108,7 @@ export function useAdminAuth(): AdminAuthState {
                 });
                 
                 // Retry admin check after creating user record
-                const { data: retryResult, error: retryError } = await supabase
+                const { data: retryResult, error: _error: retryError } = await supabase
                   .rpc('is_user_admin', { user_github_id: parseInt(githubId) });
                 
                 if (!retryError) {
@@ -138,7 +138,7 @@ export function useAdminAuth(): AdminAuthState {
               p_error_code: error.code
             });
           } catch (logError) {
-            console.warn('Failed to log auth error:', logError);
+            console.warn('Failed to log auth _error:', logError);
           }
           
           // Simple fallback: assume not admin if check fails
@@ -163,7 +163,7 @@ export function useAdminAuth(): AdminAuthState {
               .rpc('get_user_by_github_id', { user_github_id: parseInt(githubId) });
             adminUser = userData?.[0] || null; // RPC returns array
           } catch (err) {
-            console.warn('Could not fetch admin user data:', err);
+            console.warn('Could not fetch admin user _data:', err);
           }
         }
 
@@ -209,11 +209,11 @@ export async function logAdminAction(
   actionType: string,
   targetType?: string,
   targetId?: string,
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 ): Promise<void> {
   try {
     // First try to use the RPC function
-    const { error: rpcError } = await supabase.rpc('log_admin_action', {
+    const { error: _error: rpcError } = await supabase.rpc('log_admin_action', {
       p_admin_github_id: adminGitHubId,
       p_action_type: actionType,
       p_target_type: targetType,
@@ -226,13 +226,13 @@ export async function logAdminAction(
     if (rpcError) {
       throw rpcError;
     }
-  } catch (error: any) {
-    console.warn('RPC log_admin_action failed, admin system may not be set up:', error?.message);
+  } catch (_error: unknown) {
+    console.warn('RPC log_admin_action failed, admin system may not be set up:', _error?.message);
     
     // Fallback: Try direct insert (will work if admin_action_logs table exists)
     try {
       // First get the admin user UUID from GitHub ID
-      const { data: adminUser, error: userError } = await supabase
+      const { data: adminUser, error: _error: userError } = await supabase
         .from('app_users')
         .select('id')
         .eq('github_user_id', adminGitHubId)
@@ -244,7 +244,7 @@ export async function logAdminAction(
       }
 
       // Direct insert to admin_action_logs
-      const { error: insertError } = await supabase
+      const { error: _error: insertError } = await supabase
         .from('admin_action_logs')
         .insert({
           admin_user_id: adminUser.id,

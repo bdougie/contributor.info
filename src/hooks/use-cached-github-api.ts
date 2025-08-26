@@ -18,8 +18,8 @@ export interface CachedApiState<T> {
 
 export interface UseCachedGitHubApiOptions extends ApiCallOptions {
   enabled?: boolean
-  onSuccess?: (data: any) => void
-  onError?: (error: string) => void
+  onSuccess?: (_data: unknown) => void
+  onError?: (_error: string) => void
   refreshInterval?: number
 }
 
@@ -28,7 +28,7 @@ export interface UseCachedGitHubApiOptions extends ApiCallOptions {
  */
 export function useCachedGitHubApi<T>(
   endpoint: string,
-  params: Record<string, any> = {},
+  params: Record<string, unknown> = {},
   options: UseCachedGitHubApiOptions = {}
 ): CachedApiState<T> {
   const [session, setSession] = useState<any>(null)
@@ -60,7 +60,7 @@ export function useCachedGitHubApi<T>(
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!enabled) return
 
-    setState(prev => ({ ...prev, loading: true, error: null }))
+    setState(prev => ({ ...prev, loading: true, _error: null }))
 
     try {
       const result: ApiResponse<T> = await clientRef.current.makeRequest<T>(
@@ -77,23 +77,23 @@ export function useCachedGitHubApi<T>(
           fromCache: result.fromCache,
           responseTime: result.responseTime
         })
-        onSuccess?.(result.data)
+        onSuccess?.(result._data)
       } else {
         setState(prev => ({
           ...prev,
           loading: false,
           error: result.error || 'Unknown error occurred'
         }))
-        onError?.(result.error || 'Unknown error occurred')
+        onError?.(result.error || 'Unknown _error occurred')
       }
-    } catch (error) {
+    } catch (_error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       setState(prev => ({
         ...prev,
         loading: false,
         error: errorMessage
       }))
-      onError?.(errorMessage)
+      onError?.(_errorMessage)
     }
   }, [endpoint, params, enabled, apiOptions, onSuccess, onError])
 
@@ -184,7 +184,7 @@ export function useCachedUser(username: string, options: UseCachedGitHubApiOptio
 export function useCachedPullRequests(
   owner: string,
   repo: string,
-  queryParams: Record<string, any> = {},
+  queryParams: Record<string, unknown> = {},
   options: UseCachedGitHubApiOptions = {}
 ) {
   return useCachedGitHubApi(
@@ -203,7 +203,7 @@ export function useCachedPullRequests(
 export function useCachedRepositoryEvents(
   owner: string,
   repo: string,
-  queryParams: Record<string, any> = {},
+  queryParams: Record<string, unknown> = {},
   options: UseCachedGitHubApiOptions = {}
 ) {
   return useCachedGitHubApi(
@@ -220,7 +220,7 @@ export function useCachedRepositoryEvents(
  * Hook for batch API requests
  */
 export function useCachedBatchRequests<T>(
-  requests: Array<{ endpoint: string; params?: Record<string, any>; options?: ApiCallOptions }>,
+  requests: Array<{ endpoint: string; params?: Record<string, unknown>; options?: ApiCallOptions }>,
   options: UseCachedGitHubApiOptions = {}
 ) {
   const [state, setState] = useState<{
@@ -238,7 +238,7 @@ export function useCachedBatchRequests<T>(
   const fetchBatch = useCallback(async () => {
     if (!options.enabled || requests.length === 0) return
 
-    setState(prev => ({ ...prev, loading: true, error: null }))
+    setState(prev => ({ ...prev, loading: true, _error: null }))
 
     try {
       const results = await clientRef.current.batchRequest<T>(requests)
@@ -247,7 +247,7 @@ export function useCachedBatchRequests<T>(
         loading: false,
         error: null
       })
-    } catch (error) {
+    } catch (_error) {
       const errorMessage = error instanceof Error ? error.message : 'Batch request failed'
       setState(prev => ({
         ...prev,

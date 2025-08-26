@@ -136,14 +136,14 @@ export function LotteryFactorContent({
       if (!owner || !repo) return;
 
       try {
-        const { data, error } = await supabase
+        const { data, error: _error } = await supabase
           .from("contributor_roles")
           .select("user_id, role")
           .eq("repository_owner", owner)
           .eq("repository_name", repo);
 
-        if (error) {
-          console.warn("Failed to fetch contributor roles:", error);
+        if (_error) {
+          console.warn("Failed to fetch contributor roles:", _error);
           return;
         }
 
@@ -152,8 +152,8 @@ export function LotteryFactorContent({
           rolesMap.set(user_id, role);
         });
         setContributorRoles(rolesMap);
-      } catch (error) {
-        console.warn("Error fetching contributor roles:", error);
+      } catch (_error) {
+        console.warn("Error fetching contributor roles:", _error);
       }
     }
 

@@ -18,19 +18,19 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
 vi.mock('@/components/ui/avatar', () => {
   const React = require('react');
   return {
-    Avatar: React.forwardRef(({ children, className, style }: any, ref: any) => 
+    Avatar: React.forwardRef(({ children, className, style }: unknown, ref: unknown) => 
       React.createElement('div', { ref, className, style }, children)
     ),
-    AvatarImage: ({ src, alt, onLoad, onError, className }: any) => 
+    AvatarImage: ({ src, alt, onLoad, onError, className }: unknown) => 
       React.createElement('img', { src, alt, onLoad, onError, className }),
-    AvatarFallback: ({ children, className }: any) => 
+    AvatarFallback: ({ children, className }: unknown) => 
       React.createElement('div', { className }, children),
   };
 });
 
 // Mock cn utility
 vi.mock('@/lib/utils', () => ({
-  cn: (...classes: any[]) => classes.filter(Boolean).join(' '),
+  cn: (...classes: unknown[]) => classes.filter(Boolean).join(' '),
 }));
 
 describe('OptimizedAvatar', () => {

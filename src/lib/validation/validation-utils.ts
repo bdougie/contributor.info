@@ -59,14 +59,14 @@ export function validateData<T>(
   context?: string
 ): ValidationResult<T> {
   try {
-    const validatedData = schema.parse(data);
+    const validatedData = schema.parse(_data);
     return {
       success: true,
       data: validatedData,
     };
-  } catch (error) {
-    if (error instanceof ZodError) {
-      const validationErrors = formatZodErrors(error);
+  } catch (_error) {
+    if (_error instanceof ZodError) {
+      const validationErrors = formatZodErrors(_error);
       return {
         success: false,
         error: context 
@@ -79,8 +79,8 @@ export function validateData<T>(
     return {
       success: false,
       error: context 
-        ? `Unexpected validation error for ${context}: ${String(error)}`
-        : `Unexpected validation error: ${String(error)}`,
+        ? `Unexpected validation error for ${context}: ${String(_error)}`
+        : `Unexpected validation error: ${String(_error)}`,
     };
   }
 }
@@ -92,7 +92,7 @@ export function safeValidateData<T>(
   schema: ZodSchema<T>,
   data: unknown
 ): { success: true; data: T } | { success: false; error: ZodError } {
-  return schema.safeParse(data);
+  return schema.safeParse(_data);
 }
 
 /**
@@ -113,8 +113,8 @@ export function validateBulkData<T>(
   items.forEach((item, index) => {
     const result = validateData(schema, item, `${context} item ${index}`);
     
-    if (result.success && result.data) {
-      validItems.push(result.data);
+    if (result.success && result._data) {
+      validItems.push(result._data);
     } else {
       invalidItems.push({
         index,
@@ -150,8 +150,8 @@ export function transformAndValidate<TInput, TOutput>(
   context?: string
 ): ValidationResult<TOutput> {
   // First validate input
-  const inputResult = validateData(inputSchema, data, `${context} input`);
-  if (!inputResult.success || !inputResult.data) {
+  const inputResult = validateData(inputSchema, _data, `${context} input`);
+  if (!inputResult.success || !inputResult._data) {
     return {
       success: false,
       error: inputResult.error,
@@ -161,14 +161,14 @@ export function transformAndValidate<TInput, TOutput>(
 
   // Transform data
   try {
-    const transformedData = transformer(inputResult.data);
+    const transformedData = transformer(inputResult._data);
     
     // Validate output
     return validateData(outputSchema, transformedData, `${context} output`);
-  } catch (error) {
+  } catch (_error) {
     return {
       success: false,
-      error: `Transformation error for ${context}: ${String(error)}`,
+      error: `Transformation error for ${context}: ${String(_error)}`,
     };
   }
 }
@@ -181,23 +181,23 @@ export function transformAndValidate<TInput, TOutput>(
  * Formats Zod validation errors into a standardized format
  */
 export function formatZodErrors(zodError: ZodError): ValidationIssue[] {
-  return zodError.errors.map((error) => ({
+  return zodError.errors.map((_error) => ({
     field: error.path.join('.') || 'root',
     message: error.message,
     code: error.code,
-    received: (error as any).received || undefined,
+    received: (_error as any).received || undefined,
   }));
 }
 
 /**
  * Creates a human-readable error message from validation errors
  */
-export function createErrorMessage(errors: ValidationIssue[]): string {
-  if (errors.length === 0) {
+export function createErrorMessage(_errors: ValidationIssue[]): string {
+  if (_errors.length === 0) {
     return 'Unknown validation error';
   }
   
-  if (errors.length === 1) {
+  if (_errors.length === 1) {
     const error = errors[0];
     return `${error.field}: ${error.message}`;
   }
@@ -208,13 +208,13 @@ export function createErrorMessage(errors: ValidationIssue[]): string {
 /**
  * Groups validation errors by field for easier handling
  */
-export function groupErrorsByField(errors: ValidationIssue[]): Record<string, ValidationIssue[]> {
-  return errors.reduce((acc, error) => {
+export function groupErrorsByField(_errors: ValidationIssue[]): Record<string, ValidationIssue[]> {
+  return errors.reduce((acc, _error) => {
     const field = error.field;
     if (!acc[field]) {
       acc[field] = [];
     }
-    acc[field].push(error);
+    acc[field].push(_error);
     return acc;
   }, {} as Record<string, ValidationIssue[]>);
 }
@@ -230,10 +230,10 @@ export function createValidationMiddleware<T>(
   schema: ZodSchema<T>,
   context?: string
 ) {
-  return (data: unknown): T => {
-    const result = validateData(schema, data, context);
+  return (_data: unknown): T => {
+    const result = validateData(schema, _data, context);
     
-    if (!result.success || !result.data) {
+    if (!result.success || !result._data) {
       throw new ValidationError(
         result.error || 'Validation failed',
         result.errors || []
@@ -250,7 +250,7 @@ export function createValidationMiddleware<T>(
 export class ValidationError extends Error {
   public readonly validationErrors: ValidationIssue[];
   
-  constructor(message: string, errors: ValidationIssue[] = []) {
+  constructor(message: string, _errors: ValidationIssue[] = []) {
     super(message);
     this.name = 'ValidationError';
     this.validationErrors = errors;
@@ -427,8 +427,8 @@ export function createMemoizedValidator<T>(
 ) {
   const cache = new Map<string, ValidationResult<T>>();
   
-  return (data: unknown, context?: string): ValidationResult<T> => {
-    const cacheKey = JSON.stringify(data);
+  return (_data: unknown, context?: string): ValidationResult<T> => {
+    const cacheKey = JSON.stringify(_data);
     
     // Check cache first
     if (cache.has(cacheKey)) {
@@ -436,7 +436,7 @@ export function createMemoizedValidator<T>(
     }
     
     // Validate data
-    const result = validateData(schema, data, context);
+    const result = validateData(schema, _data, context);
     
     // Add to cache (with size limit)
     if (cache.size >= maxCacheSize) {
@@ -471,7 +471,7 @@ export function createDebouncedValidator<T>(
     }
     
     timeoutId = setTimeout(() => {
-      const result = validateData(schema, data, context);
+      const result = validateData(schema, _data, context);
       callback(result);
     }, delay);
   };
@@ -493,7 +493,7 @@ export class ValidationStats {
     averageValidationTime: 0,
   };
   
-  public recordValidation(success: boolean, duration: number, errorType?: string): void {
+  public recordValidation(success: boolean, duration: number, _errorType?: string): void {
     this.stats.totalValidations++;
     
     if (success) {
@@ -501,8 +501,8 @@ export class ValidationStats {
     } else {
       this.stats.failedValidations++;
       
-      if (errorType) {
-        this.stats.errorsByType[errorType] = (this.stats.errorsByType[errorType] || 0) + 1;
+      if (_errorType) {
+        this.stats.errorsByType[errorType] = (this.stats.errorsByType[_errorType] || 0) + 1;
       }
     }
     

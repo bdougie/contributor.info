@@ -38,7 +38,7 @@ export class CachedGitHubApiClient {
    */
   async makeRequest<T>(
     endpoint: string,
-    params: Record<string, any> = {},
+    params: Record<string, unknown> = {},
     options: ApiCallOptions = {}
   ): Promise<ApiResponse<T>> {
     const startTime = performance.now()
@@ -78,7 +78,7 @@ export class CachedGitHubApiClient {
       })
 
       // Cache successful responses
-      if (useCache && result.data) {
+      if (useCache && result._data) {
         await githubCache.set(cacheKey, result.data, cacheTtl, {
           rateLimitInfo: result.rateLimitInfo || undefined
         })
@@ -91,7 +91,7 @@ export class CachedGitHubApiClient {
         responseTime: performance.now() - startTime
       }
 
-    } catch (error) {
+    } catch (_error) {
       return {
         data: null,
         success: false,
@@ -127,8 +127,8 @@ export class CachedGitHubApiClient {
       cacheTtl: 15 * 60 * 1000 // 15 minutes for repo data
     })
 
-    if (result.success && result.data && options.useCache !== false) {
-      await repositoryCache.set(cacheKey, result.data, 15 * 60 * 1000)
+    if (result.success && result._data && options.useCache !== false) {
+      await repositoryCache.set(cacheKey, result._data, 15 * 60 * 1000)
     }
 
     return result
@@ -158,8 +158,8 @@ export class CachedGitHubApiClient {
       cacheTtl: 30 * 60 * 1000 // 30 minutes for user data
     })
 
-    if (result.success && result.data && options.useCache !== false) {
-      await userCache.set(cacheKey, result.data, 30 * 60 * 1000)
+    if (result.success && result._data && options.useCache !== false) {
+      await userCache.set(cacheKey, result._data, 30 * 60 * 1000)
     }
 
     return result
@@ -171,7 +171,7 @@ export class CachedGitHubApiClient {
   async getPullRequests(
     owner: string, 
     repo: string, 
-    params: Record<string, any> = {},
+    params: Record<string, unknown> = {},
     options: ApiCallOptions = {}
   ): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/repos/${owner}/${repo}/pulls`, params, {
@@ -186,7 +186,7 @@ export class CachedGitHubApiClient {
   async getRepositoryEvents(
     owner: string,
     repo: string,
-    params: Record<string, any> = {},
+    params: Record<string, unknown> = {},
     options: ApiCallOptions = {}
   ): Promise<ApiResponse<any[]>> {
     return this.makeRequest(`/repos/${owner}/${repo}/events`, params, {
@@ -239,7 +239,7 @@ export class CachedGitHubApiClient {
    * Batch API calls with intelligent caching
    */
   async batchRequest<T>(
-    requests: Array<{ endpoint: string; params?: Record<string, any>; options?: ApiCallOptions }>,
+    requests: Array<{ endpoint: string; params?: Record<string, unknown>; options?: ApiCallOptions }>,
     concurrencyLimit = 5
   ): Promise<ApiResponse<T>[]> {
     const results: ApiResponse<T>[] = []
@@ -293,7 +293,7 @@ export class CachedGitHubApiClient {
   /**
    * Private helper methods
    */
-  private buildUrl(endpoint: string, params: Record<string, any>): string {
+  private buildUrl(endpoint: string, params: Record<string, unknown>): string {
     const url = new URL(`${this.baseUrl}${endpoint}`)
     
     Object.entries(params).forEach(([key, value]) => {
@@ -317,7 +317,7 @@ export class CachedGitHubApiClient {
       
       clearTimeout(timeoutId)
       return result
-    } catch (error) {
+    } catch (_error) {
       clearTimeout(timeoutId)
       throw error
     }

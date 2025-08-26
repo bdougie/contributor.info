@@ -22,7 +22,7 @@ const isExternalUrl = (url: string): boolean => {
   return url.startsWith('http://') || url.startsWith('https://');
 };
 
-export const OptimizedImage: React.FC<OptimizedImageProps> = ({
+export const OptimizedImage = ({
   src,
   alt,
   className = '',
@@ -32,7 +32,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   height,
   priority = false,
   lazy = true
-}) => {
+}: OptimizedImageProps): JSX.Element => {
   // Handle Supabase Storage URLs and other external URLs
   if (isExternalUrl(src)) {
     // For Supabase Storage, we can use image transformations
@@ -134,7 +134,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
 };
 
 // Simple image component for small images that don't need responsive versions
-export const SimpleOptimizedImage: React.FC<OptimizedImageProps> = ({
+export const SimpleOptimizedImage = ({
   src,
   alt,
   className = '',
@@ -143,7 +143,7 @@ export const SimpleOptimizedImage: React.FC<OptimizedImageProps> = ({
   height,
   priority = false,
   lazy = true
-}) => {
+}: OptimizedImageProps): JSX.Element => {
   // Handle external URLs (including Supabase)
   if (isExternalUrl(src)) {
     return (

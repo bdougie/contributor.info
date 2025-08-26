@@ -26,10 +26,10 @@ export interface FAQAnswer {
 }
 
 export interface RepositoryData {
-  pullRequests?: any[];
-  contributors?: any[];
-  health?: any;
-  activity?: any;
+  pullRequests?: unknown[];
+  contributors?: unknown[];
+  health?: unknown;
+  activity?: unknown;
 }
 
 class FAQService {
@@ -102,7 +102,7 @@ class FAQService {
     const dataHash = this.generateDataHash({ repositoryData, timeRange });
 
     // Check cache first
-    const cached = cacheService.get(cacheKey, dataHash);
+    const cached = cacheService.get(cacheKey, _dataHash);
     if (cached) {
       return cached as unknown as FAQAnswer[];
     }
@@ -129,11 +129,11 @@ class FAQService {
       }
 
       // Cache successful results
-      cacheService.set(cacheKey, answers as unknown as LLMInsight, dataHash, 24 * 60 * 60 * 1000); // 24 hour cache
+      cacheService.set(cacheKey, answers as unknown as LLMInsight, _dataHash, 24 * 60 * 60 * 1000); // 24 hour cache
 
       return answers;
-    } catch (error) {
-      console.error('Failed to generate FAQ answers:', error);
+    } catch (_error) {
+      console.error('Failed to generate FAQ answers:', _error);
       return this.generateFallbackAnswers(owner, repo, timeRange, repositoryData);
     }
   }
@@ -173,8 +173,8 @@ class FAQService {
         sources,
         timestamp: new Date()
       };
-    } catch (error) {
-      console.error(`Failed to generate LLM answer for ${question.id}:`, error);
+    } catch (_error) {
+      console.error(`Failed to generate LLM answer for ${question.id}:`, _error);
       return this.generateFallbackAnswer(question, owner, repo, timeRange, repositoryData);
     }
   }
@@ -219,7 +219,7 @@ Answer:`;
     const data: string[] = [];
 
     if (category === 'contributors' && repositoryData.pullRequests) {
-      const contributors = new Set(repositoryData.pullRequests.map((pr: any) => pr.author?.login || pr.user?.login || 'unknown')).size;
+      const contributors = new Set(repositoryData.pullRequests.map((pr: unknown) => pr.author?.login || pr.user?.login || 'unknown')).size;
       const contributorCounts = repositoryData.pullRequests.reduce((acc, pr) => {
         const authorLogin = pr.author?.login || pr.user?.login || 'unknown';
         acc[authorLogin] = (acc[authorLogin] || 0) + 1;
@@ -384,8 +384,8 @@ Answer:`;
       }
 
       return questionsWithEmbeddings;
-    } catch (error) {
-      console.error('Failed to generate question embeddings:', error);
+    } catch (_error) {
+      console.error('Failed to generate question embeddings:', _error);
       return questions; // Return without embeddings on failure
     }
   }
@@ -427,8 +427,8 @@ Answer:`;
         .sort((a, b) => b.similarity - a.similarity);
 
       return similarities.map(s => s.question);
-    } catch (error) {
-      console.error('Failed to find similar questions:', error);
+    } catch (_error) {
+      console.error('Failed to find similar questions:', _error);
       return questions.slice(0, 3); // Return first 3 as fallback
     }
   }
@@ -480,19 +480,19 @@ Answer:`;
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        console.error(`OpenAI API error: ${response.status}`);
+        console.error(`OpenAI API _error: ${response.status}`);
         return null;
       }
 
       const data = await response.json();
       
-      if (!data.choices || data.choices.length === 0) {
+      if (!data.choices || _data.choices.length === 0) {
         return null;
       }
 
       return data.choices[0].message.content.trim();
-    } catch (error) {
-      console.error('Failed to call OpenAI for FAQ:', error);
+    } catch (_error) {
+      console.error('Failed to call OpenAI for FAQ:', _error);
       return null;
     } finally {
       clearTimeout(timeoutId);
@@ -532,10 +532,10 @@ Answer:`;
   /**
    * Generate hash from data for cache invalidation
    */
-  private generateDataHash(data: any): string {
-    const dataString = JSON.stringify(data);
+  private generateDataHash(_data: unknown): string {
+    const dataString = JSON.stringify(_data);
     let hash = 0;
-    for (let i = 0; i < dataString.length; i++) {
+    for (let i = 0; i < _dataString.length; i++) {
       const char = dataString.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash; // Convert to 32-bit integer

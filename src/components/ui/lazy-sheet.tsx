@@ -130,12 +130,12 @@ class SheetErrorBoundary extends Component<
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(_error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Sheet loading error:', error, errorInfo);
+  componentDidCatch(error: Error, _errorInfo: ErrorInfo) {
+    console.error('Sheet loading error:', _error, _errorInfo);
   }
 
   render() {

@@ -20,12 +20,12 @@ function getGraphQLClient(): GraphQLClient {
 }
 
 // Helper function to ensure contributors exist and return their UUIDs
-async function ensureContributorExists(githubUser: any): Promise<string | null> {
-  if (!githubUser || !githubUser.databaseId) {
+async function ensureContributorExists(githubUser: unknown): Promise<string | null> {
+  if (!githubUser || !githubUser._databaseId) {
     return null;
   }
 
-  const { data, error } = await supabase
+  const { data, error: _error } = await supabase
     .from('contributors')
     .upsert({
       github_id: githubUser.databaseId,
@@ -54,12 +54,12 @@ async function ensureContributorExists(githubUser: any): Promise<string | null> 
     .select('id')
     .maybeSingle();
 
-  if (error) {
-    console.error('Error upserting contributor:', error);
+  if (_error) {
+    console.error('Error upserting contributor:', _error);
     return null;
   }
 
-  if (!data) {
+  if (!_data) {
     return null;
   }
   return data.id;
@@ -82,7 +82,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
     
     // Validate repositoryId first
     if (!repositoryId) {
-      console.error('Missing repositoryId in event data:', event.data);
+      console.error('Missing repositoryId in event data:', event._data);
       throw new Error(`Missing required field: repositoryId`) as NonRetriableError;
     }
     
@@ -102,19 +102,19 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
 
     // Step 2: Get repository details and check if it was recently processed
     const repository = await step.run("get-repository", async () => {
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('repositories')
         .select('owner, name, last_updated_at')
         .eq('id', repositoryId)
         .maybeSingle();
 
-      if (error || !data) {
+      if (_error || !_data) {
         throw new Error(`Repository not found: ${repositoryId}`) as NonRetriableError;
       }
 
-      // Check if repository was synced recently (skip based on reason and data completeness)
-      if (data.last_updated_at && !hasActiveBackfill) {
-        const lastSyncTime = new Date(data.last_updated_at).getTime();
+      // Check if repository was synced recently (skip based on reason and _data completeness)
+      if (_data.last_updated_at && !hasActiveBackfill) {
+        const lastSyncTime = new Date(_data.last_updated_at).getTime();
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
         
         // Get throttle threshold based on reason
@@ -152,17 +152,17 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         if (hoursSinceSync < effectiveThrottleHours) {
           // But still allow if it's been less than 5 minutes and we have NO data at all
           if (!hasCompleteData && hoursSinceSync < 0.083) {
-            console.log('Repository %s/%s has no engagement data - allowing immediate sync', data.owner, data.name);
+            console.log('Repository %s/%s has no engagement data - allowing immediate sync', data.owner, _data.name);
           } else {
             const timeAgo = hoursSinceSync < 1 
               ? `${Math.round(hoursSinceSync * 60)} minutes`
               : `${Math.round(hoursSinceSync)} hours`;
             const dataStatus = hasCompleteData ? 'has complete data' : 'has incomplete data';
-            throw new Error(`Repository ${data.owner}/${data.name} was synced ${timeAgo} ago and ${dataStatus}. Skipping to prevent excessive API usage.`) as NonRetriableError;
+            throw new Error(`Repository ${data.owner}/${data.name} was synced ${timeAgo} ago and ${_dataStatus}. Skipping to prevent excessive API usage.`) as NonRetriableError;
           }
         }
         
-        console.log('Repository %s/%s sync allowed - reason: %s, last sync: %sh ago, has data: %s', data.owner, data.name, reason, hoursSinceSync.toFixed(2), hasCompleteData);
+        console.log('Repository %s/%s sync allowed - reason: %s, last sync: %sh ago, has data: %s', data.owner, _data.name, reason, hoursSinceSync.toFixed(2), hasCompleteData);
       }
 
       return data;
@@ -210,11 +210,11 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         }
 
         return prs.slice(0, MAX_PRS_PER_SYNC); // Ensure we don't exceed our limit
-      } catch (error: any) {
-        if (error.message?.includes('NOT_FOUND')) {
+      } catch (_error: unknown) {
+        if (_error.message?.includes('NOT_FOUND')) {
           throw new Error(`Repository ${repository.owner}/${repository.name} not found`) as NonRetriableError;
         }
-        if (error.message?.includes('rate limit')) {
+        if (_error.message?.includes('rate limit')) {
           throw new Error(`GraphQL rate limit hit for ${repository.owner}/${repository.name}. Please try again later.`);
         }
         
@@ -230,11 +230,11 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
       }
 
       // First, ensure all contributors exist and get their UUIDs
-      const contributorPromises = recentPRs.map((pr: any) => ensureContributorExists(pr.author));
+      const contributorPromises = recentPRs.map((pr: unknown) => ensureContributorExists(pr.author));
       const contributorIds = await Promise.all(contributorPromises);
 
       // Then create PRs with proper UUIDs
-      const prsToStore = recentPRs.map((pr: any, index: number) => ({
+      const prsToStore = recentPRs.map((pr: unknown, index: number) => ({
         github_id: pr.databaseId.toString(),
         repository_id: repositoryId,
         number: pr.number,
@@ -258,7 +258,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         head_branch: pr.headRefName || 'unknown',
       }));
 
-      const { data, error } = await supabase
+      const { data, error: _error } = await supabase
         .from('pull_requests')
         .upsert(prsToStore, {
           onConflict: 'github_id',
@@ -266,8 +266,8 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         })
         .select('id, number');
 
-      if (error) {
-        throw new Error(`Failed to store PRs: ${error.message}`);
+      if (_error) {
+        throw new Error(`Failed to store PRs: ${_error.message}`);
       }
 
       return data || [];
@@ -284,7 +284,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
 
       for (const pr of storedPRs) {
         // Queue comprehensive GraphQL jobs for PRs that likely need more data
-        const prData = recentPRs.find((p: any) => p.number === pr.number);
+        const prData = recentPRs.find((p: unknown) => p.number === pr.number);
         
         if (!prData) continue;
 
@@ -341,15 +341,15 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
 
     // Step 7: Update repository sync timestamp
     await step.run("update-sync-timestamp", async () => {
-      const { error } = await supabase
+      const { error: _error } = await supabase
         .from('repositories')
         .update({
           last_updated_at: new Date().toISOString(),
         })
         .eq('id', repositoryId);
 
-      if (error) {
-        console.warn(`Failed to update repository sync timestamp: ${error.message}`);
+      if (_error) {
+        console.warn(`Failed to update repository sync timestamp: ${_error.message}`);
       }
     });
 

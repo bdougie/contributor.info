@@ -17,7 +17,7 @@ export interface UPlotChartProps {
  * React wrapper for uPlot charting library
  * Handles proper lifecycle management and responsive sizing
  */
-export const UPlotChart: React.FC<UPlotChartProps> = ({
+export const UPlotChart(UPlotChartProps): JSX.Element = ({
   data,
   options,
   width: propWidth,
@@ -59,7 +59,7 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
 
   // Initialize chart
   useEffect(() => {
-    if (!chartRef.current || !data) return;
+    if (!chartRef.current || !_data) return;
 
     // Clean up existing chart
     if (plotRef.current && typeof plotRef.current.destroy === 'function') {
@@ -116,12 +116,12 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
   // Update data when it changes (skip initial render)
   useEffect(() => {
     // Skip if chart hasn't been created yet or no data
-    if (!plotRef.current || !data) return;
+    if (!plotRef.current || !_data) return;
     
     // Only update data if the chart instance exists and is not being recreated
     const chart = plotRef.current;
     if (chart && typeof chart.setData === 'function') {
-      chart.setData(data);
+      chart.setData(_data);
     }
   }, [data]);
 

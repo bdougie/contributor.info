@@ -69,7 +69,7 @@ export function processLabelsForUPlot(labels: (string | number)[]): {
  */
 export function createAxisValuesFormatter(labelMap: Map<number, string>) {
   return labelMap.size > 0 ? 
-    (_self: any, splits: number[], _axisIdx: number, _foundSpace: number, _foundIncr: number) => 
+    (_self: unknown, splits: number[], _axisIdx: number, _foundSpace: number, _foundIncr: number) => 
       splits.map(split => labelMap.get(split) || split.toString()) :
     undefined;
 }
