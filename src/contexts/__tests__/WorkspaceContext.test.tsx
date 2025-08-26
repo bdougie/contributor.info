@@ -1,1 +1,0 @@
-// Deleted per bulletproof testing guidelines - complex async tests cause CI hangs
