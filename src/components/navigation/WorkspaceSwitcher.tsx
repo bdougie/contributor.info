@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
-import { ChevronDown, Plus, Package, Clock, GitBranch, Search } from '@/components/ui/icon';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { ChevronDown, Plus, Package, Clock, GitBranch, Search, RefreshCw } from '@/components/ui/icon';
 import { useWorkspaceContext, type Workspace } from '@/contexts/WorkspaceContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { WORKSPACE_TIMEOUTS } from '@/lib/workspace-config';
 
 // Define proper types for workspace tiers
 type WorkspaceTier = 'free' | 'pro' | 'enterprise';
@@ -28,21 +29,42 @@ interface WorkspaceSwitcherProps {
 
 export function WorkspaceSwitcher({ className, showFullName = true, onOpenCommandPalette }: WorkspaceSwitcherProps) {
   const navigate = useNavigate();
-  const { activeWorkspace, workspaces, switchWorkspace, isLoading, recentWorkspaces, error } = useWorkspaceContext();
+  const { activeWorkspace, workspaces, switchWorkspace, isLoading, recentWorkspaces, error, retry } = useWorkspaceContext();
   const [open, setOpen] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Set up loading timeout for UI feedback
+  // Set up loading timeout for UI feedback with proper cleanup
   useEffect(() => {
     if (isLoading) {
-      const timer = setTimeout(() => {
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      timeoutRef.current = setTimeout(() => {
         setLoadingTimeout(true);
-      }, 3000); // Show timeout message after 3 seconds
-      return () => clearTimeout(timer);
+      }, WORKSPACE_TIMEOUTS.UI_FEEDBACK);
+      
+      return () => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+      };
     } else {
       setLoadingTimeout(false);
     }
   }, [isLoading]);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   // Separate recent and other workspaces
   const { recentWorkspacesList, otherWorkspaces } = useMemo(() => {
@@ -151,11 +173,26 @@ export function WorkspaceSwitcher({ className, showFullName = true, onOpenComman
       <DropdownMenuContent align="start" className="w-[320px]">
         {error && (
           <>
-            <DropdownMenuLabel className="text-destructive">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">Error loading workspaces</p>
+            <DropdownMenuLabel>
+              <div className="flex flex-col space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-destructive">Unable to load workspaces</p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      retry();
+                    }}
+                    className="h-6 px-2 text-xs"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Retry
+                  </Button>
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  {error === 'Loading timed out' ? 'The request took too long. Try refreshing the page.' : 'Please try again or refresh the page.'}
+                  You can continue working or try refreshing.
                 </p>
               </div>
             </DropdownMenuLabel>
