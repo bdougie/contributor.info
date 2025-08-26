@@ -1500,6 +1500,7 @@ export default function WorkspacePage() {
             activityData={activityData}
             repositories={repositories}
             tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
+            timeRange={timeRange}
             onAddRepository={handleAddRepository}
             onRepositoryClick={handleRepositoryClick}
             onSettingsClick={handleSettingsClick}
