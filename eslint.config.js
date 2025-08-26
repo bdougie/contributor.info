@@ -46,6 +46,18 @@ export default tseslint.config({
     'multiline-ternary': ['warn', 'always-multiline'],
     // Prevent usage of 'any' type - enforce proper TypeScript typing
     '@typescript-eslint/no-explicit-any': 'error',
+    
+    // Variables assigned but not used - warning for legitimate patterns
+    '@typescript-eslint/no-unused-vars': [
+      'warn',
+      {
+        varsIgnorePattern: '^_',           // Ignore variables prefixed with _
+        argsIgnorePattern: '^_',           // Ignore arguments prefixed with _
+        destructuredArrayIgnorePattern: '^_', // Ignore destructured arrays with _
+        ignoreRestSiblings: true,          // Allow rest properties for omitting
+        caughtErrors: 'none'               // Don't check catch clause errors
+      }
+    ],
     // Prevent usage of .single() from Supabase to avoid 406 errors
     // Use .maybeSingle() instead which returns null instead of throwing
     // See: /docs/postmortems/406-error-resolution.md
