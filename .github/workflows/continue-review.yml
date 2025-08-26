@@ -47,4 +47,4 @@ jobs:
           continue-api-key: ${{ secrets.CONTINUE_API_KEY }}
           github-token: ${{ steps.app-token.outputs.token }}
           continue-org: 'continuedev'  # Continue's organization
-          continue-config: 'continuedev/pr-reviews'  # Continue's pr review agent
+          continue-config: 'continuedev/review-bot'  # Continue's pr review agent
