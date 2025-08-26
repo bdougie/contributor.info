@@ -1349,7 +1349,7 @@ export default function WorkspacePage() {
         provider: "github",
         options: {
           redirectTo: redirectTo,
-          scopes: "read:user user:email repo"
+          scopes: "read:user user:email public_repo"
         }
       });
       
