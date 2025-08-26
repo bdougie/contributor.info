@@ -62,8 +62,10 @@ export function AddRepositoryModal({
 
   // Calculate limits
   const isFreeTier = workspace?.tier === 'free';
-  const maxRepos = workspace?.max_repositories || 4; // Default to free tier limit
-  const currentRepoCount = workspace?.current_repository_count || 0;
+  // Use the correct limits based on tier
+  const maxRepos = isFreeTier ? 4 : (workspace?.tier === 'pro' ? 50 : 1000);
+  // Use the actual count of existing repos instead of relying on database field
+  const currentRepoCount = existingRepos.length;
   const remainingSlots = maxRepos - currentRepoCount;
   const canAddMore = stagedRepos.length < remainingSlots;
 
