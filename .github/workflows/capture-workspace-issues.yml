@@ -146,7 +146,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: recentIssue.number,
-                body: `Sync failed again at ${new Date().toISOString()}\n\n[View Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+                body: `Sync failed again\n<!-- ${new Date().toISOString()} -->\n\n[View Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
               });
               console.log(`Updated existing issue #${recentIssue.number}`);
             } else {
@@ -158,7 +158,7 @@ jobs:
                 body: `The scheduled workspace issues sync workflow failed.
                 
                 **Workflow Run:** [View Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
-                **Time:** ${new Date().toISOString()}
+                <!-- Time: ${new Date().toISOString()} -->
                 
                 Please investigate the failure and ensure the sync is working properly.`,
                 labels: ['bug', 'automation']
