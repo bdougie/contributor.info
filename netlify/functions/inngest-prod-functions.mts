@@ -169,16 +169,16 @@ export function createCaptureRepositorySyncGraphQL(inngest: any) {
           const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
           
           // Different thresholds based on sync reason
-          let minHoursBetweenSyncs = 12; // Default for GraphQL sync
+          let minHoursBetweenSyncs = SYNC_RATE_LIMITS.DEFAULT;
           
           if (reason === 'scheduled') {
-            minHoursBetweenSyncs = 2; // Allow more frequent scheduled syncs
+            minHoursBetweenSyncs = SYNC_RATE_LIMITS.SCHEDULED;
           } else if (reason === 'pr-activity') {
-            minHoursBetweenSyncs = 1; // Allow very frequent PR activity updates
+            minHoursBetweenSyncs = SYNC_RATE_LIMITS.PR_ACTIVITY;
           } else if (reason === 'manual') {
-            minHoursBetweenSyncs = 5 / 60; // 5-minute cooldown for manual syncs
+            minHoursBetweenSyncs = SYNC_RATE_LIMITS.MANUAL;
           } else if (reason === 'auto-fix') {
-            minHoursBetweenSyncs = 1; // Allow hourly auto-fix syncs for corrupted data
+            minHoursBetweenSyncs = SYNC_RATE_LIMITS.AUTO_FIX;
           }
           
           if (hoursSinceSync < minHoursBetweenSyncs) {

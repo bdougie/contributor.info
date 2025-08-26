@@ -91,7 +91,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
           
       - name: Install dependencies
         run: npm ci
@@ -109,10 +109,10 @@ jobs:
           status: custom
           custom_payload: |
             {
-              text: "⚠️ PR Data Corruption Detected!",
-              attachments: [{
-                color: 'danger',
-                text: 'Corruption monitor detected issues. Check logs for details.'
+              "text": "⚠️ PR Data Corruption Detected!",
+              "attachments": [{
+                "color": "danger",
+                "text": "Corruption monitor detected issues. Check logs for details."
               }]
             }
 ```

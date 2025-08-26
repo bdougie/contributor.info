@@ -37,11 +37,32 @@ async function fetchPRDetailsFromGitHub(owner, name, prNumber, retries = 3) {
         }
       });
 
-      if (response.status === 429) {
+      if (response.status === 429 || (response.status === 403 && response.headers.get('x-ratelimit-remaining') === '0')) {
         // Rate limit hit - check retry-after header
-        const retryAfter = response.headers.get('retry-after') || response.headers.get('x-ratelimit-reset');
-        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 60000; // Default to 1 minute
-        console.log(`⏳ Rate limited. Waiting ${waitTime / 1000} seconds before retry...`);
+        const retryAfter = response.headers.get('retry-after');
+        const rateLimitReset = response.headers.get('x-ratelimit-reset');
+        
+        let waitTime;
+        if (retryAfter) {
+          // retry-after can be seconds or a date
+          const retryAfterNum = parseInt(retryAfter);
+          if (!isNaN(retryAfterNum)) {
+            waitTime = retryAfterNum * 1000; // Convert seconds to milliseconds
+          } else {
+            // It's a date string
+            waitTime = new Date(retryAfter).getTime() - Date.now();
+          }
+        } else if (rateLimitReset) {
+          // x-ratelimit-reset is a Unix timestamp in seconds
+          waitTime = (parseInt(rateLimitReset) * 1000) - Date.now();
+        } else {
+          waitTime = 60000; // Default to 1 minute
+        }
+        
+        // Ensure wait time is positive and reasonable
+        waitTime = Math.max(1000, Math.min(waitTime, 300000)); // Min 1 sec, max 5 min
+        
+        console.log(`⏳ Rate limited. Waiting ${Math.round(waitTime / 1000)} seconds before retry...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         continue;
       }

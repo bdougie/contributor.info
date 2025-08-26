@@ -100,7 +100,10 @@ async function checkRepositoryHealth() {
       .eq('repository_id', repo.id)
       .gte('created_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString());
 
-    if (prError) continue;
+    if (prError) {
+      console.error(`Error fetching PRs for ${repo.owner}/${repo.name}:`, prError.message);
+      continue;
+    }
 
     const total = prs?.length || 0;
     if (total === 0) continue;
@@ -142,28 +145,43 @@ async function checkCorruptionTrend() {
     const startTime = new Date(Date.now() - (i + 1) * 60 * 60 * 1000);
     const endTime = new Date(Date.now() - i * 60 * 60 * 1000);
     
-    const { count: total } = await supabase
-      .from('pull_requests')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', startTime.toISOString())
-      .lt('created_at', endTime.toISOString());
+    try {
+      const { count: total, error: totalError } = await supabase
+        .from('pull_requests')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startTime.toISOString())
+        .lt('created_at', endTime.toISOString());
 
-    const { count: corrupted } = await supabase
-      .from('pull_requests')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', startTime.toISOString())
-      .lt('created_at', endTime.toISOString())
-      .eq('additions', 0)
-      .eq('deletions', 0)
-      .eq('changed_files', 0)
-      .eq('commits', 0);
+      if (totalError) {
+        console.error(`Error fetching total count for hour ${i}:`, totalError.message);
+        continue;
+      }
 
-    hourlyStats.push({
-      hour: `${i}h ago`,
-      total: total || 0,
-      corrupted: corrupted || 0,
-      rate: total ? ((corrupted || 0) / total * 100).toFixed(2) : 0
-    });
+      const { count: corrupted, error: corruptedError } = await supabase
+        .from('pull_requests')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startTime.toISOString())
+        .lt('created_at', endTime.toISOString())
+        .eq('additions', 0)
+        .eq('deletions', 0)
+        .eq('changed_files', 0)
+        .eq('commits', 0);
+
+      if (corruptedError) {
+        console.error(`Error fetching corrupted count for hour ${i}:`, corruptedError.message);
+        continue;
+      }
+
+      hourlyStats.push({
+        hour: `${i}h ago`,
+        total: total || 0,
+        corrupted: corrupted || 0,
+        rate: total ? ((corrupted || 0) / total * 100).toFixed(2) : 0
+      });
+    } catch (error) {
+      console.error(`Error processing hour ${i} stats:`, error.message);
+      continue;
+    }
   }
 
   // Check if corruption is increasing

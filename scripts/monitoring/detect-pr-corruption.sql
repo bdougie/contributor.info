@@ -61,7 +61,7 @@ WITH repo_health AS (
     r.owner,
     r.name,
     r.last_updated_at,
-    COUNT(pr.id) as total_prs_last_week,
+    COUNT(pr.id) FILTER (WHERE pr.created_at >= NOW() - INTERVAL '7 days') as total_prs_last_week,
     COUNT(*) FILTER (
       WHERE pr.additions = 0 
         AND pr.deletions = 0 
