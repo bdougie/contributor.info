@@ -46,7 +46,7 @@ export default function Layout() {
   const needsTimeRange = () => {
     const path = location.pathname;
     // Show on home page and repository pages
-    return path === '/' || /^/[^/]+/[^/]+/.test(path);
+    return path === '/' || /^\/[^/]+/[^/]+/.test(path);
   };
 
   // Preload command palette on hover

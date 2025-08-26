@@ -157,7 +157,7 @@ const WidgetsPage = lazy(() => import('@/pages/widgets'));
 // Loading fallback component matching actual app structure
 const PageSkeleton = () => {
   const isOrgPage = window.location.pathname.startsWith('/orgs/');
-  const isRepoPage = /^/[^/]+/[^/]+/.test(window.location.pathname) && !isOrgPage;
+  const isRepoPage = /^\/[^/]+\/[^/]+/.test(window.location.pathname) && !isOrgPage;
   const isHomePage = window.location.pathname === '/';
 
   return (

@@ -166,7 +166,7 @@ export default function NotFound() {
     const suggestions: SuggestedUrl[] = [];
 
     // If it looks like a repository path
-    if (currentPath.match(/^/[^/]+/[^/]+/)) {
+    if (currentPath.match(/^\/[^/]+/[^/]+/)) {
       suggestions.push(
         { path: '/', score: 0.9, reason: 'Try the home page' },
         { path: '/changelog', score: 0.7, reason: 'Check recent updates' },

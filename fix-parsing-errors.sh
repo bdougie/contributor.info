@@ -1,17 +1,19 @@
 #!/bin/bash
 
-# Fix all the parsing errors with double colon in destructuring
-# Pattern: { error: _error: varName } should be { error: varName }
+echo "🔧 Fixing remaining parsing errors..."
 
-echo "Fixing parsing errors in TypeScript files..."
+# Fix unescaped forward slashes in regex patterns
+find src -name "*.ts" -o -name "*.tsx" | while read file; do
+  # Fix regex patterns that start with /^/ but have unescaped slashes
+  sed -i '' 's|/\^/\[|/\^\\\/\[|g' "$file"
+  
+  # Fix template literals with malformed syntax
+  sed -i '' 's/console.error(`[^`]*: \${error}/console.error(`Error: ${error instanceof Error ? error.message : String(error)}/g' "$file"
+  
+  # Fix numeric separators (underscores in numbers)
+  sed -i '' 's/1_000_000/1000000/g' "$file"
+  sed -i '' 's/10_000/10000/g' "$file"
+  sed -i '' 's/1_000/1000/g' "$file"
+done
 
-# Find and replace all instances
-find src -type f \( -name "*.ts" -o -name "*.tsx" \) -exec sed -i '' 's/error: _error:/error:/g' {} \;
-
-# Also fix similar patterns with data
-find src -type f \( -name "*.ts" -o -name "*.tsx" \) -exec sed -i '' 's/data: _data:/data:/g' {} \;
-
-# Fix patterns with other variables
-find src -type f \( -name "*.ts" -o -name "*.tsx" \) -exec sed -i '' 's/loading: _loading:/loading:/g' {} \;
-
-echo "Parsing errors fixed!"
+echo "✅ Fixed parsing errors"
