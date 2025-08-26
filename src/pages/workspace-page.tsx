@@ -1445,14 +1445,6 @@ export default function WorkspacePage() {
                 className="w-[200px]"
               />
               <Button
-                onClick={handleAddRepository}
-                size="sm"
-                variant="outline"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Repository
-              </Button>
-              <Button
                 onClick={handleSettingsClick}
                 size="sm"
                 variant="outline"
