@@ -144,32 +144,43 @@ export function WorkspaceSwitcher({ className, showFullName = true, onOpenComman
   }
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn('gap-2 justify-between', className)}
-          disabled={isLoading}
-        >
-          <div className="flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            {showFullName && (
-              <span className="truncate max-w-[200px]">
-                {isLoading && !loadingTimeout ? (
-                  'Loading...'
-                ) : error ? (
-                  'Error loading'
-                ) : loadingTimeout ? (
-                  'Taking longer than usual...'
-                ) : (
-                  activeWorkspace?.name || (workspaces.length > 0 ? 'Select Workspace' : 'No Workspaces')
-                )}
-              </span>
-            )}
-          </div>
-          <ChevronDown className="h-4 w-4 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
+    <>
+      {/* Accessibility live region for loading states */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {isLoading && !loadingTimeout && 'Loading workspaces...'}
+        {loadingTimeout && 'Loading is taking longer than usual...'}
+        {error && 'Error loading workspaces. Please try again.'}
+      </div>
+      
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn('gap-2 justify-between', className)}
+            disabled={isLoading}
+            aria-label={`Select workspace. Current: ${activeWorkspace?.name || 'None selected'}`}
+            aria-expanded={open}
+            aria-haspopup="menu"
+          >
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              {showFullName && (
+                <span className="truncate max-w-[200px]">
+                  {isLoading && !loadingTimeout ? (
+                    'Loading...'
+                  ) : error ? (
+                    'Error loading'
+                  ) : loadingTimeout ? (
+                    'Taking longer than usual...'
+                  ) : (
+                    activeWorkspace?.name || (workspaces.length > 0 ? 'Select Workspace' : 'No Workspaces')
+                  )}
+                </span>
+              )}
+            </div>
+            <ChevronDown className="h-4 w-4 opacity-50" />
+          </Button>
+        </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[320px]">
         {error && (
           <>
@@ -319,5 +330,6 @@ export function WorkspaceSwitcher({ className, showFullName = true, onOpenComman
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    </>
   );
 }

@@ -46,6 +46,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
   const [error, setError] = useState<Error | null>(null);
   const isFetchingRef = useRef(false);
   const hasInitialLoadRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchUserWorkspaces = useCallback(async () => {
     // Prevent concurrent fetches
@@ -53,25 +54,38 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       return;
     }
     
+    // Cancel any existing requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+    
     isFetchingRef.current = true;
     try {
       setLoading(true);
       setError(null);
 
-      // Check if user is authenticated - with shorter timeout and better error handling
+      // Check if user is authenticated - with AbortController timeout
       let user = null;
       
-      // Add shorter timeout to auth check to prevent hanging
-      const authTimeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Auth check timeout')), 2000)
-      );
+      // Add timeout using AbortSignal
+      const authTimeoutId = setTimeout(() => {
+        abortControllerRef.current?.abort();
+      }, 2000);
       
       try {
         console.log('[Workspace] Checking auth status...');
-        const authResult = await Promise.race([
-          supabase.auth.getUser(),
-          authTimeout
-        ]) as { data: { user: any } | null; error: any };
+        
+        // Check if aborted
+        if (signal.aborted) {
+          throw new Error('Request aborted');
+        }
+        
+        const authResult = await supabase.auth.getUser();
+        clearTimeout(authTimeoutId);
         
         const { data: authData, error: authError } = authResult;
         
@@ -91,7 +105,12 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
           user = authData?.user;
         }
       } catch (timeoutError) {
-        console.warn('[Workspace] Auth check timed out, using session fallback');
+        clearTimeout(authTimeoutId);
+        
+        if (signal.aborted) {
+          console.warn('[Workspace] Auth check aborted or timed out, using session fallback');
+        }
+        
         // Try to get session directly as fallback
         try {
           const { data: { session } } = await supabase.auth.getSession();
@@ -159,7 +178,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         return;
       }
       
-      console.log(`[Workspace] Found ${workspaceIds.size} workspace(s) for user`);
+      console.log('[Workspace] Found %d workspace(s) for user', workspaceIds.size);
       
       const workspaceIdsArray = Array.from(workspaceIds);
       
@@ -293,7 +312,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         })
       );
 
-      console.log(`[Workspace] Successfully loaded ${enrichedWorkspaces.length} workspace(s)`);
+      console.log('[Workspace] Successfully loaded %d workspace(s)', enrichedWorkspaces.length);
       setWorkspaces(enrichedWorkspaces);
       hasInitialLoadRef.current = true;
     } catch (err) {
@@ -346,6 +365,11 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       mounted = false;
       subscription.unsubscribe();
       if (loadingTimeout) clearTimeout(loadingTimeout);
+      // Cancel any pending requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
     };
   }, []); // Empty dependency array - only run once on mount
 

@@ -45,6 +45,7 @@ interface WorkspaceRepository {
   };
 }
 
+
 interface MergedPR {
   merged_at: string;
   additions: number;
@@ -223,24 +224,53 @@ function WorkspacePRs({ repositories, selectedRepositories }: { repositories: Re
           setPullRequests([]);
         } else {
           // Transform data to match PullRequest interface
-          const transformedPRs: PullRequest[] = (data || []).map(pr => ({
+          // Note: Supabase returns single objects for relationships when using !inner
+          type PRData = {
+            id: string;
+            github_id: number;
+            number: number;
+            title: string;
+            state: string;
+            created_at: string;
+            updated_at: string;
+            closed_at: string | null;
+            merged_at: string | null;
+            additions: number | null;
+            deletions: number | null;
+            changed_files: number | null;
+            commits: number | null;
+            html_url: string;
+            repository_id: string;
+            repositories?: {
+              id: string;
+              name: string;
+              owner: string;
+              full_name: string;
+            };
+            contributors?: {
+              username: string;
+              avatar_url: string;
+            };
+          };
+          
+          const transformedPRs: PullRequest[] = ((data || []) as unknown as PRData[]).map((pr) => ({
             id: pr.id,
             number: pr.number,
             title: pr.title,
             state: pr.merged_at ? 'merged' : pr.state === 'closed' ? 'closed' : 'open',
             repository: {
-              name: (pr.repositories as any)?.name || 'unknown',
-              owner: (pr.repositories as any)?.owner || 'unknown',
-              avatar_url: `https://avatars.githubusercontent.com/${(pr.repositories as any)?.owner || 'unknown'}`,
+              name: pr.repositories?.name || 'unknown',
+              owner: pr.repositories?.owner || 'unknown',
+              avatar_url: `https://avatars.githubusercontent.com/${pr.repositories?.owner || 'unknown'}`,
             },
             author: {
-              username: (pr.contributors as any)?.username || 'unknown',
-              avatar_url: (pr.contributors as any)?.avatar_url || '',
+              username: pr.contributors?.username || 'unknown',
+              avatar_url: pr.contributors?.avatar_url || '',
             },
             created_at: pr.created_at,
             updated_at: pr.updated_at,
-            closed_at: pr.closed_at,
-            merged_at: pr.merged_at,
+            closed_at: pr.closed_at || undefined,
+            merged_at: pr.merged_at || undefined,
             comments_count: 0, // We don't have this data yet
             commits_count: pr.commits || 0,
             additions: pr.additions || 0,
@@ -335,23 +365,46 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
           setIssues([]);
         } else {
           // Transform data to match Issue interface
-          const transformedIssues: Issue[] = (data || []).map(issue => ({
+          type IssueData = {
+            id: string;
+            github_id: number;
+            number: number;
+            title: string;
+            state: string;
+            created_at: string;
+            updated_at: string;
+            closed_at: string | null;
+            html_url: string;
+            repository_id: string;
+            repositories?: {
+              id: string;
+              name: string;
+              owner: string;
+              full_name: string;
+            };
+            contributors?: {
+              username: string;
+              avatar_url: string;
+            };
+          };
+          
+          const transformedIssues: Issue[] = ((data || []) as unknown as IssueData[]).map((issue) => ({
             id: issue.id,
             number: issue.number,
             title: issue.title,
             state: issue.state as 'open' | 'closed',
             repository: {
-              name: (issue.repositories as any)?.name || 'unknown',
-              owner: (issue.repositories as any)?.owner || 'unknown',
-              avatar_url: `https://avatars.githubusercontent.com/${(issue.repositories as any)?.owner || 'unknown'}`,
+              name: issue.repositories?.name || 'unknown',
+              owner: issue.repositories?.owner || 'unknown',
+              avatar_url: `https://avatars.githubusercontent.com/${issue.repositories?.owner || 'unknown'}`,
             },
             author: {
-              username: (issue.contributors as any)?.username || 'unknown',
-              avatar_url: (issue.contributors as any)?.avatar_url || '',
+              username: issue.contributors?.username || 'unknown',
+              avatar_url: issue.contributors?.avatar_url || '',
             },
             created_at: issue.created_at,
             updated_at: issue.updated_at,
-            closed_at: issue.closed_at,
+            closed_at: issue.closed_at || undefined,
             comments_count: 0, // We don't have this data yet
             labels: [], // We don't have this data yet
             url: issue.html_url,
