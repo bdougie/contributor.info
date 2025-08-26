@@ -1,6 +1,7 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import { WorkspacePullRequestsTable, type PullRequest } from '@/components/features/workspace/WorkspacePullRequestsTable';
@@ -1182,6 +1183,8 @@ export default function WorkspacePage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [selectedRepositories, setSelectedRepositories] = useState<string[]>([]);
   const [addRepositoryModalOpen, setAddRepositoryModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
 
   // Determine active tab from URL
   const pathSegments = location.pathname.split('/');
@@ -1196,6 +1199,10 @@ export default function WorkspacePage() {
       }
 
       try {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        setCurrentUser(user);
+
         // Check if workspaceId is a UUID or a slug
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workspaceId);
         
@@ -1218,6 +1225,13 @@ export default function WorkspacePage() {
           setError('Workspace not found');
           setLoading(false);
           return;
+        }
+
+        // Check if current user is the workspace owner
+        if (user && workspaceData.owner_id === user.id) {
+          setIsWorkspaceOwner(true);
+        } else {
+          setIsWorkspaceOwner(false);
         }
 
         // Fetch repositories with their details (use the actual workspace ID)
@@ -1341,7 +1355,25 @@ export default function WorkspacePage() {
     );
   }
 
-  const handleAddRepository = () => {
+  const handleAddRepository = async () => {
+    // Check if user is logged in first
+    if (!currentUser) {
+      // Trigger GitHub OAuth flow
+      const redirectTo = window.location.origin + window.location.pathname;
+      const { error: signInError } = await supabase.auth.signInWithOAuth({
+        provider: "github",
+        options: {
+          redirectTo: redirectTo,
+          scopes: "read:user user:email public_repo"
+        }
+      });
+      
+      if (signInError) {
+        toast.error('Failed to initiate sign in');
+        console.error('Auth error:', signInError);
+      }
+      return;
+    }
     setAddRepositoryModalOpen(true);
   };
 
@@ -1454,14 +1486,6 @@ export default function WorkspacePage() {
                 className="w-[200px]"
               />
               <Button
-                onClick={handleAddRepository}
-                size="sm"
-                variant="outline"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Repository
-              </Button>
-              <Button
                 onClick={handleSettingsClick}
                 size="sm"
                 variant="outline"
@@ -1516,7 +1540,7 @@ export default function WorkspacePage() {
             repositories={repositories}
             tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
             timeRange={timeRange}
-            onAddRepository={handleAddRepository}
+            onAddRepository={isWorkspaceOwner ? handleAddRepository : undefined}
             onRepositoryClick={handleRepositoryClick}
             onSettingsClick={handleSettingsClick}
             onUpgradeClick={handleUpgradeClick}
