@@ -319,7 +319,11 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
 
   useEffect(() => {
     async function fetchIssues() {
+      console.log('fetchIssues called, repositories:', repositories);
+      console.log('selectedRepositories:', selectedRepositories);
+      
       if (repositories.length === 0) {
+        console.log('No repositories, setting empty issues');
         setIssues([]);
         setLoading(false);
         return;
@@ -332,6 +336,8 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
           : repositories;
         
         const repoIds = filteredRepos.map(r => r.id);
+        console.log('Fetching issues for repository IDs:', repoIds);
+        
         const { data, error } = await supabase
           .from('issues')
           .select(`
@@ -346,7 +352,6 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
             closed_at,
             labels,
             comments_count,
-            html_url,
             repository_id,
             repositories(
               id,
@@ -363,8 +368,16 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
           .order('updated_at', { ascending: false })
           .limit(100);
 
+        console.log('Supabase query result:', { 
+          dataLength: data?.length, 
+          errorMessage: error?.message,
+          errorDetails: error?.details,
+          error 
+        });
+        
         if (error) {
-          console.error('Error fetching issues:', error);
+          console.error('Error fetching issues:', error.message || error);
+          console.error('Error details:', error);
           setIssues([]);
         } else {
           // Transform data to match Issue interface
@@ -380,7 +393,6 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
             closed_at: string | null;
             labels: any;
             comments_count: number | null;
-            html_url: string | null;
             repository_id: string;
             repositories?: {
               id: string;
@@ -418,9 +430,10 @@ function WorkspaceIssues({ repositories, selectedRepositories }: { repositories:
                   color: label.color || '000000'
                 })).filter((l: any) => l.name) // Filter out labels without names
               : [],
-            url: issue.html_url || `https://github.com/${issue.repositories?.full_name}/issues/${issue.number}`,
+            url: `https://github.com/${issue.repositories?.full_name}/issues/${issue.number}`,
           }));
           setIssues(transformedIssues);
+          console.log('Transformed issues:', transformedIssues.length);
         }
       } catch (err) {
         console.error('Error:', err);
