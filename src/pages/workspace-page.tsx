@@ -29,6 +29,7 @@ import {
 import { TimeRangeSelector, type TimeRange } from '@/components/features/workspace/TimeRangeSelector';
 import type { WorkspaceMetrics, WorkspaceTrendData, Repository, ActivityDataPoint } from '@/components/features/workspace';
 import type { Workspace } from '@/types/workspace';
+import { WorkspaceService } from '@/services/workspace.service';
 
 interface WorkspaceRepository {
   id: string;
@@ -1435,6 +1436,38 @@ export default function WorkspacePage() {
     }
   };
 
+  const handleRemoveRepository = async (repo: Repository) => {
+    if (!workspace || !currentUser) return;
+
+    try {
+      const result = await WorkspaceService.removeRepositoryFromWorkspace(
+        workspace.id,
+        currentUser.id,
+        repo.id
+      );
+
+      if (result.success) {
+        // Remove the repository from the local state immediately
+        setRepositories(prev => prev.filter(r => r.id !== repo.id));
+        
+        // Also remove from selected repositories if it was selected
+        setSelectedRepositories(prev => prev.filter(id => id !== repo.id));
+        
+        // Update metrics after removing repository
+        const updatedRepos = repositories.filter(r => r.id !== repo.id);
+        const newMetrics = generateMockMetrics(updatedRepos, timeRange);
+        setMetrics(newMetrics);
+        
+        toast.success('Repository removed from workspace');
+      } else {
+        toast.error(result.error || 'Failed to remove repository');
+      }
+    } catch (error) {
+      console.error('Error removing repository:', error);
+      toast.error('Failed to remove repository from workspace');
+    }
+  };
+
   const handleRepositoryClick = (repo: Repository) => {
     navigate(`/${repo.full_name}`);
   };
@@ -1541,6 +1574,7 @@ export default function WorkspacePage() {
             tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
             timeRange={timeRange}
             onAddRepository={isWorkspaceOwner ? handleAddRepository : undefined}
+            onRemoveRepository={isWorkspaceOwner ? handleRemoveRepository : undefined}
             onRepositoryClick={handleRepositoryClick}
             onSettingsClick={handleSettingsClick}
             onUpgradeClick={handleUpgradeClick}
