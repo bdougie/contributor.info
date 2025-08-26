@@ -8,6 +8,15 @@ const MAX_PRS_PER_SYNC = 150; // Higher than REST due to efficiency
 const LARGE_REPO_THRESHOLD = 1000;
 const DEFAULT_DAYS_LIMIT = 30;
 
+// Sync rate limiting constants (in hours)
+const SYNC_RATE_LIMITS = {
+  DEFAULT: 12,        // Default for GraphQL sync
+  SCHEDULED: 2,       // Scheduled syncs
+  PR_ACTIVITY: 1,     // PR activity updates
+  MANUAL: 5 / 60,     // 5-minute cooldown for manual syncs
+  AUTO_FIX: 1,        // Hourly auto-fix syncs for corrupted data
+} as const;
+
 // GraphQL client instance - initialized lazily to ensure env vars are available
 let graphqlClient: GraphQLClient | null = null;
 

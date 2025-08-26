@@ -1,80 +1,182 @@
-# Monitoring Scripts
+# PR Data Corruption Monitoring
 
-Cost analysis and performance monitoring tools for the contributor.info platform.
+This directory contains scripts and queries for monitoring PR data corruption in the contributor.info database.
 
 ## Overview
 
-These scripts help track system costs, analyze performance, and ensure optimal resource usage across both Inngest and GitHub Actions processing.
+The monitoring system detects when PR data becomes corrupted (all metrics showing as zero) and provides both SQL queries for manual inspection and an automated JavaScript monitor for continuous checking.
 
-## Scripts
+## Files
 
-### `cost-analyzer.js`
+### `detect-pr-corruption.sql`
+SQL queries for manual corruption detection:
+- Daily corruption summary
+- Real-time corruption detection (last hour)
+- Repository health checks
+- Corruption trend analysis
+- Alert status query
 
-**Purpose**: Track and analyze processing costs to validate expected savings from the hybrid approach.
+### `corruption-monitor.js`
+Automated monitoring script that can be run via cron job:
+- Checks for recent corruption
+- Monitors repository health
+- Analyzes corruption trends
+- Sends alerts via webhook (optional)
 
-**When to use**:
-- Weekly cost reviews
-- Validating the 60-85% cost reduction from hybrid processing
-- Budget planning and optimization
+## Setup
 
-**What it does**:
-- Compares Inngest vs GitHub Actions costs
-- Tracks cost trends over time
-- Identifies optimization opportunities
-- Validates expected cost savings
+### Manual Monitoring
 
-**Usage**:
+Run the SQL queries in `detect-pr-corruption.sql` directly in your Supabase SQL editor or via psql:
+
 ```bash
-node scripts/monitoring/cost-analyzer.js
+# Using psql
+psql $DATABASE_URL < detect-pr-corruption.sql
+
+# Or copy individual queries to Supabase SQL editor
 ```
 
-**Output**: Detailed cost breakdown showing:
-- Processing costs by type (Inngest vs GitHub Actions)
-- Cost per repository and processing volume
-- Savings achieved through hybrid approach
-- Recommendations for further optimization
+### Automated Monitoring
 
-## Cost Models
+1. **Install dependencies** (if not already installed):
+```bash
+npm install @supabase/supabase-js dotenv
+```
 
-The cost analyzer uses realistic pricing models:
+2. **Set environment variables**:
+```bash
+export VITE_SUPABASE_URL="https://your-project.supabase.co"
+export VITE_SUPABASE_ANON_KEY="your-anon-key"
+```
 
-| Service | Base Cost | Additional Factors |
-|---------|-----------|-------------------|
-| **Inngest** | $0.0001 per execution | Data processing, rate limits, concurrency |
-| **GitHub Actions** | $0.008 per minute | Setup overhead, storage costs |
+3. **Run the monitor**:
+```bash
+# Run all checks
+node scripts/monitoring/corruption-monitor.js
 
-## Expected Savings
+# Only run critical alert checks (faster)
+node scripts/monitoring/corruption-monitor.js --alert-only
 
-The hybrid approach should achieve:
-- **60-85% cost reduction** compared to Inngest-only processing
-- **Lower rate limit penalties** through distributed processing
-- **Reduced concurrency costs** by using GitHub Actions for bulk operations
+# Send alerts to webhook (e.g., Slack, Discord)
+node scripts/monitoring/corruption-monitor.js --webhook https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+```
 
-## Monitoring Workflow
+### Cron Job Setup
 
-1. **Run cost analysis weekly**:
-   ```bash
-   node scripts/monitoring/cost-analyzer.js
-   ```
+To run the monitor automatically every hour, add this to your crontab:
 
-2. **Review cost trends** and identify any unexpected increases
+```bash
+# Edit crontab
+crontab -e
 
-3. **Validate savings targets** are being met
+# Add this line (adjust paths as needed)
+0 * * * * cd /path/to/contributor.info && node scripts/monitoring/corruption-monitor.js --webhook https://your.webhook.url >> /var/log/corruption-monitor.log 2>&1
+```
 
-4. **Adjust processing strategies** if costs exceed expectations
+For GitHub Actions:
+```yaml
+name: PR Data Corruption Monitor
 
-## Integration
+on:
+  schedule:
+    - cron: '0 * * * *'  # Run every hour
+  workflow_dispatch:     # Allow manual trigger
 
-This monitoring integrates with:
-- **Rollout system**: Cost tracking during feature rollouts
-- **Database metrics**: Processing volumes and success rates
-- **Performance monitoring**: Cost-per-operation analysis
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run corruption monitor
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: node scripts/monitoring/corruption-monitor.js --alert-only
+        
+      - name: Alert on failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "⚠️ PR Data Corruption Detected!",
+              attachments: [{
+                color: 'danger',
+                text: 'Corruption monitor detected issues. Check logs for details.'
+              }]
+            }
+```
 
-## Safety Notes
+## Alert Thresholds
 
-- Cost analysis is **read-only** and safe to run anytime
-- Requires Supabase access for metrics data
-- No system changes or data modifications
-- Helps identify cost optimization opportunities
+The monitor uses these thresholds (configurable in `corruption-monitor.js`):
 
-Use this monitoring to ensure the hybrid processing system delivers expected cost savings while maintaining performance and reliability.
+- **CRITICAL**: More than 20 corrupted PRs in the last hour
+- **WARNING**: More than 50% corruption rate for any repository
+- **ALERT**: More than 10% overall corruption rate
+
+## Exit Codes
+
+The monitor script returns different exit codes for scripting:
+- `0`: OK - No issues detected
+- `1`: WARNING - Potential issues detected
+- `2`: CRITICAL - Immediate action required
+- `3`: ERROR - Monitor script failed
+
+## Webhook Integration
+
+The monitor can send alerts to any webhook-compatible service. The payload format:
+
+```json
+{
+  "text": "PR Data Corruption Alert: WARNING",
+  "timestamp": "2025-08-26T12:00:00Z",
+  "severity": "WARNING",
+  "checks": [
+    {
+      "name": "Recent Corruption",
+      "status": "WARNING",
+      "message": "Found 5 corrupted PRs in the last hour",
+      "data": ["owner/repo#123", "owner/repo#124"]
+    }
+  ],
+  "overallStatus": "WARNING"
+}
+```
+
+## Recovery
+
+If corruption is detected:
+
+1. **Immediate action**: Run the recovery script
+```bash
+node scripts/fix-corrupted-pr-data.js
+```
+
+2. **Check specific PRs**: Use the targeted fix script
+```bash
+node scripts/fix-pr-7273.js
+```
+
+3. **Verify fix**: Re-run the monitor
+```bash
+node scripts/monitoring/corruption-monitor.js
+```
+
+## Best Practices
+
+1. **Regular monitoring**: Run the monitor at least hourly
+2. **Alert fatigue**: Adjust thresholds if too many false positives
+3. **Log retention**: Keep monitor logs for trend analysis
+4. **Database indexes**: Ensure corruption detection indexes are in place (see migration `20250826_add_pr_corruption_detection_index.sql`)
+5. **Rate limiting**: Recovery scripts include retry logic and rate limit handling
