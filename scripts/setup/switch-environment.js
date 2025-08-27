@@ -72,13 +72,12 @@ const environments = {
     ]
   },
   production: {
-    VITE_SUPABASE_URL: 'https://egcxzonpmmcirmgqdrla.supabase.co',
-    VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || 'YOUR_PRODUCTION_ANON_KEY_HERE',
+    // Don't set VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY here - preserve existing values
     VITE_ENV: 'production',
     description: 'Production Supabase',
     instructions: [
       'Using production Supabase instance',
-      'Make sure you have the correct production keys in your .env.local',
+      'Make sure you have the correct production URL and keys in your .env.local',
       'Be careful with database operations!'
     ]
   }
@@ -385,13 +384,55 @@ async function switchEnvironment(envName) {
     }
     
     // Apply environment-specific changes
+    // For production, preserve existing VITE_SUPABASE_ANON_KEY if present
+    const envChanges = Object.entries(envConfig)
+      .filter(([key]) => key !== 'description' && key !== 'instructions')
+      .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+    
     const newEnv = {
       ...baseEnv,
       ...currentEnv,
-      ...Object.entries(envConfig)
-        .filter(([key]) => key !== 'description' && key !== 'instructions')
-        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
+      ...envChanges
     };
+    
+    // Special handling for production environment
+    if (validatedEnvName === 'production') {
+      let hasErrors = false;
+      
+      // Check if production URL exists
+      if (!newEnv.VITE_SUPABASE_URL || 
+          newEnv.VITE_SUPABASE_URL === 'https://your-project.supabase.co' ||
+          !newEnv.VITE_SUPABASE_URL.includes('supabase.co')) {
+        log('⚠️  Warning: No valid production URL found in .env.local', colors.yellow);
+        log('   Please add your production VITE_SUPABASE_URL to .env.local', colors.yellow);
+        hasErrors = true;
+      }
+      
+      // Check if production key exists
+      if (!newEnv.VITE_SUPABASE_ANON_KEY || 
+          newEnv.VITE_SUPABASE_ANON_KEY === 'YOUR_PRODUCTION_ANON_KEY_HERE' ||
+          newEnv.VITE_SUPABASE_ANON_KEY === 'your-supabase-anon-key' ||
+          newEnv.VITE_SUPABASE_ANON_KEY === 'your-production-anon-key' ||
+          !newEnv.VITE_SUPABASE_ANON_KEY.startsWith('eyJ')) {
+        log('⚠️  Warning: No valid production anon key found in .env.local', colors.yellow);
+        log('   Please add your production VITE_SUPABASE_ANON_KEY to .env.local', colors.yellow);
+        hasErrors = true;
+      }
+      
+      if (hasErrors) {
+        console.log('');
+        log('   You can find these in your Supabase dashboard under Settings > API', colors.yellow);
+        console.log('');
+        log('   Example:', colors.cyan);
+        log('   VITE_SUPABASE_URL=https://your-project.supabase.co', colors.cyan);
+        log('   VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI...', colors.cyan);
+        console.log('');
+        
+        log('❓ Cannot switch to production without valid credentials.', colors.red);
+        log('   Please add them to .env.local and try again.', colors.yellow);
+        process.exit(1);
+      }
+    }
     
     // Write new environment file
     writeEnvFile(envLocalPath, newEnv);
