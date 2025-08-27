@@ -129,8 +129,13 @@ const generateMockTrendData = (days: number): WorkspaceTrendData => {
   };
 };
 
-// Generate activity data from merged PRs
-const generateActivityDataFromPRs = (mergedPRs: MergedPR[]): ActivityDataPoint[] => {
+// Generate activity data from merged PRs with better aggregation
+const generateActivityDataFromPRs = (mergedPRs: MergedPR[], timeRange: TimeRange): ActivityDataPoint[] => {
+  // If no data at all, return empty array (let the chart handle empty state)
+  if (!mergedPRs || mergedPRs.length === 0) {
+    return [];
+  }
+  
   // Group PRs by date
   const prsByDate = new Map<string, MergedPR[]>();
   
@@ -146,37 +151,45 @@ const generateActivityDataFromPRs = (mergedPRs: MergedPR[]): ActivityDataPoint[]
   const activityData: ActivityDataPoint[] = [];
   
   prsByDate.forEach((prs, date) => {
-    const totalAdditions = prs.reduce((sum, pr) => sum + pr.additions, 0);
-    const totalDeletions = prs.reduce((sum, pr) => sum + pr.deletions, 0);
-    const totalCommits = prs.reduce((sum, pr) => sum + pr.commits, 0);
-    const totalFilesChanged = prs.reduce((sum, pr) => sum + pr.changed_files, 0);
+    const totalAdditions = prs.reduce((sum, pr) => sum + (pr.additions || 0), 0);
+    const totalDeletions = prs.reduce((sum, pr) => sum + (pr.deletions || 0), 0);
+    const totalCommits = prs.reduce((sum, pr) => sum + (pr.commits || 0), 0);
+    const totalFilesChanged = prs.reduce((sum, pr) => sum + (pr.changed_files || 0), 0);
     
-    activityData.push({
-      date,
-      additions: totalAdditions,
-      deletions: totalDeletions,
-      commits: totalCommits,
-      files_changed: totalFilesChanged,
-    });
+    // Only add data points that have actual activity
+    if (totalAdditions > 0 || totalDeletions > 0 || totalCommits > 0) {
+      activityData.push({
+        date,
+        additions: totalAdditions,
+        deletions: totalDeletions,
+        commits: totalCommits,
+        files_changed: totalFilesChanged,
+      });
+    }
   });
   
   // Sort by date
   activityData.sort((a, b) => a.date.localeCompare(b.date));
   
-  // If no real data, generate mock data for last 30 days
-  if (activityData.length === 0) {
-    const today = new Date();
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      activityData.push({
-        date: date.toISOString().split('T')[0],
-        additions: Math.floor(Math.random() * 500) + 50,
-        deletions: Math.floor(Math.random() * 300) + 30,
-        commits: Math.floor(Math.random() * 20) + 1,
-        files_changed: Math.floor(Math.random() * 30) + 1,
+  // Fill in gaps for continuous chart display (optional, only for recent dates)
+  if (activityData.length > 0 && timeRange !== 'all') {
+    const filledData: ActivityDataPoint[] = [];
+    const startDate = new Date(activityData[0].date);
+    const endDate = new Date(activityData[activityData.length - 1].date);
+    const dataMap = new Map(activityData.map(d => [d.date, d]));
+    
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      filledData.push(dataMap.get(dateStr) || {
+        date: dateStr,
+        additions: 0,
+        deletions: 0,
+        commits: 0,
+        files_changed: 0,
       });
     }
+    
+    return filledData;
   }
   
   return activityData;
@@ -1279,20 +1292,66 @@ export default function WorkspacePage() {
             html_url: `https://github.com/${r.repositories.full_name}`,
           }));
 
-        // Fetch merged PRs for activity data
+        // Fetch merged PRs for activity data - respect time range
         let mergedPRs: MergedPR[] = [];
         if (transformedRepos.length > 0) {
           const repoIds = transformedRepos.map(r => r.id);
-          const { data: prData } = await supabase
+          
+          // Calculate date range based on selected time range
+          const timeRangeDays = {
+            '7d': 7,
+            '30d': 30,
+            '90d': 90,
+            '1y': 365,
+            'all': 730 // 2 years for "all" to limit data size
+          };
+          
+          const daysToFetch = timeRangeDays[timeRange];
+          const startDate = new Date(Date.now() - daysToFetch * 24 * 60 * 60 * 1000);
+          
+          // Fetch both merged PRs and all PR activity for better coverage
+          const { data: prData, error: prError } = await supabase
             .from('pull_requests')
-            .select('merged_at, additions, deletions, changed_files, commits')
+            .select('merged_at, created_at, updated_at, additions, deletions, changed_files, commits, state')
             .in('repository_id', repoIds)
-            .eq('merged', true)
-            .not('merged_at', 'is', null)
-            .gte('merged_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+            .gte('created_at', startDate.toISOString())
+            .order('created_at', { ascending: true });
+          
+          if (prError) {
+            console.error('Error fetching PR data for activity chart:', prError);
+          }
           
           if (prData) {
-            mergedPRs = prData as MergedPR[];
+            // Filter for merged PRs but handle null fields gracefully
+            mergedPRs = prData
+              .filter(pr => pr.merged_at !== null)
+              .map(pr => ({
+                merged_at: pr.merged_at,
+                additions: pr.additions || 0,
+                deletions: pr.deletions || 0,
+                changed_files: pr.changed_files || 0,
+                commits: pr.commits || 0
+              }));
+          }
+          
+          // If no merged PRs found, try to get any open PRs for activity indication
+          if (mergedPRs.length === 0 && prData) {
+            console.log(`No merged PRs found for workspace in last ${daysToFetch} days, checking for any PR activity...`);
+            // Use created_at for open PRs to show some activity
+            const openPRActivity = prData
+              .filter(pr => pr.state === 'open' && pr.created_at)
+              .map(pr => ({
+                merged_at: pr.created_at, // Use created_at as proxy for activity date
+                additions: pr.additions || 0,
+                deletions: pr.deletions || 0,
+                changed_files: pr.changed_files || 0,
+                commits: pr.commits || 0
+              }));
+            
+            if (openPRActivity.length > 0) {
+              console.log(`Found ${openPRActivity.length} open PRs to show activity`);
+              mergedPRs = openPRActivity;
+            }
           }
         }
 
@@ -1309,7 +1368,7 @@ export default function WorkspacePage() {
         };
         const mockMetrics = generateMockMetrics(transformedRepos, timeRange);
         const mockTrendData = generateMockTrendData(timeRangeDays[timeRange]);
-        const activityDataPoints = generateActivityDataFromPRs(mergedPRs);
+        const activityDataPoints = generateActivityDataFromPRs(mergedPRs, timeRange);
         
         setMetrics(mockMetrics);
         setTrendData(mockTrendData);
