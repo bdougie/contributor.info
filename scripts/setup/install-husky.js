@@ -5,7 +5,7 @@
  * Skip in CI/production environments where git hooks aren't needed
  */
 
-const { execSync } = require('child_process');
+import { execSync } from 'child_process';
 
 // Skip husky install in CI/production environments
 if (process.env.CI || process.env.NETLIFY || process.env.NODE_ENV === 'production') {
