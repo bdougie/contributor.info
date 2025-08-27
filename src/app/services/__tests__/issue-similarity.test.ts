@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock dependencies BEFORE importing anything that uses them
 vi.mock('../../../lib/supabase', () => ({
   supabase: {
-    from: vi.fn((table: string) => {
+    from: vi.fn((_table: string) => {
       const chainObj = {
         insert: vi.fn().mockReturnThis(),
         select: vi.fn().mockReturnThis(),
@@ -21,7 +21,7 @@ vi.mock('../../../lib/supabase', () => ({
 }));
 
 vi.mock('@xenova/transformers', () => ({
-  pipeline: vi.fn(() => Promise.resolve((text: string, options: any) => ({
+  pipeline: vi.fn(() => Promise.resolve((_text: string, _options: any) => ({
     data: new Float32Array(384).fill(0.1), // Mock 384-dimensional embedding
     tolist: () => [[...new Float32Array(384).fill(0.1)]]
   }))),

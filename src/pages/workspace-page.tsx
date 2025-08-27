@@ -345,7 +345,11 @@ function WorkspacePRs({
             id: pr.id,
             number: pr.number,
             title: pr.title,
-            state: pr.merged_at ? 'merged' : pr.state === 'closed' ? 'closed' : 'open',
+            state: (() => {
+              if (pr.merged_at) return 'merged';
+              if (pr.state === 'closed') return 'closed';
+              return 'open';
+            })(),
             repository: {
               name: pr.repositories?.name || 'unknown',
               owner: pr.repositories?.owner || 'unknown',
@@ -436,7 +440,8 @@ function WorkspaceIssues({
 
         const repoIds = filteredRepos.map((r) => r.id);
 
-        // Fetch issues with count for potential future pagination
+        // Fetch issues with pagination support
+        // Note: Using .limit() instead of .range() to avoid HTTP 206 partial responses
         const { data, error } = await supabase
           .from('issues')
           .select(
@@ -463,12 +468,11 @@ function WorkspaceIssues({
               username,
               avatar_url
             )
-          `,
-            { count: 'exact' }
+          `
           )
           .in('repository_id', repoIds)
           .order('updated_at', { ascending: false })
-          .range(0, 99); // Fetch first 100 issues (0-indexed)
+          .limit(100); // Using limit instead of range to get full 200 response
 
         if (error) {
           console.error('Failed to fetch workspace issues:', {
@@ -719,8 +723,14 @@ function WorkspaceContributors({
       cell: ({ row }) => {
         const stats = row.original.contributions;
         const trend = row.original.stats.contribution_trend;
-        const trendColor =
-          trend > 0 ? 'text-green-600' : trend < 0 ? 'text-red-600' : 'text-muted-foreground';
+        let trendColor: string;
+        if (trend > 0) {
+          trendColor = 'text-green-600';
+        } else if (trend < 0) {
+          trendColor = 'text-red-600';
+        } else {
+          trendColor = 'text-muted-foreground';
+        }
         const TrendIcon = trend > 0 ? TrendingUp : TrendingDown;
 
         // Get repository data from the contributor
@@ -818,8 +828,14 @@ function WorkspaceContributors({
       cell: ({ row }) => {
         const stats = row.original.contributions;
         const trend = row.original.stats.contribution_trend;
-        const trendColor =
-          trend > 0 ? 'text-green-600' : trend < 0 ? 'text-red-600' : 'text-muted-foreground';
+        let trendColor: string;
+        if (trend > 0) {
+          trendColor = 'text-green-600';
+        } else if (trend < 0) {
+          trendColor = 'text-red-600';
+        } else {
+          trendColor = 'text-muted-foreground';
+        }
         const TrendIcon = trend > 0 ? TrendingUp : TrendingDown;
 
         // Get repository data from the contributor
@@ -1305,13 +1321,13 @@ export default function WorkspacePage() {
               .select('*')
               .eq('is_active', true)
               .eq('id', workspaceId)
-              .single()
+              .maybeSingle()
           : await supabase
               .from('workspaces')
               .select('*')
               .eq('is_active', true)
               .eq('slug', workspaceId)
-              .single();
+              .maybeSingle();
 
         if (wsError || !workspaceData) {
           setError('Workspace not found');
