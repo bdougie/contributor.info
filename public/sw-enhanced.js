@@ -162,11 +162,14 @@ async function cacheFirst(request, cacheName, maxAge) {
   try {
     const networkResponse = await fetch(request);
     
-    if (networkResponse.ok) {
+    // Only cache successful full responses (200 OK), not partial responses (206)
+    if (networkResponse.ok && networkResponse.status === 200) {
       await cache.put(request, addTimestamp(networkResponse.clone()));
       // Use the base cache name for limit lookup
       const cacheKey = Object.keys(CACHE_LIMITS).find(key => cacheName === CACHES[key]) || 'RUNTIME';
       await limitCacheSize(cacheName, CACHE_LIMITS[cacheKey] || 100);
+    } else if (networkResponse.status === 206) {
+      console.log('[SW] Partial response (206) - not caching:', request.url);
     }
     
     return networkResponse;
@@ -190,7 +193,8 @@ async function staleWhileRevalidate(request, cacheName, maxAge) {
     
     // Still fetch in background to keep cache warm
     fetch(request).then(response => {
-      if (response.ok) {
+      // Only cache successful full responses (200 OK)
+      if (response.ok && response.status === 200) {
         cache.put(request, addTimestamp(response.clone()));
       }
     }).catch(() => {});
@@ -204,7 +208,8 @@ async function staleWhileRevalidate(request, cacheName, maxAge) {
     
     // Revalidate in background
     fetch(request).then(response => {
-      if (response.ok) {
+      // Only cache successful full responses (200 OK)
+      if (response.ok && response.status === 200) {
         cache.put(request, addTimestamp(response.clone()));
         // Use the base cache name for limit lookup
         const cacheKey = Object.keys(CACHE_LIMITS).find(key => cacheName === CACHES[key]) || 'RUNTIME';
@@ -230,7 +235,14 @@ async function staleWhileRevalidate(request, cacheName, maxAge) {
     console.log('[SW] Cache miss, fetching:', request.url);
     const networkResponse = await fetch(request);
     
-    if (networkResponse.ok) {
+    // Check if it's a partial response (206) - don't cache these
+    if (networkResponse.status === 206) {
+      console.log('[SW] Partial response (206) - not caching:', request.url);
+      return networkResponse;
+    }
+    
+    // Only cache successful full responses (200 OK)
+    if (networkResponse.ok && networkResponse.status === 200) {
       await cache.put(request, addTimestamp(networkResponse.clone()));
       // Use the base cache name for limit lookup
       const cacheKey = Object.keys(CACHE_LIMITS).find(key => cacheName === CACHES[key]) || 'RUNTIME';
@@ -249,12 +261,15 @@ async function networkFirst(request, cacheName) {
   try {
     const networkResponse = await fetch(request);
     
-    if (networkResponse.ok) {
+    // Only cache successful full responses (200 OK), not partial responses (206)
+    if (networkResponse.ok && networkResponse.status === 200) {
       const cache = await caches.open(cacheName);
       await cache.put(request, addTimestamp(networkResponse.clone()));
       // Use the base cache name for limit lookup
       const cacheKey = Object.keys(CACHE_LIMITS).find(key => cacheName === CACHES[key]) || 'RUNTIME';
       await limitCacheSize(cacheName, CACHE_LIMITS[cacheKey] || 100);
+    } else if (networkResponse.status === 206) {
+      console.log('[SW] Partial response (206) - not caching:', request.url);
     }
     
     return networkResponse;
