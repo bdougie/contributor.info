@@ -191,12 +191,22 @@ const trigger = await import('./src/lib/progressive-capture/manual-trigger');
 await trigger.ProgressiveCaptureTrigger.bootstrap();
 ```
 
+### Clean Seed Data
+```bash
+# Remove all seed data safely
+npm run db:seed:clean -- --confirm
+```
+
+### Preview Mode (Dry Run)
+```bash
+# See what would be fetched without writing to database
+npm run db:seed:dry
+```
+
 ### Force Data Refresh
 ```bash
-# Clear existing data
-psql -h localhost -p 54322 -U postgres -d postgres -c "TRUNCATE repositories CASCADE;"
-
-# Re-run seed generation
+# Clean and regenerate
+npm run db:seed:clean -- --confirm
 npm run db:seed
 ```
 
